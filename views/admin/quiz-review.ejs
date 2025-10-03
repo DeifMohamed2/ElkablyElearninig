@@ -1,0 +1,456 @@
+<%- include('./partials/admin-header', { pageCSS: 'quizzes' }) %>
+
+<!-- MathLive for professional math input -->
+<script src="https://unpkg.com/mathlive"></script>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: currentPage }) %>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+      breadcrumb: 'Quiz Review',
+      breadcrumbSubtitle: 'Review student answers for this quiz'
+    }) %>
+
+    <div class="admin-content">
+      <div class="quiz-creation-header">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h1 class="quiz-creation-title">
+              <i class="fas fa-eye"></i>
+              <%= quiz.title %>
+            </h1>
+            <p class="quiz-creation-subtitle">
+              <span class="quiz-code"><%= quiz.code %></span>
+              <span class="quiz-status-badge quiz-status-<%= quiz.status %> ms-3"><%= quiz.status %></span>
+            </p>
+          </div>
+          <div class="quiz-actions">
+            <a href="/admin/quizzes/<%= quiz._id %>" class="quiz-action-btn quiz-action-btn-secondary">
+              <i class="fas fa-arrow-left"></i>
+              Back to Quiz
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student & Attempt Summary -->
+      <div class="row mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <div class="admin-stat-item">
+            <div class="admin-stat-icon">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="admin-stat-number" style="font-size: 16px;"><%= (student.firstName ? (student.firstName + ' ' + (student.lastName || '')) : (student.userName || 'Unknown')) %></div>
+            <div class="admin-stat-label">Student</div>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <div class="admin-stat-item">
+            <div class="admin-stat-icon">
+              <i class="fas fa-percentage"></i>
+            </div>
+            <div class="admin-stat-number"><%= attempt.score %>%</div>
+            <div class="admin-stat-label">Score</div>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <div class="admin-stat-item">
+            <div class="admin-stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="admin-stat-number"><%= attempt.correctAnswers %>/<%= attempt.totalQuestions %></div>
+            <div class="admin-stat-label">Correct</div>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <div class="admin-stat-item">
+            <div class="admin-stat-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="admin-stat-number"><%= Math.floor((attempt.timeSpent || 0) / 60) %>m</div>
+            <div class="admin-stat-label">Time Spent</div>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <div class="admin-stat-item">
+            <div class="admin-stat-icon">
+              <i class="fas fa-<%= attempt.passed ? 'trophy' : 'times-circle' %>"></i>
+            </div>
+            <div class="admin-stat-number" style="font-size: 14px;"><%= attempt.passed ? 'PASSED' : 'FAILED' %></div>
+            <div class="admin-stat-label">Status</div>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+          <div class="admin-stat-item">
+            <div class="admin-stat-icon">
+              <i class="fas fa-calendar"></i>
+            </div>
+            <div class="admin-stat-number" style="font-size: 14px;"><%= new Date(attempt.completedAt).toLocaleDateString() %></div>
+            <div class="admin-stat-label">Date</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Answer Review (styled like student/quiz-results) -->
+      <div class="quiz-form-section">
+        <div class="quiz-form-section-title d-flex justify-content-between align-items-center">
+          <div>
+            <i class="fas fa-eye"></i>
+            Answer Review
+          </div>
+          <div class="admin-actions">
+            <button class="admin-action-btn" onclick="printReview()">
+              <i class="fas fa-print"></i>
+              Print
+            </button>
+            <button class="admin-action-btn" onclick="exportReview()">
+              <i class="fas fa-download"></i>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <% if (canShowAnswers) { %>
+          <% const answersByQ = new Map(attempt.answers.map(a => [a.questionId.toString(), a])); %>
+          <% if ((quiz.selectedQuestions || []).length === 0) { %>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              No questions were attempted by this student in this quiz attempt.
+            </div>
+          <% } else { %>
+            <div class="enhanced-question-list">
+              <% (quiz.selectedQuestions || []).forEach((selectedQ, index) => { %>
+              <% const q = selectedQ.question; const a = answersByQ.get(q._id.toString()); const isCorrect = a ? a.isCorrect : false; %>
+              <div class="enhanced-question-item">
+                <div class="enhanced-question-header">
+                  <div class="enhanced-question-number">
+                    <span class="question-number-badge"><%= index + 1 %></span>
+                  </div>
+                  <div class="enhanced-question-actions">
+                    <span class="admin-badge admin-badge-<%= isCorrect ? 'success' : 'danger' %>">
+                      <i class="fas fa-<%= isCorrect ? 'check' : 'times' %>"></i>
+                      <%= isCorrect ? 'Correct' : 'Incorrect' %>
+                    </span>
+                  </div>
+                </div>
+                <div class="enhanced-question-content">
+                  <div class="enhanced-question-title" id="question-text-<%= index %>">
+                    <%= q.questionText %>
+                  </div>
+                  <div class="enhanced-question-meta">
+                    <div class="enhanced-meta-item">
+                      <i class="fas fa-signal"></i>
+                      <span class="admin-badge admin-badge-<%= q.difficulty === 'Easy' ? 'success' : q.difficulty === 'Medium' ? 'warning' : 'danger' %>">
+                        <%= q.difficulty %>
+                      </span>
+                    </div>
+                    <div class="enhanced-meta-item">
+                      <i class="fas fa-tag"></i>
+                      <span class="admin-badge admin-badge-info">
+                        <%= q.questionType %>
+                      </span>
+                    </div>
+                    <div class="enhanced-meta-item">
+                      <i class="fas fa-star"></i>
+                      <span class="admin-badge admin-badge-primary">
+                        <%= selectedQ.points || q.points || 1 %> pts
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Answer Review Section -->
+                <div class="answer-review-section">
+                  <% if (q.questionType === 'Written') { %>
+                    <!-- Written Question Review -->
+                    <div class="written-question-review">
+                      <div class="review-section-title">
+                        <i class="fas fa-edit"></i>
+                        Student's Answer
+                      </div>
+                      <div class="student-answer-display">
+                        <% if (a && a.selectedAnswer) { %>
+                          <div class="student-answer-text" id="student-answer-<%= index %>">
+                            <%= a.selectedAnswer %>
+                          </div>
+                        <% } else { %>
+                          <div class="no-answer">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No answer provided
+                          </div>
+                        <% } %>
+                      </div>
+                      
+                      <!-- Correct Answers -->
+                      <% if (q.correctAnswers && q.correctAnswers.length > 0) { %>
+                        <div class="correct-answers-section">
+                          <div class="review-section-title">
+                            <i class="fas fa-check-circle"></i>
+                            Correct Answers
+                          </div>
+                          <div class="correct-answers-list">
+                            <% q.correctAnswers.forEach((answer, answerIndex) => { %>
+                              <div class="correct-answer-item">
+                                <div class="answer-number"><%= answerIndex + 1 %></div>
+                                <div class="answer-content" id="correct-answer-<%= index %>-<%= answerIndex %>">
+                                  <%= answer.text %>
+                                </div>
+                                <div class="answer-mandatory">
+                                  <% if (answer.isMandatory) { %>
+                                    <span class="mandatory-badge">Required</span>
+                                  <% } else { %>
+                                    <span class="optional-badge">Optional</span>
+                                  <% } %>
+                                </div>
+                              </div>
+                            <% }) %>
+                          </div>
+                          <div class="answer-multiplicity-info">
+                            <i class="fas fa-info-circle"></i>
+                            Answer Type: <%= q.answerMultiplicity === 'single' ? 'Single Answer' : 'Multiple Answers' %>
+                          </div>
+                        </div>
+                      <% } %>
+                    </div>
+                  <% } else { %>
+                    <!-- MCQ/True-False Question Review -->
+                    <div class="options-review">
+                      <div class="review-section-title">
+                        <i class="fas fa-list"></i>
+                        Answer Options
+                      </div>
+                      <div class="options-list">
+                        <% if (q.options && q.options.length) { %>
+                          <% 
+                            // Normalize selected and correct indices from attempt data first, fallback to question
+                            const selectedIdx = a && typeof a.selectedAnswer !== 'undefined' ? a.selectedAnswer.toString() : null;
+                            const correctIdx = a && typeof a.correctAnswer !== 'undefined' 
+                              ? (Array.isArray(a.correctAnswer) ? (a.correctAnswer[0] || '').toString() : a.correctAnswer.toString())
+                              : (Array.isArray(q.correctAnswer) ? (q.correctAnswer[0] || '').toString() : (q.correctAnswer || '').toString());
+                          %>
+                          <% q.options.forEach((opt, i) => { 
+                            const iStr = i.toString();
+                            const isSelected = selectedIdx !== null && selectedIdx === iStr;
+                            const isCorrectOpt = correctIdx !== '' && correctIdx === iStr;
+                            
+                            // Enhanced styling for better visual distinction
+                            let optionClass = "enhanced-option-item";
+                            
+                            if (isCorrectOpt && isSelected) {
+                              // Both correct and selected - green background
+                              optionClass = "enhanced-option-item correct selected";
+                            } else if (isCorrectOpt) {
+                              // Correct but not selected - light green
+                              optionClass = "enhanced-option-item correct";
+                            } else if (isSelected) {
+                              // Selected but incorrect - red background
+                              optionClass = "enhanced-option-item incorrect";
+                            }
+                          %>
+                            <div class="<%= optionClass %>">
+                              <div class="option-letter <%= isCorrectOpt ? 'correct' : isSelected ? 'incorrect' : 'default' %>">
+                                <%= String.fromCharCode(65 + i) %>
+                              </div>
+                              <div class="option-content" id="option-<%= index %>-<%= i %>">
+                                <%= opt.text %>
+                              </div>
+                              <div class="option-badges">
+                                <% if (isCorrectOpt) { %>
+                                  <span class="admin-badge admin-badge-success">
+                                    <i class="fas fa-check"></i> Correct
+                                  </span>
+                                <% } %>
+                                <% if (isSelected) { %>
+                                  <span class="admin-badge admin-badge-primary">
+                                    <i class="fas fa-hand-pointer"></i> Student's Answer
+                                  </span>
+                                <% } %>
+                              </div>
+                            </div>
+                          <% }) %>
+                        <% } %>
+                      </div>
+                    </div>
+                  <% } %>
+                </div>
+                
+                <!-- Explanation Section -->
+                <% if (q.explanation) { %>
+                  <div class="enhanced-question-preview-explanation">
+                    <div class="explanation-title">
+                      <i class="fas fa-lightbulb"></i>
+                      Explanation
+                    </div>
+                    <div class="explanation-content" id="explanation-<%= index %>">
+                      <%= q.explanation %>
+                    </div>
+                  </div>
+                <% } %>
+              </div>
+            <% }) %>
+            </div>
+          <% } %>
+        <% } else { %>
+          <div class="alert alert-warning"><i class="fas fa-lock"></i> Answers are not available.</div>
+        <% } %>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Initialize MathLive rendering for LaTeX content
+document.addEventListener('DOMContentLoaded', function() {
+  // Render MathLive for question texts
+  document.querySelectorAll('[id^="question-text-"]').forEach(element => {
+    if (element.textContent && element.textContent.includes('\\')) {
+      const mathField = document.createElement('math-field');
+      mathField.readOnly = true;
+      mathField.style.cssText = 'width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px; color: #1e293b !important;';
+      mathField.textContent = element.textContent;
+      element.innerHTML = '';
+      element.appendChild(mathField);
+    }
+  });
+
+  // Render MathLive for student answers
+  document.querySelectorAll('[id^="student-answer-"]').forEach(element => {
+    if (element.textContent && element.textContent.includes('\\')) {
+      const mathField = document.createElement('math-field');
+      mathField.readOnly = true;
+      mathField.style.cssText = 'width: 100%; min-height: 50px; font-size: 16px; border: 2px solid #e2e8f0; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 16px; border-radius: 12px; color: #1e293b !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);';
+      mathField.textContent = element.textContent;
+      element.innerHTML = '';
+      element.appendChild(mathField);
+    }
+  });
+
+  // Render MathLive for correct answers
+  document.querySelectorAll('[id^="correct-answer-"]').forEach(element => {
+    if (element.textContent && element.textContent.includes('\\')) {
+      const mathField = document.createElement('math-field');
+      mathField.readOnly = true;
+      mathField.style.cssText = 'width: 100%; min-height: 50px; font-size: 16px; border: 2px solid #d1fae5; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); padding: 16px; border-radius: 12px; color: #1e293b !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);';
+      mathField.textContent = element.textContent;
+      element.innerHTML = '';
+      element.appendChild(mathField);
+    }
+  });
+
+  // Render MathLive for options
+  document.querySelectorAll('[id^="option-"]').forEach(element => {
+    if (element.textContent && element.textContent.includes('\\')) {
+      const mathField = document.createElement('math-field');
+      mathField.readOnly = true;
+      mathField.style.cssText = 'width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px; color: #1e293b !important;';
+      mathField.textContent = element.textContent;
+      element.innerHTML = '';
+      element.appendChild(mathField);
+    }
+  });
+
+  // Render MathLive for explanations
+  document.querySelectorAll('[id^="explanation-"]').forEach(element => {
+    if (element.textContent && element.textContent.includes('\\')) {
+      const mathField = document.createElement('math-field');
+      mathField.readOnly = true;
+      mathField.style.cssText = 'width: 100%; min-height: 40px; font-size: 16px; border: 1px solid #fef3c7; background: #fffbeb; padding: 12px; border-radius: 8px; color: #1e293b !important;';
+      mathField.textContent = element.textContent;
+      element.innerHTML = '';
+      element.appendChild(mathField);
+    }
+  });
+});
+
+// Print Review
+function printReview() {
+  // Create a print-friendly version
+  const questionList = document.querySelector('.enhanced-question-list');
+  if (!questionList) {
+    showNotification('No questions to print', 'warning');
+    return;
+  }
+  const printContent = questionList.innerHTML;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Quiz Review - Print</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+          .enhanced-question-item { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+          .enhanced-question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+          .question-number-badge { width: 30px; height: 30px; background: #b80101; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+          .admin-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+          .admin-badge-success { background: #d4edda; color: #155724; }
+          .admin-badge-danger { background: #f8d7da; color: #721c24; }
+          .admin-badge-warning { background: #fff3cd; color: #856404; }
+          .admin-badge-info { background: #d1ecf1; color: #0c5460; }
+          .admin-badge-primary { background: #cce5ff; color: #004085; }
+          .enhanced-question-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+          .enhanced-question-meta { display: flex; gap: 15px; margin-bottom: 15px; }
+          .answer-review-section { margin: 15px 0; }
+          .review-section-title { font-weight: bold; margin-bottom: 10px; color: #333; }
+          .student-answer-text { background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #007bff; }
+          .correct-answer-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; }
+          .answer-number { width: 25px; height: 25px; background: #28a745; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+          .enhanced-option-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+          .enhanced-option-item.correct { background: #d4edda; border-color: #28a745; }
+          .enhanced-option-item.incorrect { background: #f8d7da; border-color: #dc3545; }
+          .option-letter { width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+          .option-letter.correct { background: #28a745; }
+          .option-letter.incorrect { background: #dc3545; }
+          .option-letter.default { background: #6c757d; }
+          .enhanced-question-preview-explanation { background: #fff3cd; padding: 15px; border-radius: 4px; margin-top: 15px; }
+          .explanation-title { font-weight: bold; margin-bottom: 8px; color: #856404; }
+          .mandatory-badge { background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+          .optional-badge { background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1>Quiz Review</h1>
+        ${printContent}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
+}
+
+// Export Review
+function exportReview() {
+  showNotification('Export feature coming soon!', 'info');
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+    <button class="notification-close" onclick="this.parentElement.remove()">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 5000);
+}
+</script>
+
+<%- include('./partials/admin-footer') %>
+
+

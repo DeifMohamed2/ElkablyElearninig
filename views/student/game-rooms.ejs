@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Rooms - Elkably E-Learning</title>
+  <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+  <link rel="stylesheet" href="/css/studentCSS/games.css">
+  <link rel="stylesheet" href="/css/theme-toggle.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta name="description" content="Join multiplayer quiz competitions and challenge other students">
+  <meta name="theme-color" content="#dc2626">
+</head>
+
+<body class="<%= theme %>-theme game-rooms-page">
+  <div class="student-layout">
+    <%- include('partials/student-sidebar', { currentPage: 'game-rooms', student: student }) %>
+    <main class="student-main">
+      <%- include('partials/student-header', { title: 'Game Rooms', student: student, theme: theme, currentPage: 'game-rooms' }) %>
+      <div class="student-container">
+        <div class="page-header">
+          <div class="page-header-content">
+            <h1 class="page-title">
+              <i class="fas fa-gamepad"></i>
+              Game Rooms
+            </h1>
+            <p class="page-subtitle">Join multiplayer quiz competitions and challenge other students</p>
+          </div>
+          <div class="page-header-actions">
+            <a href="/student/game-history" class="btn btn-outline-primary">
+              <i class="fas fa-history"></i>
+              My Game History
+            </a>
+          </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+          <form method="GET" class="filters-form">
+            <div class="filter-group">
+              <input type="text" name="search" placeholder="Search game rooms..." value="<%= filters.search || '' %>" class="form-control">
+            </div>
+            <div class="filter-group">
+              <select name="category" class="form-control">
+                <option value="">All Categories</option>
+                <% categories.forEach(category => { %>
+                <option value="<%= category %>" <%= filters.category === category ? 'selected' : '' %>>
+                  <%= category %>
+                </option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="filter-group">
+              <select name="difficulty" class="form-control">
+                <option value="">All Difficulties</option>
+                <option value="easy" <%= filters.difficulty === 'easy' ? 'selected' : '' %>>Easy</option>
+                <option value="medium" <%= filters.difficulty === 'medium' ? 'selected' : '' %>>Medium</option>
+                <option value="hard" <%= filters.difficulty === 'hard' ? 'selected' : '' %>>Hard</option>
+              </select>
+            </div>
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Filter
+              </button>
+              <a href="/student/game-rooms" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i>
+                Clear
+              </a>
+            </div>
+          </form>
+        </div>
+
+        <!-- Game Rooms Grid -->
+        <div class="game-rooms-container">
+          <% if (gameRooms.length > 0) { %>
+          <div class="game-rooms-grid">
+            <% gameRooms.forEach(room => { %>
+            <div class="game-room-card">
+              <div class="room-card-header">
+                <div class="room-info">
+                  <h3 class="room-title"><%= room.title %></h3>
+                  <div class="room-meta">
+                    <span class="room-category"><%= room.category %></span>
+                    <span class="room-difficulty difficulty-<%= room.difficulty %>">
+                      <%= room.difficulty.charAt(0).toUpperCase() + room.difficulty.slice(1) %>
+                    </span>
+                  </div>
+                </div>
+                <div class="room-code">
+                  #<%= room.roomCode %>
+                  <% if (room.gameState === 'playing') { %>
+                  <span class="game-state-indicator playing">
+                    <i class="fas fa-play"></i>
+                    Playing
+                  </span>
+                  <% } else if (room.gameState === 'waiting') { %>
+                  <span class="game-state-indicator waiting">
+                    <i class="fas fa-clock"></i>
+                    Waiting
+                  </span>
+                  <% } %>
+                </div>
+              </div>
+
+              <% if (room.description) { %>
+              <div class="room-description">
+                <p><%= room.description %></p>
+              </div>
+              <% } %>
+
+              <div class="room-stats">
+                <div class="stat-item">
+                  <i class="fas fa-users"></i>
+                  <span><%= room.currentPlayers ? room.currentPlayers.length : 0 %>/<%= room.maxPlayers || 3 %> players</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-question-circle"></i>
+                  <span><%= room.questions ? room.questions.length : 0 %> questions</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-clock"></i>
+                  <span><%= room.totalTime || (room.timePerQuestion && room.questions ? Math.round((room.timePerQuestion * room.questions.length) / 60) : 0) %> min total</span>
+                </div>
+              </div>
+
+              <!-- Current Players -->
+              <% if (room.currentPlayers && room.currentPlayers.length > 0) { %>
+              <div class="current-players">
+                <h4>Players in Room:</h4>
+                <div class="players-avatars">
+                  <% room.currentPlayers.slice(0, 4).forEach(player => { %>
+                  <div class="player-avatar">
+                    <% if (player && player.user && player.user.profilePicture) { %>
+                    <img src="<%= player.user.profilePicture %>" alt="<%= player.user.username %>">
+                    <% } else { %>
+                    <div class="avatar-fallback">
+                      <%= (player && player.user && player.user.username ? player.user.username.charAt(0).toUpperCase() : 'P') %>
+                    </div>
+                    <% } %>
+                    <span class="player-name"><%= (player && player.user && player.user.username) ? player.user.username : 'Player' %></span>
+                    <% if (player && player.isReady) { %>
+                    <div class="ready-indicator"></div>
+                    <% } %>
+                  </div>
+                  <% }); %>
+                  <% if (room.currentPlayers.length > 4) { %>
+                  <div class="more-players">
+                    +<%= room.currentPlayers.length - 4 %> more
+                  </div>
+                  <% } %>
+                </div>
+              </div>
+              <% } %>
+
+              <div class="room-actions">
+                <% if (room.gameState === 'playing') { %>
+                <a href="/student/game-room/<%= room.roomCode %>/join" class="btn btn-warning btn-block">
+                  <i class="fas fa-play"></i>
+                  Rejoin Game
+                </a>
+                <% } else if (room.currentPlayers && room.currentPlayers.length >= room.maxPlayers) { %>
+                <a href="/student/game-room/<%= room.roomCode %>/join" class="btn btn-info btn-block">
+                  <i class="fas fa-users"></i>
+                  Try to Join
+                </a>
+                <% } else { %>
+                <a href="/student/game-room/<%= room.roomCode %>/join" class="btn btn-primary btn-block">
+                  <i class="fas fa-gamepad"></i>
+                  Join Room
+                </a>
+                <% } %>
+              </div>
+            </div>
+            <% }); %>
+          </div>
+          <% } else { %>
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-gamepad"></i>
+            </div>
+            <h3>No Game Rooms Available</h3>
+            <p>There are currently no available game rooms. Check back later or try adjusting your filters.</p>
+            <a href="/student/game-rooms" class="btn btn-primary">
+              <i class="fas fa-refresh"></i>
+              Refresh
+            </a>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Pagination -->
+        <% if (pagination.pages > 1) { %>
+        <div class="pagination-wrapper">
+          <nav class="pagination">
+            <% if (pagination.page > 1) { %>
+            <a href="?page=<%= pagination.page - 1 %>" class="pagination-btn">
+              <i class="fas fa-chevron-left"></i>
+              Previous
+            </a>
+            <% } %>
+
+            <% for (let i = 1; i <= pagination.pages; i++) { %>
+            <% if (i === pagination.page) { %>
+            <span class="pagination-btn active"><%= i %></span>
+            <% } else { %>
+            <a href="?page=<%= i %>" class="pagination-btn"><%= i %></a>
+            <% } %>
+            <% } %>
+
+            <% if (pagination.page < pagination.pages) { %>
+            <a href="?page=<%= pagination.page + 1 %>" class="pagination-btn">
+              Next
+              <i class="fas fa-chevron-right"></i>
+            </a>
+            <% } %>
+          </nav>
+        </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+  <!-- Socket.IO -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    // Real-time updates for game rooms
+    let socket = null;
+    let reconnectAttempts = 0;
+    let maxReconnectAttempts = 5;
+
+    function initializeSocket() {
+      if (socket) {
+        socket.disconnect();
+      }
+
+      socket = io({
+        transports: ['websocket', 'polling'],
+        upgrade: true,
+        rememberUpgrade: true
+      });
+
+      socket.on('connect', function() {
+        console.log('Connected to server for real-time updates');
+        reconnectAttempts = 0;
+      });
+
+      socket.on('room-update', function(data) {
+        console.log('Room update received:', data);
+        if (data.room) {
+          updateRoomCard(data.room);
+        }
+      });
+
+      socket.on('global-room-update', function(data) {
+        console.log('Global room update received:', data);
+        if (data.room) {
+          updateRoomCard(data.room);
+        }
+      });
+
+      socket.on('room-status-change', function(data) {
+        console.log('Room status change received:', data);
+        const roomCard = document.querySelector(`[data-room-code="${data.roomCode}"]`);
+        if (roomCard) {
+          const playersCount = roomCard.querySelector('.current-players-count');
+          if (playersCount) {
+            playersCount.textContent = data.players;
+          }
+
+          if (data.status === 'full') {
+            roomCard.classList.add('room-full');
+            const joinBtn = roomCard.querySelector('.join-btn');
+            if (joinBtn) {
+              joinBtn.innerHTML = '<i class="fas fa-clock"></i> Starting Soon';
+              joinBtn.disabled = true;
+            }
+          }
+        }
+      });
+
+      socket.on('disconnect', function(reason) {
+        console.log('Disconnected from server:', reason);
+        handleDisconnection();
+      });
+
+      socket.on('connect_error', function(error) {
+        console.error('Connection error:', error);
+        handleConnectionError();
+      });
+
+      socket.on('reconnect', function(attemptNumber) {
+        console.log('Reconnected after', attemptNumber, 'attempts');
+        reconnectAttempts = 0;
+      });
+
+      socket.on('reconnect_failed', function() {
+        console.error('Failed to reconnect after', maxReconnectAttempts, 'attempts');
+      });
+    }
+
+    function handleDisconnection() {
+      // Show a subtle indicator that we're disconnected
+      showConnectionStatus('disconnected');
+    }
+
+    function handleConnectionError() {
+      reconnectAttempts++;
+      if (reconnectAttempts >= maxReconnectAttempts) {
+        showConnectionStatus('failed');
+      } else {
+        showConnectionStatus('reconnecting');
+      }
+    }
+
+    function showConnectionStatus(status) {
+      // Remove any existing status indicator
+      const existingIndicator = document.querySelector('.connection-status');
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+
+      // Create status indicator
+      const indicator = document.createElement('div');
+      indicator.className = `connection-status status-${status}`;
+
+      let message = '';
+      switch (status) {
+        case 'disconnected':
+          message = '<i class="fas fa-wifi"></i> Connection lost - updates may be delayed';
+          break;
+        case 'reconnecting':
+          message = '<i class="fas fa-spinner fa-spin"></i> Reconnecting...';
+          break;
+        case 'failed':
+          message = '<i class="fas fa-exclamation-triangle"></i> Connection failed - please refresh the page';
+          break;
+      }
+
+      indicator.innerHTML = message;
+      document.body.appendChild(indicator);
+
+      // Auto-remove reconnecting status after 10 seconds
+      if (status === 'reconnecting') {
+        setTimeout(() => {
+          if (indicator.parentNode) {
+            indicator.remove();
+          }
+        }, 10000);
+      }
+    }
+
+    function updateRoomCard(room) {
+      try {
+        // Find the room card by room code
+        const roomCards = document.querySelectorAll('.game-room-card');
+        roomCards.forEach(card => {
+          const roomCodeElement = card.querySelector('.room-code');
+          if (roomCodeElement && roomCodeElement.textContent.includes(room.roomCode)) {
+            // Update player count
+            const playerCountElement = card.querySelector('.stat-item span');
+            if (playerCountElement) {
+              playerCountElement.textContent = `${room.currentPlayers.length}/${room.maxPlayers} players`;
+            }
+
+            // Update current players section
+            const currentPlayersSection = card.querySelector('.current-players');
+            if (currentPlayersSection) {
+              updateCurrentPlayersDisplay(currentPlayersSection, room.currentPlayers);
+            }
+
+            // Update join button if room is full or game state changed
+            const joinButton = card.querySelector('.room-actions a, .room-actions button');
+            if (joinButton) {
+              updateJoinButton(joinButton, room);
+            }
+
+            // Add visual feedback for updates
+            card.classList.add('updated');
+            setTimeout(() => {
+              card.classList.remove('updated');
+            }, 1000);
+          }
+        });
+      } catch (error) {
+        console.error('Error updating room card:', error);
+      }
+    }
+
+    function updateJoinButton(button, room) {
+      if (room.gameState !== 'waiting') {
+        button.className = 'btn btn-secondary btn-block';
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-play"></i> Game Started';
+      } else if (room.currentPlayers.length >= room.maxPlayers) {
+        button.className = 'btn btn-secondary btn-block';
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-users"></i> Room Full';
+      } else {
+        button.className = 'btn btn-primary btn-block';
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-gamepad"></i> Join Room';
+        button.href = `/student/game-room/${room.roomCode}/join`;
+      }
+    }
+
+    function updateCurrentPlayersDisplay(container, players) {
+      const playersAvatars = container.querySelector('.players-avatars');
+      if (!playersAvatars) return;
+
+      playersAvatars.innerHTML = '';
+
+      players.slice(0, 4).forEach(player => {
+        const playerAvatar = document.createElement('div');
+        playerAvatar.className = 'player-avatar';
+
+        const username = (player && player.user && player.user.username) ? player.user.username : 'Player';
+        const profilePicture = player && player.user && player.user.profilePicture;
+
+        playerAvatar.innerHTML = `
+          ${profilePicture ? 
+            `<img src="${profilePicture}" alt="${username}">` :
+            `<div class="avatar-fallback">${username.charAt(0).toUpperCase()}</div>`
+          }
+          <span class="player-name">${username}</span>
+          ${player && player.isReady ? '<div class="ready-indicator"></div>' : ''}
+        `;
+
+        playersAvatars.appendChild(playerAvatar);
+      });
+
+      if (players.length > 4) {
+        const morePlayers = document.createElement('div');
+        morePlayers.className = 'more-players';
+        morePlayers.textContent = `+${players.length - 4} more`;
+        playersAvatars.appendChild(morePlayers);
+      }
+    }
+
+    // Initialize socket when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeSocket();
+    });
+
+    // Clean up socket when page unloads
+    window.addEventListener('beforeunload', function() {
+      if (socket) {
+        socket.disconnect();
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,843 @@
+<%- include('./partials/admin-header', { pageCSS: 'dashboard' }) %>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'dashboard' }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Dashboard',
+        breadcrumbSubtitle: 'Platform Overview',
+        showSearch: false
+    }) %>
+    
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="admin-dashboard admin-fade-in">
+        
+        <!-- Compact Toast Notification -->
+        <% if (dashboardData.newOrdersCount > 0) { %>
+        <div class="toast-notification" id="newOrdersNotification" data-order-count="<%= dashboardData.newOrdersCount %>">
+          <div class="toast-content">
+            <div class="toast-icon">
+              <i class="fas fa-shopping-cart"></i>
+              <span class="toast-badge"><%= dashboardData.newOrdersCount %></span>
+            </div>
+            <div class="toast-text">
+              <div class="toast-title">
+                <strong><%= dashboardData.newOrdersCount %></strong> New Order<%= dashboardData.newOrdersCount > 1 ? 's' : '' %>
+              </div>
+              <div class="toast-message">Needs your attention</div>
+            </div>
+            <div class="toast-actions">
+              <button class="toast-btn" onclick="viewNewOrders()" title="View Orders">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="toast-btn close" onclick="dismissNotification()" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          <div class="toast-progress" id="notificationProgress"></div>
+        </div>
+        <% } %>
+
+        <!-- Enhanced Premium Dashboard Header -->
+        <div class="admin-dashboard-header">
+          <div class="dashboard-header-content">
+            <div class="dashboard-header-left">
+              <div class="dashboard-title-section">
+                <h1 class="admin-dashboard-title">
+                  <span class="title-icon">📊</span>
+                  Elkably Analytics Dashboard
+                </h1>
+                <p class="admin-dashboard-subtitle">
+                  Comprehensive insights into your e-learning platform performance and student engagement.
+                </p>
+              </div>
+              
+              <div class="dashboard-stats-preview">
+                <div class="preview-stat">
+                  <div class="preview-stat-icon">
+                    <i class="fas fa-users"></i>
+                  </div>
+                  <div class="preview-stat-content">
+                    <span class="preview-stat-number"><%= dashboardData.students.total || 0 %></span>
+                    <span class="preview-stat-label">Students</span>
+                  </div>
+                </div>
+                <div class="preview-stat">
+                  <div class="preview-stat-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                  </div>
+                  <div class="preview-stat-content">
+                    <span class="preview-stat-number"><%= dashboardData.courses.total || 0 %></span>
+                    <span class="preview-stat-label">Courses</span>
+                  </div>
+                </div>
+                <div class="preview-stat">
+                  <div class="preview-stat-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                  </div>
+                  <div class="preview-stat-content">
+                    <span class="preview-stat-number">$<%= dashboardData.revenue.total || 0 %></span>
+                    <span class="preview-stat-label">Revenue</span>
+                  </div>
+                </div>
+                <div class="preview-stat">
+                  <div class="preview-stat-icon">
+                    <i class="fas fa-trophy"></i>
+                  </div>
+                  <div class="preview-stat-content">
+                    <span class="preview-stat-number"><%= dashboardData.brilliantStudents.total || 0 %></span>
+                    <span class="preview-stat-label">Brilliant Students</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="dashboard-header-right">
+              <div class="dashboard-meta-cards">
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Last Updated</span>
+                    <span class="meta-card-value"><%= new Date().toLocaleDateString() %></span>
+                  </div>
+                </div>
+                
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Data Status</span>
+                    <span class="meta-card-value">Real-time</span>
+                  </div>
+                </div>
+                
+              </div>
+              
+              <div class="dashboard-actions">
+                <button class="dashboard-action-btn secondary" onclick="exportDashboardData()">
+                  <i class="fas fa-download"></i>
+                  Export Data
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Premium Stats Grid -->
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="admin-stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                +<%= dashboardData.students.growth || 12 %>%
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= dashboardData.students.total || 0 %></h3>
+            <p class="admin-stat-label">Total Students</p>
+            <div class="admin-stat-details">
+              <small>Active: <%= dashboardData.students.active || 0 %> | New this month: <%= dashboardData.students.newThisMonth || 0 %></small>
+            </div>
+          </div>
+          
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-graduation-cap"></i>
+              </div>
+              <div class="admin-stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                +<%= dashboardData.courses.growth || 8 %>%
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= dashboardData.courses.total || 0 %></h3>
+            <p class="admin-stat-label">Total Courses</p>
+            <div class="admin-stat-details">
+              <small>Published: <%= dashboardData.courses.published || 0 %> | Draft: <%= dashboardData.courses.draft || 0 %></small>
+            </div>
+          </div>
+          
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-shopping-cart"></i>
+              </div>
+              <div class="admin-stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                +<%= dashboardData.revenue.growth || 15 %>%
+              </div>
+            </div>
+            <h3 class="admin-stat-number">$<%= dashboardData.revenue.total || 0 %></h3>
+            <p class="admin-stat-label">Total Revenue</p>
+            <div class="admin-stat-details">
+              <small>This month: $<%= dashboardData.revenue.thisMonth || 0 %> | Orders: <%= dashboardData.revenue.orders || 0 %></small>
+            </div>
+          </div>
+          
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="admin-stat-trend <%= dashboardData.engagement.trend === 'up' ? 'positive' : dashboardData.engagement.trend === 'down' ? 'negative' : 'neutral' %>">
+                <i class="fas fa-<%= dashboardData.engagement.trend === 'up' ? 'arrow-up' : dashboardData.engagement.trend === 'down' ? 'arrow-down' : 'minus' %>"></i>
+                <%= dashboardData.engagement.change || 0 %>%
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= dashboardData.engagement.score || 0 %>%</h3>
+            <p class="admin-stat-label">Engagement Score</p>
+            <div class="admin-stat-details">
+              <small>Active: <%= dashboardData.engagement.activeStudents || 0 %> | Progress: <%= dashboardData.engagement.studentsWithProgress || 0 %> | Completion: <%= dashboardData.engagement.completion || 0 %>%</small>
+            </div>
+          </div>
+          
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-trophy"></i>
+              </div>
+              <div class="admin-stat-trend positive">
+                <i class="fas fa-star"></i>
+                Excellence
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= dashboardData.brilliantStudents.total || 0 %></h3>
+            <p class="admin-stat-label">Brilliant Students</p>
+            <div class="admin-stat-details">
+              <small>EST: <%= dashboardData.brilliantStudents.est || 0 %> | DSAT: <%= dashboardData.brilliantStudents.dsat || 0 %> | ACT: <%= dashboardData.brilliantStudents.act || 0 %></small>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Analytics Charts Grid -->
+        <div class="admin-charts-grid">
+          <div class="admin-chart-container">
+            <div class="admin-chart-header">
+              <h3 class="admin-chart-title">Student Growth Trend</h3>
+              <div class="chart-controls">
+                <button class="chart-period-btn active" data-period="7d">7D</button>
+                <button class="chart-period-btn" data-period="30d">30D</button>
+                <button class="chart-period-btn" data-period="90d">90D</button>
+              </div>
+            </div>
+            <div class="chart-loading" id="growthChartLoading">
+              <i class="fas fa-chart-line"></i>
+              <span>Loading growth data...</span>
+            </div>
+            <canvas id="growthChart" class="chart-canvas" style="display: none;"></canvas>
+          </div>
+          
+          <div class="admin-chart-container">
+            <div class="admin-chart-header">
+              <h3 class="admin-chart-title">Revenue Analytics</h3>
+              <div class="chart-controls">
+                <button class="chart-period-btn active" data-period="7d">7D</button>
+                <button class="chart-period-btn" data-period="30d">30D</button>
+                <button class="chart-period-btn" data-period="90d">90D</button>
+              </div>
+            </div>
+            <div class="chart-loading" id="revenueChartLoading">
+              <i class="fas fa-dollar-sign"></i>
+              <span>Loading revenue data...</span>
+            </div>
+            <canvas id="revenueChart" class="chart-canvas" style="display: none;"></canvas>
+          </div>
+        </div>
+        
+        <!-- Course Performance Section -->
+        <div class="course-performance-section">
+          <div class="course-performance-header">
+            <h3 class="course-performance-title">Top Performing Courses</h3>
+            <div class="course-performance-filters">
+              <button class="course-filter-btn active" data-filter="all">All Courses</button>
+              <button class="course-filter-btn" data-filter="published">Published</button>
+              <button class="course-filter-btn" data-filter="draft">Draft</button>
+              <button class="course-filter-btn" data-filter="featured">Featured</button>
+            </div>
+          </div>
+          <div class="course-performance-grid">
+            <% if (dashboardData.topCourses && dashboardData.topCourses.length > 0) { %>
+              <% dashboardData.topCourses.forEach((course, index) => { %>
+                <div class="course-performance-card <%= course.featured ? 'featured' : '' %>" data-status="<%= course.status %>" data-featured="<%= course.featured %>">
+                  <div class="course-performance-header-card">
+                    <div class="course-performance-info">
+                      <h4><%= course.title %><% if (course.featured) { %> <span class="featured-badge">⭐</span><% } %></h4>
+                      <p><%= course.level %> • <%= course.category %></p>
+                    </div>
+                    <div class="course-performance-badge">
+                      <span class="badge badge-<%= course.status === 'published' ? 'success' : 'warning' %>">
+                        <%= course.status %>
+                      </span>
+                      <% if (course.featured) { %>
+                      <span class="badge badge-primary">Featured</span>
+                      <% } %>
+                    </div>
+                  </div>
+                  <div class="course-performance-stats">
+                    <div class="course-stat-item">
+                      <div class="course-stat-value"><%= course.enrollments %></div>
+                      <div class="course-stat-label">Enrollments</div>
+                    </div>
+                    <div class="course-stat-item">
+                      <div class="course-stat-value"><%= course.completionRate %>%</div>
+                      <div class="course-stat-label">Completion</div>
+                    </div>
+                    <div class="course-stat-item">
+                      <div class="course-stat-value">$<%= course.revenue %></div>
+                      <div class="course-stat-label">Revenue</div>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <div class="course-performance-card">
+                <div class="course-performance-header-card">
+                  <div class="course-performance-info">
+                    <h4>No courses available</h4>
+                    <p>Create your first course to see performance data</p>
+                  </div>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+        
+        
+        <!-- Analytics Grid -->
+        <div class="admin-analytics-grid">
+          <div class="admin-chart-card">
+            <div class="admin-chart-header">
+              <h3 class="admin-chart-title">Student Engagement</h3>
+            </div>
+            <div class="chart-loading" id="engagementChartLoading">
+              <i class="fas fa-chart-pie"></i>
+              <span>Loading engagement data...</span>
+            </div>
+            <canvas id="engagementChart" class="chart-canvas" style="display: none;"></canvas>
+          </div>
+          
+          <div class="admin-activity-card">
+            <div class="admin-chart-header">
+              <h3 class="admin-chart-title">Recent Activity</h3>
+            </div>
+            
+            <% if (dashboardData.recentActivity && dashboardData.recentActivity.length > 0) { %>
+              <% dashboardData.recentActivity.forEach((activity, index) => { %>
+                <div class="admin-activity-item">
+                  <div class="admin-activity-icon">
+                    <i class="fas fa-<%= activity.icon %>"></i>
+                  </div>
+                  <div class="admin-activity-content">
+                    <p class="admin-activity-text"><%= activity.message %></p>
+                    <p class="admin-activity-time"><%= activity.time %></p>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <div class="admin-activity-item">
+                <div class="admin-activity-icon">
+                  <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="admin-activity-content">
+                  <p class="admin-activity-text">No recent activity to display</p>
+                  <p class="admin-activity-time">Check back later for updates</p>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+  </main>
+</div>
+
+<%- include('./partials/admin-footer') %>
+
+<script>
+// Dashboard JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts
+    initializeCharts();
+    
+    // Initialize chart period controls
+    initializeChartControls();
+    
+    // Initialize course filters
+    initializeCourseFilters();
+});
+
+// Chart initialization with real data
+function initializeCharts() {
+    // Get real data from the server
+    const dashboardData = <%- JSON.stringify(dashboardData) %>;
+    
+    // Growth Chart
+    setTimeout(() => {
+        const growthCtx = document.getElementById('growthChart');
+        if (growthCtx) {
+            document.getElementById('growthChartLoading').style.display = 'none';
+            growthCtx.style.display = 'block';
+            
+            // Prepare growth data
+            const growthData = dashboardData.charts.studentGrowth || [];
+            const labels = growthData.map(item => {
+                const date = new Date(item._id);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            const data = growthData.map(item => item.count);
+            
+            // If no data, use default
+            const chartLabels = labels.length > 0 ? labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const chartData = data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
+            
+            new Chart(growthCtx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'New Students',
+                        data: chartData,
+                        borderColor: '#B80101',
+                        backgroundColor: 'rgba(184, 1, 1, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#B80101',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }, 1000);
+    
+    // Revenue Chart
+    setTimeout(() => {
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueCtx) {
+            document.getElementById('revenueChartLoading').style.display = 'none';
+            revenueCtx.style.display = 'block';
+            
+            // Prepare revenue data
+            const revenueData = dashboardData.charts.revenueData || [];
+            const labels = revenueData.map(item => {
+                const date = new Date(item._id);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            const data = revenueData.map(item => item.total);
+            
+            // If no data, use default
+            const chartLabels = labels.length > 0 ? labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const chartData = data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
+            
+            new Chart(revenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: chartData,
+                        backgroundColor: 'rgba(184, 1, 1, 0.8)',
+                        borderColor: '#B80101',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }, 1500);
+    
+    // Engagement Chart
+    setTimeout(() => {
+        const engagementCtx = document.getElementById('engagementChart');
+        if (engagementCtx) {
+            document.getElementById('engagementChartLoading').style.display = 'none';
+            engagementCtx.style.display = 'block';
+            
+            // Calculate engagement data from real stats
+            const totalStudents = dashboardData.students.total || 0;
+            const activeStudents = dashboardData.students.active || 0;
+            const newStudents = dashboardData.students.newThisMonth || 0;
+            const inactiveStudents = Math.max(0, totalStudents - activeStudents - newStudents);
+            
+            new Chart(engagementCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active Students', 'Inactive Students', 'New Students'],
+                    datasets: [{
+                        data: [activeStudents, inactiveStudents, newStudents],
+                        backgroundColor: [
+                            '#B80101',
+                            '#dc2626',
+                            '#f59e0b'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }, 2000);
+}
+
+// Chart period controls
+function initializeChartControls() {
+    const periodBtns = document.querySelectorAll('.chart-period-btn');
+    periodBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all buttons
+            periodBtns.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Update charts based on period
+            const period = this.dataset.period;
+            updateChartsForPeriod(period);
+        });
+    });
+}
+
+// Update charts for different periods
+function updateChartsForPeriod(period) {
+    // This would typically make an API call to get new data
+    console.log('Updating charts for period:', period);
+    
+    // Simulate data update
+    setTimeout(() => {
+        // Update chart data here
+        console.log('Charts updated for period:', period);
+    }, 500);
+}
+
+// Course filters
+function initializeCourseFilters() {
+    const filterBtns = document.querySelectorAll('.course-filter-btn');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all buttons
+            filterBtns.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Filter courses
+            const filter = this.dataset.filter;
+            filterCourses(filter);
+        });
+    });
+}
+
+// Filter courses
+function filterCourses(filter) {
+    const courseCards = document.querySelectorAll('.course-performance-card');
+    courseCards.forEach(card => {
+        const status = card.dataset.status;
+        const isFeatured = card.dataset.featured === 'true';
+        
+        if (filter === 'all') {
+            card.style.display = 'block';
+        } else if (filter === 'published') {
+            card.style.display = status === 'published' ? 'block' : 'none';
+        } else if (filter === 'draft') {
+            card.style.display = status === 'draft' ? 'block' : 'none';
+        } else if (filter === 'featured') {
+            card.style.display = isFeatured ? 'block' : 'none';
+        } else {
+            card.style.display = 'block';
+        }
+    });
+}
+
+
+// Enhanced Notification functions
+let notificationCountdown = null;
+let notificationProgress = null;
+
+function viewNewOrders() {
+    // Mark notification as viewed and redirect
+    markNotificationAsViewed();
+    window.location.href = '/admin/orders';
+}
+
+function dismissNotification() {
+    const notification = document.getElementById('newOrdersNotification');
+    if (notification) {
+        // Clear countdown
+        if (notificationCountdown) {
+            clearInterval(notificationCountdown);
+        }
+        if (notificationProgress) {
+            clearInterval(notificationProgress);
+        }
+        
+        // Mark as dismissed
+        markNotificationAsViewed();
+        
+        // Animate out
+        notification.style.animation = 'slideOutRight 0.4s ease-in-out forwards';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 400);
+    }
+}
+
+function markNotificationAsViewed() {
+    // Store in localStorage to prevent showing again
+    const notification = document.getElementById('newOrdersNotification');
+    if (notification) {
+        const orderCount = notification.dataset.orderCount;
+        const viewedKey = `notificationViewed_${orderCount}_${new Date().toDateString()}`;
+        localStorage.setItem(viewedKey, 'true');
+        
+        // Also store in sessionStorage for immediate session
+        sessionStorage.setItem('notificationDismissed', 'true');
+    }
+}
+
+function shouldShowNotification() {
+    const notification = document.getElementById('newOrdersNotification');
+    if (!notification) return false;
+    
+    const orderCount = notification.dataset.orderCount;
+    const viewedKey = `notificationViewed_${orderCount}_${new Date().toDateString()}`;
+    const isViewed = localStorage.getItem(viewedKey) === 'true';
+    const isSessionDismissed = sessionStorage.getItem('notificationDismissed') === 'true';
+    
+    return !isViewed && !isSessionDismissed;
+}
+
+// Enhanced auto-dismiss with countdown and progress bar
+function initializeNotification() {
+    const notification = document.getElementById('newOrdersNotification');
+    if (!notification || !shouldShowNotification()) {
+        if (notification) {
+            notification.style.display = 'none';
+        }
+        return;
+    }
+    
+    let countdown = 10;
+    const timerElement = document.getElementById('countdownTimer');
+    const progressElement = document.getElementById('notificationProgress');
+    
+    // Start countdown
+    notificationCountdown = setInterval(() => {
+        countdown--;
+        if (timerElement) {
+            timerElement.textContent = countdown;
+        }
+        
+        if (countdown <= 0) {
+            clearInterval(notificationCountdown);
+            dismissNotification();
+        }
+    }, 1000);
+    
+    // Start progress bar animation
+    let progress = 0;
+    notificationProgress = setInterval(() => {
+        progress += 1;
+        if (progressElement) {
+            progressElement.style.width = `${progress}%`;
+        }
+        
+        if (progress >= 100) {
+            clearInterval(notificationProgress);
+        }
+    }, 100);
+    
+    // Add pulse animation to primary button
+    const pulseBtn = document.querySelector('.pulse-btn');
+    if (pulseBtn) {
+        setInterval(() => {
+            pulseBtn.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                pulseBtn.style.transform = 'scale(1)';
+            }, 200);
+        }, 2000);
+    }
+}
+
+// Initialize notification when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeNotification();
+});
+
+// Export dashboard data
+function exportDashboardData() {
+    console.log('Exporting dashboard data...');
+    // Show loading state
+    const exportBtn = document.querySelector('.dashboard-action-btn.secondary');
+    if (exportBtn) {
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        exportBtn.disabled = true;
+        
+        // Simulate export
+        setTimeout(() => {
+            // Create CSV data
+            const dashboardData = <%- JSON.stringify(dashboardData) %>;
+            const csvData = [
+                ['Metric', 'Value'],
+                ['Total Students', dashboardData.students.total || 0],
+                ['Active Students', dashboardData.students.active || 0],
+                ['New Students (This Month)', dashboardData.students.newThisMonth || 0],
+                ['Total Courses', dashboardData.courses.total || 0],
+                ['Published Courses', dashboardData.courses.published || 0],
+                ['Total Revenue', dashboardData.revenue.total || 0],
+                ['Monthly Revenue', dashboardData.revenue.monthly || 0],
+                ['Average Order Value', dashboardData.revenue.averageOrderValue || 0]
+            ];
+            
+            const csvContent = csvData.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `elkably-dashboard-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            // Reset button
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+        }, 1500);
+    }
+}
+
+// Add some interactive animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate stat cards on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationDelay = '0.1s';
+                entry.target.classList.add('admin-slide-in');
+            }
+        });
+    }, observerOptions);
+    
+    // Observe all stat cards
+    document.querySelectorAll('.admin-stat-card').forEach(card => {
+        observer.observe(card);
+    });
+    
+    // Add hover effects to course cards
+    document.querySelectorAll('.course-performance-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+});
+
+// Theme-aware chart colors
+function getChartColors() {
+    const isDark = document.body.classList.contains('dark-theme');
+    return {
+        primary: isDark ? '#ff6b6b' : '#B80101',
+        secondary: isDark ? '#ffa726' : '#dc2626',
+        success: isDark ? '#4caf50' : '#10b981',
+        warning: isDark ? '#ff9800' : '#f59e0b',
+        info: isDark ? '#2196f3' : '#3b82f6',
+        background: isDark ? 'rgba(26, 31, 46, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+        grid: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+    };
+}
+</script>

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= course.title %> - Course Content - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/courses.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Enhanced Styles -->
+    <style>
+        /* Content Item Enhancements */
+        .content-actions-completed {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .content-completed {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #10b981;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        /* Prerequisites Styling */
+        .prerequisites-info {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .prerequisites-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .prerequisites-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .prerequisite-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #92400e;
+        }
+
+        .prerequisite-item i {
+            font-size: 10px;
+            color: #f59e0b;
+        }
+
+        /* Content Item States */
+        .content-item.completed {
+            border-left: 4px solid #10b981;
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        }
+
+        .content-item.locked {
+            border-left: 4px solid #ef4444;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            opacity: 0.8;
+        }
+
+        .content-item.completed .content-type-icon {
+            background: #10b981;
+            color: white;
+        }
+
+        .content-item.locked .content-type-icon {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Enhanced Content Item Design */
+        .content-item {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .content-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .content-item-header {
+            padding: 16px 20px;
+        }
+
+        .content-type-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            background: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .content-item-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-color);
+        }
+
+        .content-item-description {
+            font-size: 14px;
+            color: var(--muted-text);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .content-item-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .content-item-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--muted-text);
+            background: var(--muted-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* Dark theme adjustments */
+        .dark-theme .prerequisites-info {
+            background: linear-gradient(135deg, #451a03, #78350f);
+            border-color: #f59e0b;
+        }
+
+        .dark-theme .prerequisites-header,
+        .dark-theme .prerequisite-item {
+            color: #fbbf24;
+        }
+
+        .dark-theme .content-item.completed {
+            background: linear-gradient(135deg, #064e3b, #065f46);
+        }
+
+        .dark-theme .content-item.locked {
+            background: linear-gradient(135deg, #7f1d1d, #991b1b);
+        }
+    </style>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="<%= course.title %> - Continue your learning journey">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'courses', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: 'Course Content', student: student, theme: theme, currentPage: 'course-content' }) %>
+            
+            <!-- Course Content -->
+            <div class="student-content">
+                <!-- Back Button -->
+                <div class="back-button-container">
+                    <a href="/student/enrolled-courses" class="btn btn-outline btn-sm">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Courses
+                    </a>
+                </div>
+
+                <!-- Course Header -->
+                <div class="course-header-section">
+                    <div class="course-header-content">
+                        <div class="course-header-info">
+                            <h1 class="course-title-main"><%= course.title %></h1>
+                            <p class="course-description-main"><%= course.description %></p>
+                            
+                            <div class="course-meta-info">
+                                <div class="meta-item">
+                                    <i class="fas fa-layer-group"></i>
+                                    <span><%= course.level %></span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span><%= course.duration %>h</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-book"></i>
+                                    <span><%= course.topics.length %> topics</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <span><%= course.year %></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="course-progress-section">
+                            <div class="progress-circle-large">
+                                <svg viewBox="0 0 120 120" class="progress-ring-large">
+                                    <circle class="circle-bg-large" cx="60" cy="60" r="50"></circle>
+                                    <circle class="circle-large" cx="60" cy="60" r="50" 
+                                            stroke-dasharray="<%= enrollment.progress * 3.14 %>, 314"></circle>
+                                </svg>
+                                <div class="progress-text">
+                                    <span class="progress-percentage"><%= enrollment.progress %>%</span>
+                                    <span class="progress-label">Complete</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Progress Bar -->
+                <div class="course-progress-overview">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: <%= enrollment.progress %>%"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span class="progress-text">Overall Progress: <%= enrollment.progress %>%</span>
+                        <span class="last-accessed">Last accessed: <%= new Date(enrollment.lastAccessed).toLocaleDateString() %></span>
+                    </div>
+                </div>
+
+                <!-- Topics Section -->
+                <div class="topics-section">
+                    <h2 class="section-title">Course Topics</h2>
+                    
+                    <% if (topicsWithProgress && topicsWithProgress.length > 0) { %>
+                        <div class="topics-container">
+                            <% topicsWithProgress.forEach((topic, topicIndex) => { %>
+                                <div class="topic-card" data-topic-id="<%= topic._id %>">
+                                    <div class="topic-header" onclick="toggleTopic('<%= topic._id %>')">
+                                        <div class="topic-header-left">
+                                            <div class="topic-number"><%= topicIndex + 1 %></div>
+                                            <div class="topic-info">
+                                                <h3 class="topic-title"><%= topic.title %></h3>
+                                                <p class="topic-description"><%= topic.description %></p>
+                                                <div class="topic-meta">
+                                                    <span class="topic-duration">
+                                                        <i class="fas fa-clock"></i>
+                                                        <%= topic.estimatedTime || 0 %>m
+                                                    </span>
+                                                    <span class="topic-difficulty <%= topic.difficulty %>">
+                                                        <i class="fas fa-signal"></i>
+                                                        <%= topic.difficulty.charAt(0).toUpperCase() + topic.difficulty.slice(1) %>
+                                                    </span>
+                                                    <span class="topic-content-count">
+                                                        <i class="fas fa-list"></i>
+                                                        <%= topic.content ? topic.content.length : 0 %> items
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="topic-header-right">
+                                            <div class="topic-progress">
+                                                <div class="topic-progress-circle">
+                                                    <svg viewBox="0 0 36 36" class="progress-ring-small">
+                                                        <path class="circle-bg-small" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                                        <path class="circle-small" stroke-dasharray="<%= topic.progress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                                    </svg>
+                                                    <span class="topic-progress-text"><%= topic.progress %>%</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="topic-toggle">
+                                                <i class="fas fa-chevron-down topic-chevron" id="chevron-<%= topic._id %>"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Topic Content (Initially Hidden) -->
+                                    <div class="topic-content" id="content-<%= topic._id %>" style="display: none;">
+                                        <% if (topic.content && topic.content.length > 0) { %>
+                                            <div class="content-items">
+                                                <% topic.content.forEach((contentItem, contentIndex) => { %>
+                                                    <div class="content-item <%= !contentItem.canAccess ? 'locked' : '' %> <%= contentItem.isCompleted ? 'completed' : '' %>" 
+                                                         data-content-id="<%= contentItem._id %>">
+                                                        
+                                                        <div class="content-item-header">
+                                                            <div class="content-item-left">
+                                                                <div class="content-type-icon <%= contentItem.type %>">
+                                                                    <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
+                                                                </div>
+                                                                
+                                                                <div class="content-item-info">
+                                                                    <h4 class="content-item-title"><%= contentItem.title %></h4>
+                                                                    <% if (contentItem.description) { %>
+                                                                        <p class="content-item-description"><%= contentItem.description %></p>
+                                                                    <% } %>
+                                                                    
+                                                                    <div class="content-item-meta">
+                                                                        <span class="content-duration">
+                                                                            <i class="fas fa-clock"></i>
+                                                                            <% if (contentItem.type === 'quiz' && contentItem.quizSettings && contentItem.quizSettings.timeLimit) { %>
+                                                                                <%= contentItem.quizSettings.timeLimit %>m
+                                                                            <% } else if (contentItem.type === 'homework' && contentItem.homeworkSettings && contentItem.homeworkSettings.timeLimit) { %>
+                                                                                <%= contentItem.homeworkSettings.timeLimit %>m
+                                                                            <% } else { %>
+                                                                                <%= contentItem.duration || 0 %>m
+                                                                            <% } %>
+                                                                        </span>
+                                                                        <span class="content-difficulty <%= contentItem.difficulty %>">
+                                                                            <i class="fas fa-signal"></i>
+                                                                            <%= contentItem.difficulty.charAt(0).toUpperCase() + contentItem.difficulty.slice(1) %>
+                                                                        </span>
+                                                                        <span class="content-criteria">
+                                                                            <i class="fas fa-target"></i>
+                                                                            <%= contentItem.completionCriteria.replace('_', ' ') %>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="content-item-right">
+                                                                <% if (!contentItem.canAccess) { %>
+                                                                    <div class="content-locked">
+                                                                        <i class="fas fa-lock"></i>
+                                                                        <span>Locked</span>
+                                                                    </div>
+                                                                <% } else if (contentItem.actualProgress > 0) { %>
+                                                                    <div class="content-actions-in-progress">
+                                                                        <div class="content-progress-info">
+                                                                            <div class="content-progress-circle">
+                                                                                <svg viewBox="0 0 36 36" class="progress-ring-tiny">
+                                                                                    <path class="circle-bg-tiny" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                                                                    <path class="circle-tiny" stroke-dasharray="<%= contentItem.actualProgress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                                                                </svg>
+                                                                                <span class="progress-text-tiny"><%= contentItem.actualProgress %>%</span>
+                                                                            </div>
+                                                                            <span class="progress-label">
+                                                                                <% if (contentItem.actualProgress === 100) { %>
+                                                                                    Completed
+                                                                                <% } else { %>
+                                                                                    In Progress
+                                                                                <% } %>
+                                                                            </span>
+                                                                        </div>
+                                                                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
+                                                                            <i class="fas fa-<%= contentItem.actualProgress === 100 ? 'redo' : 'play' %>"></i>
+                                                                            <%= contentItem.actualProgress === 100 ? 'Review' : 'Continue' %>
+                                                                        </a>
+                                                                    </div>
+                                                                <% } else { %>
+                                                                    <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
+                                                                        <i class="fas fa-play"></i>
+                                                                        Start
+                                                                    </a>
+                                                                <% } %>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Prerequisites Info -->
+                                                        <% if (!contentItem.canAccess && contentItem.prerequisiteNames && contentItem.prerequisiteNames.length > 0) { %>
+                                                            <div class="prerequisites-info">
+                                                                <div class="prerequisites-header">
+                                                                    <i class="fas fa-info-circle"></i>
+                                                                    <span>Complete these prerequisites first:</span>
+                                                                </div>
+                                                                <div class="prerequisites-list">
+                                                                    <% contentItem.prerequisiteNames.forEach(prereqName => { %>
+                                                                        <div class="prerequisite-item">
+                                                                            <i class="fas fa-arrow-right"></i>
+                                                                            <span><%= prereqName %></span>
+                                                                        </div>
+                                                                    <% }); %>
+                                                                </div>
+                                                            </div>
+                                                        <% } else if (!contentItem.canAccess && contentItem.unlockReason) { %>
+                                                            <div class="prerequisites-info">
+                                                                <i class="fas fa-info-circle"></i>
+                                                                <span><%= contentItem.unlockReason %></span>
+                                                            </div>
+                                                        <% } %>
+                                                    </div>
+                                                <% }); %>
+                                            </div>
+                                        <% } else { %>
+                                            <div class="empty-content">
+                                                <i class="fas fa-folder-open"></i>
+                                                <p>No content available for this topic yet.</p>
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <div class="empty-topics">
+                            <div class="empty-icon">
+                                <i class="fas fa-book-open"></i>
+                            </div>
+                            <h3>No Topics Available</h3>
+                            <p>This course doesn't have any topics yet. Check back later!</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+
+        // Toggle topic content visibility
+        function toggleTopic(topicId) {
+            const content = document.getElementById('content-' + topicId);
+            const chevron = document.getElementById('chevron-' + topicId);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Auto-expand first topic
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstTopic = document.querySelector('.topic-card');
+            if (firstTopic) {
+                const topicId = firstTopic.getAttribute('data-topic-id');
+                toggleTopic(topicId);
+            }
+        });
+
+        // Add smooth animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const topicCards = document.querySelectorAll('.topic-card');
+            
+            topicCards.forEach((card, index) => {
+                card.style.animationDelay = (index * 0.1) + 's';
+                card.classList.add('fade-in');
+            });
+        });
+
+        // Progress bar animation
+        function animateProgressBars() {
+            const progressBars = document.querySelectorAll('.progress-bar-fill, .circle-large');
+            
+            progressBars.forEach(bar => {
+                const width = bar.style.width || bar.getAttribute('stroke-dasharray');
+                if (bar.classList.contains('progress-bar-fill')) {
+                    bar.style.width = '0%';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 100);
+                } else {
+                    bar.setAttribute('stroke-dasharray', '0, 314');
+                    setTimeout(() => {
+                        bar.setAttribute('stroke-dasharray', width);
+                    }, 100);
+                }
+            });
+        }
+
+        // Animate progress bars when page loads
+        window.addEventListener('load', animateProgressBars);
+    </script>
+
+<style>
+/* Content Progress Styles */
+.content-actions-in-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.content-progress-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.content-progress-circle {
+    position: relative;
+    width: 24px;
+    height: 24px;
+}
+
+.progress-ring-tiny {
+    width: 24px;
+    height: 24px;
+    transform: rotate(-90deg);
+}
+
+.circle-bg-tiny {
+    fill: none;
+    stroke: #e5e7eb;
+    stroke-width: 2;
+}
+
+.circle-tiny {
+    fill: none;
+    stroke: #10b981;
+    stroke-width: 2;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+}
+
+.progress-text-tiny {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.progress-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Topic Progress Styles */
+.topic-progress-circle {
+    position: relative;
+    width: 36px;
+    height: 36px;
+}
+
+.progress-ring-small {
+    width: 36px;
+    height: 36px;
+    transform: rotate(-90deg);
+}
+
+.circle-bg-small {
+    fill: none;
+    stroke: #e5e7eb;
+    stroke-width: 3;
+}
+
+.circle-small {
+    fill: none;
+    stroke: #3b82f6;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+}
+
+.topic-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Course Progress Styles */
+.progress-ring-large {
+    width: 120px;
+    height: 120px;
+    transform: rotate(-90deg);
+}
+
+.circle-bg-large {
+    fill: none;
+    stroke: #e5e7eb;
+    stroke-width: 8;
+}
+
+.circle-large {
+    fill: none;
+    stroke: #dc2626;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+}
+</style>
+</body>
+</html>

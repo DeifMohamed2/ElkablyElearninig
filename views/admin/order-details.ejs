@@ -1,0 +1,335 @@
+<%- include('./partials/admin-header', { title, user, theme, currentPage: 'orders', pageCSS: 'orders' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'orders' }) %>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+      breadcrumb: 'Order Details',
+      breadcrumbSubtitle: `Order #${order.orderNumber}`,
+      showSearch: false
+    }) %>
+
+    <!-- Content Area -->
+    <div class="admin-content">
+      <!-- Order Details Page -->
+      <div class="order-details-container">
+
+        <!-- Order Header -->
+        <div class="order-details-header">
+          <div class="row align-items-center">
+            <div class="col-lg-8">
+              <div class="order-header-info">
+                <h1 class="order-id">Order #<%= order.orderNumber %></h1>
+                <div class="order-date">
+                  <i class="far fa-calendar-alt me-2"></i> 
+                  <span>Placed on <%= new Date(order.createdAt).toLocaleString() %></span>
+                </div>
+                <div class="order-status-overview mt-3">
+                  <div class="d-flex gap-3 flex-wrap">
+                    <div class="status-item">
+                      <span class="status-label">Order Status:</span>
+                      <span class="status-badge status-<%= order.status %>">
+                        <%= order.statusDisplay || order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="status-label">Payment Status:</span>
+                      <span class="status-badge status-<%= order.paymentStatus %>">
+                        <%= order.paymentStatusDisplay || order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1) %>
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="status-label">Total Amount:</span>
+                      <span class="amount-display"><%= order.currency %> <%= order.total.toFixed(2) %></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="order-actions">
+                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
+                  <% if (order.status !== 'refunded') { %>
+                  <form method="post" action="/admin/orders/<%= order.orderNumber %>/refund" onsubmit="return confirm('Are you sure you want to refund this order and revoke access? This action cannot be undone.')">
+                    <input type="hidden" name="amount" value="<%= order.total %>">
+                    <button class="btn btn-danger" type="submit">
+                      <i class="fas fa-undo me-2"></i> Process Refund
+                    </button>
+                  </form>
+                  <% } %>
+                  <a href="/admin/orders" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Orders
+                  </a>
+                  <a href="/admin/orders/<%= order.orderNumber %>/invoice" target="_blank" class="btn btn-outline-info">
+                    <i class="fas fa-print me-2"></i> Print Professional Invoice
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Items Section -->
+        <div class="card shadow-sm admin-card mb-4">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                <i class="fas fa-shopping-basket me-2"></i> Order Items
+              </h5>
+              <span class="badge badge-primary">
+                <%= itemsSummary.length %> item<%= itemsSummary.length !== 1 ? 's' : '' %>
+              </span>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle order-items-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th class="text-end">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% itemsSummary.forEach(item => { %>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <img src="<%= item.thumbnail || (item.type === 'bundle' ? '/images/bundle-placeholder.png' : (item.type === 'course' ? '/images/course-placeholder.png' : '/images/quiz-placeholder.png')) %>" 
+                             alt="<%= item.title %>" 
+                             class="product-thumbnail me-3"
+                             onerror="this.src='https://via.placeholder.com/60x60?text=<%= item.type %>'">
+                        <div class="product-details">
+                          <h6 class="mb-1"><%= item.title %></h6>
+                          <% if (item.courseCode) { %>
+                          <small class="text-muted">Code: <%= item.courseCode %></small>
+                          <% } %>
+                          <% if (item.bundleCode) { %>
+                          <small class="text-muted">Code: <%= item.bundleCode %></small>
+                          <% } %>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="product-type <%= item.type.toLowerCase() %>">
+                        <%= item.type %>
+                      </span>
+                    </td>
+                    <td class="text-end fw-bold">
+                      <%= order.currency %> <%= item.price.toFixed(2) %>
+                    </td>
+                  </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <% if(order.notes) { %>
+          <div class="card-footer">
+            <div class="row">
+              <div class="col-12">
+                <div class="order-notes">
+                  <strong>Order Notes:</strong> <%= order.notes %>
+                </div>
+              </div>
+            </div>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="card shadow-sm admin-card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-calculator me-2"></i> Order Summary
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="summary-row">
+              <span class="summary-label">Subtotal</span>
+              <span class="summary-value"><%= order.currency %> <%= summary.subtotal.toFixed(2) %></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Tax</span>
+              <span class="summary-value"><%= order.currency %> <%= summary.tax.toFixed(2) %></span>
+            </div>
+            <hr class="my-3">
+            <div class="summary-row total-row">
+              <span class="summary-label">Total</span>
+              <span class="summary-value total-amount"><%= order.currency %> <%= summary.total.toFixed(2) %></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Information Cards Row -->
+        <div class="row g-4">
+          <!-- Customer Information -->
+          <div class="col-12 col-lg-6 col-xl-3">
+            <div class="card shadow-sm admin-card h-100">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-user me-2"></i> Customer Information
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="customer-info">
+                  <div class="customer-avatar mb-3">
+                    <div class="avatar-placeholder">
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div class="customer-details">
+                      <h6 class="mb-1"><%= order.billingAddress.firstName %> <%= order.billingAddress.lastName %></h6>
+                      <small class="text-muted"><%= order.billingAddress.email %></small>
+                    </div>
+                  </div>
+                  
+                  <div class="contact-info">
+                    <div class="contact-item">
+                      <i class="fas fa-envelope"></i>
+                      <span><%= order.billingAddress.email %></span>
+                    </div>
+                    <div class="contact-item">
+                      <i class="fas fa-phone"></i>
+                      <span><%= order.billingAddress.phone %></span>
+                    </div>
+                  </div>
+
+                  <div class="billing-address mt-3">
+                    <h6 class="mb-2">Billing Address</h6>
+                    <div class="address-text">
+                      <%= order.billingAddress.address %><br>
+                      <%= order.billingAddress.city %>, <%= order.billingAddress.state %> <%= order.billingAddress.zipCode %><br>
+                      <%= order.billingAddress.country %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer">
+                <a href="/admin/students?search=<%= order.billingAddress.email %>" class="btn btn-primary w-100">
+                  <i class="fas fa-user me-2"></i> View Customer Profile
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Information -->
+          <div class="col-12 col-lg-6 col-xl-3">
+            <div class="card shadow-sm admin-card h-100">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-credit-card me-2"></i> Payment Information
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="payment-info">
+                  <div class="payment-method mb-3">
+                    <div class="method-icon">
+                      <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="method-details">
+                      <h6 class="mb-1">Payment Method</h6>
+                      <span class="badge badge-method">
+                        <%= order.paymentMethod.replace('_', ' ').toUpperCase() %>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="payment-details">
+                    <div class="detail-row">
+                      <span class="detail-label">Gateway</span>
+                      <span class="detail-value"><%= order.paymentGateway %></span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Currency</span>
+                      <span class="detail-value"><%= order.currency %></span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Intent ID</span>
+                      <span class="detail-value small"><%= order.paymentIntentId || 'N/A' %></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Refund Information (if applicable) -->
+          <% if (order.status === 'refunded') { %>
+          <div class="col-12 col-lg-6 col-xl-3">
+            <div class="card shadow-sm admin-card refund-alert h-100">
+              <div class="card-header">
+                <h5 class="mb-0 text-danger">
+                  <i class="fas fa-exclamation-circle me-2"></i> Refund Processed
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="refund-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Refund Amount</span>
+                    <span class="detail-value text-danger fw-bold">
+                      <%= order.currency %> <%= (order.refundAmount||0).toFixed(2) %>
+                    </span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Refund Date</span>
+                    <span class="detail-value"><%= new Date(order.refundedAt).toLocaleString() %></span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Reason</span>
+                    <span class="detail-value"><%= order.refundReason || 'N/A' %></span>
+                  </div>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0">
+                  <i class="fas fa-info-circle me-2"></i> 
+                  Access to purchased items has been revoked.
+                </div>
+              </div>
+            </div>
+          </div>
+          <% } %>
+
+          <!-- Quick Actions -->
+          <div class="col-12 col-lg-6 col-xl-3">
+            <div class="card shadow-sm admin-card h-100">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-cogs me-2"></i> Quick Actions
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="d-grid gap-2">
+                  <a href="/admin/orders?search=<%= order.orderNumber %>" class="btn btn-outline-primary">
+                    <i class="fas fa-search me-2"></i> Find Similar Orders
+                  </a>
+                   <a href="/admin/orders/<%= order.orderNumber %>/invoice" target="_blank" class="btn btn-outline-info">
+                     <i class="fas fa-print me-2"></i> Print Professional Invoice
+                   </a>
+                  <a href="/admin/orders" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Orders
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<!-- Include the custom CSS -->
+<link rel="stylesheet" href="/css/admin-orders.css">
+
+<%- include('partials/admin-footer') %>
+
+<%- include('partials/admin-footer') %>

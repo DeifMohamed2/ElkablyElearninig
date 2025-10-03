@@ -1,0 +1,909 @@
+<%- include('./partials/admin-header') %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'courses' }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: `Courses / ${course.title} / ${topic.title} / ${contentItem.title}`,
+        breadcrumbSubtitle: 'Content Details and Student Analytics',
+        showSearch: false
+    }) %>
+    
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="admin-dashboard admin-fade-in">
+        
+        <!-- Content Header -->
+        <div class="content-header-card">
+          <div class="content-header-content">
+            <div class="content-header-top">
+              <div class="content-badges">
+                <span class="content-type-badge content-type-<%= contentItem.type %>">
+                  <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
+                  <%= contentItem.type.charAt(0).toUpperCase() + contentItem.type.slice(1) %>
+                </span>
+                <span class="difficulty-badge difficulty-<%= contentItem.difficulty || 'beginner' %>">
+                  <%= (contentItem.difficulty || 'beginner').charAt(0).toUpperCase() + (contentItem.difficulty || 'beginner').slice(1) %>
+                </span>
+                <% if (contentItem.isRequired) { %>
+                  <span class="required-badge">
+                    <i class="fas fa-star"></i>
+                    Required
+                  </span>
+                <% } %>
+                <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                  <span class="attempts-badge">
+                    <i class="fas fa-redo"></i>
+                    Max <%= contentItem.type === 'quiz' ? (contentItem.quizSettings?.maxAttempts || 3) : (contentItem.homeworkSettings?.maxAttempts || 1) %> attempts
+                  </span>
+                <% } %>
+              </div>
+              <div class="content-header-actions">
+                <button class="btn btn-outline-secondary btn-sm" onclick="exportData()">
+                  <i class="fas fa-download"></i>
+                  Export Data
+                </button>
+              </div>
+            </div>
+            
+            <div class="content-title-section">
+              <h1 class="content-title"><%= contentItem.title %></h1>
+              <% if (contentItem.description) { %>
+                <p class="content-description"><%= contentItem.description %></p>
+              <% } %>
+            </div>
+            
+            <div class="content-stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= analytics.totalStudents %></div>
+                  <div class="stat-label">Total Students</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-eye"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= analytics.viewedStudents %></div>
+                  <div class="stat-label">Viewed</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= analytics.completedStudents %></div>
+                  <div class="stat-label">Completed</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= analytics.completionRate %>%</div>
+                  <div class="stat-label">Completion Rate</div>
+                </div>
+              </div>
+              <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number"><%= analytics.averageGrade || analytics.averageScore || 0 %>%</div>
+                    <div class="stat-label">Average Score</div>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number"><%= analytics.passRate || 0 %>%</div>
+                    <div class="stat-label">Pass Rate</div>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-medal"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number"><%= analytics.highestScore || 0 %>%</div>
+                    <div class="stat-label">Highest Score</div>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-redo"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number"><%= analytics.totalAttempts %></div>
+                    <div class="stat-label">Total Attempts</div>
+                  </div>
+                </div>
+              <% } %>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= analytics.averageTimeSpent %>m</div>
+                  <div class="stat-label">Avg Time</div>
+                </div>
+              </div>
+              <% if (analytics.totalPoints > 0) { %>
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number"><%= analytics.totalPoints %></div>
+                    <div class="stat-label">Total Points</div>
+                  </div>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Information -->
+        <div class="content-info-section">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="content-details-card">
+                <div class="card-header">
+                  <h5><i class="fas fa-info-circle me-2"></i>Content Information</h5>
+                </div>
+                <div class="card-body">
+                  <div class="content-meta-grid">
+                    <div class="meta-item">
+                      <label>Content Type:</label>
+                      <span class="content-type-badge content-type-<%= contentItem.type %>">
+                        <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
+                        <%= contentItem.type.charAt(0).toUpperCase() + contentItem.type.slice(1) %>
+                      </span>
+                    </div>
+                    <div class="meta-item">
+                      <label>Duration:</label>
+                      <span><%= contentItem.duration || 0 %> minutes</span>
+                    </div>
+                    <div class="meta-item">
+                      <label>Difficulty:</label>
+                      <span class="difficulty-badge difficulty-<%= contentItem.difficulty || 'beginner' %>">
+                        <%= (contentItem.difficulty || 'beginner').charAt(0).toUpperCase() + (contentItem.difficulty || 'beginner').slice(1) %>
+                      </span>
+                    </div>
+                    <div class="meta-item">
+                      <label>Required:</label>
+                      <span class="<%= contentItem.isRequired ? 'text-success' : 'text-muted' %>">
+                        <i class="fas fa-<%= contentItem.isRequired ? 'check' : 'times' %>"></i>
+                        <%= contentItem.isRequired ? 'Yes' : 'No' %>
+                      </span>
+                    </div>
+                    <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                      <div class="meta-item">
+                        <label>Questions:</label>
+                        <span><%= contentItem.selectedQuestions ? contentItem.selectedQuestions.length : 0 %> questions</span>
+                      </div>
+                      <div class="meta-item">
+                        <label>Total Points:</label>
+                        <span><%= contentItem.selectedQuestions ? contentItem.selectedQuestions.reduce((total, q) => total + (q.points || 1), 0) : 0 %> points</span>
+                      </div>
+                      <div class="meta-item">
+                        <label>Max Attempts:</label>
+                        <span><%= contentItem.type === 'quiz' ? (contentItem.quizSettings?.maxAttempts || 3) : (contentItem.homeworkSettings?.maxAttempts || 1) %></span>
+                      </div>
+                      <div class="meta-item">
+                        <label>Passing Score:</label>
+                        <span><%= contentItem.type === 'quiz' ? (contentItem.quizSettings?.passingScore || 60) : (contentItem.homeworkSettings?.passingScore || 60) %>%</span>
+                      </div>
+                      <% if (contentItem.type === 'quiz' && contentItem.quizSettings?.duration) { %>
+                        <div class="meta-item">
+                          <label>Time Limit:</label>
+                          <span><%= contentItem.quizSettings.duration %> minutes</span>
+                        </div>
+                      <% } %>
+                    <% } else { %>
+                      <div class="meta-item">
+                        <label>Content URL:</label>
+                        <a href="<%= contentItem.content %>" target="_blank" class="content-url">
+                          <i class="fas fa-external-link-alt"></i>
+                          View Content
+                        </a>
+                      </div>
+                    <% } %>
+                    <% if (contentItem.tags && contentItem.tags.length > 0) { %>
+                      <div class="meta-item">
+                        <label>Tags:</label>
+                        <div class="tags-container">
+                          <% contentItem.tags.forEach(tag => { %>
+                            <span class="tag"><%= tag %></span>
+                          <% }); %>
+                        </div>
+                      </div>
+                    <% } %>
+                    <% if (contentItem.learningObjectives && contentItem.learningObjectives.length > 0) { %>
+                      <div class="meta-item full-width">
+                        <label>Learning Objectives:</label>
+                        <ul class="learning-objectives">
+                          <% contentItem.learningObjectives.forEach(objective => { %>
+                            <li><%= objective %></li>
+                          <% }); %>
+                        </ul>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="prerequisite-card">
+                <div class="card-header">
+                  <h5><i class="fas fa-link me-2"></i>Prerequisites</h5>
+                </div>
+                <div class="card-body">
+                  <% if (prerequisiteContent) { %>
+                    <div class="prerequisite-item">
+                      <div class="prerequisite-info">
+                        <h6><%= prerequisiteContent.title %></h6>
+                        <p class="prerequisite-meta">
+                          Topic <%= prerequisiteContent.topicOrder %>: <%= prerequisiteContent.topicTitle %>
+                        </p>
+                        <span class="content-type-badge content-type-<%= prerequisiteContent.type %>">
+                          <i class="fas fa-<%= getContentIcon(prerequisiteContent.type) %>"></i>
+                          <%= prerequisiteContent.type.charAt(0).toUpperCase() + prerequisiteContent.type.slice(1) %>
+                        </span>
+                      </div>
+                    </div>
+                  <% } else { %>
+                    <div class="no-prerequisites">
+                      <i class="fas fa-unlock"></i>
+                      <p>No prerequisites required</p>
+                      <small>This content is available immediately</small>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Progress Section -->
+        <div class="student-progress-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h3>
+                <i class="fas fa-users me-2"></i>
+                <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                  Student Rankings & Performance
+                <% } else { %>
+                  Student Progress & Completion
+                <% } %>
+              </h3>
+              <span class="student-count"><%= studentProgress.length %> students</span>
+            </div>
+            <div class="section-actions">
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="studentSearch" placeholder="Search students...">
+              </div>
+              <select id="statusFilter" class="filter-select">
+                <option value="">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="in_progress">In Progress</option>
+                <option value="not_started">Not Started</option>
+                <option value="failed">Failed</option>
+              </select>
+              <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                <select id="scoreFilter" class="filter-select">
+                  <option value="">All Scores</option>
+                  <option value="90-100">90-100%</option>
+                  <option value="80-89">80-89%</option>
+                  <option value="70-79">70-79%</option>
+                  <option value="60-69">60-69%</option>
+                  <option value="0-59">Below 60%</option>
+                </select>
+              <% } %>
+              <button class="btn btn-outline-primary btn-sm" onclick="exportStudentData()">
+                <i class="fas fa-download"></i>
+                Export
+              </button>
+            </div>
+          </div>
+
+          <div class="students-table-container">
+            <table class="students-table" id="studentsTable">
+              <thead>
+                <tr>
+                  <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                    <th>Rank</th>
+                  <% } %>
+                  <th>
+                    <button class="sort-btn" onclick="sortStudents('name')">
+                      Student <i class="fas fa-sort"></i>
+                    </button>
+                  </th>
+                  <th>Student Code</th>
+                  <th>Contact Info</th>
+                  <th>
+                    <button class="sort-btn" onclick="sortStudents('progress')">
+                      Progress <i class="fas fa-sort"></i>
+                    </button>
+                  </th>
+                  <th>Status</th>
+                  <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                    <th>
+                      <button class="sort-btn" onclick="sortStudents('bestScore')">
+                        Best Score <i class="fas fa-sort"></i>
+                      </button>
+                    </th>
+                    <th>
+                      <button class="sort-btn" onclick="sortStudents('grade')">
+                        Latest Grade <i class="fas fa-sort"></i>
+                      </button>
+                    </th>
+                    <th>Result</th>
+                    <th>Attempts</th>
+                    <th>Total Points</th>
+                  <% } %>
+                  <th>Time Spent</th>
+                  <th>Last Accessed</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% studentProgress.forEach((student, index) => { %>
+                  <tr class="student-row" data-status="<%= student.status %>" data-rank="<%= index + 1 %>">
+                    <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                      <td>
+                        <div class="rank-container">
+                          <% if (index < 3 && student.status === 'completed') { %>
+                            <span class="rank-badge rank-<%= index + 1 %>">
+                              <% if (index === 0) { %>
+                                <i class="fas fa-trophy"></i> 1st
+                              <% } else if (index === 1) { %>
+                                <i class="fas fa-medal"></i> 2nd
+                              <% } else if (index === 2) { %>
+                                <i class="fas fa-award"></i> 3rd
+                              <% } %>
+                            </span>
+                          <% } else { %>
+                            <span class="rank-number">#<%= index + 1 %></span>
+                          <% } %>
+                        </div>
+                      </td>
+                    <% } %>
+                    <td>
+                      <div class="student-info">
+                        <strong><%= student.name %></strong>
+                        <small><%= student.email %></small>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="student-code"><%= student.studentCode %></span>
+                    </td>
+                    <td>
+                      <div class="contact-info">
+                        <div class="phone-number">
+                          <i class="fas fa-phone"></i> <%= student.studentPhone %>
+                        </div>
+                        <div class="phone-number">
+                          <i class="fas fa-user-friends"></i> <%= student.parentPhone %>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="progress-container">
+                        <div class="progress-bar">
+                          <div class="progress-fill" style="width: <%= student.progress %>%"></div>
+                        </div>
+                        <span class="progress-text"><%= student.progress %>%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="status-badge status-<%= student.status %>">
+                        <i class="fas fa-<%= getStatusIcon(student.status) %>"></i>
+                        <%= student.status.charAt(0).toUpperCase() + student.status.slice(1).replace('_', ' ') %>
+                      </span>
+                    </td>
+                    <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                      <td>
+                        <% if (student.bestScore !== null && student.bestScore !== undefined) { %>
+                          <span class="score-badge score-<%= student.bestScore >= 70 ? 'excellent' : student.bestScore >= 60 ? 'good' : 'poor' %>">
+                            <%= student.bestScore %>%
+                          </span>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <% if (student.grade !== null && student.grade !== undefined) { %>
+                          <span class="grade-badge grade-<%= student.grade >= 70 ? 'pass' : 'fail' %>">
+                            <%= student.grade %>%
+                          </span>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <% if (student.passed !== null) { %>
+                          <span class="result-badge result-<%= student.passed ? 'pass' : 'fail' %>">
+                            <i class="fas fa-<%= student.passed ? 'check' : 'times' %>"></i>
+                            <%= student.passed ? 'Pass' : 'Fail' %>
+                          </span>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <span class="attempts-badge">
+                          <%= student.attempts %>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="points-badge">
+                          <%= student.totalPoints || 0 %>
+                        </span>
+                      </td>
+                    <% } %>
+                    <td>
+                      <span class="time-spent">
+                        <%= student.timeSpent %>m
+                      </span>
+                    </td>
+                    <td>
+                      <span class="last-accessed">
+                        <%= student.lastAccessed %>
+                      </span>
+                    </td>
+                    <td>
+                      <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetails('<%= student.email %>')" title="View Details">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="contactStudent('<%= student.email %>')" title="Contact">
+                          <i class="fas fa-envelope"></i>
+                        </button>
+                        <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                          <button class="btn btn-sm btn-outline-info" onclick="viewAttemptHistory('<%= student.id %>')" title="View Attempt History">
+                            <i class="fas fa-history"></i>
+                          </button>
+                        <% } %>
+                      </div>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+  </main>
+</div>
+
+<% 
+// Helper functions
+function getContentIcon(type) {
+  const icons = {
+    'video': 'play',
+    'pdf': 'file-pdf',
+    'homework': 'tasks',
+    'quiz': 'question-circle',
+    'assignment': 'clipboard-list',
+    'reading': 'book',
+    'link': 'external-link-alt'
+  };
+  return icons[type] || 'file';
+}
+
+function getStatusIcon(status) {
+  const icons = {
+    'completed': 'check-circle',
+    'in_progress': 'clock',
+    'not_started': 'circle',
+    'failed': 'times-circle'
+  };
+  return icons[status] || 'circle';
+}
+%>
+
+<%- include('./partials/admin-footer') %>
+
+<script>
+// Student data
+let allStudentsData = <%- JSON.stringify(studentProgress) %>;
+let filteredStudentsData = [...allStudentsData];
+let currentSort = { column: null, direction: 'asc' };
+let contentType = '<%= contentItem.type %>';
+
+document.addEventListener('DOMContentLoaded', function() {
+  setupSearch();
+  setupStatusFilter();
+  setupScoreFilter();
+  setupSorting();
+});
+
+// Search functionality
+function setupSearch() {
+  const searchInput = document.getElementById('studentSearch');
+  searchInput.addEventListener('input', function() {
+    applyFilters();
+  });
+}
+
+// Status filter functionality
+function setupStatusFilter() {
+  const statusFilter = document.getElementById('statusFilter');
+  statusFilter.addEventListener('change', function() {
+    applyFilters();
+  });
+}
+
+// Score filter functionality
+function setupScoreFilter() {
+  const scoreFilter = document.getElementById('scoreFilter');
+  if (scoreFilter) {
+    scoreFilter.addEventListener('change', function() {
+      applyFilters();
+    });
+  }
+}
+
+// Apply all filters
+function applyFilters() {
+  const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+  const selectedStatus = document.getElementById('statusFilter').value;
+  const selectedScore = document.getElementById('scoreFilter') ? document.getElementById('scoreFilter').value : '';
+  
+  filteredStudentsData = allStudentsData.filter(student => {
+    // Search filter
+    const matchesSearch = !searchTerm || 
+      student.name.toLowerCase().includes(searchTerm) ||
+      student.email.toLowerCase().includes(searchTerm) ||
+      student.studentCode.toLowerCase().includes(searchTerm);
+    
+    // Status filter
+    const matchesStatus = !selectedStatus || student.status === selectedStatus;
+    
+    // Score filter
+    let matchesScore = true;
+    if (selectedScore && student.bestScore !== null && student.bestScore !== undefined) {
+      const [min, max] = selectedScore.split('-').map(Number);
+      matchesScore = student.bestScore >= min && student.bestScore <= max;
+    }
+    
+    return matchesSearch && matchesStatus && matchesScore;
+  });
+  
+  renderStudentsTable();
+}
+
+// Sorting functionality
+function setupSorting() {
+  // Sort buttons are already set up with onclick handlers
+}
+
+function sortStudents(column) {
+  if (currentSort.column === column) {
+    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort.column = column;
+    currentSort.direction = 'asc';
+  }
+  
+  filteredStudentsData.sort((a, b) => {
+    let aVal = a[column];
+    let bVal = b[column];
+    
+    if (column === 'name') {
+      aVal = a.name.toLowerCase();
+      bVal = b.name.toLowerCase();
+    } else if (column === 'bestScore' || column === 'grade') {
+      // Handle null/undefined values for scores
+      if (aVal === null || aVal === undefined) aVal = -1;
+      if (bVal === null || bVal === undefined) bVal = -1;
+    }
+    
+    if (currentSort.direction === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+  
+  renderStudentsTable();
+  updateSortIndicators();
+}
+
+function updateSortIndicators() {
+  // Remove all sort indicators
+  document.querySelectorAll('.sort-btn i').forEach(icon => {
+    icon.className = 'fas fa-sort';
+  });
+  
+  // Add indicator to current sort column
+  if (currentSort.column) {
+    const sortBtn = document.querySelector(`[onclick="sortStudents('${currentSort.column}')"] i`);
+    if (sortBtn) {
+      sortBtn.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'}`;
+    }
+  }
+}
+
+function renderStudentsTable() {
+  const tbody = document.querySelector('#studentsTable tbody');
+  tbody.innerHTML = '';
+  
+  filteredStudentsData.forEach((student, index) => {
+    const row = createStudentRow(student, index);
+    tbody.appendChild(row);
+  });
+}
+
+function createStudentRow(student, index) {
+  const row = document.createElement('tr');
+  row.className = 'student-row';
+  row.setAttribute('data-status', student.status);
+  row.setAttribute('data-rank', index + 1);
+  
+  const isQuizOrHomework = contentType === 'quiz' || contentType === 'homework';
+  
+  let rankCell = '';
+  if (isQuizOrHomework) {
+    if (index < 3 && student.status === 'completed') {
+      const rankIcons = ['fas fa-trophy', 'fas fa-medal', 'fas fa-award'];
+      const rankTexts = ['1st', '2nd', '3rd'];
+      rankCell = `
+        <td>
+          <div class="rank-container">
+            <span class="rank-badge rank-${index + 1}">
+              <i class="${rankIcons[index]}"></i> ${rankTexts[index]}
+            </span>
+          </div>
+        </td>
+      `;
+    } else {
+      rankCell = `
+        <td>
+          <div class="rank-container">
+            <span class="rank-number">#${index + 1}</span>
+          </div>
+        </td>
+      `;
+    }
+  }
+  
+  let quizCells = '';
+  if (isQuizOrHomework) {
+    const bestScoreBadge = student.bestScore !== null && student.bestScore !== undefined ? 
+      `<span class="score-badge score-${student.bestScore >= 70 ? 'excellent' : student.bestScore >= 60 ? 'good' : 'poor'}">${student.bestScore}%</span>` : 
+      '<span class="text-muted">-</span>';
+    
+    const gradeBadge = student.grade !== null && student.grade !== undefined ? 
+      `<span class="grade-badge grade-${student.grade >= 70 ? 'pass' : 'fail'}">${student.grade}%</span>` : 
+      '<span class="text-muted">-</span>';
+    
+    const resultBadge = student.passed !== null ? 
+      `<span class="result-badge result-${student.passed ? 'pass' : 'fail'}">
+        <i class="fas fa-${student.passed ? 'check' : 'times'}"></i>
+        ${student.passed ? 'Pass' : 'Fail'}
+      </span>` : 
+      '<span class="text-muted">-</span>';
+    
+    quizCells = `
+      <td>${bestScoreBadge}</td>
+      <td>${gradeBadge}</td>
+      <td>${resultBadge}</td>
+      <td><span class="attempts-badge">${student.attempts}</span></td>
+      <td><span class="points-badge">${student.totalPoints || 0}</span></td>
+    `;
+  }
+  
+  const actionButtons = isQuizOrHomework ? `
+    <div class="action-buttons">
+      <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetails('${student.email}')" title="View Details">
+        <i class="fas fa-eye"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-success" onclick="contactStudent('${student.email}')" title="Contact">
+        <i class="fas fa-envelope"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-info" onclick="viewAttemptHistory('${student.id}')" title="View Attempt History">
+        <i class="fas fa-history"></i>
+      </button>
+    </div>
+  ` : `
+    <div class="action-buttons">
+      <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetails('${student.email}')" title="View Details">
+        <i class="fas fa-eye"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-success" onclick="contactStudent('${student.email}')" title="Contact">
+        <i class="fas fa-envelope"></i>
+      </button>
+    </div>
+  `;
+  
+  row.innerHTML = `
+    ${rankCell}
+    <td>
+      <div class="student-info">
+        <strong>${student.name}</strong>
+        <small>${student.email}</small>
+      </div>
+    </td>
+    <td>
+      <span class="student-code">${student.studentCode}</span>
+    </td>
+    <td>
+      <div class="contact-info">
+        <div class="phone-number">
+          <i class="fas fa-phone"></i> ${student.studentPhone}
+        </div>
+        <div class="phone-number">
+          <i class="fas fa-user-friends"></i> ${student.parentPhone}
+        </div>
+      </div>
+    </td>
+    <td>
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${student.progress}%"></div>
+        </div>
+        <span class="progress-text">${student.progress}%</span>
+      </div>
+    </td>
+    <td>
+      <span class="status-badge status-${student.status}">
+        <i class="fas fa-${getStatusIcon(student.status)}"></i>
+        ${student.status.charAt(0).toUpperCase() + student.status.slice(1).replace('_', ' ')}
+      </span>
+    </td>
+    ${quizCells}
+    <td>
+      <span class="time-spent">${student.timeSpent}m</span>
+    </td>
+    <td>
+      <span class="last-accessed">${student.lastAccessed}</span>
+    </td>
+    <td>${actionButtons}</td>
+  `;
+  
+  return row;
+}
+
+function getStatusIcon(status) {
+  const icons = {
+    'completed': 'check-circle',
+    'in_progress': 'clock',
+    'not_started': 'circle',
+    'failed': 'times-circle'
+  };
+  return icons[status] || 'circle';
+}
+
+// Action functions
+function viewStudentDetails(email) {
+  // Redirect to student details page
+  window.location.href = `/admin/students?search=${encodeURIComponent(email)}`;
+}
+
+function contactStudent(email) {
+  // Open email client or show contact modal
+  const contentTitle = '<%= contentItem.title %>';
+  window.open(`mailto:${email}?subject=Regarding your progress in ${encodeURIComponent(contentTitle)}`);
+}
+
+function viewAttemptHistory(studentId) {
+  // Show attempt history modal or redirect to detailed view
+  alert(`View attempt history for student ID: ${studentId}`);
+  // TODO: Implement attempt history modal
+}
+
+function editContent() {
+  // Redirect to edit content page
+  const courseCode = '<%= courseCode %>';
+  const topicId = '<%= topic._id %>';
+  const contentId = '<%= contentItem._id %>';
+  window.location.href = `/admin/courses/${courseCode}/topics/${topicId}/content/${contentId}/edit`;
+}
+
+function previewContent() {
+  // Open content in new tab
+  const contentUrl = '<%= contentItem.content %>';
+  window.open(contentUrl, '_blank');
+}
+
+function exportData() {
+  // Export content analytics data
+  const contentTitle = '<%= contentItem.title %>';
+  const contentType = '<%= contentItem.type %>';
+  const contentDifficulty = '<%= contentItem.difficulty %>';
+  const analyticsData = <%- JSON.stringify(analytics) %>;
+  
+  const data = {
+    content: {
+      title: contentTitle,
+      type: contentType,
+      difficulty: contentDifficulty
+    },
+    analytics: analyticsData,
+    students: filteredStudentsData
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'content-analytics.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportStudentData() {
+  const csv = generateCSV(filteredStudentsData);
+  downloadCSV(csv, 'student-progress.csv');
+}
+
+function generateCSV(data) {
+  const headers = ['Name', 'Email', 'Student Code', 'Parent Phone', 'Student Phone', 'Progress', 'Status', 'Time Spent', 'Last Accessed'];
+  const isQuizOrHomework = contentType === 'quiz' || contentType === 'homework';
+  
+  if (isQuizOrHomework) {
+    headers.push('Best Score', 'Latest Grade', 'Result', 'Attempts', 'Total Points');
+  }
+  
+  const rows = data.map(student => {
+    const baseRow = [
+      student.name,
+      student.email,
+      student.studentCode,
+      student.parentPhone,
+      student.studentPhone,
+      student.progress + '%',
+      student.status,
+      student.timeSpent + 'm',
+      student.lastAccessed
+    ];
+    
+    if (isQuizOrHomework) {
+      baseRow.push(
+        student.bestScore || '-',
+        student.grade || '-',
+        student.passed !== null ? (student.passed ? 'Pass' : 'Fail') : '-',
+        student.attempts,
+        student.totalPoints || 0
+      );
+    }
+    
+    return baseRow;
+  });
+  
+  return [headers, ...rows].map(row => row.join(',')).join('\n');
+}
+
+function downloadCSV(content, filename) {
+  const blob = new Blob([content], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>

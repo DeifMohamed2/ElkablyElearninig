@@ -1,0 +1,3684 @@
+<%- include('./partials/admin-header', { pageCSS: 'courses' }) %>
+
+<!-- MathLive for professional math input -->
+<script src="https://unpkg.com/mathlive"></script>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'courses' }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: `Courses / ${course.title}`,
+        breadcrumbSubtitle: 'Manage Course Content and Topics',
+        showSearch: false
+    }) %>
+    
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="admin-dashboard admin-fade-in">
+        
+        <!-- Course Header -->
+        <div class="course-header-card">
+          <div class="course-header-content">
+            <div class="course-header-top">
+              <div class="course-badges">
+                <span class="course-level-badge"><%= course.level %></span>
+                <span class="course-code-badge"><%= course.courseCode %></span>
+                <% if (course.bundle) { %>
+                  <span class="bundle-badge">
+                    <i class="fas fa-box"></i>
+                    <%= course.bundle.bundleCode %>
+                  </span>
+                <% } %>
+              </div>
+              <div class="course-header-actions">
+                <button class="btn btn-outline-success btn-sm" onclick="editCourse('<%= course.courseCode %>')">
+                  <i class="fas fa-edit"></i>
+                  Edit Course
+                </button>
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTopicModal">
+                  <i class="fas fa-plus"></i>
+                  Add Topic
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="toggleReorderMode()">
+                  <i class="fas fa-sort"></i>
+                  Reorder
+                </button>
+                <button class="btn btn-outline-info btn-sm" onclick="toggleAllTopics()">
+                  <i class="fas fa-eye-slash"></i>
+                  Toggle All
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="previewCourse()">
+                  <i class="fas fa-eye"></i>
+                  Preview
+                </button>
+              </div>
+            </div>
+            
+            <div class="course-title-section">
+              <h1 class="course-title"><%= course.title %></h1>
+              <p class="course-description"><%= course.description %></p>
+            </div>
+            
+            <div class="course-stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">
+                <i class="fas fa-layer-group"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= stats.totalTopics %></div>
+                  <div class="stat-label">Topics</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= stats.estimatedDuration %></div>
+                  <div class="stat-label">Hours</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= stats.enrolledStudents %></div>
+                  <div class="stat-label">Students</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= stats.totalContentItems %></div>
+                  <div class="stat-label">Content Items</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-eye"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number"><%= stats.publishedTopics %></div>
+                  <div class="stat-label">Published</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Topics Section -->
+        <div class="topics-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h3><i class="fas fa-list-ul"></i> Course Topics</h3>
+              <span class="topic-count"><%= course.topics ? course.topics.length : 0 %> topics</span>
+            </div>
+          </div>
+
+          <div class="topics-container" id="topicsContainer">
+            <% if (course.topics && course.topics.length > 0) { %>
+              <% course.topics.forEach((topic, index) => { %>
+                <div class="topic-card" data-topic-id="<%= topic._id %>" data-order="<%= topic.order || index + 1 %>">
+                  <!-- Status Badge - Top Right -->
+                  <div class="topic-status-container">
+                    <span class="status-badge <%= topic.isPublished ? 'published' : 'draft' %>">
+                      <i class="fas fa-<%= topic.isPublished ? 'eye' : 'eye-slash' %>"></i>
+                      <%= topic.isPublished ? 'Published' : 'Draft' %>
+                    </span>
+                  </div>
+                  
+                  <div class="topic-card-header">
+                    <div class="topic-number"><%= String(index + 1).padStart(2, '0') %></div>
+                    <div class="topic-info">
+                      <h4 class="topic-title"><%= topic.title %></h4>
+                      <p class="topic-description"><%= topic.description %></p>
+                      <div class="topic-meta">
+                        <span class="meta-item">
+                        <i class="fas fa-clock"></i>
+                          <%= topic.estimatedTime ? Math.round(topic.estimatedTime / 60 * 10) / 10 : 0 %>h
+                        </span>
+                        <span class="meta-item">
+                          <i class="fas fa-file-alt"></i>
+                          <%= topic.content ? topic.content.length : 0 %> items
+                      </span>
+                        <span class="meta-item">
+                          <i class="fas fa-signal"></i>
+                          <span class="difficulty-badge difficulty-<%= topic.difficulty || 'beginner' %>">
+                            <%= (topic.difficulty || 'beginner').charAt(0).toUpperCase() + (topic.difficulty || 'beginner').slice(1) %>
+                          </span>
+                        </span>
+                    </div>
+                  </div>
+                    <div class="topic-actions">
+                      <button class="action-btn" onclick="viewTopicDetails('<%= topic._id %>')" title="View Details">
+                    <i class="fas fa-chart-line"></i>
+                  </button>
+                      <button class="action-btn" onclick="toggleTopicVisibility('<%= topic._id %>', '<%= topic.isPublished %>')" title="Toggle Visibility">
+                        <i class="fas fa-<%= topic.isPublished ? 'eye-slash' : 'eye' %>"></i>
+                  </button>
+                      <button class="action-btn" onclick="manageTopicContent('<%= topic._id %>')" title="Add Content">
+                        <i class="fas fa-plus"></i>
+                  </button>
+                      <button class="action-btn" onclick="editTopic('<%= topic._id %>')" title="Edit Topic">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                      <button class="action-btn danger" onclick="deleteTopic('<%= topic._id %>')" title="Delete Topic">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                  <div class="topic-content-section" style="display: none;">
+                    <% if (topic.content && topic.content.length > 0) { %>
+                      <div class="content-items">
+                        <% topic.content.forEach(contentItem => { %>
+                          <div class="content-item" data-content-id="<%= contentItem._id %>">
+                            <div class="content-icon <%= contentItem.type %>">
+                              <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
+                            </div>
+                            <div class="content-details">
+                              <h6 class="content-title"><%= contentItem.title %></h6>
+                              <div class="content-meta">
+                                <span class="content-type"><%= contentItem.type.charAt(0).toUpperCase() + contentItem.type.slice(1) %></span>
+                                <% if (contentItem.duration) { %>
+                                  <span class="content-duration"><%= contentItem.duration %> min</span>
+                                <% } %>
+                  </div>
+                              <% if (contentItem.description) { %>
+                                <p class="content-description"><%= contentItem.description %></p>
+                              <% } %>
+                  </div>
+                            <div class="content-actions">
+                              <button class="btn btn-sm btn-outline-info" onclick="viewContentDetails('<%= topic._id %>', '<%= contentItem._id %>')" title="View Details">
+                                <i class="fas fa-chart-line"></i>
+                              </button>
+                              <button class="btn btn-sm btn-outline-primary" onclick="editContent('<%= topic._id %>', '<%= contentItem._id %>')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                              <button class="btn btn-sm btn-outline-danger" onclick="deleteContent('<%= topic._id %>', '<%= contentItem._id %>')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                        <% }); %>
+                  </div>
+                    <% } else { %>
+                      <div class="empty-content">
+                        <div class="empty-icon">
+                          <i class="fas fa-plus-circle"></i>
+                  </div>
+                        <p>No content added yet</p>
+                        <button class="btn btn-primary btn-sm" onclick="manageTopicContent('<%= topic._id %>')">
+                          <i class="fas fa-plus"></i>
+                          Add Content
+                    </button>
+                  </div>
+                    <% } %>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-book"></i>
+                </div>
+                <h4>No topics created yet</h4>
+                <p>Create your first topic to start building course content</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTopicModal">
+                  <i class="fas fa-plus"></i>
+                  Create First Topic
+                </button>
+              </div>
+            <% } %>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+  </main>
+</div>
+
+<!-- Add Topic Modal -->
+<div class="modal fade" id="addTopicModal" tabindex="-1" aria-labelledby="addTopicModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content admin-modal-content admin-modal-wide">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title" id="addTopicModalLabel">
+          <i class="fas fa-plus-circle me-2"></i>
+          Add New Topic
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <form id="addTopicForm" method="POST" action="/admin/courses/<%= courseCode %>/topics/create">
+        <div class="modal-body admin-modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-info-circle me-2"></i>
+                  Topic Information
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="topicTitle" class="admin-form-label">
+                    <i class="fas fa-heading me-2"></i>
+                    Topic Title
+                  </label>
+                  <input type="text" class="admin-form-control" id="topicTitle" name="title" 
+                         minlength="3" maxlength="100" required>
+                  <small class="admin-form-text">Title must be between 3 and 100 characters</small>
+                  <div class="invalid-feedback" id="topicTitleError"></div>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="topicDescription" class="admin-form-label">
+                    <i class="fas fa-align-left me-2"></i>
+                    Topic Description
+                  </label>
+                  <textarea class="admin-form-control" id="topicDescription" name="description" 
+                            rows="3" minlength="10" maxlength="500" required></textarea>
+                  <small class="admin-form-text">Description must be between 10 and 500 characters</small>
+                  <div class="invalid-feedback" id="topicDescriptionError"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-cog me-2"></i>
+                  Topic Settings
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="estimatedTime" class="admin-form-label">
+                    <i class="fas fa-clock me-2"></i>
+                    Estimated Time (minutes)
+                  </label>
+                  <input type="number" class="admin-form-control" id="estimatedTime" name="estimatedTime" min="1">
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="difficulty" class="admin-form-label">
+                    <i class="fas fa-signal me-2"></i>
+                    Difficulty Level
+                  </label>
+                  <select class="admin-form-control" id="difficulty" name="difficulty">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="unlockConditions" class="admin-form-label">
+                    <i class="fas fa-lock me-2"></i>
+                    Unlock Conditions
+                  </label>
+                  <select class="admin-form-control" id="unlockConditions" name="unlockConditions">
+                    <option value="immediate">Immediate Access</option>
+                    <option value="previous_completed">Previous Topics Completed</option>
+                    <option value="quiz_passed">Quiz Passed</option>
+                    <!-- <option value="assignment_submitted">Assignment Submitted</option> -->
+                  </select>
+                </div>
+                
+                <div class="admin-form-group">
+                  <div class="admin-form-check">
+                    <input type="checkbox" class="admin-form-check-input" id="isPublished" name="isPublished">
+                    <label class="admin-form-check-label" for="isPublished">
+                      Publish immediately
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          
+          <!-- Tags Section -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-tags me-2"></i>
+                  Tags
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="tags" class="admin-form-label">
+                    <i class="fas fa-hashtag me-2"></i>
+                    Topic Tags
+                  </label>
+                  <input type="text" class="admin-form-control" id="tags" name="tags" placeholder="Enter tags separated by commas">
+                  <small class="admin-form-text">Example: mathematics, algebra, equations</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer admin-modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary admin-btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            Create Topic
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Content Modal -->
+<div class="modal fade" id="addContentModal" tabindex="-1" aria-labelledby="addContentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content admin-modal-content admin-modal-wide">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title" id="addContentModalLabel">
+          <i class="fas fa-plus-circle me-2"></i>
+          Add Content to Topic
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <form id="addContentForm" method="POST" action="">
+        <div class="modal-body admin-modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-info-circle me-2"></i>
+                  Content Information
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="contentType" class="admin-form-label">
+                    <i class="fas fa-file me-2"></i>
+                    Content Type
+                  </label>
+                  <select class="admin-form-control" id="contentType" name="type" required>
+                    <option value="">Select Type</option>
+                    <option value="video">Video</option>
+                    <option value="pdf">PDF Document</option>
+                    <option value="homework">Homework</option>
+                    <option value="quiz">Quiz</option>
+                    <option value="assignment">Assignment</option>
+                    <option value="reading">Reading Material</option>
+                    <option value="link">External Link</option>
+                  </select>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="contentTitle" class="admin-form-label">
+                    <i class="fas fa-heading me-2"></i>
+                    Content Title
+                  </label>
+                  <input type="text" class="admin-form-control" id="contentTitle" name="title" required>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="contentDescription" class="admin-form-label">
+                    <i class="fas fa-align-left me-2"></i>
+                    Description
+                  </label>
+                  <textarea class="admin-form-control" id="contentDescription" name="description" rows="2"></textarea>
+                </div>
+                
+                <div class="admin-form-group" id="contentUrlSection">
+                  <label for="contentUrl" class="admin-form-label">
+                    <i class="fas fa-link me-2"></i>
+                    Content URL/File
+                  </label>
+                  <input type="text" class="admin-form-control" id="contentUrl" name="content" required>
+                  <small class="admin-form-text">Enter URL or upload file using the upload section below</small>
+                  <div class="invalid-feedback" id="contentUrlError"></div>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="admin-form-group" id="fileUploadSection" style="display: none;">
+                  <label class="admin-form-label">
+                    <i class="fas fa-cloud-upload-alt me-2"></i>
+                    Upload File
+                  </label>
+                  <div class="upload-section">
+                    <input type="file" id="contentFile" class="upload-input" accept="*/*">
+                    <label for="contentFile" class="upload-label">
+                      <i class="fas fa-cloud-upload-alt"></i>
+                      Choose File
+                    </label>
+                    <div id="contentFilePreview" class="upload-preview">
+                      <div class="preview-overlay">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click or drag to upload</p>
+                        <small>All file types supported</small>
+                      </div>
+                    </div>
+                    <div id="contentFileProgress" class="progress-container" style="display: none;"></div>
+                  </div>
+                  <input type="hidden" name="uploadedFileUrl" id="uploadedFileUrl">
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-cog me-2"></i>
+                  Content Settings
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="contentDuration" class="admin-form-label">
+                    <i class="fas fa-clock me-2"></i>
+                    Duration (minutes)
+                  </label>
+                  <input type="number" class="admin-form-control" id="contentDuration" name="duration" min="0">
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="contentOrder" class="admin-form-label">
+                    <i class="fas fa-sort-numeric-up me-2"></i>
+                    Order
+                  </label>
+                  <input type="number" class="admin-form-control" id="contentOrder" name="order" min="1">
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="contentDifficulty" class="admin-form-label">
+                    <i class="fas fa-signal me-2"></i>
+                    Difficulty Level
+                  </label>
+                  <select class="admin-form-control" id="contentDifficulty" name="difficulty">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+                
+                <div class="admin-form-group">
+                  <div class="admin-form-check">
+                    <input type="checkbox" class="admin-form-check-input" id="isRequired" name="isRequired" checked>
+                    <label class="admin-form-check-label" for="isRequired">
+                      Required content
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Content Prerequisites Section -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-link me-2"></i>
+                  Content Prerequisites
+                </h6>
+                
+                 <div class="admin-form-group">
+                   <label for="contentPrerequisites" class="admin-form-label">
+                     <i class="fas fa-list-check me-2"></i>
+                     Required Previous Content
+                   </label>
+                   <select class="admin-form-control" id="contentPrerequisites" name="prerequisites">
+                     <option value="">No prerequisite (start immediately)</option>
+                     <% if (allContentItems && allContentItems.length > 0) { %>
+                       <% allContentItems.forEach((contentItem, index) => { %>
+                         <option value="<%= contentItem._id %>" <%= index === allContentItems.length - 1 ? 'selected' : '' %>>
+                           Topic <%= contentItem.topicOrder %>: <%= contentItem.topicTitle %> - <%= contentItem.title %> (<%= contentItem.type %>)
+                         </option>
+                       <% }); %>
+                     <% } else { %>
+                       <option disabled>No content items available yet</option>
+                     <% } %>
+                   </select>
+                   <small class="admin-form-text">Select one content item that must be completed first (defaults to last added content)</small>
+                 </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Quiz Content Section -->
+          <div class="row mt-4" id="quizContentSection" style="display: none;">
+            <div class="col-12">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-clipboard-question me-2"></i>
+                  Quiz Configuration
+                </h6>
+                
+                <!-- Quiz Progress Steps -->
+                <div class="quiz-progress-steps mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+                    <div class="quiz-step active" data-step="1">
+              <span class="step-number">1</span>
+                      <span class="quiz-step-label">Bank</span>
+            </div>
+            <div class="progress-line"></div>
+                    <div class="quiz-step" data-step="2">
+              <span class="step-number">2</span>
+                      <span class="quiz-step-label">Questions</span>
+            </div>
+            <div class="progress-line"></div>
+                    <div class="quiz-step" data-step="3">
+              <span class="step-number">3</span>
+                      <span class="quiz-step-label">Settings</span>
+            </div>
+          </div>
+        </div>
+
+                <!-- Step 1: Question Bank Selection -->
+                <div class="quiz-step-content" id="quizStep1">
+                  <div class="admin-form-group">
+                    <label class="admin-form-label">
+                        <i class="fas fa-database me-2"></i>
+                        Select Question Bank
+                    </label>
+                    <div class="row" id="quizQuestionBanksGrid">
+                        <!-- Question banks will be loaded here -->
+                      </div>
+                    <div id="noQuizQuestionBanksMessage" class="text-center py-4" style="display: none;">
+                      <i class="fas fa-database fa-2x text-muted mb-2"></i>
+                      <p class="text-muted mb-0">No Question Banks Available</p>
+                      <small class="text-muted">Create question banks first to add quiz content.</small>
+              </div>
+            </div>
+          </div>
+
+                <!-- Step 2: Question Selection -->
+                <div class="quiz-step-content" id="quizStep2" style="display: none;">
+              <div class="row">
+                <div class="col-md-8">
+                      <div class="admin-form-group">
+                        <label class="admin-form-label">
+                        <i class="fas fa-list-ol me-2"></i>
+                          Questions <span id="quizQuestionsCount">(0 questions)</span>
+                        </label>
+                        
+                      <!-- Question Selection Tools -->
+                      <div class="question-selection-tools mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="quizRangeInput" placeholder="e.g., 1-5, 8, 10-12">
+                                <button class="btn btn-outline-secondary" type="button" onclick="selectQuizRange()">
+                                <i class="fas fa-list-ol"></i>
+                              </button>
+                            </div>
+                          </div>
+                            <div class="col-md-8">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllQuizQuestions()">
+                                  <i class="fas fa-check-double me-1"></i> All
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearQuizSelection()">
+                                  <i class="fas fa-times me-1"></i> Clear
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="selectEvenQuizQuestions()">
+                                <i class="fas fa-sort-numeric-down me-1"></i> Even
+                              </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="selectOddQuizQuestions()">
+                                <i class="fas fa-sort-numeric-up me-1"></i> Odd
+                              </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="selectRandomQuizQuestions()">
+                                <i class="fas fa-random me-1"></i> Random 30%
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Questions Grid -->
+                      <div class="questions-container">
+                          <div class="questions-grid" id="quizQuestionsGrid">
+                          <!-- Questions will be loaded here as circles -->
+                        </div>
+                          <div id="noQuizQuestionsMessage" class="text-center py-4" style="display: none;">
+                            <i class="fas fa-question-circle fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No Questions Available</p>
+                            <small class="text-muted">The selected question bank doesn't contain any questions.</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                      <div class="admin-form-group">
+                        <label class="admin-form-label">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Selection Summary
+                        </label>
+                        <div class="selection-summary" id="quizSelectionSummary">
+                        <div class="summary-item">
+                          <span class="summary-label">Selected Questions:</span>
+                            <span class="summary-value" id="quizSelectedCount">0</span>
+                        </div>
+                        <div class="summary-item">
+                          <span class="summary-label">Total Points:</span>
+                            <span class="summary-value" id="quizTotalPoints">0</span>
+                        </div>
+                        <div class="summary-item">
+                          <span class="summary-label">Difficulty Distribution:</span>
+                            <div class="difficulty-distribution" id="quizDifficultyDistribution">
+                            <div class="difficulty-item">
+                                <span class="badge bg-success">Easy: <span id="quizEasyCount">0</span></span>
+                            </div>
+                            <div class="difficulty-item">
+                                <span class="badge bg-warning">Medium: <span id="quizMediumCount">0</span></span>
+                            </div>
+                            <div class="difficulty-item">
+                                <span class="badge bg-danger">Hard: <span id="quizHardCount">0</span></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+                <!-- Step 3: Quiz Settings -->
+                <div class="quiz-step-content" id="quizStep3" style="display: none;">
+                      <div class="row">
+                        <div class="col-md-6">
+                      <div class="admin-form-group">
+                        <label for="quizDuration" class="admin-form-label">
+                          <i class="fas fa-clock me-2"></i>
+                          Duration (minutes)
+                            </label>
+                        <input type="number" class="admin-form-control" id="quizDuration" name="quizDuration" value="30" min="1" max="300">
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                      <div class="admin-form-group">
+                        <label for="quizPassingScore" class="admin-form-label">
+                          <i class="fas fa-percentage me-2"></i>
+                          Passing Score (%)
+                            </label>
+                        <input type="number" class="admin-form-control" id="quizPassingScore" name="quizPassingScore" value="60" min="0" max="100">
+                          </div>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-md-6">
+                      <div class="admin-form-group">
+                        <label for="quizMaxAttempts" class="admin-form-label">
+                          <i class="fas fa-redo me-2"></i>
+                          Max Attempts
+                            </label>
+                        <input type="number" class="admin-form-control" id="quizMaxAttempts" name="quizMaxAttempts" value="3" min="1" max="10">
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                      <div class="admin-form-group">
+                        <label class="admin-form-label">
+                          <i class="fas fa-toggle-on me-2"></i>
+                          Quiz Options
+                            </label>
+                        <div class="admin-form-check">
+                          <input class="admin-form-check-input" type="checkbox" id="quizShuffleQuestions" name="quizShuffleQuestions">
+                          <label class="admin-form-check-label" for="quizShuffleQuestions">Shuffle Questions</label>
+                            </div>
+                        <div class="admin-form-check">
+                          <input class="admin-form-check-input" type="checkbox" id="quizShuffleOptions" name="quizShuffleOptions">
+                          <label class="admin-form-check-label" for="quizShuffleOptions">Shuffle Options</label>
+                            </div>
+                        <div class="admin-form-check">
+                          <input class="admin-form-check-input" type="checkbox" id="quizShowCorrectAnswers" name="quizShowCorrectAnswers" checked>
+                          <label class="admin-form-check-label" for="quizShowCorrectAnswers">Show Correct Answers</label>
+                            </div>
+                        <div class="admin-form-check">
+                          <input class="admin-form-check-input" type="checkbox" id="quizShowResults" name="quizShowResults" checked>
+                          <label class="admin-form-check-label" for="quizShowResults">Show Results</label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                  <div class="admin-form-group">
+                    <label for="quizInstructions" class="admin-form-label">
+                      <i class="fas fa-info-circle me-2"></i>
+                      Instructions
+                        </label>
+                    <textarea class="admin-form-control" id="quizInstructions" name="quizInstructions" rows="3" placeholder="Enter quiz instructions for students..."></textarea>
+                      </div>
+      </div>
+
+                <!-- Quiz Navigation -->
+                <div class="quiz-navigation mt-4">
+                  <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" id="quizPrevBtn" onclick="prevQuizStep()" disabled>
+            <i class="fas fa-arrow-left me-1"></i> Previous
+          </button>
+                    <div class="quiz-step-indicator">
+                      Step <span id="quizCurrentStepNumber">1</span> of 3
+          </div>
+                    <button type="button" class="btn btn-primary" id="quizNextBtn" onclick="nextQuizStep()">
+              Next <i class="fas fa-arrow-right ms-1"></i>
+            </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+          <!-- Homework Content Section -->
+          <div class="row mt-4" id="homeworkContentSection" style="display: none;">
+            <div class="col-12">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+          <i class="fas fa-tasks me-2"></i>
+                  Homework Configuration
+                </h6>
+                
+                <!-- Homework Progress Steps -->
+                <div class="homework-progress-steps mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+                    <div class="homework-step active" data-step="1">
+              <span class="step-number">1</span>
+                      <span class="homework-step-label">Bank</span>
+            </div>
+            <div class="progress-line"></div>
+                    <div class="homework-step" data-step="2">
+              <span class="step-number">2</span>
+                      <span class="homework-step-label">Questions</span>
+            </div>
+            <div class="progress-line"></div>
+                    <div class="homework-step" data-step="3">
+              <span class="step-number">3</span>
+                      <span class="homework-step-label">Settings</span>
+            </div>
+          </div>
+        </div>
+
+                <!-- Step 1: Question Bank Selection -->
+                <div class="homework-step-content" id="homeworkStep1">
+                  <div class="admin-form-group">
+                    <label class="admin-form-label">
+                        <i class="fas fa-database me-2"></i>
+                        Select Question Bank
+                    </label>
+                      <div class="row" id="homeworkQuestionBanksGrid">
+                        <!-- Question banks will be loaded here -->
+                      </div>
+                    <div id="noHomeworkQuestionBanksMessage" class="text-center py-4" style="display: none;">
+                      <i class="fas fa-database fa-2x text-muted mb-2"></i>
+                      <p class="text-muted mb-0">No Question Banks Available</p>
+                      <small class="text-muted">Create question banks first to add homework content.</small>
+              </div>
+            </div>
+          </div>
+
+                <!-- Step 2: Question Selection -->
+                <div class="homework-step-content" id="homeworkStep2" style="display: none;">
+              <div class="row">
+                <div class="col-md-8">
+                      <div class="admin-form-group">
+                        <label class="admin-form-label">
+                        <i class="fas fa-list-ol me-2"></i>
+                        Questions <span id="homeworkQuestionsCount">(0 questions)</span>
+                        </label>
+                        
+                      <!-- Question Selection Tools -->
+                      <div class="question-selection-tools mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                            <div class="input-group input-group-sm">
+                              <input type="text" class="form-control" id="homeworkRangeInput" placeholder="e.g., 1-5, 8, 10-12">
+                              <button class="btn btn-outline-secondary" type="button" onclick="selectHomeworkRange()">
+                                <i class="fas fa-list-ol"></i>
+                              </button>
+                            </div>
+                          </div>
+                            <div class="col-md-8">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAllHomeworkQuestions()">
+                                  <i class="fas fa-check-double me-1"></i> All
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearHomeworkSelection()">
+                                  <i class="fas fa-times me-1"></i> Clear
+                                </button>
+                              <button type="button" class="btn btn-outline-info btn-sm" onclick="selectEvenHomeworkQuestions()">
+                                <i class="fas fa-sort-numeric-down me-1"></i> Even
+                              </button>
+                              <button type="button" class="btn btn-outline-info btn-sm" onclick="selectOddHomeworkQuestions()">
+                                <i class="fas fa-sort-numeric-up me-1"></i> Odd
+                              </button>
+                              <button type="button" class="btn btn-outline-warning btn-sm" onclick="selectRandomHomeworkQuestions()">
+                                <i class="fas fa-random me-1"></i> Random 30%
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Questions Grid -->
+                      <div class="questions-container">
+                        <div class="questions-grid" id="homeworkQuestionsGrid">
+                          <!-- Questions will be loaded here as circles -->
+                        </div>
+                          <div id="noHomeworkQuestionsMessage" class="text-center py-4" style="display: none;">
+                            <i class="fas fa-question-circle fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No Questions Available</p>
+                            <small class="text-muted">The selected question bank doesn't contain any questions.</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                      <div class="admin-form-group">
+                        <label class="admin-form-label">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Selection Summary
+                        </label>
+                      <div class="selection-summary" id="homeworkSelectionSummary">
+                        <div class="summary-item">
+                          <span class="summary-label">Selected Questions:</span>
+                          <span class="summary-value" id="homeworkSelectedCount">0</span>
+                        </div>
+                        <div class="summary-item">
+                          <span class="summary-label">Total Points:</span>
+                          <span class="summary-value" id="homeworkTotalPoints">0</span>
+                        </div>
+                        <div class="summary-item">
+                          <span class="summary-label">Difficulty Distribution:</span>
+                          <div class="difficulty-distribution" id="homeworkDifficultyDistribution">
+                            <div class="difficulty-item">
+                              <span class="badge bg-success">Easy: <span id="homeworkEasyCount">0</span></span>
+                            </div>
+                            <div class="difficulty-item">
+                              <span class="badge bg-warning">Medium: <span id="homeworkMediumCount">0</span></span>
+                            </div>
+                            <div class="difficulty-item">
+                              <span class="badge bg-danger">Hard: <span id="homeworkHardCount">0</span></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+                <!-- Step 3: Homework Settings -->
+                <div class="homework-step-content" id="homeworkStep3" style="display: none;">
+                      <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Homework has no time limit and uses pass/fail grading only.
+                      </div>
+                      <div class="row">
+                        <div class="col-md-6">
+                      <div class="admin-form-group">
+                        <label for="homeworkPassingScore" class="admin-form-label">
+                          <i class="fas fa-percentage me-2"></i>
+                          Passing Score (%)
+                            </label>
+                        <input type="number" class="admin-form-control" id="homeworkPassingScore" name="homeworkPassingScore" value="60" min="0" max="100">
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                      <div class="admin-form-group">
+                        <label for="homeworkMaxAttempts" class="admin-form-label">
+                          <i class="fas fa-redo me-2"></i>
+                          Max Attempts
+                            </label>
+                        <input type="number" class="admin-form-control" id="homeworkMaxAttempts" name="homeworkMaxAttempts" value="1" min="1" max="5">
+                          </div>
+                        </div>
+                      </div>
+                  <div class="admin-form-group">
+                    <label class="admin-form-label">
+                      <i class="fas fa-toggle-on me-2"></i>
+                      Homework Options
+                        </label>
+                    <div class="admin-form-check">
+                      <input class="admin-form-check-input" type="checkbox" id="homeworkShuffleQuestions" name="homeworkShuffleQuestions">
+                      <label class="admin-form-check-label" for="homeworkShuffleQuestions">Shuffle Questions</label>
+                        </div>
+                    <div class="admin-form-check">
+                      <input class="admin-form-check-input" type="checkbox" id="homeworkShuffleOptions" name="homeworkShuffleOptions">
+                      <label class="admin-form-check-label" for="homeworkShuffleOptions">Shuffle Options</label>
+                        </div>
+                    <div class="admin-form-check">
+                      <input class="admin-form-check-input" type="checkbox" id="homeworkShowCorrectAnswers" name="homeworkShowCorrectAnswers">
+                      <label class="admin-form-check-label" for="homeworkShowCorrectAnswers">Show Correct Answers After Submission</label>
+                        </div>
+                      </div>
+                  <div class="admin-form-group">
+                    <label for="homeworkInstructions" class="admin-form-label">
+                      <i class="fas fa-info-circle me-2"></i>
+                      Instructions
+                        </label>
+                    <textarea class="admin-form-control" id="homeworkInstructions" name="homeworkInstructions" rows="3" placeholder="Enter homework instructions for students..."></textarea>
+                      </div>
+                    </div>
+
+                <!-- Homework Navigation -->
+                <div class="homework-navigation mt-4">
+                  <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" id="homeworkPrevBtn" onclick="prevHomeworkStep()" disabled>
+                      <i class="fas fa-arrow-left me-1"></i> Previous
+                    </button>
+                    <div class="homework-step-indicator">
+                      Step <span id="homeworkCurrentStepNumber">1</span> of 3
+                  </div>
+                    <button type="button" class="btn btn-success" id="homeworkNextBtn" onclick="nextHomeworkStep()">
+                      Next <i class="fas fa-arrow-right ms-1"></i>
+                    </button>
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+
+          <!-- Content Tags Section -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-tags me-2"></i>
+                  Content Tags
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="contentTags" class="admin-form-label">
+                    <i class="fas fa-hashtag me-2"></i>
+                    Content Tags
+                  </label>
+                  <input type="text" class="admin-form-control" id="contentTags" name="tags" placeholder="Enter tags separated by commas">
+                  <small class="admin-form-text">Example: video, tutorial, introduction</small>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+        
+        <div class="modal-footer admin-modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary admin-btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            Add Content
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- Question Preview Modal -->
+<div class="modal fade" id="questionPreviewModal" tabindex="-1" aria-labelledby="questionPreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="questionPreviewModalLabel">
+          <i class="fas fa-eye me-2"></i>
+          Question Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="questionPreviewBody">
+        <!-- Question preview content will be loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Course Modal -->
+<div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content admin-modal-content admin-modal-wide">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title" id="editCourseModalLabel">
+          <i class="fas fa-edit me-2"></i>
+          Edit Course
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <form id="editCourseForm" method="POST" action="">
+        <div class="modal-body admin-modal-body">
+          <!-- Course Thumbnail Upload Section -->
+          <div class="admin-form-section">
+            <h6 class="admin-form-section-title">
+              <i class="fas fa-image me-2"></i>
+              Course Thumbnail
+            </h6>
+            <div class="upload-section">
+              <input type="file" id="editCourseThumbnail" class="upload-input" accept="image/*">
+              <label for="editCourseThumbnail" class="upload-label">
+                <i class="fas fa-cloud-upload-alt"></i>
+                Choose New Thumbnail Image
+              </label>
+              <div id="editCourseThumbnailPreview" class="upload-preview">
+                <div class="preview-overlay">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <p>Click or drag to upload</p>
+                  <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
+                </div>
+              </div>
+              <div id="editCourseThumbnailProgress" class="progress-container" style="display: none;"></div>
+            </div>
+            <input type="hidden" name="thumbnail" id="editCourseThumbnailUrl">
+            <div class="current-thumbnail mt-2" id="currentThumbnailSection" style="display: none;">
+              <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Current thumbnail: <span id="currentThumbnailUrl"></span>
+              </small>
+            </div>
+          </div>
+
+          <!-- Course Details Section -->
+          <div class="row">
+            <div class="col-md-8">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-info-circle me-2"></i>
+                  Course Information
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseTitle" class="admin-form-label">
+                    <i class="fas fa-heading me-2"></i>
+                    Course Title
+                  </label>
+                  <input type="text" class="admin-form-control" id="editCourseTitle" name="title" 
+                         minlength="3" maxlength="100" required>
+                  <small class="admin-form-text">Title must be between 3 and 100 characters</small>
+                  <div class="invalid-feedback" id="editCourseTitleError"></div>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseDescription" class="admin-form-label">
+                    <i class="fas fa-align-left me-2"></i>
+                    Course Description
+                  </label>
+                  <textarea class="admin-form-control" id="editCourseDescription" name="description" 
+                            rows="4" minlength="10" maxlength="500" required></textarea>
+                  <small class="admin-form-text">Description must be between 10 and 500 characters</small>
+                  <div class="invalid-feedback" id="editCourseDescriptionError"></div>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="editShortDescription" class="admin-form-label">
+                    <i class="fas fa-text-width me-2"></i>
+                    Short Description
+                  </label>
+                  <input type="text" class="admin-form-control" id="editShortDescription" name="shortDescription" 
+                         minlength="5" maxlength="150" required>
+                  <small class="admin-form-text">Short description must be between 5 and 150 characters</small>
+                  <div class="invalid-feedback" id="editShortDescriptionError"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-cog me-2"></i>
+                  Course Settings
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseBundle" class="admin-form-label">
+                    <i class="fas fa-box me-2"></i>
+                    Select Bundle
+                  </label>
+                  <select class="admin-form-control" id="editCourseBundle" name="bundleId" required>
+                    <option value="">Select Bundle</option>
+                    <!-- Bundles will be loaded dynamically -->
+                  </select>
+                  <small class="admin-form-text">Course will be moved to the selected bundle</small>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseLevel" class="admin-form-label">
+                    <i class="fas fa-layer-group me-2"></i>
+                    Course Level
+                  </label>
+                  <select class="admin-form-control" id="editCourseLevel" name="level" required>
+                    <option value="">Select Level</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseCategory" class="admin-form-label">
+                    <i class="fas fa-tags me-2"></i>
+                    Category
+                  </label>
+                  <input type="text" class="admin-form-control" id="editCourseCategory" name="category" 
+                         placeholder="e.g., Core, Elective, Supplementary" required>
+                  <div class="invalid-feedback" id="editCourseCategoryError"></div>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseDuration" class="admin-form-label">
+                    <i class="fas fa-clock me-2"></i>
+                    Duration (hours)
+                  </label>
+                  <input type="number" class="admin-form-control" id="editCourseDuration" name="duration" 
+                         min="1" required>
+                  <small class="admin-form-text">Duration must be at least 1 hour</small>
+                  <div class="invalid-feedback" id="editCourseDurationError"></div>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="editCoursePrice" class="admin-form-label">
+                    <i class="fas fa-dollar-sign me-2"></i>
+                    Price (EGP)
+                  </label>
+                  <input type="number" class="admin-form-control" id="editCoursePrice" name="price" 
+                         min="0" step="0.01" required>
+                  <small class="admin-form-text">Individual course price</small>
+                  <div class="invalid-feedback" id="editCoursePriceError"></div>
+                </div>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseDiscountPrice" class="admin-form-label">
+                    <i class="fas fa-percentage me-2"></i>
+                    Discount Percentage (%)
+                  </label>
+                  <input type="number" class="admin-form-control" id="editCourseDiscountPrice" name="discountPrice" 
+                         min="0" max="100" step="1" value="0">
+                  <small class="admin-form-text">Optional: Set a discount percentage (0-100)</small>
+                  <div class="invalid-feedback" id="editCourseDiscountPriceError"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Course Status Section -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-toggle-on me-2"></i>
+                  Course Status & Publishing
+                </h6>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="admin-form-group">
+                      <label for="editCourseStatus" class="admin-form-label">
+                        <i class="fas fa-flag me-2"></i>
+                        Course Status
+                      </label>
+                      <select class="admin-form-control" id="editCourseStatus" name="status" required>
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                      <small class="admin-form-text">Published courses are visible to students</small>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <div class="admin-form-group">
+                      <div class="admin-form-check">
+                        <input type="checkbox" class="admin-form-check-input" id="editCourseFeatured" name="isFeatured">
+                        <label class="admin-form-check-label" for="editCourseFeatured">
+                          <i class="fas fa-star me-2"></i>
+                          Featured Course
+                        </label>
+                      </div>
+                      <small class="admin-form-text">Featured courses appear prominently on the homepage</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Course Tags Section -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="admin-form-section">
+                <h6 class="admin-form-section-title">
+                  <i class="fas fa-tags me-2"></i>
+                  Course Tags
+                </h6>
+                
+                <div class="admin-form-group">
+                  <label for="editCourseTags" class="admin-form-label">
+                    <i class="fas fa-hashtag me-2"></i>
+                    Course Tags
+                  </label>
+                  <input type="text" class="admin-form-control" id="editCourseTags" name="tags" 
+                         placeholder="Enter tags separated by commas">
+                  <small class="admin-form-text">Example: mathematics, algebra, grade-10, core</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer admin-modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success admin-btn-primary">
+            <i class="fas fa-save me-2"></i>
+            Update Course
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<% 
+// Helper function to get content icons
+function getContentIcon(type) {
+  const icons = {
+    'video': 'play',
+    'pdf': 'file-pdf',
+    'homework': 'tasks',
+    'quiz': 'question-circle',
+    'assignment': 'clipboard-list',
+    'reading': 'book',
+    'link': 'external-link-alt'
+  };
+  return icons[type] || 'file';
+}
+%>
+
+<%- include('./partials/admin-footer') %>
+
+<!-- Cloudinary Upload Script -->
+<script src="/js/cloudinary-upload.js"></script>
+
+<script>
+    // Course content management functions
+let currentTopicId = null;
+let reorderMode = false;
+
+    function manageTopicContent(topicId) {
+  currentTopicId = topicId;
+  const form = document.getElementById('addContentForm');
+  form.action = `/admin/courses/<%= courseCode %>/topics/${topicId}/content/create`;
+  
+  // Reset form
+  form.reset();
+  document.getElementById('fileUploadSection').style.display = 'none';
+  document.getElementById('uploadedFileUrl').value = '';
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('addContentModal'));
+  modal.show();
+}
+
+function editTopic(topicId) {
+  // Find the topic data and populate edit modal
+  const topicCard = document.querySelector(`[data-topic-id="${topicId}"]`);
+  if (!topicCard) return;
+  
+  const title = topicCard.querySelector('.topic-title').textContent;
+  const description = topicCard.querySelector('.topic-description').textContent;
+  
+  // Extract additional data from the topic card
+  const estimatedTimeText = topicCard.querySelector('.meta-item i.fa-clock')?.parentElement?.textContent?.trim();
+  const estimatedTime = estimatedTimeText ? parseFloat(estimatedTimeText.replace('h', '')) * 60 : 0; // Convert hours to minutes
+  
+  const difficultyBadge = topicCard.querySelector('.difficulty-badge');
+  const difficulty = difficultyBadge ? difficultyBadge.textContent.toLowerCase() : 'beginner';
+  
+  const statusBadge = topicCard.querySelector('.status-badge');
+  const isPublished = statusBadge ? statusBadge.classList.contains('published') : false;
+  
+  const order = topicCard.getAttribute('data-order') || 1;
+  
+  // Create and show edit modal with all data
+  showEditTopicModal(topicId, {
+    title,
+    description,
+    estimatedTime,
+    difficulty,
+    isPublished,
+    order
+  });
+}
+
+function showEditTopicModal(topicId, topicData) {
+  const modalHtml = `
+    <div class="modal fade" id="editTopicModal" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content edit-topic-modal">
+          <div class="modal-header edit-topic-header">
+            <div class="header-content">
+              <div class="header-icon">
+                <i class="fas fa-edit"></i>
+              </div>
+              <div class="header-text">
+                <h5 class="modal-title">Edit Topic</h5>
+                <p class="modal-subtitle">Update topic information and settings</p>
+              </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <form id="editTopicForm">
+            <div class="modal-body edit-topic-body">
+              <!-- Basic Information Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <div class="section-icon">
+                    <i class="fas fa-info-circle"></i>
+                  </div>
+                  <h6 class="section-title">Basic Information</h6>
+                </div>
+                <div class="section-content">
+                  <div class="row">
+                    <div class="col-lg-8">
+                      <div class="form-group">
+                        <label class="form-label">
+                          <i class="fas fa-heading"></i>
+                          <span>Topic Title</span>
+                        </label>
+                        <input type="text" class="form-control form-control-lg" name="title" value="${topicData.title}" required minlength="3" maxlength="100" placeholder="Enter topic title">
+                        <div class="form-hint">Title must be between 3-100 characters</div>
+                      </div>
+                    </div>
+                    <div class="col-lg-4">
+                      <div class="form-group">
+                        <label class="form-label">
+                          <i class="fas fa-sort-numeric-up"></i>
+                          <span>Order</span>
+                        </label>
+                        <input type="number" class="form-control form-control-lg" name="order" value="${topicData.order}" min="1" placeholder="1">
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label class="form-label">
+                      <i class="fas fa-align-left"></i>
+                      <span>Description</span>
+                    </label>
+                    <textarea class="form-control form-control-lg" name="description" rows="4" required minlength="10" maxlength="500" placeholder="Enter detailed topic description">${topicData.description}</textarea>
+                    <div class="form-hint">Description must be between 10-500 characters</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Settings Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <div class="section-icon">
+                    <i class="fas fa-cog"></i>
+                  </div>
+                  <h6 class="section-title">Topic Settings</h6>
+                </div>
+                <div class="section-content">
+                  <div class="row">
+                    <div class="col-lg-6">
+                      <div class="form-group">
+                        <label class="form-label">
+                          <i class="fas fa-clock"></i>
+                          <span>Estimated Time (minutes)</span>
+                        </label>
+                        <input type="number" class="form-control form-control-lg" name="estimatedTime" value="${topicData.estimatedTime}" min="0" step="5" placeholder="0">
+                        <div class="form-hint">Enter time in minutes</div>
+                      </div>
+                    </div>
+                    <div class="col-lg-6">
+                      <div class="form-group">
+                        <label class="form-label">
+                          <i class="fas fa-signal"></i>
+                          <span>Difficulty Level</span>
+                        </label>
+                        <select class="form-select form-select-lg" name="difficulty">
+                          <option value="beginner" ${topicData.difficulty === 'beginner' ? 'selected' : ''}>🟢 Beginner</option>
+                          <option value="intermediate" ${topicData.difficulty === 'intermediate' ? 'selected' : ''}>🟡 Intermediate</option>
+                          <option value="advanced" ${topicData.difficulty === 'advanced' ? 'selected' : ''}>🔴 Advanced</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="row">
+                    <div class="col-lg-6">
+                      <div class="form-group">
+                        <label class="form-label">
+                          <i class="fas fa-unlock"></i>
+                          <span>Unlock Conditions</span>
+                        </label>
+                        <select class="form-select form-select-lg" name="unlockConditions">
+                          <option value="immediate">⚡ Immediate</option>
+                          <option value="previous_completed">✅ Previous Topic Completed</option>
+                          <option value="quiz_passed">📝 Quiz Passed</option>
+                          <option value="assignment_submitted">📋 Assignment Submitted</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-lg-6">
+                      <div class="form-group">
+                        <label class="form-label">
+                          <i class="fas fa-tags"></i>
+                          <span>Tags</span>
+                        </label>
+                        <input type="text" class="form-control form-control-lg" name="tags" placeholder="Enter tags separated by commas">
+                        <div class="form-hint">Separate multiple tags with commas</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <div class="section-icon">
+                    <i class="fas fa-eye"></i>
+                  </div>
+                  <h6 class="section-title">Publishing Status</h6>
+                </div>
+                <div class="section-content">
+                  <div class="publish-toggle">
+                    <div class="toggle-content">
+                      <div class="toggle-icon">
+                        <i class="fas fa-${topicData.isPublished ? 'eye' : 'eye-slash'}"></i>
+                      </div>
+                      <div class="toggle-text">
+                        <h6>Publish Topic</h6>
+                        <p>Published topics are visible to students</p>
+                      </div>
+                    </div>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" name="isPublished" id="isPublished" ${topicData.isPublished ? 'checked' : ''}>
+                      <label class="form-check-label" for="isPublished"></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer edit-topic-footer">
+              <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                <i class="fas fa-times"></i>
+                <span>Cancel</span>
+              </button>
+              <button type="submit" class="btn btn-save">
+                <i class="fas fa-save"></i>
+                <span>Update Topic</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Remove existing modal if any
+  const existingModal = document.getElementById('editTopicModal');
+  if (existingModal) existingModal.remove();
+  
+  // Add modal to body
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('editTopicModal'));
+  modal.show();
+  
+  // Handle form submission
+  document.getElementById('editTopicForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Clear previous validation errors
+    clearValidationErrors();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Convert checkbox to boolean
+    data.isPublished = data.isPublished === 'on';
+    
+    // Convert tags string to array
+    if (data.tags) {
+      data.tags = data.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+    }
+    
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    submitBtn.disabled = true;
+    
+    fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        modal.hide();
+        showNotification('Topic updated successfully!', 'success');
+        
+        // Update the topic card in the UI without reloading
+        updateTopicCard(topicId, data.topic);
+      } else {
+        // Handle validation errors
+        if (data.errors) {
+          showValidationErrors(data.errors);
+        } else {
+          showNotification('Error: ' + (data.message || 'Failed to update topic'), 'error');
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showNotification('Error updating topic: ' + error.message, 'error');
+    })
+    .finally(() => {
+      // Restore button state
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    });
+  });
+  
+  // Helper functions for validation error handling
+  function clearValidationErrors() {
+    const form = document.getElementById('editTopicForm');
+    const errorElements = form.querySelectorAll('.is-invalid, .invalid-feedback');
+    errorElements.forEach(el => {
+      el.classList.remove('is-invalid');
+      if (el.classList.contains('invalid-feedback')) {
+        el.remove();
+      }
+    });
+  }
+  
+  function showValidationErrors(errors) {
+    Object.keys(errors).forEach(fieldName => {
+      const field = document.querySelector(`[name="${fieldName}"]`);
+      if (field) {
+        field.classList.add('is-invalid');
+        
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = errors[fieldName];
+        field.parentNode.appendChild(errorDiv);
+      }
+    });
+  }
+}
+
+function deleteTopic(topicId) {
+  // Create a beautiful confirmation modal instead of browser confirm
+  const confirmModalHtml = `
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title">
+              <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-center">
+              <div class="mb-3">
+                <i class="fas fa-trash-alt text-danger" style="font-size: 48px;"></i>
+              </div>
+              <h6 class="mb-3">Are you sure you want to delete this topic?</h6>
+              <p class="text-muted mb-0">This action cannot be undone. All content within this topic will also be deleted.</p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="fas fa-times me-1"></i>Cancel
+            </button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+              <i class="fas fa-trash me-1"></i>Delete Topic
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Remove existing modal if any
+  const existingModal = document.getElementById('deleteConfirmModal');
+  if (existingModal) existingModal.remove();
+  
+  // Add modal to body
+  document.body.insertAdjacentHTML('beforeend', confirmModalHtml);
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+  modal.show();
+  
+  // Handle delete confirmation
+  document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+    // Show loading state
+    const deleteBtn = this;
+    const originalText = deleteBtn.innerHTML;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Deleting...';
+    deleteBtn.disabled = true;
+    
+    try {
+      const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        modal.hide();
+        showNotification('Topic deleted successfully!', 'success');
+        
+        // Remove the topic card from UI with animation
+        const topicCard = document.querySelector(`[data-topic-id="${topicId}"]`);
+        if (topicCard) {
+          topicCard.style.transition = 'all 0.3s ease';
+          topicCard.style.transform = 'scale(0.8)';
+          topicCard.style.opacity = '0';
+          setTimeout(() => {
+            topicCard.remove();
+            // Update topic numbers
+            updateTopicNumbers();
+          }, 300);
+        }
+      } else {
+        throw new Error(data.message || 'Failed to delete topic');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('Error deleting topic: ' + error.message, 'error');
+      // Restore button state
+      deleteBtn.innerHTML = originalText;
+      deleteBtn.disabled = false;
+    }
+  });
+  
+  // Clean up modal when hidden
+  document.getElementById('deleteConfirmModal').addEventListener('hidden.bs.modal', function() {
+    this.remove();
+  });
+}
+
+// Helper function to update topic numbers after deletion
+function updateTopicNumbers() {
+  const topicCards = document.querySelectorAll('.topic-card');
+  topicCards.forEach((card, index) => {
+    const numberElement = card.querySelector('.topic-number');
+    if (numberElement) {
+      numberElement.textContent = String(index + 1).padStart(2, '0');
+    }
+  });
+}
+
+function toggleTopicVisibility(topicId, isPublished) {
+  const newStatus = !(isPublished === 'true' || isPublished === true);
+  
+  // Show loading state
+  const button = event.target.closest('.action-btn');
+  const originalIcon = button.innerHTML;
+  button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  button.disabled = true;
+  
+  fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/visibility`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      isPublished: newStatus
+    })
+  })
+  .then(response => {
+    if (response.ok) {
+      return response.json();
+    } else {
+      throw new Error('Failed to update visibility');
+    }
+  })
+  .then(data => {
+    if (data.success) {
+      // Update the button icon
+      const icon = button.querySelector('i');
+      icon.className = newStatus ? 'fas fa-eye-slash' : 'fas fa-eye';
+      
+      // Update the status badge
+      const statusBadge = document.querySelector(`[data-topic-id="${topicId}"] .status-badge`);
+      if (statusBadge) {
+        statusBadge.className = `status-badge ${newStatus ? 'published' : 'draft'}`;
+        statusBadge.innerHTML = `<i class="fas fa-${newStatus ? 'eye' : 'eye-slash'}"></i> ${newStatus ? 'Published' : 'Draft'}`;
+      }
+      
+      // Show success message
+      showNotification('Topic visibility updated successfully!', 'success');
+    } else {
+      throw new Error(data.message || 'Failed to update visibility');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showNotification('Error updating topic visibility', 'error');
+    // Restore original button state
+    button.innerHTML = originalIcon;
+  })
+  .finally(() => {
+    button.disabled = false;
+  });
+}
+
+function viewTopicDetails(topicId) {
+  // Redirect to topic details page
+  window.location.href = `/admin/courses/<%= courseCode %>/topics/${topicId}/details`;
+}
+
+function editContent(topicId, contentId) {
+  // Find the content item and show edit modal
+  const contentItem = document.querySelector(`[data-content-id="${contentId}"]`);
+  if (!contentItem) return;
+  
+  const title = contentItem.querySelector('.content-title').textContent;
+  const type = contentItem.querySelector('.content-type').textContent.toLowerCase();
+  const description = contentItem.querySelector('.content-description') ? contentItem.querySelector('.content-description').textContent : '';
+  const duration = contentItem.querySelector('.content-duration') ? parseInt(contentItem.querySelector('.content-duration').textContent) : 0;
+  
+  // Create and show edit modal
+  showEditContentModal(topicId, contentId, title, type, description, duration);
+}
+
+function showEditContentModal(topicId, contentId, title, type, description, duration) {
+  const modalHtml = `
+    <div class="modal fade" id="editContentModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content admin-modal-content">
+          <div class="modal-header admin-modal-header">
+            <h5 class="modal-title">Edit Content</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <form id="editContentForm">
+            <div class="modal-body admin-modal-body">
+              <div class="row">
+                <div class="col-md-8">
+                  <div class="admin-form-section">
+                    <h6 class="admin-form-section-title">
+                      <i class="fas fa-info-circle me-2"></i>
+                      Content Information
+                    </h6>
+                    
+                    <div class="admin-form-group">
+                      <label class="admin-form-label">Content Type</label>
+                      <select class="admin-form-control" name="type" required>
+                        <option value="video" ${type === 'video' ? 'selected' : ''}>Video</option>
+                        <option value="pdf" ${type === 'pdf' ? 'selected' : ''}>PDF</option>
+                        <option value="homework" ${type === 'homework' ? 'selected' : ''}>Homework</option>
+                        <option value="quiz" ${type === 'quiz' ? 'selected' : ''}>Quiz</option>
+                        <option value="assignment" ${type === 'assignment' ? 'selected' : ''}>Assignment</option>
+                        <option value="reading" ${type === 'reading' ? 'selected' : ''}>Reading</option>
+                        <option value="link" ${type === 'link' ? 'selected' : ''}>Link</option>
+                      </select>
+                    </div>
+                    <div class="admin-form-group">
+                      <label class="admin-form-label">Title</label>
+                      <input type="text" class="admin-form-control" name="title" value="${title}" required>
+                    </div>
+                    <div class="admin-form-group">
+                      <label class="admin-form-label">Description</label>
+                      <textarea class="admin-form-control" name="description" rows="3">${description}</textarea>
+                    </div>
+                    <div class="admin-form-group">
+                      <label class="admin-form-label">Content URL</label>
+                      <input type="text" class="admin-form-control" name="content" required>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="admin-form-section">
+                    <h6 class="admin-form-section-title">
+                      <i class="fas fa-cog me-2"></i>
+                      Content Settings
+                    </h6>
+                    <div class="admin-form-group">
+                      <label class="admin-form-label">Duration (minutes)</label>
+                      <input type="number" class="admin-form-control" name="duration" value="${duration}" min="0">
+                    </div>
+                    <div class="admin-form-group">
+                      <div class="admin-form-check">
+                        <input class="admin-form-check-input" type="checkbox" name="isRequired" id="isRequired">
+                        <label class="admin-form-check-label" for="isRequired">Required</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary admin-btn-primary">Update Content</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Remove existing modal if any
+  const existingModal = document.getElementById('editContentModal');
+  if (existingModal) existingModal.remove();
+  
+  // Add modal to body
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('editContentModal'));
+  modal.show();
+  
+  // Handle form submission
+  document.getElementById('editContentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+    
+    fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/content/${contentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => {
+      if (response.ok) {
+        modal.hide();
+        location.reload();
+      } else {
+        alert('Error updating content');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error updating content');
+    });
+  });
+}
+
+async function deleteContent(topicId, contentId) {
+  if (confirm('Are you sure you want to delete this content item?')) {
+    try {
+      const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/content/${contentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        showNotification('Content deleted successfully!', 'success');
+        
+        // Remove the content item from UI with animation
+        const contentItem = document.querySelector(`[data-content-id="${contentId}"]`);
+        if (contentItem) {
+          contentItem.style.transition = 'all 0.3s ease';
+          contentItem.style.transform = 'scale(0.8)';
+          contentItem.style.opacity = '0';
+          setTimeout(() => {
+            contentItem.remove();
+          }, 300);
+        }
+      } else {
+        throw new Error(data.message || 'Failed to delete content');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('Error deleting content: ' + error.message, 'error');
+    }
+  }
+}
+
+// Function to view content details
+function viewContentDetails(topicId, contentId) {
+  window.location.href = `/admin/courses/<%= courseCode %>/topics/${topicId}/content/${contentId}/details`;
+}
+
+function toggleReorderMode() {
+  reorderMode = !reorderMode;
+  const topicsContainer = document.getElementById('topicsContainer');
+  
+  if (reorderMode) {
+    topicsContainer.classList.add('reorder-mode');
+    // Add drag handles and make topics draggable
+    const topicCards = topicsContainer.querySelectorAll('.topic-card');
+    topicCards.forEach((card, index) => {
+      card.draggable = true;
+      card.classList.add('draggable');
+      card.addEventListener('dragstart', handleDragStart);
+      card.addEventListener('dragover', handleDragOver);
+      card.addEventListener('drop', handleDrop);
+      card.addEventListener('dragend', handleDragEnd);
+    });
+  } else {
+    topicsContainer.classList.remove('reorder-mode');
+    const topicCards = topicsContainer.querySelectorAll('.topic-card');
+    topicCards.forEach(card => {
+      card.draggable = false;
+      card.classList.remove('draggable');
+      card.removeEventListener('dragstart', handleDragStart);
+      card.removeEventListener('dragover', handleDragOver);
+      card.removeEventListener('drop', handleDrop);
+      card.removeEventListener('dragend', handleDragEnd);
+    });
+  }
+}
+
+let draggedElement = null;
+
+function handleDragStart(e) {
+  draggedElement = this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', this.outerHTML);
+}
+
+function handleDragOver(e) {
+  if (e.preventDefault) {
+    e.preventDefault();
+  }
+  e.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function handleDrop(e) {
+  if (e.stopPropagation) {
+    e.stopPropagation();
+  }
+  
+  if (draggedElement !== this) {
+    const topicsContainer = document.getElementById('topicsContainer');
+    const topics = Array.from(topicsContainer.querySelectorAll('.topic-card'));
+    const draggedIndex = topics.indexOf(draggedElement);
+    const targetIndex = topics.indexOf(this);
+    
+    if (draggedIndex < targetIndex) {
+      topicsContainer.insertBefore(draggedElement, this.nextSibling);
+    } else {
+      topicsContainer.insertBefore(draggedElement, this);
+    }
+    
+    // Update order in database
+    updateTopicOrder();
+  }
+  
+  return false;
+}
+
+function handleDragEnd(e) {
+  const topicCards = document.querySelectorAll('.topic-card');
+  topicCards.forEach(card => {
+    card.classList.remove('dragging');
+  });
+  draggedElement = null;
+}
+
+function updateTopicOrder() {
+  const topicCards = document.querySelectorAll('.topic-card');
+  const orderUpdates = [];
+  
+  topicCards.forEach((card, index) => {
+    const topicId = card.dataset.topicId;
+    orderUpdates.push({
+      topicId: topicId,
+      order: index + 1
+    });
+  });
+  
+  // Send order updates to server
+  fetch(`/admin/courses/<%= courseCode %>/topics/reorder`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ orderUpdates })
+  })
+  .then(response => {
+    if (response.ok) {
+      console.log('Topic order updated successfully');
+    } else {
+      console.error('Error updating topic order');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+    }
+    
+    function toggleAllTopics() {
+  const topicCards = document.querySelectorAll('.topic-card');
+  const firstCard = topicCards[0];
+  
+  if (!firstCard) return;
+  
+  const firstContentSection = firstCard.querySelector('.topic-content-section');
+  const shouldShow = firstContentSection.style.display === 'none';
+  
+  topicCards.forEach(card => {
+    const contentSection = card.querySelector('.topic-content-section');
+    contentSection.style.display = shouldShow ? 'block' : 'none';
+  });
+}
+
+function previewCourse() {
+  // Open course preview in new tab
+  window.open(`/admin/courses/<%= courseCode %>/preview`, '_blank');
+}
+
+// Helper function to get content icons
+function getContentIcon(type) {
+  const icons = {
+    'video': 'play',
+    'pdf': 'file-pdf',
+    'homework': 'tasks',
+    'quiz': 'question-circle',
+    'assignment': 'clipboard-list',
+    'reading': 'book',
+    'link': 'external-link-alt'
+  };
+  return icons[type] || 'file';
+}
+
+// Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+  // Load available bundles for edit modal
+  loadAvailableBundlesForEdit();
+  
+  // Setup content type change handler
+  const contentTypeSelect = document.getElementById('contentType');
+  const fileUploadSection = document.getElementById('fileUploadSection');
+  const contentUrlSection = document.getElementById('contentUrlSection');
+  const contentUrlInput = document.getElementById('contentUrl');
+  
+  if (contentTypeSelect) {
+    contentTypeSelect.addEventListener('change', function() {
+      const type = this.value;
+      
+      // Show/hide Quiz content section
+      const quizContentSection = document.getElementById('quizContentSection');
+      if (quizContentSection) {
+      if (type === 'quiz') {
+          quizContentSection.style.display = 'block';
+          resetQuizSteps();
+        } else {
+          quizContentSection.style.display = 'none';
+        }
+      }
+      
+      // Show/hide Homework content section
+      const homeworkContentSection = document.getElementById('homeworkContentSection');
+      if (homeworkContentSection) {
+      if (type === 'homework') {
+          homeworkContentSection.style.display = 'block';
+          resetHomeworkSteps();
+        } else {
+          homeworkContentSection.style.display = 'none';
+        }
+      }
+      
+      // Hide Content URL/File section for Quiz and Homework
+      if (type === 'quiz' || type === 'homework') {
+        contentUrlSection.style.display = 'none';
+        contentUrlInput.required = false;
+        fileUploadSection.style.display = 'none';
+      } else {
+        contentUrlSection.style.display = 'block';
+        contentUrlInput.required = true;
+        
+        const needsFileUpload = ['video', 'pdf', 'assignment', 'reading'].includes(type);
+        
+        if (needsFileUpload) {
+          fileUploadSection.style.display = 'block';
+          contentUrlInput.placeholder = 'Or enter URL manually';
+          contentUrlInput.required = false;
+        } else {
+          fileUploadSection.style.display = 'none';
+          contentUrlInput.placeholder = 'Enter URL';
+          contentUrlInput.required = true;
+        }
+      }
+    });
+  }
+  
+  // Setup file upload for content
+  const contentFileInput = document.getElementById('contentFile');
+  if (contentFileInput) {
+    contentFileInput.addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        uploadContentFile(this.files[0]);
+      }
+    });
+  }
+  
+      // Add click handlers for topic cards
+  const topicCards = document.querySelectorAll('.topic-card');
+      topicCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+      if (!e.target.closest('.topic-actions') && !reorderMode) {
+            // Toggle topic content visibility
+        const contentSection = this.querySelector('.topic-content-section');
+        if (contentSection) {
+          const isVisible = contentSection.style.display !== 'none';
+          contentSection.style.display = isVisible ? 'none' : 'block';
+            }
+          }
+        });
+      });
+    });
+
+// Upload content file function
+function uploadContentFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'your_cloudinary_preset'); // Replace with your preset
+  
+  // Show progress
+  const progressContainer = document.getElementById('contentFileProgress');
+  progressContainer.style.display = 'block';
+  
+  fetch('/api/upload', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.url) {
+      document.getElementById('uploadedFileUrl').value = data.url;
+      document.getElementById('contentUrl').value = data.url;
+      progressContainer.style.display = 'none';
+      
+      // Show success message
+      const preview = document.getElementById('contentFilePreview');
+      preview.innerHTML = `
+        <div class="preview-success">
+          <i class="fas fa-check-circle text-success"></i>
+          <p>File uploaded successfully!</p>
+          <small>${file.name}</small>
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('Upload error:', error);
+    progressContainer.style.display = 'none';
+    alert('Error uploading file');
+  });
+}
+
+// Update topic card in UI
+function updateTopicCard(topicId, topicData) {
+  const topicCard = document.querySelector(`[data-topic-id="${topicId}"]`);
+  if (!topicCard) return;
+  
+  // Update title
+  const titleElement = topicCard.querySelector('.topic-title');
+  if (titleElement) {
+    titleElement.textContent = topicData.title;
+  }
+  
+  // Update description
+  const descriptionElement = topicCard.querySelector('.topic-description');
+  if (descriptionElement) {
+    descriptionElement.textContent = topicData.description;
+  }
+  
+  // Update estimated time
+  const timeElement = topicCard.querySelector('.meta-item i.fa-clock').parentElement;
+  if (timeElement && topicData.estimatedTime) {
+    const hours = Math.round(topicData.estimatedTime / 60 * 10) / 10;
+    timeElement.innerHTML = `<i class="fas fa-clock"></i> ${hours}h`;
+  }
+  
+  // Update status badge
+  const statusBadge = topicCard.querySelector('.status-badge');
+  if (statusBadge) {
+    statusBadge.className = `status-badge ${topicData.isPublished ? 'published' : 'draft'}`;
+    statusBadge.innerHTML = `<i class="fas fa-${topicData.isPublished ? 'eye' : 'eye-slash'}"></i> ${topicData.isPublished ? 'Published' : 'Draft'}`;
+  }
+  
+  // Update difficulty badge
+  const difficultyBadge = topicCard.querySelector('.difficulty-badge');
+  if (difficultyBadge && topicData.difficulty) {
+    difficultyBadge.className = `difficulty-badge difficulty-${topicData.difficulty}`;
+    difficultyBadge.textContent = topicData.difficulty.charAt(0).toUpperCase() + topicData.difficulty.slice(1);
+  }
+  
+  // Update order
+  if (topicData.order) {
+    topicCard.setAttribute('data-order', topicData.order);
+  }
+  
+  // Update visibility button
+  const visibilityBtn = topicCard.querySelector('.action-btn[onclick*="toggleTopicVisibility"]');
+  if (visibilityBtn) {
+    const icon = visibilityBtn.querySelector('i');
+    icon.className = `fas fa-${topicData.isPublished ? 'eye-slash' : 'eye'}`;
+    visibilityBtn.setAttribute('onclick', `toggleTopicVisibility('${topicId}', ${topicData.isPublished})`);
+  }
+}
+
+
+// Enhanced manageTopicContent function
+function manageTopicContent(topicId) {
+  currentTopicId = topicId;
+  const form = document.getElementById('addContentForm');
+  form.action = `/admin/courses/<%= courseCode %>/topics/${topicId}/content/create`;
+  
+  // Reset form
+  form.reset();
+  document.getElementById('fileUploadSection').style.display = 'none';
+  document.getElementById('uploadedFileUrl').value = '';
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('addContentModal'));
+  modal.show();
+}
+
+
+
+// ==================== EDIT COURSE FUNCTIONALITY ====================
+
+// Load available bundles for edit modal
+function loadAvailableBundlesForEdit() {
+  fetch('/admin/api/bundles')
+    .then(response => response.json())
+    .then(bundles => {
+      const bundleSelect = document.getElementById('editCourseBundle');
+      if (bundleSelect) {
+        bundleSelect.innerHTML = '<option value="">Select Bundle</option>';
+        
+        bundles.forEach(bundle => {
+          const option = document.createElement('option');
+          option.value = bundle._id;
+          option.textContent = `${bundle.title} (${bundle.bundleCode}) - ${bundle.year}`;
+          bundleSelect.appendChild(option);
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error loading bundles for edit:', error);
+    });
+}
+
+// Edit Course Function
+function editCourse(courseCode) {
+  console.log('Editing course:', courseCode);
+  
+  // Fetch course data
+  fetch(`/admin/courses/${courseCode}/data`)
+    .then(response => {
+      console.log('Response status:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Course data loaded:', data);
+      if (data.success) {
+        populateEditForm(data.course);
+        showEditModal();
+      } else {
+        showNotification('Failed to load course data', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading course:', error);
+      showNotification('Error loading course data: ' + error.message, 'error');
+    });
+}
+
+// Populate edit form with course data
+function populateEditForm(course) {
+  // Basic information
+  document.getElementById('editCourseTitle').value = course.title || '';
+  document.getElementById('editCourseDescription').value = course.description || '';
+  document.getElementById('editShortDescription').value = course.shortDescription || '';
+  
+  // Settings
+  document.getElementById('editCourseLevel').value = course.level || '';
+  document.getElementById('editCourseCategory').value = course.category || '';
+  document.getElementById('editCourseDuration').value = course.duration || '';
+  document.getElementById('editCoursePrice').value = course.price || '';
+  document.getElementById('editCourseDiscountPrice').value = course.discountPrice || 0;
+  
+  // Status and featured
+  document.getElementById('editCourseStatus').value = course.status || 'draft';
+  document.getElementById('editCourseFeatured').checked = course.isFeatured || false;
+  
+  // Tags
+  document.getElementById('editCourseTags').value = course.tags ? course.tags.join(', ') : '';
+  
+  // Bundle selection
+  const bundleSelect = document.getElementById('editCourseBundle');
+  if (course.bundle && course.bundle._id) {
+    bundleSelect.value = course.bundle._id;
+  }
+  
+  // Thumbnail
+  if (course.thumbnail) {
+    document.getElementById('editCourseThumbnailUrl').value = course.thumbnail;
+    document.getElementById('currentThumbnailUrl').textContent = course.thumbnail;
+    document.getElementById('currentThumbnailSection').style.display = 'block';
+  }
+  
+  // Set form action - use the main update endpoint
+  document.getElementById('editCourseForm').action = `/admin/courses/${course.courseCode}`;
+}
+
+// Show edit modal
+function showEditModal() {
+  const modal = new bootstrap.Modal(document.getElementById('editCourseModal'));
+  modal.show();
+  
+  // Setup form validation and submission
+  setupEditFormValidation();
+}
+
+// Setup edit form validation
+function setupEditFormValidation() {
+  const form = document.getElementById('editCourseForm');
+  const inputs = form.querySelectorAll('input, textarea, select');
+  
+  // Add real-time validation
+  inputs.forEach(input => {
+    input.addEventListener('input', function() {
+      validateEditField(this);
+    });
+    
+    input.addEventListener('blur', function() {
+      validateEditField(this);
+    });
+  });
+  
+  // Handle form submission
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    let isValid = true;
+    inputs.forEach(input => {
+      if (!validateEditField(input)) {
+        isValid = false;
+      }
+    });
+    
+    if (isValid) {
+      submitEditForm();
+    } else {
+      showNotification('Please fix the validation errors before submitting.', 'error');
+    }
+  });
+}
+
+// Validate edit form field
+function validateEditField(field) {
+  const value = field.value.trim();
+  const fieldName = field.name;
+  let isValid = true;
+  let errorMessage = '';
+  
+  // Clear previous error
+  field.classList.remove('is-invalid');
+  const errorElement = document.getElementById('edit' + fieldName.charAt(0).toUpperCase() + fieldName.slice(1) + 'Error');
+  if (errorElement) {
+    errorElement.textContent = '';
+  }
+  
+  // Required field validation
+  if (field.hasAttribute('required') && !value) {
+    isValid = false;
+    errorMessage = `${getEditFieldLabel(fieldName)} is required.`;
+  }
+  
+  // Length validation
+  if (value && field.hasAttribute('minlength')) {
+    const minLength = parseInt(field.getAttribute('minlength'));
+    if (value.length < minLength) {
+      isValid = false;
+      errorMessage = `${getEditFieldLabel(fieldName)} must be at least ${minLength} characters.`;
+    }
+  }
+  
+  if (value && field.hasAttribute('maxlength')) {
+    const maxLength = parseInt(field.getAttribute('maxlength'));
+    if (value.length > maxLength) {
+      isValid = false;
+      errorMessage = `${getEditFieldLabel(fieldName)} must not exceed ${maxLength} characters.`;
+    }
+  }
+  
+  // Number validation
+  if (field.type === 'number' && value) {
+    const numValue = parseFloat(value);
+    if (field.hasAttribute('min') && numValue < parseFloat(field.getAttribute('min'))) {
+      isValid = false;
+      errorMessage = `${getEditFieldLabel(fieldName)} must be at least ${field.getAttribute('min')}.`;
+    }
+    if (field.hasAttribute('max') && numValue > parseFloat(field.getAttribute('max'))) {
+      isValid = false;
+      errorMessage = `${getEditFieldLabel(fieldName)} must not exceed ${field.getAttribute('max')}.`;
+    }
+  }
+  
+  // Bundle selection validation
+  if (fieldName === 'bundleId' && !value) {
+    isValid = false;
+    errorMessage = 'Please select a bundle for this course.';
+  }
+  
+  // Show error if validation failed
+  if (!isValid) {
+    field.classList.add('is-invalid');
+    if (errorElement) {
+      errorElement.textContent = errorMessage;
+    }
+  }
+  
+  return isValid;
+}
+
+// Get field label for edit form
+function getEditFieldLabel(fieldName) {
+  const labels = {
+    'title': 'Title',
+    'description': 'Description',
+    'shortDescription': 'Short Description',
+    'bundleId': 'Bundle',
+    'level': 'Level',
+    'category': 'Category',
+    'duration': 'Duration',
+    'price': 'Price',
+    'discountPrice': 'Discount Percentage',
+    'status': 'Status'
+  };
+  return labels[fieldName] || fieldName;
+}
+
+// Submit edit form
+function submitEditForm() {
+  const form = document.getElementById('editCourseForm');
+  const formData = new FormData(form);
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalText = submitBtn.innerHTML;
+  
+  // Show loading state
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+  submitBtn.disabled = true;
+  
+  // Convert FormData to JSON
+  const data = {};
+  for (let [key, value] of formData.entries()) {
+    if (key === 'tags') {
+      data[key] = value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    } else if (key !== 'isFeatured') {
+      data[key] = value;
+    }
+  }
+  
+  // Add checkbox values
+  data.isFeatured = document.getElementById('editCourseFeatured').checked;
+  
+  // Debug logging
+  console.log('Sending update data:', data);
+  console.log('Bundle ID being sent:', data.bundleId);
+  
+  fetch(form.action, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    } else {
+      throw new Error('Response is not JSON');
+    }
+  })
+  .then(data => {
+    console.log('Update response:', data);
+    if (data.success) {
+      showNotification('Course updated successfully!', 'success');
+      
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editCourseModal'));
+      modal.hide();
+      
+      // Reload page to show updated course info
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      showNotification(data.message || 'Failed to update course', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error updating course:', error);
+    showNotification(`Error updating course: ${error.message}`, 'error');
+  })
+  .finally(() => {
+    // Restore button state
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  });
+}
+
+// Setup thumbnail upload for edit modal using Cloudinary
+function setupEditThumbnailUpload() {
+  const thumbnailInput = document.getElementById('editCourseThumbnail');
+  const preview = document.getElementById('editCourseThumbnailPreview');
+  const progress = document.getElementById('editCourseThumbnailProgress');
+  const urlInput = document.getElementById('editCourseThumbnailUrl');
+  
+  if (!thumbnailInput || !preview || !progress || !urlInput) {
+    console.error('Edit thumbnail upload elements not found');
+    return;
+  }
+
+  // Cloudinary configuration
+  const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dusod9wxt/upload';
+  const CLOUDINARY_UPLOAD_PRESET = 'order_project';
+  const maxFileSize = 10 * 1024 * 1024; // 10MB
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+
+  // Handle file selection
+  thumbnailInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+      uploadEditThumbnailToCloudinary(file);
+    }
+  });
+
+  // Handle drag and drop
+  preview.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    preview.classList.add('drag-over');
+  });
+
+  preview.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    preview.classList.remove('drag-over');
+  });
+
+  preview.addEventListener('drop', (e) => {
+    e.preventDefault();
+    preview.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      thumbnailInput.files = e.dataTransfer.files;
+      uploadEditThumbnailToCloudinary(file);
+    }
+  });
+
+  // Upload function
+  function uploadEditThumbnailToCloudinary(file) {
+    // Validate file
+    if (!validateEditFile(file)) {
+      return;
+    }
+
+    // Show preview
+    showEditPreview(file, preview);
+    
+    // Show progress
+    showEditProgress(progress, 0);
+
+    // Upload to Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+    const xhr = new XMLHttpRequest();
+
+    // Upload progress
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        showEditProgress(progress, percent);
+      }
+    });
+
+    // Upload complete
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200) {
+        const response = JSON.parse(xhr.responseText);
+        urlInput.value = response.secure_url;
+        showEditSuccess(preview, progress, response.secure_url);
+      } else {
+        showEditError(preview, progress, 'Upload failed. Please try again.');
+      }
+    });
+
+    // Upload error
+    xhr.addEventListener('error', () => {
+      showEditError(preview, progress, 'Upload failed. Please check your connection.');
+    });
+
+    // Start upload
+    xhr.open('POST', CLOUDINARY_URL, true);
+    xhr.send(formData);
+  }
+
+  // Helper functions
+  function validateEditFile(file) {
+    if (file.size > maxFileSize) {
+      showEditError(preview, progress, `File size must be less than ${maxFileSize / (1024 * 1024)}MB`);
+      return false;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      showEditError(preview, progress, 'Only images (JPEG, PNG, JPG, WebP) are allowed');
+      return false;
+    }
+
+    return true;
+  }
+
+  function showEditPreview(file, preview) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.innerHTML = `
+        <img src="${e.target.result}" alt="Preview" class="preview-image">
+        <div class="preview-overlay">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p>Uploading...</p>
+          <small>${file.name}</small>
+        </div>
+      `;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showEditProgress(progress, percent) {
+    progress.style.display = 'block';
+    progress.innerHTML = `
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${percent}%"></div>
+        </div>
+        <div class="progress-text">${percent}%</div>
+      </div>
+    `;
+  }
+
+  function showEditSuccess(preview, progress, url) {
+    preview.innerHTML = `
+      <img src="${url}" alt="Uploaded Image" class="preview-image">
+      <div class="preview-overlay" style="opacity: 1; background: rgba(40, 167, 69, 0.9);">
+        <i class="fas fa-check-circle" style="color: white;"></i>
+        <p>Upload Successful!</p>
+        <small>Image uploaded to Cloudinary</small>
+      </div>
+    `;
+    progress.style.display = 'none';
+  }
+
+  function showEditError(preview, progress, message) {
+    preview.innerHTML = `
+      <div class="preview-error">
+        <i class="fas fa-exclamation-circle text-danger"></i>
+        <p>Upload Error</p>
+        <small>${message}</small>
+      </div>
+    `;
+    progress.style.display = 'none';
+  }
+}
+
+// Initialize edit functionality when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  setupEditThumbnailUpload();
+});
+
+// Notification function
+function showNotification(message, type = 'info') {
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(notification => notification.remove());
+  
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  
+  // Add to page
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 5000);
+}
+
+// Add form submission handler for Add Content Modal
+document.addEventListener('DOMContentLoaded', function() {
+  const addContentForm = document.getElementById('addContentForm');
+  if (addContentForm) {
+    addContentForm.addEventListener('submit', function(e) {
+      // Validate Quiz/Homework content before submission
+      if (!handleQuizHomeworkSubmission()) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  }
+});
+
+// Quiz and Homework Management Functions
+let currentQuizStep = 1;
+let currentHomeworkStep = 1;
+let selectedQuizQuestionBank = null;
+let selectedHomeworkQuestionBank = null;
+let quizQuestions = [];
+let homeworkQuestions = [];
+let selectedQuizQuestions = [];
+let selectedHomeworkQuestions = [];
+
+// Quiz Functions
+function resetQuizSteps() {
+  currentQuizStep = 1;
+  selectedQuizQuestionBank = null;
+  quizQuestions = [];
+  selectedQuizQuestions = [];
+  updateQuizStepDisplay();
+  loadQuizQuestionBanks();
+}
+
+function updateQuizStepDisplay() {
+  // Update step indicators
+  document.querySelectorAll('.quiz-step').forEach((step, index) => {
+    step.classList.remove('active', 'completed');
+    if (index + 1 === currentQuizStep) {
+      step.classList.add('active');
+    } else if (index + 1 < currentQuizStep) {
+      step.classList.add('completed');
+    }
+  });
+
+  // Update step content visibility
+  document.querySelectorAll('.quiz-step-content').forEach((content, index) => {
+    content.style.display = index + 1 === currentQuizStep ? 'block' : 'none';
+  });
+
+  // Update navigation buttons
+  const prevBtn = document.getElementById('quizPrevBtn');
+  const nextBtn = document.getElementById('quizNextBtn');
+  const stepIndicator = document.getElementById('quizCurrentStepNumber');
+
+  if (prevBtn) prevBtn.disabled = currentQuizStep === 1;
+  if (nextBtn) {
+    if (currentQuizStep === 3) {
+      nextBtn.style.display = 'none';
+    } else {
+      nextBtn.style.display = 'inline-block';
+    }
+  }
+  if (stepIndicator) stepIndicator.textContent = currentQuizStep;
+}
+
+function nextQuizStep() {
+  if (currentQuizStep < 3) {
+    currentQuizStep++;
+    updateQuizStepDisplay();
+  }
+}
+
+function prevQuizStep() {
+  if (currentQuizStep > 1) {
+    currentQuizStep--;
+    updateQuizStepDisplay();
+  }
+}
+
+function loadQuizQuestionBanks() {
+  fetch(`/admin/courses/<%= courseCode %>/topics/${currentTopicId}/question-banks`)
+    .then(response => response.json())
+    .then(data => {
+      const grid = document.getElementById('quizQuestionBanksGrid');
+      const noBanksMessage = document.getElementById('noQuizQuestionBanksMessage');
+      
+      if (data.success && data.questionBanks && data.questionBanks.length > 0) {
+        grid.innerHTML = data.questionBanks.map(bank => `
+          <div class="col-md-6 col-lg-4 mb-3">
+            <div class="question-bank-card" onclick="selectQuizQuestionBank('${bank._id}')">
+              <div class="question-bank-icon">
+                <i class="fas fa-database"></i>
+              </div>
+              <h6 class="question-bank-title">${bank.name}</h6>
+              <p class="question-bank-description">${bank.description || 'No description available'}</p>
+              <div class="question-bank-meta">
+                <span class="question-bank-count">${bank.totalQuestions || 0} questions</span>
+                <span class="question-bank-difficulty">${bank.difficulty || 'Mixed'}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+        noBanksMessage.style.display = 'none';
+      } else {
+        grid.innerHTML = '';
+        noBanksMessage.style.display = 'block';
+      }
+    })
+    .catch(error => {
+      console.error('Error loading question banks:', error);
+      showNotification('Error loading question banks', 'error');
+    });
+}
+
+function selectQuizQuestionBank(bankId) {
+  selectedQuizQuestionBank = bankId;
+  
+  // Update UI
+  document.querySelectorAll('.question-bank-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  event.target.closest('.question-bank-card').classList.add('selected');
+  
+  // Load questions
+  loadQuizQuestions(bankId);
+}
+
+function loadQuizQuestions(bankId) {
+  fetch(`/admin/courses/<%= courseCode %>/topics/${currentTopicId}/question-banks/${bankId}/questions?all=true`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        quizQuestions = data.questions || [];
+        displayQuizQuestions();
+        updateQuizQuestionsCount();
+      } else {
+        showNotification('Failed to load questions from bank', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading questions:', error);
+      showNotification('Error loading questions', 'error');
+    });
+}
+
+function displayQuizQuestions() {
+  const grid = document.getElementById('quizQuestionsGrid');
+  const noQuestionsMessage = document.getElementById('noQuizQuestionsMessage');
+  
+  if (quizQuestions.length > 0) {
+    grid.innerHTML = quizQuestions.map((question, index) => `
+      <div class="question-circle ${question.difficulty || 'medium'}" 
+           onclick="toggleQuizQuestion(${index})" 
+           data-question-index="${index}"
+           title="Question ${index + 1}: ${question.question || 'Click to select'}"
+           data-question-id="${question._id}">
+        ${index + 1}
+        <div class="preview-icon" onclick="event.stopPropagation(); previewQuizQuestion(${index})" title="Preview Question">
+          <i class="fas fa-eye"></i>
+        </div>
+      </div>
+    `).join('');
+    noQuestionsMessage.style.display = 'none';
+  } else {
+    grid.innerHTML = '';
+    noQuestionsMessage.style.display = 'block';
+  }
+  
+  // Restore visual state of selected questions
+  restoreQuizQuestionSelection();
+  updateQuizSelectionSummary();
+}
+
+function restoreQuizQuestionSelection() {
+  // Clear all selections first
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    circle.classList.remove('selected');
+  });
+  
+  // Restore selections based on selectedQuizQuestions array
+  selectedQuizQuestions.forEach(questionId => {
+    const questionIndex = quizQuestions.findIndex(q => q._id === questionId);
+    if (questionIndex !== -1) {
+      const questionElement = document.querySelector(`[data-question-index="${questionIndex}"]`);
+      if (questionElement) {
+        questionElement.classList.add('selected');
+      }
+    }
+  });
+}
+
+function toggleQuizQuestion(index) {
+  const questionElement = document.querySelector(`[data-question-index="${index}"]`);
+  const questionId = quizQuestions[index]._id;
+  const questionIndex = selectedQuizQuestions.indexOf(questionId);
+  
+  if (questionIndex > -1) {
+    selectedQuizQuestions.splice(questionIndex, 1);
+    questionElement.classList.remove('selected');
+  } else {
+    selectedQuizQuestions.push(questionId);
+    questionElement.classList.add('selected');
+  }
+  
+  updateQuizSelectionSummary();
+}
+
+function selectAllQuizQuestions() {
+  selectedQuizQuestions = quizQuestions.map(question => question._id);
+  document.querySelectorAll('.question-circle').forEach((circle, index) => {
+    circle.classList.add('selected');
+  });
+  updateQuizSelectionSummary();
+}
+
+function clearQuizSelection() {
+  selectedQuizQuestions = [];
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    circle.classList.remove('selected');
+  });
+  updateQuizSelectionSummary();
+}
+
+function selectEvenQuizQuestions() {
+  clearQuizSelection();
+  for (let i = 1; i < quizQuestions.length; i += 2) {
+    selectedQuizQuestions.push(quizQuestions[i]._id);
+    document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
+  }
+  updateQuizSelectionSummary();
+}
+
+function selectOddQuizQuestions() {
+  clearQuizSelection();
+  for (let i = 0; i < quizQuestions.length; i += 2) {
+    selectedQuizQuestions.push(quizQuestions[i]._id);
+    document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
+  }
+  updateQuizSelectionSummary();
+}
+
+function selectRandomQuizQuestions() {
+  clearQuizSelection();
+  const count = Math.ceil(quizQuestions.length * 0.3);
+  const randomIndices = [];
+  
+  while (randomIndices.length < count) {
+    const randomIndex = Math.floor(Math.random() * quizQuestions.length);
+    if (!randomIndices.includes(randomIndex)) {
+      randomIndices.push(randomIndex);
+    }
+  }
+  
+  randomIndices.forEach(index => {
+    selectedQuizQuestions.push(quizQuestions[index]._id);
+    document.querySelector(`[data-question-index="${index}"]`).classList.add('selected');
+  });
+  
+  updateQuizSelectionSummary();
+}
+
+function selectQuizRange() {
+  const rangeInput = document.getElementById('quizRangeInput');
+  const range = rangeInput.value.trim();
+  
+  if (!range) return;
+  
+  clearQuizSelection();
+  
+  const ranges = range.split(',');
+  ranges.forEach(rangeStr => {
+    const trimmed = rangeStr.trim();
+    if (trimmed.includes('-')) {
+      const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()) - 1);
+      for (let i = start; i <= end && i < quizQuestions.length; i++) {
+        if (i >= 0) {
+          selectedQuizQuestions.push(quizQuestions[i]._id);
+          document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
+        }
+      }
+    } else {
+      const index = parseInt(trimmed) - 1;
+      if (index >= 0 && index < quizQuestions.length) {
+        selectedQuizQuestions.push(quizQuestions[index]._id);
+        document.querySelector(`[data-question-index="${index}"]`).classList.add('selected');
+      }
+    }
+  });
+  
+  updateQuizSelectionSummary();
+}
+
+function updateQuizQuestionsCount() {
+  const countElement = document.getElementById('quizQuestionsCount');
+  if (countElement) {
+    countElement.textContent = `(${quizQuestions.length} questions)`;
+  }
+}
+
+function updateQuizSelectionSummary() {
+  const selectedCount = document.getElementById('quizSelectedCount');
+  const totalPoints = document.getElementById('quizTotalPoints');
+  const easyCount = document.getElementById('quizEasyCount');
+  const mediumCount = document.getElementById('quizMediumCount');
+  const hardCount = document.getElementById('quizHardCount');
+  
+  if (selectedCount) selectedCount.textContent = selectedQuizQuestions.length;
+  
+  let points = 0;
+  let easy = 0, medium = 0, hard = 0;
+  
+  selectedQuizQuestions.forEach(questionId => {
+    const question = quizQuestions.find(q => q._id === questionId);
+    if (question) {
+      points += question.points || 1;
+      
+      const difficulty = question.difficulty || 'medium';
+      if (difficulty === 'easy') easy++;
+      else if (difficulty === 'hard') hard++;
+      else medium++;
+    }
+  });
+  
+  if (totalPoints) totalPoints.textContent = points;
+  if (easyCount) easyCount.textContent = easy;
+  if (mediumCount) mediumCount.textContent = medium;
+  if (hardCount) hardCount.textContent = hard;
+}
+
+function previewQuizQuestion(index) {
+  const question = quizQuestions[index];
+  if (!question) return;
+  
+  showQuestionPreview(question, `Quiz Question ${index + 1}`);
+}
+
+function previewHomeworkQuestion(index) {
+  const question = homeworkQuestions[index];
+  if (!question) return;
+  
+  showQuestionPreview(question, `Homework Question ${index + 1}`);
+}
+
+function showQuestionPreview(question, title) {
+  const modalBody = document.getElementById('questionPreviewBody');
+  if (!modalBody) return;
+  
+  // Create question preview content
+  let previewContent = `
+    <div class="question-preview">
+      <div class="question-header">
+        <div class="question-title">
+          ${question.questionText && question.questionText.includes('\\') ? 
+            `<math-field readonly 
+              style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+              class="preview-math-field">
+              ${question.questionText}
+            </math-field>` : 
+            (question.questionText || 'Question text not available')}
+        </div>
+        ${question.questionImage && question.questionImage.trim() !== '' ? `<div class="question-image-container"><img src="${question.questionImage}" alt="Question Image" class="question-image" /></div>` : ''}
+        <div class="question-meta">
+          <span class="badge bg-${question.difficulty === 'easy' ? 'success' : question.difficulty === 'hard' ? 'danger' : 'warning'}">
+            ${(question.difficulty || 'medium').toUpperCase()}
+          </span>
+          <span class="badge bg-info">${question.points || 1} Points</span>
+          <span class="badge bg-secondary">${question.questionType || 'MCQ'}</span>
+        </div>
+      </div>
+      <div class="question-content">
+  `;
+  
+  // Handle different question types
+  if (question.questionType === 'Written') {
+    // For written questions, show correct answers with mandatory/optional status
+    const correctAnswers = question.correctAnswers || [];
+    if (correctAnswers.length > 0) {
+      previewContent += `
+        <div class="question-answers">
+          <h6><i class="fas fa-edit me-2"></i>Correct Answers:</h6>
+          <div class="answers-list">
+      `;
+      
+      correctAnswers.forEach((answer, index) => {
+        // Handle both old string format and new object format
+        let answerText = '';
+        let isMandatory = true;
+        
+        if (typeof answer === 'string') {
+          answerText = answer;
+        } else if (typeof answer === 'object' && answer.text) {
+          answerText = answer.text;
+          isMandatory = answer.isMandatory !== false; // Default to true if not specified
+        }
+        
+        // Check if answer contains LaTeX
+        let answerTextHtml = '';
+        if (answerText && answerText.includes('\\')) {
+          // Render math for answer text
+          answerTextHtml = `
+            <math-field readonly 
+              style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+              class="preview-math-field answer-math-field">
+              ${answerText}
+            </math-field>
+          `;
+        } else {
+          answerTextHtml = answerText;
+        }
+        
+        const mandatoryClass = isMandatory ? 'mandatory' : 'optional';
+        const mandatoryIcon = isMandatory ? 'fas fa-lock' : 'fas fa-unlock';
+        const mandatoryText = isMandatory ? 'Mandatory' : 'Optional';
+        
+        previewContent += `
+          <div class="answer-item ${mandatoryClass}">
+            <span class="answer-label">${String.fromCharCode(65 + index)}</span>
+            <div class="answer-text">${answerTextHtml}</div>
+            <div class="answer-status">
+              <i class="${mandatoryIcon}"></i>
+              <span>${mandatoryText}</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      previewContent += `
+          </div>
+        </div>
+      `;
+    } else {
+      previewContent += `
+        <div class="question-answers">
+          <h6><i class="fas fa-edit me-2"></i>Correct Answers:</h6>
+          <div class="no-answers">
+            <i class="fas fa-exclamation-triangle text-warning"></i>
+            <span>No correct answers defined</span>
+          </div>
+        </div>
+      `;
+    }
+  } else if (question.options && question.options.length > 0) {
+    // For MCQ and True/False questions, show options
+    previewContent += `
+      <div class="question-options">
+        <h6><i class="fas fa-list me-2"></i>Answer Options:</h6>
+        <div class="options-list">
+    `;
+    
+    question.options.forEach((option, index) => {
+      // Check if this option is correct
+      const isCorrect = option && typeof option === 'object' && option.isCorrect === true;
+      
+      // Get option text and image
+      const optionText = typeof option === 'string' ? option : (option.text || option.option || option);
+      const optionImage = option && typeof option === 'object' && option.image && option.image.trim() !== '' ? option.image : null;
+      
+      // Check if option text contains LaTeX
+      let optionTextHtml = '';
+      if (optionText && optionText.includes('\\')) {
+        optionTextHtml = `
+          <math-field readonly 
+            style="width: 100%; min-height: 25px; font-size: 14px; border: none; background: transparent; padding: 2px;"
+            class="preview-math-field option-math-field">
+            ${optionText}
+          </math-field>
+        `;
+      } else {
+        optionTextHtml = optionText;
+      }
+      
+      previewContent += `
+        <div class="option-item ${isCorrect ? 'correct' : ''}">
+          <div class="option-letter">${String.fromCharCode(65 + index)}</div>
+          <div class="option-content">
+            <div class="option-text">${optionTextHtml}</div>
+            ${optionImage ? `<div class="option-image-container"><img src="${optionImage}" alt="Option Image" class="option-image" /></div>` : ''}
+          </div>
+          ${isCorrect ? '<div class="correct-indicator"><i class="fas fa-check-circle"></i> ✓ Correct Answer</div>' : ''}
+        </div>
+      `;
+    });
+    
+    previewContent += `
+        </div>
+      </div>
+    `;
+  }
+  
+  // Add explanation if available
+  if (question.explanation || question.explanationImage) {
+    let explanationHtml = '';
+    if (question.explanation && question.explanation.includes('\\')) {
+      explanationHtml = `
+        <math-field readonly 
+          style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+          class="preview-math-field explanation-math-field">
+          ${question.explanation}
+        </math-field>
+      `;
+    } else {
+      explanationHtml = question.explanation || '';
+    }
+    
+    previewContent += `
+      <div class="question-explanation">
+        <h6><i class="fas fa-lightbulb me-2"></i>Explanation:</h6>
+        <div class="explanation-content">${explanationHtml}</div>
+        ${question.explanationImage && question.explanationImage.trim() !== '' ? `<div class="explanation-image-container"><img src="${question.explanationImage}" alt="Explanation Image" class="explanation-image" /></div>` : ''}
+      </div>
+    `;
+  }
+  
+  previewContent += `
+      </div>
+    </div>
+  `;
+  
+  modalBody.innerHTML = previewContent;
+  
+  // Show the modal
+  const modal = new bootstrap.Modal(document.getElementById('questionPreviewModal'));
+  modal.show();
+}
+
+// Homework Functions
+function resetHomeworkSteps() {
+  currentHomeworkStep = 1;
+  selectedHomeworkQuestionBank = null;
+  homeworkQuestions = [];
+  selectedHomeworkQuestions = [];
+  updateHomeworkStepDisplay();
+  loadHomeworkQuestionBanks();
+}
+
+function updateHomeworkStepDisplay() {
+  // Update step indicators
+  document.querySelectorAll('.homework-step').forEach((step, index) => {
+    step.classList.remove('active', 'completed');
+    if (index + 1 === currentHomeworkStep) {
+      step.classList.add('active');
+    } else if (index + 1 < currentHomeworkStep) {
+      step.classList.add('completed');
+    }
+  });
+
+  // Update step content visibility
+  document.querySelectorAll('.homework-step-content').forEach((content, index) => {
+    content.style.display = index + 1 === currentHomeworkStep ? 'block' : 'none';
+  });
+
+  // Update navigation buttons
+  const prevBtn = document.getElementById('homeworkPrevBtn');
+  const nextBtn = document.getElementById('homeworkNextBtn');
+  const stepIndicator = document.getElementById('homeworkCurrentStepNumber');
+
+  if (prevBtn) prevBtn.disabled = currentHomeworkStep === 1;
+  if (nextBtn) {
+    if (currentHomeworkStep === 3) {
+      nextBtn.style.display = 'none';
+    } else {
+      nextBtn.style.display = 'inline-block';
+    }
+  }
+  if (stepIndicator) stepIndicator.textContent = currentHomeworkStep;
+}
+
+function nextHomeworkStep() {
+  if (currentHomeworkStep < 3) {
+    currentHomeworkStep++;
+    updateHomeworkStepDisplay();
+  }
+}
+
+function prevHomeworkStep() {
+  if (currentHomeworkStep > 1) {
+    currentHomeworkStep--;
+    updateHomeworkStepDisplay();
+  }
+}
+
+function loadHomeworkQuestionBanks() {
+  fetch(`/admin/courses/<%= courseCode %>/topics/${currentTopicId}/question-banks`)
+    .then(response => response.json())
+    .then(data => {
+      const grid = document.getElementById('homeworkQuestionBanksGrid');
+      const noBanksMessage = document.getElementById('noHomeworkQuestionBanksMessage');
+      
+      if (data.success && data.questionBanks && data.questionBanks.length > 0) {
+        grid.innerHTML = data.questionBanks.map(bank => `
+          <div class="col-md-6 col-lg-4 mb-3">
+            <div class="question-bank-card" onclick="selectHomeworkQuestionBank('${bank._id}')">
+              <div class="question-bank-icon">
+                <i class="fas fa-database"></i>
+              </div>
+              <h6 class="question-bank-title">${bank.name}</h6>
+              <p class="question-bank-description">${bank.description || 'No description available'}</p>
+              <div class="question-bank-meta">
+                <span class="question-bank-count">${bank.totalQuestions || 0} questions</span>
+                <span class="question-bank-difficulty">${bank.difficulty || 'Mixed'}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+        noBanksMessage.style.display = 'none';
+      } else {
+        grid.innerHTML = '';
+        noBanksMessage.style.display = 'block';
+      }
+    })
+    .catch(error => {
+      console.error('Error loading question banks:', error);
+      showNotification('Error loading question banks', 'error');
+    });
+}
+
+function selectHomeworkQuestionBank(bankId) {
+  selectedHomeworkQuestionBank = bankId;
+  
+  // Update UI
+  document.querySelectorAll('#homeworkQuestionBanksGrid .question-bank-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  event.target.closest('.question-bank-card').classList.add('selected');
+  
+  // Load questions
+  loadHomeworkQuestions(bankId);
+}
+
+function loadHomeworkQuestions(bankId) {
+  fetch(`/admin/courses/<%= courseCode %>/topics/${currentTopicId}/question-banks/${bankId}/questions?all=true`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        homeworkQuestions = data.questions || [];
+        displayHomeworkQuestions();
+        updateHomeworkQuestionsCount();
+      } else {
+        showNotification('Failed to load questions from bank', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading questions:', error);
+      showNotification('Error loading questions', 'error');
+    });
+}
+
+function displayHomeworkQuestions() {
+  const grid = document.getElementById('homeworkQuestionsGrid');
+  const noQuestionsMessage = document.getElementById('noHomeworkQuestionsMessage');
+  
+  if (homeworkQuestions.length > 0) {
+    grid.innerHTML = homeworkQuestions.map((question, index) => `
+      <div class="question-circle ${question.difficulty || 'medium'}" 
+           onclick="toggleHomeworkQuestion(${index})" 
+           data-homework-question-index="${index}"
+           title="Question ${index + 1}: ${question.question || 'Click to select'}"
+           data-question-id="${question._id}">
+        ${index + 1}
+        <div class="preview-icon" onclick="event.stopPropagation(); previewHomeworkQuestion(${index})" title="Preview Question">
+          <i class="fas fa-eye"></i>
+        </div>
+      </div>
+    `).join('');
+    noQuestionsMessage.style.display = 'none';
+  } else {
+    grid.innerHTML = '';
+    noQuestionsMessage.style.display = 'block';
+  }
+  
+  // Restore visual state of selected questions
+  restoreHomeworkQuestionSelection();
+  updateHomeworkSelectionSummary();
+}
+
+function restoreHomeworkQuestionSelection() {
+  // Clear all selections first
+  document.querySelectorAll('#homeworkQuestionsGrid .question-circle').forEach(circle => {
+    circle.classList.remove('selected');
+  });
+  
+  // Restore selections based on selectedHomeworkQuestions array
+  selectedHomeworkQuestions.forEach(questionId => {
+    const questionIndex = homeworkQuestions.findIndex(q => q._id === questionId);
+    if (questionIndex !== -1) {
+      const questionElement = document.querySelector(`[data-homework-question-index="${questionIndex}"]`);
+      if (questionElement) {
+        questionElement.classList.add('selected');
+      }
+    }
+  });
+}
+
+function toggleHomeworkQuestion(index) {
+  const questionElement = document.querySelector(`[data-homework-question-index="${index}"]`);
+  const questionId = homeworkQuestions[index]._id;
+  const questionIndex = selectedHomeworkQuestions.indexOf(questionId);
+  
+  if (questionIndex > -1) {
+    selectedHomeworkQuestions.splice(questionIndex, 1);
+    questionElement.classList.remove('selected');
+  } else {
+    selectedHomeworkQuestions.push(questionId);
+    questionElement.classList.add('selected');
+  }
+  
+  updateHomeworkSelectionSummary();
+}
+
+function selectAllHomeworkQuestions() {
+  selectedHomeworkQuestions = homeworkQuestions.map(question => question._id);
+  document.querySelectorAll('#homeworkQuestionsGrid .question-circle').forEach((circle, index) => {
+    circle.classList.add('selected');
+  });
+  updateHomeworkSelectionSummary();
+}
+
+function clearHomeworkSelection() {
+  selectedHomeworkQuestions = [];
+  document.querySelectorAll('#homeworkQuestionsGrid .question-circle').forEach(circle => {
+    circle.classList.remove('selected');
+  });
+  updateHomeworkSelectionSummary();
+}
+
+function selectEvenHomeworkQuestions() {
+  clearHomeworkSelection();
+  for (let i = 1; i < homeworkQuestions.length; i += 2) {
+    selectedHomeworkQuestions.push(homeworkQuestions[i]._id);
+    document.querySelector(`[data-homework-question-index="${i}"]`).classList.add('selected');
+  }
+  updateHomeworkSelectionSummary();
+}
+
+function selectOddHomeworkQuestions() {
+  clearHomeworkSelection();
+  for (let i = 0; i < homeworkQuestions.length; i += 2) {
+    selectedHomeworkQuestions.push(homeworkQuestions[i]._id);
+    document.querySelector(`[data-homework-question-index="${i}"]`).classList.add('selected');
+  }
+  updateHomeworkSelectionSummary();
+}
+
+function selectRandomHomeworkQuestions() {
+  clearHomeworkSelection();
+  const count = Math.ceil(homeworkQuestions.length * 0.3);
+  const randomIndices = [];
+  
+  while (randomIndices.length < count) {
+    const randomIndex = Math.floor(Math.random() * homeworkQuestions.length);
+    if (!randomIndices.includes(randomIndex)) {
+      randomIndices.push(randomIndex);
+    }
+  }
+  
+  randomIndices.forEach(index => {
+    selectedHomeworkQuestions.push(homeworkQuestions[index]._id);
+    document.querySelector(`[data-homework-question-index="${index}"]`).classList.add('selected');
+  });
+  
+  updateHomeworkSelectionSummary();
+}
+
+function selectHomeworkRange() {
+  const rangeInput = document.getElementById('homeworkRangeInput');
+  const range = rangeInput.value.trim();
+  
+  if (!range) return;
+  
+  clearHomeworkSelection();
+  
+  const ranges = range.split(',');
+  ranges.forEach(rangeStr => {
+    const trimmed = rangeStr.trim();
+    if (trimmed.includes('-')) {
+      const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()) - 1);
+      for (let i = start; i <= end && i < homeworkQuestions.length; i++) {
+        if (i >= 0) {
+          selectedHomeworkQuestions.push(homeworkQuestions[i]._id);
+          document.querySelector(`[data-homework-question-index="${i}"]`).classList.add('selected');
+        }
+      }
+    } else {
+      const index = parseInt(trimmed) - 1;
+      if (index >= 0 && index < homeworkQuestions.length) {
+        selectedHomeworkQuestions.push(homeworkQuestions[index]._id);
+        document.querySelector(`[data-homework-question-index="${index}"]`).classList.add('selected');
+      }
+    }
+  });
+  
+  updateHomeworkSelectionSummary();
+}
+
+function updateHomeworkQuestionsCount() {
+  const countElement = document.getElementById('homeworkQuestionsCount');
+  if (countElement) {
+    countElement.textContent = `(${homeworkQuestions.length} questions)`;
+  }
+}
+
+function updateHomeworkSelectionSummary() {
+  const selectedCount = document.getElementById('homeworkSelectedCount');
+  const totalPoints = document.getElementById('homeworkTotalPoints');
+  const easyCount = document.getElementById('homeworkEasyCount');
+  const mediumCount = document.getElementById('homeworkMediumCount');
+  const hardCount = document.getElementById('homeworkHardCount');
+  
+  if (selectedCount) selectedCount.textContent = selectedHomeworkQuestions.length;
+  
+  let points = 0;
+  let easy = 0, medium = 0, hard = 0;
+  
+  selectedHomeworkQuestions.forEach(questionId => {
+    const question = homeworkQuestions.find(q => q._id === questionId);
+    if (question) {
+      points += question.points || 1;
+      
+      const difficulty = question.difficulty || 'medium';
+      if (difficulty === 'easy') easy++;
+      else if (difficulty === 'hard') hard++;
+      else medium++;
+    }
+  });
+  
+  if (totalPoints) totalPoints.textContent = points;
+  if (easyCount) easyCount.textContent = easy;
+  if (mediumCount) mediumCount.textContent = medium;
+  if (hardCount) hardCount.textContent = hard;
+}
+
+// Form submission handler for Quiz and Homework
+function handleQuizHomeworkSubmission() {
+  const contentType = document.getElementById('contentType').value;
+  
+  if (contentType === 'quiz') {
+    if (!selectedQuizQuestionBank || selectedQuizQuestions.length === 0) {
+      showNotification('Please select a question bank and at least one question', 'error');
+      return false;
+    }
+    
+    // Add hidden inputs for quiz data
+    addHiddenInput('questionBank', selectedQuizQuestionBank);
+    addHiddenInput('selectedQuestions', selectedQuizQuestions.join(','));
+    
+    // Set empty content for quiz
+    const contentUrlInput = document.getElementById('contentUrl');
+    if (contentUrlInput) {
+      contentUrlInput.value = '';
+    }
+  }
+  
+  if (contentType === 'homework') {
+    if (!selectedHomeworkQuestionBank || selectedHomeworkQuestions.length === 0) {
+      showNotification('Please select a question bank and at least one question', 'error');
+      return false;
+    }
+    
+    // Add hidden inputs for homework data
+    addHiddenInput('questionBank', selectedHomeworkQuestionBank);
+    addHiddenInput('selectedQuestions', selectedHomeworkQuestions.join(','));
+    
+    // Set empty content for homework
+    const contentUrlInput = document.getElementById('contentUrl');
+    if (contentUrlInput) {
+      contentUrlInput.value = '';
+    }
+  }
+  
+  return true;
+}
+
+function addHiddenInput(name, value) {
+  // Remove existing input if any
+  const existing = document.querySelector(`input[name="${name}"]`);
+  if (existing) existing.remove();
+  
+  // Add new hidden input
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = name;
+  input.value = value;
+  document.getElementById('addContentForm').appendChild(input);
+}
+</script>
+

@@ -1,0 +1,1800 @@
+<%- include('./partials/admin-header', { pageCSS: 'quizzes' }) %>
+
+<style>
+/* Circular Question Selection Styles (Like Create Quiz) */
+.questions-grid-container {
+  margin-bottom: 2rem;
+}
+
+.questions-grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+}
+
+.questions-grid-header h5 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.questions-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.questions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.question-circle {
+  width: 80px;
+  height: 80px;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #ffffff;
+  position: relative;
+  font-weight: 600;
+  color: #374151;
+}
+
+.question-circle:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.question-circle:focus {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.question-circle.selected {
+  border-color: #10b981;
+  background: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  transform: scale(1.05);
+  border-width: 3px;
+}
+
+.question-circle.selected:focus {
+  outline: 3px solid #059669;
+  outline-offset: 2px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  transform: scale(1.1);
+}
+
+.question-circle.selected .question-circle-number {
+  color: white;
+  font-weight: 900;
+}
+
+.question-circle.selected .question-circle-selected {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.95);
+  color: #10b981;
+}
+
+.question-circle-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.question-circle.selected .question-circle-number {
+  color: white;
+}
+
+.question-circle-meta {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+}
+
+.question-circle-difficulty {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.question-circle-difficulty.easy {
+  background: #28a745;
+}
+
+.question-circle-difficulty.medium {
+  background: #ffc107;
+}
+
+.question-circle-difficulty.hard {
+  background: #dc3545;
+}
+
+.question-circle-type {
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #374151;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.question-circle.selected .question-circle-type {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.question-circle-preview {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  font-size: 8px;
+  color: #6b7280;
+}
+
+.question-circle:hover .question-circle-preview {
+  opacity: 1;
+}
+
+.question-circle-preview:hover {
+  background: #3b82f6;
+  color: white;
+}
+
+.question-circle-selected {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  color: #10b981;
+}
+
+.question-circle.selected .question-circle-selected {
+  opacity: 1;
+}
+
+/* Selection Summary Enhancements */
+.question-selection-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.question-selection-summary-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.question-selection-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.question-selection-stat {
+  text-align: center;
+}
+
+.question-selection-stat-number {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.question-selection-stat-label {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Notification Styles */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  z-index: 9999;
+  min-width: 300px;
+  animation: slideIn 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.notification-success {
+  background: #f0fdf4;
+  border-left: 4px solid #10b981;
+  color: #065f46;
+}
+
+.notification-error {
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  color: #991b1b;
+}
+
+.notification-info {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  color: #1e40af;
+}
+
+.notification-warning {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  color: #92400e;
+}
+
+.notification-content {
+  color: black !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.notification-message {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.notification-content i {
+  font-size: 18px;
+}
+
+.notification-success .notification-content i {
+  color: #10b981;
+}
+
+.notification-error .notification-content i {
+  color: #ef4444;
+}
+
+.notification-info .notification-content i {
+  color: #3b82f6;
+}
+
+.notification-warning .notification-content i {
+  color: #f59e0b;
+}
+
+.notification-content span {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.notification-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  padding: 4px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Loading State */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fa-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Enhanced Quiz Status Styles - Horizontal Layout */
+.quiz-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.quiz-title-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+.quiz-status-section {
+  flex-shrink: 0;
+}
+
+.enhanced-quiz-status-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  min-width: 500px;
+  max-width: 600px;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.enhanced-quiz-status-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.enhanced-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.enhanced-status-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.enhanced-status-title i {
+  color: var(--admin-primary);
+  font-size: 18px;
+}
+
+.enhanced-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.enhanced-status-indicator.status-draft {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.enhanced-status-indicator.status-active {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.enhanced-status-indicator.status-inactive {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.enhanced-status-indicator.status-archived {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #374151;
+  border: 1px solid #9ca3af;
+}
+
+.enhanced-status-indicator i {
+  font-size: 8px;
+}
+
+.enhanced-status-options {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.status-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+}
+
+.status-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--admin-primary), #dc2626);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.status-option:hover {
+  border-color: var(--admin-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(184, 1, 1, 0.15);
+}
+
+.status-option.active {
+  border-color: var(--admin-primary);
+  background: rgba(184, 1, 1, 0.05);
+  box-shadow: 0 4px 15px rgba(184, 1, 1, 0.1);
+}
+
+.status-option.active::before {
+  opacity: 0.1;
+}
+
+.status-option-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.status-option:hover .status-option-icon {
+  background: var(--admin-primary);
+  color: #ffffff;
+  border-color: var(--admin-primary);
+}
+
+.status-option.active .status-option-icon {
+  background: var(--admin-primary);
+  color: #ffffff;
+  border-color: var(--admin-primary);
+}
+
+.status-option-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.status-option-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.status-option-description {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.status-option.active .status-option-title {
+  color: var(--admin-primary);
+}
+
+/* Full Width Layout Styles */
+.quiz-creation-content-full-width {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quiz-form-section-full-width {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 24px;
+}
+
+.question-bank-selection-full-width {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+/* Form Validation Styles */
+.quiz-form-control.is-invalid {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.quiz-form-control.is-invalid:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.quiz-form-select.is-invalid {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.quiz-form-select.is-invalid:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .enhanced-quiz-status-card {
+    min-width: 450px;
+    max-width: 500px;
+  }
+  
+  .status-option {
+    padding: 12px 8px;
+    min-width: 80px;
+  }
+  
+  .status-option-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  
+  .status-option-title {
+    font-size: 12px;
+  }
+  
+  .status-option-description {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .quiz-header-content {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+  
+  .quiz-title-section {
+    min-width: auto;
+  }
+  
+  .quiz-status-section {
+    align-self: stretch;
+  }
+  
+  .enhanced-quiz-status-card {
+    min-width: auto;
+    width: 100%;
+    max-width: none;
+  }
+  
+  .enhanced-status-options {
+    gap: 8px;
+  }
+  
+  .status-option {
+    padding: 12px 8px;
+    min-width: 70px;
+  }
+  
+  .status-option-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  
+  .status-option-title {
+    font-size: 11px;
+  }
+  
+  .status-option-description {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 576px) {
+  .enhanced-quiz-status-card {
+    padding: 16px;
+  }
+  
+  .enhanced-status-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .enhanced-status-indicator {
+    align-self: flex-start;
+  }
+  
+  .enhanced-status-options {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .status-option {
+    flex-direction: row;
+    text-align: left;
+    padding: 12px;
+    min-width: auto;
+  }
+  
+  .status-option-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  .status-option-title {
+    font-size: 13px;
+  }
+  
+  .status-option-description {
+    font-size: 11px;
+  }
+}
+</style>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: currentPage }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Edit Quiz',
+        breadcrumbSubtitle: 'Modify quiz settings and question selection'
+    }) %>
+    
+    <!-- Content -->
+    <div class="admin-content">
+  <!-- Quiz Edit Header -->
+  <div class="quiz-creation-header">
+    <div class="quiz-header-content">
+      <div class="quiz-title-section">
+        <h1 class="quiz-creation-title">
+          <i class="fas fa-edit"></i>
+          Edit Quiz
+        </h1>
+        <p class="quiz-creation-subtitle">
+          Modify quiz settings and question selection
+        </p>
+      </div>
+      <div class="quiz-status-section">
+        <div class="enhanced-quiz-status-card">
+          <div class="enhanced-status-header">
+            <div class="enhanced-status-title">
+              <i class="fas fa-toggle-on"></i>
+              Quiz Status
+            </div>
+            <div class="enhanced-status-indicator status-<%= quiz.status %>">
+              <i class="fas fa-circle"></i>
+              <span><%= quiz.status.charAt(0).toUpperCase() + quiz.status.slice(1) %></span>
+            </div>
+          </div>
+          <div class="enhanced-status-options">
+            <div class="status-option <%= quiz.status === 'draft' ? 'active' : '' %>" data-status="draft">
+              <div class="status-option-icon">
+                <i class="fas fa-edit"></i>
+              </div>
+              <div class="status-option-content">
+                <div class="status-option-title">Draft</div>
+                <div class="status-option-description">Work in progress</div>
+              </div>
+            </div>
+            <div class="status-option <%= quiz.status === 'active' ? 'active' : '' %>" data-status="active">
+              <div class="status-option-icon">
+                <i class="fas fa-play"></i>
+              </div>
+              <div class="status-option-content">
+                <div class="status-option-title">Active</div>
+                <div class="status-option-description">Available to students</div>
+              </div>
+            </div>
+            <div class="status-option <%= quiz.status === 'inactive' ? 'active' : '' %>" data-status="inactive">
+              <div class="status-option-icon">
+                <i class="fas fa-pause"></i>
+              </div>
+              <div class="status-option-content">
+                <div class="status-option-title">Inactive</div>
+                <div class="status-option-description">Temporarily disabled</div>
+              </div>
+            </div>
+            <div class="status-option <%= quiz.status === 'archived' ? 'active' : '' %>" data-status="archived">
+              <div class="status-option-icon">
+                <i class="fas fa-archive"></i>
+              </div>
+              <div class="status-option-content">
+                <div class="status-option-title">Archived</div>
+                <div class="status-option-description">No longer in use</div>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="quizStatusSelect" value="<%= quiz.status %>">
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Question Bank and Selection Section (Full Width Below) -->
+  <div class="quiz-creation-content-full-width" style="margin-top: 2rem;">
+    <!-- Question Bank Selection -->
+    <div class="quiz-form-section-full-width">
+      <div class="question-bank-selection-full-width">
+      <div class="question-bank-selection-title">
+        <i class="fas fa-database"></i>
+        Current Question Bank
+      </div>
+
+      <!-- Current Bank Info -->
+      <div class="bank-selection-card selected">
+        <div class="bank-selection-title"><%= quiz.questionBank?.name || 'No Bank' %></div>
+        <div class="bank-selection-code"><%= quiz.questionBank?.bankCode || 'N/A' %></div>
+        <div class="bank-selection-stats">
+          <div class="bank-selection-stat">
+            <i class="fas fa-question-circle"></i>
+            <span><%= quiz.questionBank?.totalQuestions || 0 %> questions</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Bank Section -->
+      <div class="question-bank-selection-title" style="margin-top: 24px;">
+        <i class="fas fa-exchange-alt"></i>
+        Change Question Bank
+      </div>
+
+      <% if (questionBanks && questionBanks.length > 0) { %>
+        <% questionBanks.forEach(bank => { %>
+          <% if (bank._id.toString() !== quiz.questionBank._id.toString()) { %>
+            <div class="bank-selection-card" data-bank-id="<%= bank._id %>" onclick="selectQuestionBank('<%= bank._id %>')">
+              <div class="bank-selection-title"><%= bank.name %></div>
+              <div class="bank-selection-code"><%= bank.bankCode %></div>
+              <div class="bank-selection-stats">
+                <div class="bank-selection-stat">
+                  <i class="fas fa-question-circle"></i>
+                  <span><%= bank.totalQuestions || 0 %> questions</span>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        <% }) %>
+      <% } else { %>
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle"></i>
+          No other question banks available.
+        </div>
+      <% } %>
+
+      <!-- Question Selection Container -->
+      <div id="questionSelectionContainer" class="question-selection-container">
+        <div class="question-selection-header">
+          <div class="question-selection-title">
+            <i class="fas fa-list-check"></i>
+            Question Selection
+          </div>
+          <div class="question-selection-actions">
+            <button class="question-selection-btn" onclick="selectAllQuestions()">
+              <i class="fas fa-check-double"></i>
+              Select All
+            </button>
+            <button class="question-selection-btn" onclick="clearSelection()">
+              <i class="fas fa-times"></i>
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <!-- Question Filters -->
+        <div class="question-filters">
+          <div class="question-filter-group">
+            <label class="question-filter-label">Difficulty</label>
+            <select class="question-filter-select" id="difficultyFilter" onchange="filterQuestions()">
+              <option value="">All</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div class="question-filter-group">
+            <label class="question-filter-label">Type</label>
+            <select class="question-filter-select" id="typeFilter" onchange="filterQuestions()">
+              <option value="">All</option>
+              <option value="multiple_choice">Multiple Choice</option>
+              <option value="true_false">True/False</option>
+              <option value="fill_blank">Fill in the Blank</option>
+              <option value="short_answer">Short Answer</option>
+            </select>
+          </div>
+          <div class="question-filter-group">
+            <label class="question-filter-label">Search</label>
+            <input type="text" class="question-filter-select" id="searchFilter" 
+                   placeholder="Search questions..." onkeyup="filterQuestions()">
+          </div>
+        </div>
+
+        <!-- Questions Grid with Circular Selection -->
+        <div class="questions-grid-container">
+          <div class="questions-grid-header">
+            <h5>Available Questions</h5>
+            <span class="questions-count" id="questionsCount">(0 questions)</span>
+          </div>
+          <div id="questionsList" class="questions-grid">
+            <!-- Questions will be loaded here with circular selection -->
+          </div>
+        </div>
+
+        <!-- Selection Summary -->
+        <div class="question-selection-summary">
+          <div class="question-selection-summary-title">
+            <i class="fas fa-chart-bar"></i>
+            Selection Summary
+          </div>
+          <div class="question-selection-stats">
+            <div class="question-selection-stat">
+              <span class="question-selection-stat-number" id="selectedCount">0</span>
+              <span class="question-selection-stat-label">Selected</span>
+            </div>
+            <div class="question-selection-stat">
+              <span class="question-selection-stat-number" id="totalPoints">0</span>
+              <span class="question-selection-stat-label">Total Points</span>
+            </div>
+            <div class="question-selection-stat">
+              <span class="question-selection-stat-number" id="avgDifficulty">-</span>
+              <span class="question-selection-stat-label">Avg Difficulty</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  <!-- Quiz Edit Content -->
+  <div class="quiz-creation-content-full-width">
+    <!-- Main Form Section -->
+    <div class="quiz-form-section-full-width">
+      <form id="quizEditForm">
+        
+        <!-- Basic Information -->
+        <div class="quiz-form-section-title">
+          <i class="fas fa-info-circle"></i>
+          Basic Information
+        </div>
+
+        <div class="row">
+          <div class="col-md-8">
+            <div class="quiz-form-group">
+              <label for="title" class="quiz-form-label">
+                <i class="fas fa-heading"></i>
+                Quiz Title *
+              </label>
+              <input type="text" id="title" name="title" class="quiz-form-control" 
+                     value="<%= quiz.title %>" required maxlength="200">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="quiz-form-group">
+              <label for="code" class="quiz-form-label">
+                <i class="fas fa-code"></i>
+                Quiz Code *
+              </label>
+              <input type="text" id="code" name="code" class="quiz-form-control" 
+                     value="<%= quiz.code %>" required maxlength="20" 
+                     pattern="[A-Z0-9-]+" title="Uppercase letters, numbers, and hyphens only">
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-form-group">
+          <label for="description" class="quiz-form-label">
+            <i class="fas fa-align-left"></i>
+            Description *
+          </label>
+          <textarea id="description" name="description" class="quiz-form-control quiz-form-textarea" 
+                    required maxlength="1000"><%= quiz.description %></textarea>
+        </div>
+
+        <!-- Quiz Settings -->
+        <div class="quiz-form-section-title">
+          <i class="fas fa-cog"></i>
+          Quiz Settings
+        </div>
+
+        <div class="row">
+          <div class="col-md-4">
+            <div class="quiz-form-group">
+              <label for="duration" class="quiz-form-label">
+                <i class="fas fa-clock"></i>
+                Duration (minutes) * <small class="text-muted">(0 = no time limit)</small>
+              </label>
+              <input type="number" id="duration" name="duration" class="quiz-form-control" 
+                     value="<%= quiz.duration %>" required min="0" max="480" 
+                     title="Enter 0 for no time limit">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="quiz-form-group">
+              <label for="difficulty" class="quiz-form-label">
+                <i class="fas fa-signal"></i>
+                Difficulty Level *
+              </label>
+              <select id="difficulty" name="difficulty" class="quiz-form-control quiz-form-select" required>
+                <option value="">Select Difficulty</option>
+                <option value="easy" <%= quiz.difficulty === 'easy' ? 'selected' : '' %>>Easy</option>
+                <option value="medium" <%= quiz.difficulty === 'medium' ? 'selected' : '' %>>Medium</option>
+                <option value="hard" <%= quiz.difficulty === 'hard' ? 'selected' : '' %>>Hard</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="quiz-form-group">
+              <label for="passingScore" class="quiz-form-label">
+                <i class="fas fa-percentage"></i>
+                Passing Score (%)
+              </label>
+              <input type="number" id="passingScore" name="passingScore" class="quiz-form-control" 
+                     value="<%= quiz.passingScore %>" min="0" max="100">
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="quiz-form-group">
+              <label for="maxAttempts" class="quiz-form-label">
+                <i class="fas fa-redo"></i>
+                Max Attempts
+              </label>
+              <input type="number" id="maxAttempts" name="maxAttempts" class="quiz-form-control" 
+                     value="<%= quiz.maxAttempts %>" min="1" max="10">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="quiz-form-group">
+              <label for="tags" class="quiz-form-label">
+                <i class="fas fa-tags"></i>
+                Tags (comma-separated)
+              </label>
+              <input type="text" id="tags" name="tags" class="quiz-form-control" 
+                     value="<%= quiz.tags ? quiz.tags.join(', ') : '' %>">
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiz Instructions -->
+        <div class="quiz-form-group">
+          <label for="instructions" class="quiz-form-label">
+            <i class="fas fa-list-ol"></i>
+            Instructions
+          </label>
+          <textarea id="instructions" name="instructions" class="quiz-form-control quiz-form-textarea" 
+                    maxlength="2000"><%= quiz.instructions || '' %></textarea>
+        </div>
+
+        <!-- Quiz Options -->
+        <div class="quiz-form-section-title">
+          <i class="fas fa-sliders-h"></i>
+          Quiz Options
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="quiz-form-check">
+              <input type="checkbox" id="shuffleQuestions" name="shuffleQuestions" class="quiz-form-check-input" 
+                     <%= quiz.shuffleQuestions ? 'checked' : '' %>>
+              <label for="shuffleQuestions" class="quiz-form-check-label">
+                Shuffle Questions
+              </label>
+            </div>
+            <div class="quiz-form-check">
+              <input type="checkbox" id="shuffleOptions" name="shuffleOptions" class="quiz-form-check-input" 
+                     <%= quiz.shuffleOptions ? 'checked' : '' %>>
+              <label for="shuffleOptions" class="quiz-form-check-label">
+                Shuffle Answer Options
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="quiz-form-check">
+              <input type="checkbox" id="showCorrectAnswers" name="showCorrectAnswers" class="quiz-form-check-input" 
+                     <%= quiz.showCorrectAnswers ? 'checked' : '' %>>
+              <label for="showCorrectAnswers" class="quiz-form-check-label">
+                Show Correct Answers
+              </label>
+            </div>
+            <div class="quiz-form-check">
+              <input type="checkbox" id="showResults" name="showResults" class="quiz-form-check-input" 
+                     <%= quiz.showResults ? 'checked' : '' %>>
+              <label for="showResults" class="quiz-form-check-label">
+                Show Results Immediately
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="quiz-form-group text-end">
+          <a href="/admin/quizzes" class="btn btn-secondary btn-lg me-3">
+            <i class="fas fa-arrow-left"></i>
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary btn-lg" id="updateQuizBtn">
+            <i class="fas fa-save"></i>
+            Update Quiz
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+
+<!-- Question Preview Modal -->
+<div class="modal fade question-preview-modal" id="questionPreviewModal" tabindex="-1" aria-labelledby="questionPreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title" id="questionPreviewModalLabel">
+          <i class="fas fa-eye"></i>
+          Question Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body admin-modal-body">
+        <div id="questionPreviewContent" class="question-preview-content">
+          <!-- Question preview will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Fix the JSON parsing issues by properly escaping the data
+let selectedBankId = '<%= quiz.questionBank._id %>';
+let selectedQuestions = <%- JSON.stringify(quiz.selectedQuestions || []) %>;
+let allQuestions = [];
+let quizId = '<%= quiz._id %>';
+
+// Ensure selectedQuestions is always an array
+if (!Array.isArray(selectedQuestions)) {
+  selectedQuestions = [];
+}
+
+// Normalize selectedQuestions data structure
+// Handle case where questions might be populated objects instead of just IDs
+selectedQuestions = selectedQuestions.map(sq => {
+  if (sq.question && typeof sq.question === 'object' && sq.question._id) {
+    // If question is a populated object, extract just the ID
+    return {
+      question: sq.question._id.toString(),
+      order: sq.order || 1,
+      points: sq.points || 1
+    };
+  }
+  // If question is already just an ID, ensure it's a string
+  return {
+    question: sq.question?.toString() || sq.question,
+    order: sq.order || 1,
+    points: sq.points || 1
+  };
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadQuestions(selectedBankId);
+  updateSelectionSummary();
+  
+  // Ensure selection state is correct after page loads
+  setTimeout(() => {
+    refreshSelectionState();
+    updateSelectionSummary();
+  }, 500);
+  
+  // Add event listeners for status options
+  document.querySelectorAll('.status-option').forEach(option => {
+    option.addEventListener('click', function() {
+      const newStatus = this.dataset.status;
+      selectStatusOption(newStatus);
+    });
+  });
+  
+  // Add loading state management
+  const loadingIndicator = document.createElement('div');
+  loadingIndicator.id = 'loadingIndicator';
+  loadingIndicator.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 10000;
+    display: none;
+  `;
+  loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+  document.body.appendChild(loadingIndicator);
+});
+
+// Load Questions from Bank
+async function loadQuestions(bankId) {
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  
+  try {
+    if (loadingIndicator) loadingIndicator.style.display = 'block';
+    
+    const response = await fetch(`/admin/quizzes/api/banks/${bankId}/questions?all=true`);
+    const data = await response.json();
+    
+    if (data.success) {
+      allQuestions = data.questions;
+      displayQuestions(data.questions);
+    } else {
+      showNotification('Failed to load questions', 'error');
+    }
+  } catch (error) {
+    showNotification('Error loading questions', 'error');
+  } finally {
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+  }
+}
+
+// Display Questions with Circular Selection (Like Create Quiz)
+function displayQuestions(questions) {
+  const questionsList = document.getElementById('questionsList');
+  const questionsCount = document.getElementById('questionsCount');
+  
+  questionsList.innerHTML = '';
+  questionsCount.textContent = `(${questions.length} questions)`;
+  
+  questions.forEach((question, index) => {
+    const questionCircle = document.createElement('div');
+    questionCircle.className = 'question-circle';
+    questionCircle.dataset.questionId = question._id;
+    questionCircle.dataset.questionIndex = index;
+    questionCircle.tabIndex = 0; // Make focusable
+    questionCircle.setAttribute('role', 'button');
+    questionCircle.setAttribute('aria-label', `Question ${index + 1}: ${question.questionText.substring(0, 50)}...`);
+    
+    // Check if this question is selected - handle different data structures
+    const isSelected = selectedQuestions.some(sq => {
+      // Handle both string IDs and ObjectId comparisons
+      const selectedQuestionId = sq.question?.toString() || sq.question;
+      const currentQuestionId = question._id?.toString() || question._id;
+      return selectedQuestionId === currentQuestionId;
+    });
+    
+    if (isSelected) {
+      questionCircle.classList.add('selected');
+    }
+    
+    // Map difficulty to lowercase for CSS classes
+    const difficultyClass = question.difficulty ? question.difficulty.toLowerCase() : 'medium';
+    
+    questionCircle.innerHTML = `
+      <div class="question-circle-number">${index + 1}</div>
+      <div class="question-circle-meta">
+        <div class="question-circle-difficulty ${difficultyClass}"></div>
+        <div class="question-circle-type">${question.questionType.charAt(0).toUpperCase()}</div>
+      </div>
+      <div class="question-circle-preview" onclick="event.stopPropagation(); previewQuestion('${question._id}')">
+        <i class="fas fa-eye"></i>
+      </div>
+      <div class="question-circle-selected">
+        <i class="fas fa-check"></i>
+      </div>
+    `;
+    
+    questionCircle.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleQuestionSelection(question._id, questionCircle);
+    });
+    
+    // Add keyboard support
+    questionCircle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleQuestionSelection(question._id, questionCircle);
+      }
+    });
+    
+    questionsList.appendChild(questionCircle);
+  });
+  
+  // Force refresh selection state after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    refreshSelectionState();
+  }, 100);
+  
+  updateSelectionSummary();
+}
+
+// Function to refresh selection state based on selectedQuestions array
+function refreshSelectionState() {
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    const questionId = circle.dataset.questionId;
+    
+    // Check if this question should be selected
+    const shouldBeSelected = selectedQuestions.some(sq => {
+      const selectedQuestionId = sq.question?.toString() || sq.question;
+      const currentQuestionId = questionId?.toString() || questionId;
+      return selectedQuestionId === currentQuestionId;
+    });
+    
+    if (shouldBeSelected) {
+      circle.classList.add('selected');
+    } else {
+      circle.classList.remove('selected');
+    }
+  });
+}
+
+
+// Select Question Bank
+function selectQuestionBank(bankId) {
+  selectedBankId = bankId;
+  
+  // Update UI
+  document.querySelectorAll('.bank-selection-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  document.querySelector(`[data-bank-id="${bankId}"]`).classList.add('selected');
+  
+  // Clear current selection when switching banks
+  selectedQuestions = [];
+  
+  // Clear all selected states in UI
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    circle.classList.remove('selected');
+  });
+  
+  // Load questions from new bank
+  loadQuestions(bankId);
+  
+  showNotification('Question bank changed. Previous selections cleared.', 'info');
+}
+
+// Toggle Question Selection
+function toggleQuestionSelection(questionId, circleElement) {
+  const existingIndex = selectedQuestions.findIndex(sq => sq.question === questionId);
+  
+  if (existingIndex > -1) {
+    // Remove from selection
+    selectedQuestions.splice(existingIndex, 1);
+    circleElement.classList.remove('selected');
+  } else {
+    // Add to selection
+    const question = allQuestions.find(q => q._id === questionId);
+    if (question) {
+      selectedQuestions.push({
+        question: questionId,
+        order: selectedQuestions.length + 1,
+        points: question.points || 1
+      });
+      circleElement.classList.add('selected');
+    } else {
+      showNotification('Question not found', 'error');
+    }
+  }
+  
+  updateSelectionSummary();
+}
+
+// Select All Questions
+function selectAllQuestions() {
+  const visibleCircles = Array.from(document.querySelectorAll('.question-circle:not([style*="display: none"])'));
+  visibleCircles.forEach(circle => {
+    const questionId = circle.dataset.questionId;
+    if (!selectedQuestions.some(sq => sq.question === questionId)) {
+      const question = allQuestions.find(q => q._id === questionId);
+      selectedQuestions.push({
+        question: questionId,
+        order: selectedQuestions.length + 1,
+        points: question.points || 1
+      });
+      circle.classList.add('selected');
+    }
+  });
+  updateSelectionSummary();
+}
+
+// Clear Selection
+function clearSelection() {
+  selectedQuestions = [];
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    circle.classList.remove('selected');
+  });
+  updateSelectionSummary();
+}
+
+// Filter Questions
+function filterQuestions() {
+  const difficultyFilter = document.getElementById('difficultyFilter').value;
+  const typeFilter = document.getElementById('typeFilter').value;
+  const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+  
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    const questionId = circle.dataset.questionId;
+    const question = allQuestions.find(q => q._id === questionId);
+    
+    let show = true;
+    
+    // Map difficulty filter to match question difficulty format
+    if (difficultyFilter) {
+      const questionDifficulty = question.difficulty ? question.difficulty.toLowerCase() : 'medium';
+      if (questionDifficulty !== difficultyFilter) {
+        show = false;
+      }
+    }
+    
+    // Map type filter to match question type format
+    if (typeFilter) {
+      let questionType = question.questionType ? question.questionType.toLowerCase() : 'mcq';
+      if (questionType === 'mcq') questionType = 'multiple_choice';
+      if (questionType === 'true/false') questionType = 'true_false';
+      
+      if (questionType !== typeFilter) {
+        show = false;
+      }
+    }
+    
+    if (searchFilter && !question.questionText.toLowerCase().includes(searchFilter)) {
+      show = false;
+    }
+    
+    circle.style.display = show ? 'flex' : 'none';
+  });
+  
+  // Update visible questions count
+  const visibleQuestions = document.querySelectorAll('.question-circle:not([style*="display: none"])').length;
+  document.getElementById('questionsCount').textContent = `(${visibleQuestions} questions)`;
+}
+
+// Update Selection Summary
+function updateSelectionSummary() {
+  document.getElementById('selectedCount').textContent = selectedQuestions.length;
+  
+  const totalPoints = selectedQuestions.reduce((sum, sq) => {
+    const question = allQuestions.find(q => q._id === sq.question);
+    return sum + (question ? question.points : 1);
+  }, 0);
+  document.getElementById('totalPoints').textContent = totalPoints;
+  
+  // Calculate average difficulty
+  if (selectedQuestions.length > 0) {
+    const difficulties = selectedQuestions.map(sq => {
+      const question = allQuestions.find(q => q._id === sq.question);
+      return question ? question.difficulty.toLowerCase() : 'medium';
+    });
+    
+    const difficultyCounts = difficulties.reduce((acc, diff) => {
+      acc[diff] = (acc[diff] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const total = difficulties.length;
+    const easyRatio = (difficultyCounts.easy || 0) / total;
+    const hardRatio = (difficultyCounts.hard || 0) / total;
+    
+    let avgDifficulty = 'medium';
+    if (hardRatio > 0.4) avgDifficulty = 'hard';
+    else if (easyRatio > 0.6) avgDifficulty = 'easy';
+    
+    document.getElementById('avgDifficulty').textContent = avgDifficulty;
+  } else {
+    document.getElementById('avgDifficulty').textContent = '-';
+  }
+  
+}
+
+// Preview Question
+async function previewQuestion(questionId) {
+  try {
+    const response = await fetch(`/admin/quizzes/api/questions/${questionId}/preview`);
+    const data = await response.json();
+    
+    if (data.success) {
+      displayQuestionPreview(data.question);
+      const modal = new bootstrap.Modal(document.getElementById('questionPreviewModal'));
+      modal.show();
+    } else {
+      showNotification('Failed to load question preview', 'error');
+    }
+  } catch (error) {
+    showNotification('Error loading question preview', 'error');
+  }
+}
+
+// Display Question Preview
+function displayQuestionPreview(question) {
+  const content = document.getElementById('questionPreviewContent');
+  
+  let optionsHtml = '';
+  if (question.options && question.options.length > 0) {
+    optionsHtml = `
+      <div class="question-preview-options">
+        <div class="question-preview-options-title">Options:</div>
+        ${question.options.map((option, index) => `
+          <div class="question-preview-option ${option.isCorrect ? 'correct' : ''}">
+            <span class="question-preview-option-label">${String.fromCharCode(65 + index)}.</span>
+            ${option.text}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  
+  let explanationHtml = '';
+  if (question.explanation) {
+    explanationHtml = `
+      <div class="question-preview-explanation">
+        <div class="question-preview-explanation-title">
+          <i class="fas fa-lightbulb"></i>
+          Explanation
+        </div>
+        <div class="question-preview-explanation-text">${question.explanation}</div>
+      </div>
+    `;
+  }
+  
+  content.innerHTML = `
+    <div class="question-preview-header">
+      <h3 class="question-preview-title">${question.questionText}</h3>
+      <div class="question-preview-meta">
+        <div class="question-preview-meta-item">
+          <i class="fas fa-signal"></i>
+          <span>${question.difficulty}</span>
+        </div>
+        <div class="question-preview-meta-item">
+          <i class="fas fa-tag"></i>
+          <span>${question.questionType}</span>
+        </div>
+        <div class="question-preview-meta-item">
+          <i class="fas fa-star"></i>
+          <span>${question.points} points</span>
+        </div>
+      </div>
+    </div>
+    <div class="question-preview-text">${question.questionText}</div>
+    ${optionsHtml}
+    ${explanationHtml}
+  `;
+}
+
+// AJAX Form Submission
+document.getElementById('quizEditForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  // Get form elements
+  const title = document.getElementById('title');
+  const description = document.getElementById('description');
+  const code = document.getElementById('code');
+  const duration = document.getElementById('duration');
+  const difficulty = document.getElementById('difficulty');
+  
+  // Validate required fields
+  const errors = [];
+  
+  if (!title.value.trim()) {
+    errors.push('Quiz title is required');
+    title.classList.add('is-invalid');
+  } else {
+    title.classList.remove('is-invalid');
+  }
+  
+  if (!description.value.trim()) {
+    errors.push('Quiz description is required');
+    description.classList.add('is-invalid');
+  } else {
+    description.classList.remove('is-invalid');
+  }
+  
+  if (!code.value.trim()) {
+    errors.push('Quiz code is required');
+    code.classList.add('is-invalid');
+  } else {
+    code.classList.remove('is-invalid');
+  }
+  
+  if (!duration.value || duration.value < 0) {
+    errors.push('Duration must be 0 or greater (0 = no time limit)');
+    duration.classList.add('is-invalid');
+  } else {
+    duration.classList.remove('is-invalid');
+  }
+  
+  if (!difficulty.value) {
+    errors.push('Difficulty level is required');
+    difficulty.classList.add('is-invalid');
+  } else {
+    difficulty.classList.remove('is-invalid');
+  }
+  
+  if (!selectedBankId) {
+    errors.push('Please select a question bank');
+  }
+  
+  if (selectedQuestions.length === 0) {
+    errors.push('Please select at least one question');
+  }
+  
+  if (errors.length > 0) {
+    showNotification('Please fix the following errors:\n• ' + errors.join('\n• '), 'error');
+    return;
+  }
+  
+  
+  // Get form data
+  const formData = {
+    title: document.getElementById('title').value,
+    description: document.getElementById('description').value,
+    code: document.getElementById('code').value,
+    questionBank: selectedBankId,
+    selectedQuestions: selectedQuestions,
+    duration: parseInt(document.getElementById('duration').value),
+    difficulty: document.getElementById('difficulty').value,
+    instructions: document.getElementById('instructions').value,
+    passingScore: parseInt(document.getElementById('passingScore').value),
+    maxAttempts: parseInt(document.getElementById('maxAttempts').value),
+    shuffleQuestions: document.getElementById('shuffleQuestions').checked,
+    shuffleOptions: document.getElementById('shuffleOptions').checked,
+    showCorrectAnswers: document.getElementById('showCorrectAnswers').checked,
+    showResults: document.getElementById('showResults').checked,
+    tags: document.getElementById('tags').value.split(',').map(tag => tag.trim()).filter(Boolean)
+  };
+  
+  // Show loading state
+  const submitBtn = document.getElementById('updateQuizBtn');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+  submitBtn.disabled = true;
+  
+  try {
+    const response = await fetch(`/admin/quizzes/${quizId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(formData)
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showNotification('Quiz updated successfully!', 'success');
+      setTimeout(() => {
+        window.location.href = '/admin/quizzes';
+      }, 1500);
+    } else {
+      showNotification(data.message || 'Failed to update quiz', 'error');
+    }
+  } catch (error) {
+    showNotification('Error updating quiz', 'error');
+  } finally {
+    // Reset button state
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  }
+});
+
+// Select Status Option
+function selectStatusOption(newStatus) {
+  // Update visual selection
+  document.querySelectorAll('.status-option').forEach(option => {
+    option.classList.remove('active');
+  });
+  document.querySelector(`[data-status="${newStatus}"]`).classList.add('active');
+  
+  // Update hidden input
+  const statusSelect = document.getElementById('quizStatusSelect');
+  if (statusSelect) {
+    statusSelect.value = newStatus;
+  }
+  
+  // Update status indicator
+  const statusIndicator = document.querySelector('.enhanced-status-indicator');
+  if (statusIndicator) {
+    statusIndicator.className = `enhanced-status-indicator status-${newStatus}`;
+    statusIndicator.querySelector('span').textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+  }
+  
+  // Update quiz status via API
+  updateQuizStatus(newStatus);
+}
+
+// Update Quiz Status
+async function updateQuizStatus(newStatus) {
+  console.log('updateQuizStatus called with status:', newStatus); // Debug log
+  const statusSelect = document.getElementById('quizStatusSelect');
+  const currentStatus = statusSelect ? statusSelect.value : newStatus;
+  const finalStatus = newStatus || currentStatus;
+  
+  console.log('Final status:', finalStatus); // Debug log
+  
+  // Show loading state
+  const statusOptions = document.querySelectorAll('.status-option');
+  statusOptions.forEach(option => {
+    option.style.pointerEvents = 'none';
+    option.style.opacity = '0.6';
+  });
+  
+  // Add loading indicator to status indicator
+  const statusIndicator = document.querySelector('.enhanced-status-indicator');
+  const originalContent = statusIndicator.innerHTML;
+  statusIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Updating...</span>';
+  
+  try {
+    const response = await fetch(`/admin/quizzes/${quizId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ status: finalStatus })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showNotification(`Quiz status updated to ${finalStatus}`, 'success');
+    } else {
+      // Revert selection on error
+      selectStatusOption(currentStatus);
+      statusIndicator.innerHTML = originalContent;
+      showNotification(data.message || 'Failed to update quiz status', 'error');
+    }
+  } catch (error) {
+    // Revert selection on error
+    selectStatusOption(currentStatus);
+    statusIndicator.innerHTML = originalContent;
+    showNotification('Error updating quiz status', 'error');
+  } finally {
+    // Reset loading state
+    statusOptions.forEach(option => {
+      option.style.pointerEvents = 'auto';
+      option.style.opacity = '1';
+    });
+  }
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  
+  // Get appropriate icon for each type
+  let iconClass = 'info-circle';
+  switch(type) {
+    case 'success':
+      iconClass = 'check-circle';
+      break;
+    case 'error':
+      iconClass = 'exclamation-triangle';
+      break;
+    case 'warning':
+      iconClass = 'exclamation-circle';
+      break;
+    case 'info':
+    default:
+      iconClass = 'info-circle';
+      break;
+  }
+  
+  // Handle multi-line messages
+  const messageHtml = message.replace(/\n/g, '<br>');
+  
+  notification.innerHTML = `
+    <div class="notification-content">
+      <i class="fas fa-${iconClass}"></i>
+      <div class="notification-message">${messageHtml}</div>
+    </div>
+    <button class="notification-close" onclick="this.parentElement.remove()">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+  
+  // Add to page
+  document.body.appendChild(notification);
+  
+  // Auto remove after 8 seconds for error messages (longer for multi-line)
+  const timeout = type === 'error' ? 8000 : 5000;
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, timeout);
+}
+</script>
+
+    </div>
+    
+  </main>
+</div>
+
+<%- include('./partials/admin-footer') %>

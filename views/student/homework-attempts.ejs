@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homework Attempts - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/quizzes.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Homework Attempts - Track your homework submissions and grades">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+    <!-- Include Sidebar -->
+    <%- include('partials/student-sidebar', { currentPage: 'homework', student: student }) %>
+    
+    <!-- Main Content -->
+    <main class="student-main">
+        <div class="student-content">
+            <!-- Header -->
+            <div class="content-header">
+                <div class="header-left">
+                    <h1 class="page-title">
+                        <i class="fas fa-homework me-2"></i>
+                        My Homework Attempts
+                    </h1>
+                    <p class="page-subtitle">Track your homework submissions and grades</p>
+                </div>
+            </div>
+
+            <!-- Homework Attempts -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Homework History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <% if (homeworkProgress && homeworkProgress.length > 0) { %>
+                        <div class="homework-list">
+                            <% homeworkProgress.forEach((progress, index) => { %>
+                            <div class="homework-item">
+                                <div class="homework-header">
+                                    <div class="homework-info">
+                                        <h6 class="homework-title">
+                                            <i class="fas fa-<%= progress.activity === 'homework_submitted' ? 'upload' : 'check-circle' %> me-2"></i>
+                                            <%= progress.activity === 'homework_submitted' ? 'Homework Submitted' : 'Homework Graded' %>
+                                        </h6>
+                                        <% if (progress.course) { %>
+                                        <p class="homework-course">
+                                            <i class="fas fa-book me-1"></i>
+                                            <%= progress.course.title %>
+                                        </p>
+                                        <% } %>
+                                        <% if (progress.topic) { %>
+                                        <p class="homework-topic">
+                                            <i class="fas fa-file-alt me-1"></i>
+                                            <%= progress.topic.title %>
+                                        </p>
+                                        <% } %>
+                                    </div>
+                                    <div class="homework-meta">
+                                        <div class="homework-date">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            <%= new Date(progress.timestamp).toLocaleDateString() %>
+                                        </div>
+                                        <div class="homework-time">
+                                            <i class="fas fa-clock me-1"></i>
+                                            <%= new Date(progress.timestamp).toLocaleTimeString() %>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="homework-details">
+                                    <% if (progress.details) { %>
+                                        <% if (progress.details.fileName) { %>
+                                        <div class="homework-file">
+                                            <i class="fas fa-paperclip me-2"></i>
+                                            <span class="file-name"><%= progress.details.fileName %></span>
+                                        </div>
+                                        <% } %>
+                                        
+                                        <% if (progress.details.grade !== undefined) { %>
+                                        <div class="homework-grade">
+                                            <span class="grade-label">Grade:</span>
+                                            <span class="grade-value <%= progress.details.grade >= 70 ? 'grade-pass' : 'grade-fail' %>">
+                                                <%= progress.details.grade %>%
+                                            </span>
+                                        </div>
+                                        <% } %>
+                                        
+                                        <% if (progress.details.feedback) { %>
+                                        <div class="homework-feedback">
+                                            <h6>Teacher Feedback:</h6>
+                                            <p class="feedback-text"><%= progress.details.feedback %></p>
+                                        </div>
+                                        <% } %>
+                                    <% } %>
+                                    
+                                    <% if (progress.points) { %>
+                                    <div class="homework-points">
+                                        <i class="fas fa-star me-1"></i>
+                                        <span><%= progress.points %> points earned</span>
+                                    </div>
+                                    <% } %>
+                                </div>
+                                
+                                <div class="homework-status">
+                                    <% if (progress.activity === 'homework_submitted') { %>
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-hourglass-half me-1"></i>
+                                            Pending Review
+                                        </span>
+                                    <% } else { %>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            Graded
+                                        </span>
+                                    <% } %>
+                                </div>
+                            </div>
+                            <% }); %>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <% if (pagination && pagination.totalPages > 1) { %>
+                        <nav aria-label="Homework pagination" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                <% if (pagination.hasPrev) { %>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<%= pagination.prevPage %>">
+                                        <i class="fas fa-chevron-left"></i>
+                                        Previous
+                                    </a>
+                                </li>
+                                <% } %>
+                                
+                                <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+                                <li class="page-item <%= i === pagination.currentPage ? 'active' : '' %>">
+                                    <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                                </li>
+                                <% } %>
+                                
+                                <% if (pagination.hasNext) { %>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<%= pagination.nextPage %>">
+                                        Next
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                                <% } %>
+                            </ul>
+                        </nav>
+                        <% } %>
+                        
+                    <% } else { %>
+                        <div class="text-center py-5">
+                            <i class="fas fa-homework fa-4x text-muted mb-4"></i>
+                            <h4 class="text-muted">No Homework Attempts Yet</h4>
+                            <p class="text-muted">You haven't submitted any homework assignments yet.</p>
+                            <a href="/student/enrolled-courses" class="btn btn-primary">
+                                <i class="fas fa-book me-2"></i>
+                                View My Courses
+                            </a>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<style>
+.homework-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.homework-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.homework-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.homework-info {
+    flex: 1;
+}
+
+.homework-title {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.homework-course,
+.homework-topic {
+    margin: 0 0 5px 0;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.homework-meta {
+    text-align: right;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.homework-date,
+.homework-time {
+    margin-bottom: 5px;
+}
+
+.homework-details {
+    margin-bottom: 15px;
+}
+
+.homework-file {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid #007bff;
+}
+
+.file-name {
+    font-weight: 500;
+    color: #007bff;
+}
+
+.homework-grade {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.grade-label {
+    font-weight: 600;
+    margin-right: 10px;
+    color: #333;
+}
+
+.grade-value {
+    font-size: 18px;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.grade-pass {
+    background: #d4edda;
+    color: #155724;
+}
+
+.grade-fail {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.homework-feedback {
+    background: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid #2196f3;
+}
+
+.homework-feedback h6 {
+    margin: 0 0 8px 0;
+    color: #1976d2;
+    font-weight: 600;
+}
+
+.feedback-text {
+    margin: 0;
+    color: #333;
+    line-height: 1.5;
+}
+
+.homework-points {
+    color: #ffc107;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.homework-status {
+    text-align: right;
+}
+
+.homework-status .badge {
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+@media (max-width: 768px) {
+    .homework-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .homework-meta {
+        text-align: left;
+        margin-top: 10px;
+    }
+    
+    .homework-status {
+        text-align: left;
+        margin-top: 10px;
+    }
+}
+
+/* Animation for new homework items */
+.homework-item {
+    animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+    </div>
+    <!-- End Student Layout -->
+
+    <!-- JavaScript -->
+    <script src="/js/theme-manager.js"></script>
+</body>
+</html>

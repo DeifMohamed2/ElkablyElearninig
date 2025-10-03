@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= contentItem.title %> - Content - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/courses.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Enhanced Styles -->
+    <style>
+        /* Content Actions Enhanced */
+        .content-actions-completed {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .completion-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        /* Navigation Styles */
+        .content-navigation-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .navigation-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animation for when button becomes enabled */
+        .nav-button.enabled {
+            animation: enableButton 0.6s ease-out;
+        }
+
+        @keyframes enableButton {
+            0% {
+                background: #6b7280;
+                transform: scale(1);
+            }
+            50% {
+                background: var(--primary-color);
+                transform: scale(1.05);
+                box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+            }
+            100% {
+                background: var(--primary-color);
+                transform: scale(1);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-button:not(.disabled):hover {
+            background: var(--primary-hover, #b91c1c);
+        }
+
+        .nav-button:not(.disabled):active {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .nav-button.disabled {
+            background: #6b7280;
+            color: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .nav-button.disabled:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: #6b7280;
+            color: #9ca3af;
+        }
+
+        .nav-button.disabled::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .nav-previous {
+            flex-direction: row;
+        }
+
+        .nav-next {
+            flex-direction: row-reverse;
+        }
+
+        .nav-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .nav-content {
+            flex: 1;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
+        .nav-subtitle {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        .nav-progress {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .progress-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .current-position {
+            color: var(--primary-color);
+        }
+
+        .separator {
+            opacity: 0.6;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navigation-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .nav-progress {
+                order: -1;
+            }
+
+            .nav-button {
+                padding: 12px 16px;
+            }
+
+            .nav-title {
+                font-size: 13px;
+            }
+        }
+
+        /* Dark theme adjustments */
+        .dark-theme .content-navigation-section {
+            background: var(--dark-card-bg);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .nav-button.disabled {
+            background: var(--dark-muted-bg);
+            color: var(--dark-muted-text);
+        }
+
+        /* Video Player Styles */
+        .player-wrapper {
+            position: relative;
+            padding-top: 56.25%; /* 16:9 aspect ratio */
+            margin-bottom: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .player-wrapper iframe {
+            border: 0;
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Quiz/Homework Details Styles */
+        .quiz-details-grid,
+        .homework-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-item i {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .detail-item span {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .quiz-progress-info,
+        .homework-progress-info {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .quiz-progress-info h4,
+        .homework-progress-info h4 {
+            margin-bottom: 1rem;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .stat-value.text-success {
+            color: #10b981;
+        }
+
+        .stat-value.text-warning {
+            color: #f59e0b;
+        }
+
+        /* Dark theme adjustments */
+        .dark-theme .quiz-details-grid,
+        .dark-theme .homework-details-grid {
+            background: var(--dark-bg-color);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .detail-item {
+            background: var(--dark-card-bg);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .detail-item span {
+            color: var(--dark-text-color);
+        }
+
+        .dark-theme .quiz-progress-info,
+        .dark-theme .homework-progress-info {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-color: #475569;
+        }
+
+        .dark-theme .quiz-progress-info h4,
+        .dark-theme .homework-progress-info h4 {
+            color: #f1f5f9;
+        }
+
+        .dark-theme .stat-label {
+            color: #d1d5db;
+        }
+
+        .dark-theme .stat-value {
+            color: #f9fafb;
+        }
+
+        /* Quiz/Homework Completion Styles */
+        .quiz-completed-section,
+        .homework-completed-section {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 1px solid #0ea5e9;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+        }
+
+        .completion-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .completion-badge i {
+            font-size: 1.3rem;
+        }
+
+        .completion-details {
+            margin-bottom: 1.5rem;
+        }
+
+        .completion-details p {
+            margin: 0.5rem 0;
+            color: #374151;
+            font-size: 1rem;
+        }
+
+        .completion-details strong {
+            color: #1f2937;
+        }
+
+        .completion-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        /* Dark theme adjustments for completion sections */
+        .dark-theme .quiz-completed-section,
+        .dark-theme .homework-completed-section {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-color: #475569;
+        }
+
+        .dark-theme .completion-details p {
+            color: #d1d5db;
+        }
+
+        .dark-theme .completion-details strong {
+            color: #f9fafb;
+        }
+
+        /* Content Header Styles */
+        .content-header-section {
+            background: var(--gradient-primary);
+            color: var(--text-white);
+            padding: var(--spacing-2xl);
+            margin-bottom: var(--spacing-2xl);
+            border-radius: var(--radius-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-header-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="60" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .content-header-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+        }
+
+        .content-header-info {
+            flex: 1;
+        }
+
+        .content-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-white);
+            border-radius: var(--radius-lg);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-title-main {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: var(--spacing-md);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: var(--text-white);
+        }
+
+        .content-description-main {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: var(--spacing-lg);
+            line-height: 1.6;
+            color: var(--text-white);
+        }
+
+        .content-meta-info {
+            display: flex;
+            gap: var(--spacing-xl);
+            flex-wrap: wrap;
+        }
+
+        .content-progress-section {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        /* Content Body Styles */
+        .content-body-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Content Actions */
+        .content-actions {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-xl);
+        }
+
+        /* Auto Completion Section */
+        .content-auto-completion-section {
+            text-align: center;
+            padding: var(--spacing-xl);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: var(--radius-lg);
+            margin: var(--spacing-xl) 0;
+        }
+
+        .auto-completion-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+            color: var(--success-color);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .auto-completion-status i {
+            font-size: 1.5rem;
+        }
+
+        /* Quiz/Homework Compact Styles */
+        .quiz-details-compact,
+        .homework-details-compact {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-md);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .quiz-detail-item,
+        .homework-detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-md);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+
+        .quiz-detail-item i,
+        .homework-detail-item i {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .quiz-progress-compact,
+        .homework-progress-compact {
+            display: flex;
+            justify-content: space-between;
+            margin: var(--spacing-md) 0;
+            padding: var(--spacing-md);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+        }
+
+        .progress-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .progress-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .progress-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .quiz-completed-compact,
+        .homework-completed-compact {
+            text-align: center;
+            padding: var(--spacing-lg);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: var(--radius-lg);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .completion-badge-compact {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            background: var(--gradient-success);
+            color: var(--text-white);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .completion-details-compact {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .completion-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: var(--spacing-sm) 0;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .completion-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .completion-actions-compact {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Content Type Containers */
+        .video-content,
+        .pdf-content,
+        .quiz-content,
+        .homework-content,
+        .reading-content,
+        .link-content,
+        .assignment-content,
+        .generic-content {
+            padding: var(--spacing-lg);
+        }
+
+        .video-container,
+        .pdf-container {
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .quiz-info,
+        .homework-info,
+        .link-info,
+        .assignment-info {
+            padding: var(--spacing-lg);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+
+        .quiz-info h3,
+        .homework-info h3,
+        .link-info h3,
+        .assignment-info h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .quiz-info p,
+        .homework-info p,
+        .link-info p,
+        .assignment-info p {
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-lg);
+            line-height: 1.6;
+        }
+
+        .reading-content-text {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: var(--spacing-lg);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            line-height: 1.8;
+        }
+
+        .reading-progress-indicator,
+        .pdf-progress-indicator {
+            text-align: center;
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Placeholder Content */
+        .placeholder-content {
+            text-align: center;
+            padding: var(--spacing-3xl);
+            color: var(--text-muted);
+        }
+
+        .placeholder-content i {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-lg);
+            opacity: 0.5;
+        }
+
+        .placeholder-content p {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Dark theme adjustments */
+        .dark-theme .content-header-section {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        }
+
+        .dark-theme .content-body-section {
+            background: var(--dark-card-bg);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .quiz-detail-item,
+        .dark-theme .homework-detail-item {
+            background: var(--dark-bg-secondary);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .quiz-progress-compact,
+        .dark-theme .homework-progress-compact {
+            background: var(--dark-bg-secondary);
+        }
+
+        .dark-theme .completion-detail-row {
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .quiz-info,
+        .dark-theme .homework-info,
+        .dark-theme .link-info,
+        .dark-theme .assignment-info {
+            background: var(--dark-bg-secondary);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .reading-content-text {
+            background: var(--dark-bg-secondary);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .reading-progress-indicator,
+        .dark-theme .pdf-progress-indicator {
+            background: var(--dark-bg-secondary);
+            border-color: var(--dark-border-color);
+        }
+
+        /* Success button */
+        .btn-success {
+            background: var(--gradient-success);
+            color: var(--text-white);
+            border: none;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Text utilities */
+        .text-success {
+            color: var(--success-color) !important;
+        }
+
+        .text-warning {
+            color: var(--warning-color) !important;
+        }
+
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+    </style>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="<%= contentItem.title %> - Continue your learning journey">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'courses', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: 'Content', student: student, theme: theme, currentPage: 'content' }) %>
+            
+            <!-- Content Details -->
+            <div class="student-content">
+                <!-- Back Button -->
+                <div class="back-button-container">
+                    <a href="/student/course/<%= course._id %>/content" class="btn btn-outline btn-sm">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Course Content
+                    </a>
+                </div>
+
+                <!-- Content Header -->
+                <div class="content-header-section">
+                    <div class="content-header-content">
+                        <div class="content-header-info">
+                            <div class="content-type-badge <%= contentItem.type %>">
+                                <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
+                                <span><%= contentItem.type.charAt(0).toUpperCase() + contentItem.type.slice(1) %></span>
+                            </div>
+                            
+                            <h1 class="content-title-main"><%= contentItem.title %></h1>
+                            
+                            <% if (contentItem.description) { %>
+                                <p class="content-description-main"><%= contentItem.description %></p>
+                            <% } %>
+                            
+                            <div class="content-meta-info">
+                                <div class="meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>
+                                        <% if (contentItem.type === 'quiz' && contentItem.quizSettings && contentItem.quizSettings.timeLimit) { %>
+                                            <%= contentItem.quizSettings.timeLimit %> minutes
+                                        <% } else if (contentItem.type === 'homework' && contentItem.homeworkSettings && contentItem.homeworkSettings.timeLimit) { %>
+                                            <%= contentItem.homeworkSettings.timeLimit %> minutes
+                                        <% } else { %>
+                                            <% if (contentItem.duration && contentItem.duration > 0) { %>
+                                                <%= contentItem.duration %> minutes
+                                            <% } else { %>
+                                                No time limit
+                                            <% } %>
+                                        <% } %>
+                                    </span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-signal"></i>
+                                    <span><%= contentItem.difficulty.charAt(0).toUpperCase() + contentItem.difficulty.slice(1) %></span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-target"></i>
+                                    <span><%= contentItem.completionCriteria.replace('_', ' ') %></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="content-progress-section">
+                            <div class="progress-circle-large">
+                                <svg viewBox="0 0 120 120" class="progress-ring-large">
+                                    <circle class="circle-bg-large" cx="60" cy="60" r="50"></circle>
+                                    <circle class="circle-large" cx="60" cy="60" r="50" 
+                                            stroke-dasharray="<%= contentProgress.progressPercentage * 3.14 %>, 314"></circle>
+                                </svg>
+                                <div class="progress-text">
+                                    <span class="progress-percentage"><%= contentProgress.progressPercentage %>%</span>
+                                    <span class="progress-label">Complete</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Body -->
+                <div class="content-body-section">
+                    <% if (contentItem.type === 'video') { %>
+                        <div class="video-content">
+                            <div class="video-container">
+                                <% if (contentItem.content) { %>
+                                   <%- contentItem.content %>
+                                   
+                                <% } else { %>
+                                    <div class="placeholder-content">
+                                        <i class="fas fa-video"></i>
+                                        <p>Video content will be available here</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } else if (contentItem.type === 'pdf') { %>
+                        <div class="pdf-content">
+                            <div class="pdf-container">
+                                <% if (contentItem.content) { %>
+                                    <iframe src="<%= contentItem.content %>" width="100%" height="600" onload="handlePDFLoad(this)"></iframe>
+                                    <% if (!contentProgress.isCompleted) { %>
+                                        <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
+                                            <a href="<%= contentItem.content %>" target="_blank" class="btn btn-outline btn-sm" onclick="handleDownloadAcknowledge(event)">
+                                                <i class="fas fa-download"></i>
+                                                Download PDF
+                                            </a>
+                                            <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                                                <i class="fas fa-check"></i>
+                                                I have read this PDF
+                                            </button>
+                                        </div>
+                                    <% } %>
+                                    <% if (!contentProgress.isCompleted) { %>
+                                        <div class="pdf-progress-indicator">
+                                            <div class="progress-text">
+                                                <span>PDF will auto-complete after viewing</span>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                <% } else { %>
+                                    <div class="placeholder-content">
+                                        <i class="fas fa-file-pdf"></i>
+                                        <p>PDF content will be available here</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } else if (contentItem.type === 'quiz') { %>
+                        <div class="quiz-content">
+                            <div class="quiz-info">
+                                <h3>Quiz Information</h3>
+                                <p style="margin-bottom: 8px; opacity: 0.9;">Answer all questions to finish. Passing score applies to unlock results.</p>
+                                
+                                <!-- Compact Quiz Details Row -->
+                                <div class="quiz-details-compact">
+                                    <div class="quiz-detail-item">
+                                        <i class="fas fa-list-ol"></i>
+                                        <span class="detail-label">Questions</span>
+                                        <span class="detail-value"><%= contentItem.selectedQuestions ? contentItem.selectedQuestions.length : 0 %></span>
+                                    </div>
+                                    <div class="quiz-detail-item">
+                                        <i class="fas fa-clock"></i>
+                                        <span class="detail-label">Time</span>
+                                        <span class="detail-value">
+                                            <% if (contentItem.quizSettings && contentItem.quizSettings.timeLimit) { %>
+                                                <%= contentItem.quizSettings.timeLimit %>min
+                                            <% } else { %>
+                                                No limit
+                                            <% } %>
+                                        </span>
+                                    </div>
+                                    <div class="quiz-detail-item">
+                                        <i class="fas fa-target"></i>
+                                        <span class="detail-label">Pass</span>
+                                        <span class="detail-value">
+                                            <% if (contentItem.quizSettings && contentItem.quizSettings.passingScore) { %>
+                                                <%= contentItem.quizSettings.passingScore %>%
+                                            <% } else { %>
+                                                60%
+                                            <% } %>
+                                        </span>
+                                    </div>
+                                    <% if (contentItem.quizSettings && contentItem.quizSettings.maxAttempts) { %>
+                                        <div class="quiz-detail-item">
+                                            <i class="fas fa-redo"></i>
+                                            <span class="detail-label">Attempts</span>
+                                            <span class="detail-value"><%= contentItem.quizSettings.maxAttempts %></span>
+                                        </div>
+                                    <% } %>
+                                </div>
+
+                                <!-- Progress Info -->
+                                <% if (contentProgress && contentProgress.attempts > 0) { %>
+                                    <div class="quiz-progress-compact">
+                                        <div class="progress-item">
+                                            <span class="progress-label">Attempts:</span>
+                                            <span class="progress-value"><%= contentProgress.attempts %></span>
+                                        </div>
+                                        <% if (contentProgress.bestScore !== undefined) { %>
+                                            <div class="progress-item">
+                                                <span class="progress-label">Best Score:</span>
+                                                <span class="progress-value"><%= contentProgress.bestScore %>%</span>
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                    <!-- Attempts Cards -->
+                                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:10px;">
+                                        <% const attemptsList = (contentProgress.attemptsList || []); %>
+                                        <% attemptsList.forEach(function(a, i){ %>
+                                            <div style="border:1px solid var(--border-color); border-radius:10px; padding:12px; background:var(--card-bg);">
+                                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                                    <strong style="font-size:13px;">Attempt <%= i+1 %></strong>
+                                                    <span style="font-size:12px; padding:4px 8px; border-radius:999px; color:#fff; background:<%= a.passed ? '#10b981' : '#ef4444' %>;"><%= a.passed ? 'Passed' : 'Failed' %></span>
+                                                </div>
+                                                <div style="display:flex; justify-content:space-between; font-size:12px; opacity:.9;">
+                                                    <span>Score</span>
+                                                    <span><%= a.score %>%</span>
+                                                </div>
+                                                <div style="display:flex; justify-content:space-between; font-size:12px; opacity:.9;">
+                                                    <span>Correct</span>
+                                                    <span><%= a.correctAnswers %>/<%= a.totalQuestions %></span>
+                                                </div>
+                                                <div style="display:flex; justify-content:space-between; font-size:12px; opacity:.9;">
+                                                    <span>Time</span>
+                                                    <span><%= Math.round((a.timeSpent||0)/60) %>m</span>
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                <% } %>
+
+                                <% const latest = (contentProgress.attemptsList||[])[(contentProgress.attemptsList||[]).length-1]; %>
+                                <% if (latest && latest.passed) { %>
+                                    <div class="quiz-completed-compact">
+                                        <div class="completion-badge-compact">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Quiz Completed</span>
+                                        </div>
+                                        <div class="completion-details-compact">
+                                            <div class="completion-detail-row">
+                                                <span class="detail-label">Best Score:</span>
+                                                <span class="detail-value"><%= contentProgress.bestScore %>%</span>
+                                            </div>
+                                            <div class="completion-detail-row">
+                                                <span class="detail-label">Attempts:</span>
+                                                <span class="detail-value"><%= contentProgress.attempts %></span>
+                                            </div>
+                                            <div class="completion-detail-row">
+                                                <span class="detail-label">Completed:</span>
+                                                <span class="detail-value"><%= contentProgress.completedAt ? new Date(contentProgress.completedAt).toLocaleDateString() : 'Recently' %></span>
+                                            </div>
+                                        </div>
+                                        <div class="completion-actions-compact">
+                                            <a href="/student/content/<%= contentItem._id %>/results" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-chart-line"></i>
+                                                View Results
+                                            </a>
+                                        </div>
+                                    </div>
+                                <% } else { %>
+                                    <% const outOfAttempts = attemptPolicy && attemptPolicy.outOfAttempts; %>
+                                    <button class="btn btn-primary btn-sm" style="padding:8px 14px; border-radius:8px; font-weight:600;" onclick="startQuiz('<%= contentItem._id %>', '<%= contentItem.type %>')" <%= outOfAttempts ? 'disabled' : '' %>>
+                                        <i class="fas <%= outOfAttempts ? 'fa-lock' : 'fa-play' %>"></i>
+                                        <%= outOfAttempts ? 'Out of attempts' : (timing && timing.remainingSeconds > 0 ? 'Resume Quiz' : 'Start Quiz') %>
+                                    </button>
+                                    <% if (attemptPolicy && attemptPolicy.maxAttempts) { %>
+                                        <div style="margin-top:6px; font-size:12px; opacity:.8;">
+                                            Attempts: <%= attemptPolicy.maxAttempts - (attemptPolicy.remainingAttempts||0) %>/<%= attemptPolicy.maxAttempts %>
+                                        </div>
+                                    <% } %>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } else if (contentItem.type === 'homework') { %>
+                        <div class="homework-content">
+                            <div class="homework-info">
+                                <h3>Homework Assignment</h3>
+                                <p>This is a homework assignment. Complete the requirements and submit your work.</p>
+                                
+                                <!-- Compact Homework Details Row -->
+                                <div class="homework-details-compact">
+                                    <div class="homework-detail-item">
+                                        <i class="fas fa-list-ol"></i>
+                                        <span class="detail-label">Questions</span>
+                                        <span class="detail-value"><%= contentItem.selectedQuestions ? contentItem.selectedQuestions.length : 0 %></span>
+                                    </div>
+                                    <div class="homework-detail-item">
+                                        <i class="fas fa-target"></i>
+                                        <span class="detail-label">Pass</span>
+                                        <span class="detail-value">
+                                            <% if (contentItem.homeworkSettings && contentItem.homeworkSettings.passingScore) { %>
+                                                <%= contentItem.homeworkSettings.passingScore %>%
+                                            <% } else { %>
+                                                60%
+                                            <% } %>
+                                        </span>
+                                    </div>
+                                    <% if (contentItem.homeworkSettings && contentItem.homeworkSettings.maxAttempts) { %>
+                                        <div class="homework-detail-item">
+                                            <i class="fas fa-redo"></i>
+                                            <span class="detail-label">Attempts</span>
+                                            <span class="detail-value"><%= contentItem.homeworkSettings.maxAttempts %></span>
+                                        </div>
+                                    <% } %>
+                                </div>
+
+                                <!-- Progress Info -->
+                                <% if (contentProgress && contentProgress.attempts > 0) { %>
+                                    <div class="homework-progress-compact">
+                                        <div class="progress-item">
+                                            <span class="progress-label">Attempts:</span>
+                                            <span class="progress-value"><%= contentProgress.attempts %></span>
+                                        </div>
+                                        <% if (contentProgress.bestScore !== undefined) { %>
+                                            <div class="progress-item">
+                                                <span class="progress-label">Best Score:</span>
+                                                <span class="progress-value"><%= contentProgress.bestScore %>%</span>
+                                            </div>
+                                        <% } %>
+                                        <div class="progress-item">
+                                            <span class="progress-label">Status:</span>
+                                            <span class="progress-value <%= contentProgress.completionStatus === 'completed' ? 'text-success' : 'text-warning' %>">
+                                                <%= contentProgress.completionStatus === 'completed' ? 'Completed' : 'In Progress' %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                <% } %>
+
+                                <% if (contentProgress && contentProgress.completionStatus === 'completed') { %>
+                                    <div class="homework-completed-compact">
+                                        <div class="completion-badge-compact">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Homework Completed</span>
+                                        </div>
+                                        <div class="completion-details-compact">
+                                            <div class="completion-detail-row">
+                                                <span class="detail-label">Best Score:</span>
+                                                <span class="detail-value"><%= contentProgress.bestScore %>%</span>
+                                            </div>
+                                            <div class="completion-detail-row">
+                                                <span class="detail-label">Attempts:</span>
+                                                <span class="detail-value"><%= contentProgress.attempts %></span>
+                                            </div>
+                                            <div class="completion-detail-row">
+                                                <span class="detail-label">Completed:</span>
+                                                <span class="detail-value"><%= contentProgress.completedAt ? new Date(contentProgress.completedAt).toLocaleDateString() : 'Recently' %></span>
+                                            </div>
+                                        </div>
+                                        <div class="completion-actions-compact">
+                                            <a href="/student/content/<%= contentItem._id %>/results" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-chart-line"></i>
+                                                View Results
+                                            </a>
+                                        </div>
+                                    </div>
+                                <% } else { %>
+                                    <% const outOfAttempts = attemptPolicy && attemptPolicy.outOfAttempts; %>
+                                    <button class="btn btn-primary btn-lg" onclick="startQuiz('<%= contentItem._id %>', '<%= contentItem.type %>')" <%= outOfAttempts ? 'disabled' : '' %>>
+                                        <i class="fas <%= outOfAttempts ? 'fa-lock' : 'fa-tasks' %>"></i>
+                                        <%= outOfAttempts ? 'Out of attempts' : (timing && timing.remainingSeconds > 0 ? 'Resume Homework' : 'Start Homework') %>
+                                    </button>
+                                    <% if (attemptPolicy && attemptPolicy.maxAttempts) { %>
+                                        <div style="margin-top:6px; font-size:12px; opacity:.8;">
+                                            Attempts: <%= attemptPolicy.maxAttempts - (attemptPolicy.remainingAttempts||0) %>/<%= attemptPolicy.maxAttempts %>
+                                        </div>
+                                    <% } %>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } else if (contentItem.type === 'reading') { %>
+                        <div class="reading-content">
+                            <div class="reading-text">
+                                <% if (contentItem.content) { %>
+                                    <div class="reading-content-text" onscroll="handleReadingScroll(this)">
+                                        <%= contentItem.content %>
+                                    </div>
+                                    <% if (!contentProgress.isCompleted) { %>
+                                        <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
+                                            <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                                                <i class="fas fa-check"></i>
+                                                I have read this content
+                                            </button>
+                                        </div>
+                                    <% } %>
+                                    <% if (!contentProgress.isCompleted) { %>
+                                        <div class="reading-progress-indicator">
+                                            <div class="progress-text">
+                                                <span>Scroll to complete reading</span>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                <% } else { %>
+                                    <div class="placeholder-content">
+                                        <i class="fas fa-book-open"></i>
+                                        <p>Reading content will be available here</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } else if (contentItem.type === 'link') { %>
+                        <div class="link-content">
+                            <div class="link-info">
+                                <h3>External Link</h3>
+                                <p>This content contains an external link to additional resources.</p>
+                                <% if (contentItem.content) { %>
+                                    <a href="<%= contentItem.content %>" target="_blank" class="btn btn-primary btn-lg" onclick="handleLinkVisitAcknowledge(event)">
+                                        <i class="fas fa-external-link-alt"></i>
+                                        Open Link
+                                    </a>
+                                    <% if (!contentProgress.isCompleted) { %>
+                                        <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
+                                            <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                                                <i class="fas fa-check"></i>
+                                                I have visited/read
+                                            </button>
+                                        </div>
+                                    <% } %>
+                                <% } else { %>
+                                    <div class="placeholder-content">
+                                        <i class="fas fa-link"></i>
+                                        <p>Link content will be available here</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } else if (contentItem.type === 'assignment') { %>
+                        <div class="assignment-content">
+                            <div class="assignment-info">
+                                <h3>Assignment</h3>
+                                <p>Download the assignment materials. You can mark as read when done.</p>
+                                <% if (contentItem.content) { %>
+                                    <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
+                                        <a href="<%= contentItem.content %>" target="_blank" class="btn btn-outline btn-sm" onclick="handleDownloadAcknowledge(event)">
+                                            <i class="fas fa-download"></i>
+                                            Download Assignment
+                                        </a>
+                                        <% if (!contentProgress.isCompleted) { %>
+                                            <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                                                <i class="fas fa-check"></i>
+                                                I have read/completed
+                                            </button>
+                                        <% } %>
+                                    </div>
+                                <% } else { %>
+                                    <div class="placeholder-content">
+                                        <i class="fas fa-file"></i>
+                                        <p>Assignment will be available here</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } else { %>
+                        <div class="generic-content">
+                            <div class="placeholder-content">
+                                <i class="fas fa-file"></i>
+                                <p>Content will be available here</p>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+
+                <!-- Auto-completion status (no manual buttons) -->
+                <% if (contentProgress.isCompleted) { %>
+                    <div class="content-auto-completion-section">
+                        <div class="auto-completion-status">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span>Content Completed</span>
+                            <% if (contentProgress.completedAt) { %>
+                                <small class="text-muted">on <%= new Date(contentProgress.completedAt).toLocaleDateString() %></small>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+
+                <!-- Navigation Section -->
+                <div class="content-navigation-section">
+                    <div class="navigation-container">
+                        <!-- Previous Content -->
+                        <% if (navigation.previousContent) { %>
+                            <a href="/student/content/<%= navigation.previousContent._id %>" class="nav-button nav-previous">
+                                <div class="nav-icon">
+                                    <i class="fas fa-chevron-left"></i>
+                                </div>
+                                <div class="nav-content">
+                                    <div class="nav-label">Previous</div>
+                                    <div class="nav-title"><%= navigation.previousContent.title %></div>
+                                </div>
+                            </a>
+                        <% } else { %>
+                            <div class="nav-button nav-previous disabled">
+                                <div class="nav-icon">
+                                    <i class="fas fa-chevron-left"></i>
+                                </div>
+                                <div class="nav-content">
+                                    <div class="nav-label">Previous</div>
+                                    <div class="nav-title">No previous content</div>
+                                </div>
+                            </div>
+                        <% } %>
+
+                        <!-- Progress Indicator -->
+                        <div class="nav-progress">
+                            <div class="progress-info">
+                                <span class="current-position"><%= navigation.currentIndex + 1 %></span>
+                                <span class="separator">of</span>
+                                <span class="total-content"><%= navigation.totalContent %></span>
+                            </div>
+                            <div class="progress-bar">
+                                <% const progressPercent = Math.round(((navigation.currentIndex + 1) / navigation.totalContent) * 100); %>
+                                <div class="progress-fill" data-width="<%= progressPercent %>"></div>
+                            </div>
+                        </div>
+
+                        <!-- Next Content -->
+                        <% if (navigation.nextContent) { %>
+                            <% if (navigation.nextContentAccessible) { %>
+                                <a href="/student/content/<%= navigation.nextContent._id %>" class="nav-button nav-next">
+                                    <div class="nav-content">
+                                        <div class="nav-label">Next</div>
+                                        <div class="nav-title"><%= navigation.nextContent.title %></div>
+                                    </div>
+                                    <div class="nav-icon">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </a>
+                            <% } else { %>
+                                <div class="nav-button nav-next disabled">
+                                    <div class="nav-content">
+                                        <div class="nav-label">Next</div>
+                                        <div class="nav-title"><%= navigation.nextContent.title %></div>
+                                        <div class="nav-subtitle">Complete current content to unlock</div>
+                                    </div>
+                                    <div class="nav-icon">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                </div>
+                            <% } %>
+                        <% } else { %>
+                            <div class="nav-button nav-next disabled">
+                                <div class="nav-content">
+                                    <div class="nav-label">Next</div>
+                                    <div class="nav-title">No more content</div>
+                                </div>
+                                <div class="nav-icon">
+                                    <i class="fas fa-flag-checkered"></i>
+                                </div>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- PlayerJS Library -->
+    <script src="https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js"></script>
+    
+    <!-- JavaScript -->
+    <script>
+        // Auto-complete content based on type and interaction
+        function autoCompleteContent() {
+            updateContentProgressSmooth('completed', 100);
+        }
+
+        // Update content progress - simplified function (kept for video tracking)
+        function updateContentProgress(status, percentage) {
+            const progressData = {
+                completionStatus: status,
+                progressPercentage: percentage,
+                lastAccessed: new Date(),
+                completedAt: status === 'completed' ? new Date() : null
+            };
+
+            fetch('/student/content/progress/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    courseId: '<%= course._id %>',
+                    topicId: '<%= topic._id %>',
+                    contentId: '<%= contentItem._id %>',
+                    contentType: '<%= contentItem.type %>',
+                    progressData: progressData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message and reload
+                    showMessage('Progress updated successfully!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage('Error updating progress: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error updating progress', 'error');
+            });
+        }
+
+        // Smooth update content progress - no page reload
+        function updateContentProgressSmooth(status, percentage) {
+            const progressData = {
+                completionStatus: status,
+                progressPercentage: percentage,
+                lastAccessed: new Date(),
+                completedAt: status === 'completed' ? new Date() : null
+            };
+
+            fetch('/student/content/progress/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    courseId: '<%= course._id %>',
+                    topicId: '<%= topic._id %>',
+                    contentId: '<%= contentItem._id %>',
+                    contentType: '<%= contentItem.type %>',
+                    progressData: progressData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI elements smoothly without reload
+                    updateUIAfterCompletion();
+                    showSmoothSuccessMessage('🎉 Great! You\'ve watched enough of the video. Content marked as completed!');
+                } else {
+                    showMessage('Error updating progress: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error updating progress', 'error');
+            });
+        }
+
+        // Show message function
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+            messageDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.insertBefore(messageDiv, document.body.firstChild);
+            setTimeout(() => messageDiv.remove(), 3000);
+        }
+
+        // Show smooth success message with animation
+        function showSmoothSuccessMessage(message) {
+            // Create a beautiful success notification
+            const notification = document.createElement('div');
+            notification.className = 'smooth-success-notification';
+            notification.innerHTML = `
+                <div class="success-content">
+                    <div class="success-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="success-text">
+                        <h4>Content Completed!</h4>
+                        <p>${message}</p>
+                    </div>
+                </div>
+            `;
+            
+            // Add styles for the notification
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+                z-index: 10000;
+                transform: translateX(400px);
+                transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                max-width: 350px;
+                font-family: 'Inter', sans-serif;
+            `;
+            
+            // Add styles for content
+            const style = document.createElement('style');
+            style.textContent = `
+                .smooth-success-notification .success-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                }
+                .smooth-success-notification .success-icon {
+                    font-size: 24px;
+                    animation: bounce 0.6s ease-in-out;
+                }
+                .smooth-success-notification .success-text h4 {
+                    margin: 0 0 5px 0;
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+                .smooth-success-notification .success-text p {
+                    margin: 0;
+                    font-size: 14px;
+                    opacity: 0.9;
+                    line-height: 1.4;
+                }
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    60% { transform: translateY(-5px); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                    if (style.parentNode) {
+                        style.parentNode.removeChild(style);
+                    }
+                }, 400);
+            }, 5000);
+        }
+
+        // Update UI elements after completion
+        function updateUIAfterCompletion() {
+            // Update progress circle
+            const progressCircle = document.querySelector('.circle-large');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            const progressLabel = document.querySelector('.progress-label');
+            
+            if (progressCircle) {
+                progressCircle.style.strokeDasharray = '314, 314'; // 100% complete
+                progressCircle.style.transition = 'stroke-dasharray 0.8s ease-in-out';
+            }
+            
+            if (progressPercentage) {
+                progressPercentage.textContent = '100%';
+                progressPercentage.style.transition = 'all 0.5s ease-in-out';
+            }
+            
+            if (progressLabel) {
+                progressLabel.textContent = 'Complete';
+            }
+            
+            // Update content actions section
+            const contentActions = document.querySelector('.content-actions');
+            if (contentActions) {
+                contentActions.innerHTML = `
+                    <div class="completion-status">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>Content Completed</span>
+                        <small class="text-muted">just now</small>
+                    </div>
+                `;
+                contentActions.style.transition = 'all 0.5s ease-in-out';
+            }
+            
+            // Update navigation section - enable next content button
+            const nextNavButton = document.querySelector('.nav-button.nav-next');
+            if (nextNavButton && nextNavButton.classList.contains('disabled')) {
+                // Get the next content ID from the current page data
+                const nextContentId = '<%= navigation.nextContent ? navigation.nextContent._id : "" %>';
+                
+                if (nextContentId) {
+                    // Create a new anchor element to replace the disabled div
+                    const newLink = document.createElement('a');
+                    newLink.href = '/student/content/' + nextContentId;
+                    newLink.className = 'nav-button nav-next enabled';
+                    newLink.style.transition = 'all 0.3s ease-in-out';
+                    
+                    // Copy the content from the disabled button
+                    newLink.innerHTML = nextNavButton.innerHTML;
+                    
+                    // Update the icon from lock to chevron-right
+                    const navIcon = newLink.querySelector('.nav-icon i');
+                    if (navIcon) {
+                        navIcon.className = 'fas fa-chevron-right';
+                    }
+                    
+                    // Remove the subtitle about completing current content
+                    const navSubtitle = newLink.querySelector('.nav-subtitle');
+                    if (navSubtitle) {
+                        navSubtitle.remove();
+                    }
+                    
+                    // Replace the disabled div with the new link
+                    nextNavButton.parentNode.replaceChild(newLink, nextNavButton);
+                    
+                    // Remove the enabled animation class after animation completes
+                    setTimeout(() => {
+                        newLink.classList.remove('enabled');
+                    }, 600);
+                }
+            }
+        }
+
+        // Start Quiz/Homework with confirmation
+        function startQuiz(contentId, contentType) {
+            const quizType = contentType === 'quiz' ? 'Quiz' : 'Homework';
+            
+            // Create confirmation modal
+            const modal = document.createElement('div');
+            modal.className = 'confirmation-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Start ${quizType}</h3>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to start this ${quizType.toLowerCase()}?</p>
+                            <p><strong>Note:</strong> Once you start, the timer will begin (if applicable) and you'll need to complete all questions.</p>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary" onclick="closeConfirmationModal()">Cancel</button>
+                            <button class="btn btn-primary" onclick="confirmStartQuiz('${contentId}')">Start ${quizType}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .confirmation-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                }
+                .modal-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 2rem;
+                }
+                .modal-content {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 2rem;
+                    max-width: 400px;
+                    width: 100%;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+                }
+                .modal-header h3 {
+                    margin: 0 0 1rem 0;
+                    color: #1f2937;
+                }
+                .modal-body p {
+                    margin: 0.5rem 0;
+                    color: #6b7280;
+                }
+                .modal-actions {
+                    display: flex;
+                    gap: 1rem;
+                    justify-content: flex-end;
+                    margin-top: 2rem;
+                }
+                .btn {
+                    padding: 0.75rem 1.5rem;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-block;
+                }
+                .btn-secondary {
+                    background: #6b7280;
+                    color: white;
+                }
+                .btn-primary {
+                    background: #3b82f6;
+                    color: white;
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(modal);
+        }
+
+        function closeConfirmationModal() {
+            const modal = document.querySelector('.confirmation-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function confirmStartQuiz(contentId) {
+            closeConfirmationModal();
+            showToast('Starting quiz...', 'success');
+            setTimeout(() => {
+                window.location.href = '/student/content/' + contentId + '/take';
+            }, 1000);
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} toast-icon"></i>
+                    <span class="toast-title">${type === 'success' ? 'Success' : 'Error'}</span>
+                </div>
+                <div class="toast-message">${message}</div>
+            `;
+            
+            // Add toast styles if not already added
+            if (!document.querySelector('#toast-styles')) {
+                const style = document.createElement('style');
+                style.id = 'toast-styles';
+                style.textContent = `
+                    .toast {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 12px;
+                        padding: 1rem 1.5rem;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                        z-index: 1000;
+                        transform: translateX(400px);
+                        transition: transform 0.3s ease;
+                        max-width: 350px;
+                    }
+                    .toast.show {
+                        transform: translateX(0);
+                    }
+                    .toast.success {
+                        border-left: 4px solid #10b981;
+                    }
+                    .toast.error {
+                        border-left: 4px solid #ef4444;
+                    }
+                    .toast-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        margin-bottom: 0.5rem;
+                    }
+                    .toast-icon {
+                        font-size: 1.2rem;
+                    }
+                    .toast.success .toast-icon {
+                        color: #10b981;
+                    }
+                    .toast.error .toast-icon {
+                        color: #ef4444;
+                    }
+                    .toast-title {
+                        font-weight: 600;
+                        color: #1f2937;
+                    }
+                    .toast-message {
+                        color: #6b7280;
+                        font-size: 0.9rem;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(toast);
+            
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Hide toast
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Auto-completion handlers
+        let readingCompleted = false;
+        let pdfCompleted = false;
+
+        function handleReadingScroll(element) {
+            if (readingCompleted) return;
+            
+            const scrollTop = element.scrollTop;
+            const scrollHeight = element.scrollHeight;
+            const clientHeight = element.clientHeight;
+            const scrollPercentage = (scrollTop + clientHeight) / scrollHeight * 100;
+            
+            // Auto-complete when user scrolls 80% of the content
+            if (scrollPercentage >= 80) {
+                readingCompleted = true;
+                console.log("Reading content auto-completed at", scrollPercentage.toFixed(1) + "%");
+                updateContentProgressSmooth('completed', 100);
+            }
+        }
+
+        function handlePDFLoad(iframe) {
+            if (pdfCompleted) return;
+            
+            // Auto-complete PDF after 30 seconds of viewing
+            setTimeout(() => {
+                if (!pdfCompleted) {
+                    pdfCompleted = true;
+                    console.log("PDF content auto-completed after 30 seconds");
+                    updateContentProgressSmooth('completed', 100);
+                }
+            }, 30000);
+        }
+
+        // Initialize progress bar width
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressFill = document.querySelector('.progress-fill[data-width]');
+            if (progressFill) {
+                const width = progressFill.getAttribute('data-width');
+                progressFill.style.width = width + '%';
+            }
+        });
+
+        // PlayerJS Video Tracking
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if this is a video content that needs tracking
+            const isVideoContent = '<%= contentItem.type %>' === 'video';
+            const hasVideoContent = '<%= contentItem.content ? "true" : "false" %>' === 'true';
+            const isNotCompleted = '<%= !contentProgress.isCompleted ? "true" : "false" %>' === 'true';
+            
+            if (isVideoContent && hasVideoContent && isNotCompleted) {
+                let player = null;
+                let videoDuration = 0;
+                let playerReady = false;
+                let autoCompleted = false;
+
+                // Check if playerjs is loaded
+                function checkPlayerJS() {
+                    if (typeof playerjs === 'undefined') {
+                        setTimeout(checkPlayerJS, 100);
+                        return;
+                    }
+                    initPlayer();
+                }
+
+                // Initialize player
+                function initPlayer() {
+                    try {
+                        // Look for any iframe in the video container
+                        const videoContainer = document.querySelector('.video-container');
+                        const iframe = videoContainer ? videoContainer.querySelector('iframe') : null;
+                        
+                        if (!iframe) {
+                            console.log("No iframe found in video container");
+                            return;
+                        }
+
+                        // Add an ID to the iframe if it doesn't have one
+                        if (!iframe.id) {
+                            iframe.id = 'bunny-video-' + Date.now();
+                        }
+
+                        player = new playerjs.Player(iframe.id);
+                        
+                        player.on("ready", () => {
+                            playerReady = true;
+                            console.log("Bunny Stream player ready");
+
+                            // Get duration once
+                            player.getDuration((dur) => {
+                                videoDuration = dur;
+                                console.log("Video duration: " + dur + "s");
+                            });
+                        });
+
+                        // Event listeners
+                        player.on("timeupdate", (data) => {
+                            console.log(`Video progress: ${data.seconds.toFixed(1)}s / ${data.duration}s`);
+
+                            // Auto-complete when reaching last 10 seconds
+                            if (videoDuration > 0 && data.seconds >= videoDuration - 10 && !autoCompleted) {
+                                autoCompleted = true;
+                                console.log("Reached last 10 seconds - auto-completing content");
+                                updateContentProgressSmooth('completed', 100);
+                            }
+                        });
+
+                        player.on("ended", () => {
+                            console.log("Video ended");
+                            if (!autoCompleted) {
+                                updateContentProgressSmooth('completed', 100);
+                            }
+                        });
+
+                        player.on("error", (e) => {
+                            console.error("Player error:", e);
+                        });
+
+                    } catch (error) {
+                        console.error("Error initializing player:", error);
+                    }
+                }
+
+                // Wait a bit for the content to be rendered, then start checking for PlayerJS
+                setTimeout(() => {
+                    checkPlayerJS();
+                }, 500);
+            }
+        });
+
+        // Acknowledgment helpers (download/link/read)
+        function acknowledgeAndComplete() {
+            updateContentProgressSmooth('completed', 100);
+        }
+
+        function handleDownloadAcknowledge(event) {
+            try {
+                // allow the download to start, and mark as completed shortly after
+                setTimeout(() => acknowledgeAndComplete(), 800);
+            } catch (e) {
+                // fallback
+                acknowledgeAndComplete();
+            }
+        }
+
+        function handleLinkVisitAcknowledge(event) {
+            // Open link in new tab, then mark as completed
+            setTimeout(() => acknowledgeAndComplete(), 1000);
+        }
+    </script>
+</body>
+</html>

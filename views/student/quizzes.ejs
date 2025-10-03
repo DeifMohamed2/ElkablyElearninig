@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/quizzes.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Available Quizzes - Test your knowledge and track your progress">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'quizzes', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: title, student: student, theme: theme, currentPage: 'quizzes' }) %>
+            
+            <!-- Quizzes Content -->
+            <div class="student-content">
+                <!-- Page Header -->
+                <div class="page-header" style="margin-bottom: var(--spacing-xl);">
+                    <h2 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">
+                        Available Quizzes
+                    </h2>
+                    <p style="color: var(--text-secondary);">
+                        Test your knowledge and track your learning progress with our interactive quizzes.
+                    </p>
+                </div>
+
+                <!-- Quizzes Grid -->
+                <% if (quizzes && quizzes.length > 0) { %>
+                    <div class="courses-grid" style="grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));">
+                        <% quizzes.forEach(quiz => { 
+                            const studentAttempt = studentQuizAttempts.find(attempt => attempt.quiz.toString() === quiz._id.toString());
+                            const canAttempt = !studentAttempt || studentAttempt.attempts.length < quiz.maxAttempts;
+                        %>
+                            <div class="quiz-card" style="cursor: pointer;" onclick="window.location.href='/student/quiz/<%= quiz._id %>/details'">
+                                <!-- Quiz Thumbnail -->
+                                <div class="quiz-thumbnail">
+                                    <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
+                                        <img src="<%= quiz.thumbnail.url %>" alt="<%= quiz.title %>" class="quiz-thumbnail-img">
+                                    <% } else { %>
+                                        <div class="quiz-thumbnail-placeholder">
+                                            <i class="fas fa-question-circle"></i>
+                                        </div>
+                                    <% } %>
+                                    <div class="quiz-difficulty-badge <%= quiz.difficulty %>">
+                                        <%= quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) %>
+                                    </div>
+                                </div>
+
+                                <!-- Quiz Header -->
+                                <div class="quiz-header">
+                                    <div>
+                                        <h3 class="quiz-title"><%= quiz.title %></h3>
+                                        <span class="quiz-code"><%= quiz.code %></span>
+                                    </div>
+                                    <div class="quiz-status">
+                                        <span class="quiz-status-badge active">Active</span>
+                                    </div>
+                                </div>
+
+                                <!-- Quiz Description -->
+                                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-md); line-height: 1.5;">
+                                    <%= quiz.description.substring(0, 120) + (quiz.description.length > 120 ? '...' : '') %>
+                                </p>
+
+                                <!-- Quiz Info -->
+                                <div class="quiz-info">
+                                    <div class="quiz-stat">
+                                        <div class="quiz-stat-value"><%= quiz.totalQuestions %></div>
+                                        <div class="quiz-stat-label">Questions</div>
+                                    </div>
+                                    <div class="quiz-stat">
+                                        <div class="quiz-stat-value">
+                                            <% if (quiz.duration && quiz.duration > 0) { %>
+                                                <%= quiz.duration %>m
+                                            <% } else { %>
+                                                No limit
+                                            <% } %>
+                                        </div>
+                                        <div class="quiz-stat-label">Duration</div>
+                                    </div>
+                                    <div class="quiz-stat">
+                                        <div class="quiz-stat-value"><%= quiz.passingScore %>%</div>
+                                        <div class="quiz-stat-label">Passing</div>
+                                    </div>
+                                </div>
+
+                                <!-- Student Attempts Info -->
+                                <% if (studentAttempt) { %>
+                                    <div class="quiz-attempts" style="background-color: var(--bg-secondary); padding: var(--spacing-sm); border-radius: var(--radius-md); margin-bottom: var(--spacing-md);">
+                                        <div class="attempt-info">
+                                            <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                                Attempts: <%= studentAttempt.attempts.length %>/<%= quiz.maxAttempts %>
+                                            </span>
+                                            <% if (studentAttempt.bestScore > 0) { %>
+                                                <span class="best-score">
+                                                    Best: <%= studentAttempt.bestScore %>%
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                        <div class="last-attempt">
+                                            Last: <%= new Date(studentAttempt.lastAttempt).toLocaleDateString() %>
+                                        </div>
+                                    </div>
+                                <% } else { %>
+                                    <div style="background-color: var(--bg-secondary); padding: var(--spacing-sm); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); text-align: center;">
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                            No attempts yet
+                                        </span>
+                                    </div>
+                                <% } %>
+
+                                <!-- Quiz Features -->
+                                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs); margin-bottom: var(--spacing-md);">
+                                    <% if (quiz.shuffleQuestions) { %>
+                                        <span class="badge badge-info">Shuffled</span>
+                                    <% } %>
+                                    <% if (quiz.showCorrectAnswers) { %>
+                                        <span class="badge badge-success">Shows Answers</span>
+                                    <% } %>
+                                    <% if (quiz.showResults) { %>
+                                        <span class="badge badge-warning">Shows Results</span>
+                                    <% } %>
+                                </div>
+
+                                <!-- Quiz Footer -->
+                                <div class="quiz-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0 var(--spacing-lg) var(--spacing-lg);">
+                                    <div style="display: flex; align-items: center; gap: var(--spacing-xs);">
+                                        <i class="fas fa-user" style="color: var(--text-muted); font-size: 0.75rem;"></i>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                            <%= quiz.createdBy ? quiz.createdBy.name : 'Admin' %>
+                                        </span>
+                                    </div>
+                                    
+                                    <% if (canAttempt) { %>
+                                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='/student/quiz/<%= quiz._id %>/details'">
+                                            <% if (studentAttempt && studentAttempt.attempts.length > 0) { %>
+                                                View Details
+                                            <% } else { %>
+                                                View Details
+                                            <% } %>
+                                        </button>
+                                    <% } else { %>
+                                        <button class="btn btn-outline btn-sm" disabled>
+                                            Max Attempts Reached
+                                        </button>
+                                    <% } %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+
+                    <!-- Pagination -->
+                    <% if (pagination.totalPages > 1) { %>
+                        <div class="pagination">
+                            <% if (pagination.hasPrev) { %>
+                                <a href="?page=<%= pagination.prevPage %>" class="pagination-item">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            <% } %>
+
+                            <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+                                <% if (i === pagination.currentPage) { %>
+                                    <span class="pagination-item active"><%= i %></span>
+                                <% } else { %>
+                                    <a href="?page=<%= i %>" class="pagination-item"><%= i %></a>
+                                <% } %>
+                            <% } %>
+
+                            <% if (pagination.hasNext) { %>
+                                <a href="?page=<%= pagination.nextPage %>" class="pagination-item">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            <% } %>
+                        </div>
+                    <% } %>
+
+                <% } else { %>
+                    <!-- Empty State -->
+                    <div class="empty-state" style="text-align: center; padding: var(--spacing-2xl);">
+                        <div style="width: 200px; height: 200px; margin: 0 auto var(--spacing-xl); background-color: var(--bg-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-question-circle" style="font-size: 4rem; color: var(--text-muted); opacity: 0.5;"></i>
+                        </div>
+                        <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); font-size: 1.5rem;">
+                            No Quizzes Available
+                        </h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-xl); max-width: 500px; margin-left: auto; margin-right: auto;">
+                            There are no quizzes available at the moment. Check back later or contact your instructor for more information.
+                        </p>
+                        <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                            <a href="/student/dashboard" class="btn btn-primary btn-lg">
+                                <i class="fas fa-arrow-left" style="margin-right: var(--spacing-sm);"></i>
+                                Back to Dashboard
+                            </a>
+                            <a href="/student/enrolled-courses" class="btn btn-outline btn-lg">
+                                <i class="fas fa-book-open" style="margin-right: var(--spacing-sm);"></i>
+                                View Courses
+                            </a>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Add hover effects and interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            const quizCards = document.querySelectorAll('.quiz-card');
+            
+            quizCards.forEach(card => {
+                const button = card.querySelector('button');
+                const canClick = !button || !button.disabled;
+                
+                if (canClick) {
+                    card.addEventListener('mouseenter', function() {
+                        this.style.transform = 'translateY(-2px)';
+                        this.style.boxShadow = 'var(--shadow-md)';
+                    });
+                    
+                    card.addEventListener('mouseleave', function() {
+                        this.style.transform = 'translateY(0)';
+                        this.style.boxShadow = 'var(--shadow-sm)';
+                    });
+                }
+            });
+        });
+
+        // Quiz difficulty color coding
+        function updateDifficultyColors() {
+            const difficulties = document.querySelectorAll('.quiz-difficulty');
+            
+            difficulties.forEach(diff => {
+                const difficulty = diff.className.split(' ').find(cls => cls !== 'quiz-difficulty');
+                if (difficulty) {
+                    diff.style.backgroundColor = getDifficultyColor(difficulty);
+                }
+            });
+        }
+
+        function getDifficultyColor(difficulty) {
+            const colors = {
+                'easy': 'rgba(16, 185, 129, 0.1)',
+                'medium': 'rgba(245, 158, 11, 0.1)',
+                'hard': 'rgba(239, 68, 68, 0.1)'
+            };
+            return colors[difficulty] || 'rgba(107, 114, 128, 0.1)';
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', updateDifficultyColors);
+    </script>
+</body>
+</html>

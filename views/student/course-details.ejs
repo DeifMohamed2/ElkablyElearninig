@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= course.title %> - Course Details - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/courses.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="<%= course.title %> - Course Details and Progress">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+    <!-- Include Sidebar -->
+    <%- include('partials/student-sidebar', { currentPage: 'enrolled-courses', student: student }) %>
+    
+    <!-- Main Content -->
+    <main class="student-main">
+        <div class="student-content">
+            <!-- Header -->
+            <div class="content-header">
+                <div class="header-left">
+                    <h1 class="page-title">
+                        <i class="fas fa-book-open me-2"></i>
+                        <%= course.title %>
+                    </h1>
+                    <p class="page-subtitle">Course Details & Progress</p>
+                </div>
+                <div class="header-right">
+                    <a href="/student/enrolled-courses" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Courses
+                    </a>
+                </div>
+            </div>
+
+            <!-- Course Info Card -->
+            <div class="card course-info-card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h3 class="card-title"><%= course.title %></h3>
+                            <p class="card-text text-muted"><%= course.description %></p>
+                            <div class="course-meta">
+                                <span class="badge bg-primary me-2">
+                                    <i class="fas fa-layer-group me-1"></i>
+                                    <%= course.topics.length %> Topics
+                                </span>
+                                <span class="badge bg-success me-2">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <%= course.duration || 'Self-paced' %>
+                                </span>
+                                <% if (course.bundle) { %>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-box me-1"></i>
+                                    <%= course.bundle.name %>
+                                </span>
+                                <% } %>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="progress-circle">
+                                <div class="progress-circle-inner">
+                                    <span class="progress-percentage"><%= enrollment.progress || 0 %>%</span>
+                                </div>
+                            </div>
+                            <p class="progress-label">Overall Progress</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Topics Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Course Topics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <% if (topicsWithProgress && topicsWithProgress.length > 0) { %>
+                        <div class="topics-list">
+                            <% topicsWithProgress.forEach((topic, index) => { %>
+                            <div class="topic-item">
+                                <div class="topic-content">
+                                    <div class="topic-header">
+                                        <h6 class="topic-title">
+                                            <span class="topic-number"><%= index + 1 %></span>
+                                            <%= topic.title %>
+                                        </h6>
+                                        <div class="topic-status">
+                                            <% if (topic.completed) { %>
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check me-1"></i>
+                                                    Completed
+                                                </span>
+                                            <% } else { %>
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    Not Started
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <p class="topic-description"><%= topic.description %></p>
+                                    <div class="topic-progress">
+                                        <div class="progress">
+                                            <div class="progress-bar" style="width: <%= topic.progress %>%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <div class="text-center py-4">
+                            <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No topics available for this course yet.</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Recent Progress -->
+            <% if (courseProgress && courseProgress.length > 0) { %>
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-list">
+                        <% courseProgress.slice(0, 5).forEach(progress => { %>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-<%= progress.activity === 'topic_completed' ? 'check-circle' : 'play-circle' %>"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h6 class="activity-title"><%= progress.activity.replace('_', ' ').toUpperCase() %></h6>
+                                <p class="activity-time">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <%= new Date(progress.timestamp).toLocaleDateString() %>
+                                </p>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+        </div>
+    </main>
+</div>
+
+<style>
+.course-info-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+.course-info-card .card-title {
+    color: white;
+}
+
+.course-info-card .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.progress-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(#4CAF50 0deg, #4CAF50 <%= (enrollment.progress || 0) * 3.6 %>deg, #e0e0e0 <%= (enrollment.progress || 0) * 3.6 %>deg, #e0e0e0 360deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.progress-circle-inner {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-percentage {
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+}
+
+.progress-label {
+    margin-top: 10px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.topic-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.topic-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.topic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.topic-number {
+    background: #007bff;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.topic-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    color: #007bff;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.activity-time {
+    margin: 0;
+    font-size: 12px;
+    color: #6c757d;
+}
+</style>
+
+    </div>
+    <!-- End Student Layout -->
+
+    <!-- JavaScript -->
+    <script src="/js/theme-manager.js"></script>
+    <script>
+        // Course progress animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width || bar.getAttribute('data-width');
+                if (width) {
+                    bar.style.width = '0%';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 500);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

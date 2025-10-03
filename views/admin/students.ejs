@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/adminCSS/admin-main.css">
+  <link rel="stylesheet" href="/css/adminCSS/students.css">
+  <link rel="stylesheet" href="/css/theme-toggle.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
+
+  <!-- Theme Script -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('theme');
+        var htmlElement = document.documentElement;
+        var bodyElement = document.body;
+        
+        if (htmlElement && bodyElement) {
+        if (saved) {
+            htmlElement.classList.remove('light-theme', 'dark-theme');
+            bodyElement.classList.remove('light-theme', 'dark-theme');
+            htmlElement.classList.add(saved + '-theme');
+            bodyElement.classList.add(saved + '-theme');
+        } else {
+            htmlElement.classList.add('light-theme');
+            bodyElement.classList.add('light-theme');
+          }
+        }
+      } catch (e) {
+        console.warn('Theme loading error:', e);
+      }
+    })();
+  </script>
+
+  <style>
+    /* CSS Variables for Admin Theme */
+    :root {
+      --admin-primary: #b80101;
+      --admin-secondary: #f8f9fa;
+      --admin-success: #10b981;
+      --admin-warning: #f59e0b;
+      --admin-danger: #ef4444;
+      --admin-info: #3b82f6;
+      --admin-bg-light: #f8fafc;
+      --admin-bg-dark: #1e293b;
+      --admin-card-light: #ffffff;
+      --admin-card-dark: #2d3748;
+      --admin-text-light: #1e293b;
+      --admin-text-dark: #f7fafc;
+      --admin-border-light: #e2e8f0;
+      --admin-border-dark: #4a5568;
+      --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Professional Student Management Styles */
+    .admin-students-container {
+      padding: 20px;
+      background: var(--admin-bg-light);
+      min-height: 100vh;
+      margin-left: 280px;
+      transition: margin-left 0.3s ease;
+    }
+
+    .dark-theme .admin-students-container {
+      background: var(--admin-bg-dark);
+    }
+
+    /* Responsive margin adjustments for smaller screens */
+    @media (max-width: 1024px) {
+      .admin-students-container {
+        margin-left: 0;
+        padding: 15px;
+      }
+    }
+
+    /* Page Header */
+    .students-page-header {
+      background: var(--admin-card-light);
+      border: 1px solid var(--admin-border-light);
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: var(--admin-shadow);
+    }
+
+    .dark-theme .students-page-header {
+      background: var(--admin-card-dark);
+      border-color: var(--admin-border-dark);
+    }
+
+    .page-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .page-title-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .page-title-icon {
+      width: 50px;
+      height: 50px;
+      background: var(--admin-primary);
+      color: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--admin-text-light);
+      margin: 0;
+    }
+
+    .dark-theme .page-title {
+      color: var(--admin-text-dark);
+    }
+
+    .page-subtitle {
+      color: var(--admin-text-light);
+      opacity: 0.7;
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .dark-theme .page-subtitle {
+      color: var(--admin-text-dark);
+    }
+
+    .page-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .action-btn {
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      position: relative;
+      overflow: hidden;
+      min-width: 140px;
+      justify-content: center;
+    }
+
+    .action-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .action-btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
+      color: white;
+      border: 1px solid var(--admin-primary);
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #a00000 0%, #800000 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      color: var(--admin-text-light);
+      border: 2px solid var(--admin-border-light);
+      backdrop-filter: blur(10px);
+    }
+
+    .dark-theme .btn-secondary {
+      color: var(--admin-text-dark);
+      border-color: var(--admin-border-dark);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    }
+
+    .btn-secondary:hover {
+      background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
+      color: white;
+      transform: translateY(-2px);
+      border-color: var(--admin-primary);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
+    }
+
+    /* Enhanced Clear Button */
+    .btn-clear {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      border: 1px solid #ef4444;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-clear:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Enhanced Export Button */
+    .btn-export {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: 1px solid #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-export:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Enhanced Apply Filters Button */
+    .btn-apply {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: 1px solid #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-apply:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Analytics Stats Grid */
+    .admin-analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+
+    .admin-analytics-card {
+      background: var(--admin-card-light);
+      border: 1px solid var(--admin-border-light);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--admin-shadow);
+      transition: all 0.3s ease;
+    }
+
+    .dark-theme .admin-analytics-card {
+      background: var(--admin-card-dark);
+      border-color: var(--admin-border-dark);
+    }
+
+    .admin-analytics-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .analytics-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .analytics-icon.students {
+      background: var(--admin-primary);
+    }
+
+    .analytics-icon.active {
+      background: #10b981;
+    }
+
+    .analytics-icon.courses {
+      background: #3b82f6;
+    }
+
+    .analytics-icon.schools {
+      background: #f59e0b;
+    }
+
+    .analytics-trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
+      padding: 4px 8px;
+      border-radius: 16px;
+    }
+
+    .trend-up {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+
+    .trend-down {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .analytics-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--admin-text-light);
+      margin: 8px 0;
+    }
+
+    .dark-theme .analytics-number {
+      color: var(--admin-text-dark);
+    }
+
+    .analytics-label {
+      color: var(--admin-text-light);
+      opacity: 0.7;
+      font-weight: 500;
+    }
+
+    .dark-theme .analytics-label {
+      color: var(--admin-text-dark);
+    }
+
+    /* Filters Section */
+    .filters-section {
+      background: var(--admin-card-light);
+      border: 1px solid var(--admin-border-light);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: var(--admin-shadow);
+    }
+
+    .dark-theme .filters-section {
+      background: var(--admin-card-dark);
+      border-color: var(--admin-border-dark);
+    }
+
+    .filters-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--admin-border-light);
+    }
+
+    .dark-theme .filters-header {
+      border-bottom-color: var(--admin-border-dark);
+    }
+
+    .filters-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--admin-text-light);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dark-theme .filters-title {
+      color: var(--admin-text-dark);
+    }
+
+    .filters-toggle {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+      border: 2px solid #3b82f6;
+      color: #3b82f6;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .filters-toggle::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .filters-toggle:hover::before {
+      left: 100%;
+    }
+
+    .dark-theme .filters-toggle {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
+      border-color: #3b82f6;
+      color: #60a5fa;
+    }
+
+    .filters-toggle:hover {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--admin-text-light);
+      opacity: 0.8;
+    }
+
+    .dark-theme .filter-label {
+      color: var(--admin-text-dark);
+    }
+
+    .filter-control {
+      padding: 10px 12px;
+      border: 1px solid var(--admin-border-light);
+      border-radius: 6px;
+      background: var(--admin-card-light);
+      color: var(--admin-text-light);
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .dark-theme .filter-control {
+      border-color: var(--admin-border-dark);
+      background: var(--admin-card-dark);
+      color: var(--admin-text-dark);
+    }
+
+    .filter-control:focus {
+      outline: none;
+      border-color: var(--admin-primary);
+      box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.1);
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-input {
+      padding: 10px 12px 10px 40px;
+      border: 1px solid var(--admin-border-light);
+      border-radius: 8px;
+      background: var(--admin-card-light);
+      color: var(--admin-text-light);
+      width: 100%;
+      font-size: 0.9rem;
+    }
+
+    .dark-theme .search-input {
+      border-color: var(--admin-border-dark);
+      background: var(--admin-card-dark);
+      color: var(--admin-text-dark);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--admin-text-light);
+      opacity: 0.5;
+    }
+
+    .dark-theme .search-icon {
+      color: var(--admin-text-dark);
+    }
+
+    .filters-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    /* Students Table */
+    .students-table-container {
+      background: var(--admin-card-light);
+      border: 1px solid var(--admin-border-light);
+      border-radius: 12px;
+      box-shadow: var(--admin-shadow);
+      overflow: hidden;
+    }
+
+    .dark-theme .students-table-container {
+      background: var(--admin-card-dark);
+      border-color: var(--admin-border-dark);
+    }
+
+    .table-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--admin-border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(184, 1, 1, 0.02) 0%, rgba(184, 1, 1, 0.05) 100%);
+    }
+
+    .dark-theme .table-header {
+      border-bottom-color: var(--admin-border-dark);
+      background: linear-gradient(135deg, rgba(184, 1, 1, 0.05) 0%, rgba(184, 1, 1, 0.08) 100%);
+    }
+
+    .table-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--admin-text-light);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dark-theme .table-title {
+      color: var(--admin-text-dark);
+    }
+
+    .table-title::before {
+      content: '👥';
+      font-size: 1.5rem;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .table-actions .action-btn {
+      padding: 10px 18px;
+      font-size: 0.85rem;
+    }
+
+    .table-overflow {
+      overflow-x: auto;
+    }
+
+    .students-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .students-table th {
+      background: rgba(184, 1, 1, 0.05);
+      color: var(--admin-text-light);
+      font-weight: 600;
+      padding: 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--admin-border-light);
+      white-space: nowrap;
+      font-size: 0.9rem;
+    }
+
+    .dark-theme .students-table th {
+      background: rgba(184, 1, 1, 0.1);
+      color: var(--admin-text-dark);
+      border-bottom-color: var(--admin-border-dark);
+    }
+
+    .students-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--admin-border-light);
+      vertical-align: middle;
+      font-size: 0.9rem;
+    }
+
+    .dark-theme .students-table td {
+      border-bottom-color: var(--admin-border-dark);
+    }
+
+    .students-table tr:hover {
+      background: rgba(184, 1, 1, 0.02);
+    }
+
+    .dark-theme .students-table tr:hover {
+      background: rgba(184, 1, 1, 0.05);
+    }
+
+    /* Student Profile Cell */
+    .student-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .student-avatar {
+      width: 45px;
+      height: 45px;
+      background: var(--admin-primary);
+      color: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .student-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .student-name {
+      font-weight: 600;
+      color: var(--admin-text-light);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dark-theme .student-name {
+      color: var(--admin-text-dark);
+    }
+
+    .student-email {
+      font-size: 0.85rem;
+      color: var(--admin-text-light);
+      opacity: 0.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dark-theme .student-email {
+      color: var(--admin-text-dark);
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+
+    .status-inactive {
+      background: rgba(107, 114, 128, 0.1);
+      color: #6b7280;
+    }
+
+    .status-icon {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Progress Bar */
+    .progress-bar-container {
+      width: 100px;
+      text-align: center;
+    }
+
+    .progress-percentage {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--admin-text-light);
+      margin-bottom: 4px;
+    }
+
+    .dark-theme .progress-percentage {
+      color: var(--admin-text-dark);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--admin-border-light);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .dark-theme .progress-bar {
+      background: var(--admin-border-dark);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--admin-primary);
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    /* Action Buttons */
+    .student-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .action-btn-sm {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--admin-border-light);
+      background: transparent;
+      color: var(--admin-text-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .dark-theme .action-btn-sm {
+      border-color: var(--admin-border-dark);
+      color: var(--admin-text-dark);
+    }
+
+    .action-btn-sm:hover {
+      background: var(--admin-primary);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .action-btn-sm.view {
+      color: #3b82f6;
+    }
+
+    .action-btn-sm.edit {
+      color: #f59e0b;
+    }
+
+    .action-btn-sm.delete {
+      color: #ef4444;
+    }
+
+    /* Pagination */
+    .pagination-container {
+      padding: 20px 24px;
+      border-top: 1px solid var(--admin-border-light);
+      display: flex;
+      justify-content: between;
+      align-items: center;
+    }
+
+    .dark-theme .pagination-container {
+      border-top-color: var(--admin-border-dark);
+    }
+
+    .pagination-info {
+      color: var(--admin-text-light);
+      opacity: 0.7;
+      font-size: 0.9rem;
+    }
+
+    .dark-theme .pagination-info {
+      color: var(--admin-text-dark);
+    }
+
+    .pagination {
+      display: flex;
+      gap: 4px;
+      margin: 0;
+    }
+
+    .pagination-btn {
+      padding: 10px 16px;
+      border: 2px solid var(--admin-border-light);
+      background: var(--admin-card-light);
+      color: var(--admin-text-light);
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pagination-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .pagination-btn:hover::before {
+      left: 100%;
+    }
+
+    .dark-theme .pagination-btn {
+      border-color: var(--admin-border-dark);
+      background: var(--admin-card-dark);
+      color: var(--admin-text-dark);
+    }
+
+    .pagination-btn:hover {
+      background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
+      color: white;
+      border-color: var(--admin-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
+    }
+
+    .pagination-btn.active {
+      background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
+      color: white;
+      border-color: var(--admin-primary);
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .pagination-btn:disabled:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--admin-text-light);
+      opacity: 0.6;
+    }
+
+    .dark-theme .empty-state {
+      color: var(--admin-text-dark);
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+
+    .empty-state h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    /* Loading States */
+    .loading-skeleton {
+      background: linear-gradient(90deg, transparent, rgba(184, 1, 1, 0.1), transparent);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+      0% {
+        background-position: 200% 0;
+      }
+
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+      .admin-analytics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+
+      .filters-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .students-page-header {
+        padding: 20px;
+      }
+
+      .page-header-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .page-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .admin-analytics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .table-overflow {
+        border-radius: 8px;
+      }
+
+      .students-table th,
+      .students-table td {
+        padding: 12px 8px;
+        font-size: 0.8rem;
+      }
+
+      .student-profile {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .student-actions {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .pagination-container {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .students-page-header {
+        padding: 16px;
+      }
+
+      .admin-analytics-card {
+        padding: 16px;
+      }
+
+      .filters-section {
+        padding: 16px;
+      }
+
+      .students-table-container {
+        margin: 0 -16px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+      }
+    }
+
+    /* Status Filter Section */
+    .status-filter-section {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--admin-border-light);
+    }
+
+    .dark-theme .status-filter-section {
+      border-bottom-color: var(--admin-border-dark);
+    }
+
+    .status-filter-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-filter-btn {
+      flex: 1;
+      min-width: 200px;
+      padding: 16px 20px;
+      border: 2px solid var(--admin-border-light);
+      background: var(--admin-card-light);
+      color: var(--admin-text-light);
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dark-theme .status-filter-btn {
+      border-color: var(--admin-border-dark);
+      background: var(--admin-card-dark);
+      color: var(--admin-text-dark);
+    }
+
+    .status-filter-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .status-filter-btn:hover::before {
+      left: 100%;
+    }
+
+    .status-filter-btn:hover {
+      border-color: var(--admin-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.2);
+    }
+
+    .status-filter-btn.active {
+      background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
+      color: white;
+      border-color: var(--admin-primary);
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .status-filter-btn i {
+      font-size: 1.2rem;
+    }
+
+    .status-count {
+      background: rgba(255, 255, 255, 0.2);
+      color: inherit;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .status-filter-btn.active .status-count {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Advanced Filters (Hidden by Default) */
+    .advanced-filters {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--admin-border-light);
+    }
+
+    .dark-theme .advanced-filters {
+      border-top-color: var(--admin-border-dark);
+    }
+
+    .advanced-filters.show {
+      display: grid;
+    }
+
+    /* Date Range Picker */
+    .date-range {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .date-range input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--admin-border-light);
+      border-radius: 4px;
+      background: var(--admin-card-light);
+      color: var(--admin-text-light);
+      font-size: 0.85rem;
+    }
+
+    .dark-theme .date-range input {
+      border-color: var(--admin-border-dark);
+      background: var(--admin-card-dark);
+      color: var(--admin-text-dark);
+    }
+
+    /* Toast Notification Styles */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background: var(--admin-card-light);
+      border: 1px solid var(--admin-border-light);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      min-width: 400px;
+      max-width: 500px;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .dark-theme .toast {
+      background: var(--admin-card-dark);
+      border-color: var(--admin-border-dark);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .toast-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .toast-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: white;
+    }
+
+    .toast-icon.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .toast-icon.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .toast-icon.error {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .toast-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--admin-text-light);
+      margin: 0;
+    }
+
+    .dark-theme .toast-title {
+      color: var(--admin-text-dark);
+    }
+
+    .toast-message {
+      color: var(--admin-text-light);
+      opacity: 0.8;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .dark-theme .toast-message {
+      color: var(--admin-text-dark);
+    }
+
+    .toast-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .toast-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+      font-size: 0.9rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toast-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .toast-btn:hover::before {
+      left: 100%;
+    }
+
+    .toast-btn.cancel {
+      background: var(--admin-border-light);
+      color: var(--admin-text-light);
+      border: 1px solid var(--admin-border-light);
+    }
+
+    .dark-theme .toast-btn.cancel {
+      background: var(--admin-border-dark);
+      color: var(--admin-text-dark);
+      border-color: var(--admin-border-dark);
+    }
+
+    .toast-btn.cancel:hover {
+      background: rgba(107, 114, 128, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .toast-btn.confirm {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      border: 1px solid #ef4444;
+    }
+
+    .toast-btn.confirm:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .toast-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .toast-btn:disabled:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Loading state for toast buttons */
+    .toast-btn.loading {
+      position: relative;
+      color: transparent;
+    }
+
+    .toast-btn.loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive toast */
+    @media (max-width: 768px) {
+      .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+      }
+
+      .toast {
+        min-width: auto;
+        max-width: none;
+      }
+
+      .toast-actions {
+        flex-direction: column;
+      }
+
+      .toast-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body class="<%= theme === 'dark' ? 'dark-theme' : 'light-theme' %>">
+  <%- include('partials/admin-sidebar') %>
+
+  <div class="admin-main-content">
+    <div class="admin-students-container">
+      <!-- Page Header -->
+      <div class="students-page-header">
+        <div class="page-header-top">
+          <div class="page-title-section">
+            <div class="page-title-icon">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <div>
+              <h1 class="page-title">Student Management</h1>
+              <p class="page-subtitle">
+                Manage and monitor student progress across all courses
+                <% if (pagination && pagination.totalStudents) { %>
+                • <%= pagination.totalStudents %> total students
+                <% } %>
+              </p>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="action-btn btn-export" onclick="exportStudents()">
+              <i class="fas fa-download"></i>
+              Export All Data
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Grid -->
+      <% if (analytics) { %>
+      <div class="admin-analytics-grid">
+        <div class="admin-analytics-card">
+          <div class="analytics-header">
+            <div class="analytics-icon students">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+              <i class="fas fa-arrow-up"></i>
+              +12%
+            </div>
+          </div>
+          <div class="analytics-number"><%= analytics.totalStudents || 0 %></div>
+          <div class="analytics-label">Total Students</div>
+        </div>
+
+        <div class="admin-analytics-card">
+          <div class="analytics-header">
+            <div class="analytics-icon active">
+              <i class="fas fa-user-check"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+              <i class="fas fa-arrow-up"></i>
+              +8%
+            </div>
+          </div>
+          <div class="analytics-number"><%= analytics.activeStudents || 0 %></div>
+          <div class="analytics-label">Active Students</div>
+        </div>
+
+        <div class="admin-analytics-card">
+          <div class="analytics-header">
+            <div class="analytics-icon courses">
+              <i class="fas fa-book"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+              <i class="fas fa-arrow-up"></i>
+              +15%
+            </div>
+          </div>
+          <div class="analytics-number"><%= Math.round(analytics.courseStats?.avgCourses || 0) %></div>
+          <div class="analytics-label">Avg. Courses per Student</div>
+        </div>
+
+        <div class="admin-analytics-card">
+          <div class="analytics-header">
+            <div class="analytics-icon schools">
+              <i class="fas fa-school"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+              <i class="fas fa-arrow-up"></i>
+              +5%
+            </div>
+          </div>
+          <div class="analytics-number"><%= analytics.schoolDistribution?.length || 0 %></div>
+          <div class="analytics-label">Schools Represented</div>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Filters Section -->
+      <div class="filters-section">
+        <div class="filters-header">
+          <h3 class="filters-title">
+            <i class="fas fa-filter"></i>
+            Filters & Search
+          </h3>
+          <button class="filters-toggle" onclick="toggleAdvancedFilters()">
+            <i class="fas fa-cog"></i>
+            Advanced
+          </button>
+        </div>
+
+        <form id="filtersForm" method="GET" action="/admin/students">
+          <!-- Status Filter at Top -->
+          <div class="status-filter-section">
+            <div class="status-filter-buttons">
+              <button type="button" class="status-filter-btn <%= (currentFilters?.status === 'all' || !currentFilters?.status) ? 'active' : '' %>" onclick="setStatusFilter('all')">
+                <i class="fas fa-users"></i>
+                All Students
+                <span class="status-count"><%= analytics?.totalStudents || 0 %></span>
+              </button>
+              <button type="button" class="status-filter-btn <%= currentFilters?.status === 'active' ? 'active' : '' %>" onclick="setStatusFilter('active')">
+                <i class="fas fa-user-check"></i>
+                Active Students
+                <span class="status-count"><%= analytics?.activeStudents || 0 %></span>
+              </button>
+              <button type="button" class="status-filter-btn <%= currentFilters?.status === 'inactive' ? 'active' : '' %>" onclick="setStatusFilter('inactive')">
+                <i class="fas fa-user-times"></i>
+                Inactive Students
+                <span class="status-count"><%= (analytics?.totalStudents || 0) - (analytics?.activeStudents || 0) %></span>
+              </button>
+            </div>
+            <input type="hidden" name="status" id="statusInput" value="<%= currentFilters?.status || 'all' %>">
+          </div>
+
+          <div class="filters-grid">
+            <div class="filter-group">
+              <label class="filter-label">Search Students</label>
+              <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" name="search" class="search-input" placeholder="Name, email, username, or student code..." value="<%= currentFilters?.search || '' %>">
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Grade</label>
+              <select name="grade" class="filter-control">
+                <option value="all">All Grades</option>
+                <% if (filterOptions?.grades) { %>
+                <% filterOptions.grades.forEach(grade => { %>
+                <option value="<%= grade %>" <%= currentFilters?.grade === grade ? 'selected' : '' %>><%= grade %></option>
+                <% }) %>
+                <% } %>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Sort By</label>
+              <select name="sortBy" class="filter-control">
+                <option value="createdAt" <%= (currentFilters?.sortBy === 'createdAt' || !currentFilters?.sortBy) ? 'selected' : '' %>>Registration Date</option>
+                <option value="lastName" <%= currentFilters?.sortBy === 'lastName' ? 'selected' : '' %>>Last Name</option>
+                <option value="firstName" <%= currentFilters?.sortBy === 'firstName' ? 'selected' : '' %>>First Name</option>
+                <option value="lastLogin" <%= currentFilters?.sortBy === 'lastLogin' ? 'selected' : '' %>>Last Activity</option>
+                <option value="grade" <%= currentFilters?.sortBy === 'grade' ? 'selected' : '' %>>Grade</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Advanced Filters (Hidden by Default) -->
+          <div class="advanced-filters" id="advancedFilters">
+            <div class="filter-group">
+              <label class="filter-label">School</label>
+              <select name="school" class="filter-control">
+                <option value="all">All Schools</option>
+                <% if (filterOptions?.schools) { %>
+                <% filterOptions.schools.slice(0, 20).forEach(school => { %>
+                <option value="<%= school %>" <%= currentFilters?.school === school ? 'selected' : '' %>><%= school %></option>
+                <% }) %>
+                <% } %>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Bundle</label>
+              <select name="bundle" class="filter-control">
+                <option value="all">All Bundles</option>
+                <% if (filterOptions?.bundles) { %>
+                <% filterOptions.bundles.forEach(bundle => { %>
+                <option value="<%= bundle._id %>" <%= currentFilters?.bundle === bundle._id ? 'selected' : '' %>><%= bundle.title %></option>
+                <% }) %>
+                <% } %>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Course</label>
+              <select name="course" class="filter-control">
+                <option value="all">All Courses</option>
+                <% if (filterOptions?.courses) { %>
+                <% filterOptions.courses.forEach(course => { %>
+                <option value="<%= course._id %>" <%= currentFilters?.course === course._id ? 'selected' : '' %>><%= course.title %></option>
+                <% }) %>
+                <% } %>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Enrollment Date Range</label>
+              <div class="date-range">
+                <input type="date" name="enrollmentStart" value="<%= currentFilters?.enrollmentStart || '' %>">
+                <span>to</span>
+                <input type="date" name="enrollmentEnd" value="<%= currentFilters?.enrollmentEnd || '' %>">
+              </div>
+            </div>
+          </div>
+
+          <div class="filters-actions">
+            <button type="button" class="action-btn btn-clear" onclick="clearFilters()">
+              <i class="fas fa-times"></i>
+              Clear
+            </button>
+            <button type="submit" class="action-btn btn-apply">
+              <i class="fas fa-search"></i>
+              Apply Filters
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Students Table -->
+      <div class="students-table-container">
+        <div class="table-header">
+          <h3 class="table-title">
+            Students List
+            <% if (pagination && pagination.totalStudents) { %>
+            <span style="font-weight: 400; opacity: 0.7;">(<%= pagination.totalStudents %> total)</span>
+            <% } %>
+          </h3>
+          <div class="table-actions">
+            <button class="action-btn btn-export" onclick="exportVisible()">
+              <i class="fas fa-file-export"></i>
+              Export Visible
+            </button>
+          </div>
+        </div>
+
+        <div class="table-overflow">
+          <% if (students && students.length > 0) { %>
+          <table class="students-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Grade</th>
+                <th>School</th>
+                <th>Courses</th>
+                <th>Progress</th>
+                <th>Enrolled</th>
+                <th>Last Activity</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% students.forEach(student => { %>
+              <tr>
+                <td>
+                  <div class="student-profile">
+                    <div class="student-avatar">
+                      <%= (student.firstName?.[0] || '').toUpperCase() %><%= (student.lastName?.[0] || '').toUpperCase() %>
+                    </div>
+                    <div class="student-info">
+                      <div class="student-name">
+                        <%= student.firstName %> <%= student.lastName %>
+                      </div>
+                      <div class="student-email">
+                        <%= student.studentEmail %>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span style="font-weight: 500; color: var(--admin-primary);">
+                    <%= student.grade %>
+                  </span>
+                </td>
+                <td>
+                  <span style="font-size: 0.85rem; opacity: 0.8;">
+                    <%= student.schoolName %>
+                  </span>
+                </td>
+                <td>
+                  <div style="text-align: center;">
+                    <div style="font-weight: 600; color: var(--admin-text-light);">
+                      <%= student.analytics?.totalCourses || 0 %>
+                    </div>
+                    <div style="font-size: 0.75rem; opacity: 0.6;">
+                      <%= student.analytics?.activeCourses || 0 %> active
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress-bar-container">
+                    <div class="progress-percentage">
+                      <%= (student.analytics?.overallProgress || 0) %>%
+                    </div>
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-width="<%= (student.analytics?.overallProgress || 0) %>"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="text-align: center;">
+                    <div style="font-weight: 500; color: var(--admin-text-light);">
+                      <%= new Date(student.createdAt).toLocaleDateString() %>
+                    </div>
+                    <div style="font-size: 0.75rem; opacity: 0.6;">
+                      <%= student.analytics?.daysSinceEnrollment || 0 %> days ago
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="text-align: center;">
+                    <% if (student.analytics?.daysSinceLastActivity !== null) { %>
+                    <div style="font-weight: 500; color: var(--admin-text-light);">
+                      <%= student.analytics.daysSinceLastActivity %> days
+                    </div>
+                    <div style="font-size: 0.75rem; opacity: 0.6;">ago</div>
+                    <% } else { %>
+                    <span style="opacity: 0.5;">Never</span>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <div class="student-actions">
+                    <a href="/admin/students/<%= student._id %>" class="action-btn-sm view" title="View Details">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <button class="action-btn-sm delete" onclick="confirmDeleteStudent('<%= student._id %>', '<%= student.firstName %> <%= student.lastName %>')" title="Delete Student">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-user-graduate"></i>
+            <h3>No Students Found</h3>
+            <p>
+              <% if (currentFilters?.search || currentFilters?.status !== 'all') { %>
+              No students match your current filters. Try adjusting your search criteria.
+              <% } else { %>
+              No students have been registered yet. Students will appear here once they sign up.
+              <% } %>
+            </p>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Pagination -->
+        <% if (pagination && pagination.totalPages > 1) { %>
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing <%= ((pagination.currentPage - 1) * pagination.limit) + 1 %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalStudents) %>
+            of <%= pagination.totalStudents %> students
+          </div>
+          <div class="pagination">
+            <% if (pagination.hasPrev) { %>
+            <a href="?page=<%= pagination.currentPage - 1 %><%= buildQueryString(currentFilters) %>" class="pagination-btn">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+            <% } %>
+
+            <% 
+                                const startPage = Math.max(1, pagination.currentPage - 2);
+                                const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+                            %>
+
+            <% if (startPage > 1) { %>
+            <a href="?page=1<%= buildQueryString(currentFilters) %>" class="pagination-btn">1</a>
+            <% if (startPage > 2) { %>
+            <span class="pagination-btn" style="cursor: default;">...</span>
+            <% } %>
+            <% } %>
+
+            <% for (let i = startPage; i <= endPage; i++) { %>
+            <a href="?page=<%= i %><%= buildQueryString(currentFilters) %>" class="pagination-btn <%= i === pagination.currentPage ? 'active' : '' %>">
+              <%= i %>
+            </a>
+            <% } %>
+
+            <% if (endPage < pagination.totalPages) { %>
+            <% if (endPage < pagination.totalPages - 1) { %>
+            <span class="pagination-btn" style="cursor: default;">...</span>
+            <% } %>
+            <a href="?page=<%= pagination.totalPages %><%= buildQueryString(currentFilters) %>" class="pagination-btn"><%= pagination.totalPages %></a>
+            <% } %>
+
+            <% if (pagination.hasNext) { %>
+            <a href="?page=<%= pagination.currentPage + 1 %><%= buildQueryString(currentFilters) %>" class="pagination-btn">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+            <% } %>
+          </div>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/admin-footer') %>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script>
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        // Animate progress bars
+        animateProgressBars();
+
+        // Initialize real-time search
+        initializeRealTimeSearch();
+
+        // Initialize tooltips
+        initializeTooltips();
+      } catch (error) {
+        console.error('Error initializing page:', error);
+      }
+    });
+
+    // Toggle advanced filters
+    function toggleAdvancedFilters() {
+      const advancedFilters = document.getElementById('advancedFilters');
+      const toggle = document.querySelector('.filters-toggle');
+
+      if (advancedFilters && toggle) {
+        if (advancedFilters.classList.contains('show')) {
+          advancedFilters.classList.remove('show');
+          toggle.innerHTML = '<i class="fas fa-cog"></i> Advanced';
+        } else {
+          advancedFilters.classList.add('show');
+          toggle.innerHTML = '<i class="fas fa-times"></i> Hide Advanced';
+        }
+      }
+    }
+
+    // Clear all filters
+    function clearFilters() {
+      const form = document.getElementById('filtersForm');
+      if (!form) return;
+      
+      const inputs = form.querySelectorAll('input, select');
+
+      inputs.forEach(input => {
+        if (input.type === 'text' || input.type === 'date') {
+          input.value = '';
+        } else if (input.tagName === 'SELECT') {
+          input.selectedIndex = 0;
+        }
+      });
+
+      form.submit();
+    }
+
+    // Set status filter
+    function setStatusFilter(status) {
+      const statusInput = document.getElementById('statusInput');
+      const buttons = document.querySelectorAll('.status-filter-btn');
+      const form = document.getElementById('filtersForm');
+      
+      if (!statusInput || !form) return;
+      
+      // Update hidden input
+      statusInput.value = status;
+      
+      // Update button states
+      buttons.forEach(btn => btn.classList.remove('active'));
+      if (event && event.target) {
+        const targetBtn = event.target.closest('.status-filter-btn');
+        if (targetBtn) {
+          targetBtn.classList.add('active');
+        }
+      }
+      
+      // Submit form
+      form.submit();
+    }
+
+    // Export students with comprehensive data
+    function exportStudents() {
+      try {
+        const currentUrl = new URL(window.location);
+        currentUrl.pathname = '/admin/students/export';
+        currentUrl.searchParams.set('format', 'csv');
+        currentUrl.searchParams.set('comprehensive', 'true');
+        currentUrl.searchParams.set('includeAnalytics', 'true');
+
+        // Show loading state
+        const exportBtn = document.querySelector('.btn-export');
+        if (exportBtn) {
+          const originalText = exportBtn.innerHTML;
+          exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+          exportBtn.disabled = true;
+
+          // Reset button after a delay
+          setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+          }, 2000);
+        }
+
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = currentUrl.toString();
+        link.download = `students_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('Error exporting students:', error);
+      }
+    }
+
+    // Export visible students
+    function exportVisible() {
+      try {
+        const currentUrl = new URL(window.location);
+        const filters = Object.fromEntries(currentUrl.searchParams);
+
+        const exportUrl = new URL('/admin/students/export', window.location.origin);
+        exportUrl.searchParams.set('format', 'csv');
+        exportUrl.searchParams.set('filters', JSON.stringify(filters));
+
+        window.location.href = exportUrl.toString();
+      } catch (error) {
+        console.error('Error exporting visible students:', error);
+      }
+    }
+
+    // Show delete confirmation toast
+    function confirmDeleteStudent(studentId, studentName) {
+      showDeleteConfirmationToast(studentId, studentName);
+    }
+
+    // Show toast notification
+    function showToast(type, title, message, actions = null, customToastId = null) {
+      const toastContainer = document.getElementById('toastContainer');
+      if (!toastContainer) {
+        console.error('Toast container not found');
+        return null;
+      }
+      
+      const toastId = customToastId || 'toast-' + Date.now();
+      
+      const iconClass = {
+        'warning': 'fas fa-exclamation-triangle',
+        'success': 'fas fa-check-circle',
+        'error': 'fas fa-times-circle'
+      }[type] || 'fas fa-info-circle';
+
+      const toast = document.createElement('div');
+      if (toast) {
+        toast.className = 'toast';
+        toast.id = toastId;
+      }
+      
+      let actionsHtml = '';
+      if (actions) {
+        actionsHtml = `
+          <div class="toast-actions">
+            ${actions.map(action => 
+              `<button class="toast-btn ${action.class}" onclick="${action.onclick}" ${action.disabled ? 'disabled' : ''}>
+                ${action.loading ? '<span class="loading"></span>' : action.text}
+              </button>`
+            ).join('')}
+          </div>
+        `;
+      }
+
+      toast.innerHTML = `
+        <div class="toast-header">
+          <div class="toast-icon ${type}">
+            <i class="${iconClass}"></i>
+          </div>
+          <h4 class="toast-title">${title}</h4>
+        </div>
+        <div class="toast-message">${message}</div>
+        ${actionsHtml}
+      `;
+
+      toastContainer.appendChild(toast);
+
+      // Trigger animation
+      setTimeout(() => {
+        if (toast && toast.classList) {
+          toast.classList.add('show');
+        }
+      }, 100);
+
+      // Auto remove after 10 seconds if no actions
+      if (!actions) {
+        setTimeout(() => {
+          removeToast(toastId);
+        }, 10000);
+      }
+
+      return toastId;
+    }
+
+    // Remove toast
+    function removeToast(toastId) {
+      const toast = document.getElementById(toastId);
+      if (toast && toast.classList) {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+    }
+
+    // Show delete confirmation toast
+    function showDeleteConfirmationToast(studentId, studentName) {
+      const toastId = 'toast-' + Date.now();
+      
+      showToast('warning', 'Delete Student', 
+        `Are you sure you want to delete <strong>${studentName}</strong>? This action cannot be undone and will permanently remove all student data, progress, and enrollment records.`, 
+        [
+          {
+            text: 'Cancel',
+            class: 'cancel',
+            onclick: `removeToast('${toastId}')`
+          },
+          {
+            text: 'Delete Student',
+            class: 'confirm',
+            onclick: `deleteStudent('${studentId}', '${toastId}')`
+          }
+        ],
+        toastId
+      );
+      
+      return toastId;
+    }
+
+    // Delete student with loading state
+    function deleteStudent(studentId, toastId) {
+      const toast = document.getElementById(toastId);
+      if (!toast) return;
+
+      // Update buttons to show loading state
+      const confirmBtn = toast.querySelector('.toast-btn.confirm');
+      const cancelBtn = toast.querySelector('.toast-btn.cancel');
+      
+      if (confirmBtn) {
+        confirmBtn.classList.add('loading');
+        confirmBtn.disabled = true;
+        confirmBtn.onclick = null;
+      }
+      
+      if (cancelBtn) {
+        cancelBtn.disabled = true;
+        cancelBtn.onclick = null;
+      }
+
+      // Update toast content
+      const message = toast.querySelector('.toast-message');
+      if (message) {
+        message.innerHTML = 'Deleting student and all associated data...';
+      }
+
+      // Make delete request
+        fetch(`/admin/students/${studentId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+            // Show success toast
+            removeToast(toastId);
+            showToast('success', 'Student Deleted', 
+              `Student has been successfully deleted from the system.`, 
+              [
+                {
+                  text: 'OK',
+                  class: 'cancel',
+                  onclick: `removeToast('${toastId}')`
+                }
+              ]
+            );
+            
+            // Reload page after a short delay
+            setTimeout(() => {
+              location.reload();
+            }, 2000);
+            } else {
+            // Show error toast
+            removeToast(toastId);
+            showToast('error', 'Delete Failed', 
+              `Error deleting student: ${data.message || 'Unknown error occurred'}`, 
+              [
+                {
+                  text: 'OK',
+                  class: 'cancel',
+                  onclick: `removeToast('${toastId}')`
+                }
+              ]
+            );
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          // Show error toast
+          removeToast(toastId);
+          showToast('error', 'Delete Failed', 
+            'Network error occurred while deleting student. Please try again.', 
+            [
+              {
+                text: 'OK',
+                class: 'cancel',
+                onclick: `removeToast('${toastId}')`
+              }
+            ]
+          );
+        });
+    }
+
+    // Animate progress bars
+    function animateProgressBars() {
+      const progressBars = document.querySelectorAll('.progress-fill');
+      progressBars.forEach((bar, index) => {
+        const widthValue = bar.getAttribute('data-width') || '0';
+        const width = widthValue + '%';
+        bar.style.width = '0%';
+        setTimeout(() => {
+          bar.style.width = width;
+        }, index * 100);
+      });
+    }
+
+    // Initialize real-time search
+    function initializeRealTimeSearch() {
+      const searchInput = document.querySelector('input[name="search"]');
+      const filtersForm = document.getElementById('filtersForm');
+      let searchTimeout;
+
+      if (searchInput && filtersForm) {
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            filtersForm.submit();
+          }, 500);
+        });
+      }
+    }
+
+    // Initialize tooltips
+    function initializeTooltips() {
+      try {
+        // Add tooltips to action buttons
+        const actionButtons = document.querySelectorAll('.action-btn-sm');
+        actionButtons.forEach(button => {
+          if (button) {
+            button.addEventListener('mouseenter', function() {
+              // Simple tooltip implementation
+              const title = this.getAttribute('title');
+              if (title) {
+                const tooltip = document.createElement('div');
+                if (tooltip) {
+                  tooltip.className = 'tooltip';
+                  tooltip.textContent = title;
+                  tooltip.style.cssText = `
+                                    position: absolute;
+                                    background: rgba(0,0,0,0.8);
+                                    color: white;
+                                    padding: 4px 8px;
+                                    border-radius: 4px;
+                                    font-size: 0.75rem;
+                                    z-index: 1000;
+                                    pointer-events: none;
+                                `;
+                  document.body.appendChild(tooltip);
+
+                  const rect = this.getBoundingClientRect();
+                  tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+                  tooltip.style.top = rect.top - tooltip.offsetHeight - 5 + 'px';
+
+                  this._tooltip = tooltip;
+                }
+              }
+            });
+
+            button.addEventListener('mouseleave', function() {
+              if (this._tooltip && this._tooltip.parentNode) {
+                document.body.removeChild(this._tooltip);
+                this._tooltip = null;
+              }
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error initializing tooltips:', error);
+      }
+    }
+
+    // Helper function to build query string for pagination
+    function buildQueryString(filters) {
+      if (!filters) return '';
+
+      const params = new URLSearchParams();
+      Object.keys(filters).forEach(key => {
+        if (filters[key] && filters[key] !== 'all' && key !== 'page') {
+          params.append(key, filters[key]);
+        }
+      });
+
+      return params.toString() ? '&' + params.toString() : '';
+    }
+  </script>
+
+  <!-- Essential JavaScript Libraries -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+</body>
+
+</html>

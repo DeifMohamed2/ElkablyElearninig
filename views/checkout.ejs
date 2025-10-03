@@ -1,0 +1,504 @@
+<%- include('partials/header', { title: title }) %>
+
+<!-- Import Checkout CSS -->
+<link rel="stylesheet" href="/css/checkout.css">
+
+<!-- Checkout Page -->
+<div class="checkout-page">
+  <div class="checkout-container">
+    <!-- Breadcrumb -->
+    <nav class="checkout-breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Checkout</li>
+      </ol>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="checkout-content">
+      <!-- Checkout Form -->
+      <div class="checkout-form-card">
+        <div class="checkout-form-header">
+          <h2 class="checkout-form-title">
+            <i class="fas fa-credit-card"></i>
+            Checkout
+          </h2>
+          <p class="checkout-form-subtitle">
+            Complete your purchase and start learning today!
+          </p>
+        </div>
+
+        <form id="checkoutForm" class="checkout-form">
+          <!-- Billing Information -->
+          <div class="checkout-form-section">
+            <h3 class="checkout-section-title">
+              <i class="fas fa-user"></i>
+              Billing Information
+            </h3>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="checkout-form-group">
+                  <label for="firstName" class="checkout-form-label">First Name *</label>
+                  <input type="text" id="firstName" name="firstName" class="checkout-form-control" 
+                         value="<%= user.firstName %>" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="checkout-form-group">
+                  <label for="lastName" class="checkout-form-label">Last Name *</label>
+                  <input type="text" id="lastName" name="lastName" class="checkout-form-control" 
+                         value="<%= user.lastName %>" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="checkout-form-group">
+                  <label for="email" class="checkout-form-label">Email Address *</label>
+                  <input type="email" id="email" name="email" class="checkout-form-control" 
+                         value="<%= user.studentEmail %>" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="checkout-form-group">
+                  <label for="phone" class="checkout-form-label">Phone Number *</label>
+                  <input type="tel" id="phone" name="phone" class="checkout-form-control" 
+                         value="<%= user.parentCountryCode %><%= user.parentNumber %>" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="checkout-form-group">
+              <label for="address" class="checkout-form-label">Address *</label>
+              <input type="text" id="address" name="address" class="checkout-form-control" 
+                     placeholder="Street address" required>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-4">
+                <div class="checkout-form-group">
+                  <label for="city" class="checkout-form-label">City *</label>
+                  <input type="text" id="city" name="city" class="checkout-form-control" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="checkout-form-group">
+                  <label for="state" class="checkout-form-label">State/Province *</label>
+                  <input type="text" id="state" name="state" class="checkout-form-control" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="checkout-form-group">
+                  <label for="zipCode" class="checkout-form-label">ZIP/Postal Code *</label>
+                  <input type="text" id="zipCode" name="zipCode" class="checkout-form-control" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="checkout-form-group">
+              <label for="country" class="checkout-form-label">Country *</label>
+              <select id="country" name="country" class="checkout-form-control" required>
+                <option value="">Select Country</option>
+                <option value="Saudi Arabia">Saudi Arabia</option>
+                <option value="Egypt">Egypt</option>
+                <option value="UAE">United Arab Emirates</option>
+                <option value="Kuwait">Kuwait</option>
+                <option value="USA">United States</option>
+                <option value="UK">United Kingdom</option>
+                <option value="Canada">Canada</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="checkout-form-section">
+            <h3 class="checkout-section-title">
+              <i class="fas fa-credit-card"></i>
+              Payment Method
+            </h3>
+            
+            <div class="checkout-payment-methods">
+              <div class="checkout-payment-option">
+                <input type="radio" id="creditCard" name="paymentMethod" value="credit_card" checked>
+                <label for="creditCard" class="checkout-payment-label">
+                  <div class="checkout-payment-icon">
+                    <i class="fas fa-credit-card"></i>
+                  </div>
+                  <div class="checkout-payment-info">
+                    <span class="checkout-payment-name">Credit/Debit Card</span>
+                    <span class="checkout-payment-desc">Visa, Mastercard, American Express</span>
+                  </div>
+                </label>
+              </div>
+              
+              <div class="checkout-payment-option">
+                <input type="radio" id="mobileWallet" name="paymentMethod" value="mobile_wallet">
+                <label for="mobileWallet" class="checkout-payment-label">
+                  <div class="checkout-payment-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                  </div>
+                  <div class="checkout-payment-info">
+                    <span class="checkout-payment-name">Mobile Wallet</span>
+                    <span class="checkout-payment-desc">Vodafone Cash, Orange Money, Etisalat Cash</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Summary -->
+          <div class="checkout-form-section">
+            <h3 class="checkout-section-title">
+              <i class="fas fa-shopping-bag"></i>
+              Order Summary
+            </h3>
+            
+            <div class="checkout-order-items">
+              <% cart.forEach(item => { %>
+              <div class="checkout-order-item">
+                <div class="checkout-order-item-media">
+                  <img src="<%= item.image %>" alt="<%= item.title %>">
+                  <div class="checkout-order-item-badge">
+                    <i class="fas fa-<%= item.type === 'bundle' ? 'box' : 'book' %>"></i>
+                  </div>
+                </div>
+                <div class="checkout-order-item-details">
+                  <h4 class="checkout-order-item-title"><%= item.title %></h4>
+                  <span class="checkout-order-item-type"><%= item.type === 'bundle' ? 'Course Bundle' : 'Individual Course' %></span>
+                </div>
+                <div class="checkout-order-item-price">
+                  $<%= item.price.toFixed(2) %>
+                </div>
+              </div>
+              <% }); %>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="checkout-form-actions">
+            <button type="submit" class="checkout-btn-process" id="processPaymentBtn">
+              <i class="fas fa-lock"></i>
+              <span class="checkout-btn-text">Process Payment</span>
+              <div class="checkout-btn-loading" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i>
+              </div>
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Checkout Summary -->
+      <div class="checkout-summary-card">
+        <div class="checkout-summary-header">
+          <h3 class="checkout-summary-title">
+            <i class="fas fa-shopping-bag"></i>
+            Order Summary
+          </h3>
+        </div>
+        
+        <div class="checkout-summary-content">
+          <div class="checkout-summary-row">
+            <span class="checkout-summary-label">Subtotal:</span>
+            <span class="checkout-summary-value">$<%= subtotal.toFixed(2) %></span>
+          </div>
+          <div class="checkout-summary-row">
+            <span class="checkout-summary-label">Tax (10%):</span>
+            <span class="checkout-summary-value">$<%= tax.toFixed(2) %></span>
+          </div>
+          <div class="checkout-summary-row checkout-summary-total">
+            <span class="checkout-summary-label">Total:</span>
+            <span class="checkout-summary-value">$<%= total.toFixed(2) %></span>
+          </div>
+        </div>
+        
+        <div class="checkout-summary-guarantees">
+          <div class="checkout-guarantee-item">
+            <i class="fas fa-shield-alt"></i>
+            <span>30-Day Money Back Guarantee</span>
+          </div>
+          <div class="checkout-guarantee-item">
+            <i class="fas fa-lock"></i>
+            <span>Secure Payment Processing</span>
+          </div>
+          <div class="checkout-guarantee-item">
+            <i class="fas fa-headset"></i>
+            <span>24/7 Customer Support</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const checkoutForm = document.getElementById('checkoutForm');
+  const processPaymentBtn = document.getElementById('processPaymentBtn');
+  
+  checkoutForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Show loading state
+    processPaymentBtn.disabled = true;
+    processPaymentBtn.classList.add('loading');
+    
+    try {
+      // Collect form data
+      const formData = new FormData(checkoutForm);
+      const billingAddress = {
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        address: formData.get('address'),
+        city: formData.get('city'),
+        state: formData.get('state'),
+        zipCode: formData.get('zipCode'),
+        country: formData.get('country')
+      };
+      
+      const paymentMethod = formData.get('paymentMethod');
+      
+      // Process payment
+      const response = await fetch('/purchase/checkout/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentMethod,
+          billingAddress
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        showNotification('Payment processed successfully!', 'success');
+        // Show order summary directly on the same page
+        showOrderSummary(data.purchase);
+      } else {
+        showNotification(data.message, 'error');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('Error processing payment. Please try again.', 'error');
+    } finally {
+      // Reset button state
+      processPaymentBtn.disabled = false;
+      processPaymentBtn.classList.remove('loading');
+    }
+  });
+});
+
+// Show notification
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `checkout-notification checkout-notification-${type}`;
+  notification.innerHTML = `
+    <div class="checkout-notification-content">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => notification.classList.add('show'), 100);
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 5000);
+}
+
+// Show order summary directly on checkout page
+function showOrderSummary(purchaseData) {
+  // Hide the checkout form
+  const checkoutForm = document.getElementById('checkoutForm');
+  const checkoutSummary = document.querySelector('.checkout-summary-card');
+  
+  if (checkoutForm) checkoutForm.style.display = 'none';
+  if (checkoutSummary) checkoutSummary.style.display = 'none';
+  
+  // Create order summary section
+  const orderSummaryHTML = `
+    <div class="checkout-order-summary-success">
+      <!-- Success Header -->
+      <div class="checkout-success-header">
+        <div class="checkout-success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h1 class="checkout-success-title">Payment Successful!</h1>
+        <p class="checkout-success-message">
+          Thank you for your purchase. Your order has been processed successfully and you now have access to your courses.
+        </p>
+      </div>
+
+      <!-- Order Details -->
+      <div class="checkout-order-details">
+        <div class="checkout-order-info">
+          <h2 class="checkout-order-info-title">
+            <i class="fas fa-receipt"></i>
+            Order Details
+          </h2>
+          
+          <div class="checkout-order-meta">
+            <div class="checkout-meta-item">
+              <span class="checkout-meta-label">Order Number:</span>
+              <span class="checkout-meta-value">${purchaseData.orderNumber}</span>
+            </div>
+            <div class="checkout-meta-item">
+              <span class="checkout-meta-label">Order Date:</span>
+              <span class="checkout-meta-value">${new Date().toLocaleDateString()}</span>
+            </div>
+            <div class="checkout-meta-item">
+              <span class="checkout-meta-label">Payment Status:</span>
+              <span class="checkout-meta-value checkout-status-completed">
+                <i class="fas fa-check-circle"></i>
+                Completed
+              </span>
+            </div>
+            <div class="checkout-meta-item">
+              <span class="checkout-meta-label">Payment Method:</span>
+              <span class="checkout-meta-value">
+                <i class="fas fa-${purchaseData.paymentMethod === 'mobile_wallet' ? 'mobile-alt' : 'credit-card'}"></i>
+                ${purchaseData.paymentMethod === 'mobile_wallet' ? 'Mobile Wallet' : 'Credit/Debit Card'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Purchased Items -->
+        <div class="checkout-purchased-items">
+          <h3 class="checkout-items-title">
+            <i class="fas fa-shopping-bag"></i>
+            Purchased Items
+          </h3>
+          
+          <div class="checkout-items-list">
+            ${purchaseData.items.map(item => `
+            <div class="checkout-purchased-item">
+              <div class="checkout-item-media">
+                <img src="${item.image || '/images/adad.png'}" alt="${item.title}">
+                <div class="checkout-item-badge">
+                  <i class="fas fa-${item.type === 'bundle' ? 'box' : 'book'}"></i>
+                </div>
+              </div>
+              
+              <div class="checkout-item-details">
+                <h4 class="checkout-item-title">${item.title}</h4>
+                <span class="checkout-item-type">${item.type === 'bundle' ? 'Course Bundle' : 'Individual Course'}</span>
+                <div class="checkout-item-description">
+                  ${item.type === 'bundle' ? 'Multiple courses included' : 'Premium course content'}
+                </div>
+              </div>
+              
+              <div class="checkout-item-price">
+                $${item.price.toFixed(2)}
+              </div>
+            </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Order Total -->
+        <div class="checkout-order-total">
+          <h3 class="checkout-total-title">
+            <i class="fas fa-calculator"></i>
+            Order Total
+          </h3>
+          
+          <div class="checkout-total-breakdown">
+            <div class="checkout-total-row">
+              <span class="checkout-total-label">Subtotal:</span>
+              <span class="checkout-total-value">$${purchaseData.subtotal.toFixed(2)}</span>
+            </div>
+            <div class="checkout-total-row">
+              <span class="checkout-total-label">Tax (10%):</span>
+              <span class="checkout-total-value">$${purchaseData.tax.toFixed(2)}</span>
+            </div>
+            <div class="checkout-total-row checkout-total-final">
+              <span class="checkout-total-label">Total Paid:</span>
+              <span class="checkout-total-value">$${purchaseData.total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next Steps -->
+      <div class="checkout-next-steps">
+        <h3 class="checkout-steps-title">
+          <i class="fas fa-arrow-right"></i>
+          What's Next?
+        </h3>
+        
+        <div class="checkout-steps-list">
+          <div class="checkout-step-item">
+            <div class="checkout-step-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="checkout-step-content">
+              <h4 class="checkout-step-title">Check Your Email</h4>
+              <p class="checkout-step-description">
+                We've sent you a confirmation email with your order details and course access information.
+              </p>
+            </div>
+          </div>
+          
+          <div class="checkout-step-item">
+            <div class="checkout-step-icon">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="checkout-step-content">
+              <h4 class="checkout-step-title">Access Your Courses</h4>
+              <p class="checkout-step-description">
+                Your purchased courses are now available in your student dashboard. Start learning right away!
+              </p>
+            </div>
+          </div>
+          
+          <div class="checkout-step-item">
+            <div class="checkout-step-icon">
+              <i class="fas fa-headset"></i>
+            </div>
+            <div class="checkout-step-content">
+              <h4 class="checkout-step-title">Get Support</h4>
+              <p class="checkout-step-description">
+                Need help? Our support team is available 24/7 to assist you with any questions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="checkout-action-buttons">
+        <a href="/student/dashboard" class="checkout-btn-primary">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Go to Dashboard</span>
+        </a>
+        <a href="/student/enrolled-courses" class="checkout-btn-secondary">
+          <i class="fas fa-book"></i>
+          <span>View My Courses</span>
+        </a>
+        <a href="/purchase/purchase-history" class="checkout-btn-outline">
+          <i class="fas fa-history"></i>
+          <span>Purchase History</span>
+        </a>
+      </div>
+    </div>
+  `;
+  
+  // Insert the order summary
+  const container = document.querySelector('.checkout-container');
+  if (container) {
+    container.innerHTML = orderSummaryHTML;
+  }
+}
+</script>
+
+
+<%- include('partials/footer') %>

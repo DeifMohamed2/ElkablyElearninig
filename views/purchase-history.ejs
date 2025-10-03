@@ -1,0 +1,615 @@
+<%- include('partials/header', { title: title }) %>
+
+<!-- Floating Math Elements -->
+<div class="floating-math-elements-professor" id="floatingMath">
+  <div class="math-element-professor" data-equation="∂">∂</div>
+  <div class="math-element-professor" data-equation="∇">∇</div>
+  <div class="math-element-professor" data-equation="∫">∫</div>
+  <div class="math-element-professor" data-equation="∑">∑</div>
+  <div class="math-element-professor" data-equation="∏">∏</div>
+  <div class="math-element-professor" data-equation="∞">∞</div>
+  <div class="math-element-professor" data-equation="∃">∃</div>
+  <div class="math-element-professor" data-equation="∀">∀</div>
+  <div class="math-element-professor" data-equation="ℝ">ℝ</div>
+  <div class="math-element-professor" data-equation="ℂ">ℂ</div>
+</div>
+
+<!-- Purchase History Section -->
+<section class="purchase-history-section" style="padding: 80px 0;">
+  <div class="container">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb-nav mb-4">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Purchase History</li>
+      </ol>
+    </nav>
+
+    <div class="purchase-history-header">
+      <h1 class="page-title">
+        <i class="fas fa-history"></i>
+        Purchase History
+      </h1>
+      <p class="page-subtitle">
+        View all your course and bundle purchases
+      </p>
+    </div>
+
+    <% if (purchases.length > 0) { %>
+      <div class="purchases-grid">
+        <% purchases.forEach(purchase => { %>
+        <div class="purchase-card">
+          <div class="purchase-header">
+            <div class="purchase-info">
+              <h3 class="purchase-order-number">
+                <i class="fas fa-receipt"></i>
+                <%= purchase.orderNumber %>
+              </h3>
+              <div class="purchase-date">
+                <i class="fas fa-calendar"></i>
+                <%= new Date(purchase.createdAt).toLocaleDateString() %>
+              </div>
+            </div>
+            <div class="purchase-status">
+              <span class="status-badge status-<%= purchase.status %>">
+                <i class="fas fa-<%= purchase.status === 'completed' ? 'check-circle' : purchase.status === 'pending' ? 'clock' : 'exclamation-circle' %>"></i>
+                <%= purchase.statusDisplay %>
+              </span>
+            </div>
+          </div>
+
+          <div class="purchase-items">
+            <% purchase.items.forEach(item => { %>
+            <div class="purchase-item">
+              <div class="item-media">
+                <img src="<%= item.item.thumbnail || '/images/adad.png' %>" alt="<%= item.title %>">
+                <div class="item-badge">
+                  <i class="fas fa-<%= item.itemType === 'bundle' ? 'box' : 'book' %>"></i>
+                </div>
+              </div>
+              <div class="item-details">
+                <h4 class="item-title"><%= item.title %></h4>
+                <span class="item-type"><%= item.itemType === 'bundle' ? 'Course Bundle' : 'Individual Course' %></span>
+                <% if (item.itemType === 'bundle') { %>
+                  <div class="item-info">
+                    <%= item.item.courses ? item.item.courses.length : 0 %> courses included
+                  </div>
+                <% } else { %>
+                  <div class="item-info">
+                    <%= item.item.duration || 'N/A' %> hours of content
+                  </div>
+                <% } %>
+              </div>
+              <div class="item-price">
+                $<%= item.price.toFixed(2) %>
+              </div>
+            </div>
+            <% }); %>
+          </div>
+
+          <div class="purchase-summary">
+            <div class="summary-row">
+              <span class="summary-label">Subtotal:</span>
+              <span class="summary-value">$<%= purchase.subtotal.toFixed(2) %></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Tax:</span>
+              <span class="summary-value">$<%= purchase.tax.toFixed(2) %></span>
+            </div>
+            <div class="summary-row summary-total">
+              <span class="summary-label">Total:</span>
+              <span class="summary-value">$<%= purchase.total.toFixed(2) %></span>
+            </div>
+          </div>
+
+          <div class="purchase-actions">
+            <% if (purchase.status === 'completed') { %>
+              <a href="/student/enrolled-courses" class="btn-access-courses">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Access Courses</span>
+              </a>
+            <% } %>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+
+      <!-- Pagination -->
+      <% if (pagination.totalPages > 1) { %>
+      <div class="pagination-container">
+        <nav class="pagination-nav">
+          <ul class="pagination">
+            <% if (pagination.hasPrev) { %>
+              <li class="page-item">
+                <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>">
+                  <i class="fas fa-chevron-left"></i>
+                  Previous
+                </a>
+              </li>
+            <% } %>
+            
+            <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+              <% if (i === pagination.currentPage) { %>
+                <li class="page-item active">
+                  <span class="page-link"><%= i %></span>
+                </li>
+              <% } else { %>
+                <li class="page-item">
+                  <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                </li>
+              <% } %>
+            <% } %>
+            
+            <% if (pagination.hasNext) { %>
+              <li class="page-item">
+                <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>">
+                  Next
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
+            <% } %>
+          </ul>
+        </nav>
+        
+        <div class="pagination-info">
+          Showing page <%= pagination.currentPage %> of <%= pagination.totalPages %> 
+          (<%= pagination.totalPurchases %> total purchases)
+        </div>
+      </div>
+      <% } %>
+    <% } else { %>
+      <div class="no-purchases">
+        <div class="no-purchases-content">
+          <div class="no-purchases-icon">
+            <i class="fas fa-shopping-bag"></i>
+          </div>
+          <h3>No Purchases Yet</h3>
+          <p>You haven't made any purchases yet. Start your learning journey by browsing our courses!</p>
+          <div class="no-purchases-actions">
+            <a href="/courses/online" class="btn-primary">
+              <i class="fas fa-laptop-code"></i>
+              <span>Browse Online Courses</span>
+            </a>
+            <a href="/courses/onground" class="btn-secondary">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>Browse On-Ground Courses</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<style>
+.purchase-history-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.purchase-history-header {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2rem;
+  border-radius: 15px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.page-title i {
+  color: #3498db;
+  margin-right: 1rem;
+}
+
+.page-subtitle {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+}
+
+.purchases-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.purchase-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.purchase-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.purchase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.purchase-order-number {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.purchase-order-number i {
+  color: #3498db;
+}
+
+.purchase-date {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.purchase-date i {
+  color: #95a5a6;
+}
+
+.status-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-completed {
+  background: #d5f4e6;
+  color: #27ae60;
+}
+
+.status-pending {
+  background: #fef5e7;
+  color: #f39c12;
+}
+
+.status-failed {
+  background: #fdeaea;
+  color: #e74c3c;
+}
+
+.purchase-items {
+  margin-bottom: 1.5rem;
+}
+
+.purchase-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.purchase-item:last-child {
+  margin-bottom: 0;
+}
+
+.item-media {
+  position: relative;
+  margin-right: 1rem;
+}
+
+.item-media img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.item-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #3498db;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+.item-details {
+  flex: 1;
+}
+
+.item-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+.item-type {
+  font-size: 0.8rem;
+  color: #3498db;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.item-info {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.item-price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #27ae60;
+}
+
+.purchase-summary {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-total {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2c3e50;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 2px solid #3498db;
+}
+
+.summary-label {
+  color: #7f8c8d;
+}
+
+.summary-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.purchase-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+and .btn-access-courses {
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  flex: 1;
+  justify-content: center;
+  min-width: 150px;
+  background: #3498db;
+  color: white;
+}
+
+.btn-access-courses:hover {
+  background: #2980b9;
+  color: white;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.pagination-container {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-nav {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.pagination {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.5rem;
+}
+
+.page-item {
+  display: flex;
+}
+
+.page-link {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #3498db;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-link:hover {
+  background: #3498db;
+  color: white;
+  text-decoration: none;
+}
+
+.page-item.active .page-link {
+  background: #3498db;
+  color: white;
+}
+
+.pagination-info {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.no-purchases {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 4rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.no-purchases-icon {
+  font-size: 4rem;
+  color: #bdc3c7;
+  margin-bottom: 1.5rem;
+}
+
+.no-purchases h3 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.no-purchases p {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.no-purchases-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+  color: white;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: white;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+  color: white;
+  text-decoration: none;
+}
+
+.breadcrumb-nav {
+  margin-bottom: 2rem;
+}
+
+.breadcrumb {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.breadcrumb-item a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: #7f8c8d;
+}
+
+@media (max-width: 768px) {
+  .purchase-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .purchase-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .item-media {
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .purchase-actions {
+    flex-direction: column;
+  }
+  
+  .no-purchases-actions {
+    flex-direction: column;
+  }
+  
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+
+<%- include('partials/footer') %>

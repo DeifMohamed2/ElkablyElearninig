@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/profile.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Settings - Customize your learning experience">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- Custom Styles -->
+    <style>
+        .settings-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .settings-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .settings-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .settings-header-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+        
+        .settings-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 0 var(--spacing-sm) 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .settings-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .settings-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .settings-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .settings-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .settings-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .settings-card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+            font-size: 1rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+        
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right var(--spacing-sm) center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: var(--spacing-xl);
+        }
+        
+        .theme-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .theme-option {
+            position: relative;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            transition: all 0.3s ease;
+            background: var(--bg-secondary);
+            text-align: center;
+        }
+        
+        .theme-option:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .theme-option.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .theme-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .theme-option-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-sm);
+            display: block;
+        }
+        
+        .theme-option-label {
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        
+        .notification-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-lg);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-md);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+        
+        .notification-item:hover {
+            background: var(--bg-card);
+            transform: translateX(4px);
+        }
+        
+        .notification-info {
+            flex: 1;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+            font-size: 1rem;
+        }
+        
+        .notification-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 30px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+        
+        .btn {
+            padding: var(--spacing-md) var(--spacing-xl);
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+        
+        .btn-outline:hover {
+            background: var(--bg-secondary);
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .danger-zone {
+            background: rgba(239, 68, 68, 0.05);
+            border: 2px solid rgba(239, 68, 68, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-top: var(--spacing-xl);
+        }
+        
+        .danger-zone h3 {
+            color: var(--danger-color);
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-2xl);
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-2xl);
+            border: 1px solid var(--border-color);
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        .modal-header {
+            margin-bottom: var(--spacing-xl);
+            text-align: center;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-sm) 0;
+        }
+        
+        .modal-body {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideInUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .success-animation {
+            animation: successPulse 0.6s ease-in-out;
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        @media (max-width: 768px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .settings-header h1 {
+                font-size: 2rem;
+            }
+            
+            .theme-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .notification-item {
+                flex-direction: column;
+                gap: var(--spacing-md);
+                text-align: center;
+            }
+            
+            .modal-content {
+                margin: var(--spacing-md);
+                padding: var(--spacing-xl);
+            }
+        }
+    </style>
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'settings', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: title, student: student, theme: theme, currentPage: 'settings' }) %>
+            
+            <!-- Settings Content -->
+            <div class="student-content">
+                <div class="settings-container">
+                    <!-- Settings Header -->
+                    <div class="settings-header">
+                        <div class="settings-header-content">
+                            <h1><i class="fas fa-cog" style="margin-right: var(--spacing-md);"></i>Settings</h1>
+                            <p>Customize your learning experience and manage your preferences</p>
+                        </div>
+                    </div>
+
+                    <!-- Settings Grid -->
+                    <div class="settings-grid">
+                        <!-- Appearance Settings -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-icon" style="background: var(--primary-color);">
+                                    <i class="fas fa-palette"></i>
+                                </div>
+                                <h3 class="settings-card-title">Appearance</h3>
+                            </div>
+                            
+                            <form id="appearanceForm">
+                                <div class="form-group">
+                                    <label class="form-label">Theme</label>
+                                    <div class="theme-options">
+                                        <label class="theme-option <%= (student.preferences?.theme || 'light') === 'light' ? 'selected' : '' %>">
+                                            <input type="radio" name="theme" value="light" <%= (student.preferences?.theme || 'light') === 'light' ? 'checked' : '' %>>
+                                            <i class="fas fa-sun theme-option-icon"></i>
+                                            <span class="theme-option-label">Light</span>
+                                        </label>
+                                        <label class="theme-option <%= (student.preferences?.theme || 'light') === 'dark' ? 'selected' : '' %>">
+                                            <input type="radio" name="theme" value="dark" <%= (student.preferences?.theme || 'light') === 'dark' ? 'checked' : '' %>>
+                                            <i class="fas fa-moon theme-option-icon"></i>
+                                            <span class="theme-option-label">Dark</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="saveAppearanceSettings()">
+                                    <i class="fas fa-save"></i>
+                                    Save Appearance Settings
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Notification Settings -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-icon" style="background: var(--warning-color);">
+                                    <i class="fas fa-bell"></i>
+                                </div>
+                                <h3 class="settings-card-title">Notifications</h3>
+                            </div>
+                            
+                            <form id="notificationForm">
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <div class="notification-title">Email Notifications</div>
+                                        <div class="notification-description">Receive email updates about your courses and activities</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" name="email" <%= student.preferences?.notifications?.email ? 'checked' : '' %>>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <div class="notification-title">Quiz Reminders</div>
+                                        <div class="notification-description">Get reminded about upcoming quizzes and deadlines</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" name="quizReminders" <%= student.preferences?.notifications?.quizReminders ? 'checked' : '' %>>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <div class="notification-title">Course Updates</div>
+                                        <div class="notification-description">Receive notifications when courses are updated</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" name="courseUpdates" <%= student.preferences?.notifications?.courseUpdates ? 'checked' : '' %>>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <button type="button" class="btn btn-primary" onclick="saveNotificationSettings()" style="margin-top: var(--spacing-lg);">
+                                    <i class="fas fa-save"></i>
+                                    Save Notification Settings
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Language Settings -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-icon" style="background: var(--info-color);">
+                                    <i class="fas fa-language"></i>
+                                </div>
+                                <h3 class="settings-card-title">Language & Region</h3>
+                            </div>
+                            
+                            <form id="languageForm">
+                                <div class="form-group">
+                                    <label class="form-label">Language</label>
+                                    <select name="language" class="form-control form-select">
+                                        <option value="en" <%= (student.preferences?.language || 'en') === 'en' ? 'selected' : '' %>>English</option>
+                                        <option value="ar" <%= (student.preferences?.language || 'en') === 'ar' ? 'selected' : '' %>>العربية</option>
+                                        <option value="fr" <%= (student.preferences?.language || 'en') === 'fr' ? 'selected' : '' %>>Français</option>
+                                        <option value="es" <%= (student.preferences?.language || 'en') === 'es' ? 'selected' : '' %>>Español</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="saveLanguageSettings()">
+                                    <i class="fas fa-save"></i>
+                                    Save Language Settings
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Privacy & Security Settings -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-icon" style="background: var(--success-color);">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <h3 class="settings-card-title">Privacy & Security</h3>
+                            </div>
+                            
+                            <div style="display: grid; gap: var(--spacing-lg);">
+                                <div style="padding: var(--spacing-lg); background-color: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+                                    <h4 style="color: var(--text-primary); margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                                        <i class="fas fa-lock" style="color: var(--danger-color);"></i>
+                                        Change Password
+                                    </h4>
+                                    <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md); font-size: 0.875rem; line-height: 1.4;">
+                                        Update your password to keep your account secure.
+                                    </p>
+                                    <button class="btn btn-outline" onclick="showChangePasswordModal()">
+                                        <i class="fas fa-key"></i>
+                                        Change Password
+                                    </button>
+                                </div>
+
+                                <div style="padding: var(--spacing-lg); background-color: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+                                    <h4 style="color: var(--text-primary); margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                                        <i class="fas fa-download" style="color: var(--info-color);"></i>
+                                        Data Export
+                                    </h4>
+                                    <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md); font-size: 0.875rem; line-height: 1.4;">
+                                        Download a copy of your learning data and progress.
+                                    </p>
+                                    <button class="btn btn-outline" onclick="exportData()">
+                                        <i class="fas fa-file-export"></i>
+                                        Export Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="danger-zone">
+                        <h3>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Danger Zone
+                        </h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg); font-size: 0.875rem; line-height: 1.4;">
+                            Permanently delete your account and all associated data. This action cannot be undone and will remove all your learning progress, achievements, and course enrollments.
+                        </p>
+                        <button class="btn btn-danger" onclick="showDeleteAccountModal()">
+                            <i class="fas fa-trash"></i>
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-key" style="margin-right: var(--spacing-sm); color: var(--primary-color);"></i>
+                    Change Password
+                </h3>
+                <p style="color: var(--text-secondary); margin: 0;">Update your password to keep your account secure</p>
+            </div>
+            
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" name="currentPassword" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="newPassword" class="form-control" required minlength="6">
+                        <small style="color: var(--text-muted); font-size: 0.75rem;">Password must be at least 6 characters long</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" name="confirmPassword" class="form-control" required minlength="6">
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="hideChangePasswordModal()">Cancel</button>
+                <button type="submit" form="changePasswordForm" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Change Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Theme selection handling
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle theme option clicks
+            const themeOptions = document.querySelectorAll('.theme-option');
+            themeOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove selected class from all options
+                    themeOptions.forEach(opt => opt.classList.remove('selected'));
+                    // Add selected class to clicked option
+                    this.classList.add('selected');
+                    // Update radio button
+                    this.querySelector('input[type="radio"]').checked = true;
+                });
+            });
+        });
+
+        // Save appearance settings
+        async function saveAppearanceSettings() {
+            const form = document.getElementById('appearanceForm');
+            const formData = new FormData(form);
+            const theme = formData.get('theme');
+
+            if (!theme) {
+                showNotification('Please select a theme', 'error');
+                return;
+            }
+
+            const saveBtn = event.target;
+            const originalContent = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/settings/update', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ theme })
+                });
+
+                if (response.ok) {
+                    // Update theme immediately
+                    document.body.classList.remove('light-theme', 'dark-theme');
+                    document.body.classList.add(theme + '-theme');
+                    document.cookie = `theme=${theme}; max-age=${30 * 24 * 60 * 60}; path=/`;
+                    
+                    showNotification('Appearance settings saved successfully', 'success');
+                    
+                    // Add success animation
+                    document.querySelector('.settings-card').classList.add('success-animation');
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to save appearance settings');
+                }
+            } catch (error) {
+                console.error('Error saving appearance settings:', error);
+                showNotification(error.message || 'Error saving appearance settings', 'error');
+            } finally {
+                saveBtn.innerHTML = originalContent;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Save notification settings
+        async function saveNotificationSettings() {
+            const form = document.getElementById('notificationForm');
+            const formData = new FormData(form);
+            const notifications = {
+                email: formData.get('email') === 'on',
+                quizReminders: formData.get('quizReminders') === 'on',
+                courseUpdates: formData.get('courseUpdates') === 'on'
+            };
+
+            const saveBtn = event.target;
+            const originalContent = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/settings/update', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ notifications })
+                });
+
+                if (response.ok) {
+                    showNotification('Notification settings saved successfully', 'success');
+                    document.querySelector('.settings-card').classList.add('success-animation');
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to save notification settings');
+                }
+            } catch (error) {
+                console.error('Error saving notification settings:', error);
+                showNotification(error.message || 'Error saving notification settings', 'error');
+            } finally {
+                saveBtn.innerHTML = originalContent;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Save language settings
+        async function saveLanguageSettings() {
+            const form = document.getElementById('languageForm');
+            const formData = new FormData(form);
+            const language = formData.get('language');
+
+            const saveBtn = event.target;
+            const originalContent = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/settings/update', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ language })
+                });
+
+                if (response.ok) {
+                    showNotification('Language settings saved successfully', 'success');
+                    document.querySelector('.settings-card').classList.add('success-animation');
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to save language settings');
+                }
+            } catch (error) {
+                console.error('Error saving language settings:', error);
+                showNotification(error.message || 'Error saving language settings', 'error');
+            } finally {
+                saveBtn.innerHTML = originalContent;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Show change password modal
+        function showChangePasswordModal() {
+            const modal = document.getElementById('changePasswordModal');
+            modal.classList.add('show');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Hide change password modal
+        function hideChangePasswordModal() {
+            const modal = document.getElementById('changePasswordModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            document.getElementById('changePasswordForm').reset();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('changePasswordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideChangePasswordModal();
+            }
+        });
+
+        // Change password form submission
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const currentPassword = formData.get('currentPassword');
+            const newPassword = formData.get('newPassword');
+            const confirmPassword = formData.get('confirmPassword');
+
+            // Validation
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showNotification('New passwords do not match', 'error');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showNotification('Password must be at least 6 characters long', 'error');
+                return;
+            }
+
+            const submitBtn = document.querySelector('button[form="changePasswordForm"]');
+            if (!submitBtn) {
+                showNotification('Form submission error', 'error');
+                return;
+            }
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Changing...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/settings/change-password', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+
+                const responseData = await response.json();
+
+                if (response.ok) {
+                    showNotification('Password changed successfully', 'success');
+                    hideChangePasswordModal();
+                } else {
+                    throw new Error(responseData.message || 'Failed to change password');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showNotification(error.message || 'Error changing password', 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                }
+            }
+        });
+
+        // Export data
+        async function exportData() {
+            const exportBtn = event.target;
+            const originalContent = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Exporting...';
+            exportBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/settings/export-data');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `elkably-learning-data-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showNotification('Data exported successfully', 'success');
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to export data');
+                }
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                showNotification(error.message || 'Error exporting data', 'error');
+            } finally {
+                exportBtn.innerHTML = originalContent;
+                exportBtn.disabled = false;
+            }
+        }
+
+        // Show delete account modal
+        function showDeleteAccountModal() {
+            const confirmation = confirm('⚠️ WARNING: This action is irreversible!\n\nAre you sure you want to delete your account? This will permanently remove:\n\n• All your learning progress\n• Course enrollments\n• Quiz results and achievements\n• Personal data\n\nType "DELETE" in the next prompt to confirm.');
+            
+            if (confirmation) {
+                const finalConfirmation = prompt('This is your final warning. Type "DELETE" exactly to confirm account deletion:');
+                if (finalConfirmation === 'DELETE') {
+                    deleteAccount();
+                } else {
+                    showNotification('Account deletion cancelled', 'info');
+                }
+            }
+        }
+
+        // Delete account
+        async function deleteAccount() {
+            const deleteBtn = event.target;
+            const originalContent = deleteBtn.innerHTML;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Deleting...';
+            deleteBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/settings/delete-account', {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('Account deleted successfully. Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/auth/login';
+                    }, 2000);
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to delete account');
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                showNotification(error.message || 'Error deleting account', 'error');
+            } finally {
+                deleteBtn.innerHTML = originalContent;
+                deleteBtn.disabled = false;
+            }
+        }
+
+        // Enhanced notification system
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => notification.remove());
+
+            const notification = document.createElement('div');
+            notification.className = `notification alert alert-${type === 'error' ? 'danger' : type}`;
+            
+            const colors = {
+                success: 'var(--success-color)',
+                error: 'var(--danger-color)',
+                info: 'var(--info-color)',
+                warning: 'var(--warning-color)'
+            };
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                max-width: 400px;
+                padding: var(--spacing-lg);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-xl);
+                background: var(--bg-card);
+                border-left: 4px solid ${colors[type] || colors.info};
+                animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                backdrop-filter: blur(10px);
+                border: 1px solid var(--border-color);
+            `;
+            
+            const icons = {
+                success: 'check-circle',
+                error: 'exclamation-triangle',
+                info: 'info-circle',
+                warning: 'exclamation-circle'
+            };
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: flex-start; gap: var(--spacing-sm);">
+                    <i class="fas fa-${icons[type] || icons.info}" style="color: ${colors[type] || colors.info}; margin-top: 2px; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--spacing-xs);">
+                            ${type.charAt(0).toUpperCase() + type.slice(1)}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.4;">
+                            ${message}
+                        </div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" style="
+                        background: none; border: none; color: var(--text-muted); 
+                        cursor: pointer; padding: 4px; margin-left: auto;
+                        border-radius: var(--radius-sm); transition: all 0.2s ease;
+                        display: flex; align-items: center; justify-content: center;
+                    " onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'">
+                        <i class="fas fa-times" style="font-size: 0.75rem;"></i>
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Auto remove notification after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+
+            .notification:hover {
+                box-shadow: var(--shadow-2xl);
+            }
+            
+            .settings-card:hover {
+                transform: translateY(-4px);
+                box-shadow: var(--shadow-xl);
+            }
+            
+            .theme-option:hover {
+                border-color: var(--primary-color);
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
+            }
+            
+            .notification-item:hover {
+                background: var(--bg-card);
+                transform: translateX(4px);
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Settings page loaded');
+            
+            // Add hover effects to buttons
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                
+                btn.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

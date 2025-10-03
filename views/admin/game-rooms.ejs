@@ -1,0 +1,651 @@
+<%- include('partials/admin-header', { title: 'Game Rooms Management' }) %>
+
+<div class="page-game-rooms">
+  <div class="admin-layout">
+    <%- include('./partials/admin-sidebar', { currentPage: currentPage || 'game-rooms' }) %>
+    <main class="admin-main">
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Game Rooms',
+        breadcrumbSubtitle: 'Manage multiplayer quiz rooms',
+        showSearch: false
+    }) %>
+    <div class="admin-content">
+      <div class="admin-container">
+        <div class="admin-header">
+    <div class="admin-header-content">
+      <h1 class="admin-title">
+        <i class="fas fa-gamepad"></i>
+        Game Rooms Management
+      </h1>
+      <p class="admin-subtitle">Manage multiplayer quiz game rooms</p>
+    </div>
+    <div class="admin-header-actions">
+      <a href="/admin/game-rooms/create" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Create New Room
+      </a>
+    </div>
+        </div>
+      </div>
+      
+
+  <!-- Filters Section -->
+  <div class="admin-filters">
+    <form method="GET" class="filters-form">
+      <div class="filter-group">
+        <input type="text" name="search" placeholder="Search rooms..." 
+               value="<%= filters.search || '' %>" class="form-control">
+      </div>
+      <div class="filter-group">
+        <select name="difficulty" class="form-control">
+          <option value="">All Difficulties</option>
+          <option value="easy" <%= filters.difficulty === 'easy' ? 'selected' : '' %>>Easy</option>
+          <option value="medium" <%= filters.difficulty === 'medium' ? 'selected' : '' %>>Medium</option>
+          <option value="hard" <%= filters.difficulty === 'hard' ? 'selected' : '' %>>Hard</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <select name="gameState" class="form-control">
+          <option value="">All States</option>
+          <option value="waiting" <%= filters.gameState === 'waiting' ? 'selected' : '' %>>Waiting</option>
+          <option value="starting" <%= filters.gameState === 'starting' ? 'selected' : '' %>>Starting</option>
+          <option value="playing" <%= filters.gameState === 'playing' ? 'selected' : '' %>>Playing</option>
+          <option value="finished" <%= filters.gameState === 'finished' ? 'selected' : '' %>>Finished</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-secondary">
+          <i class="fas fa-search"></i>
+          Filter
+        </button>
+        <a href="/admin/game-rooms" class="btn btn-outline-secondary">
+          <i class="fas fa-times"></i>
+          Clear
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Game Rooms Grid -->
+  <div class="game-rooms-grid">
+    <% if (gameRooms.length > 0) { %>
+      <% gameRooms.forEach(room => { %>
+        <div class="game-room-card">
+          <div class="game-room-header">
+            <div class="game-room-title">
+              <h3><%= room.title %></h3>
+              <span class="room-code">#<%= room.roomCode %></span>
+            </div>
+            <div class="game-room-status">
+              <span class="status-badge status-<%= room.gameState %>">
+                <%= room.gameState.charAt(0).toUpperCase() + room.gameState.slice(1) %>
+              </span>
+            </div>
+          </div>
+
+          <div class="game-room-content">
+            <div class="game-room-info">
+              <% if (room.category) { %>
+                <div class="info-item">
+                  <i class="fas fa-tag"></i>
+                  <span><%= room.category %></span>
+                </div>
+              <% } %>
+              <div class="info-item">
+                <i class="fas fa-signal"></i>
+                <span><%= room.difficulty.charAt(0).toUpperCase() + room.difficulty.slice(1) %></span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-users"></i>
+                <span><%= room.currentPlayers.length %>/<%= room.maxPlayers %> players</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-question-circle"></i>
+                <span><%= room.questions.length %> questions</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-clock"></i>
+                <span><%= room.totalTime %> min total</span>
+              </div>
+            </div>
+
+            <% if (room.description) { %>
+              <div class="game-room-description">
+                <p><%= room.description %></p>
+              </div>
+            <% } %>
+
+            <!-- Current Players -->
+            <% if (room.currentPlayers.length > 0) { %>
+              <div class="current-players">
+                <h4>Current Players:</h4>
+                <div class="players-list">
+                  <% room.currentPlayers.forEach(player => { %>
+                    <div class="player-item">
+                      <div class="player-avatar">
+                        <% if (player.user.profilePicture) { %>
+                          <img src="<%= player.user.profilePicture %>" alt="<%= player.user.username %>">
+                        <% } else { %>
+                          <div class="avatar-fallback">
+                            <%= player.user.username.charAt(0).toUpperCase() %>
+                          </div>
+                        <% } %>
+                      </div>
+                      <span class="player-name"><%= player.user.username %></span>
+                      <% if (player.isReady) { %>
+                        <span class="ready-badge">Ready</span>
+                      <% } %>
+                    </div>
+                  <% }); %>
+                </div>
+              </div>
+            <% } %>
+
+            <!-- Winner Display -->
+            <% if (room.winner && room.winner.user) { %>
+              <div class="winner-display">
+                <h4>🏆 Winner</h4>
+                <div class="winner-info">
+                  <span class="winner-name"><%= room.winner.user.username || 'N/A' %></span>
+                  <span class="winner-score">Score: <%= room.winner.score %></span>
+                </div>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="game-room-actions">
+            <div class="action-buttons">
+              <a href="/admin/game-rooms/<%= room._id %>/stats" class="btn btn-info btn-sm">
+                <i class="fas fa-chart-bar"></i>
+                Stats
+              </a>
+              <a href="/admin/game-rooms/<%= room._id %>/edit" class="btn btn-warning btn-sm">
+                <i class="fas fa-edit"></i>
+                Edit
+              </a>
+              <% if (room.gameState === 'waiting' || room.gameState === 'finished') { %>
+                <button class="btn btn-danger btn-sm" onclick="deleteRoom('<%= room._id %>')">
+                  <i class="fas fa-trash"></i>
+                  Delete
+                </button>
+              <% } else { %>
+                <button class="btn btn-secondary btn-sm" disabled>
+                  <i class="fas fa-lock"></i>
+                  Game Active
+                </button>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="fas fa-gamepad"></i>
+        </div>
+        <h3>No Game Rooms Found</h3>
+        <p>Create your first game room to get started with multiplayer quizzes.</p>
+        <a href="/admin/game-rooms/create" class="btn btn-primary">
+          <i class="fas fa-plus"></i>
+          Create Game Room
+        </a>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Pagination -->
+  <% if (pagination.pages > 1) { %>
+    <div class="pagination-wrapper">
+      <nav class="pagination">
+        <% if (pagination.page > 1) { %>
+          <a href="?page=<%= pagination.page - 1 %>" class="pagination-btn">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        <% } %>
+
+        <% for (let i = 1; i <= pagination.pages; i++) { %>
+          <% if (i === pagination.page) { %>
+            <span class="pagination-btn active"><%= i %></span>
+          <% } else { %>
+            <a href="?page=<%= i %>" class="pagination-btn"><%= i %></a>
+          <% } %>
+        <% } %>
+
+        <% if (pagination.page < pagination.pages) { %>
+          <a href="?page=<%= pagination.page + 1 %>" class="pagination-btn">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        <% } %>
+      </nav>
+    </div>
+  <% } %>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" id="deleteModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Confirm Delete</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete this game room? This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let roomToDelete = null;
+
+function deleteRoom(roomId) {
+  roomToDelete = roomId;
+  document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+  roomToDelete = null;
+  document.getElementById('deleteModal').style.display = 'none';
+}
+
+function confirmDelete() {
+  if (roomToDelete) {
+    window.location.href = `/admin/game-rooms/${roomToDelete}/delete`;
+  }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('deleteModal');
+  if (event.target === modal) {
+    closeDeleteModal();
+  }
+}
+</script>
+
+<style>
+.page-game-rooms .admin-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-game-rooms .admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.page-game-rooms .admin-title {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-game-rooms .admin-subtitle {
+  color: #6c757d;
+  margin: 0.5rem 0 0 0;
+  font-size: 1rem;
+}
+
+.page-game-rooms .admin-filters {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.page-game-rooms .filters-form {
+  display: flex;
+  gap: 1rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.page-game-rooms .filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.page-game-rooms .filter-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.page-game-rooms .game-rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.page-game-rooms .game-room-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.page-game-rooms .game-room-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.page-game-rooms .game-room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.page-game-rooms .game-room-title h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.page-game-rooms .room-code {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  font-family: monospace;
+}
+
+.page-game-rooms .status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.page-game-rooms .status-waiting { background: #28a745; }
+.page-game-rooms .status-starting { background: #ffc107; color: #000; }
+.page-game-rooms .status-playing { background: #17a2b8; }
+.page-game-rooms .status-finished { background: #6c757d; }
+
+.page-game-rooms .game-room-content {
+  padding: 1.5rem;
+}
+
+.page-game-rooms .game-room-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.page-game-rooms .info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.page-game-rooms .info-item i {
+  color: #667eea;
+  width: 16px;
+}
+
+.page-game-rooms .game-room-description {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.page-game-rooms .current-players {
+  margin-bottom: 1rem;
+}
+
+.page-game-rooms .current-players h4 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+.page-game-rooms .players-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.page-game-rooms .player-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 20px;
+  font-size: 0.8rem;
+}
+
+.page-game-rooms .player-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.page-game-rooms .player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-game-rooms .avatar-fallback {
+  width: 100%;
+  height: 100%;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+.page-game-rooms .ready-badge {
+  background: #28a745;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+}
+
+.page-game-rooms .winner-display {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.page-game-rooms .winner-display h4 {
+  margin: 0 0 0.5rem 0;
+  color: #b8860b;
+}
+
+.page-game-rooms .winner-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-game-rooms .winner-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.page-game-rooms .winner-score {
+  color: #b8860b;
+  font-weight: 600;
+}
+
+.page-game-rooms .game-room-actions {
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+.page-game-rooms .action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.page-game-rooms .empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.page-game-rooms .empty-state-icon {
+  font-size: 4rem;
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.page-game-rooms .empty-state h3 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.page-game-rooms .empty-state p {
+  color: #6c757d;
+  margin-bottom: 2rem;
+}
+
+.page-game-rooms .pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.page-game-rooms .pagination {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.page-game-rooms .pagination-btn {
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #495057;
+  transition: all 0.3s ease;
+}
+
+.page-game-rooms .pagination-btn:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.page-game-rooms .pagination-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.page-game-rooms .modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.page-game-rooms .modal-content {
+  background-color: #fff;
+  margin: 15% auto;
+  padding: 0;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.page-game-rooms .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.page-game-rooms .modal-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.page-game-rooms .modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.page-game-rooms .modal-body {
+  padding: 1.5rem;
+}
+
+.page-game-rooms .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+@media (max-width: 768px) {
+  .page-game-rooms .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .page-game-rooms .filters-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-game-rooms .filter-group {
+    min-width: auto;
+  }
+
+  .page-game-rooms .game-rooms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-game-rooms .action-buttons {
+    flex-direction: column;
+  }
+}
+</style>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<%- include('partials/admin-footer') %>

@@ -1,0 +1,174 @@
+/* Enhanced Theme Toggle Button */
+.theme-toggle-btn {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  outline: none !important;
+  overflow: hidden;
+}
+
+.light-theme .theme-toggle-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Default styling for icon containers - HIGHEST PRIORITY */
+.toggle-icon-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  pointer-events: none; /* Prevent icon from interfering with clicks */
+  will-change: transform, opacity; /* Optimize for animations */
+  backface-visibility: hidden; /* Prevent flickering */
+}
+
+.light-icon,
+.dark-icon {
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  will-change: transform; /* Optimize for animations */
+  -webkit-backface-visibility: hidden; /* Prevent flickering on Safari */
+  backface-visibility: hidden; /* Prevent flickering */
+}
+
+/* Light theme shows moon icon (to switch to dark) */
+.light-theme .light-icon-container {
+  opacity: 0;
+  transform: scale(0.5) rotate(-180deg);
+  visibility: hidden; /* Hide completely when not visible */
+}
+
+.light-theme .dark-icon-container {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+  visibility: visible;
+}
+
+.light-theme .dark-icon {
+  color: #1e293b;
+  filter: drop-shadow(0 0 1px rgba(30, 41, 59, 0.3));
+}
+
+/* Dark theme shows sun icon (to switch to light) */
+.dark-theme .dark-icon-container {
+  opacity: 0;
+  transform: scale(0.5) rotate(180deg);
+  visibility: hidden; /* Hide completely when not visible */
+}
+
+.dark-theme .light-icon-container {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+  visibility: visible;
+}
+
+.dark-theme .light-icon {
+  color: #facc15;
+  filter: drop-shadow(0 0 2px rgba(250, 204, 21, 0.5));
+}
+
+/* Navbar specific overrides */
+.light-theme .navbar .dark-icon {
+  color: #1e293b;
+}
+
+.dark-theme .navbar .light-icon {
+  color: #facc15;
+}
+
+/* Specific styling for auth pages */
+.auth-container .theme-toggle-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+.light-theme .auth-container .theme-toggle-btn {
+  background: rgba(30, 41, 59, 0.1);
+}
+
+.dark-theme .auth-container .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle-btn:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 12px 35px rgba(184, 1, 1, 0.2);
+  background: rgba(184, 1, 1, 0.1);
+  border-color: rgba(184, 1, 1, 0.3);
+}
+
+.light-theme .theme-toggle-btn:hover {
+  box-shadow: 0 12px 35px rgba(184, 1, 1, 0.15);
+}
+
+.dark-theme .theme-toggle-btn:hover {
+  box-shadow: 0 12px 35px rgba(184, 1, 1, 0.25);
+}
+
+/* Pulse animation for hover */
+.theme-toggle-btn:hover:after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  animation: pulse-ring 1.5s ease-out infinite;
+  z-index: -1;
+}
+
+/* Force visibility during transition state */
+.theme-toggling .toggle-icon-container {
+  visibility: visible !important;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+/* Ensure proper z-index for visible icon during transition */
+.light-theme .theme-toggling .dark-icon-container,
+.dark-theme .theme-toggling .light-icon-container {
+  z-index: 2;
+}
+
+/* Ensure proper z-index for hidden icon during transition */
+.light-theme .theme-toggling .light-icon-container,
+.dark-theme .theme-toggling .dark-icon-container {
+  z-index: 1;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}

@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/quizzes.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Enhanced Styles -->
+    <style>
+        /* Quiz Details Container */
+        .quiz-details-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        /* Quiz Header */
+        .quiz-details-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quiz-details-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            pointer-events: none;
+        }
+
+        .quiz-header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .quiz-title-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .quiz-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-title-main {
+            flex: 1;
+        }
+
+        .quiz-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .quiz-code {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            display: inline-block;
+        }
+
+        .quiz-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .quiz-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .quiz-meta-item {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .meta-icon {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .meta-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 0.25rem;
+        }
+
+        .meta-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .quiz-details-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Quiz Info Section */
+        .quiz-info-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .quiz-instructions {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .instructions-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+        }
+
+        .instructions-text {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .quiz-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .feature-content {
+            flex: 1;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .feature-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Sidebar */
+        .quiz-sidebar {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 1rem;
+        }
+
+        .sidebar-section {
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .sidebar-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Attempt Status */
+        .attempt-status {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .status-icon.available {
+            background: #10b981;
+        }
+
+        .status-icon.in-progress {
+            background: #f59e0b;
+        }
+
+        .status-icon.completed {
+            background: #3b82f6;
+        }
+
+        .status-icon.limited {
+            background: #ef4444;
+        }
+
+        .status-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .status-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .status-details {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .status-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-detail-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .status-detail-value {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        /* Timer Info */
+        .timer-info {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .timer-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .timer-icon {
+            font-size: 1.2rem;
+        }
+
+        .timer-title {
+            font-weight: 600;
+        }
+
+        .timer-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .timer-note {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-align: center;
+        }
+        
+        .timer-info .timer-icon.infinity {
+            color: #28a745;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn-start-quiz {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-start-quiz:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-start-quiz:disabled {
+            background: var(--muted-bg);
+            color: var(--muted-text);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-resume-quiz {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-resume-quiz:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-view-results {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .btn-view-results:hover {
+            background: var(--border-color);
+        }
+
+        /* Attempt History */
+        .attempt-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .attempt-item {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .attempt-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .attempt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .attempt-number {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .attempt-date {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .attempt-score {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .score-value {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .score-value.passed {
+            color: #10b981;
+        }
+
+        .score-value.failed {
+            color: #ef4444;
+        }
+
+        /* Dark theme adjustments */
+        .dark-theme .quiz-details-header {
+            background: var(--dark-primary-color);
+        }
+
+        .dark-theme .quiz-info-section,
+        .dark-theme .quiz-sidebar {
+            background: var(--dark-card-bg);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .quiz-instructions {
+            background: var(--dark-bg-secondary);
+        }
+
+        .dark-theme .feature-item {
+            background: var(--dark-bg-secondary);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .attempt-status {
+            background: var(--dark-bg-secondary);
+        }
+
+        .dark-theme .attempt-item {
+            background: var(--dark-bg-secondary);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .btn-view-results {
+            background: var(--dark-card-bg);
+            border-color: var(--dark-border-color);
+            color: var(--dark-text-color);
+        }
+
+        .dark-theme .btn-view-results:hover {
+            background: var(--dark-border-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .quiz-details-content {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .quiz-sidebar {
+                position: static;
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .quiz-details-container {
+                padding: 0.5rem;
+            }
+
+            .quiz-details-header {
+                padding: 1.5rem;
+            }
+
+            .quiz-title {
+                font-size: 1.5rem;
+            }
+
+            .quiz-meta-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quiz-features {
+                grid-template-columns: 1fr;
+            }
+
+            .quiz-info-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="<%= quiz.title %> - Quiz Details">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'quizzes', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: 'Quiz Details', student: student, theme: theme, currentPage: 'quiz-details' }) %>
+            
+            <!-- Quiz Details Content -->
+            <div class="student-content">
+                <div class="quiz-details-container">
+                    <!-- Quiz Header -->
+                    <div class="quiz-details-header">
+                        <div class="quiz-header-content">
+                            <div class="quiz-title-section">
+                                <div class="quiz-icon">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <div class="quiz-title-main">
+                                    <h1 class="quiz-title"><%= quiz.title %></h1>
+                                    <div class="quiz-code"><%= quiz.code %></div>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-description">
+                                <%= quiz.description || 'No description available' %>
+                            </div>
+                            
+                            <div class="quiz-meta-grid">
+                                <div class="quiz-meta-item">
+                                    <div class="meta-icon">
+                                        <i class="fas fa-question-circle"></i>
+                                    </div>
+                                    <div class="meta-label">Questions</div>
+                                    <div class="meta-value"><%= quiz.totalQuestions || 0 %></div>
+                                </div>
+                                
+                                <div class="quiz-meta-item">
+                                    <div class="meta-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="meta-label">Duration</div>
+                                    <div class="meta-value">
+                                        <% if (quiz.duration && quiz.duration > 0) { %>
+                                            <%= quiz.duration %> minutes
+                                        <% } else { %>
+                                            No time limit
+                                        <% } %>
+                                    </div>
+                                </div>
+                                
+                                <div class="quiz-meta-item">
+                                    <div class="meta-icon">
+                                        <i class="fas fa-trophy"></i>
+                                    </div>
+                                    <div class="meta-label">Passing Score</div>
+                                    <div class="meta-value"><%= quiz.passingScore || 60 %>%</div>
+                                </div>
+                                
+                                <div class="quiz-meta-item">
+                                    <div class="meta-icon">
+                                        <i class="fas fa-redo"></i>
+                                    </div>
+                                    <div class="meta-label">Max Attempts</div>
+                                    <div class="meta-value"><%= quiz.maxAttempts || 1 %></div>
+                                </div>
+                                
+                                <div class="quiz-meta-item">
+                                    <div class="meta-icon">
+                                        <i class="fas fa-signal"></i>
+                                    </div>
+                                    <div class="meta-label">Difficulty</div>
+                                    <div class="meta-value"><%= quiz.difficulty ? quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) : 'Medium' %></div>
+                                </div>
+                                
+                                <div class="quiz-meta-item">
+                                    <div class="meta-icon">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="meta-label">Created By</div>
+                                    <div class="meta-value"><%= quiz.createdBy ? quiz.createdBy.name : 'Admin' %></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="quiz-details-content">
+                        <!-- Quiz Info Section -->
+                        <div class="quiz-info-section">
+                            <h2 class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Quiz Information
+                            </h2>
+                            
+                            <% if (quiz.instructions && quiz.instructions.trim() !== '') { %>
+                                <div class="quiz-instructions">
+                                    <div class="instructions-title">Instructions</div>
+                                    <div class="instructions-text"><%= quiz.instructions %></div>
+                                </div>
+                            <% } %>
+                            
+                            <div class="quiz-features">
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-random"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <div class="feature-title">Question Shuffling</div>
+                                        <div class="feature-description">
+                                            <%= quiz.shuffleQuestions ? 'Questions will be shuffled' : 'Questions in fixed order' %>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-list"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <div class="feature-title">Option Shuffling</div>
+                                        <div class="feature-description">
+                                            <%= quiz.shuffleOptions ? 'Options will be shuffled' : 'Options in fixed order' %>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-eye"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <div class="feature-title">Show Correct Answers</div>
+                                        <div class="feature-description">
+                                            <%= quiz.showCorrectAnswers ? 'Correct answers will be shown' : 'Correct answers hidden' %>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <div class="feature-title">Show Results</div>
+                                        <div class="feature-description">
+                                            <%= quiz.showResults ? 'Results will be shown' : 'Results hidden' %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar -->
+                        <div class="quiz-sidebar">
+                            <!-- Attempt Status -->
+                            <div class="sidebar-section">
+                                <h3 class="sidebar-title">
+                                    <i class="fas fa-user-check"></i>
+                                    Your Status
+                                </h3>
+                                
+                                <div class="attempt-status">
+                                    <% if (activeAttempt) { %>
+                                        <div class="status-header">
+                                            <div class="status-icon in-progress">
+                                                <i class="fas fa-play"></i>
+                                            </div>
+                                            <div>
+                                                <div class="status-title">Quiz In Progress</div>
+                                                <div class="status-description">You have an active attempt</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <% if (timing && timing.durationMinutes > 0) { %>
+                                            <div class="timer-info">
+                                                <div class="timer-header">
+                                                    <i class="fas fa-clock timer-icon"></i>
+                                                    <div class="timer-title">Time Remaining</div>
+                                                </div>
+                                                <div class="timer-display" id="timerDisplay">
+                                                    <%= Math.floor(timing.remainingSeconds / 60) %>:<%= String(timing.remainingSeconds % 60).padStart(2, '0') %>
+                                                </div>
+                                                <div class="timer-note">
+                                                    <% if (timing.isExpired) { %>
+                                                        Time has expired
+                                                    <% } else { %>
+                                                        Continue your attempt
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% } else if (timing && timing.durationMinutes === 0) { %>
+                                            <div class="timer-info">
+                                                <div class="timer-header">
+                                                    <i class="fas fa-infinity timer-icon"></i>
+                                                    <div class="timer-title">No Time Limit</div>
+                                                </div>
+                                                <div class="timer-display" id="timerDisplay">
+                                                    ∞
+                                                </div>
+                                                <div class="timer-note">
+                                                    Take your time
+                                                </div>
+                                            </div>
+                                        <% } %>
+                                    <% } else if (canAttempt.canAttempt) { %>
+                                        <div class="status-header">
+                                            <div class="status-icon available">
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                            <div>
+                                                <div class="status-title">Ready to Start</div>
+                                                <div class="status-description">You can begin the quiz</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="status-details">
+                                            <div class="status-detail-item">
+                                                <span class="status-detail-label">Attempts Left:</span>
+                                                <span class="status-detail-value"><%= canAttempt.attemptsLeft %></span>
+                                            </div>
+                                            <% if (bestScore !== null) { %>
+                                                <div class="status-detail-item">
+                                                    <span class="status-detail-label">Best Score:</span>
+                                                    <span class="status-detail-value"><%= bestScore %>%</span>
+                                                </div>
+                                            <% } %>
+                                        </div>
+                                    <% } else { %>
+                                        <div class="status-header">
+                                            <div class="status-icon limited">
+                                                <i class="fas fa-times"></i>
+                                            </div>
+                                            <div>
+                                                <div class="status-title">Attempts Exhausted</div>
+                                                <div class="status-description"><%= canAttempt.reason %></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <% if (bestScore !== null) { %>
+                                            <div class="status-details">
+                                                <div class="status-detail-item">
+                                                    <span class="status-detail-label">Best Score:</span>
+                                                    <span class="status-detail-value"><%= bestScore %>%</span>
+                                                </div>
+                                            </div>
+                                        <% } %>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="sidebar-section">
+                                <div class="action-buttons">
+                                    <% if (activeAttempt) { %>
+                                        <a href="/student/quiz/<%= quiz._id %>/take" class="btn-resume-quiz">
+                                            <i class="fas fa-play"></i>
+                                            Resume Quiz
+                                        </a>
+                                    <% } else if (canAttempt.canAttempt) { %>
+                                        <a href="/student/quiz/<%= quiz._id %>/start" class="btn-start-quiz">
+                                            <i class="fas fa-play"></i>
+                                            Start Quiz
+                                        </a>
+                                    <% } else { %>
+                                        <button class="btn-start-quiz" disabled>
+                                            <i class="fas fa-lock"></i>
+                                            Cannot Start Quiz
+                                        </button>
+                                    <% } %>
+                                    
+                                    <% if (attemptHistory && attemptHistory.length > 0) { %>
+                                        <a href="/student/quiz/<%= quiz._id %>/results" class="btn-view-results">
+                                            <i class="fas fa-chart-line"></i>
+                                            View Results
+                                        </a>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <!-- Attempt History -->
+                            <% if (attemptHistory && attemptHistory.length > 0) { %>
+                                <div class="sidebar-section">
+                                    <h3 class="sidebar-title">
+                                        <i class="fas fa-history"></i>
+                                        Attempt History
+                                    </h3>
+                                    
+                                    <div class="attempt-history">
+                                        <% attemptHistory.forEach(attempt => { %>
+                                            <div class="attempt-item">
+                                                <div class="attempt-header">
+                                                    <div class="attempt-number">Attempt <%= attempt.attemptNumber %></div>
+                                                <div class="attempt-date">
+                                                    <%= attempt.completedAt ? new Date(attempt.completedAt).toLocaleDateString() : 'In Progress' %>
+                                                </div>
+                                                </div>
+                                                <div class="attempt-score">
+                                                    <span class="score-label">Score:</span>
+                                                    <span class="score-value <%= attempt.passed ? 'passed' : 'failed' %>">
+                                                        <%= attempt.score !== undefined ? attempt.score : 0 %>%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Global error handler for unhandled JavaScript errors
+        window.addEventListener('error', function(e) {
+            console.error('Unhandled error:', e.error);
+            // Show a user-friendly error message
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 1rem; border-radius: 8px; z-index: 1000; max-width: 300px;';
+            errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> An error occurred. Please refresh the page.';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        });
+
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            // Show a user-friendly error message
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 1rem; border-radius: 8px; z-index: 1000; max-width: 300px;';
+            errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> An error occurred. Please refresh the page.';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        });
+    </script>
+
+    <% if (activeAttempt && timing && !timing.isExpired) { %>
+    <script>
+        // Update timer for active attempt
+        (function() {
+            let remainingSeconds = <%- JSON.stringify(timing.remainingSeconds || 0) %>;
+            
+            function updateTimer() {
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                const timeString = `${minutes}:${String(seconds).padStart(2, '0')}`;
+                
+                const timerDisplay = document.getElementById('timerDisplay');
+                if (timerDisplay) {
+                    timerDisplay.textContent = timeString;
+                }
+                
+                if (remainingSeconds <= 0) {
+                    // Time expired, reload page to update status
+                    window.location.reload();
+                } else {
+                    remainingSeconds--;
+                }
+            }
+            
+            // Update timer every second
+            setInterval(updateTimer, 1000);
+        })();
+    </script>
+    <% } %>
+</body>
+</html>

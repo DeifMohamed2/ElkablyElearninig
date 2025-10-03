@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/profile.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="My Profile - View and edit your profile information">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- Custom Styles -->
+    <style>
+        .profile-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .profile-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .profile-info {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-avatar .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .avatar-upload-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 36px;
+            height: 36px;
+            background: var(--primary-color);
+            border: 2px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .avatar-upload-btn:hover {
+            transform: scale(1.1);
+            background: var(--secondary-color);
+        }
+        
+        .profile-details h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 0 var(--spacing-xs) 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .profile-details .student-code {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .profile-stats {
+            display: flex;
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-md);
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: var(--spacing-sm);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            backdrop-filter: blur(10px);
+            min-width: 80px;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .profile-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .profile-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+            font-size: 0.875rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+        
+        .form-control[readonly] {
+            background: var(--bg-secondary);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .form-control:not([readonly]) {
+            background: var(--bg-card);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+        
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+        
+        .btn-outline:hover {
+            background: var(--bg-secondary);
+            border-color: var(--primary-color);
+        }
+        
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .achievement-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .achievement-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .achievement-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .achievement-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+        
+        .badge {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+        
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .success-animation {
+            animation: successPulse 0.6s ease-in-out;
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @media (max-width: 768px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-info {
+                flex-direction: column;
+                text-align: center;
+                gap: var(--spacing-lg);
+            }
+            
+            .profile-stats {
+                justify-content: center;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .achievements-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'profile', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: title, student: student, theme: theme, currentPage: 'profile' }) %>
+            
+            <!-- Profile Content -->
+            <div class="student-content">
+                <div class="profile-container">
+                    <!-- Profile Header -->
+                    <div class="profile-header">
+                        <div class="profile-info">
+                            <div class="profile-avatar">
+                                <% if (student.profilePicture) { %>
+                                    <img src="<%= student.profilePicture %>" alt="Profile Picture" id="profilePicture">
+                                <% } else { %>
+                                    <div class="avatar-placeholder" id="avatarPlaceholder">
+                                        <%= student.name.charAt(0).toUpperCase() %>
+                                    </div>
+                                <% } %>
+                                <div class="avatar-upload-btn" onclick="document.getElementById('profilePictureInput').click()">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                            </div>
+                            <input type="file" id="profilePictureInput" accept="image/*" style="display: none;" onchange="uploadProfilePicture(this)">
+                            
+                            <div class="profile-details">
+                                <h1><%= student.name %></h1>
+                                <div class="student-code">Student Code: <strong><%= student.studentCode %></strong></div>
+                                <div class="profile-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-number"><%= student.totalEnrolledCourses || 0 %></div>
+                                        <div class="stat-label">Courses</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number"><%= student.completedCourses || 0 %></div>
+                                        <div class="stat-label">Completed</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number"><%= student.totalQuizAttempts || 0 %></div>
+                                        <div class="stat-label">Quizzes</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number"><%= student.averageQuizScore || 0 %>%</div>
+                                        <div class="stat-label">Avg Score</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Grid -->
+                    <div class="profile-grid">
+                        <!-- Left Column - Learning Stats -->
+                        <div class="profile-card">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: var(--primary-color);">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <h3 class="card-title">Learning Statistics</h3>
+                            </div>
+                            <div class="achievements-grid">
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--primary-color);">
+                                        <%= student.totalEnrolledCourses || 0 %>
+                                    </div>
+                                    <div class="achievement-label">Enrolled Courses</div>
+                                </div>
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--success-color);">
+                                        <%= student.completedCourses || 0 %>
+                                    </div>
+                                    <div class="achievement-label">Completed</div>
+                                </div>
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--warning-color);">
+                                        <%= student.totalQuizAttempts || 0 %>
+                                    </div>
+                                    <div class="achievement-label">Quiz Attempts</div>
+                                </div>
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--info-color);">
+                                        <%= student.averageQuizScore || 0 %>%
+                                    </div>
+                                    <div class="achievement-label">Average Score</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column - Personal Information -->
+                        <div class="profile-card">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: var(--success-color);">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <h3 class="card-title">Personal Information</h3>
+                                <button class="btn btn-primary" onclick="toggleEditMode()" id="editBtn">
+                                    <i class="fas fa-edit"></i>
+                                    Edit Profile
+                                </button>
+                            </div>
+                            
+                            <form id="profileForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">First Name</label>
+                                        <input type="text" name="firstName" class="form-control" value="<%= student.firstName %>" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Last Name</label>
+                                        <input type="text" name="lastName" class="form-control" value="<%= student.lastName %>" readonly>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Student Email</label>
+                                        <input type="email" name="studentEmail" class="form-control" value="<%= student.studentEmail %>" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" name="username" class="form-control" value="<%= student.username %>" readonly>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Grade</label>
+                                        <select name="grade" class="form-control" readonly>
+                                            <option value="<%= student.grade %>" selected><%= student.grade %></option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">School Name</label>
+                                        <input type="text" name="schoolName" class="form-control" value="<%= student.schoolName %>" readonly>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Student Phone</label>
+                                        <div style="display: flex; gap: var(--spacing-sm);">
+                                            <select name="studentCountryCode" class="form-control" style="width: 120px;" readonly>
+                                                <option value="<%= student.studentCountryCode %>" selected><%= student.studentCountryCode %></option>
+                                            </select>
+                                            <input type="tel" name="parentNumber" class="form-control" value="<%= student.parentNumber %>" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Parent Phone</label>
+                                        <div style="display: flex; gap: var(--spacing-sm);">
+                                            <select name="parentCountryCode" class="form-control" style="width: 120px;" readonly>
+                                                <option value="<%= student.parentCountryCode %>" selected><%= student.parentCountryCode %></option>
+                                            </select>
+                                            <input type="tel" name="parentNumber" class="form-control" value="<%= student.parentNumber %>" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">English Teacher</label>
+                                    <input type="text" name="englishTeacher" class="form-control" value="<%= student.englishTeacher %>" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">How did you know about us?</label>
+                                    <textarea name="howDidYouKnow" class="form-control" rows="3" readonly><%= student.howDidYouKnow %></textarea>
+                                </div>
+                                
+                                <div class="btn-group">
+                                    <button type="submit" class="btn btn-primary" id="saveBtn" style="display: none;">
+                                        <i class="fas fa-save"></i>
+                                        Save Changes
+                                    </button>
+                                    <button type="button" class="btn btn-outline" id="cancelBtn" style="display: none;" onclick="toggleEditMode()">
+                                        <i class="fas fa-times"></i>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Achievements Section -->
+                    <% if (achievements && achievements.summary) { %>
+                        <div class="profile-card">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: var(--warning-color);">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <h3 class="card-title">Achievements</h3>
+                            </div>
+                            
+                            <!-- Achievement Summary -->
+                            <div class="achievements-grid">
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--primary-color);">
+                                        <%= achievements.summary.totalPoints || 0 %>
+                                    </div>
+                                    <div class="achievement-label">Total Points</div>
+                                </div>
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--success-color);">
+                                        <%= achievements.summary.totalExperience || 0 %>
+                                    </div>
+                                    <div class="achievement-label">Experience</div>
+                                </div>
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--info-color);">
+                                        <%= achievements.summary.totalActivities || 0 %>
+                                    </div>
+                                    <div class="achievement-label">Activities</div>
+                                </div>
+                                <div class="achievement-card">
+                                    <div class="achievement-number" style="color: var(--warning-color);">
+                                        <%= achievements.summary.averagePoints || 0 %>
+                                    </div>
+                                    <div class="achievement-label">Avg Points</div>
+                                </div>
+                            </div>
+
+                            <!-- Badges and Milestones -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); margin-top: var(--spacing-lg);">
+                                <% if (achievements.badges && achievements.badges.length > 0) { %>
+                                    <div>
+                                        <h4 style="color: var(--text-primary); margin-bottom: var(--spacing-md); display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <i class="fas fa-medal" style="color: var(--warning-color);"></i>
+                                            Badges
+                                        </h4>
+                                        <div class="badges-container">
+                                            <% achievements.badges.forEach(badge => { %>
+                                                <div class="badge badge-warning">
+                                                    <i class="fas fa-medal"></i>
+                                                    <%= badge.name %>
+                                                </div>
+                                            <% }); %>
+                                        </div>
+                                    </div>
+                                <% } %>
+
+                                <% if (achievements.milestones && achievements.milestones.length > 0) { %>
+                                    <div>
+                                        <h4 style="color: var(--text-primary); margin-bottom: var(--spacing-md); display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <i class="fas fa-star" style="color: var(--info-color);"></i>
+                                            Milestones
+                                        </h4>
+                                        <div class="badges-container">
+                                            <% achievements.milestones.forEach(milestone => { %>
+                                                <div class="badge badge-info">
+                                                    <i class="fas fa-star"></i>
+                                                    <%= milestone.name %>
+                                                </div>
+                                            <% }); %>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        let isEditMode = false;
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const formInputs = document.querySelectorAll('#profileForm input, #profileForm select, #profileForm textarea');
+            const saveBtn = document.getElementById('saveBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const editBtn = document.getElementById('editBtn');
+
+            if (isEditMode) {
+                // Enable editing for specific fields only
+                const editableFields = ['firstName', 'lastName', 'schoolName', 'englishTeacher', 'howDidYouKnow'];
+                
+                formInputs.forEach(input => {
+                    if (editableFields.includes(input.name)) {
+                        input.removeAttribute('readonly');
+                        input.style.backgroundColor = 'var(--bg-card)';
+                        input.style.cursor = 'text';
+                    }
+                });
+                
+                saveBtn.style.display = 'inline-flex';
+                cancelBtn.style.display = 'inline-flex';
+                editBtn.innerHTML = '<i class="fas fa-eye"></i>View Mode';
+                editBtn.style.background = 'var(--secondary-color)';
+                
+                // Add success animation to the card
+                document.querySelector('.profile-card').classList.add('success-animation');
+            } else {
+                // Disable editing
+                formInputs.forEach(input => {
+                    input.setAttribute('readonly', 'readonly');
+                    input.style.backgroundColor = 'var(--bg-secondary)';
+                    input.style.cursor = 'not-allowed';
+                });
+                
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+                editBtn.innerHTML = '<i class="fas fa-edit"></i>Edit Profile';
+                editBtn.style.background = 'var(--primary-color)';
+            }
+        }
+
+        // Profile picture upload
+        async function uploadProfilePicture(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    showNotification('Please select a valid image file', 'error');
+                    return;
+                }
+                
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    showNotification('Image size must be less than 5MB', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('profilePicture', file);
+
+                // Show loading state
+                const uploadBtn = document.querySelector('.avatar-upload-btn');
+                const originalContent = uploadBtn.innerHTML;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                uploadBtn.style.pointerEvents = 'none';
+
+                try {
+                    const response = await fetch('/student/profile/update-picture', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            // Update profile picture display
+                            const profileImg = document.getElementById('profilePicture');
+                            const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+                            
+                            if (profileImg) {
+                                profileImg.src = result.profilePicture;
+                            } else if (avatarPlaceholder) {
+                                avatarPlaceholder.innerHTML = `<img src="${result.profilePicture}" alt="Profile Picture" id="profilePicture" style="width: 100%; height: 100%; object-fit: cover;">`;
+                            }
+                            
+                            showNotification('Profile picture updated successfully', 'success');
+                        }
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Failed to upload profile picture');
+                    }
+                } catch (error) {
+                    console.error('Error uploading profile picture:', error);
+                    showNotification(error.message || 'Error uploading profile picture', 'error');
+                } finally {
+                    // Reset upload button
+                    uploadBtn.innerHTML = originalContent;
+                    uploadBtn.style.pointerEvents = 'auto';
+                }
+            }
+        }
+
+        // Form submission
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!isEditMode) return;
+
+            const formData = new FormData(this);
+            const data = {};
+            
+            // Only include editable fields
+            const editableFields = ['firstName', 'lastName', 'schoolName', 'englishTeacher', 'howDidYouKnow'];
+            editableFields.forEach(field => {
+                const input = this.querySelector(`[name="${field}"]`);
+                if (input) {
+                    data[field] = input.value.trim();
+                }
+            });
+
+            // Validate required fields
+            if (!data.firstName || !data.lastName) {
+                showNotification('First name and last name are required', 'error');
+                return;
+            }
+
+            // Show loading state
+            const saveBtn = document.getElementById('saveBtn');
+            const originalContent = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/profile/update', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showNotification(result.message || 'Profile updated successfully', 'success');
+                    toggleEditMode(); // Switch back to view mode
+                    
+                    // Update the displayed name in the header
+                    const nameDisplay = document.querySelector('.profile-details h1');
+                    if (nameDisplay) {
+                        nameDisplay.textContent = `${data.firstName} ${data.lastName}`;
+                    }
+                    
+                    // Update avatar placeholder if no profile picture
+                    const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+                    if (avatarPlaceholder && !document.getElementById('profilePicture')) {
+                        avatarPlaceholder.textContent = data.firstName.charAt(0).toUpperCase();
+                    }
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to update profile');
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showNotification(error.message || 'Error updating profile', 'error');
+            } finally {
+                // Reset save button
+                saveBtn.innerHTML = originalContent;
+                saveBtn.disabled = false;
+            }
+        });
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => notification.remove());
+
+            const notification = document.createElement('div');
+            notification.className = `notification alert alert-${type === 'error' ? 'danger' : type}`;
+            
+            const colors = {
+                success: 'var(--success-color)',
+                error: 'var(--danger-color)',
+                info: 'var(--info-color)',
+                warning: 'var(--warning-color)'
+            };
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                max-width: 350px;
+                padding: var(--spacing-md) var(--spacing-lg);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-xl);
+                background: var(--bg-card);
+                border-left: 4px solid ${colors[type] || colors.info};
+                animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                backdrop-filter: blur(10px);
+            `;
+            
+            const icons = {
+                success: 'check-circle',
+                error: 'exclamation-triangle',
+                info: 'info-circle',
+                warning: 'exclamation-circle'
+            };
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: flex-start; gap: var(--spacing-sm);">
+                    <i class="fas fa-${icons[type] || icons.info}" style="color: ${colors[type] || colors.info}; margin-top: 2px; flex-shrink: 0;"></i>
+                    <div>
+                        <div style="font-weight: 500; color: var(--text-primary); margin-bottom: var(--spacing-xs);">
+                            ${type.charAt(0).toUpperCase() + type.slice(1)}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.4;">
+                            ${message}
+                        </div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" style="
+                        background: none; border: none; color: var(--text-muted); 
+                        cursor: pointer; padding: 4px; margin-left: auto;
+                        border-radius: var(--radius-sm); transition: all 0.2s ease;
+                    " onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='none'">
+                        <i class="fas fa-times" style="font-size: 0.75rem;"></i>
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Auto remove notification after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { 
+                    transform: translateX(100%); 
+                    opacity: 0; 
+                }
+                to { 
+                    transform: translateX(0); 
+                    opacity: 1; 
+                }
+            }
+            
+            @keyframes slideOutRight {
+                from { 
+                    transform: translateX(0); 
+                    opacity: 1; 
+                }
+                to { 
+                    transform: translateX(100%); 
+                    opacity: 0; 
+                }
+            }
+            
+            .form-control[readonly] {
+                background-color: var(--bg-secondary) !important;
+                cursor: not-allowed !important;
+                opacity: 0.7;
+            }
+            
+            .form-control:not([readonly]) {
+                background-color: var(--bg-card) !important;
+                cursor: text;
+                opacity: 1;
+            }
+            
+            .badge {
+                transition: all 0.2s ease;
+                cursor: default;
+            }
+            
+            .badge:hover {
+                transform: scale(1.05);
+                box-shadow: var(--shadow-sm);
+            }
+            
+            .profile-card {
+                transition: all 0.3s ease;
+            }
+            
+            .profile-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-lg);
+            }
+            
+            .achievement-card {
+                transition: all 0.2s ease;
+            }
+            
+            .achievement-card:hover {
+                transform: translateY(-2px) scale(1.02);
+                box-shadow: var(--shadow-md);
+            }
+            
+            .notification {
+                border: 1px solid var(--border-color);
+            }
+            
+            .notification:hover {
+                box-shadow: var(--shadow-2xl);
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add any initialization code here
+            console.log('Profile page loaded');
+        });
+    </script>
+</body>
+</html>

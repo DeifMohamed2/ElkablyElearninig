@@ -1,0 +1,996 @@
+<%- include('partials/header', { title: 'Online Courses' }) %>
+
+<!-- Floating Math Elements -->
+<div class="floating-math-elements-professor" id="floatingMath">
+  <div class="math-element-professor" data-equation="∂">∂</div>
+  <div class="math-element-professor" data-equation="∇">∇</div>
+  <div class="math-element-professor" data-equation="∫">∫</div>
+  <div class="math-element-professor" data-equation="∑">∑</div>
+  <div class="math-element-professor" data-equation="∏">∏</div>
+  <div class="math-element-professor" data-equation="∞">∞</div>
+  <div class="math-element-professor" data-equation="∃">∃</div>
+  <div class="math-element-professor" data-equation="∀">∀</div>
+  <div class="math-element-professor" data-equation="ℝ">ℝ</div>
+  <div class="math-element-professor" data-equation="ℂ">ℂ</div>
+</div>
+
+
+<!-- Online Courses Section -->
+<section class="online-courses-section scroll-reveal" id="online-courses" data-aos="fade-up" style="padding: 80px 0;">
+  <div class="container">
+    <div class="section-header-new text-center">
+      <h2 class="section-title-new">Our <span class="highlight-red">Online Courses</span></h2>
+      <p class="section-subtitle-new">Master mathematics with our comprehensive online course collection</p>
+    </div>
+
+    <!-- Enhanced Search and Filter Section -->
+    <div class="courses-filter-section-enhanced mb-5">
+      <div class="filter-container">
+        <div class="row align-items-center">
+          <div class="col-lg-6">
+            <form class="search-form-enhanced" method="GET">
+              <div class="search-input-group-enhanced">
+                <div class="search-icon">
+                  <i class="fas fa-search"></i>
+                </div>
+                <input type="text" name="search" class="search-input-enhanced" placeholder="Search online courses..." value="<%= currentFilters.search || '' %>">
+                <button type="submit" class="search-btn-enhanced">
+                  <span>Search</span>
+                  <i class="fas fa-arrow-right"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+          <div class="col-lg-6">
+            <div class="filter-dropdowns-enhanced">
+              <div class="filter-group">
+                <label class="filter-label">
+                  <i class="fas fa-graduation-cap"></i>
+                  Year/Grade
+                </label>
+                <select name="year" class="filter-select-enhanced" onchange="this.form.submit()">
+                  <option value="">All Years</option>
+                  <% filterOptions.years.forEach(year => { %>
+                    <option value="<%= year %>" <%= currentFilters.year === year ? 'selected' : '' %>><%= year %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">
+                  <i class="fas fa-book"></i>
+                  Subject
+                </label>
+                <select name="subject" class="filter-select-enhanced" onchange="this.form.submit()">
+                  <option value="">All Subjects</option>
+                  <% filterOptions.subjects.forEach(subject => { %>
+                    <option value="<%= subject %>" <%= currentFilters.subject === subject ? 'selected' : '' %>><%= subject %></option>
+                  <% }); %>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Results Count -->
+    <div class="results-count-enhanced mb-4">
+      <div class="results-info">
+        <div class="results-stats">
+          <span class="results-number"><%= bundles.length %></span>
+          <span class="results-label">of <%= pagination.totalBundles %> bundles</span>
+        </div>
+        <div class="results-type">
+          <i class="fas fa-laptop-code"></i>
+          <span>Online Courses</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="courses-grid">
+      <% if (bundles.length > 0) { %>
+        <% bundles.forEach((bundle, index) => { %>
+        <article class="course-card-enhanced" data-aos="fade-up" data-aos-delay="<%= (index + 1) * 100 %>">
+          <div class="course-card-header">
+            <div class="course-favorite-btn-enhanced" onclick="toggleWishlist('<%= bundle._id %>', 'bundle')" title="Add to Wishlist">
+              <% if (user && user.isBundleInWishlist(bundle._id.toString())) { %>
+                <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+              <% } else { %>
+                <i class="far fa-heart"></i>
+              <% } %>
+            </div>
+            <div class="course-badge-container">
+              <% if (bundle.discountPrice) { %>
+                <div class="course-offer-badge-enhanced discount">
+                  <i class="fas fa-percentage"></i>
+                  <span>Save <%= bundle.savingsPercentage %>%</span>
+                </div>
+              <% } else { %>
+                <div class="course-offer-badge-enhanced online">
+                  <i class="fas fa-laptop-code"></i>
+                  <span>Online</span>
+                </div>
+              <% } %>
+            </div>
+          </div>
+          
+          <div class="course-card-media-enhanced">
+            <img src="<%= bundle.thumbnail || '/images/adad.png' %>" alt="<%= bundle.title %>" loading="lazy">
+            <div class="course-overlay-enhanced">
+              <div class="course-quick-actions">
+                <% if (user && user.hasPurchasedBundle(bundle._id.toString())) { %>
+                  <button class="quick-action-btn purchased" title="Already Purchased" disabled>
+                    <i class="fas fa-check-circle"></i>
+                  </button>
+                <% } else { %>
+                  <button class="quick-action-btn" onclick="addBundleToCart('<%= bundle._id %>')" title="Add to Cart">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                <% } %>
+                <a href="/bundle/<%= bundle._id %>" class="quick-action-btn" title="View Details">
+                  <i class="fas fa-eye"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="course-card-body-enhanced">
+            <div class="course-meta">
+              <span class="course-year"><%= bundle.year %></span>
+              <span class="course-subject"><%= bundle.subject %></span>
+            </div>
+            
+            <h3 class="course-card-title-enhanced"><%= bundle.title %></h3>
+            <p class="course-card-description-enhanced"><%= bundle.shortDescription %></p>
+            
+            <div class="course-stats-enhanced">
+              <div class="stat-item">
+                <i class="fas fa-book"></i>
+                <span><%= bundle.courses.length %> Courses</span>
+              </div>
+              <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span><%= bundle.duration || 0 %> Hours</span>
+              </div>
+              <div class="stat-item">
+                <i class="fas fa-users"></i>
+                <span><%= bundle.enrolledStudents.length %> Students</span>
+              </div>
+            </div>
+            
+            <div class="course-price-container-enhanced">
+              <% if (bundle.discountPrice) { %>
+                <div class="price-wrapper">
+                  <span class="course-price-original-enhanced">$<%= bundle.price %></span>
+                  <span class="course-price-current-enhanced">$<%= bundle.finalPrice.toFixed(2) %></span>
+                </div>
+                <div class="savings-info">
+                  <span class="savings-amount">Save $<%= bundle.savings.toFixed(2) %></span>
+                </div>
+              <% } else { %>
+                <div class="price-wrapper">
+                  <span class="course-price-current-enhanced">$<%= bundle.price %></span>
+                </div>
+              <% } %>
+            </div>
+            
+            <div class="course-actions-enhanced">
+              <a href="/bundle/<%= bundle._id %>" class="btn-view-details-enhanced">
+                <span>View Details</span>
+                <i class="fas fa-arrow-right"></i>
+              </a>
+              <% if (user && user.hasPurchasedBundle(bundle._id.toString())) { %>
+                <button class="btn-purchased-enhanced" disabled>
+                  <i class="fas fa-check-circle"></i>
+                  <span>Already Purchased</span>
+                </button>
+              <% } else { %>
+                <button class="btn-add-to-cart-enhanced" onclick="addBundleToCart('<%= bundle._id %>')">
+                  <i class="fas fa-shopping-cart"></i>
+                  <span>Add to Cart</span>
+                </button>
+              <% } %>
+            </div>
+          </div>
+        </article>
+        <% }); %>
+      <% } else { %>
+        <div class="no-courses-found-enhanced">
+          <div class="no-courses-content">
+            <div class="no-courses-icon-enhanced">
+              <div class="icon-background">
+                <i class="fas fa-search"></i>
+              </div>
+            </div>
+            <h3 class="no-courses-title">No Online Courses Found</h3>
+            <p class="no-courses-description">
+              We couldn't find any online courses matching your criteria. 
+              Try adjusting your search filters or browse our complete collection.
+            </p>
+            <div class="no-courses-actions">
+              <a href="/courses/online" class="btn-primary-enhanced">
+                <i class="fas fa-laptop-code"></i>
+                <span>Browse All Online Courses</span>
+              </a>
+              <button class="btn-secondary-enhanced" onclick="clearFilters()">
+                <i class="fas fa-refresh"></i>
+                <span>Clear Filters</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Show More/Less Button -->
+    <div class="courses-show-more-container text-center mt-5">
+      <button class="btn-show-more" id="showMoreCourses">
+        <span class="show-more-text">Show More Courses</span>
+        <i class="fas fa-chevron-down show-more-icon"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<script>
+// Online Courses Show More/Less Functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const showMoreBtn = document.getElementById('showMoreCourses');
+  const hiddenCards = document.querySelectorAll('.course-card-hidden');
+  const showMoreText = showMoreBtn.querySelector('.show-more-text');
+  const showMoreIcon = showMoreBtn.querySelector('.show-more-icon');
+  
+  let isExpanded = false;
+  
+  showMoreBtn.addEventListener('click', function() {
+    isExpanded = !isExpanded;
+    
+    if (isExpanded) {
+      // Show hidden cards
+      hiddenCards.forEach((card, index) => {
+        setTimeout(() => {
+          card.classList.remove('course-card-hidden');
+          card.classList.add('course-card-visible');
+        }, index * 100);
+      });
+      
+      showMoreText.textContent = 'Show Less Courses';
+      showMoreIcon.style.transform = 'rotate(180deg)';
+      
+      // Scroll to show the new cards
+      setTimeout(() => {
+        showMoreBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    } else {
+      // Hide cards
+      hiddenCards.forEach((card, index) => {
+        setTimeout(() => {
+          card.classList.remove('course-card-visible');
+          card.classList.add('course-card-hidden');
+        }, index * 50);
+      });
+      
+      showMoreText.textContent = 'Show More Courses';
+      showMoreIcon.style.transform = 'rotate(0deg)';
+    }
+  });
+});
+
+// Course Card Interactions
+document.addEventListener('DOMContentLoaded', function() {
+  // Favorite button functionality
+  const favoriteBtns = document.querySelectorAll('.course-favorite-btn');
+  
+  favoriteBtns.forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const icon = this.querySelector('i');
+      
+      if (icon.classList.contains('far')) {
+        icon.classList.remove('far');
+        icon.classList.add('fas');
+        this.style.color = '#ff6b6b';
+      } else {
+        icon.classList.remove('fas');
+        icon.classList.add('far');
+        this.style.color = '';
+      }
+    });
+  });
+  
+  // Add to cart functionality
+  const addToCartBtns = document.querySelectorAll('.btn-add-to-cart');
+  
+  addToCartBtns.forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const originalText = this.querySelector('span').textContent;
+      const icon = this.querySelector('i');
+      
+      // Get bundle details
+      const bundleCard = this.closest('.course-card');
+      const bundleTitle = bundleCard.querySelector('.course-card-title').textContent;
+      const bundlePrice = bundleCard.querySelector('.course-price-current').textContent;
+      const bundleImage = bundleCard.querySelector('.course-card-media img').src;
+      
+      // Add to cart
+      addToCart({
+        title: bundleTitle,
+        price: parseFloat(bundlePrice.replace('$', '')),
+        image: bundleImage,
+        id: Date.now() + Math.random(),
+        type: 'bundle'
+      });
+      
+      // Visual feedback
+      this.style.background = 'var(--elkably-primary)';
+      this.querySelector('span').textContent = 'Added!';
+      icon.classList.remove('fa-shopping-cart');
+      icon.classList.add('fa-check');
+      
+      setTimeout(() => {
+        this.style.background = '';
+        this.querySelector('span').textContent = originalText;
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-shopping-cart');
+      }, 2000);
+    });
+  });
+});
+</script>
+
+<!-- Shopping Cart Sidebar -->
+<div class="cart-sidebar" id="cartSidebar">
+  <div class="cart-sidebar-overlay" id="cartSidebarOverlay"></div>
+  <div class="cart-sidebar-content">
+    <div class="cart-sidebar-header">
+      <h3 class="cart-sidebar-title">
+        <i class="fas fa-shopping-cart"></i>
+        Shopping Cart
+      </h3>
+      <button class="cart-sidebar-close" id="cartSidebarClose">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="cart-sidebar-body">
+      <div class="cart-items" id="cartItems">
+        <div class="cart-empty">
+          <div class="cart-empty-icon">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <h4>Your cart is empty</h4>
+          <p>Add some courses to get started!</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="cart-sidebar-footer">
+      <div class="cart-total" id="cartTotal">
+        <div class="cart-total-row">
+          <span>Subtotal:</span>
+          <span class="cart-subtotal">$0.00</span>
+        </div>
+        <div class="cart-total-row">
+          <span>Tax:</span>
+          <span class="cart-tax">$0.00</span>
+        </div>
+        <div class="cart-total-row cart-total-final">
+          <span>Total:</span>
+          <span class="cart-total-amount">$0.00</span>
+        </div>
+      </div>
+      
+      <div class="cart-actions">
+        <button class="btn-cart-checkout" id="cartCheckout" disabled>
+          <i class="fas fa-credit-card"></i>
+          Proceed to Checkout
+        </button>
+        <button class="btn-cart-continue" id="cartContinue">
+          Continue Shopping
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shopping Cart Functionality -->
+<script>
+// Cart Management System
+let cart = [];
+let cartTotal = 0;
+
+// Initialize cart from server
+function initCart() {
+  // Initialize cart data from server
+  window.sessionCart = window.cartData || [];
+  console.log('Initializing cart with data:', window.sessionCart);
+  
+  // Update global cart count and refresh cart data
+  if (window.globalCart) {
+    window.globalCart.setSessionCart(window.sessionCart);
+    window.globalCart.refreshCartData();
+  }
+}
+
+// Add item to cart
+function addToCart(item) {
+  // Check if user is logged in
+  <% if (!user) { %>
+    showCartNotification('Please login to add items to cart', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 2000);
+    return;
+  <% } %>
+  
+  // Add to cart via API
+  fetch('/purchase/cart/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: item.id,
+      itemType: item.type || 'bundle',
+      title: item.title,
+      price: item.price,
+      image: item.image
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showCartNotification(data.message, 'success');
+      
+      // Update global cart count and refresh cart data
+      if (window.globalCart) {
+        window.globalCart.refreshCartData();
+      }
+      
+      // Show cart sidebar
+      showCartSidebar();
+    } else {
+      showCartNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showCartNotification('Error adding item to cart', 'error');
+  });
+}
+
+// Remove item from cart
+function removeFromCart(itemId) {
+  // Ensure sessionCart is initialized
+  if (!window.sessionCart) {
+    window.sessionCart = [];
+    showCartNotification('Cart is empty', 'error');
+    return;
+  }
+  
+  // Find the item in the session cart to get its type
+  const item = window.sessionCart.find(cartItem => cartItem.id === itemId);
+  if (!item) {
+    showCartNotification('Item not found in cart', 'error');
+    return;
+  }
+  
+  console.log('Removing item from cart:', item);
+  
+  fetch('/purchase/cart/remove', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: itemId,
+      itemType: item.type
+    })
+  })
+  .then(response => {
+    console.log('Response status:', response.status);
+    return response.json();
+  })
+  .then(data => {
+    console.log('Remove cart response:', data);
+    if (data.success) {
+      // Update session cart data
+      window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+      showCartNotification('Item removed from cart');
+      // Update global cart count and refresh cart data
+      if (window.globalCart) {
+        window.globalCart.updateCartSidebar();
+      }
+    } else {
+      showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error removing from cart:', error);
+    showCartNotification('Error removing item from cart', 'error');
+  });
+}
+
+// Update item quantity
+function updateQuantity(itemId, newQuantity) {
+  const item = cart.find(item => item.id === itemId);
+  if (item) {
+    if (newQuantity <= 0) {
+      removeFromCart(itemId);
+    } else {
+      item.quantity = newQuantity;
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartDisplay();
+    }
+  }
+}
+
+// Update cart display
+function updateCartDisplay() {
+  updateCartCount();
+  updateCartItems();
+  updateCartTotal();
+}
+
+// Update cart count in header
+function updateCartCount() {
+  const cartCount = document.getElementById('cartCount');
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  cartCount.textContent = totalItems;
+  
+  // Add animation class
+  cartCount.classList.add('cart-count-updated');
+  setTimeout(() => cartCount.classList.remove('cart-count-updated'), 300);
+}
+
+// Update cart items in sidebar
+function updateCartItems() {
+  const cartItems = document.getElementById('cartItems');
+  
+  if (cart.length === 0) {
+    cartItems.innerHTML = `
+      <div class="cart-empty">
+        <div class="cart-empty-icon">
+          <i class="fas fa-shopping-cart"></i>
+        </div>
+        <h4>Your cart is empty</h4>
+        <p>Add some courses to get started!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  cartItems.innerHTML = cart.map(item => `
+    <div class="cart-item" data-id="${item.id}">
+      <div class="cart-item-image">
+        <img src="${item.image}" alt="${item.title}">
+      </div>
+      <div class="cart-item-details">
+        <h5 class="cart-item-title">${item.title}</h5>
+        <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+        <div class="cart-item-controls">
+          <button class="cart-quantity-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">-</button>
+          <span class="cart-quantity">${item.quantity}</span>
+          <button class="cart-quantity-btn" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">+</button>
+        </div>
+      </div>
+      <div class="cart-item-actions">
+        <button class="cart-remove-btn" onclick="removeFromCart(${item.id})" title="Remove item">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Update cart total
+function updateCartTotal() {
+  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const tax = subtotal * 0.1; // 10% tax
+  const total = subtotal + tax;
+  
+  document.querySelector('.cart-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+  document.querySelector('.cart-tax').textContent = `$${tax.toFixed(2)}`;
+  document.querySelector('.cart-total-amount').textContent = `$${total.toFixed(2)}`;
+  
+  // Enable/disable checkout button
+  const checkoutBtn = document.getElementById('cartCheckout');
+  checkoutBtn.disabled = cart.length === 0;
+}
+
+// Show cart sidebar
+function showCartSidebar() {
+  const cartSidebar = document.getElementById('cartSidebar');
+  cartSidebar.classList.add('cart-sidebar-open');
+  document.body.classList.add('cart-sidebar-active');
+}
+
+// Hide cart sidebar
+function hideCartSidebar() {
+  const cartSidebar = document.getElementById('cartSidebar');
+  cartSidebar.classList.remove('cart-sidebar-open');
+  document.body.classList.remove('cart-sidebar-active');
+}
+
+// Proceed to checkout page
+function proceedToCheckout() {
+  // Check if cart is empty
+  if (!window.sessionCart || window.sessionCart.length === 0) {
+    showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
+    return;
+  }
+  
+  // Double-check with server cart data
+  const cartCount = document.getElementById('cartCount');
+  if (cartCount && parseInt(cartCount.textContent) === 0) {
+    showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
+    return;
+  }
+  
+  // Redirect to checkout page
+  window.location.href = '/purchase/checkout';
+}
+
+// Show cart notification
+function showCartNotification(message, type = 'success') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `cart-notification cart-notification-${type}`;
+  notification.innerHTML = `
+    <div class="cart-notification-content">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Show notification
+  setTimeout(() => notification.classList.add('show'), 100);
+  
+  // Hide notification
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Cart sidebar event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize cart
+  initCart();
+  
+  // Cart toggle button
+  const cartToggle = document.getElementById('cartToggle');
+  const cartSidebar = document.getElementById('cartSidebar');
+  const cartSidebarClose = document.getElementById('cartSidebarClose');
+  const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
+  const cartContinue = document.getElementById('cartContinue');
+  const cartCheckout = document.getElementById('cartCheckout');
+  
+  // Open cart sidebar
+  cartToggle.addEventListener('click', showCartSidebar);
+  
+  // Close cart sidebar
+  cartSidebarClose.addEventListener('click', hideCartSidebar);
+  cartSidebarOverlay.addEventListener('click', hideCartSidebar);
+  cartContinue.addEventListener('click', hideCartSidebar);
+  
+  // Checkout button
+  cartCheckout.addEventListener('click', function() {
+    proceedToCheckout();
+  });
+  
+  // Close cart on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && cartSidebar.classList.contains('cart-sidebar-open')) {
+      hideCartSidebar();
+    }
+  });
+});
+
+// Add bundle to cart functionality
+function addBundleToCart(bundleId) {
+  // Check if user is logged in
+  <% if (!user) { %>
+    showNotification('Please login to add items to cart', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 2000);
+    return;
+  <% } %>
+  
+  // Find the bundle data from the page
+  const bundleCard = document.querySelector(`[onclick="addBundleToCart('${bundleId}')"]`).closest('.course-card-enhanced');
+  const bundleTitle = bundleCard.querySelector('.course-card-title-enhanced').textContent;
+  const bundlePrice = bundleCard.querySelector('.course-price-current-enhanced').textContent;
+  const bundleImage = bundleCard.querySelector('.course-card-media-enhanced img').src;
+  
+  // Show loading state
+  const btn = bundleCard.querySelector('.btn-add-to-cart-enhanced');
+  const originalText = btn.querySelector('span').textContent;
+  const icon = btn.querySelector('i');
+  
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Adding...';
+  icon.classList.remove('fa-shopping-cart');
+  icon.classList.add('fa-spinner', 'fa-spin');
+  
+  // Add to cart via API
+  fetch('/purchase/cart/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: bundleId,
+      itemType: 'bundle',
+      title: bundleTitle,
+      price: parseFloat(bundlePrice.replace('$', '')),
+      image: bundleImage
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Visual feedback
+      btn.style.background = '#27ae60';
+      btn.querySelector('span').textContent = 'Added!';
+      icon.classList.remove('fa-spinner', 'fa-spin');
+      icon.classList.add('fa-check');
+      
+      showNotification(data.message, 'success');
+      
+      // Update global cart count
+      if (window.globalCart) {
+        window.globalCart.refreshCartData();
+      }
+      
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.style.background = '';
+        btn.querySelector('span').textContent = originalText;
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-shopping-cart');
+      }, 2000);
+    } else {
+      btn.disabled = false;
+      btn.querySelector('span').textContent = originalText;
+      icon.classList.remove('fa-spinner', 'fa-spin');
+      icon.classList.add('fa-shopping-cart');
+      
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    btn.disabled = false;
+    btn.querySelector('span').textContent = originalText;
+    icon.classList.remove('fa-spinner', 'fa-spin');
+    icon.classList.add('fa-shopping-cart');
+    
+    showNotification('Error adding item to cart', 'error');
+  });
+}
+
+// Show notification function
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => notification.classList.add('show'), 100);
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Clear filters function
+function clearFilters() {
+  window.location.href = '/courses/online';
+}
+
+// Toggle wishlist function
+function toggleWishlist(itemId, itemType) {
+  // Check if user is logged in
+  <% if (!user) { %>
+    showNotification('Please login to manage your wishlist', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 2000);
+    return;
+  <% } %>
+  
+  // Find the heart icon - use event target for more reliable selection
+  const heartIcon = event.target.closest('.course-favorite-btn-enhanced').querySelector('i');
+  const isCurrentlyInWishlist = heartIcon.classList.contains('fas');
+  
+  console.log('Toggling wishlist for:', itemId, itemType, 'Currently in wishlist:', isCurrentlyInWishlist);
+  
+  // Show loading state
+  heartIcon.classList.add('fa-spinner', 'fa-spin');
+  heartIcon.classList.remove('fas', 'far');
+  
+  // Toggle wishlist via API
+  fetch('/purchase/wishlist/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: itemId,
+      itemType: itemType
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Wishlist toggle response:', data);
+    
+    if (data.success) {
+      // Update heart icon based on new status
+      heartIcon.classList.remove('fa-spinner', 'fa-spin');
+      if (data.isInWishlist) {
+        heartIcon.classList.add('fas');
+        heartIcon.style.color = '#ff6b6b';
+      } else {
+        heartIcon.classList.add('far');
+        heartIcon.style.color = '';
+      }
+      
+      showNotification(data.message, 'success');
+    } else {
+      // Revert to original state
+      heartIcon.classList.remove('fa-spinner', 'fa-spin');
+      if (isCurrentlyInWishlist) {
+        heartIcon.classList.add('fas');
+        heartIcon.style.color = '#ff6b6b';
+      } else {
+        heartIcon.classList.add('far');
+        heartIcon.style.color = '';
+      }
+      
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    // Revert to original state
+    heartIcon.classList.remove('fa-spinner', 'fa-spin');
+    if (isCurrentlyInWishlist) {
+      heartIcon.classList.add('fas');
+      heartIcon.style.color = '#ff6b6b';
+    } else {
+      heartIcon.classList.add('far');
+      heartIcon.style.color = '';
+    }
+    
+    showNotification('Error updating wishlist', 'error');
+  });
+}
+</script>
+
+<!-- Import index-specific CSS -->
+<link rel="stylesheet" href="/css/index.css">
+
+<style>
+.btn-purchased-enhanced {
+  background: #27ae60 !important;
+  color: white !important;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.quick-action-btn.purchased {
+  background: #27ae60 !important;
+  color: white !important;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.notification {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  background: white;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  transform: translateX(100%);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.notification.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.notification-success {
+  border-left: 4px solid #27ae60;
+}
+
+.notification-error {
+  border-left: 4px solid #e74c3c;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-success .notification-content i {
+  color: #27ae60;
+}
+
+.notification-error .notification-content i {
+  color: #e74c3c;
+}
+
+/* Cart notification styles */
+.cart-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.cart-notification.show {
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+
+.cart-notification-success {
+  border-left: 4px solid #27ae60;
+}
+
+.cart-notification-error {
+  border-left: 4px solid #e74c3c;
+}
+
+.cart-notification-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-notification-success .cart-notification-content i {
+  color: #27ae60;
+}
+
+.cart-notification-error .cart-notification-content i {
+  color: #e74c3c;
+}
+</style>
+
+<!-- Import index-specific JavaScript -->
+<script src="/js/index.js"></script>
+<script src="/js/enhanced-scroll-effects.js"></script>
+
+<%- include('partials/footer') %>

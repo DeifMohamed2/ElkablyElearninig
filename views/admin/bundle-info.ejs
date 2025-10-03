@@ -1,0 +1,3906 @@
+<%- include('./partials/admin-header', { pageCSS: 'bundles' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'bundles' }) %>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Bundle Information',
+        breadcrumbSubtitle: bundle.title,
+        showSearch: false
+    }) %>
+
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="admin-dashboard">
+
+        <!-- Bundle Header -->
+        <div class="enhanced-bundle-header">
+          <div class="bundle-header-background">
+            <div class="bundle-header-overlay"></div>
+          </div>
+          
+          <div class="bundle-header-content">
+            <div class="bundle-main-info">
+              <div class="bundle-thumbnail-section">
+                <% if (bundle.thumbnail) { %>
+                  <div class="bundle-thumbnail-container">
+                    <img src="<%= bundle.thumbnail %>" alt="<%= bundle.title %>" class="bundle-thumbnail">
+                    <div class="bundle-status-overlay">
+                      <span class="status-badge status-<%= bundle.status %>">
+                        <i class="fas fa-<%= bundle.status === 'published' ? 'eye' : bundle.status === 'draft' ? 'eye-slash' : 'archive' %>"></i>
+                        <%= bundle.status.charAt(0).toUpperCase() + bundle.status.slice(1) %>
+                      </span>
+                    </div>
+                  </div>
+                <% } else { %>
+                  <div class="bundle-thumbnail-placeholder">
+                    <i class="fas fa-layer-group"></i>
+                    <div class="bundle-status-overlay">
+                      <span class="status-badge status-<%= bundle.status %>">
+                        <i class="fas fa-<%= bundle.status === 'published' ? 'eye' : bundle.status === 'draft' ? 'eye-slash' : 'archive' %>"></i>
+                        <%= bundle.status.charAt(0).toUpperCase() + bundle.status.slice(1) %>
+                      </span>
+                    </div>
+                  </div>
+                <% } %>
+              </div>
+
+              <div class="bundle-details">
+                <div class="bundle-title-section">
+                  <h1 class="bundle-title"><%= bundle.title %></h1>
+                  <div class="bundle-badges">
+                    <span class="bundle-code-badge">#<%= bundle.bundleCode %></span>
+                    <span class="year-badge"><%= bundle.year %></span>
+                  </div>
+                </div>
+                
+                <p class="bundle-description"><%= bundle.description || bundle.shortDescription %></p>
+
+                <div class="bundle-meta-grid">
+                  <div class="meta-card">
+                    <div class="meta-icon">
+                      <i class="fas fa-book"></i>
+                    </div>
+                    <div class="meta-content">
+                      <span class="meta-label">Subject</span>
+                      <span class="meta-value"><%= bundle.subject %></span>
+                    </div>
+                  </div>
+                  <div class="meta-card">
+                    <div class="meta-icon">
+                      <i class="fas fa-globe"></i>
+                    </div>
+                    <div class="meta-content">
+                      <span class="meta-label">Type</span>
+                      <span class="meta-value"><%= bundle.courseType.charAt(0).toUpperCase() + bundle.courseType.slice(1) %></span>
+                    </div>
+                  </div>
+                  <div class="meta-card">
+                    <div class="meta-icon">
+                      <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="meta-content">
+                      <span class="meta-label">Duration</span>
+                      <span class="meta-value"><%= bundle.duration || 0 %> hours</span>
+                    </div>
+                  </div>
+                  <div class="meta-card">
+                    <div class="meta-icon">
+                      <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="meta-content">
+                      <span class="meta-label">Courses</span>
+                      <span class="meta-value"><%= bundle.courses ? bundle.courses.length : 0 %></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bundle-actions-section">
+              <div class="primary-actions">
+                <a href="/admin/bundles/<%= bundle.bundleCode %>/manage" class="btn btn-primary btn-lg">
+                  <i class="fas fa-cog"></i>
+                  <span>Manage Bundle</span>
+                </a>
+       
+              </div>
+              <div class="secondary-actions">
+                <a href="/admin/bundles" class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-left"></i>
+                  Back to Bundles
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Metrics Stats -->
+        <div class="enhanced-stats-grid">
+          <div class="stat-card students-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+<%= studentAnalytics.recentEnrollments || 0 %></span>
+              </div>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-number"><%= studentAnalytics.totalStudents || 0 %></h3>
+              <p class="stat-label">Total Students</p>
+              <div class="stat-breakdown">
+                <div class="breakdown-item">
+                  <span class="breakdown-label">Active</span>
+                  <span class="breakdown-value active"><%= studentAnalytics.activeStudents || 0 %></span>
+                </div>
+                <div class="breakdown-item">
+                  <span class="breakdown-label">Inactive</span>
+                  <span class="breakdown-value inactive"><%= studentAnalytics.inactiveStudents || 0 %></span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-chart">
+              <canvas id="studentsChart" width="100" height="40"></canvas>
+            </div>
+          </div>
+
+          <div class="stat-card progress-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="stat-trend neutral">
+                <span>Average</span>
+              </div>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-number"><%= studentAnalytics.averageProgress || 0 %>%</h3>
+              <p class="stat-label">Course Progress</p>
+              <div class="progress-container">
+                <div class="progress-bar">
+                  <div class="progress-fill" data-progress="<%= studentAnalytics.averageProgress || 0 %>"></div>
+                </div>
+                <span class="progress-text"><%= studentAnalytics.averageProgress || 0 %>% Complete</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card revenue-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-dollar-sign"></i>
+              </div>
+              <div class="stat-trend positive">
+                <span>Revenue</span>
+              </div>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-number">$<%= Math.round(financialAnalytics.totalRevenue || 0).toLocaleString() %></h3>
+              <p class="stat-label">Total Revenue</p>
+              <div class="stat-breakdown">
+                <div class="breakdown-item">
+                  <span class="breakdown-label">Per Student</span>
+                  <span class="breakdown-value">$<%= Math.round(financialAnalytics.averageRevenuePerStudent || 0) %></span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-chart">
+              <canvas id="revenueChart" width="100" height="40"></canvas>
+            </div>
+          </div>
+
+          <div class="stat-card completion-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-graduation-cap"></i>
+              </div>
+              <div class="stat-trend positive">
+                <span><%= engagementMetrics.quizAttempts || 0 %> attempts</span>
+              </div>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-number"><%= studentAnalytics.completedStudents || 0 %></h3>
+              <p class="stat-label">Completed Students</p>
+              <div class="stat-breakdown">
+                <div class="breakdown-item">
+                  <span class="breakdown-label">Avg Score</span>
+                  <span class="breakdown-value"><%= engagementMetrics.averageQuizScore || 0 %>%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Grid -->
+        <div class="enhanced-analytics-grid">
+          <!-- Financial Performance Chart -->
+          <div class="enhanced-analytics-card financial-performance-card">
+            <div class="card-header-enhanced">
+              <div class="card-title-section">
+                <div class="card-icon">
+                  <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="card-title-content">
+                  <h3>Financial Performance</h3>
+                  <p>Revenue breakdown and financial metrics</p>
+                </div>
+              </div>
+              <div class="card-trend">
+                <span class="trend-indicator positive">
+                  <i class="fas fa-arrow-up"></i>
+                  +12%
+                </span>
+                <span class="trend-label">vs last month</span>
+              </div>
+            </div>
+            
+            <div class="card-body-enhanced">
+              <div class="chart-section">
+                <div class="chart-header">
+                  <h4>Revenue Distribution</h4>
+                  <div class="chart-legend">
+                    <div class="legend-item">
+                      <span class="legend-color full-price"></span>
+                      <span class="legend-label">Full Price</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-color discounted"></span>
+                      <span class="legend-label">Discounted</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-color potential"></span>
+                      <span class="legend-label">Potential</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="chart-container-enhanced">
+                  <canvas id="financialChart" width="400" height="200"></canvas>
+                </div>
+              </div>
+              
+              <div class="metrics-section">
+                <h4>Financial Metrics</h4>
+                <div class="metrics-grid">
+                  <div class="metric-card full-price">
+                    <div class="metric-header">
+                      <div class="metric-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                      </div>
+                      <div class="metric-info">
+                        <span class="metric-label">Full Price Sales</span>
+                        <span class="metric-value">$<%= Math.round(financialAnalytics.fullPriceRevenue || 0).toLocaleString() %></span>
+                      </div>
+                    </div>
+                    <div class="metric-progress">
+                      <div class="progress-bar-enhanced">
+                        <div class="progress-fill-enhanced full-price" data-width="<%= financialAnalytics.totalRevenue > 0 ? Math.min((financialAnalytics.fullPriceRevenue / financialAnalytics.totalRevenue * 100), 100) : 0 %>"></div>
+                      </div>
+                      <span class="progress-percentage"><%= financialAnalytics.totalRevenue > 0 ? Math.round(Math.min((financialAnalytics.fullPriceRevenue / financialAnalytics.totalRevenue * 100), 100)) : 0 %>%</span>
+                    </div>
+                  </div>
+                  
+                  <div class="metric-card discounted">
+                    <div class="metric-header">
+                      <div class="metric-icon">
+                        <i class="fas fa-percentage"></i>
+                      </div>
+                      <div class="metric-info">
+                        <span class="metric-label">Discounted Sales</span>
+                        <span class="metric-value">$<%= Math.round(financialAnalytics.discountedRevenue || 0).toLocaleString() %></span>
+                      </div>
+                    </div>
+                    <div class="metric-progress">
+                      <div class="progress-bar-enhanced">
+                        <div class="progress-fill-enhanced discounted" data-width="<%= financialAnalytics.totalRevenue > 0 ? Math.min((financialAnalytics.discountedRevenue / financialAnalytics.totalRevenue * 100), 100) : 0 %>"></div>
+                      </div>
+                      <span class="progress-percentage"><%= financialAnalytics.totalRevenue > 0 ? Math.round(Math.min((financialAnalytics.discountedRevenue / financialAnalytics.totalRevenue * 100), 100)) : 0 %>%</span>
+                    </div>
+                  </div>
+                  
+                  <div class="metric-card potential">
+                    <div class="metric-header">
+                      <div class="metric-icon">
+                        <i class="fas fa-chart-line"></i>
+                      </div>
+                      <div class="metric-info">
+                        <span class="metric-label">Potential Revenue</span>
+                        <span class="metric-value">$<%= Math.round(financialAnalytics.totalPotentialRevenue || 0).toLocaleString() %></span>
+                      </div>
+                    </div>
+                    <div class="metric-progress">
+                      <div class="progress-bar-enhanced">
+                        <div class="progress-fill-enhanced potential" data-width="100"></div>
+                      </div>
+                      <span class="progress-percentage">100%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Performance -->
+          <div class="enhanced-analytics-card course-performance-card">
+            <div class="card-header-enhanced">
+              <div class="card-title-section">
+                <div class="card-icon">
+                  <i class="fas fa-book-open"></i>
+                </div>
+                <div class="card-title-content">
+                  <h3>Course Performance</h3>
+                  <p>Individual course analytics and progress tracking</p>
+                </div>
+              </div>
+              <div class="card-trend">
+                <span class="course-count-badge">
+                  <i class="fas fa-layer-group"></i>
+                  <%= courseAnalytics ? courseAnalytics.length : 0 %> courses
+                </span>
+              </div>
+            </div>
+            
+            <div class="card-body-enhanced">
+              <% if (courseAnalytics && courseAnalytics.length > 0) { %>
+                <div class="courses-performance-section">
+                  <div class="section-header">
+                    <h4>Course Analytics</h4>
+                    <div class="performance-summary">
+                      <div class="summary-item">
+                        <span class="summary-label">Total Enrolled</span>
+                        <span class="summary-value"><%= courseAnalytics.reduce((sum, course) => sum + (course.enrolledStudents || 0), 0) %></span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Total Completed</span>
+                        <span class="summary-value"><%= courseAnalytics.reduce((sum, course) => sum + (course.completedStudents || 0), 0) %></span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Avg Progress</span>
+                        <span class="summary-value"><%= Math.round(courseAnalytics.reduce((sum, course) => sum + (course.completionRate || 0), 0) / courseAnalytics.length) %>%</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="courses-performance-list">
+                    <% courseAnalytics.forEach((course, index) => { %>
+                    <div class="course-performance-card">
+                      <div class="course-header-section">
+                        <div class="course-number">#<%= String(index + 1).padStart(2, '0') %></div>
+                        <div class="course-main-info">
+                          <h5 class="course-title"><%= course.title %></h5>
+                          <div class="course-meta">
+                            <span class="meta-badge">
+                              <i class="fas fa-users"></i>
+                              <%= course.enrolledStudents || 0 %> enrolled
+                            </span>
+                            <span class="meta-badge">
+                              <i class="fas fa-check-circle"></i>
+                              <%= course.completedStudents || 0 %> completed
+                            </span>
+                            <span class="meta-badge">
+                              <i class="fas fa-list"></i>
+                              <%= course.topicsCount || 0 %> topics
+                            </span>
+                          </div>
+                        </div>
+                        <div class="course-completion">
+                          <div class="completion-rate-large"><%= course.completionRate || 0 %>%</div>
+                          <span class="completion-label">Completion Rate</span>
+                        </div>
+                      </div>
+                      
+                      <div class="course-progress-section">
+                        <div class="progress-header">
+                          <span class="progress-label">Overall Progress</span>
+                          <span class="progress-value"><%= course.completionRate || 0 %>%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                          <div class="progress-track">
+                            <div class="progress-fill-enhanced" data-progress="<%= course.completionRate || 0 %>"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <% }) %>
+                  </div>
+                </div>
+              <% } else { %>
+                <div class="empty-state-enhanced">
+                  <div class="empty-icon-large">
+                    <i class="fas fa-book"></i>
+                  </div>
+                  <div class="empty-content">
+                    <h4>No courses in this bundle yet</h4>
+                    <p>Courses will appear here once they are added to the bundle</p>
+                    <div class="empty-actions">
+                      <a href="/admin/bundles/<%= bundle.bundleCode %>/manage" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Add Courses
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Demographics and Bundle Details -->
+        <div class="enhanced-analytics-grid">
+          <!-- Grade Distribution -->
+          <div class="enhanced-analytics-card grade-distribution-card">
+            <div class="card-header-enhanced">
+              <div class="card-title-section">
+                <div class="card-icon">
+                  <i class="fas fa-chart-donut"></i>
+                </div>
+                <div class="card-title-content">
+                  <h3>Grade Distribution</h3>
+                  <p>Student enrollment by grade levels</p>
+                </div>
+              </div>
+              <div class="card-trend">
+                <span class="students-count-badge">
+                  <i class="fas fa-users"></i>
+                  <%= studentAnalytics.totalStudents || 0 %> students
+                </span>
+              </div>
+            </div>
+            
+            <div class="card-body-enhanced">
+              <% if (gradeDistribution && Object.keys(gradeDistribution).length > 0) { %>
+                <div class="grade-distribution-section">
+                  <div class="chart-section">
+                    <div class="chart-header">
+                      <h4>Grade Breakdown</h4>
+                      <div class="chart-stats">
+                        <div class="stat-item">
+                          <span class="stat-label">Total Students</span>
+                          <span class="stat-value"><%= studentAnalytics.totalStudents || 0 %></span>
+                        </div>
+                        <div class="stat-item">
+                          <span class="stat-label">Grade Levels</span>
+                          <span class="stat-value"><%= Object.keys(gradeDistribution).length %></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="chart-container-enhanced">
+                      <canvas id="gradeChart" width="300" height="300"></canvas>
+                    </div>
+                  </div>
+                  
+                  <div class="distribution-details-section">
+                    <h4>Grade Details</h4>
+                    <div class="distribution-list-enhanced">
+                      <% Object.entries(gradeDistribution).forEach(([grade, count], index) => { %>
+                      <div class="grade-distribution-item">
+                        <div class="grade-info">
+                          <div class="grade-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                          </div>
+                          <div class="grade-details">
+                            <span class="grade-name"><%= grade %></span>
+                            <span class="grade-count"><%= count %> students</span>
+                          </div>
+                        </div>
+                        <div class="grade-progress">
+                          <div class="progress-container">
+                            <div class="progress-bar-enhanced">
+                              <div class="progress-fill-enhanced" data-width="<%= studentAnalytics.totalStudents > 0 ? Math.min((count / studentAnalytics.totalStudents * 100), 100) : 0 %>"></div>
+                            </div>
+                            <span class="progress-percentage"><%= studentAnalytics.totalStudents > 0 ? Math.round(count / studentAnalytics.totalStudents * 100) : 0 %>%</span>
+                          </div>
+                        </div>
+                        <div class="grade-rank">
+                          <span class="rank-badge">#<%= index + 1 %></span>
+                        </div>
+                      </div>
+                      <% }) %>
+                    </div>
+                  </div>
+                </div>
+              <% } else { %>
+                <div class="empty-state-enhanced">
+                  <div class="empty-icon-large">
+                    <i class="fas fa-chart-pie"></i>
+                  </div>
+            
+                </div>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Bundle Details -->
+          <div class="enhanced-analytics-card bundle-details-card">
+            <div class="card-header-enhanced">
+              <div class="card-title-section">
+                <div class="card-icon">
+                  <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="card-title-content">
+                  <h3>Bundle Details</h3>
+                  <p>Complete bundle information and specifications</p>
+                </div>
+              </div>
+              <div class="card-trend">
+                <% if (bundle.discountPrice) { %>
+                <span class="discount-badge-large">
+                  <i class="fas fa-tag"></i>
+                  <%= bundle.savingsPercentage %>% OFF
+                </span>
+                <% } %>
+              </div>
+            </div>
+            
+            <div class="card-body-enhanced">
+              <!-- Pricing Section -->
+              <div class="bundle-pricing-section">
+                <div class="pricing-header">
+                  <h4><i class="fas fa-dollar-sign"></i> Pricing Information</h4>
+                  <% if (bundle.discountPrice) { %>
+                  <span class="discount-indicator">Special Offer</span>
+                  <% } %>
+                </div>
+                <div class="pricing-display-enhanced">
+                  <% if (bundle.discountPrice) { %>
+                  <div class="pricing-row-enhanced">
+                    <div class="original-price-enhanced">
+                      <span class="price-label">Original Price</span>
+                      <span class="price-value">$<%= bundle.price %></span>
+                    </div>
+                    <div class="current-price-enhanced">
+                      <span class="price-label">Current Price</span>
+                      <span class="price-value">$<%= bundle.finalPrice %></span>
+                    </div>
+                  </div>
+                  <div class="savings-display">
+                    <div class="savings-icon">
+                      <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="savings-content">
+                      <span class="savings-label">You Save</span>
+                      <span class="savings-amount">$<%= Math.round(bundle.price - bundle.finalPrice) %></span>
+                    </div>
+                  </div>
+                  <% } else { %>
+                  <div class="standard-pricing">
+                    <span class="price-label">Bundle Price</span>
+                    <span class="price-value-large">$<%= bundle.price %></span>
+                  </div>
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- Bundle Information Grid -->
+              <div class="bundle-info-grid">
+                <div class="info-section">
+                  <h4><i class="fas fa-user-circle"></i> Creator Information</h4>
+                  <div class="creator-info">
+                    <div class="creator-avatar">
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div class="creator-details">
+                      <span class="creator-name"><%= bundle.createdBy.userName %></span>
+                      <span class="creator-role">Bundle Creator</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-section">
+                  <h4><i class="fas fa-calendar-alt"></i> Timeline</h4>
+                  <div class="timeline-info">
+                    <div class="timeline-item">
+                      <div class="timeline-icon">
+                        <i class="fas fa-plus-circle"></i>
+                      </div>
+                      <div class="timeline-content">
+                        <span class="timeline-label">Created</span>
+                        <span class="timeline-date"><%= new Date(bundle.createdAt).toLocaleDateString() %></span>
+                      </div>
+                    </div>
+                    <div class="timeline-item">
+                      <div class="timeline-icon">
+                        <i class="fas fa-edit"></i>
+                      </div>
+                      <div class="timeline-content">
+                        <span class="timeline-label">Last Updated</span>
+                        <span class="timeline-date"><%= new Date(bundle.updatedAt).toLocaleDateString() %></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-section">
+                  <h4><i class="fas fa-layer-group"></i> Course Statistics</h4>
+                  <div class="course-stats-enhanced">
+                    <div class="stat-item-enhanced">
+                      <div class="stat-icon-enhanced">
+                        <i class="fas fa-book"></i>
+                      </div>
+                      <div class="stat-content-enhanced">
+                        <span class="stat-number-enhanced"><%= bundle.courses ? bundle.courses.length : 0 %></span>
+                        <span class="stat-label-enhanced">Total Courses</span>
+                      </div>
+                    </div>
+                    <div class="stat-item-enhanced">
+                      <div class="stat-icon-enhanced">
+                        <i class="fas fa-clock"></i>
+                      </div>
+                      <div class="stat-content-enhanced">
+                        <span class="stat-number-enhanced"><%= bundle.duration || 0 %></span>
+                        <span class="stat-label-enhanced">Hours</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Additional Information -->
+              <div class="additional-info-section">
+                <% if (bundle.tags && bundle.tags.length > 0) { %>
+                <div class="tags-section-enhanced">
+                  <div class="section-header-enhanced">
+                    <h4><i class="fas fa-tags"></i> Tags</h4>
+                    <span class="tag-count"><%= bundle.tags.length %> tags</span>
+                  </div>
+                  <div class="tags-container-enhanced">
+                    <% bundle.tags.forEach(tag => { %>
+                    <span class="tag-enhanced"><%= tag %></span>
+                    <% }) %>
+                  </div>
+                </div>
+                <% } %>
+
+                <% if (bundle.description) { %>
+                <div class="description-section-enhanced">
+                  <div class="section-header-enhanced">
+                    <h4><i class="fas fa-align-left"></i> Description</h4>
+                  </div>
+                  <div class="description-content">
+                    <p><%= bundle.description %></p>
+                  </div>
+                </div>
+                <% } %>
+
+                <% if (bundle.features && bundle.features.length > 0) { %>
+                <div class="features-section-enhanced">
+                  <div class="section-header-enhanced">
+                    <h4><i class="fas fa-star"></i> Features</h4>
+                    <span class="feature-count"><%= bundle.features.length %> features</span>
+                  </div>
+                  <div class="features-list-enhanced">
+                    <% bundle.features.forEach(feature => { %>
+                    <div class="feature-item">
+                      <div class="feature-icon">
+                        <i class="fas fa-check"></i>
+                      </div>
+                      <span class="feature-text"><%= feature %></span>
+                    </div>
+                    <% }) %>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Enrolled Students Table -->
+        <div class="admin-chart-card">
+          <div class="admin-chart-header">
+            <h3><i class="fas fa-users"></i> Enrolled Students (<%= studentsWithBundle.length %>)</h3>
+            <div class="chart-actions">
+              <button class="btn btn-outline-primary btn-sm" onclick="exportStudentData()">
+                <i class="fas fa-download"></i> Export CSV
+              </button>
+            </div>
+          </div>
+          <div class="students-table-container">
+            <% if (studentsWithBundle && studentsWithBundle.length > 0) { %>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Contact</th>
+                    <th>Academic Info</th>
+                    <th>Enrollment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% studentsWithBundle.forEach(student => { %>
+                  <% 
+                        const bundlePurchase = student.purchasedBundles.find(pb => 
+                          pb.bundle._id?.toString() === bundle._id.toString() || 
+                          pb.bundle.toString() === bundle._id.toString()
+                        );
+                        const enrollmentDate = bundlePurchase ? bundlePurchase.purchasedAt : student.createdAt;
+                      %>
+                  <tr>
+                    <td>
+                      <div class="student-profile">
+                        <div class="student-avatar">
+                          <i class="fas fa-user"></i>
+                        </div>
+                        <div class="student-details">
+                          <div class="student-name"><%= student.firstName %> <%= student.lastName %></div>
+                          <div class="student-username">@<%= student.username %></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="contact-details">
+                        <div class="email"><i class="fas fa-envelope"></i> <%= student.studentEmail %></div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="academic-details">
+                        <span class="grade-badge"><%= student.grade %></span>
+                        <div class="school"><%= student.schoolName %></div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="enrollment-details">
+                        <div class="date"><%= new Date(enrollmentDate).toLocaleDateString() %></div>
+                        <div class="days-ago"><%= Math.floor((new Date() - new Date(enrollmentDate)) / (1000 * 60 * 60 * 24)) %> days ago</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="status-badge <%= student.isActive ? 'active' : 'inactive' %>">
+                        <i class="fas fa-circle"></i>
+                        <%= student.isActive ? 'Active' : 'Inactive' %>
+                      </span>
+                    </td>
+                    <td>
+                      <div class="action-buttons">
+                        <a href="/admin/students/<%= student._id %>" class="btn btn-sm btn-outline-primary" title="View Profile">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewStudentProgress('<%= student._id %>')" title="View Progress">
+                          <i class="fas fa-chart-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            <% } else { %>
+            <div class="empty-state large">
+              <i class="fas fa-users"></i>
+              <h4>No students enrolled yet</h4>
+              <p>Students who purchase this bundle will appear here</p>
+            </div>
+            <% } %>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<style>
+  /* Enhanced Bundle Info Page Styles */
+  
+  /* Enhanced Bundle Header */
+  .enhanced-bundle-header {
+    position: relative;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+  }
+
+  .bundle-header-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+  }
+
+  .bundle-header-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+  }
+
+  .bundle-header-content {
+    position: relative;
+    z-index: 2;
+    padding: 40px;
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+  }
+
+  .bundle-main-info {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+  }
+
+  .bundle-thumbnail-section {
+    flex-shrink: 0;
+  }
+
+  .bundle-thumbnail-container {
+    position: relative;
+  }
+
+  .bundle-thumbnail {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 16px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .bundle-thumbnail-placeholder {
+    width: 140px;
+    height: 140px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .bundle-status-overlay {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  .status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .status-badge.status-published {
+    background: rgba(16, 185, 129, 0.9);
+    color: white;
+  }
+
+  .status-badge.status-draft {
+    background: rgba(245, 158, 11, 0.9);
+    color: white;
+  }
+
+  .status-badge.status-archived {
+    background: rgba(107, 114, 128, 0.9);
+    color: white;
+  }
+
+  .bundle-details {
+    flex: 1;
+  }
+
+  .bundle-title-section {
+    margin-bottom: 16px;
+  }
+
+  .bundle-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 12px 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .bundle-badges {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .bundle-code-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Monaco', 'Menlo', monospace;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .year-badge {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .bundle-description {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 24px;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .bundle-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .meta-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+
+  .meta-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .meta-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .meta-content {
+    flex: 1;
+  }
+
+  .meta-label {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .meta-value {
+    display: block;
+    font-size: 14px;
+    color: white;
+    font-weight: 600;
+  }
+
+  .bundle-actions-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .primary-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .primary-actions .btn {
+    min-width: 180px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .primary-actions .btn-primary {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+  }
+
+  .primary-actions .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  }
+
+  .primary-actions .btn-outline-primary {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+  }
+
+  .primary-actions .btn-outline-primary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+    transform: translateY(-2px);
+  }
+
+  .secondary-actions {
+    display: flex;
+    justify-content: center;
+  }
+
+  .secondary-actions .btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    backdrop-filter: blur(10px);
+  }
+
+  .secondary-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
+
+  /* Enhanced Stats Grid */
+  .enhanced-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    border-color: #8b5cf6;
+  }
+
+  .stat-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .students-card .stat-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .progress-card .stat-icon {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  }
+
+  .revenue-card .stat-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  .completion-card .stat-icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  }
+
+  .stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+  }
+
+  .stat-trend.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  .stat-trend.neutral {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+  }
+
+  .stat-content {
+    margin-bottom: 16px;
+  }
+
+  .stat-number {
+    font-size: 32px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+    margin: 0 0 12px 0;
+  }
+
+  .stat-breakdown {
+    display: flex;
+    gap: 16px;
+  }
+
+  .breakdown-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .breakdown-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .breakdown-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .breakdown-value.active {
+    color: #10b981;
+  }
+
+  .breakdown-value.inactive {
+    color: #6b7280;
+  }
+
+  .progress-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    border-radius: 4px;
+    transition: width 1.5s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  .stat-chart {
+    height: 40px;
+    margin-top: 16px;
+  }
+
+  .stat-chart canvas {
+    width: 100% !important;
+    height: 40px !important;
+  }
+
+  /* Enhanced Analytics Grid */
+  .enhanced-analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .analytics-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+
+  .analytics-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 20px 24px;
+  }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-content h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-content h3 i {
+    color: #8b5cf6;
+  }
+
+  .trend-badge,
+  .courses-count,
+  .total-count,
+  .schools-count,
+  .discount-badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .trend-badge.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  .courses-count,
+  .total-count,
+  .schools-count {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+  }
+
+  .discount-badge {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+
+  .card-content {
+    padding: 24px;
+  }
+
+  .chart-container {
+    margin-bottom: 24px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .chart-container canvas {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  /* Enhanced Analytics Cards */
+  .enhanced-analytics-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .enhanced-analytics-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed, #06b6d4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .enhanced-analytics-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    border-color: #8b5cf6;
+  }
+
+  .enhanced-analytics-card:hover::before {
+    opacity: 1;
+  }
+
+  .card-header-enhanced {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-title-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .card-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+  }
+
+  .card-title-content h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+  }
+
+  .card-title-content p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .card-trend {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .trend-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .trend-indicator.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  .trend-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .course-count-badge,
+  .students-count-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .card-body-enhanced {
+    padding: 32px;
+  }
+
+  /* Chart Section */
+  .chart-section {
+    margin-bottom: 32px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .chart-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .legend-color.full-price {
+    background: #10b981;
+  }
+
+  .legend-color.discounted {
+    background: #f59e0b;
+  }
+
+  .legend-color.potential {
+    background: #e5e7eb;
+  }
+
+  .chart-container-enhanced {
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8fafc, #ffffff);
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .chart-container-enhanced canvas {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  /* Metrics Section */
+  .metrics-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 20px 0;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .metric-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .metric-card:hover {
+    background: #ffffff;
+    border-color: #8b5cf6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .metric-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .metric-card .metric-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+  }
+
+  .metric-card.full-price .metric-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .metric-card.discounted .metric-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  .metric-card.potential .metric-icon {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+  }
+
+  .metric-info {
+    flex: 1;
+  }
+
+  .metric-info .metric-label {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .metric-info .metric-value {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .metric-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-bar-enhanced {
+    flex: 1;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill-enhanced {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1.5s ease;
+    width: 0%;
+  }
+
+  .progress-fill-enhanced.full-price {
+    background: linear-gradient(90deg, #10b981, #059669);
+  }
+
+  .progress-fill-enhanced.discounted {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+  }
+
+  .progress-fill-enhanced.potential {
+    background: linear-gradient(90deg, #6b7280, #4b5563);
+  }
+
+  .progress-percentage {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* Course Performance Styles */
+  .courses-performance-section {
+    margin-bottom: 24px;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .section-header h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+  }
+
+  .performance-summary {
+    display: flex;
+    gap: 24px;
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .summary-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .summary-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #8b5cf6;
+  }
+
+  .courses-performance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .course-performance-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .course-performance-card:hover {
+    background: #ffffff;
+    border-color: #8b5cf6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .course-header-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .course-number {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .course-main-info {
+    flex: 1;
+  }
+
+  .course-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+  }
+
+  .course-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .meta-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .course-completion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .completion-rate-large {
+    font-size: 24px;
+    font-weight: 700;
+    color: #8b5cf6;
+  }
+
+  .completion-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .course-progress-section {
+    margin-top: 16px;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .progress-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .progress-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #8b5cf6;
+  }
+
+  .progress-bar-container {
+    width: 100%;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  /* Grade Distribution Styles */
+  .grade-distribution-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .chart-stats {
+    display: flex;
+    gap: 20px;
+  }
+
+  .chart-stats .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .chart-stats .stat-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .chart-stats .stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #8b5cf6;
+  }
+
+  .distribution-details-section h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 20px 0;
+  }
+
+  .distribution-list-enhanced {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .grade-distribution-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .grade-distribution-item:hover {
+    background: #ffffff;
+    border-color: #8b5cf6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .grade-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 200px;
+  }
+
+  .grade-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+  }
+
+  .grade-details {
+    flex: 1;
+  }
+
+  .grade-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 2px;
+  }
+
+  .grade-count {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  .grade-progress {
+    flex: 1;
+    max-width: 300px;
+  }
+
+  .grade-progress .progress-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .grade-rank {
+    min-width: 60px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .rank-badge {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* Empty State Enhanced */
+  .empty-state-enhanced {
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, #f8fafc, #ffffff);
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+  }
+
+  .empty-icon-large {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    color: white;
+    font-size: 32px;
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.3);
+  }
+
+  .empty-content h4 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+  }
+
+  .empty-content p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 24px 0;
+  }
+
+  .empty-actions .btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  /* Enhanced Bundle Details Styles */
+  .discount-badge-large {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+  }
+
+  .bundle-pricing-section {
+    margin-bottom: 32px;
+    padding: 24px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+  }
+
+  .pricing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .pricing-header h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #92400e;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .discount-indicator {
+    padding: 6px 12px;
+    background: #92400e;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .pricing-display-enhanced {
+    text-align: center;
+  }
+
+  .pricing-row-enhanced {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 20px;
+  }
+
+  .original-price-enhanced,
+  .current-price-enhanced {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .price-label {
+    font-size: 14px;
+    color: #92400e;
+    font-weight: 600;
+  }
+
+  .original-price-enhanced .price-value {
+    font-size: 20px;
+    color: #92400e;
+    text-decoration: line-through;
+    font-weight: 600;
+  }
+
+  .current-price-enhanced .price-value {
+    font-size: 32px;
+    color: #92400e;
+    font-weight: 800;
+  }
+
+  .savings-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: rgba(146, 64, 14, 0.1);
+    border-radius: 12px;
+  }
+
+  .savings-icon {
+    width: 40px;
+    height: 40px;
+    background: #92400e;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .savings-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .savings-label {
+    font-size: 12px;
+    color: #92400e;
+    font-weight: 600;
+  }
+
+  .savings-amount {
+    font-size: 20px;
+    color: #92400e;
+    font-weight: 800;
+  }
+
+  .standard-pricing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .price-value-large {
+    font-size: 36px;
+    color: #92400e;
+    font-weight: 800;
+  }
+
+  .bundle-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .info-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  .info-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .creator-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .creator-avatar {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+  }
+
+  .creator-details {
+    flex: 1;
+  }
+
+  .creator-name {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+
+  .creator-role {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .timeline-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .timeline-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .timeline-content {
+    flex: 1;
+  }
+
+  .timeline-label {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .timeline-date {
+    display: block;
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 600;
+  }
+
+  .course-stats-enhanced {
+    display: flex;
+    gap: 20px;
+  }
+
+  .stat-item-enhanced {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .stat-icon-enhanced {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+  }
+
+  .stat-content-enhanced {
+    flex: 1;
+  }
+
+  .stat-number-enhanced {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2px;
+  }
+
+  .stat-label-enhanced {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .additional-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .section-header-enhanced {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .section-header-enhanced h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tag-count,
+  .feature-count {
+    padding: 4px 12px;
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .tags-container-enhanced {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag-enhanced {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .tag-enhanced:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  }
+
+  .description-content {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .description-content p {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .features-list-enhanced {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .feature-item:hover {
+    background: #ffffff;
+    border-color: #8b5cf6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .feature-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .feature-text {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 500;
+  }
+
+  .admin-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--admin-border-light);
+  }
+
+  .dark-theme .admin-chart-header {
+    border-bottom-color: var(--admin-border-dark);
+  }
+
+  .admin-chart-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dark-theme .admin-chart-header h3 {
+    color: var(--admin-text-dark);
+  }
+
+  .chart-actions .badge.success {
+    background-color: #10b981;
+    color: white;
+  }
+
+  /* Financial Breakdown */
+  .financial-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .financial-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .financial-label {
+    min-width: 120px;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    opacity: 0.8;
+    font-size: 0.9rem;
+  }
+
+  .dark-theme .financial-label {
+    color: var(--admin-text-dark);
+  }
+
+  .financial-value {
+    min-width: 100px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .financial-value {
+    color: var(--admin-text-dark);
+  }
+
+  .financial-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--admin-border-light);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .dark-theme .financial-bar {
+    background: var(--admin-border-dark);
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--admin-primary);
+    border-radius: 4px;
+    transition: width 0.8s ease;
+  }
+
+  .bar-fill.discount {
+    background: #f59e0b;
+  }
+
+  .bar-fill.potential {
+    background: var(--admin-border-light);
+    opacity: 0.5;
+  }
+
+  .dark-theme .bar-fill.potential {
+    background: var(--admin-border-dark);
+  }
+
+  /* Course Performance */
+  .course-performance {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .course-item {
+    padding: 16px;
+    border: 1px solid var(--admin-border-light);
+    border-radius: 8px;
+    background: rgba(184, 1, 1, 0.02);
+    transition: all 0.3s ease;
+  }
+
+  .dark-theme .course-item {
+    border-color: var(--admin-border-dark);
+    background: rgba(184, 1, 1, 0.05);
+  }
+
+  .course-item:hover {
+    border-color: var(--admin-primary);
+    transform: translateY(-2px);
+  }
+
+  .course-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .course-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin: 0;
+  }
+
+  .dark-theme .course-name {
+    color: var(--admin-text-dark);
+  }
+
+  .completion-rate {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--admin-primary);
+  }
+
+  .course-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 12px;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+  }
+
+  .dark-theme .stat {
+    color: var(--admin-text-dark);
+  }
+
+  .stat i {
+    color: var(--admin-primary);
+  }
+
+  /* Distribution Chart */
+  .distribution-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 350px;
+    overflow-y: auto;
+  }
+
+  .distribution-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--admin-border-light);
+  }
+
+  .dark-theme .distribution-item {
+    border-bottom-color: var(--admin-border-dark);
+  }
+
+  .distribution-item:last-child {
+    border-bottom: none;
+  }
+
+  .distribution-info {
+    min-width: 140px;
+  }
+
+  .grade-label {
+    display: inline-block;
+    background: var(--admin-primary);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .student-count {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+  }
+
+  .dark-theme .student-count {
+    color: var(--admin-text-dark);
+  }
+
+  .distribution-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--admin-border-light);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .dark-theme .distribution-bar {
+    background: var(--admin-border-dark);
+  }
+
+  .percentage {
+    min-width: 50px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .percentage {
+    color: var(--admin-text-dark);
+  }
+
+  /* Bundle Details */
+  .bundle-details {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .pricing-section {
+    padding: 20px;
+    background: rgba(184, 1, 1, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(184, 1, 1, 0.1);
+    text-align: center;
+  }
+
+  .price-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .original-price {
+    font-size: 1rem;
+    color: var(--admin-text-light);
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+
+  .dark-theme .original-price {
+    color: var(--admin-text-dark);
+  }
+
+  .current-price {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--admin-primary);
+  }
+
+  .savings {
+    background: #10b981;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .details-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--admin-border-light);
+  }
+
+  .dark-theme .detail-item {
+    border-bottom-color: var(--admin-border-dark);
+  }
+
+  .detail-item:last-child {
+    border-bottom: none;
+  }
+
+  .label {
+    font-weight: 600;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+
+  .dark-theme .label {
+    color: var(--admin-text-dark);
+  }
+
+  .value {
+    font-weight: 600;
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .value {
+    color: var(--admin-text-dark);
+  }
+
+  .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    background: var(--admin-primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .description-section h4,
+  .features-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin-bottom: 12px;
+  }
+
+  .dark-theme .description-section h4,
+  .dark-theme .features-section h4 {
+    color: var(--admin-text-dark);
+  }
+
+  .features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .features-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    color: var(--admin-text-light);
+    opacity: 0.8;
+  }
+
+  .dark-theme .features-list li {
+    color: var(--admin-text-dark);
+  }
+
+  .features-list i {
+    color: #10b981;
+  }
+
+  /* Schools Grid */
+  .schools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .school-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px;
+    border: 1px solid var(--admin-border-light);
+    border-radius: 8px;
+    background: rgba(184, 1, 1, 0.02);
+    transition: all 0.3s ease;
+  }
+
+  .dark-theme .school-card {
+    border-color: var(--admin-border-dark);
+    background: rgba(184, 1, 1, 0.05);
+  }
+
+  .school-card:hover {
+    border-color: var(--admin-primary);
+    transform: translateY(-2px);
+  }
+
+  .school-rank {
+    width: 40px;
+    height: 40px;
+    background: var(--admin-primary);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .school-info {
+    flex: 1;
+  }
+
+  .school-name {
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin-bottom: 4px;
+  }
+
+  .dark-theme .school-name {
+    color: var(--admin-text-dark);
+  }
+
+  .school-stats {
+    display: flex;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+  }
+
+  .dark-theme .school-stats {
+    color: var(--admin-text-dark);
+  }
+
+  /* Students Table */
+  .students-table-container {
+    overflow-x: auto;
+  }
+
+  .table {
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .table th {
+    background: rgba(184, 1, 1, 0.05);
+    color: var(--admin-text-light);
+    font-weight: 600;
+    padding: 16px;
+    border-bottom: 1px solid var(--admin-border-light);
+    white-space: nowrap;
+  }
+
+  .dark-theme .table th {
+    background: rgba(184, 1, 1, 0.1);
+    color: var(--admin-text-dark);
+    border-bottom-color: var(--admin-border-dark);
+  }
+
+  .table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--admin-border-light);
+    vertical-align: middle;
+  }
+
+  .dark-theme .table td {
+    border-bottom-color: var(--admin-border-dark);
+  }
+
+  .student-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .student-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--admin-primary);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .student-details {
+    flex: 1;
+  }
+
+  .student-name {
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin-bottom: 2px;
+  }
+
+  .dark-theme .student-name {
+    color: var(--admin-text-dark);
+  }
+
+  .student-username {
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+    opacity: 0.6;
+  }
+
+  .dark-theme .student-username {
+    color: var(--admin-text-dark);
+  }
+
+  .contact-details .email {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--admin-primary);
+    font-size: 0.9rem;
+  }
+
+  .academic-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .grade-badge {
+    background: var(--admin-primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    width: fit-content;
+  }
+
+  .school {
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+  }
+
+  .dark-theme .school {
+    color: var(--admin-text-dark);
+  }
+
+  .enrollment-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .date {
+    font-weight: 600;
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .date {
+    color: var(--admin-text-dark);
+  }
+
+  .days-ago {
+    font-size: 0.8rem;
+    color: var(--admin-text-light);
+    opacity: 0.6;
+  }
+
+  .dark-theme .days-ago {
+    color: var(--admin-text-dark);
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .status-badge.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  .status-badge.inactive {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+  }
+
+  .status-badge i {
+    font-size: 0.6rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-buttons .btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+  }
+
+  .action-buttons .btn:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Empty States */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--admin-text-light);
+    opacity: 0.6;
+  }
+
+  .dark-theme .empty-state {
+    color: var(--admin-text-dark);
+  }
+
+  .empty-state.large {
+    padding: 60px 20px;
+  }
+
+  .empty-state i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-state h4 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1200px) {
+    .admin-analytics-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .schools-grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .bundle-header-content {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 20px;
+    }
+
+    .bundle-actions {
+      width: 100%;
+    }
+
+    .bundle-actions .btn {
+      width: 100%;
+    }
+
+    .bundle-meta {
+      justify-content: center;
+    }
+
+    .financial-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .financial-bar {
+      width: 100%;
+    }
+
+    .course-stats {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .distribution-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .distribution-bar {
+      width: 100%;
+    }
+
+    .school-card {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .schools-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .student-profile {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+    }
+  }
+
+  /* Enhanced Responsive Design */
+  @media (max-width: 1200px) {
+    .enhanced-analytics-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .enhanced-stats-grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .enhanced-bundle-header {
+      margin-bottom: 24px;
+    }
+
+    .bundle-header-content {
+      padding: 24px;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .bundle-main-info {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 20px;
+    }
+
+    .bundle-thumbnail-container,
+    .bundle-thumbnail-placeholder {
+      width: 120px;
+      height: 120px;
+    }
+
+    .bundle-title {
+      font-size: 2rem;
+    }
+
+    .bundle-meta-grid {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .bundle-actions-section {
+      width: 100%;
+    }
+
+    .primary-actions {
+      flex-direction: row;
+      justify-content: center;
+    }
+
+    .primary-actions .btn {
+      min-width: 140px;
+      flex: 1;
+    }
+
+    .enhanced-stats-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .enhanced-analytics-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .stat-card {
+      padding: 20px;
+    }
+
+    .stat-number {
+      font-size: 28px;
+    }
+
+    .card-content {
+      padding: 20px;
+    }
+
+    .chart-container {
+      height: 150px;
+    }
+
+    .financial-metrics,
+    .courses-list {
+      gap: 12px;
+    }
+
+    .metric-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .metric-bar {
+      width: 100%;
+    }
+
+    .course-performance-item {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .distribution-list {
+      gap: 12px;
+    }
+
+    .distribution-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .distribution-bar {
+      width: 100%;
+    }
+
+    .details-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .schools-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .school-card {
+      flex-direction: column;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .school-progress {
+      width: 100%;
+    }
+
+    /* Enhanced Cards Responsive */
+    .card-header-enhanced {
+      padding: 20px 24px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .card-title-section {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+    }
+
+    .card-body-enhanced {
+      padding: 24px;
+    }
+
+    .chart-container-enhanced {
+      height: 180px;
+    }
+
+    .metrics-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .performance-summary {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .course-header-section {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .course-meta {
+      justify-content: center;
+    }
+
+    .grade-distribution-item {
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .grade-info {
+      min-width: auto;
+      justify-content: center;
+    }
+
+    .grade-progress {
+      max-width: none;
+      width: 100%;
+    }
+
+    .chart-stats {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Enhanced Bundle Details Responsive */
+    .bundle-info-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .pricing-row-enhanced {
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .course-stats-enhanced {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stat-item-enhanced {
+      justify-content: center;
+    }
+
+    .tags-container-enhanced {
+      justify-content: center;
+    }
+
+    .features-list-enhanced {
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .bundle-header-content {
+      padding: 20px;
+    }
+
+    .bundle-title {
+      font-size: 1.8rem;
+    }
+
+    .bundle-meta-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .meta-card {
+      padding: 12px;
+    }
+
+    .primary-actions {
+      flex-direction: column;
+    }
+
+    .primary-actions .btn {
+      min-width: 100%;
+    }
+
+    .stat-card {
+      padding: 16px;
+    }
+
+    .stat-number {
+      font-size: 24px;
+    }
+
+    .card-content {
+      padding: 16px;
+    }
+
+    .chart-container {
+      height: 120px;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+    }
+
+    .header-content h3 {
+      font-size: 16px;
+    }
+
+    .trend-badge,
+    .courses-count,
+    .total-count,
+    .schools-count,
+    .discount-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+
+    /* Enhanced Cards Mobile */
+    .card-header-enhanced {
+      padding: 16px 20px;
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
+    }
+
+    .card-title-content h3 {
+      font-size: 18px;
+    }
+
+    .card-title-content p {
+      font-size: 13px;
+    }
+
+    .card-body-enhanced {
+      padding: 20px;
+    }
+
+    .chart-container-enhanced {
+      height: 150px;
+    }
+
+    .chart-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .chart-legend {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .metric-card {
+      padding: 16px;
+    }
+
+    .course-performance-card {
+      padding: 16px;
+    }
+
+    .grade-distribution-item {
+      padding: 12px;
+    }
+
+    .empty-state-enhanced {
+      padding: 40px 16px;
+    }
+
+    .empty-icon-large {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+    }
+
+    /* Enhanced Bundle Details Mobile */
+    .bundle-pricing-section {
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .pricing-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .pricing-header h4 {
+      font-size: 16px;
+    }
+
+    .current-price-enhanced .price-value {
+      font-size: 28px;
+    }
+
+    .price-value-large {
+      font-size: 32px;
+    }
+
+    .savings-display {
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 16px;
+    }
+
+    .info-section {
+      padding: 16px;
+    }
+
+    .creator-info {
+      flex-direction: column;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .timeline-info {
+      gap: 12px;
+    }
+
+    .course-stats-enhanced {
+      gap: 8px;
+    }
+
+    .stat-item-enhanced {
+      flex-direction: column;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .stat-icon-enhanced {
+      width: 36px;
+      height: 36px;
+      font-size: 14px;
+    }
+
+    .stat-number-enhanced {
+      font-size: 18px;
+    }
+
+    .tag-enhanced {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .feature-item {
+      padding: 10px 12px;
+    }
+
+    .feature-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+
+    .feature-text {
+      font-size: 13px;
+    }
+  }
+
+  /* Dark Theme Support */
+  .dark-theme .enhanced-bundle-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  }
+
+  .dark-theme .stat-card {
+    background: var(--admin-card-dark);
+    border-color: var(--admin-border-dark);
+  }
+
+  .dark-theme .stat-number {
+    color: var(--admin-text-dark);
+  }
+
+  .dark-theme .stat-label {
+    color: var(--admin-text-muted-dark);
+  }
+
+  .dark-theme .breakdown-label {
+    color: var(--admin-text-muted-dark);
+  }
+
+  .dark-theme .breakdown-value {
+    color: var(--admin-text-dark);
+  }
+
+  .dark-theme .analytics-card {
+    background: var(--admin-card-dark);
+    border-color: var(--admin-border-dark);
+  }
+
+  .dark-theme .card-header {
+    background: linear-gradient(135deg, var(--admin-card-dark), #1e293b);
+    border-bottom-color: var(--admin-border-dark);
+  }
+
+  .dark-theme .header-content h3 {
+    color: var(--admin-text-dark);
+  }
+
+  .dark-theme .progress-bar {
+    background: var(--admin-border-dark);
+  }
+</style>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- JavaScript for Interactive Features -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all charts and animations
+    initializeCharts();
+    animateProgressBars();
+    animateStatNumbers();
+  });
+
+  // Initialize all charts
+  function initializeCharts() {
+    // Students Chart (Mini Line Chart)
+    const studentsCtx = document.getElementById('studentsChart');
+    if (studentsCtx) {
+      new Chart(studentsCtx, {
+        type: 'line',
+        data: {
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+          datasets: [{
+            data: [12, 19, 15, 25],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false }
+          },
+          elements: {
+            point: { radius: 0 }
+          }
+        }
+      });
+    }
+
+    // Revenue Chart (Mini Bar Chart)
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+      new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+          datasets: [{
+            data: [1200, 1900, 1500, 2500],
+            backgroundColor: 'rgba(245, 158, 11, 0.8)',
+            borderColor: '#f59e0b',
+            borderWidth: 0,
+            borderRadius: 4,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false }
+          }
+        }
+      });
+    }
+
+    // Financial Chart (Doughnut Chart)
+    const financialCtx = document.getElementById('financialChart');
+    if (financialCtx) {
+      new Chart(financialCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Full Price', 'Discounted', 'Potential'],
+          datasets: [{
+            data: [
+              <%= financialAnalytics.fullPriceRevenue || 0 %>,
+              <%= financialAnalytics.discountedRevenue || 0 %>,
+              <%= financialAnalytics.totalPotentialRevenue || 0 %>
+            ],
+            backgroundColor: [
+              '#10b981',
+              '#f59e0b',
+              '#e5e7eb'
+            ],
+            borderWidth: 0,
+            cutout: '70%'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Grade Chart (Pie Chart)
+    const gradeCtx = document.getElementById('gradeChart');
+    if (gradeCtx && <%= JSON.stringify(gradeDistribution || {}) %> !== '{}') {
+      const gradeData = <%= JSON.stringify(gradeDistribution || {}) %>;
+      const labels = Object.keys(gradeData);
+      const data = Object.values(gradeData);
+      const colors = [
+        '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', 
+        '#ef4444', '#06b6d4', '#84cc16', '#f97316'
+      ];
+
+      new Chart(gradeCtx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Animate progress bars
+  function animateProgressBars() {
+    // Animate enhanced progress bars
+    const enhancedProgressBars = document.querySelectorAll('.progress-fill-enhanced[data-progress]');
+    enhancedProgressBars.forEach((bar, index) => {
+      const targetWidth = bar.getAttribute('data-progress');
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.width = targetWidth + '%';
+      }, 500 + (index * 100));
+    });
+
+    // Animate metric bars with data-width attribute
+    const metricBars = document.querySelectorAll('.progress-fill-enhanced[data-width]');
+    metricBars.forEach((bar, index) => {
+      const targetWidth = bar.getAttribute('data-width');
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.width = targetWidth + '%';
+      }, 800 + (index * 150));
+    });
+
+    // Animate old progress bars for compatibility
+    const progressBars = document.querySelectorAll('.progress-fill[data-progress]');
+    progressBars.forEach(bar => {
+      const targetWidth = bar.getAttribute('data-progress');
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.width = targetWidth + '%';
+      }, 500);
+    });
+
+    // Animate old metric bars
+    const oldMetricBars = document.querySelectorAll('.bar-fill[data-width]');
+    oldMetricBars.forEach(bar => {
+      const targetWidth = bar.getAttribute('data-width');
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.width = targetWidth + '%';
+      }, 800);
+    });
+  }
+
+  // Animate stat numbers
+  function animateStatNumbers() {
+    const statNumbers = document.querySelectorAll('.stat-number');
+    statNumbers.forEach(element => {
+      const text = element.textContent;
+      const number = parseInt(text.replace(/[^0-9]/g, ''));
+      if (!isNaN(number) && number > 0) {
+        let current = 0;
+        const increment = number / 60;
+        const timer = setInterval(() => {
+          current += increment;
+          if (current >= number) {
+            element.textContent = text;
+            clearInterval(timer);
+          } else {
+            element.textContent = text.replace(number, Math.floor(current));
+          }
+        }, 25);
+      }
+    });
+  }
+
+  // Function to export student data
+  function exportStudentData() {
+    const students = <%- JSON.stringify(studentsWithBundle) %>;
+    const csvContent = "data:text/csv;charset=utf-8,Name,Email,Grade,School,Enrollment Date,Status\n" +
+      students.map(student => {
+        const bundlePurchase = student.purchasedBundles.find(pb =>
+          pb.bundle._id === '<%= bundle._id %>' || pb.bundle === '<%= bundle._id %>'
+        );
+        const enrollmentDate = bundlePurchase ?
+          new Date(bundlePurchase.purchasedAt).toLocaleDateString() :
+          new Date(student.createdAt).toLocaleDateString();
+
+        return [
+          `"${student.firstName} ${student.lastName}"`,
+          student.studentEmail,
+          student.grade,
+          `"${student.schoolName}"`,
+          enrollmentDate,
+          student.isActive ? 'Active' : 'Inactive'
+        ].join(',');
+      }).join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'bundle-students-<%= bundle.bundleCode %>.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Function to view student progress
+  function viewStudentProgress(studentId) {
+    window.location.href = `/admin/students/${studentId}/progress`;
+  }
+
+  // Add smooth scrolling for better UX
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+</script>
+
+<%- include('./partials/admin-footer') %>

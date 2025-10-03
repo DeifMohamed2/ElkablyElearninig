@@ -1,0 +1,715 @@
+<%- include('partials/admin-header', { title: 'Game Room Statistics' }) %>
+
+<div class="admin-container">
+  <div class="admin-header">
+    <div class="admin-header-content">
+      <h1 class="admin-title">
+        <i class="fas fa-chart-bar"></i>
+        Game Room Statistics
+      </h1>
+      <p class="admin-subtitle">Detailed analytics for "<%= gameRoom.title %>"</p>
+    </div>
+    <div class="admin-header-actions">
+      <a href="/admin/game-rooms" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Back to Rooms
+      </a>
+    </div>
+  </div>
+
+  <!-- Game Room Info -->
+  <div class="game-room-info-card">
+    <div class="info-header">
+      <div class="room-basic-info">
+        <h2><%= gameRoom.title %></h2>
+        <div class="room-meta">
+          <span class="room-code">Room #<%= gameRoom.roomCode %></span>
+          <span class="room-category"><%= gameRoom.category %></span>
+          <span class="room-difficulty difficulty-<%= gameRoom.difficulty %>">
+            <%= gameRoom.difficulty.charAt(0).toUpperCase() + gameRoom.difficulty.slice(1) %>
+          </span>
+        </div>
+      </div>
+      <div class="room-status">
+        <div class="status-indicator status-<%= gameRoom.gameState %>">
+          <div class="status-dot"></div>
+          <span><%= gameRoom.gameState.charAt(0).toUpperCase() + gameRoom.gameState.slice(1) %></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="room-stats-overview">
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value"><%= gameRoom.maxPlayers %></span>
+          <span class="stat-label">Max Players</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-question-circle"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value"><%= gameRoom.questions.length %></span>
+          <span class="stat-label">Questions</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value"><%= gameRoom.totalTime %> min</span>
+          <span class="stat-label">Total Time</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-calendar"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value"><%= new Date(gameRoom.createdAt).toLocaleDateString() %></span>
+          <span class="stat-label">Created</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Sessions Statistics -->
+  <div class="sessions-stats">
+    <div class="stats-header">
+      <h3>Game Sessions Statistics</h3>
+      <div class="stats-summary">
+        <span class="total-sessions"><%= sessions.length %> Total Sessions</span>
+      </div>
+    </div>
+
+    <% if (sessions.length > 0) { %>
+      <!-- Performance Metrics -->
+      <div class="performance-metrics">
+        <div class="metric-card">
+          <div class="metric-header">
+            <i class="fas fa-chart-line"></i>
+            <h4>Average Performance</h4>
+          </div>
+          <div class="metric-content">
+            <div class="metric-item">
+              <span class="metric-label">Average Score:</span>
+              <span class="metric-value">
+                <%= Math.round(sessions.reduce((sum, s) => sum + s.score, 0) / sessions.length) %>
+              </span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Average Accuracy:</span>
+              <span class="metric-value">
+                <%= Math.round(sessions.reduce((sum, s) => sum + (s.correctAnswers / s.totalQuestions * 100), 0) / sessions.length) %>%
+              </span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Average Time:</span>
+              <span class="metric-value">
+                <%= Math.round(sessions.reduce((sum, s) => sum + s.timeSpent, 0) / sessions.length) %>s
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <i class="fas fa-trophy"></i>
+            <h4>Top Performers</h4>
+          </div>
+          <div class="metric-content">
+            <% const topSessions = sessions.slice(0, 3); %>
+            <% topSessions.forEach((session, index) => { %>
+              <div class="top-performer">
+                <div class="performer-rank">
+                  <% if (index === 0) { %>🥇<% } else if (index === 1) { %>🥈<% } else { %>🥉<% } %>
+                </div>
+                <div class="performer-info">
+                  <span class="performer-name"><%= session.user.username %></span>
+                  <span class="performer-score"><%= session.score %> points</span>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Sessions Table -->
+      <div class="sessions-table-container">
+        <h4>All Game Sessions</h4>
+        <div class="table-wrapper">
+          <table class="sessions-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Score</th>
+                <th>Correct Answers</th>
+                <th>Accuracy</th>
+                <th>Time Spent</th>
+                <th>Position</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% sessions.forEach(session => { %>
+                <tr>
+                  <td>
+                    <div class="player-info">
+                      <% if (session.user.profilePicture) { %>
+                        <img src="<%= session.user.profilePicture %>" alt="<%= session.user.username %>" class="player-avatar">
+                      <% } else { %>
+                        <div class="player-avatar-fallback">
+                          <%= session.user.username.charAt(0).toUpperCase() %>
+                        </div>
+                      <% } %>
+                      <span class="player-name"><%= session.user.username %></span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="score-value"><%= session.score %></span>
+                  </td>
+                  <td>
+                    <span class="correct-answers">
+                      <%= session.correctAnswers %>/<%= session.totalQuestions %>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="accuracy-bar">
+                      <div class="accuracy-fill" style="width: <%= (session.correctAnswers / session.totalQuestions * 100) %>%"></div>
+                      <span class="accuracy-text"><%= Math.round(session.correctAnswers / session.totalQuestions * 100) %>%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="time-spent"><%= session.timeSpent %>s</span>
+                  </td>
+                  <td>
+                    <% if (session.position) { %>
+                      <span class="position-badge position-<%= session.position %>">
+                        <%= session.position %>
+                      </span>
+                    <% } else { %>
+                      <span class="no-position">-</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span class="session-date">
+                      <%= new Date(session.createdAt).toLocaleDateString() %>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="status-badge status-<%= session.status %>">
+                      <%= session.status.charAt(0).toUpperCase() + session.status.slice(1) %>
+                    </span>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="no-sessions">
+        <div class="no-sessions-icon">
+          <i class="fas fa-chart-bar"></i>
+        </div>
+        <h4>No Game Sessions Yet</h4>
+        <p>This game room hasn't been played yet. Statistics will appear here once players start competing.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<style>
+.admin-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.admin-title {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-subtitle {
+  color: #6c757d;
+  margin: 0.5rem 0 0 0;
+  font-size: 1rem;
+}
+
+.game-room-info-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.room-basic-info h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+}
+
+.room-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.room-code {
+  font-family: monospace;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.room-category {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.room-difficulty {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.difficulty-easy { background: #28a745; }
+.difficulty-medium { background: #ffc107; color: #000; }
+.difficulty-hard { background: #dc3545; }
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #28a745;
+}
+
+.status-waiting .status-dot { background: #ffc107; }
+.status-starting .status-dot { background: #17a2b8; }
+.status-playing .status-dot { background: #28a745; }
+.status-finished .status-dot { background: #6c757d; }
+
+.room-stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  background: #f8f9fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #667eea;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.sessions-stats {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.stats-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.total-sessions {
+  background: #667eea;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.performance-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.metric-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid #e9ecef;
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.metric-header i {
+  color: #667eea;
+}
+
+.metric-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.metric-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-label {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.top-performer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.performer-rank {
+  font-size: 1.5rem;
+}
+
+.performer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.performer-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.performer-score {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.sessions-table-container {
+  padding: 2rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.sessions-table-container h4 {
+  margin: 0 0 1.5rem 0;
+  color: #2c3e50;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.sessions-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.sessions-table th,
+.sessions-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.sessions-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.player-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.player-avatar-fallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.player-name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.score-value {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 1.1rem;
+}
+
+.correct-answers {
+  color: #2c3e50;
+}
+
+.accuracy-bar {
+  position: relative;
+  width: 60px;
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.accuracy-fill {
+  height: 100%;
+  background: #28a745;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.accuracy-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+}
+
+.time-spent {
+  color: #6c757d;
+}
+
+.position-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: white;
+}
+
+.position-1 { background: #ffd700; color: #000; }
+.position-2 { background: #c0c0c0; color: #000; }
+.position-3 { background: #cd7f32; }
+.position-badge:not(.position-1):not(.position-2):not(.position-3) {
+  background: #6c757d;
+}
+
+.no-position {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.session-date {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-completed { background: #d4edda; color: #155724; }
+.status-disconnected { background: #f8d7da; color: #721c24; }
+
+.no-sessions {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6c757d;
+}
+
+.no-sessions-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  color: #dee2e6;
+}
+
+.no-sessions h4 {
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .info-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .room-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .room-stats-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .performance-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .sessions-table-container {
+    padding: 1rem;
+  }
+
+  .table-wrapper {
+    font-size: 0.9rem;
+  }
+}
+</style>
+
+<%- include('partials/admin-footer') %>

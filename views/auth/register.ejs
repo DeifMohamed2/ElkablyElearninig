@@ -1,0 +1,691 @@
+<%- include('../partials/header') %>
+
+<!-- Flash messages are now handled in the header partial -->
+
+<!-- Modern Split-Screen Registration Layout -->
+<div class="auth-container-modern register-layout">
+  <!-- Left Side - Branding & Visual -->
+  <div class="auth-visual-section">
+    <div class="auth-visual-overlay"></div>
+    <div class="auth-particles" id="auth-particles-register"></div>
+    
+    <!-- Floating Math Elements -->
+    <div class="math-shape-auth auth-shape1 floating-element"></div>
+    <div class="math-shape-auth auth-shape2 floating-element"></div>
+    <div class="math-shape-auth auth-shape3 floating-element"></div>
+    <div class="math-shape-auth auth-shape4 floating-element"></div>
+    
+    <!-- Brand Content -->
+    <div class="auth-brand-content">
+      <div class="auth-logo-container">
+        <div class="auth-logo-icon">
+          <i class="fas fa-square-root-alt"></i>
+        </div>
+        <h1 class="auth-brand-title">Elkably</h1>
+        <p class="auth-brand-subtitle">Mathematics Excellence</p>
+      </div>
+      
+      <div class="auth-features">
+        <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="100">
+          <i class="fas fa-graduation-cap"></i>
+          <span>Expert Tutoring</span>
+        </div>
+        <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="200">
+          <i class="fas fa-chart-line"></i>
+          <span>Progress Tracking</span>
+        </div>
+        <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="300">
+          <i class="fas fa-users"></i>
+          <span>Community Learning</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side - Registration Form -->
+  <div class="auth-form-section">
+    <div class="auth-form-container">
+      <!-- Header -->
+      <div class="auth-form-header">
+        <h2 class="auth-form-title">
+          <i class="fas fa-user-plus me-2"></i>
+          Join The Math Journey
+        </h2>
+        <p class="auth-form-subtitle">Create your account and start learning</p>
+        
+        <!-- Progress Steps -->
+        <div class="registration-steps">
+          <div class="step-item active" data-step="1">
+            <div class="step-number">1</div>
+            <span class="step-label">Personal Info</span>
+          </div>
+          <div class="step-item" data-step="2">
+            <div class="step-number">2</div>
+            <span class="step-label">Academic Details</span>
+          </div>
+          <div class="step-item" data-step="3">
+            <div class="step-number">3</div>
+            <span class="step-label">Account Setup</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Display Errors -->
+      <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+      <div class="alert alert-danger auth-alert" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Registration Failed!</strong>
+        </div>
+        <hr class="my-2">
+        <ul class="mb-0">
+          <% errors.forEach(function(error) { %>
+          <li><%= error.msg %></li>
+          <% }); %>
+        </ul>
+      </div>
+      <% } %>
+
+      <!-- Display Success Messages -->
+      <% if (typeof success_msg !== 'undefined' && success_msg.length > 0) { %>
+      <div class="alert alert-success auth-alert" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-check-circle me-2"></i>
+          <strong>Success!</strong>
+        </div>
+        <hr class="my-2">
+        <p class="mb-0"><%= success_msg %></p>
+      </div>
+      <% } %>
+
+      <!-- Registration Form -->
+      <form action="/auth/register" method="POST" class="auth-form needs-validation" novalidate>
+        <!-- Step 1: Personal Information -->
+        <div class="form-step active" data-step="1">
+          <h3 class="step-title">Personal Information</h3>
+          
+          <div class="form-row-modern">
+            <div class="form-group-modern">
+              <label for="firstName" class="form-label-modern">
+                <i class="fas fa-user form-label-icon"></i>
+                First Name *
+              </label>
+              <div class="input-group-modern">
+                <input type="text" id="firstName" name="firstName" class="form-control-modern" 
+                       placeholder="Enter your first name" 
+                       value="<%= typeof firstName != 'undefined' ? firstName : '' %>" required>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please enter your first name.</div>
+            </div>
+
+            <div class="form-group-modern">
+              <label for="lastName" class="form-label-modern">
+                <i class="fas fa-user form-label-icon"></i>
+                Last Name *
+              </label>
+              <div class="input-group-modern">
+                <input type="text" id="lastName" name="lastName" class="form-control-modern" 
+                       placeholder="Enter your last name" 
+                       value="<%= typeof lastName != 'undefined' ? lastName : '' %>" required>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please enter your last name.</div>
+            </div>
+          </div>
+
+          <div class="form-row-modern">
+            <div class="form-group-modern">
+              <label for="studentNumber" class="form-label-modern">
+                <i class="fas fa-id-card form-label-icon"></i>
+                Student Number *
+              </label>
+              <div class="input-group-modern phone-input-group">
+                <div class="country-code-selector">
+                  <select id="studentCountryCode" name="studentCountryCode" class="country-select" required>
+                    <option value="+966" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+966' ? 'selected' : '' %>>
+                      🇸🇦 +966
+                    </option>
+                    <option value="+20" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+20' ? 'selected' : '' %>>
+                      🇪🇬 +20
+                    </option>
+                    <option value="+971" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+971' ? 'selected' : '' %>>
+                      🇦🇪 +971
+                    </option>
+                    <option value="+965" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+965' ? 'selected' : '' %>>
+                      🇰🇼 +965
+                    </option>
+                  </select>
+                </div>
+                <input type="text" id="studentNumber" name="studentNumber" class="form-control-modern phone-input" 
+                       placeholder="Enter your student number" 
+                       value="<%= typeof studentNumber != 'undefined' ? studentNumber : '' %>" required>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please enter your student number.</div>
+            </div>
+
+            <div class="form-group-modern">
+              <label for="parentNumber" class="form-label-modern">
+                <i class="fas fa-phone form-label-icon"></i>
+                Parent Number *
+              </label>
+              <div class="input-group-modern phone-input-group">
+                <div class="country-code-selector">
+                  <select id="parentCountryCode" name="parentCountryCode" class="country-select" required>
+                    <option value="+966" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+966' ? 'selected' : '' %>>
+                      🇸🇦 +966
+                    </option>
+                    <option value="+20" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+20' ? 'selected' : '' %>>
+                      🇪🇬 +20
+                    </option>
+                    <option value="+971" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+971' ? 'selected' : '' %>>
+                      🇦🇪 +971
+                    </option>
+                    <option value="+965" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+965' ? 'selected' : '' %>>
+                      🇰🇼 +965
+                    </option>
+                  </select>
+                </div>
+                <input type="tel" id="parentNumber" name="parentNumber" class="form-control-modern phone-input" 
+                       placeholder="Enter parent phone number" 
+                       value="<%= typeof parentNumber != 'undefined' ? parentNumber : '' %>" required>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please enter a valid parent phone number.</div>
+            </div>
+          </div>
+
+          <div class="form-row-modern">
+            <div class="form-group-modern">
+              <label for="studentEmail" class="form-label-modern">
+                <i class="fas fa-envelope form-label-icon"></i>
+                Student Email *
+              </label>
+              <div class="input-group-modern">
+                <input type="email" id="studentEmail" name="studentEmail" class="form-control-modern" 
+                       placeholder="Enter your student email" 
+                       value="<%= typeof studentEmail != 'undefined' ? studentEmail : '' %>" required>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please enter a valid student email address.</div>
+            </div>
+
+            <div class="form-group-modern">
+              <label for="username" class="form-label-modern">
+                <i class="fas fa-at form-label-icon"></i>
+                Username *
+              </label>
+              <div class="input-group-modern">
+                <input type="text" id="username" name="username" class="form-control-modern" 
+                       placeholder="Choose a username" 
+                       value="<%= typeof username != 'undefined' ? username : '' %>" required>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="form-text-modern">Only letters, numbers, and underscores allowed.</div>
+              <div class="invalid-feedback-modern">Please choose a valid username.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Academic Details -->
+        <div class="form-step" data-step="2">
+          <h3 class="step-title">Academic Details</h3>
+          
+          <div class="form-row-modern">
+            <div class="form-group-modern">
+              <label for="schoolName" class="form-label-modern">
+                <i class="fas fa-school form-label-icon"></i>
+                School Name *
+              </label>
+              <div class="input-group-modern">
+                <input type="text" id="schoolName" name="schoolName" class="form-control-modern" 
+                       placeholder="Enter your school name" 
+                       value="<%= typeof schoolName != 'undefined' ? schoolName : '' %>" required>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please enter your school name.</div>
+            </div>
+
+            <div class="form-group-modern">
+              <label for="grade" class="form-label-modern">
+                <i class="fas fa-graduation-cap form-label-icon"></i>
+                Grade *
+              </label>
+              <div class="input-group-modern">
+                <select id="grade" name="grade" class="form-control-modern" required>
+                  <option value="">Select your grade</option>
+                  <option value="Year 7" <%= typeof grade != 'undefined' && grade == 'Year 7' ? 'selected' : '' %>>Year 7</option>
+                  <option value="Year 8" <%= typeof grade != 'undefined' && grade == 'Year 8' ? 'selected' : '' %>>Year 8</option>
+                  <option value="Year 9" <%= typeof grade != 'undefined' && grade == 'Year 9' ? 'selected' : '' %>>Year 9</option>
+                  <option value="Year 10" <%= typeof grade != 'undefined' && grade == 'Year 10' ? 'selected' : '' %>>Year 10</option>
+                  <option value="Year 11" <%= typeof grade != 'undefined' && grade == 'Year 11' ? 'selected' : '' %>>Year 11</option>
+                  <option value="Year 12" <%= typeof grade != 'undefined' && grade == 'Year 12' ? 'selected' : '' %>>Year 12</option>
+                  <option value="Year 13" <%= typeof grade != 'undefined' && grade == 'Year 13' ? 'selected' : '' %>>Year 13</option>
+                </select>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please select your grade.</div>
+            </div>
+          </div>
+
+          <div class="form-group-modern">
+            <label for="englishTeacher" class="form-label-modern">
+              <i class="fas fa-chalkboard-teacher form-label-icon"></i>
+              English Teacher *
+            </label>
+            <div class="input-group-modern">
+              <input type="text" id="englishTeacher" name="englishTeacher" class="form-control-modern" 
+                     placeholder="Enter your English teacher's name" 
+                     value="<%= typeof englishTeacher != 'undefined' ? englishTeacher : '' %>" required>
+              <div class="input-focus-line"></div>
+            </div>
+            <div class="invalid-feedback-modern">Please enter your English teacher's name.</div>
+          </div>
+        </div>
+
+        <!-- Step 3: Account Setup -->
+        <div class="form-step" data-step="3">
+          <h3 class="step-title">Account Setup</h3>
+          
+          <div class="form-row-modern">
+            <div class="form-group-modern">
+              <label for="password" class="form-label-modern">
+                <i class="fas fa-lock form-label-icon"></i>
+                User Password *
+              </label>
+              <div class="input-group-modern">
+                <input type="password" id="password" name="password" class="form-control-modern" 
+                       placeholder="Create a password" required minlength="6">
+                <button class="btn-toggle-password" type="button" id="togglePassword">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="form-text-modern">Password must be at least 6 characters long.</div>
+              <div class="invalid-feedback-modern">Password must be at least 6 characters.</div>
+            </div>
+
+            <div class="form-group-modern">
+              <label for="password2" class="form-label-modern">
+                <i class="fas fa-lock form-label-icon"></i>
+                Confirm Password *
+              </label>
+              <div class="input-group-modern">
+                <input type="password" id="password2" name="password2" class="form-control-modern" 
+                       placeholder="Confirm your password" required>
+                <button class="btn-toggle-password" type="button" id="togglePassword2">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <div class="input-focus-line"></div>
+              </div>
+              <div class="invalid-feedback-modern">Please confirm your password.</div>
+            </div>
+          </div>
+
+          <div class="form-group-modern">
+            <label for="howDidYouKnow" class="form-label-modern">
+              <i class="fas fa-question-circle form-label-icon"></i>
+              How did you know Mr Kably? *
+            </label>
+            <div class="input-group-modern">
+              <textarea id="howDidYouKnow" name="howDidYouKnow" class="form-control-modern" 
+                        placeholder="Tell us how you heard about Mr Kably..." 
+                        rows="3" required><%= typeof howDidYouKnow != 'undefined' ? howDidYouKnow : '' %></textarea>
+              <div class="input-focus-line"></div>
+            </div>
+            <div class="invalid-feedback-modern">Please tell us how you heard about Mr Kably.</div>
+          </div>
+
+          <div class="form-check-modern">
+            <input type="checkbox" class="form-check-input-modern" id="termsCheck" required>
+            <label class="form-check-label-modern" for="termsCheck">
+              I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
+            </label>
+            <div class="invalid-feedback-modern">You must agree before submitting.</div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="form-navigation">
+          <button type="button" class="btn-nav btn-nav-prev" id="prevStep" style="display: none;">
+            <i class="fas fa-arrow-left"></i>
+            Previous
+          </button>
+          
+          <button type="button" class="btn-nav btn-nav-next" id="nextStep">
+            Next
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          
+          <button type="submit" class="btn-auth-primary" id="submitBtn" style="display: none;">
+            <span class="btn-text">Create Account</span>
+            <i class="fas fa-rocket btn-icon"></i>
+            <div class="btn-ripple"></div>
+          </button>
+        </div>
+      </form>
+
+      <!-- Footer -->
+      <div class="auth-form-footer">
+        <p>Already have an account? 
+          <a href="/auth/login" class="auth-link-modern">
+            <span>Sign In</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Country Code Selector Styles -->
+<style>
+.phone-input-group {
+  display: flex;
+  align-items: stretch;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.phone-input-group:focus-within {
+  border-color: #dc2626;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.country-code-selector {
+  display: flex;
+  align-items: center;
+  background: #e5e7eb;
+  border-right: 1px solid #d1d5db;
+  min-width: 100px;
+}
+
+.country-select {
+  border: none;
+  background: transparent;
+  padding: 12px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  outline: none;
+  width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  padding-right: 32px;
+}
+
+.country-select:focus {
+  background-color: #f3f4f6;
+}
+
+.country-select option {
+  background: #fff;
+  color: #374151;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.phone-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151;
+  outline: none;
+}
+
+.phone-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Dark theme support */
+.dark-theme .phone-input-group {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+.dark-theme .phone-input-group:focus-within {
+  background: #1f2937;
+  border-color: #ef4444;
+}
+
+.dark-theme .country-code-selector {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.dark-theme .country-select {
+  color: #d1d5db;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23d1d5db' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.dark-theme .country-select:focus {
+  background-color: #374151;
+}
+
+.dark-theme .country-select option {
+  background: #1f2937;
+  color: #d1d5db;
+}
+
+.dark-theme .phone-input {
+  color: #d1d5db;
+}
+
+.dark-theme .phone-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .country-code-selector {
+    min-width: 85px;
+  }
+  
+  .country-select {
+    padding: 10px 6px;
+    font-size: 13px;
+    padding-right: 28px;
+    background-size: 14px 14px;
+  }
+  
+  .phone-input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Flag emoji styling */
+.country-select option {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Animation for focus states */
+.phone-input-group {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.phone-input-group:hover {
+  background: #f3f4f6;
+}
+
+.dark-theme .phone-input-group:hover {
+  background: #374151;
+}
+
+/* Terms and Conditions Checkbox Styling */
+.form-check-modern {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 20px 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.form-check-modern:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.form-check-input-modern {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #dc2626;
+  border-radius: 4px;
+  border: 2px solid #d1d5db;
+  background-color: #fff;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.form-check-input-modern:checked {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+.form-check-input-modern:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-check-label-modern {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  cursor: pointer;
+  margin: 0;
+  flex: 1;
+}
+
+.terms-link {
+  color: #dc2626;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.terms-link:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+
+/* Dark theme support for checkbox */
+.dark-theme .form-check-modern {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+.dark-theme .form-check-modern:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.dark-theme .form-check-input-modern {
+  background-color: #1f2937;
+  border-color: #6b7280;
+}
+
+.dark-theme .form-check-input-modern:checked {
+  background-color: #ef4444;
+  border-color: #ef4444;
+}
+
+.dark-theme .form-check-input-modern:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.dark-theme .form-check-label-modern {
+  color: #d1d5db;
+}
+
+.dark-theme .terms-link {
+  color: #ef4444;
+}
+
+.dark-theme .terms-link:hover {
+  color: #fca5a5;
+}
+
+/* Responsive design for checkbox */
+@media (max-width: 768px) {
+  .form-check-modern {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .form-check-input-modern {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .form-check-label-modern {
+    font-size: 13px;
+  }
+}
+</style>
+
+<!-- Theme Manager -->
+<script src="/js/theme-manager.js"></script>
+
+<!-- Auth Common JavaScript -->
+<script src="/js/auth-common.js"></script>
+
+<!-- Auth Animations -->
+<script src="/js/auth-animations.js"></script>
+
+<!-- Country Code JavaScript -->
+<script>
+// Add some interactive functionality for country codes
+document.addEventListener('DOMContentLoaded', function() {
+  const countrySelects = document.querySelectorAll('.country-select');
+  
+  countrySelects.forEach(select => {
+    select.addEventListener('change', function() {
+      // Add a subtle animation when country is changed
+      this.style.transform = 'scale(1.02)';
+      setTimeout(() => {
+        this.style.transform = 'scale(1)';
+      }, 150);
+    });
+    
+    // Add focus styling
+    select.addEventListener('focus', function() {
+      this.parentElement.parentElement.style.borderColor = '#dc2626';
+      this.parentElement.parentElement.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.1)';
+    });
+    
+    select.addEventListener('blur', function() {
+      this.parentElement.parentElement.style.borderColor = 'transparent';
+      this.parentElement.parentElement.style.boxShadow = 'none';
+    });
+  });
+  
+  // Phone number formatting
+  const phoneInputs = document.querySelectorAll('.phone-input');
+  phoneInputs.forEach(input => {
+    input.addEventListener('input', function() {
+      // Remove any non-numeric characters except spaces and hyphens
+      this.value = this.value.replace(/[^\d\s\-]/g, '');
+    });
+  });
+});
+</script>
+

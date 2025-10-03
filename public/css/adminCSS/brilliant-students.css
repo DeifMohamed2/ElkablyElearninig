@@ -1,0 +1,1050 @@
+/* ========================================
+   BRILLIANT STUDENTS ADMIN CSS
+   Professional admin interface for managing brilliant students
+   Scoped to .brilliant-students-container only
+   ======================================== */
+
+/* Upload Progress Bar Styles */
+.brilliant-students-container .upload-progress {
+  margin-top: 12px;
+}
+
+.brilliant-students-container .progress-container {
+  background: rgba(184, 1, 1, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  position: relative;
+}
+
+.brilliant-students-container .progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(184, 1, 1, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.brilliant-students-container .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--admin-primary), #dc2626);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.brilliant-students-container .progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: progress-shine 2s infinite;
+}
+
+@keyframes progress-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.brilliant-students-container .progress-text {
+  text-align: center;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-primary);
+}
+
+/* Main Container */
+.brilliant-students-container .brilliant-students-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header Section */
+.brilliant-students-container .brilliant-students-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--admin-border-light);
+  position: relative;
+}
+
+.brilliant-students-container .brilliant-students-header::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--admin-primary), #dc2626);
+  border-radius: 1px;
+}
+
+.dark-theme .brilliant-students-container .brilliant-students-header {
+  border-bottom-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .brilliant-students-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.brilliant-students-container .brilliant-students-title i {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--admin-primary), #dc2626);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+}
+
+.brilliant-students-container .brilliant-students-title h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--admin-text-light);
+  margin: 0;
+}
+
+.dark-theme .brilliant-students-container .brilliant-students-title h1 {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .brilliant-students-title p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 4px 0 0 0;
+}
+
+.dark-theme .brilliant-students-container .brilliant-students-title p {
+  color: var(--admin-text-dark);
+}
+
+/* Action Buttons */
+.brilliant-students-container .brilliant-students-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.brilliant-students-container .btn-add-student {
+  background: linear-gradient(135deg, var(--admin-primary), #dc2626);
+  color: #ffffff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+}
+
+.brilliant-students-container .btn-add-student:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(184, 1, 1, 0.4);
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.brilliant-students-container .btn-export {
+  background: var(--admin-card-light);
+  color: var(--admin-text-light);
+  border: 2px solid var(--admin-border-light);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.brilliant-students-container .btn-export:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.dark-theme .brilliant-students-container .btn-export {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+  color: var(--admin-text-dark);
+}
+
+.dark-theme .brilliant-students-container .btn-export:hover {
+  background: rgba(184, 1, 1, 0.1);
+}
+
+/* Statistics Cards */
+.brilliant-students-container .brilliant-students-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.brilliant-students-container .stat-card {
+  background: var(--admin-card-light);
+  border: 2px solid var(--admin-border-light);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.brilliant-students-container .stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--admin-primary), #dc2626);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.dark-theme .brilliant-students-container .stat-card {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--admin-shadow-lg);
+}
+
+.brilliant-students-container .stat-card:hover::before {
+  transform: scaleX(1);
+}
+
+.brilliant-students-container .stat-card-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--admin-primary), #dc2626);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  color: #ffffff;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+}
+
+.brilliant-students-container .stat-card-number {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--admin-text-light);
+  margin: 0 0 4px 0;
+  line-height: 1;
+}
+
+.dark-theme .brilliant-students-container .stat-card-number {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .stat-card-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.dark-theme .brilliant-students-container .stat-card-label {
+  color: var(--admin-text-dark);
+}
+
+/* Filters Section */
+.brilliant-students-container .brilliant-students-filters {
+  background: var(--admin-card-light);
+  border: 2px solid var(--admin-border-light);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.dark-theme .brilliant-students-container .brilliant-students-filters {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .filters-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.brilliant-students-container .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brilliant-students-container .filter-label {
+  font-weight: 600;
+  color: var(--admin-text-light);
+  font-size: 14px;
+}
+
+.dark-theme .brilliant-students-container .filter-label {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .filter-control {
+  padding: 10px 12px;
+  border: 2px solid var(--admin-border-light);
+  border-radius: 8px;
+  background: var(--admin-card-light);
+  font-size: 14px;
+  transition: var(--transition);
+  color: var(--admin-text-light);
+}
+
+.brilliant-students-container .filter-control:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.1);
+  outline: none;
+}
+
+.dark-theme .brilliant-students-container .filter-control {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .filter-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.brilliant-students-container .btn-filter {
+  padding: 8px 16px;
+  border: 2px solid var(--admin-border-light);
+  background: var(--admin-card-light);
+  color: var(--admin-text-light);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.brilliant-students-container .btn-filter:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+}
+
+.brilliant-students-container .btn-filter.primary {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: #ffffff;
+}
+
+.brilliant-students-container .btn-filter.primary:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.dark-theme .brilliant-students-container .btn-filter {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+  color: var(--admin-text-dark);
+}
+
+/* Students Grid */
+.brilliant-students-container .brilliant-students-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.brilliant-students-container .student-card {
+  background: var(--admin-card-light);
+  border: 2px solid var(--admin-border-light);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: var(--transition);
+  position: relative;
+}
+
+.dark-theme .brilliant-students-container .student-card {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .student-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--admin-shadow-lg);
+}
+
+.brilliant-students-container .student-card-header {
+  padding: 20px;
+  background: linear-gradient(135deg, var(--admin-primary), #dc2626);
+  color: #ffffff;
+  position: relative;
+}
+
+.brilliant-students-container .student-card-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.brilliant-students-container .student-card-action {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.brilliant-students-container .student-card-action:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.brilliant-students-container .student-card-photo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+}
+
+.brilliant-students-container .student-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brilliant-students-container .student-card-photo .fallback {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 24px;
+  color: #ffffff;
+}
+
+.brilliant-students-container .student-card-name {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 4px 0;
+}
+
+.brilliant-students-container .student-card-test-type {
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.brilliant-students-container .student-card-body {
+  padding: 20px;
+}
+
+.brilliant-students-container .student-card-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(184, 1, 1, 0.05);
+  border-radius: 8px;
+  border-left: 4px solid var(--admin-primary);
+}
+
+.dark-theme .brilliant-students-container .student-card-score {
+  background: rgba(184, 1, 1, 0.1);
+}
+
+.brilliant-students-container .student-score-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--admin-primary);
+}
+
+.brilliant-students-container .student-score-max {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.dark-theme .brilliant-students-container .student-score-max {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .student-percentage {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--admin-text-light);
+}
+
+.dark-theme .brilliant-students-container .student-percentage {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .student-card-details {
+  display: grid;
+  gap: 8px;
+}
+
+.brilliant-students-container .student-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--admin-text-light);
+}
+
+.dark-theme .brilliant-students-container .student-detail-item {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .student-detail-item i {
+  width: 16px;
+  color: var(--admin-primary);
+}
+
+.brilliant-students-container .student-card-footer {
+  padding: 16px 20px;
+  background: rgba(184, 1, 1, 0.05);
+  border-top: 1px solid var(--admin-border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dark-theme .brilliant-students-container .student-card-footer {
+  background: rgba(184, 1, 1, 0.1);
+  border-top-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .student-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.brilliant-students-container .student-status.active {
+  color: #10b981;
+}
+
+.brilliant-students-container .student-status.inactive {
+  color: #ef4444;
+}
+
+.brilliant-students-container .student-display-order {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.dark-theme .brilliant-students-container .student-display-order {
+  color: var(--admin-text-dark);
+}
+
+/* Test Type Badges */
+.brilliant-students-container .test-type-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.brilliant-students-container .test-type-badge.est {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.brilliant-students-container .test-type-badge.dsat {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.brilliant-students-container .test-type-badge.act {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+/* Score Progress Bars */
+.brilliant-students-container .score-progress {
+  width: 100%;
+  height: 6px;
+  background: var(--admin-border-light);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.dark-theme .brilliant-students-container .score-progress {
+  background: var(--admin-border-dark);
+}
+
+.brilliant-students-container .score-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--admin-primary), #dc2626);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Pagination */
+.brilliant-students-container .brilliant-students-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+/* Modal Styles */
+.brilliant-students-container .brilliant-student-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+}
+
+.brilliant-students-container .brilliant-student-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.brilliant-students-container .modal-content {
+  background: var(--admin-card-light);
+  border: 2px solid var(--admin-border-light);
+  border-radius: 16px;
+  padding: 32px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: scale(0.95);
+  transition: var(--transition);
+}
+
+.dark-theme .brilliant-students-container .modal-content {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .brilliant-student-modal.show .modal-content {
+  transform: scale(1);
+}
+
+.brilliant-students-container .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--admin-border-light);
+}
+
+.dark-theme .brilliant-students-container .modal-header {
+  border-bottom-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--admin-text-light);
+  margin: 0;
+}
+
+.dark-theme .brilliant-students-container .modal-title {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .modal-close {
+  width: 32px;
+  height: 32px;
+  background: var(--admin-border-light);
+  border: none;
+  border-radius: 6px;
+  color: var(--admin-text-light);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brilliant-students-container .modal-close:hover {
+  background: var(--admin-primary);
+  color: #ffffff;
+}
+
+.dark-theme .brilliant-students-container .modal-close {
+  background: var(--admin-border-dark);
+  color: var(--admin-text-dark);
+}
+
+/* Form Styles */
+.brilliant-students-container .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.brilliant-students-container .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brilliant-students-container .form-label {
+  font-weight: 600;
+  color: var(--admin-text-light);
+  font-size: 14px;
+}
+
+.dark-theme .brilliant-students-container .form-label {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .form-label .required {
+  color: #ef4444;
+  margin-left: 4px;
+}
+
+.brilliant-students-container .form-input,
+.brilliant-students-container .form-select,
+.brilliant-students-container .form-textarea {
+  padding: 12px 16px;
+  border: 2px solid var(--admin-border-light);
+  border-radius: 8px;
+  background: var(--admin-card-light);
+  font-size: 14px;
+  transition: var(--transition);
+  color: var(--admin-text-light);
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.brilliant-students-container .form-input:focus,
+.brilliant-students-container .form-select:focus,
+.brilliant-students-container .form-textarea:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.1);
+  outline: none;
+}
+
+/* Ensure score input field is interactive */
+.brilliant-students-container .form-input[name="score"] {
+  pointer-events: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  background: var(--admin-card-light) !important;
+  cursor: text !important;
+}
+
+/* Style readonly maxScore field */
+.brilliant-students-container .form-input[name="maxScore"] {
+  background: rgba(184, 1, 1, 0.05) !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  color: var(--admin-text-light) !important;
+  opacity: 0.8;
+}
+
+.dark-theme .brilliant-students-container .form-input[name="score"] {
+  background: var(--admin-card-dark) !important;
+}
+
+.dark-theme .brilliant-students-container .form-input[name="maxScore"] {
+  background: rgba(184, 1, 1, 0.1) !important;
+  color: var(--admin-text-dark) !important;
+}
+
+.dark-theme .brilliant-students-container .form-input,
+.dark-theme .brilliant-students-container .form-select,
+.dark-theme .brilliant-students-container .form-textarea {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.brilliant-students-container .form-help {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.dark-theme .brilliant-students-container .form-help {
+  color: var(--admin-text-dark);
+}
+
+/* Modal Actions */
+.brilliant-students-container .modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid var(--admin-border-light);
+}
+
+.dark-theme .brilliant-students-container .modal-actions {
+  border-top-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .btn-modal {
+  padding: 10px 20px;
+  border: 2px solid var(--admin-border-light);
+  background: var(--admin-card-light);
+  color: var(--admin-text-light);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.brilliant-students-container .btn-modal:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+}
+
+.brilliant-students-container .btn-modal.primary {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: #ffffff;
+}
+
+.brilliant-students-container .btn-modal.primary:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.dark-theme .brilliant-students-container .btn-modal {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+  color: var(--admin-text-dark);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .brilliant-students-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .brilliant-students-actions {
+    justify-content: center;
+  }
+  
+  .brilliant-students-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .brilliant-students-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .filter-actions {
+    justify-content: center;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    padding: 20px;
+    margin: 20px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .brilliant-students-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .student-card-actions {
+    position: static;
+    justify-content: center;
+    margin-top: 12px;
+  }
+  
+  .student-card-footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+/* Loading States */
+.brilliant-students-container .loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.brilliant-students-container .loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--admin-border-light);
+  border-top-color: var(--admin-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success/Error States */
+.brilliant-students-container .success-message {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.brilliant-students-container .error-message {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Drag and Drop */
+.brilliant-students-container .draggable {
+  cursor: move;
+}
+
+.brilliant-students-container .dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+.brilliant-students-container .drop-zone {
+  border: 2px dashed var(--admin-primary);
+  background: rgba(184, 1, 1, 0.05);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  color: var(--admin-primary);
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.dark-theme .brilliant-students-container .drop-zone {
+  background: rgba(184, 1, 1, 0.1);
+}
+
+/* Animation Classes */
+.brilliant-students-container .fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.brilliant-students-container .slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

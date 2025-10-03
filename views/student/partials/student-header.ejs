@@ -1,0 +1,545 @@
+<!-- Enhanced Student Header -->
+<header class="student-header enhanced-header">
+    <div class="header-left">
+        <!-- Enhanced Sidebar Toggle (Mobile) -->
+        <button class="sidebar-toggle enhanced-toggle" onclick="toggleSidebar()">
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </button>
+        
+        <!-- Page Title with Enhanced Design -->
+        <div class="header-title-container">
+            <h1 class="header-title enhanced-title">
+                <%= title || 'Student Dashboard' %>
+            </h1>
+            <div class="title-decoration"></div>
+        </div>
+    </div>
+
+    <div class="header-right">
+        <!-- Enhanced Theme Toggle -->
+        <button class="theme-toggle-btn enhanced-theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+            <div class="toggle-container">
+                <div class="toggle-track">
+                    <div class="toggle-thumb">
+                        <i class="fas fa-sun light-icon"></i>
+                        <i class="fas fa-moon dark-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </button>
+
+        <!-- Enhanced Notifications -->
+        <div class="notification-container">
+            <button class="notification-btn" onclick="toggleNotifications()">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+                <div class="notification-ripple"></div>
+            </button>
+            <div class="notification-dropdown enhanced-notifications" id="notificationDropdown">
+                <div class="notification-header">
+                    <h3>Notifications</h3>
+                    <button class="mark-all-read">Mark all as read</button>
+                </div>
+                <div class="notification-list">
+                    <div class="notification-item unread">
+                        <div class="notification-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="notification-content">
+                            <p class="notification-title">New Course Available</p>
+                            <p class="notification-text">Advanced Mathematics course is now available</p>
+                            <span class="notification-time">2 hours ago</span>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon">
+                            <i class="fas fa-quiz"></i>
+                        </div>
+                        <div class="notification-content">
+                            <p class="notification-title">Quiz Assignment</p>
+                            <p class="notification-text">You have a new quiz to complete</p>
+                            <span class="notification-time">1 day ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced User Profile -->
+        <div class="user-profile enhanced-profile" onclick="toggleUserMenu()">
+            <div class="user-avatar enhanced-avatar">
+                <% if (student && student.profilePicture) { %>
+                    <img src="<%= student.profilePicture %>" alt="Profile" class="avatar-image">
+                <% } else { %>
+                    <span class="avatar-text"><%= (student && student.name) ? student.name.charAt(0).toUpperCase() : 'S' %></span>
+                <% } %>
+                <div class="avatar-status online"></div>
+            </div>
+            <div class="user-info enhanced-info">
+                <div class="user-name"><%= (student && student.name) ? student.name : 'Student' %></div>
+                <div class="user-role">
+                    <i class="fas fa-user-graduate"></i>
+                    <%= (student && student.studentCode) ? student.studentCode : 'STU0000' %>
+                </div>
+            </div>
+            <div class="dropdown-arrow">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+
+        <!-- Enhanced User Dropdown Menu -->
+        <div class="user-dropdown enhanced-dropdown" id="userDropdown">
+            <div class="dropdown-header">
+                <div class="dropdown-avatar">
+                    <% if (student && student.profilePicture) { %>
+                        <img src="<%= student.profilePicture %>" alt="Profile" class="dropdown-avatar-image">
+                    <% } else { %>
+                        <span class="dropdown-avatar-text"><%= (student && student.name) ? student.name.charAt(0).toUpperCase() : 'S' %></span>
+                    <% } %>
+                </div>
+                <div class="dropdown-info">
+                    <div class="dropdown-name"><%= (student && student.name) ? student.name : 'Student' %></div>
+                    <div class="dropdown-email"><%= (student && student.email) ? student.email : 'student@example.com' %></div>
+                </div>
+            </div>
+            
+            <div class="dropdown-divider"></div>
+            
+            <div class="dropdown-menu">
+                <a href="/student/profile" class="dropdown-item">
+                    <div class="dropdown-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span>My Profile</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                <a href="/student/settings" class="dropdown-item">
+                    <div class="dropdown-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <span>Settings</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                <a href="/student/help" class="dropdown-item">
+                    <div class="dropdown-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <span>Help & Support</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+            
+            <div class="dropdown-divider"></div>
+            
+            <a href="/student/logout" class="dropdown-item logout-item">
+                <div class="dropdown-icon">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<script>
+// Enhanced sidebar toggle with animation
+function toggleSidebar() {
+    const sidebar = document.querySelector('.student-sidebar');
+    const toggle = document.querySelector('.enhanced-toggle');
+    
+    sidebar.classList.toggle('open');
+    toggle.classList.toggle('active');
+    
+    // Animate hamburger
+    const hamburger = toggle.querySelector('.hamburger');
+    hamburger.classList.toggle('active');
+}
+
+// Enhanced user dropdown with smooth animations
+function toggleUserMenu() {
+    const dropdown = document.getElementById('userDropdown');
+    const profile = document.querySelector('.enhanced-profile');
+    
+    if (dropdown.classList.contains('show')) {
+        dropdown.classList.remove('show');
+        profile.classList.remove('active');
+    } else {
+        dropdown.classList.add('show');
+        profile.classList.add('active');
+    }
+}
+
+// Enhanced notifications toggle
+function toggleNotifications() {
+    const dropdown = document.getElementById('notificationDropdown');
+    const btn = document.querySelector('.notification-btn');
+    
+    if (dropdown.classList.contains('show')) {
+        dropdown.classList.remove('show');
+        btn.classList.remove('active');
+    } else {
+        dropdown.classList.add('show');
+        btn.classList.add('active');
+        
+        // Close user dropdown if open
+        const userDropdown = document.getElementById('userDropdown');
+        const userProfile = document.querySelector('.enhanced-profile');
+        userDropdown.classList.remove('show');
+        userProfile.classList.remove('active');
+    }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const userProfile = document.querySelector('.enhanced-profile');
+    const userDropdown = document.getElementById('userDropdown');
+    const notificationContainer = document.querySelector('.notification-container');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    
+    if (!userProfile.contains(event.target)) {
+        userDropdown.classList.remove('show');
+        userProfile.classList.remove('active');
+    }
+    
+    if (!notificationContainer.contains(event.target)) {
+        notificationDropdown.classList.remove('show');
+        notificationContainer.querySelector('.notification-btn').classList.remove('active');
+    }
+});
+
+// Enhanced theme toggle with smooth animations
+function toggleTheme() {
+    const body = document.body;
+    const toggle = document.querySelector('.enhanced-theme-toggle');
+    const currentTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    // Add transition class for smooth theme change
+    body.classList.add('theme-transitioning');
+    
+    // Remove current theme
+    body.classList.remove('light-theme', 'dark-theme');
+    
+    // Add new theme
+    body.classList.add(newTheme + '-theme');
+    
+    // Animate toggle
+    toggle.classList.add('animating');
+    
+    setTimeout(() => {
+        body.classList.remove('theme-transitioning');
+        toggle.classList.remove('animating');
+    }, 300);
+    
+    // Save to localStorage for better persistence
+    localStorage.setItem('theme', newTheme);
+    
+    // Update theme toggle button
+    updateThemeToggleButton(newTheme);
+}
+
+function updateThemeToggleButton(theme) {
+    const toggle = document.querySelector('.enhanced-theme-toggle');
+    const lightIcon = toggle.querySelector('.light-icon');
+    const darkIcon = toggle.querySelector('.dark-icon');
+    
+    if (theme === 'dark') {
+        toggle.classList.add('dark-mode');
+        lightIcon.style.opacity = '0';
+        darkIcon.style.opacity = '1';
+    } else {
+        toggle.classList.remove('dark-mode');
+        lightIcon.style.opacity = '1';
+        darkIcon.style.opacity = '0';
+    }
+}
+
+
+// Initialize everything on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize theme
+    const savedTheme = localStorage.getItem('theme') || '<%= theme || "light" %>';
+    const body = document.body;
+    
+    body.classList.remove('light-theme', 'dark-theme');
+    body.classList.add(savedTheme + '-theme');
+    
+    updateThemeToggleButton(savedTheme);
+    
+    // Initialize smooth scrolling for sidebar
+    const sidebar = document.querySelector('.enhanced-sidebar');
+    if (sidebar) {
+        sidebar.addEventListener('scroll', function() {
+            const scrollTop = this.scrollTop;
+            const brand = this.querySelector('.enhanced-brand');
+            
+            if (scrollTop > 20) {
+                brand.classList.add('scrolled');
+            } else {
+                brand.classList.remove('scrolled');
+            }
+        });
+    }
+});
+
+// Helper function to get cookie value (kept for backward compatibility)
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+</script>
+
+<!-- Toast/Flash Messages (top-right) -->
+<div class="toast-container" aria-live="polite" aria-atomic="true">
+    <% const __success = (typeof success_msg !== 'undefined' && success_msg && success_msg.length) ? success_msg : (typeof success !== 'undefined' ? success : []); %>
+    <% const __error = (typeof error_msg !== 'undefined' && error_msg && error_msg.length) ? error_msg : (typeof error !== 'undefined' ? error : []); %>
+    <% const __info = (typeof info_msg !== 'undefined' && info_msg && info_msg.length) ? info_msg : (typeof info !== 'undefined' ? info : []); %>
+
+    <% if (__success && __success.length) { __success.forEach(function(msg){ %>
+        <div class="toast toast-success" role="status">
+            <i class="fas fa-check-circle"></i>
+            <span><%= msg %></span>
+            <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+        </div>
+    <% }) } %>
+
+    <% if (__error && __error.length) { __error.forEach(function(msg){ %>
+        <div class="toast toast-danger" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            <span><%= msg %></span>
+            <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+        </div>
+    <% }) } %>
+
+    <% if (__info && __info.length) { __info.forEach(function(msg){ %>
+        <div class="toast toast-info" role="status">
+            <i class="fas fa-info-circle"></i>
+            <span><%= msg %></span>
+            <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+        </div>
+    <% }) } %>
+</div>
+
+<script>
+  // Auto-dismiss toasts after 5 seconds
+  (function(){
+    const toasts = document.querySelectorAll('.toast-container .toast');
+    toasts.forEach(function(t){
+      setTimeout(function(){ if (t && t.parentElement) t.parentElement.removeChild(t); }, 5000);
+    });
+  })();
+</script>
+
+<style>
+/* Compact Header Styles */
+.student-header.enhanced-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+    min-height: 60px;
+}
+
+.header-title-container {
+    margin-left: var(--spacing-md);
+}
+
+.enhanced-title {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.title-decoration {
+    width: 40px;
+    height: 3px;
+}
+
+/* Compact Theme Toggle */
+.enhanced-theme-toggle {
+    padding: var(--spacing-xs);
+    margin-right: var(--spacing-md);
+}
+
+.toggle-container {
+    min-width: 50px;
+}
+
+.toggle-track {
+    width: 45px;
+    height: 24px;
+}
+
+.toggle-thumb {
+    width: 18px;
+    height: 18px;
+    top: 3px;
+    left: 3px;
+}
+
+.toggle-thumb i {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.light-icon {
+    color: #fbbf24;
+    opacity: 1;
+    text-shadow: 0 1px 2px rgba(251, 191, 36, 0.4);
+}
+
+.dark-icon {
+    color: #1f2937;
+    opacity: 0;
+    text-shadow: 0 1px 2px rgba(31, 41, 55, 0.4);
+}
+
+.enhanced-theme-toggle.dark-mode .toggle-thumb {
+    transform: translateX(21px);
+}
+
+.enhanced-theme-toggle.dark-mode .light-icon {
+    opacity: 0;
+}
+
+.enhanced-theme-toggle.dark-mode .dark-icon {
+    opacity: 1;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+/* Compact Notification Button */
+.notification-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+}
+
+.notification-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 0.65rem;
+    top: -1px;
+    right: -1px;
+}
+
+/* Compact User Profile */
+.enhanced-profile {
+    padding: var(--spacing-xs);
+}
+
+.enhanced-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+}
+
+.avatar-status {
+    width: 10px;
+    height: 10px;
+}
+
+.enhanced-info {
+    margin-left: var(--spacing-sm);
+    margin-right: var(--spacing-xs);
+}
+
+.user-name {
+    font-size: 0.85rem;
+    margin-bottom: 1px;
+}
+
+.user-role {
+    font-size: 0.7rem;
+}
+
+/* Compact Sidebar Toggle */
+.enhanced-toggle {
+    width: 36px;
+    height: 36px;
+}
+
+.hamburger span {
+    width: 16px;
+    height: 2px;
+}
+
+/* User dropdown hover effects */
+.user-dropdown a:hover {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Responsive header styles */
+@media (max-width: 768px) {
+    .student-header.enhanced-header {
+        padding: var(--spacing-sm) var(--spacing-md);
+        min-height: 55px;
+    }
+    
+    .enhanced-title {
+        font-size: 1.25rem;
+    }
+    
+    .user-info {
+        display: none;
+    }
+    
+    .sidebar-toggle {
+        display: block;
+    }
+    
+    .toggle-container {
+        min-width: 45px;
+    }
+    
+    .toggle-track {
+        width: 40px;
+        height: 22px;
+    }
+    
+    .toggle-thumb {
+        width: 16px;
+        height: 16px;
+        top: 3px;
+        left: 3px;
+    }
+    
+    .enhanced-theme-toggle.dark-mode .toggle-thumb {
+        transform: translateX(18px);
+    }
+}
+
+@media (max-width: 480px) {
+    .student-header.enhanced-header {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        min-height: 50px;
+    }
+    
+    .enhanced-title {
+        font-size: 1.1rem;
+    }
+    
+    .notification-dropdown {
+        display: none;
+    }
+    
+    .enhanced-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    
+    .notification-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .enhanced-toggle {
+        width: 32px;
+        height: 32px;
+    }
+}
+</style>

@@ -1,0 +1,1491 @@
+<%- include('partials/header', { title: title }) %>
+
+<!-- Floating Math Elements -->
+<div class="floating-math-elements-professor" id="floatingMath">
+  <div class="math-element-professor" data-equation="∂">∂</div>
+  <div class="math-element-professor" data-equation="∇">∇</div>
+  <div class="math-element-professor" data-equation="∫">∫</div>
+  <div class="math-element-professor" data-equation="∑">∑</div>
+  <div class="math-element-professor" data-equation="∏">∏</div>
+  <div class="math-element-professor" data-equation="∞">∞</div>
+  <div class="math-element-professor" data-equation="∃">∃</div>
+  <div class="math-element-professor" data-equation="∀">∀</div>
+  <div class="math-element-professor" data-equation="ℝ">ℝ</div>
+  <div class="math-element-professor" data-equation="ℂ">ℂ</div>
+</div>
+
+<!-- Bundle Content Section -->
+<section class="bundle-content-section">
+  <div class="container">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb-nav">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/courses/<%= bundle.courseType %>"><%= bundle.courseType === 'online' ? 'Online' : 'On-Ground' %> Courses</a></li>
+        <li class="breadcrumb-item active"><%= bundle.title %></li>
+      </ol>
+    </nav>
+
+    <!-- Enhanced Search and Filter Section -->
+    <div class="courses-filter-section-enhanced mb-5">
+      <div class="filter-container">
+        <div class="row align-items-center">
+          <div class="col-lg-6">
+            <form class="search-form-enhanced" method="GET">
+              <div class="search-input-group-enhanced">
+                <div class="search-icon">
+                  <i class="fas fa-search"></i>
+                </div>
+                <input type="text" name="search" class="search-input-enhanced" placeholder="Search courses in this bundle..." value="">
+                <button type="submit" class="search-btn-enhanced">
+                  <span>Search</span>
+                  <i class="fas fa-arrow-right"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+          <div class="col-lg-6">
+            <div class="filter-dropdowns-enhanced">
+              <div class="filter-group">
+                <label class="filter-label">
+                  <i class="fas fa-graduation-cap"></i>
+                  Level
+                </label>
+                <select name="level" class="filter-select-enhanced" onchange="filterCourses()">
+                  <option value="">All Levels</option>
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">
+                  <i class="fas fa-book"></i>
+                  Category
+                </label>
+                <select name="category" class="filter-select-enhanced" onchange="filterCourses()">
+                  <option value="">All Categories</option>
+                  <option value="Core">Core</option>
+                  <option value="Elective">Elective</option>
+                  <option value="Supplementary">Supplementary</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Results Count -->
+    <div class="results-count-enhanced mb-4">
+      <div class="results-info">
+        <div class="results-stats">
+          <span class="results-number" id="filteredCount"><%= bundle.courses.length %></span>
+          <span class="results-label">of <%= bundle.courses.length %> courses</span>
+        </div>
+        <div class="results-type">
+          <i class="fas fa-<%= bundle.courseType === 'online' ? 'laptop-code' : 'chalkboard-teacher' %>"></i>
+          <span><%= bundle.courseType === 'online' ? 'Online' : 'On-Ground' %> Bundle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bundle Header -->
+    <div class="bundle-content-header fade-in-up mb-4">
+      <div class="row equal-height">
+        <div class="col-lg-8">
+          <div class="bundle-header-info">
+            <div class="bundle-badge">
+              <span class="badge-type">
+                <i class="fas fa-<%= bundle.courseType === 'online' ? 'laptop' : 'chalkboard-teacher' %>"></i>
+                <%= bundle.courseType === 'online' ? 'Online' : 'On-Ground' %>
+              </span>
+              <span class="badge-year">
+                <i class="fas fa-calendar"></i>
+                <%= bundle.year %>
+              </span>
+              <span class="badge-subject">
+                <i class="fas fa-book"></i>
+                <%= bundle.subject %>
+              </span>
+            </div>
+            <div class="bundle-title-container">
+              <h1 class="bundle-title"><%= bundle.title %></h1>
+              <div class="bundle-wishlist-btn" onclick="toggleWishlist('<%= bundle._id %>', 'bundle')" title="Add to Wishlist">
+                <% if (user && user.isBundleInWishlist(bundle._id.toString())) { %>
+                  <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+                <% } else { %>
+                  <i class="far fa-heart"></i>
+                <% } %>
+              </div>
+            </div>
+            <p class="bundle-description"><%= bundle.description %></p>
+            
+            <div class="bundle-stats">
+              <div class="stat-item">
+                <i class="fas fa-book"></i>
+                <span><%= bundle.courses.length %> Course<%= bundle.courses.length !== 1 ? 's' : '' %></span>
+              </div>
+              <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span><%= bundle.duration || 0 %> Hour<%= (bundle.duration || 0) !== 1 ? 's' : '' %></span>
+              </div>
+              <div class="stat-item">
+                <i class="fas fa-users"></i>
+                <span><%= bundle.enrolledStudents.length %> Student<%= bundle.enrolledStudents.length !== 1 ? 's' : '' %></span>
+              </div>
+              <div class="stat-item">
+                <i class="fas fa-star"></i>
+                <span>4.8 Rating</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="bundle-purchase-card h-100 d-flex flex-column">
+            <div class="purchase-header">
+              <div class="price-container">
+                <% if (bundle.discountPrice) { %>
+                  <span class="price-original">$<%= bundle.price %></span>
+                  <span class="price-current">$<%= bundle.finalPrice.toFixed(2) %></span>
+                  <span class="price-savings">Save $<%= bundle.savings.toFixed(2) %> (<%= bundle.savingsPercentage %>% off)</span>
+                <% } else { %>
+                  <span class="price-current">$<%= bundle.price %></span>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="purchase-actions">
+              <% if (user && user.hasPurchasedBundle(bundle._id.toString())) { %>
+                <button class="btn-purchased" disabled>
+                  <i class="fas fa-check-circle"></i>
+                  <span>Already Purchased</span>
+                </button>
+                <a href="/student/enrolled-courses" class="btn-access-courses">
+                  <i class="fas fa-graduation-cap"></i>
+                  <span>Access Courses</span>
+                </a>
+              <% } else { %>
+                <button class="btn-add-to-cart" onclick="addBundleToCart('<%= bundle._id %>')">
+                  <i class="fas fa-shopping-cart"></i>
+                  <span>Add Bundle to Cart</span>
+                </button>
+                <a href="/purchase/checkout?bundle=<%= bundle._id %>" class="btn-buy-now">
+                  <i class="fas fa-credit-card"></i>
+                  <span>Buy Now</span>
+                </a>
+              <% } %>
+            </div>
+
+            <div class="purchase-guarantee">
+              <i class="fas fa-shield-alt"></i>
+              <span>30-Day Money Back Guarantee</span>
+            </div>
+
+            <div class="bundle-info mt-auto">
+              <div class="info-item">
+                <i class="fas fa-calendar"></i>
+                <span>Lifetime Access</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-download"></i>
+                <span>Downloadable Resources</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-headset"></i>
+                <span>24/7 Support</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Courses Grid -->
+    <div class="courses-content-grid fade-in-up">
+      <h2 class="section-title">Courses in this Bundle</h2>
+      <div class="courses-grid" id="coursesGrid">
+        <% bundle.courses.forEach((course, index) => { %>
+        <% const isEnrolled = user && (user.hasAccessToCourse(course._id.toString()) || user.hasAccessToCourseThroughBundle(course._id.toString(), bundle._id.toString())); %>
+        <article class="course-card-enhanced <%= isEnrolled ? 'course-enrolled' : '' %>" data-aos="fade-up" data-aos-delay="<%= (index + 1) * 100 %>" 
+                 data-level="<%= course.level %>" data-category="<%= course.category %>" data-title="<%= course.title.toLowerCase() %>">
+          <div class="course-card-header">
+            <div class="course-favorite-btn-enhanced" onclick="toggleWishlist('<%= course._id %>', 'course')" title="Add to Wishlist">
+              <% if (user && user.isCourseInWishlist(course._id.toString())) { %>
+                <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+              <% } else { %>
+                <i class="far fa-heart"></i>
+              <% } %>
+            </div>
+            <div class="course-badge-container">
+              <% if (isEnrolled) { %>
+                <div class="course-offer-badge-enhanced enrolled">
+                  <i class="fas fa-check-circle"></i>
+                  <span>Enrolled</span>
+                </div>
+              <% } else if (course.discountPrice) { %>
+                <div class="course-offer-badge-enhanced discount">
+                  <i class="fas fa-percentage"></i>
+                  <span>Save <%= course.savingsPercentage %>%</span>
+                </div>
+              <% } else { %>
+                <div class="course-offer-badge-enhanced level">
+                  <i class="fas fa-graduation-cap"></i>
+                  <span><%= course.level %></span>
+                </div>
+              <% } %>
+            </div>
+          </div>
+          
+          <div class="course-card-media-enhanced">
+            <img src="<%= course.thumbnail || '/images/adad.png' %>" alt="<%= course.title %>" loading="lazy">
+            <div class="course-overlay-enhanced">
+              <div class="course-quick-actions">
+                <% if (isEnrolled) { %>
+                  <button class="quick-action-btn enrolled" title="Access Course" onclick="accessCourse('<%= course._id %>')">
+                    <i class="fas fa-graduation-cap"></i>
+                  </button>
+                <% } else { %>
+                  <button class="quick-action-btn" onclick="addCourseToCart('<%= course._id %>')" title="Add to Cart">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                <% } %>
+                <button class="quick-action-btn" title="Preview Course">
+                  <i class="fas fa-play"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="course-card-body-enhanced">
+            <div class="course-meta">
+              <span class="course-year"><%= course.year %></span>
+              <span class="course-subject"><%= course.subject %></span>
+            </div>
+            
+            <h3 class="course-card-title-enhanced"><%= course.title %></h3>
+            <p class="course-card-description-enhanced">
+              <%= course.shortDescription || 'Comprehensive course covering essential concepts and practical applications. Perfect for students looking to master the fundamentals and advance their understanding.' %>
+            </p>
+            
+            <div class="course-stats-enhanced">
+              <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span><%= course.duration %> Hours</span>
+              </div>
+              <div class="stat-item">
+                <i class="fas fa-book"></i>
+                <span><%= course.category %></span>
+              </div>
+              <div class="stat-item">
+                <i class="fas fa-users"></i>
+                <span><%= course.enrolledStudents ? course.enrolledStudents.length : 0 %> Students</span>
+              </div>
+            </div>
+            
+            <div class="course-price-container-enhanced">
+              <% if (isEnrolled) { %>
+                <div class="price-wrapper">
+                  <span class="course-price-enrolled">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Included in Bundle</span>
+                  </span>
+                </div>
+              <% } else if (course.discountPrice) { %>
+                <div class="price-wrapper">
+                  <span class="course-price-original-enhanced">$<%= course.price %></span>
+                  <span class="course-price-current-enhanced">$<%= course.finalPrice.toFixed(2) %></span>
+                </div>
+                <div class="savings-info">
+                  <span class="savings-amount">Save $<%= course.savings.toFixed(2) %></span>
+                </div>
+              <% } else { %>
+                <div class="price-wrapper">
+                  <span class="course-price-current-enhanced">$<%= course.price %></span>
+                </div>
+              <% } %>
+            </div>
+            
+            <div class="course-actions-enhanced">
+              <% if (isEnrolled) { %>
+                <button class="btn-access-course-enhanced" onclick="accessCourse('<%= course._id %>')">
+                  <i class="fas fa-graduation-cap"></i>
+                  <span>Access Course</span>
+                </button>
+              <% } else { %>
+                <button class="btn-add-to-cart-enhanced" onclick="addCourseToCart('<%= course._id %>')">
+                  <i class="fas fa-shopping-cart"></i>
+                  <span>Add to Cart</span>
+                </button>
+              <% } %>
+            </div>
+          </div>
+        </article>
+        <% }); %>
+      </div>
+      
+      <!-- No Courses Found Message -->
+      <div class="no-courses-found-enhanced" id="noCoursesFound" style="display: none;">
+        <div class="no-courses-content">
+          <div class="no-courses-icon-enhanced">
+            <div class="icon-background">
+              <i class="fas fa-search"></i>
+            </div>
+          </div>
+          <h3 class="no-courses-title">No Courses Found</h3>
+          <p class="no-courses-description">
+            We couldn't find any courses matching your search criteria. 
+            Try adjusting your filters or search terms.
+          </p>
+          <div class="no-courses-actions">
+            <button class="btn-secondary-enhanced" onclick="clearFilters()">
+              <i class="fas fa-refresh"></i>
+              <span>Clear Filters</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Related Bundles -->
+    <% if (relatedBundles.length > 0) { %>
+    <div class="related-bundles-section mt-5 fade-in-up">
+      <h2 class="section-title">Related Bundles</h2>
+      <div class="related-bundles-grid">
+        <% relatedBundles.forEach(relatedBundle => { %>
+        <article class="related-bundle-card">
+          <div class="bundle-card-media">
+            <img src="<%= relatedBundle.thumbnail || '/images/adad.png' %>" alt="<%= relatedBundle.title %>" loading="lazy">
+            <div class="bundle-offer-badge">
+              <%= relatedBundle.courseType === 'online' ? 'Online' : 'On-Ground' %>
+            </div>
+          </div>
+          <div class="bundle-card-body">
+            <h3 class="bundle-card-title"><%= relatedBundle.title %></h3>
+            <p class="bundle-card-description"><%= relatedBundle.shortDescription %></p>
+            <div class="bundle-price-container">
+              <% if (relatedBundle.discountPrice) { %>
+                <span class="bundle-price-original">$<%= relatedBundle.price %></span>
+                <span class="bundle-price-current">$<%= relatedBundle.finalPrice.toFixed(2) %></span>
+              <% } else { %>
+                <span class="bundle-price-current">$<%= relatedBundle.price %></span>
+              <% } %>
+            </div>
+            <div class="bundle-features">
+              <span class="bundle-feature"><%= relatedBundle.courses.length %> Courses</span>
+              <span class="bundle-feature"><%= relatedBundle.duration || 0 %> Hours</span>
+            </div>
+            <div class="bundle-actions">
+              <a href="/bundle/<%= relatedBundle._id %>" class="btn-view-bundle">
+                <span>View Details</span>
+                <i class="fas fa-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </article>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+  </div>
+</section>
+
+<script>
+// Add course to cart functionality
+function addCourseToCart(courseId) {
+  // Check if user is logged in
+  <% if (!user) { %>
+    showNotification('Please login to add items to cart', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 2000);
+    return;
+  <% } %>
+  
+  // Find the course data from the page
+  const courseCard = document.querySelector(`[onclick="addCourseToCart('${courseId}')"]`).closest('.course-card-enhanced');
+  const courseTitle = courseCard.querySelector('.course-card-title-enhanced').textContent;
+  const courseImage = courseCard.querySelector('.course-card-media-enhanced img').src;
+  
+  // Get the individual course price (final price after discount if any)
+  const priceElement = courseCard.querySelector('.course-price-current-enhanced');
+  const coursePrice = parseFloat(priceElement.textContent.replace('$', ''));
+  
+  // Show loading state
+  const btn = courseCard.querySelector('.btn-add-to-cart-enhanced');
+  const originalText = btn.querySelector('span').textContent;
+  const icon = btn.querySelector('i');
+  
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Adding...';
+  icon.classList.remove('fa-shopping-cart');
+  icon.classList.add('fa-spinner', 'fa-spin');
+  
+  // Add to cart via API
+  fetch('/purchase/cart/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: courseId,
+      itemType: 'course',
+      title: courseTitle,
+      price: coursePrice,
+      image: courseImage
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Visual feedback
+      btn.style.background = '#27ae60';
+      btn.querySelector('span').textContent = 'Added!';
+      icon.classList.remove('fa-spinner', 'fa-spin');
+      icon.classList.add('fa-check');
+      
+      showNotification(data.message, 'success');
+      
+      // Update global cart count and refresh cart data
+      if (window.globalCart) {
+        window.globalCart.refreshCartData();
+      }
+      
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.style.background = '';
+        btn.querySelector('span').textContent = originalText;
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-shopping-cart');
+      }, 2000);
+    } else {
+      btn.disabled = false;
+      btn.querySelector('span').textContent = originalText;
+      icon.classList.remove('fa-spinner', 'fa-spin');
+      icon.classList.add('fa-shopping-cart');
+      
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    btn.disabled = false;
+    btn.querySelector('span').textContent = originalText;
+    icon.classList.remove('fa-spinner', 'fa-spin');
+    icon.classList.add('fa-shopping-cart');
+    
+    showNotification('Error adding item to cart', 'error');
+  });
+}
+
+// Add bundle to cart functionality
+function addBundleToCart(bundleId) {
+  // Check if user is logged in
+  <% if (!user) { %>
+    showNotification('Please login to add items to cart', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 2000);
+    return;
+  <% } %>
+  
+  // Get bundle data from the page
+  const bundleTitle = document.querySelector('.bundle-title').textContent;
+  const priceElement = document.querySelector('.price-current');
+  const price = parseFloat(priceElement.textContent.replace('$', ''));
+  const image = '/images/adad.png'; // Default bundle image
+  
+  // Show loading state
+  const btn = document.querySelector('.btn-add-to-cart');
+  const originalText = btn.querySelector('span').textContent;
+  const icon = btn.querySelector('i');
+  
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Adding...';
+  icon.classList.remove('fa-shopping-cart');
+  icon.classList.add('fa-spinner', 'fa-spin');
+  
+  // Add to cart via API
+  fetch('/purchase/cart/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: bundleId,
+      itemType: 'bundle',
+      title: bundleTitle,
+      price: price,
+      image: image
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Visual feedback
+      btn.style.background = '#27ae60';
+      btn.querySelector('span').textContent = 'Added!';
+      icon.classList.remove('fa-spinner', 'fa-spin');
+      icon.classList.add('fa-check');
+      
+      showNotification(data.message, 'success');
+      
+      // Update global cart count and refresh cart data
+      if (window.globalCart) {
+        window.globalCart.refreshCartData();
+      }
+      
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.style.background = '';
+        btn.querySelector('span').textContent = originalText;
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-shopping-cart');
+      }, 2000);
+    } else {
+      btn.disabled = false;
+      btn.querySelector('span').textContent = originalText;
+      icon.classList.remove('fa-spinner', 'fa-spin');
+      icon.classList.add('fa-shopping-cart');
+      
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    btn.disabled = false;
+    btn.querySelector('span').textContent = originalText;
+    icon.classList.remove('fa-spinner', 'fa-spin');
+    icon.classList.add('fa-shopping-cart');
+    
+    showNotification('Error adding item to cart', 'error');
+  });
+}
+
+// Course Filtering Functionality
+function filterCourses() {
+  const searchInput = document.querySelector('.search-input-enhanced');
+  const levelFilter = document.querySelector('select[name="level"]');
+  const categoryFilter = document.querySelector('select[name="category"]');
+  const coursesGrid = document.getElementById('coursesGrid');
+  const noCoursesFound = document.getElementById('noCoursesFound');
+  const filteredCount = document.getElementById('filteredCount');
+  
+  const searchTerm = searchInput.value.toLowerCase();
+  const selectedLevel = levelFilter.value;
+  const selectedCategory = categoryFilter.value;
+  
+  const courseCards = document.querySelectorAll('.course-card-enhanced');
+  let visibleCount = 0;
+  
+  courseCards.forEach(card => {
+    const title = card.getAttribute('data-title');
+    const level = card.getAttribute('data-level');
+    const category = card.getAttribute('data-category');
+    
+    const matchesSearch = title.includes(searchTerm);
+    const matchesLevel = !selectedLevel || level === selectedLevel;
+    const matchesCategory = !selectedCategory || category === selectedCategory;
+    
+    if (matchesSearch && matchesLevel && matchesCategory) {
+      card.style.display = 'block';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+  
+  // Update filtered count
+  filteredCount.textContent = visibleCount;
+  
+  // Show/hide no courses found message
+  if (visibleCount === 0) {
+    noCoursesFound.style.display = 'flex';
+    coursesGrid.style.display = 'none';
+  } else {
+    noCoursesFound.style.display = 'none';
+    coursesGrid.style.display = 'grid';
+  }
+}
+
+// Clear filters function
+function clearFilters() {
+  document.querySelector('.search-input-enhanced').value = '';
+  document.querySelector('select[name="level"]').value = '';
+  document.querySelector('select[name="category"]').value = '';
+  filterCourses();
+}
+
+// Enhanced animations and interactions
+document.addEventListener('DOMContentLoaded', function() {
+  // Add scroll animations
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, observerOptions);
+
+  // Observe all fade-in-up elements
+  document.querySelectorAll('.fade-in-up').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(30px)';
+    el.style.transition = 'all 0.6s ease-out';
+    observer.observe(el);
+  });
+
+  // Add hover effects to course cards
+  document.querySelectorAll('.course-card-enhanced').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-10px) scale(1.02)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0) scale(1)';
+    });
+  });
+
+  // Add click effects to buttons
+  document.querySelectorAll('.btn-add-to-cart, .btn-buy-now, .btn-add-to-cart-enhanced').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      // Create ripple effect
+      const ripple = document.createElement('span');
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+      
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      ripple.classList.add('ripple');
+      
+      this.appendChild(ripple);
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 600);
+    });
+  });
+
+  // Add search functionality
+  const searchInput = document.querySelector('.search-input-enhanced');
+  if (searchInput) {
+    searchInput.addEventListener('input', filterCourses);
+  }
+});
+
+// Access course function for enrolled courses
+function accessCourse(courseId) {
+  // Redirect to the course content or student dashboard
+  window.location.href = `/student/course/${courseId}`;
+}
+
+// Show notification function
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => notification.classList.add('show'), 100);
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Add ripple effect CSS for enhanced interactions
+const style = document.createElement('style');
+style.textContent = `
+  .btn-add-to-cart, .btn-buy-now, .btn-add-to-cart-enhanced {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none;
+  }
+  
+  @keyframes ripple-animation {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  /* Enhanced equal height layout for bundle header */
+  .equal-height {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .equal-height > [class*="col-"] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Enrolled Course Styles */
+  .course-card-enhanced.course-enrolled {
+    border: 2px solid #27ae60;
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.05), rgba(39, 174, 96, 0.02));
+    position: relative;
+    overflow: hidden;
+  }
+
+  .course-card-enhanced.course-enrolled::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #27ae60, #2ecc71, #27ae60);
+    z-index: 1;
+  }
+
+  .course-card-enhanced.course-enrolled:hover {
+    border-color: #2ecc71;
+    box-shadow: 0 20px 40px rgba(39, 174, 96, 0.2);
+    transform: translateY(-5px);
+  }
+
+  .course-offer-badge-enhanced.enrolled {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+  }
+
+  .course-offer-badge-enhanced.enrolled i {
+    color: white;
+  }
+
+  .quick-action-btn.enrolled {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+  }
+
+  .quick-action-btn.enrolled:hover {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+  }
+
+  .course-price-enrolled {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #27ae60;
+    background: rgba(39, 174, 96, 0.1);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(39, 174, 96, 0.2);
+  }
+
+  .course-price-enrolled i {
+    color: #27ae60;
+  }
+
+  .btn-access-course-enhanced {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+  }
+
+  .btn-access-course-enhanced:hover {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(39, 174, 96, 0.4);
+    color: white;
+    text-decoration: none;
+  }
+
+  .btn-access-course-enhanced i {
+    transition: transform 0.3s ease;
+  }
+
+  .btn-access-course-enhanced:hover i {
+    transform: scale(1.1);
+  }
+
+  /* Dark theme enrolled course styles */
+  .dark-theme .course-card-enhanced.course-enrolled {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
+    border-color: #27ae60;
+  }
+
+  .dark-theme .course-card-enhanced.course-enrolled:hover {
+    border-color: #2ecc71;
+    box-shadow: 0 20px 40px rgba(39, 174, 96, 0.3);
+  }
+
+  .dark-theme .course-price-enrolled {
+    background: rgba(39, 174, 96, 0.15);
+    border-color: rgba(39, 174, 96, 0.3);
+    color: #2ecc71;
+  }
+
+  .dark-theme .course-price-enrolled i {
+    color: #2ecc71;
+  }
+`;
+document.head.appendChild(style);
+
+// Cart Management System
+let cart = [];
+let cartTotal = 0;
+
+// Initialize cart from server
+function initCart() {
+  // Initialize cart data from server
+  window.sessionCart = window.cartData || [];
+  console.log('Initializing cart with data:', window.sessionCart);
+  
+  // Update global cart count and refresh cart data
+  if (window.globalCart) {
+    window.globalCart.setSessionCart(window.sessionCart);
+    window.globalCart.refreshCartData();
+  }
+}
+
+// Add item to cart
+function addToCart(item) {
+  // Check if user is logged in
+  <% if (!user) { %>
+    showCartNotification('Please login to add items to cart', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 2000);
+    return;
+  <% } %>
+  
+  // Add to cart via API
+  fetch('/purchase/cart/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: item.id,
+      itemType: item.type || 'course',
+      title: item.title,
+      price: item.price,
+      image: item.image
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showCartNotification(data.message, 'success');
+      
+      // Update global cart count and refresh cart data
+      if (window.globalCart) {
+        window.globalCart.refreshCartData();
+      }
+      
+      // Show cart sidebar
+      showCartSidebar();
+    } else {
+      showCartNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showCartNotification('Error adding item to cart', 'error');
+  });
+}
+
+// Remove item from cart
+function removeFromCart(itemId) {
+  // Ensure sessionCart is initialized
+  if (!window.sessionCart) {
+    window.sessionCart = [];
+    showCartNotification('Cart is empty', 'error');
+    return;
+  }
+  
+  // Find the item in the session cart to get its type
+  const item = window.sessionCart.find(cartItem => cartItem.id === itemId);
+  if (!item) {
+    showCartNotification('Item not found in cart', 'error');
+    return;
+  }
+  
+  console.log('Removing item from cart:', item);
+  
+  fetch('/purchase/cart/remove', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: itemId,
+      itemType: item.type
+    })
+  })
+  .then(response => {
+    console.log('Response status:', response.status);
+    return response.json();
+  })
+  .then(data => {
+    console.log('Remove cart response:', data);
+    if (data.success) {
+      // Update session cart data
+      window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+      showCartNotification('Item removed from cart');
+      // Update global cart count and refresh cart data
+      if (window.globalCart) {
+        window.globalCart.updateCartSidebar();
+      }
+    } else {
+      showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error removing from cart:', error);
+    showCartNotification('Error removing item from cart', 'error');
+  });
+}
+
+// Update item quantity
+function updateQuantity(itemId, newQuantity) {
+  const item = cart.find(item => item.id === itemId);
+  if (item) {
+    if (newQuantity <= 0) {
+      removeFromCart(itemId);
+    } else {
+      item.quantity = newQuantity;
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartDisplay();
+    }
+  }
+}
+
+// Update cart display
+function updateCartDisplay() {
+  updateCartCount();
+  updateCartItems();
+  updateCartTotal();
+}
+
+// Update cart count in header
+function updateCartCount() {
+  const cartCount = document.getElementById('cartCount');
+  if (cartCount) {
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    cartCount.textContent = totalItems;
+    
+    // Add animation class
+    cartCount.classList.add('cart-count-updated');
+    setTimeout(() => cartCount.classList.remove('cart-count-updated'), 300);
+  }
+}
+
+// Update cart items in sidebar
+function updateCartItems() {
+  const cartItems = document.getElementById('cartItems');
+  if (!cartItems) return;
+  
+  if (cart.length === 0) {
+    cartItems.innerHTML = `
+      <div class="cart-empty">
+        <div class="cart-empty-icon">
+          <i class="fas fa-shopping-cart"></i>
+        </div>
+        <h4>Your cart is empty</h4>
+        <p>Add some courses to get started!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  cartItems.innerHTML = cart.map(item => `
+    <div class="cart-item" data-id="${item.id}">
+      <div class="cart-item-image">
+        <img src="${item.image}" alt="${item.title}">
+      </div>
+      <div class="cart-item-details">
+        <h5 class="cart-item-title">${item.title}</h5>
+        <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+        <div class="cart-item-controls">
+          <button class="cart-quantity-btn" onclick="updateQuantity('${item.id}', ${item.quantity - 1})">-</button>
+          <span class="cart-quantity">${item.quantity}</span>
+          <button class="cart-quantity-btn" onclick="updateQuantity('${item.id}', ${item.quantity + 1})">+</button>
+        </div>
+      </div>
+      <div class="cart-item-actions">
+        <button class="cart-remove-btn" onclick="removeFromCart('${item.id}')" title="Remove item">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Update cart total
+function updateCartTotal() {
+  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const tax = subtotal * 0.1; // 10% tax
+  const total = subtotal + tax;
+  
+  const subtotalEl = document.querySelector('.cart-subtotal');
+  const taxEl = document.querySelector('.cart-tax');
+  const totalEl = document.querySelector('.cart-total-amount');
+  
+  if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+  if (taxEl) taxEl.textContent = `$${tax.toFixed(2)}`;
+  if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+  
+  // Enable/disable checkout button
+  const checkoutBtn = document.getElementById('cartCheckout');
+  if (checkoutBtn) {
+    checkoutBtn.disabled = cart.length === 0;
+  }
+}
+
+// Show cart sidebar
+function showCartSidebar() {
+  const cartSidebar = document.getElementById('cartSidebar');
+  if (cartSidebar) {
+    cartSidebar.classList.add('cart-sidebar-open');
+    document.body.classList.add('cart-sidebar-active');
+  }
+}
+
+// Hide cart sidebar
+function hideCartSidebar() {
+  const cartSidebar = document.getElementById('cartSidebar');
+  if (cartSidebar) {
+    cartSidebar.classList.remove('cart-sidebar-open');
+    document.body.classList.remove('cart-sidebar-active');
+  }
+}
+
+// Proceed to checkout page
+function proceedToCheckout() {
+  // Check if cart is empty
+  if (!window.sessionCart || window.sessionCart.length === 0) {
+    showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
+    return;
+  }
+  
+  // Double-check with server cart data
+  const cartCount = document.getElementById('cartCount');
+  if (cartCount && parseInt(cartCount.textContent) === 0) {
+    showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
+    return;
+  }
+  
+  // Redirect to checkout page
+  window.location.href = '/purchase/checkout';
+}
+
+// Show cart notification
+function showCartNotification(message, type = 'success') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `cart-notification cart-notification-${type}`;
+  notification.innerHTML = `
+    <div class="cart-notification-content">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Show notification
+  setTimeout(() => notification.classList.add('show'), 100);
+  
+  // Hide notification
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Initialize cart on page load
+document.addEventListener('DOMContentLoaded', function() {
+  initCart();
+  
+  // Cart toggle button
+  const cartToggle = document.getElementById('cartToggle');
+  const cartSidebar = document.getElementById('cartSidebar');
+  const cartSidebarClose = document.getElementById('cartSidebarClose');
+  const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
+  const cartContinue = document.getElementById('cartContinue');
+  const cartCheckout = document.getElementById('cartCheckout');
+  
+  // Open cart sidebar
+  if (cartToggle) {
+    cartToggle.addEventListener('click', showCartSidebar);
+  }
+  
+  // Close cart sidebar
+  if (cartSidebarClose) {
+    cartSidebarClose.addEventListener('click', hideCartSidebar);
+  }
+  if (cartSidebarOverlay) {
+    cartSidebarOverlay.addEventListener('click', hideCartSidebar);
+  }
+  if (cartContinue) {
+    cartContinue.addEventListener('click', hideCartSidebar);
+  }
+  
+  // Checkout button
+  if (cartCheckout) {
+    cartCheckout.addEventListener('click', function() {
+      proceedToCheckout();
+    });
+  }
+  
+  // Close cart on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && cartSidebar && cartSidebar.classList.contains('cart-sidebar-open')) {
+      hideCartSidebar();
+    }
+  });
+});
+
+// Toggle wishlist function
+function toggleWishlist(itemId, itemType) {
+  // Check if user is logged in
+  <% if (!user) { %>
+    showNotification('Please login to manage your wishlist', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 2000);
+    return;
+  <% } %>
+  
+  // Find the heart icon - use event target for more reliable selection
+  const heartIcon = event.target.closest('.course-favorite-btn-enhanced, .bundle-wishlist-btn').querySelector('i');
+  const isCurrentlyInWishlist = heartIcon.classList.contains('fas');
+  
+  console.log('Toggling wishlist for:', itemId, itemType, 'Currently in wishlist:', isCurrentlyInWishlist);
+  
+  // Show loading state
+  heartIcon.classList.add('fa-spinner', 'fa-spin');
+  heartIcon.classList.remove('fas', 'far');
+  
+  // Toggle wishlist via API
+  fetch('/purchase/wishlist/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: itemId,
+      itemType: itemType
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Wishlist toggle response:', data);
+    
+    if (data.success) {
+      // Update heart icon based on new status
+      heartIcon.classList.remove('fa-spinner', 'fa-spin');
+      if (data.isInWishlist) {
+        heartIcon.classList.add('fas');
+        heartIcon.style.color = '#ff6b6b';
+      } else {
+        heartIcon.classList.add('far');
+        heartIcon.style.color = '';
+      }
+      
+      showNotification(data.message, 'success');
+    } else {
+      // Revert to original state
+      heartIcon.classList.remove('fa-spinner', 'fa-spin');
+      if (isCurrentlyInWishlist) {
+        heartIcon.classList.add('fas');
+        heartIcon.style.color = '#ff6b6b';
+      } else {
+        heartIcon.classList.add('far');
+        heartIcon.style.color = '';
+      }
+      
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    // Revert to original state
+    heartIcon.classList.remove('fa-spinner', 'fa-spin');
+    if (isCurrentlyInWishlist) {
+      heartIcon.classList.add('fas');
+      heartIcon.style.color = '#ff6b6b';
+    } else {
+      heartIcon.classList.add('far');
+      heartIcon.style.color = '';
+    }
+    
+    showNotification('Error updating wishlist', 'error');
+  });
+}
+</script>
+
+<!-- Shopping Cart Sidebar -->
+<div class="cart-sidebar" id="cartSidebar">
+  <div class="cart-sidebar-overlay" id="cartSidebarOverlay"></div>
+  <div class="cart-sidebar-content">
+    <div class="cart-sidebar-header">
+      <h3 class="cart-sidebar-title">
+        <i class="fas fa-shopping-cart"></i>
+        Shopping Cart
+      </h3>
+      <button class="cart-sidebar-close" id="cartSidebarClose">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="cart-sidebar-body">
+      <div class="cart-items" id="cartItems">
+        <div class="cart-empty">
+          <div class="cart-empty-icon">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <h4>Your cart is empty</h4>
+          <p>Add some courses to get started!</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="cart-sidebar-footer">
+      <div class="cart-total" id="cartTotal">
+        <div class="cart-total-row">
+          <span>Subtotal:</span>
+          <span class="cart-subtotal">$0.00</span>
+        </div>
+        <div class="cart-total-row">
+          <span>Tax:</span>
+          <span class="cart-tax">$0.00</span>
+        </div>
+        <div class="cart-total-row cart-total-final">
+          <span>Total:</span>
+          <span class="cart-total-amount">$0.00</span>
+        </div>
+      </div>
+      
+      <div class="cart-actions">
+        <button class="btn-cart-checkout" id="cartCheckout" disabled>
+          <i class="fas fa-credit-card"></i>
+          Proceed to Checkout
+        </button>
+        <button class="btn-cart-continue" id="cartContinue">
+          Continue Shopping
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import CSS -->
+<link rel="stylesheet" href="/css/index.css">
+
+<style>
+.btn-purchased-enhanced, .btn-purchased {
+  background: #27ae60 !important;
+  color: white !important;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: not-allowed;
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+.btn-access-courses {
+  background: #3498db !important;
+  color: white !important;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-access-courses:hover {
+  background: #2980b9 !important;
+  color: white !important;
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+}
+
+.quick-action-btn.purchased {
+  background: #27ae60 !important;
+  color: white !important;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.notification {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  background: white;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  transform: translateX(100%);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.notification.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.notification-success {
+  border-left: 4px solid #27ae60;
+}
+
+.notification-error {
+  border-left: 4px solid #e74c3c;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-success .notification-content i {
+  color: #27ae60;
+}
+
+.notification-error .notification-content i {
+  color: #e74c3c;
+}
+
+/* Cart notification styles */
+.cart-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.cart-notification.show {
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+
+.cart-notification-success {
+  border-left: 4px solid #27ae60;
+}
+
+.cart-notification-error {
+  border-left: 4px solid #e74c3c;
+}
+
+.cart-notification-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-notification-success .cart-notification-content i {
+  color: #27ae60;
+}
+
+.cart-notification-error .cart-notification-content i {
+  color: #e74c3c;
+}
+
+/* Bundle wishlist button styles */
+.bundle-title-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bundle-wishlist-btn {
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.bundle-wishlist-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.bundle-wishlist-btn i {
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+}
+
+.bundle-wishlist-btn:hover i {
+  transform: scale(1.1);
+}
+</style>
+
+<!-- Import JavaScript -->
+<script src="/js/index.js"></script>
+<script src="/js/enhanced-scroll-effects.js"></script>
+
+<%- include('partials/footer') %>

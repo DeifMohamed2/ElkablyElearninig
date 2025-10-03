@@ -1,0 +1,4170 @@
+<%- include('./partials/admin-header', { pageCSS: 'question-banks', additionalJS: ['/js/question-bank.js'] }) %>
+
+<!-- Chart.js CDN - UMD version for compatibility -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<!-- MathLive for professional math input -->
+<script src="https://unpkg.com/mathlive"></script>
+
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'question-banks' }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Question Banks',
+        breadcrumbSubtitle: questionBank.name,
+        showSearch: true
+    }) %>
+    
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="admin-dashboard admin-fade-in">
+        
+        <!-- Bank Header -->
+        <div class="admin-dashboard-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="d-flex align-items-center mb-2">
+                <a href="/admin/question-banks/banks" class="btn btn-outline-secondary btn-sm me-3">
+                  <i class="fas fa-arrow-left me-1"></i>
+                  Back to Banks
+                </a>
+                <div class="admin-status-badge admin-status-<%= questionBank.status %>">
+                  <i class="fas fa-circle me-1"></i>
+                  <%= questionBank.status.charAt(0).toUpperCase() + questionBank.status.slice(1) %>
+                </div>
+              </div>
+              <h1 class="admin-dashboard-title"><%= questionBank.name %></h1>
+              <p class="admin-dashboard-subtitle"><%= questionBank.description %></p>
+            </div>
+            <div class="admin-header-actions">
+              <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editBankModal">
+                <i class="fas fa-edit me-2"></i>
+                Edit Bank
+              </button>
+              <button class="btn btn-primary admin-btn-primary" data-bs-toggle="modal" data-bs-target="#createQuestionModal">
+                <i class="fas fa-plus me-2"></i>
+                Add Question
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bank Info Cards -->
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-question-circle"></i>
+              </div>
+              <div class="admin-stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                +5
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= questionStats.totalQuestions %></h3>
+            <p class="admin-stat-label">Total Questions</p>
+          </div>
+          
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-check-circle text-success"></i>
+              </div>
+              <div class="admin-stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                +2
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= questionStats.easyQuestions %></h3>
+            <p class="admin-stat-label">Easy Questions</p>
+          </div>
+          
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-exclamation-circle text-warning"></i>
+              </div>
+              <div class="admin-stat-trend neutral">
+                <i class="fas fa-minus"></i>
+                0
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= questionStats.mediumQuestions %></h3>
+            <p class="admin-stat-label">Medium Questions</p>
+          </div>
+          
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fas fa-times-circle text-danger"></i>
+              </div>
+              <div class="admin-stat-trend negative">
+                <i class="fas fa-arrow-down"></i>
+                -1
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= questionStats.hardQuestions %></h3>
+            <p class="admin-stat-label">Hard Questions</p>
+          </div>
+        </div>
+
+        <!-- Bank Details -->
+        <div class="admin-content-section">
+          <div class="row">
+            <!-- Bank Information Card -->
+            <div class="col-md-8">
+              <div class="bank-info-card-modern">
+                <div class="bank-info-header">
+                  <div class="bank-info-header-bg"></div>
+                  <div class="bank-info-header-content">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h5 class="bank-info-title">
+                          <i class="fas fa-info-circle me-2"></i>
+                          Bank Information
+                        </h5>
+                        <p class="bank-info-subtitle">Complete details about this question bank</p>
+                      </div>
+                      <div class="bank-info-status">
+                        <span class="status-badge status-<%= questionBank.status %>">
+                          <i class="fas fa-circle me-1"></i>
+                          <%= questionBank.status.charAt(0).toUpperCase() + questionBank.status.slice(1) %>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bank-info-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="info-item">
+                        <div class="info-icon">
+                          <i class="fas fa-barcode"></i>
+                        </div>
+                        <div class="info-content">
+                          <label class="info-label">Bank Code</label>
+                          <span class="info-value"><%= questionBank.bankCode %></span>
+                        </div>
+                      </div>
+                      
+                      <div class="info-item">
+                        <div class="info-icon">
+                          <i class="fas fa-calendar-plus"></i>
+                        </div>
+                        <div class="info-content">
+                          <label class="info-label">Created Date</label>
+                          <span class="info-value"><%= new Date(questionBank.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <div class="info-item">
+                        <div class="info-icon">
+                          <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="info-content">
+                          <label class="info-label">Last Updated</label>
+                          <span class="info-value"><%= new Date(questionBank.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></span>
+                        </div>
+                      </div>
+                      
+                      <div class="info-item">
+                        <div class="info-icon">
+                          <i class="fas fa-user"></i>
+                        </div>
+                        <div class="info-content">
+                          <label class="info-label">Created By</label>
+                          <span class="info-value"><%= questionBank.createdBy ? questionBank.createdBy.name || 'Admin' : 'System' %></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <% if (questionBank.tags && questionBank.tags.length > 0) { %>
+                    <div class="info-tags-section">
+                      <label class="info-label">
+                        <i class="fas fa-tags me-2"></i>
+                        Tags
+                      </label>
+                      <div class="info-tags">
+                        <% questionBank.tags.forEach(tag => { %>
+                          <span class="info-tag"><%= tag %></span>
+                        <% }); %>
+                      </div>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Question Distribution Chart -->
+            <div class="col-md-4">
+              <div class="chart-card-modern">
+                <div class="chart-header">
+                  <h5 class="chart-title">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Question Distribution
+                  </h5>
+                  <p class="chart-subtitle">Difficulty breakdown</p>
+                </div>
+                <div class="chart-body">
+                  <div class="chart-container">
+                    <canvas id="questionDistributionChart"></canvas>
+                  </div>
+                  <div class="chart-legend">
+                    <div class="legend-item">
+                      <span class="legend-color legend-easy"></span>
+                      <span class="legend-label">Easy (<%= questionStats.easyQuestions %>)</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-color legend-medium"></span>
+                      <span class="legend-label">Medium (<%= questionStats.mediumQuestions %>)</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-color legend-hard"></span>
+                      <span class="legend-label">Hard (<%= questionStats.hardQuestions %>)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions Section -->
+        <div class="admin-content-section">
+          <div class="questions-section-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h3 class="questions-section-title">
+                  <i class="fas fa-list me-2"></i>
+                  Questions
+                </h3>
+                <p class="questions-section-subtitle">
+                  <span id="questionsCount"><%= questionStats.totalQuestions %></span> questions in this bank
+                </p>
+              </div>
+              <div class="questions-section-actions">
+                <button class="btn btn-outline-secondary btn-sm me-2" onclick="exportQuestions()">
+                  <i class="fas fa-download me-1"></i>
+                  Export
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="importQuestions()">
+                  <i class="fas fa-upload me-1"></i>
+                  Import
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced Search and Filters -->
+          <div class="questions-search-section">
+            <div class="search-container">
+              <div class="search-input-group">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="questionsSearchInput" class="search-input" 
+                       placeholder="Search questions by text, tags, or difficulty...">
+                <button class="search-clear-btn" id="searchClearBtn" style="display: none;">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="filters-row">
+              <div class="filter-group">
+                <label class="filter-label">Difficulty</label>
+                <select id="difficultyFilter" class="filter-select">
+                  <option value="all">All Difficulty</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <label class="filter-label">Sort By</label>
+                <select id="sortFilter" class="filter-select">
+                  <option value="createdAt">Date Created</option>
+                  <option value="difficulty">Difficulty</option>
+                  <option value="points">Points</option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <label class="filter-label">Tags</label>
+                <input type="text" id="tagsFilter" class="filter-input" 
+                       placeholder="Filter by tags...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Questions Grid -->
+          <div id="questionsContainer" class="questions-grid">
+            <% if (questions && questions.length > 0) { %>
+              <% questions.forEach((question, index) => { %>
+                <div class="question-card-modern" data-question-id="<%= question._id %>" 
+                     data-difficulty="<%= question.difficulty %>" 
+                     data-tags="<%= question.tags ? question.tags.join(',') : '' %>"
+                     data-points="<%= question.points %>"
+                     data-created-at="<%= question.createdAt %>">
+                  
+                  <div class="question-card-header">
+                    <div class="question-number">
+                      <span class="question-num"><%= index + 1 %></span>
+                    </div>
+                    <div class="question-actions">
+                      <div class="dropdown">
+                        <button class="btn btn-sm question-action-btn" data-bs-toggle="dropdown">
+                          <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu question-dropdown">
+                          <li>
+                            <a class="dropdown-item" href="#" onclick="previewQuestion('<%= question._id %>')">
+                              <i class="fas fa-eye me-2"></i>Preview Question
+                            </a>
+                          </li>
+                          <li>
+                            <a class="dropdown-item" href="#" onclick="editQuestion('<%= question._id %>')">
+                              <i class="fas fa-edit me-2"></i>Edit Question
+                            </a>
+                          </li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li>
+                            <a class="dropdown-item text-danger" href="#" 
+                               onclick="deleteQuestion('<%= question._id %>', '<%= question.questionText.substring(0, 50) %>...')">
+                              <i class="fas fa-trash me-2"></i>Delete
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="question-card-body">
+                    <h6 class="question-text">
+                      <%= question.questionText.length > 120 ? question.questionText.substring(0, 120) + '...' : question.questionText %>
+                    </h6>
+                    
+                    <div class="question-meta">
+                      <div class="meta-item">
+                        <span class="difficulty-badge difficulty-<%= question.difficulty.toLowerCase() %>">
+                          <i class="fas fa-<%= question.difficulty === 'Easy' ? 'check-circle' : question.difficulty === 'Medium' ? 'exclamation-circle' : 'times-circle' %> me-1"></i>
+                          <%= question.difficulty %>
+                        </span>
+                      </div>
+                      <div class="meta-item">
+                        <span class="question-type-badge <%= question.questionType.toLowerCase().replace('/', '-') %>">
+                          <i class="fas fa-<%= question.questionType === 'Written' ? 'edit' : question.questionType === 'MCQ' ? 'list' : 'check-square' %> me-1"></i>
+                          <%= question.questionType %>
+                        </span>
+                      </div>
+                      <div class="meta-item">
+                        <span class="points-badge">
+                          <i class="fas fa-star me-1"></i>
+                          <%= question.points %> pts
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <% if (question.tags && question.tags.length > 0) { %>
+                      <div class="question-tags">
+                        <% question.tags.slice(0, 3).forEach(tag => { %>
+                          <span class="question-tag"><%= tag %></span>
+                        <% }); %>
+                        <% if (question.tags.length > 3) { %>
+                          <span class="question-tag question-tag-more">+<%= question.tags.length - 3 %></span>
+                        <% } %>
+                      </div>
+                    <% } %>
+                  </div>
+                  
+                  <div class="question-card-footer">
+                    <div class="question-stats">
+                      <span class="stat-item">
+                        <% if (question.questionType === 'Written') { %>
+                          <i class="fas fa-edit me-1"></i>
+                          <%= question.correctAnswers ? question.correctAnswers.length : 0 %> answers
+                          <% if (question.correctAnswers && question.correctAnswers.length > 0) { %>
+                            <% 
+                              const mandatoryCount = question.correctAnswers.filter(answer => {
+                                if (typeof answer === 'string') return true;
+                                return answer.isMandatory !== false;
+                              }).length;
+                              const optionalCount = question.correctAnswers.length - mandatoryCount;
+                            %>
+                            <% if (mandatoryCount > 0) { %>
+                              <span class="text-success">(<%= mandatoryCount %> mandatory</span>
+                            <% } %>
+                            <% if (optionalCount > 0) { %>
+                              <span class="text-warning">, <%= optionalCount %> optional</span>
+                            <% } %>
+                            <% if (mandatoryCount > 0) { %>
+                              <span class="text-success">)</span>
+                            <% } %>
+                          <% } %>
+                        <% } else { %>
+                          <i class="fas fa-list me-1"></i>
+                          <%= question.options ? question.options.length : 0 %> options
+                        <% } %>
+                      </span>
+                      <span class="stat-item">
+                        <i class="fas fa-calendar me-1"></i>
+                        <%= new Date(question.createdAt).toLocaleDateString() %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <div class="questions-empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-question-circle"></i>
+                </div>
+                <h3 class="empty-title">No Questions Found</h3>
+                <p class="empty-description">
+                  Start building your question bank by adding your first question.
+                </p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createQuestionModal">
+                  <i class="fas fa-plus me-2"></i>
+                  Add Your First Question
+                </button>
+              </div>
+            <% } %>
+          </div>
+
+          <!-- Pagination -->
+          <% if (pagination.totalPages > 1) { %>
+            <div class="admin-pagination">
+              <nav aria-label="Questions pagination">
+                <ul class="pagination justify-content-center">
+                  <% if (pagination.hasPrev) { %>
+                    <li class="page-item">
+                      <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&<%= new URLSearchParams(currentFilters).toString() %>">
+                        <i class="fas fa-chevron-left"></i>
+                      </a>
+                    </li>
+                  <% } %>
+                  
+                  <% for (let i = Math.max(1, pagination.currentPage - 2); i <= Math.min(pagination.totalPages, pagination.currentPage + 2); i++) { %>
+                    <li class="page-item <%= i === pagination.currentPage ? 'active' : '' %>">
+                      <a class="page-link" href="?page=<%= i %>&<%= new URLSearchParams(currentFilters).toString() %>">
+                        <%= i %>
+                      </a>
+                    </li>
+                  <% } %>
+                  
+                  <% if (pagination.hasNext) { %>
+                    <li class="page-item">
+                      <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&<%= new URLSearchParams(currentFilters).toString() %>">
+                        <i class="fas fa-chevron-right"></i>
+                      </a>
+                    </li>
+                  <% } %>
+                </ul>
+              </nav>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Edit Bank Modal -->
+<div class="modal fade admin-modal" id="editBankModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title admin-modal-title">
+          <i class="fas fa-edit me-2"></i>
+          Edit Question Bank
+        </h5>
+        <button type="button" class="btn-close admin-btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <form id="editBankForm" class="admin-form">
+        <div class="modal-body admin-modal-body">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="admin-form-group">
+                <label for="editName" class="admin-form-label">Bank Name *</label>
+                <input type="text" class="form-control admin-form-control" id="editName" name="name" 
+                       value="<%= questionBank.name %>" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="admin-form-group">
+            <label for="editDescription" class="admin-form-label">Description *</label>
+            <textarea class="form-control admin-form-control" id="editDescription" name="description" 
+                      rows="3" required><%= questionBank.description %></textarea>
+          </div>
+          
+          
+          <div class="row">
+            <div class="col-md-12">
+              <div class="admin-form-group">
+                <label for="editStatus" class="admin-form-label">Status</label>
+                <select class="form-select admin-form-control" id="editStatus" name="status">
+                  <option value="draft" <%= questionBank.status === 'draft' ? 'selected' : '' %>>Draft</option>
+                  <option value="active" <%= questionBank.status === 'active' ? 'selected' : '' %>>Active</option>
+                  <option value="archived" <%= questionBank.status === 'archived' ? 'selected' : '' %>>Archived</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="admin-form-group">
+            <label for="editTags" class="admin-form-label">Tags</label>
+            <input type="text" class="form-control admin-form-control" id="editTags" name="tags" 
+                   value="<%= questionBank.tags ? questionBank.tags.join(', ') : '' %>"
+                   placeholder="Enter tags separated by commas">
+          </div>
+        </div>
+        
+        <div class="modal-footer admin-modal-footer">
+          <button type="button" class="btn btn-secondary admin-btn-secondary" data-bs-dismiss="modal">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary admin-btn-primary">
+            <i class="fas fa-save me-2"></i>
+            Update Bank
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Create Question Modal -->
+<div class="modal fade admin-modal" id="createQuestionModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title admin-modal-title">
+          <i class="fas fa-plus me-2"></i>
+          Add New Question
+        </h5>
+        <button type="button" class="btn-close admin-btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <form action="/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/create" method="POST" class="admin-form" id="createQuestionForm">
+        <!-- Hidden field for question text to ensure it's sent to backend -->
+        <input type="hidden" name="questionText" id="hiddenQuestionText" value="">
+        <div class="modal-body admin-modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="admin-form-group">
+                <label for="questionText" class="admin-form-label">Question Text *</label>
+                <div class="math-input-container">
+                  <div class="math-input-header">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="mathModeBtn" onclick="switchToMathMode('questionText')">
+                      <i class="fas fa-calculator me-1"></i>
+                      Math Mode
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="textModeBtn" onclick="switchToTextMode('questionText')" style="display: none;">
+                      <i class="fas fa-font me-1"></i>
+                      Text Mode
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('questionText')">
+                      <i class="fas fa-keyboard me-1"></i>
+                      Show Symbols
+                    </button>
+                  </div>
+                  <math-field id="questionText" name="questionText" virtual-keyboard-mode="manual" 
+                              style="width: 100%; min-height: 60px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #ffffff; z-index: 9999;"
+                              placeholder="Enter your question here (minimum 10 characters)... Use LaTeX for math: $x^2 + 1 = 0$"></math-field>
+                  <textarea class="form-control admin-form-control question-textarea" id="questionTextFallback" name="questionTextFallback" 
+                            rows="3" placeholder="Enter your question here (minimum 10 characters)..." 
+                            style="display: none;" minlength="10" maxlength="1000"></textarea>
+                  <div class="input-mode-indicator">
+                    <small class="text-muted">
+                      <span id="questionTextModeIndicator">Math Mode: Use LaTeX syntax for equations</span>
+                    </small>
+                  </div>
+                </div>
+                <small class="admin-form-text">Question must be between 10 and 1000 characters. Use the Math Symbols button for mathematical expressions.</small>
+                <div class="invalid-feedback" id="questionTextError"></div>
+                
+              </div>
+              
+              <div class="admin-form-group">
+                <label class="admin-form-label">Question Image (Optional)</label>
+                <input type="url" class="form-control admin-form-control" id="questionImage" name="questionImage" 
+                       placeholder="Enter image URL or upload below">
+              </div>
+              
+              <!-- Image Upload Section -->
+              <div class="admin-form-group">
+                <label class="admin-form-label">
+                  <i class="fas fa-cloud-upload-alt me-2"></i>
+                  Upload Question Image
+                </label>
+                <div class="upload-section">
+                  <input type="file" id="questionImageFile" class="upload-input" accept="image/*">
+                  <label for="questionImageFile" class="upload-label">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Choose Image
+                  </label>
+                  <div id="questionImagePreview" class="upload-preview">
+                    <div class="preview-overlay">
+                      <i class="fas fa-cloud-upload-alt"></i>
+                      <p>Click or drag to upload image</p>
+                      <small>JPG, PNG, GIF supported</small>
+                    </div>
+                  </div>
+                  <div id="questionImageProgress" class="progress-container" style="display: none;">
+                    <div class="progress">
+                      <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="progress-text">Uploading...</small>
+                  </div>
+                </div>
+                <input type="hidden" name="uploadedImageUrl" id="uploadedImageUrl">
+              </div>
+              
+              <div class="admin-form-group">
+                <label for="questionType" class="admin-form-label">Question Type *</label>
+                <select class="form-select admin-form-control" id="questionType" name="questionType" required onchange="handleQuestionTypeChange()">
+                  <option value="">Select Question Type</option>
+                  <option value="MCQ">Multiple Choice Question (MCQ)</option>
+                  <option value="True/False">True/False Question</option>
+                  <option value="Written">Written Question</option>
+                </select>
+                <small class="admin-form-text">Choose the type of question you want to create</small>
+              </div>
+              
+              <div class="admin-form-group" id="answerOptionsSection" style="display: none;">
+                <label class="admin-form-label">Answer Options *</label>
+                <div class="options-container-wrapper">
+                  <div id="optionsContainer" class="options-container">
+                    <!-- Options will be populated dynamically -->
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm add-option-btn" id="addOptionBtn" onclick="addOption()" style="display: none;">
+                    <i class="fas fa-plus me-1"></i>
+                    Add Option
+                  </button>
+                </div>
+                <div class="invalid-feedback" id="optionsError"></div>
+              </div>
+              
+              <!-- Written Question Answers Section -->
+              <div class="admin-form-group" id="writtenAnswersSection" style="display: none;">
+                <label class="admin-form-label">Answer Type *</label>
+                <div class="answer-type-selector">
+                  <div class="answer-type-option">
+                    <input class="answer-type-radio" type="radio" name="answerMultiplicity" id="singleAnswer" value="single" checked>
+                    <label class="answer-type-label" for="singleAnswer">
+                      <div class="answer-type-icon">
+                        <i class="fas fa-check-circle"></i>
+                      </div>
+                      <div class="answer-type-content">
+                        <h6 class="answer-type-title">Single Answer</h6>
+                        <p class="answer-type-description">Student must provide exactly one correct answer</p>
+                        <div class="answer-type-badge">
+                          <span class="badge bg-primary">Recommended</span>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                  
+                  <div class="answer-type-option">
+                    <input class="answer-type-radio" type="radio" name="answerMultiplicity" id="multipleAnswers" value="multiple">
+                    <label class="answer-type-label" for="multipleAnswers">
+                      <div class="answer-type-icon">
+                        <i class="fas fa-list-check"></i>
+                      </div>
+                      <div class="answer-type-content">
+                        <h6 class="answer-type-title">Multiple Answers</h6>
+                        <p class="answer-type-description">Student can provide multiple correct answers</p>
+                        <div class="answer-type-badge">
+                          <span class="badge bg-info">Advanced</span>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                
+                <label class="admin-form-label mt-3">Correct Answers *</label>
+                <div class="written-answers-container">
+                  <div id="correctAnswersContainer" class="correct-answers-container">
+                    <!-- Correct answers will be populated dynamically -->
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="addAnswerBtn" onclick="addCorrectAnswer()">
+                    <i class="fas fa-plus me-1"></i>
+                    Add Answer
+                  </button>
+                </div>
+                <small class="admin-form-text">Add correct answers. For single answer type, provide exactly one answer.</small>
+                <div class="invalid-feedback" id="writtenAnswersError"></div>
+              </div>
+              
+              <div class="admin-form-group">
+                <label for="explanation" class="admin-form-label">Explanation (Optional)</label>
+                <textarea class="form-control admin-form-control" id="explanation" name="explanation" 
+                          rows="2" placeholder="Explain why this is the correct answer..."></textarea>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="admin-form-group">
+                <label for="difficulty" class="admin-form-label">Difficulty *</label>
+                <select class="form-select admin-form-control" id="difficulty" name="difficulty" required>
+                  <option value="">Select Difficulty</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+              
+              <div class="admin-form-group">
+                <label for="points" class="admin-form-label">Points</label>
+                <input type="number" class="form-control admin-form-control" id="points" name="points" 
+                       value="1" min="1" max="10">
+              </div>
+              
+              
+              <div class="admin-form-group">
+                <label for="tags" class="admin-form-label">Tags</label>
+                <input type="text" class="form-control admin-form-control" id="tags" name="tags" 
+                       placeholder="Enter tags separated by commas">
+                
+                <!-- Previous Tags Selection -->
+                <div id="createPreviousTagsSection" style="display: none;">
+                  <label class="admin-form-label mt-3">Previous Tags</label>
+                  <div id="createPreviousTagsContainer" class="previous-tags-container">
+                    <!-- Previous tags will be populated here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer admin-modal-footer">
+          <button type="button" class="btn btn-secondary admin-btn-secondary" data-bs-dismiss="modal">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary admin-btn-primary">
+            <i class="fas fa-save me-2"></i>
+            Create Question
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Question Preview Modal -->
+<div class="modal fade question-preview-modal" id="questionPreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-eye me-2"></i>
+          Question Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="question-preview-content">
+        <div class="question-preview-header">
+          <h3 class="question-preview-title" id="previewQuestionTitle">Question Preview</h3>
+          <div class="question-preview-meta">
+            <span class="question-preview-difficulty" id="previewDifficulty">Medium</span>
+            <span class="question-preview-points" id="previewPoints">5 pts</span>
+          </div>
+        </div>
+        
+        <div class="question-preview-text" id="previewQuestionText">
+          Question text will appear here...
+        </div>
+        
+        <div class="question-preview-image" id="previewQuestionImage" style="display: none;">
+          <img src="" alt="Question Image" id="previewImageSrc">
+        </div>
+        
+        <div class="question-preview-options">
+          <div class="question-preview-options-title">Answer Options:</div>
+          <div id="previewOptionsContainer">
+            <!-- Options will be populated dynamically -->
+          </div>
+        </div>
+        
+        <div class="question-preview-explanation" id="previewExplanation" style="display: none;">
+          <div class="question-preview-explanation-title">
+            <i class="fas fa-lightbulb"></i>
+            Explanation
+          </div>
+          <div class="question-preview-explanation-text" id="previewExplanationText">
+            Explanation will appear here...
+          </div>
+        </div>
+        
+        <div class="question-preview-tags" id="previewTags" style="display: none;">
+          <!-- Tags will be populated dynamically -->
+        </div>
+        
+        <div class="question-preview-footer">
+          <div class="question-preview-info">
+            <small>
+              <i class="fas fa-calendar me-1"></i>
+              Created: <span id="previewCreatedDate">-</span>
+            </small>
+          </div>
+          <div class="question-preview-actions">
+            <button class="btn btn-preview-close" data-bs-dismiss="modal">
+              <i class="fas fa-times me-1"></i>
+              Close
+            </button>
+            <a href="#" class="btn btn-preview-action btn-preview-edit" id="previewEditBtn">
+              <i class="fas fa-edit me-1"></i>
+              Edit Question
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Question Modal -->
+<div class="modal fade admin-modal" id="editQuestionModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title admin-modal-title">
+          <i class="fas fa-edit me-2"></i>
+          Edit Question
+        </h5>
+        <button type="button" class="btn-close admin-btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <form id="editQuestionForm" method="POST" class="admin-form">
+        <input type="hidden" name="_method" value="PUT">
+        <!-- Hidden field for question text to ensure it's sent to backend -->
+        <input type="hidden" name="questionText" id="editHiddenQuestionText" value="">
+        <div class="modal-body admin-modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="admin-form-group">
+                <label for="editQuestionText" class="admin-form-label">Question Text *</label>
+                <div class="math-input-container">
+                  <div class="math-input-header">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="editMathModeBtn" onclick="switchToMathMode('editQuestionText')">
+                      <i class="fas fa-calculator me-1"></i>
+                      Math Mode
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="editTextModeBtn" onclick="switchToTextMode('editQuestionText')" style="display: none;">
+                      <i class="fas fa-font me-1"></i>
+                      Text Mode
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editQuestionText')">
+                      <i class="fas fa-keyboard me-1"></i>
+                      Show Symbols
+                    </button>
+                  </div>
+                  <math-field id="editQuestionText" name="questionText" virtual-keyboard-mode="manual" 
+                              style="width: 100%; min-height: 60px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #ffffff; z-index: 9999;"
+                              placeholder="Enter your question here (minimum 10 characters)... Use LaTeX for math: $x^2 + 1 = 0$"></math-field>
+                  <textarea class="form-control admin-form-control question-textarea" id="editQuestionTextFallback" name="questionTextFallback" 
+                            rows="3" placeholder="Enter your question here (minimum 10 characters)..." 
+                            style="display: none;" minlength="10" maxlength="1000"></textarea>
+                  <div class="input-mode-indicator">
+                    <small class="text-muted">
+                      <span id="editQuestionTextModeIndicator">Math Mode: Use LaTeX syntax for equations</span>
+                    </small>
+                  </div>
+                </div>
+                <small class="admin-form-text">Question must be between 10 and 1000 characters. Use the Math Symbols button for mathematical expressions.</small>
+                <div class="invalid-feedback" id="editQuestionTextError"></div>
+              </div>
+              
+              <div class="admin-form-group">
+                <label class="admin-form-label">Question Image (Optional)</label>
+                <input type="url" class="form-control admin-form-control" id="editQuestionImage" name="questionImage" 
+                       placeholder="Enter image URL or upload below">
+              </div>
+              
+              <!-- Edit Image Upload Section -->
+              <div class="admin-form-group">
+                <label class="admin-form-label">
+                  <i class="fas fa-cloud-upload-alt me-2"></i>
+                  Upload Question Image
+                </label>
+                <div class="upload-section">
+                  <input type="file" id="editQuestionImageFile" class="upload-input" accept="image/*">
+                  <label for="editQuestionImageFile" class="upload-label">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Choose Image
+                  </label>
+                  <div id="editQuestionImagePreview" class="upload-preview">
+                    <div class="preview-overlay">
+                      <i class="fas fa-cloud-upload-alt"></i>
+                      <p>Click or drag to upload image</p>
+                      <small>JPG, PNG, GIF supported</small>
+                    </div>
+                  </div>
+                  <div id="editQuestionImageProgress" class="progress-container" style="display: none;">
+                    <div class="progress">
+                      <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="progress-text">Uploading...</small>
+                  </div>
+                </div>
+                <input type="hidden" name="uploadedImageUrl" id="editUploadedImageUrl">
+              </div>
+              
+              <div class="admin-form-group">
+                <label for="editQuestionType" class="admin-form-label">Question Type *</label>
+                <select class="form-select admin-form-control" id="editQuestionType" name="questionType" required onchange="handleEditQuestionTypeChange()">
+                  <option value="">Select Question Type</option>
+                  <option value="MCQ">Multiple Choice Question (MCQ)</option>
+                  <option value="True/False">True/False Question</option>
+                  <option value="Written">Written Question</option>
+                </select>
+                <small class="admin-form-text">Choose the type of question you want to create</small>
+              </div>
+              
+              <div class="admin-form-group" id="editAnswerOptionsSection" style="display: none;">
+                <label class="admin-form-label">Answer Options *</label>
+                <div class="options-container-wrapper">
+                  <div id="editOptionsContainer" class="options-container">
+                    <!-- Options will be populated dynamically -->
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm add-option-btn" id="editAddOptionBtn" onclick="addEditOption()" style="display: none;">
+                    <i class="fas fa-plus me-1"></i>
+                    Add Option
+                  </button>
+                </div>
+                <div class="invalid-feedback" id="editOptionsError"></div>
+              </div>
+              
+              <!-- Edit Written Question Answers Section -->
+              <div class="admin-form-group" id="editWrittenAnswersSection" style="display: none;">
+                <label class="admin-form-label">Answer Type *</label>
+                <div class="answer-type-selector">
+                  <div class="answer-type-option">
+                    <input class="answer-type-radio" type="radio" name="editAnswerMultiplicity" id="editSingleAnswer" value="single">
+                    <label class="answer-type-label" for="editSingleAnswer">
+                      <div class="answer-type-icon">
+                        <i class="fas fa-check-circle"></i>
+                      </div>
+                      <div class="answer-type-content">
+                        <h6 class="answer-type-title">Single Answer</h6>
+                        <p class="answer-type-description">Student must provide exactly one correct answer</p>
+                        <div class="answer-type-badge">
+                          <span class="badge bg-primary">Recommended</span>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                  
+                  <div class="answer-type-option">
+                    <input class="answer-type-radio" type="radio" name="editAnswerMultiplicity" id="editMultipleAnswers" value="multiple">
+                    <label class="answer-type-label" for="editMultipleAnswers">
+                      <div class="answer-type-icon">
+                        <i class="fas fa-list-check"></i>
+                      </div>
+                      <div class="answer-type-content">
+                        <h6 class="answer-type-title">Multiple Answers</h6>
+                        <p class="answer-type-description">Student can provide multiple correct answers</p>
+                        <div class="answer-type-badge">
+                          <span class="badge bg-info">Advanced</span>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                
+                <label class="admin-form-label mt-3">Correct Answers *</label>
+                <div class="written-answers-container">
+                  <div id="editCorrectAnswersContainer" class="correct-answers-container">
+                    <!-- Correct answers will be populated dynamically -->
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="editAddAnswerBtn" onclick="addEditCorrectAnswer()">
+                    <i class="fas fa-plus me-1"></i>
+                    Add Answer
+                  </button>
+                </div>
+                <small class="admin-form-text">Add correct answers. For single answer type, provide exactly one answer.</small>
+                <div class="invalid-feedback" id="editWrittenAnswersError"></div>
+                
+                <!-- Removed: Answer type/case sensitive/partial credit controls (edit) -->
+              </div>
+              
+              <div class="admin-form-group">
+                <label for="editExplanation" class="admin-form-label">Explanation (Optional)</label>
+                <textarea class="form-control admin-form-control" id="editExplanation" name="explanation" 
+                          rows="2" placeholder="Explain why this is the correct answer..."></textarea>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="admin-form-group">
+                <label for="editDifficulty" class="admin-form-label">Difficulty *</label>
+                <select class="form-select admin-form-control" id="editDifficulty" name="difficulty" required>
+                  <option value="">Select Difficulty</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+              
+              <div class="admin-form-group">
+                <label for="editPoints" class="admin-form-label">Points</label>
+                <input type="number" class="form-control admin-form-control" id="editPoints" name="points" 
+                       value="1" min="1" max="10">
+              </div>
+              
+              <div class="admin-form-group">
+                <label for="editTags" class="admin-form-label">Tags</label>
+                <input type="text" class="form-control admin-form-control" id="editTags" name="tags" 
+                       placeholder="Enter tags separated by commas">
+                
+                <!-- Previous Tags Selection -->
+                <div id="previousTagsSection" style="display: none;">
+                  <label class="admin-form-label mt-3">Previous Tags</label>
+                  <div id="previousTagsContainer" class="previous-tags-container">
+                    <!-- Previous tags will be populated here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer admin-modal-footer">
+          <button type="button" class="btn btn-secondary admin-btn-secondary" data-bs-dismiss="modal">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary admin-btn-primary">
+            <i class="fas fa-save me-2"></i>
+            Update Question
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('./partials/admin-footer') %>
+
+<!-- Cloudinary Upload Script -->
+<script src="/js/cloudinary-upload.js"></script>
+
+<script>
+let optionCount = 2;
+// Safe modal/backdrop cleanup to prevent stuck faded overlay
+function cleanupModals() {
+  try {
+    // Hide any visible modals
+    document.querySelectorAll('.modal.show').forEach((modalEl) => {
+      const instance = bootstrap.Modal.getInstance(modalEl);
+      if (instance) instance.hide();
+    });
+    // Remove any lingering backdrops
+    document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    // Remove body classes/styles added by Bootstrap
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+  } catch (e) {
+    console.warn('cleanupModals warning:', e);
+  }
+}
+
+// Ensure cleanup runs after any modal is hidden
+document.addEventListener('hidden.bs.modal', cleanupModals);
+
+// Handle question type change
+function handleQuestionTypeChange() {
+  const questionType = document.getElementById('questionType').value;
+  const optionsContainer = document.getElementById('optionsContainer');
+  const addOptionBtn = document.getElementById('addOptionBtn');
+  const answerOptionsSection = document.getElementById('answerOptionsSection');
+  const writtenAnswersSection = document.getElementById('writtenAnswersSection');
+  const correctAnswersContainer = document.getElementById('correctAnswersContainer');
+  
+  // Hide both sections first
+  answerOptionsSection.style.display = 'none';
+  writtenAnswersSection.style.display = 'none';
+  
+  if (questionType === 'True/False') {
+    // Show the answer options section
+    answerOptionsSection.style.display = 'block';
+    
+    // Create True/False options
+    optionsContainer.innerHTML = `
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="correctAnswer" value="0" class="option-radio-input" id="trueOption">
+            <label for="trueOption" class="option-radio-label">True</label>
+          </div>
+          <input type="text" class="option-text-input" name="optionText" 
+                 placeholder="True" value="True" readonly>
+        </div>
+      </div>
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="correctAnswer" value="1" class="option-radio-input" id="falseOption">
+            <label for="falseOption" class="option-radio-label">False</label>
+          </div>
+          <input type="text" class="option-text-input" name="optionText" 
+                 placeholder="False" value="False" readonly>
+        </div>
+      </div>
+    `;
+    addOptionBtn.style.display = 'none';
+    optionCount = 2;
+  } else if (questionType === 'MCQ') {
+    // Show the answer options section
+    answerOptionsSection.style.display = 'block';
+    
+    // Create MCQ options
+    optionsContainer.innerHTML = `
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="correctAnswer" value="0" class="option-radio-input" id="optionA">
+            <label for="optionA" class="option-radio-label">A</label>
+          </div>
+          <div class="math-option-input-container">
+            <div class="math-option-header">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="optionAMathModeBtn" onclick="switchToMathMode('optionText_A')">
+                <i class="fas fa-calculator me-1"></i>
+                Math
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="optionATextModeBtn" onclick="switchToTextMode('optionText_A')" style="display: none;">
+                <i class="fas fa-font me-1"></i>
+                Text
+              </button>
+              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('optionText_A')">
+                <i class="fas fa-keyboard me-1"></i>
+                Symbols
+              </button>
+            </div>
+            <math-field id="optionText_A" name="optionText" virtual-keyboard-mode="manual" 
+                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
+                        placeholder="Enter option A"></math-field>
+            <textarea class="form-control option-textarea" id="optionText_A_Fallback" name="optionTextFallback" 
+                      rows="2" placeholder="Enter option A" style="display: none;"></textarea>
+            <input type="hidden" name="optionText" id="optionTextHidden_A">
+          </div>
+          <button type="button" class="option-remove-btn" onclick="removeOption(this)" style="display: none;">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="correctAnswer" value="1" class="option-radio-input" id="optionB">
+            <label for="optionB" class="option-radio-label">B</label>
+          </div>
+          <div class="math-option-input-container">
+            <div class="math-option-header">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="optionBMathModeBtn" onclick="switchToMathMode('optionText_B')">
+                <i class="fas fa-calculator me-1"></i>
+                Math
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="optionBTextModeBtn" onclick="switchToTextMode('optionText_B')" style="display: none;">
+                <i class="fas fa-font me-1"></i>
+                Text
+              </button>
+              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('optionText_B')">
+                <i class="fas fa-keyboard me-1"></i>
+                Symbols
+              </button>
+            </div>
+            <math-field id="optionText_B" name="optionText" virtual-keyboard-mode="manual" 
+                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
+                        placeholder="Enter option B"></math-field>
+            <textarea class="form-control option-textarea" id="optionText_B_Fallback" name="optionTextFallback" 
+                      rows="2" placeholder="Enter option B" style="display: none;"></textarea>
+            <input type="hidden" name="optionText" id="optionTextHidden_B">
+          </div>
+          <button type="button" class="option-remove-btn" onclick="removeOption(this)" style="display: none;">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Initialize MathLive for the initial option fields
+    setTimeout(() => {
+      const mathFieldA = document.getElementById('optionText_A');
+      const mathFieldB = document.getElementById('optionText_B');
+      
+      if (mathFieldA) {
+        mathFieldA.addEventListener('input', () => {
+          document.getElementById('optionTextHidden_A').value = mathFieldA.value;
+        });
+      }
+      
+      if (mathFieldB) {
+        mathFieldB.addEventListener('input', () => {
+          document.getElementById('optionTextHidden_B').value = mathFieldB.value;
+        });
+      }
+    }, 100);
+    
+    addOptionBtn.style.display = 'block';
+    optionCount = 2;
+  } else if (questionType === 'Written') {
+    // Show the written answers section
+    writtenAnswersSection.style.display = 'block';
+    
+    // Create initial correct answer input with checkbox for mandatory (first answer is always mandatory)
+    correctAnswersContainer.innerHTML = `
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-checkbox">
+            <input type="checkbox" name="answerMandatory" value="true" class="option-checkbox-input" id="mandatory0" checked disabled>
+            <label for="mandatory0" class="option-checkbox-label mandatory-always">
+              <i class="fas fa-lock"></i>
+              <span class="mandatory-text">Mandatory</span>
+            </label>
+          </div>
+          <input type="text" class="option-text-input" name="correctAnswers" 
+                 placeholder="Enter correct answer...">
+          <button type="button" class="option-remove-btn" onclick="removeCorrectAnswer(this)" style="display: none;">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Update remove buttons visibility
+    updateAnswerRemoveButtons();
+    
+    // Add event listeners for answer multiplicity radio buttons
+    const singleAnswerRadio = document.getElementById('singleAnswer');
+    const multipleAnswersRadio = document.getElementById('multipleAnswers');
+    const addAnswerBtn = document.getElementById('addAnswerBtn');
+    
+    if (singleAnswerRadio && multipleAnswersRadio && addAnswerBtn) {
+      singleAnswerRadio.addEventListener('change', function() {
+        if (this.checked) {
+          // For single answer, hide the add button and ensure only one answer
+          addAnswerBtn.style.display = 'none';
+          const answers = document.querySelectorAll('#correctAnswersContainer .question-option-item');
+          if (answers.length > 1) {
+            // Remove extra answers, keep only the first one
+            for (let i = 1; i < answers.length; i++) {
+              answers[i].remove();
+            }
+          }
+          updateAnswerRemoveButtons();
+        }
+      });
+      
+      multipleAnswersRadio.addEventListener('change', function() {
+        if (this.checked) {
+          // For multiple answers, show the add button
+          addAnswerBtn.style.display = 'block';
+          updateAnswerRemoveButtons();
+        }
+      });
+    }
+  } else {
+    // Hide all sections when no type is selected
+    answerOptionsSection.style.display = 'none';
+    writtenAnswersSection.style.display = 'none';
+    addOptionBtn.style.display = 'none';
+  }
+}
+
+// Add new option
+function addOption() {
+  const container = document.getElementById('optionsContainer');
+  const optionItem = document.createElement('div');
+  optionItem.className = 'question-option-item';
+  const optionLetter = String.fromCharCode(65 + optionCount);
+  optionItem.innerHTML = `
+    <div class="option-content">
+      <div class="option-radio">
+        <input type="radio" name="correctAnswer" value="${optionCount}" class="option-radio-input" id="option${optionLetter}">
+        <label for="option${optionLetter}" class="option-radio-label">${optionLetter}</label>
+      </div>
+      <div class="math-option-input-container">
+        <div class="math-option-header">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="option${optionLetter}MathModeBtn" onclick="switchToMathMode('optionText_${optionLetter}')">
+            <i class="fas fa-calculator me-1"></i>
+            Math
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="option${optionLetter}TextModeBtn" onclick="switchToTextMode('optionText_${optionLetter}')" style="display: none;">
+            <i class="fas fa-font me-1"></i>
+            Text
+          </button>
+          <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('optionText_${optionLetter}')">
+            <i class="fas fa-keyboard me-1"></i>
+            Symbols
+          </button>
+        </div>
+        <math-field id="optionText_${optionLetter}" name="optionText" virtual-keyboard-mode="manual" 
+                    style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
+                    placeholder="Enter option ${optionLetter}"></math-field>
+        <textarea class="form-control option-textarea" id="optionText_${optionLetter}_Fallback" name="optionTextFallback" 
+                  rows="2" placeholder="Enter option ${optionLetter}" style="display: none;"></textarea>
+        <input type="hidden" name="optionText" id="optionTextHidden_${optionLetter}">
+      </div>
+      <button type="button" class="option-remove-btn" onclick="removeOption(this)">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `;
+  container.appendChild(optionItem);
+  
+  // Initialize MathLive for the new option field
+  setTimeout(() => {
+    const mathField = document.getElementById(`optionText_${optionLetter}`);
+    if (mathField) {
+      mathField.addEventListener('input', () => {
+        document.getElementById(`optionTextHidden_${optionLetter}`).value = mathField.value;
+      });
+    }
+  }, 100);
+  
+  optionCount++;
+}
+
+// Remove option
+function removeOption(button) {
+  const optionItem = button.closest('.question-option-item');
+  const optionsContainer = document.getElementById('optionsContainer');
+  const currentOptions = optionsContainer.querySelectorAll('.question-option-item');
+  
+  // Ensure minimum 2 options for MCQ questions
+  if (currentOptions.length <= 2) {
+    showNotification('MCQ questions must have at least 2 options', 'warning');
+    return;
+  }
+  
+  optionItem.remove();
+  
+  // Update option numbering after removal
+  updateOptionNumbering();
+}
+
+// Update option numbering after removal
+function updateOptionNumbering() {
+  const optionsContainer = document.getElementById('optionsContainer');
+  const options = optionsContainer.querySelectorAll('.question-option-item');
+  
+  options.forEach((option, index) => {
+    const radioInput = option.querySelector('.option-radio-input');
+    const radioLabel = option.querySelector('.option-radio-label');
+    const textInput = option.querySelector('.option-text-input');
+    
+    if (radioInput && radioLabel && textInput) {
+      const letter = String.fromCharCode(65 + index);
+      radioInput.value = index;
+      radioInput.id = `option${letter}`;
+      radioLabel.setAttribute('for', `option${letter}`);
+      radioLabel.textContent = letter;
+      textInput.placeholder = `Enter option ${letter}`;
+    }
+  });
+}
+
+// Add new correct answer
+function addCorrectAnswer() {
+  const container = document.getElementById('correctAnswersContainer');
+  const answerCount = container.querySelectorAll('.question-option-item').length;
+  const answerItem = document.createElement('div');
+  answerItem.className = 'question-option-item';
+  answerItem.innerHTML = `
+    <div class="option-content">
+      <div class="option-checkbox">
+        <input type="checkbox" name="answerMandatory" value="true" class="option-checkbox-input" id="mandatory${answerCount}" checked>
+        <label for="mandatory${answerCount}" class="option-checkbox-label">
+          <i class="fas fa-check"></i>
+          <span class="mandatory-text">Mandatory</span>
+        </label>
+      </div>
+      <input type="text" class="option-text-input" name="correctAnswers" 
+             placeholder="Enter correct answer...">
+      <button type="button" class="option-remove-btn" onclick="removeCorrectAnswer(this)">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `;
+  container.appendChild(answerItem);
+  
+  // Show remove buttons if more than one answer
+  updateAnswerRemoveButtons();
+}
+
+// Remove correct answer
+function removeCorrectAnswer(button) {
+  const answerItem = button.closest('.question-option-item');
+  const container = document.getElementById('correctAnswersContainer');
+  const currentAnswers = container.querySelectorAll('.question-option-item');
+  
+  // Ensure minimum 1 answer
+  if (currentAnswers.length <= 1) {
+    showNotification('Written questions must have at least one correct answer', 'warning');
+    return;
+  }
+  
+  answerItem.remove();
+  updateAnswerRemoveButtons();
+}
+
+// Update answer remove buttons visibility
+function updateAnswerRemoveButtons() {
+  const container = document.getElementById('correctAnswersContainer');
+  const answers = container.querySelectorAll('.question-option-item');
+  const removeButtons = container.querySelectorAll('.option-remove-btn');
+  
+  removeButtons.forEach(button => {
+    button.style.display = answers.length > 1 ? 'block' : 'none';
+  });
+}
+
+// Update edit option numbering after removal
+function updateEditOptionNumbering() {
+  const optionsContainer = document.getElementById('editOptionsContainer');
+  const options = optionsContainer.querySelectorAll('.question-option-item');
+  
+  options.forEach((option, index) => {
+    const radioInput = option.querySelector('.option-radio-input');
+    const radioLabel = option.querySelector('.option-radio-label');
+    const textInput = option.querySelector('.option-text-input');
+    
+    if (radioInput && radioLabel && textInput) {
+      const letter = String.fromCharCode(65 + index);
+      radioInput.value = index;
+      radioInput.id = `editOption${letter}`;
+      radioLabel.setAttribute('for', `editOption${letter}`);
+      radioLabel.textContent = letter;
+      textInput.placeholder = `Option ${letter}`;
+    }
+  });
+}
+
+// Preview question
+function previewQuestion(questionId) {
+  // Show loading state
+  cleanupModals();
+  const previewModal = new bootstrap.Modal(document.getElementById('questionPreviewModal'));
+  previewModal.show();
+  
+  // Set loading content
+  document.getElementById('previewQuestionTitle').textContent = 'Loading Question...';
+  document.getElementById('previewQuestionText').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+  
+  // Fetch complete question data from server
+  fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(response => {
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers.get('content-type'));
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        populatePreviewModal(data.question);
+      } else {
+        throw new Error(data.message || 'Failed to load question');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading question:', error);
+      document.getElementById('previewQuestionText').innerHTML = '<div class="text-danger">Error loading question: ' + error.message + '</div>';
+    });
+}
+
+// Populate preview modal with question data
+function populatePreviewModal(question) {
+  console.log('Populating preview modal with question:', question);
+  
+  // Populate the preview modal
+  document.getElementById('previewQuestionTitle').textContent = 'Question Preview';
+  
+  // Render math in question text
+  const questionTextElement = document.getElementById('previewQuestionText');
+  if (question.questionText && question.questionText.includes('\\')) {
+    // If it contains LaTeX, render it with MathLive
+    questionTextElement.innerHTML = `
+      <math-field readonly 
+        style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+        class="preview-math-field">
+        ${question.questionText}
+      </math-field>
+    `;
+  } else {
+    questionTextElement.textContent = question.questionText;
+  }
+  
+  document.getElementById('previewDifficulty').textContent = question.difficulty;
+  document.getElementById('previewDifficulty').className = `question-preview-difficulty ${question.difficulty.toLowerCase()}`;
+  document.getElementById('previewPoints').textContent = `${question.points} pts`;
+  document.getElementById('previewCreatedDate').textContent = new Date(question.createdAt).toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Set up edit button
+  document.getElementById('previewEditBtn').onclick = () => {
+    const previewEl = document.getElementById('questionPreviewModal');
+    const instance = bootstrap.Modal.getInstance(previewEl);
+    if (!instance) return;
+    // After preview fully hides, open edit
+    const onHidden = () => {
+      previewEl.removeEventListener('hidden.bs.modal', onHidden);
+      cleanupModals();
+      editQuestion(question._id);
+    };
+    previewEl.addEventListener('hidden.bs.modal', onHidden);
+    instance.hide();
+  };
+  
+  // Handle tags
+  const tagsContainer = document.getElementById('previewTags');
+  if (question.tags && question.tags.length > 0) {
+    tagsContainer.innerHTML = `
+      <div class="question-preview-tags-title">
+        <i class="fas fa-tags"></i>
+        Tags
+      </div>
+      <div class="question-preview-tags-list">
+        ${question.tags.map(tag => `<span class="question-preview-tag">${tag}</span>`).join('')}
+      </div>
+    `;
+    tagsContainer.style.display = 'block';
+  } else {
+    tagsContainer.style.display = 'none';
+  }
+  
+  // Display real options data
+  const optionsContainer = document.getElementById('previewOptionsContainer');
+  if (question.questionType === 'Written') {
+    // For written questions, show correct answers with mandatory/optional status
+    const correctAnswers = question.correctAnswers || [];
+    if (correctAnswers.length > 0) {
+      const answersHtml = correctAnswers.map((answer, index) => {
+        // Handle both old string format and new object format
+        let answerText = '';
+        let isMandatory = true;
+        
+        if (typeof answer === 'string') {
+          answerText = answer;
+        } else if (typeof answer === 'object' && answer.text) {
+          answerText = answer.text;
+          isMandatory = answer.isMandatory !== false; // Default to true if not specified
+        }
+        
+        // Check if answer contains LaTeX
+        let answerTextHtml = '';
+        if (answerText && answerText.includes('\\')) {
+          // Render math for answer text
+          answerTextHtml = `
+            <math-field readonly 
+              style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+              class="preview-math-field answer-math-field">
+              ${answerText}
+            </math-field>
+          `;
+        } else {
+          answerTextHtml = answerText;
+        }
+        
+        const mandatoryClass = isMandatory ? 'mandatory' : 'optional';
+        const mandatoryIcon = isMandatory ? 'fas fa-lock' : 'fas fa-unlock';
+        const mandatoryText = isMandatory ? 'Mandatory' : 'Optional';
+        
+        return `
+          <div class="question-preview-answer ${mandatoryClass}">
+            <span class="answer-label">${String.fromCharCode(65 + index)}</span>
+            <div class="answer-text">${answerTextHtml}</div>
+            <div class="answer-status">
+              <i class="${mandatoryIcon}"></i>
+              <span>${mandatoryText}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      optionsContainer.innerHTML = `
+        <div class="question-preview-answers">
+          <div class="question-preview-answers-title">Correct Answers:</div>
+          ${answersHtml}
+        </div>
+      `;
+    } else {
+      optionsContainer.innerHTML = '<div class="text-muted">No correct answers defined</div>';
+    }
+  } else if (question.options && question.options.length > 0) {
+    // For MCQ and True/False questions, show options
+    console.log('Processing options:', question.options);
+    const optionsHtml = question.options.map((option, index) => {
+      const letter = String.fromCharCode(65 + index);
+      const isCorrect = option.isCorrect ? ' correct' : '';
+      
+      console.log(`Option ${letter}:`, option.text, 'Contains LaTeX:', option.text && option.text.includes('\\'));
+      
+      // Check if option text contains LaTeX
+      let optionTextHtml = '';
+      if (option.text && option.text.includes('\\')) {
+        // Render math for option text
+        optionTextHtml = `
+          <math-field readonly 
+            style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+            class="preview-math-field option-math-field">
+            ${option.text}
+          </math-field>
+        `;
+      } else {
+        optionTextHtml = option.text;
+      }
+      
+      return `
+        <div class="question-preview-option${isCorrect}">
+          <span class="option-label">${letter}</span>
+          <div class="option-text">${optionTextHtml}${option.isCorrect ? ' <span class="correct-indicator">(Correct Answer)</span>' : ''}</div>
+        </div>
+      `;
+    }).join('');
+    
+    optionsContainer.innerHTML = optionsHtml;
+  } else {
+    optionsContainer.innerHTML = '<div class="text-muted">No options defined</div>';
+  }
+  
+  // Display real explanation data
+  const explanationDiv = document.getElementById('previewExplanation');
+  const explanationText = document.getElementById('previewExplanationText');
+  
+  if (question.explanation && question.explanation.trim()) {
+    // Render math in explanation if it contains LaTeX
+    if (question.explanation.includes('\\')) {
+      explanationText.innerHTML = `
+        <math-field readonly 
+          style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 6px;"
+          class="preview-math-field">
+          ${question.explanation}
+        </math-field>
+      `;
+    } else {
+      explanationText.textContent = question.explanation;
+    }
+  explanationDiv.style.display = 'block';
+  } else {
+    explanationDiv.style.display = 'none';
+  }
+  
+  // Hide image section for now (in real implementation, you'd show if image exists)
+  document.getElementById('previewQuestionImage').style.display = 'none';
+  
+  // Show the modal
+  const modal = new bootstrap.Modal(document.getElementById('questionPreviewModal'));
+  modal.show();
+}
+
+// Edit question
+function editQuestion(questionId) {
+  cleanupModals();
+  
+  // Show loading state
+  const modal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
+  modal.show();
+  
+  // Fetch complete question data from server
+  fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success && data.question) {
+        const question = data.question;
+        
+        // Populate the edit form
+        const editQuestionTextElement = document.getElementById('editQuestionText');
+        const editQuestionTextFallback = document.getElementById('editQuestionTextFallback');
+        
+        // Check if question text contains LaTeX and populate accordingly
+        if (question.questionText.includes('\\')) {
+          // Contains LaTeX, use math field
+          editQuestionTextElement.value = question.questionText;
+          editQuestionTextElement.style.display = 'block';
+          editQuestionTextFallback.style.display = 'none';
+          
+          // Update button states
+          document.getElementById('editMathModeBtn').style.display = 'none';
+          document.getElementById('editTextModeBtn').style.display = 'inline-block';
+        } else {
+          // Plain text, use textarea
+          editQuestionTextFallback.value = question.questionText;
+          editQuestionTextElement.style.display = 'none';
+          editQuestionTextFallback.style.display = 'block';
+          
+          // Update button states
+          document.getElementById('editMathModeBtn').style.display = 'inline-block';
+          document.getElementById('editTextModeBtn').style.display = 'none';
+        }
+        
+        // Populate basic fields
+        document.getElementById('editQuestionType').value = question.questionType;
+        document.getElementById('editDifficulty').value = question.difficulty;
+        document.getElementById('editPoints').value = question.points;
+        document.getElementById('editTags').value = question.tags ? question.tags.join(', ') : '';
+        document.getElementById('editQuestionImage').value = question.questionImage || '';
+        document.getElementById('editExplanation').value = question.explanation || '';
+        
+        // Handle question type specific fields
+        handleEditQuestionTypeChange();
+        
+        if (question.questionType === 'Written') {
+          // Set answer multiplicity
+          const singleAnswerRadio = document.getElementById('editSingleAnswer');
+          const multipleAnswersRadio = document.getElementById('editMultipleAnswers');
+          
+          if (question.answerMultiplicity === 'single') {
+            singleAnswerRadio.checked = true;
+          } else {
+            multipleAnswersRadio.checked = true;
+          }
+          
+          // Populate correct answers
+          const container = document.getElementById('editCorrectAnswersContainer');
+          container.innerHTML = '';
+          
+          if (question.correctAnswers && question.correctAnswers.length > 0) {
+            question.correctAnswers.forEach((answer, index) => {
+              const answerText = typeof answer === 'string' ? answer : answer.text;
+              const isMandatory = typeof answer === 'string' ? true : answer.isMandatory;
+              
+              const answerItem = document.createElement('div');
+              answerItem.className = 'question-option-item';
+              answerItem.innerHTML = `
+                <div class="option-content">
+                  <div class="option-checkbox">
+                    <input type="checkbox" name="editAnswerMandatory" value="true" class="option-checkbox-input" id="editMandatory${index}" ${isMandatory ? 'checked' : ''} ${index === 0 ? 'disabled' : ''}>
+                    <label for="editMandatory${index}" class="option-checkbox-label ${index === 0 ? 'mandatory-always' : ''}">
+                      <i class="fas fa-${index === 0 ? 'lock' : 'check'}"></i>
+                      <span class="mandatory-text">Mandatory</span>
+                    </label>
+                  </div>
+                  <input type="text" class="option-text-input" name="editCorrectAnswers" 
+                         placeholder="Enter correct answer..." value="${answerText}">
+                  <button type="button" class="option-remove-btn" onclick="removeEditCorrectAnswer(this)" style="display: none;">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              `;
+              container.appendChild(answerItem);
+            });
+          }
+          
+          updateEditAnswerRemoveButtons();
+        }
+        
+        // Set the form action
+        const editForm = document.getElementById('editQuestionForm');
+        editForm.action = `/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`;
+        
+        // Load previous tags
+        loadPreviousTags();
+        
+      } else {
+        showNotification('Failed to load question data', 'error');
+        modal.hide();
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching question:', error);
+      showNotification('Failed to load question data', 'error');
+      modal.hide();
+    });
+}
+
+// Delete question
+function deleteQuestion(questionId, questionText) {
+  if (confirm(`Are you sure you want to delete this question?\n\n"${questionText}"\n\nThis action cannot be undone.`)) {
+    // Show loading state
+    showNotification('Deleting question...', 'info');
+    
+    fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        showNotification('Question deleted successfully!', 'success');
+        // Remove the question card from the page
+        const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
+        if (questionCard) {
+          questionCard.remove();
+          // Update the questions count
+          updateQuestionsCount();
+        }
+      } else {
+        throw new Error('Failed to delete question');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showNotification('Error deleting question. Please try again.', 'error');
+    });
+  }
+}
+
+// Export questions
+function exportQuestions() {
+  window.location.href = `/admin/question-banks/banks/<%= questionBank.bankCode %>/export`;
+}
+
+// Import questions
+function importQuestions() {
+  alert('Import functionality will be implemented soon!');
+}
+
+// Form submission handler
+document.addEventListener('DOMContentLoaded', function() {
+  const createForm = document.getElementById('createQuestionForm');
+  if (createForm) {
+    createForm.addEventListener('submit', function(e) {
+      const questionText = document.getElementById('questionText').value.trim();
+      const questionType = document.getElementById('questionType').value;
+      const options = document.querySelectorAll('input[name="optionText"]');
+      const correctAnswer = document.querySelector('input[name="correctAnswer"]:checked');
+      
+      // Clear previous errors
+      clearFormErrors();
+      
+      let hasErrors = false;
+      
+      // Basic validation - only check essential fields
+      // Check both math and text fields for question text
+      const questionTextElement = document.getElementById('questionText');
+      const questionTextFallback = document.getElementById('questionTextFallback').value.trim();
+      
+      // Get value from math-field or regular input
+      let questionTextMath = '';
+      if (questionTextElement.tagName === 'MATH-FIELD') {
+        questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
+        console.log('Math field value:', questionTextMath);
+      } else {
+        questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
+        console.log('Regular input value:', questionTextMath);
+      }
+      
+      const finalQuestionText = questionTextMath || questionTextFallback;
+      console.log('Final question text:', finalQuestionText);
+      
+      // Update the hidden field with the final question text
+      const hiddenQuestionText = document.getElementById('hiddenQuestionText');
+      if (hiddenQuestionText) {
+        hiddenQuestionText.value = finalQuestionText;
+      }
+      
+      // Validate question text
+      if (!finalQuestionText) {
+        showFieldError('questionText', 'Question text is required');
+        hasErrors = true;
+      } else if (finalQuestionText.length < 10) {
+        showFieldError('questionText', `Question text must be at least 10 characters (currently ${finalQuestionText.length})`);
+        hasErrors = true;
+      }
+      
+      // Validate question type
+      if (!questionType) {
+        showFieldError('questionType', 'Please select a question type');
+        hasErrors = true;
+      }
+      
+      // Validate difficulty
+      const difficulty = document.getElementById('difficulty').value;
+      if (!difficulty) {
+        showFieldError('difficulty', 'Please select a difficulty level');
+        hasErrors = true;
+      }
+      
+      // Validate based on question type
+      if (questionType === 'Written') {
+        const correctAnswers = document.querySelectorAll('input[name="correctAnswers"]');
+        const filledAnswers = Array.from(correctAnswers).filter(input => input.value.trim());
+        const answerMultiplicity = document.querySelector('input[name="answerMultiplicity"]:checked');
+        
+        if (filledAnswers.length === 0) {
+          showFieldError('writtenAnswers', 'Written questions must have at least one correct answer');
+          hasErrors = true;
+        } else if (answerMultiplicity && answerMultiplicity.value === 'single' && filledAnswers.length !== 1) {
+          showFieldError('writtenAnswers', 'Single answer questions must have exactly one correct answer');
+          hasErrors = true;
+        }
+      } else {
+        // Validate options based on question type
+        if (questionType === 'MCQ') {
+          if (options.length < 2) {
+            showFieldError('options', `MCQ questions must have at least 2 options (currently ${options.length})`);
+          hasErrors = true;
+          } else if (options.length > 6) {
+            showFieldError('options', `MCQ questions should have at most 6 options (currently ${options.length})`);
+          hasErrors = true;
+          }
+        } else if (questionType === 'True/False') {
+          if (options.length !== 2) {
+            showFieldError('options', `True/False questions must have exactly 2 options (currently ${options.length})`);
+            hasErrors = true;
+          }
+        }
+        
+        // Validate that all options have text
+        const emptyOptions = Array.from(options).filter(input => !input.value.trim());
+        if (emptyOptions.length > 0) {
+          showFieldError('options', `${emptyOptions.length} option(s) are empty. Please fill all options or remove empty ones.`);
+          hasErrors = true;
+        }
+        
+        // Only validate correct answer if we have valid options
+        if (options.length > 0 && !correctAnswer) {
+          showFieldError('options', 'Please select the correct answer');
+          hasErrors = true;
+        }
+      }
+      
+      if (hasErrors) {
+        e.preventDefault();
+        
+        // Show notification about validation errors
+        showNotification('Please fix the validation errors before submitting', 'error');
+        
+        // Scroll to first error
+        const firstError = document.querySelector('.field-error');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        return false;
+      }
+      
+      // Convert form data based on question type
+      if (questionType === 'Written') {
+        // Collect answers and mandatory flags
+        const answersData = [];
+        const mandatoryData = [];
+        
+        // Check all answer containers
+        const answerContainers = document.querySelectorAll('#correctAnswersContainer .question-option-item');
+        answerContainers.forEach((container, index) => {
+          const textInput = container.querySelector('input[name="correctAnswers"]');
+          const mandatoryCheckbox = container.querySelector('input[name="answerMandatory"]');
+          
+          if (textInput && textInput.value.trim()) {
+            answersData.push(textInput.value.trim());
+            mandatoryData.push(mandatoryCheckbox ? mandatoryCheckbox.checked : true);
+          }
+        });
+        
+        // Clear existing hidden inputs
+        const existingAnswersInputs = this.querySelectorAll('input[name="correctAnswers"]');
+        const existingMandatoryInputs = this.querySelectorAll('input[name="answerMandatory"]');
+        existingAnswersInputs.forEach(input => input.remove());
+        existingMandatoryInputs.forEach(input => input.remove());
+        
+        // Add new hidden inputs for answers
+        answersData.forEach((answer, index) => {
+          const answerInput = document.createElement('input');
+          answerInput.type = 'hidden';
+          answerInput.name = 'correctAnswers';
+          answerInput.value = answer;
+          this.appendChild(answerInput);
+        });
+        
+        // Add new hidden inputs for mandatory flags
+        mandatoryData.forEach((isMandatory, index) => {
+          const mandatoryInput = document.createElement('input');
+          mandatoryInput.type = 'hidden';
+          mandatoryInput.name = 'answerMandatory';
+          mandatoryInput.value = isMandatory;
+          this.appendChild(mandatoryInput);
+        });
+        
+        // Add answer multiplicity field
+        const answerMultiplicity = document.querySelector('input[name="answerMultiplicity"]:checked');
+        if (answerMultiplicity) {
+          const multiplicityInput = document.createElement('input');
+          multiplicityInput.type = 'hidden';
+          multiplicityInput.name = 'answerMultiplicity';
+          multiplicityInput.value = answerMultiplicity.value;
+          this.appendChild(multiplicityInput);
+        }
+      } else {
+        // Convert form data to JSON format for options
+        const optionsData = [];
+        
+        // Check all option containers
+        const optionContainers = document.querySelectorAll('.question-option-item');
+        optionContainers.forEach((container, index) => {
+          const mathField = container.querySelector('math-field');
+          const textField = container.querySelector('textarea');
+          const textInput = container.querySelector('input[type="text"]');
+          const radioInput = container.querySelector('input[type="radio"]');
+          const hiddenField = container.querySelector('input[name="optionText"]');
+          
+          let optionText = '';
+          if (mathField && mathField.style.display !== 'none') {
+            optionText = mathField.value.trim();
+          } else if (textField && textField.style.display !== 'none') {
+            optionText = textField.value.trim();
+          } else if (textInput) {
+            optionText = textInput.value.trim();
+          }
+          
+          if (optionText) {
+            optionsData.push({
+              text: optionText,
+              isCorrect: correctAnswer && index.toString() === correctAnswer.value
+            });
+            
+            // Update hidden field
+            if (hiddenField) {
+              hiddenField.value = optionText;
+            }
+          }
+        });
+        
+        // Add hidden input with options JSON
+        const existingOptionsInput = this.querySelector('input[name="options"]');
+        if (existingOptionsInput) {
+          existingOptionsInput.remove();
+        }
+        
+        const optionsInput = document.createElement('input');
+        optionsInput.type = 'hidden';
+        optionsInput.name = 'options';
+        optionsInput.value = JSON.stringify(optionsData);
+        this.appendChild(optionsInput);
+      }
+      
+      // Show loading state
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+      submitBtn.disabled = true;
+      
+      // Prevent default form submission and handle with fetch
+      e.preventDefault();
+      
+      // Create JSON data from the form
+      const formData = new FormData(this);
+      const jsonData = {};
+      
+      // Convert FormData to JSON object
+      for (let [key, value] of formData.entries()) {
+        if (jsonData[key]) {
+          // Handle arrays (like correctAnswers, answerMandatory) but not single-value fields
+          if (key === 'correctAnswers' || key === 'answerMandatory') {
+            if (Array.isArray(jsonData[key])) {
+              jsonData[key].push(value);
+            } else {
+              jsonData[key] = [jsonData[key], value];
+            }
+          }
+          // For single-value fields like answerMultiplicity, keep the latest value
+          else {
+            jsonData[key] = value;
+          }
+        } else {
+          jsonData[key] = value;
+        }
+      }
+      
+      // Debug logging
+      console.log('Sending data to server:', {
+        questionType: jsonData.questionType,
+        correctAnswers: jsonData.correctAnswers,
+        answerMandatory: jsonData.answerMandatory,
+        answerMultiplicity: jsonData.answerMultiplicity,
+        allKeys: Object.keys(jsonData)
+      });
+      
+      // Submit via fetch
+      fetch(this.action, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(jsonData)
+      })
+      .then(response => {
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}. Expected JSON but got ${contentType}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          showNotification(data.message, 'success');
+          // Close modal and reload page
+          const modal = bootstrap.Modal.getInstance(document.getElementById('createQuestionModal'));
+          modal.hide();
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          showNotification(data.message, 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while creating the question: ' + error.message, 'error');
+      })
+      .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      });
+      
+      return false;
+    });
+  }
+});
+
+// Edit form submission handler
+document.addEventListener('DOMContentLoaded', function() {
+  const editForm = document.getElementById('editQuestionForm');
+  if (editForm) {
+    editForm.addEventListener('submit', function(e) {
+      // Get question text from math field or fallback
+      const questionTextElement = document.getElementById('editQuestionText');
+      const questionTextFallback = document.getElementById('editQuestionTextFallback').value.trim();
+      
+      // Get value from math-field or regular input
+      let questionTextMath = '';
+      if (questionTextElement.tagName === 'MATH-FIELD') {
+        questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
+        console.log('Edit Math field value:', questionTextMath);
+      } else {
+        questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
+        console.log('Edit Regular input value:', questionTextMath);
+      }
+      
+      const finalQuestionText = questionTextMath || questionTextFallback;
+      console.log('Edit Final question text:', finalQuestionText);
+      
+      // Update the hidden field with the final question text
+      const hiddenQuestionText = document.getElementById('editHiddenQuestionText');
+      if (hiddenQuestionText) {
+        hiddenQuestionText.value = finalQuestionText;
+      }
+      
+      const questionType = document.getElementById('editQuestionType').value;
+      const options = document.querySelectorAll('input[name="editOptionText"]');
+      const correctAnswer = document.querySelector('input[name="editCorrectAnswer"]:checked');
+      
+      // Clear previous errors
+      clearEditFormErrors();
+      
+      let hasErrors = false;
+      
+      // Validate question text
+      if (!finalQuestionText) {
+        showEditFieldError('editQuestionText', 'Question text is required');
+        hasErrors = true;
+      } else if (finalQuestionText.length < 10) {
+        showEditFieldError('editQuestionText', `Question text must be at least 10 characters (currently ${finalQuestionText.length})`);
+        hasErrors = true;
+      }
+  
+  // Validate question type
+  if (!questionType) {
+    showEditFieldError('editQuestionType', 'Please select a question type');
+    hasErrors = true;
+  }
+  
+  // Validate based on question type
+  if (questionType === 'Written') {
+    const correctAnswers = document.querySelectorAll('#editCorrectAnswersContainer input[name="editCorrectAnswers"]');
+    const filledAnswers = Array.from(correctAnswers).filter(input => input.value.trim());
+    const answerMultiplicity = document.querySelector('input[name="editAnswerMultiplicity"]:checked');
+    
+    if (filledAnswers.length === 0) {
+      showEditFieldError('editWrittenAnswers', 'Written questions must have at least one correct answer');
+      hasErrors = true;
+    } else if (answerMultiplicity && answerMultiplicity.value === 'single' && filledAnswers.length !== 1) {
+      showEditFieldError('editWrittenAnswers', 'Single answer questions must have exactly one correct answer');
+      hasErrors = true;
+    }
+  } else {
+    // Validate options based on question type
+    if (questionType === 'True/False') {
+      if (options.length !== 2) {
+        showEditFieldError('editOptions', 'True/False questions must have exactly 2 options');
+        hasErrors = true;
+      } else {
+        const optionTexts = Array.from(options).map(input => input.value.toLowerCase().trim());
+        if (!optionTexts.includes('true') || !optionTexts.includes('false')) {
+          showEditFieldError('editOptions', 'True/False questions must have "True" and "False" as options');
+          hasErrors = true;
+        }
+      }
+    } else if (questionType === 'MCQ') {
+      if (options.length < 2) {
+        showEditFieldError('editOptions', 'MCQ questions must have at least 2 options');
+        hasErrors = true;
+      }
+    }
+    
+    // Validate correct answer selection
+    if (!correctAnswer) {
+      showEditFieldError('editOptions', 'Please select the correct answer');
+      hasErrors = true;
+    }
+  }
+  
+  if (hasErrors) {
+    e.preventDefault();
+    return;
+  }
+  
+  // Show loading state
+  const submitBtn = this.querySelector('button[type="submit"]');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+  submitBtn.disabled = true;
+  
+  // Prevent default form submission and handle with fetch
+  e.preventDefault();
+  
+  // Process form data based on question type
+  if (questionType === 'Written') {
+    // Collect answers and mandatory flags
+    const answersData = [];
+    const mandatoryData = [];
+    
+    // Check all answer containers
+    const answerContainers = document.querySelectorAll('#editCorrectAnswersContainer .question-option-item');
+    answerContainers.forEach((container, index) => {
+      const textInput = container.querySelector('input[name="editCorrectAnswers"]');
+      const mandatoryCheckbox = container.querySelector('input[name="editAnswerMandatory"]');
+      
+      if (textInput && textInput.value.trim()) {
+        answersData.push(textInput.value.trim());
+        mandatoryData.push(mandatoryCheckbox ? mandatoryCheckbox.checked : true);
+      }
+    });
+    
+    // Clear existing hidden inputs
+    const existingAnswersInputs = this.querySelectorAll('input[name="correctAnswers"]');
+    const existingMandatoryInputs = this.querySelectorAll('input[name="answerMandatory"]');
+    existingAnswersInputs.forEach(input => input.remove());
+    existingMandatoryInputs.forEach(input => input.remove());
+    
+    // Add new hidden inputs for answers
+    answersData.forEach((answer, index) => {
+      const answerInput = document.createElement('input');
+      answerInput.type = 'hidden';
+      answerInput.name = 'correctAnswers';
+      answerInput.value = answer;
+      this.appendChild(answerInput);
+    });
+    
+    // Add new hidden inputs for mandatory flags
+    mandatoryData.forEach((isMandatory, index) => {
+      const mandatoryInput = document.createElement('input');
+      mandatoryInput.type = 'hidden';
+      mandatoryInput.name = 'answerMandatory';
+      mandatoryInput.value = isMandatory;
+      this.appendChild(mandatoryInput);
+    });
+    
+    // Add answer multiplicity field
+    const answerMultiplicity = document.querySelector('input[name="editAnswerMultiplicity"]:checked');
+    if (answerMultiplicity) {
+      const multiplicityInput = document.createElement('input');
+      multiplicityInput.type = 'hidden';
+      multiplicityInput.name = 'answerMultiplicity';
+      multiplicityInput.value = answerMultiplicity.value;
+      this.appendChild(multiplicityInput);
+    }
+  } else {
+    // Convert form data to JSON format for options
+    const optionsData = [];
+    
+    // Check all option containers
+    const optionContainers = document.querySelectorAll('#editOptionsContainer .question-option-item');
+    optionContainers.forEach((container, index) => {
+      const mathField = container.querySelector('math-field');
+      const textField = container.querySelector('textarea');
+      const textInput = container.querySelector('input[type="text"]');
+      const radioInput = container.querySelector('input[type="radio"]');
+      const hiddenField = container.querySelector('input[name="editOptionText"]');
+      
+      let optionText = '';
+      if (mathField && mathField.style.display !== 'none') {
+        optionText = mathField.value.trim();
+      } else if (textField && textField.style.display !== 'none') {
+        optionText = textField.value.trim();
+      } else if (textInput) {
+        optionText = textInput.value.trim();
+      }
+      
+      if (optionText) {
+        optionsData.push({
+          text: optionText,
+          isCorrect: correctAnswer && index.toString() === correctAnswer.value
+        });
+        
+        // Update hidden field
+        if (hiddenField) {
+          hiddenField.value = optionText;
+        }
+      }
+    });
+    
+    // Add hidden input with options JSON
+    const existingOptionsInput = this.querySelector('input[name="options"]');
+    if (existingOptionsInput) {
+      existingOptionsInput.remove();
+    }
+    
+    const optionsInput = document.createElement('input');
+    optionsInput.type = 'hidden';
+    optionsInput.name = 'options';
+    optionsInput.value = JSON.stringify(optionsData);
+    this.appendChild(optionsInput);
+  }
+  
+  // Create JSON data from the form
+  const formData = new FormData(this);
+  const jsonData = {};
+  
+  // Convert FormData to JSON object
+  for (let [key, value] of formData.entries()) {
+    if (jsonData[key]) {
+      // Handle arrays (like correctAnswers, answerMandatory) but not single-value fields
+      if (key === 'correctAnswers' || key === 'answerMandatory') {
+        if (Array.isArray(jsonData[key])) {
+          jsonData[key].push(value);
+        } else {
+          jsonData[key] = [jsonData[key], value];
+        }
+      }
+      // For single-value fields like answerMultiplicity, keep the latest value
+      else {
+        jsonData[key] = value;
+      }
+    } else {
+      jsonData[key] = value;
+    }
+  }
+  
+  // Debug logging
+  console.log('Sending update data to server:', {
+    questionType: jsonData.questionType,
+    correctAnswers: jsonData.correctAnswers,
+    answerMandatory: jsonData.answerMandatory,
+    answerMultiplicity: jsonData.answerMultiplicity,
+    allKeys: Object.keys(jsonData)
+  });
+  
+  // Submit via fetch
+  fetch(this.action, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(jsonData)
+  })
+  .then(response => {
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}. Expected JSON but got ${contentType}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showNotification(data.message, 'success');
+      // Close modal and reload page
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editQuestionModal'));
+      modal.hide();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showNotification('An error occurred while updating the question: ' + error.message, 'error');
+  })
+  .finally(() => {
+    // Reset button state
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  });
+  
+  return false;
+    });
+  }
+});
+
+// Helper functions for edit form validation
+function showEditFieldError(fieldId, message) {
+  const field = document.getElementById(fieldId);
+  const errorDiv = document.getElementById(fieldId + 'Error');
+  
+  if (field) {
+    field.classList.add('is-invalid');
+  }
+  
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+  }
+}
+
+function clearEditFormErrors() {
+  const invalidFields = document.querySelectorAll('#editQuestionModal .is-invalid');
+  const errorMessages = document.querySelectorAll('#editQuestionModal .invalid-feedback');
+  
+  invalidFields.forEach(field => field.classList.remove('is-invalid'));
+  errorMessages.forEach(error => {
+    error.style.display = 'none';
+    error.textContent = '';
+  });
+}
+
+// Helper functions for form validation
+function showFieldError(fieldId, message) {
+  const field = document.getElementById(fieldId);
+  const errorDiv = document.getElementById(fieldId + 'Error');
+  
+  if (field) {
+    field.classList.add('is-invalid');
+  }
+  
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+  }
+}
+
+function clearFormErrors() {
+  const invalidFields = document.querySelectorAll('.is-invalid');
+  const errorMessages = document.querySelectorAll('.invalid-feedback');
+  
+  invalidFields.forEach(field => field.classList.remove('is-invalid'));
+  errorMessages.forEach(error => {
+    error.style.display = 'none';
+    error.textContent = '';
+  });
+}
+
+// ==================== EDIT QUESTION FUNCTIONALITY ====================
+
+let editOptionCount = 2;
+
+// Handle edit question type change
+function handleEditQuestionTypeChange() {
+  const questionType = document.getElementById('editQuestionType').value;
+  const optionsContainer = document.getElementById('editOptionsContainer');
+  const addOptionBtn = document.getElementById('editAddOptionBtn');
+  const editAnswerOptionsSection = document.getElementById('editAnswerOptionsSection');
+  const editWrittenAnswersSection = document.getElementById('editWrittenAnswersSection');
+  const editCorrectAnswersContainer = document.getElementById('editCorrectAnswersContainer');
+  
+  // Hide both sections first
+  editAnswerOptionsSection.style.display = 'none';
+  editWrittenAnswersSection.style.display = 'none';
+  
+  if (questionType === 'True/False') {
+    // Show the answer options section
+    editAnswerOptionsSection.style.display = 'block';
+    
+    // Clear and recreate options for True/False
+    optionsContainer.innerHTML = `
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="editCorrectAnswer" value="0" class="option-radio-input" id="editTrueOption">
+            <label for="editTrueOption" class="option-radio-label">True</label>
+          </div>
+          <input type="text" class="option-text-input" name="editOptionText" 
+                 placeholder="True" value="True" required readonly>
+        </div>
+      </div>
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="editCorrectAnswer" value="1" class="option-radio-input" id="editFalseOption">
+            <label for="editFalseOption" class="option-radio-label">False</label>
+          </div>
+          <input type="text" class="option-text-input" name="editOptionText" 
+                 placeholder="False" value="False" required readonly>
+        </div>
+      </div>
+    `;
+    addOptionBtn.style.display = 'none';
+    editOptionCount = 2;
+  } else if (questionType === 'MCQ') {
+    // Show the answer options section
+    editAnswerOptionsSection.style.display = 'block';
+    
+    // Clear and recreate options for MCQ
+    optionsContainer.innerHTML = `
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="editCorrectAnswer" value="0" class="option-radio-input" id="editOptionA">
+            <label for="editOptionA" class="option-radio-label">A</label>
+          </div>
+          <div class="math-option-input-container">
+            <div class="math-option-header">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="editOptionAMathModeBtn" onclick="switchToMathMode('editOptionText_A')">
+                <i class="fas fa-calculator me-1"></i>
+                Math
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="editOptionATextModeBtn" onclick="switchToTextMode('editOptionText_A')" style="display: none;">
+                <i class="fas fa-font me-1"></i>
+                Text
+              </button>
+              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editOptionText_A')">
+                <i class="fas fa-keyboard me-1"></i>
+                Symbols
+              </button>
+            </div>
+            <math-field id="editOptionText_A" name="editOptionText" virtual-keyboard-mode="manual" 
+                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
+                        placeholder="Enter option A"></math-field>
+            <textarea class="form-control option-textarea" id="editOptionText_A_Fallback" name="editOptionTextFallback" 
+                      rows="2" placeholder="Enter option A" style="display: none;"></textarea>
+            <input type="hidden" name="editOptionText" id="editOptionTextHidden_A">
+          </div>
+          <button type="button" class="option-remove-btn" onclick="removeEditOption(this)" style="display: none;">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-radio">
+            <input type="radio" name="editCorrectAnswer" value="1" class="option-radio-input" id="editOptionB">
+            <label for="editOptionB" class="option-radio-label">B</label>
+          </div>
+          <div class="math-option-input-container">
+            <div class="math-option-header">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="editOptionBMathModeBtn" onclick="switchToMathMode('editOptionText_B')">
+                <i class="fas fa-calculator me-1"></i>
+                Math
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="editOptionBTextModeBtn" onclick="switchToTextMode('editOptionText_B')" style="display: none;">
+                <i class="fas fa-font me-1"></i>
+                Text
+              </button>
+              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editOptionText_B')">
+                <i class="fas fa-keyboard me-1"></i>
+                Symbols
+              </button>
+            </div>
+            <math-field id="editOptionText_B" name="editOptionText" virtual-keyboard-mode="manual" 
+                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
+                        placeholder="Enter option B"></math-field>
+            <textarea class="form-control option-textarea" id="editOptionText_B_Fallback" name="editOptionTextFallback" 
+                      rows="2" placeholder="Enter option B" style="display: none;"></textarea>
+            <input type="hidden" name="editOptionText" id="editOptionTextHidden_B">
+          </div>
+          <button type="button" class="option-remove-btn" onclick="removeEditOption(this)" style="display: none;">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Initialize MathLive for the initial option fields
+    setTimeout(() => {
+      const mathFieldA = document.getElementById('editOptionText_A');
+      const mathFieldB = document.getElementById('editOptionText_B');
+      
+      if (mathFieldA) {
+        mathFieldA.addEventListener('input', () => {
+          document.getElementById('editOptionTextHidden_A').value = mathFieldA.value;
+        });
+      }
+      
+      if (mathFieldB) {
+        mathFieldB.addEventListener('input', () => {
+          document.getElementById('editOptionTextHidden_B').value = mathFieldB.value;
+        });
+      }
+    }, 100);
+    addOptionBtn.style.display = 'block';
+    editOptionCount = 2;
+  } else if (questionType === 'Written') {
+    // Show the written answers section
+    editWrittenAnswersSection.style.display = 'block';
+    
+    // Create initial correct answer input with checkbox for mandatory (first answer is always mandatory)
+    editCorrectAnswersContainer.innerHTML = `
+      <div class="question-option-item">
+        <div class="option-content">
+          <div class="option-checkbox">
+            <input type="checkbox" name="editAnswerMandatory" value="true" class="option-checkbox-input" id="editMandatory0" checked disabled>
+            <label for="editMandatory0" class="option-checkbox-label mandatory-always">
+              <i class="fas fa-lock"></i>
+              <span class="mandatory-text">Mandatory</span>
+            </label>
+          </div>
+          <input type="text" class="option-text-input" name="editCorrectAnswers" 
+                 placeholder="Enter correct answer...">
+          <button type="button" class="option-remove-btn" onclick="removeEditCorrectAnswer(this)" style="display: none;">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Update remove buttons visibility
+    updateEditAnswerRemoveButtons();
+    
+    // Add event listeners for edit answer multiplicity radio buttons
+    const editSingleAnswerRadio = document.getElementById('editSingleAnswer');
+    const editMultipleAnswersRadio = document.getElementById('editMultipleAnswers');
+    const editAddAnswerBtn = document.getElementById('editAddAnswerBtn');
+    
+    if (editSingleAnswerRadio && editMultipleAnswersRadio && editAddAnswerBtn) {
+      editSingleAnswerRadio.addEventListener('change', function() {
+        if (this.checked) {
+          // For single answer, hide the add button and ensure only one answer
+          editAddAnswerBtn.style.display = 'none';
+          const answers = document.querySelectorAll('#editCorrectAnswersContainer .question-option-item');
+          if (answers.length > 1) {
+            // Remove extra answers, keep only the first one
+            for (let i = 1; i < answers.length; i++) {
+              answers[i].remove();
+            }
+          }
+          updateEditAnswerRemoveButtons();
+        }
+      });
+      
+      editMultipleAnswersRadio.addEventListener('change', function() {
+        if (this.checked) {
+          // For multiple answers, show the add button
+          editAddAnswerBtn.style.display = 'block';
+          updateEditAnswerRemoveButtons();
+        }
+      });
+    }
+  } else {
+    // Hide all sections when no type selected
+    editAnswerOptionsSection.style.display = 'none';
+    editWrittenAnswersSection.style.display = 'none';
+    addOptionBtn.style.display = 'none';
+  }
+}
+
+// Add new option for edit
+function addEditOption() {
+  const container = document.getElementById('editOptionsContainer');
+  const optionItem = document.createElement('div');
+  optionItem.className = 'question-option-item';
+  const optionLetter = String.fromCharCode(65 + editOptionCount);
+  optionItem.innerHTML = `
+    <div class="option-content">
+      <div class="option-radio">
+        <input type="radio" name="editCorrectAnswer" value="${editOptionCount}" class="option-radio-input" id="editOption${optionLetter}">
+        <label for="editOption${optionLetter}" class="option-radio-label">${optionLetter}</label>
+      </div>
+      <div class="math-option-input-container">
+        <div class="math-option-header">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="editOption${optionLetter}MathModeBtn" onclick="switchToMathMode('editOptionText_${optionLetter}')">
+            <i class="fas fa-calculator me-1"></i>
+            Math
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="editOption${optionLetter}TextModeBtn" onclick="switchToTextMode('editOptionText_${optionLetter}')" style="display: none;">
+            <i class="fas fa-font me-1"></i>
+            Text
+          </button>
+          <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editOptionText_${optionLetter}')">
+            <i class="fas fa-keyboard me-1"></i>
+            Symbols
+          </button>
+        </div>
+        <math-field id="editOptionText_${optionLetter}" name="editOptionText" virtual-keyboard-mode="manual" 
+                    style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
+                    placeholder="Enter option ${optionLetter}"></math-field>
+        <textarea class="form-control option-textarea" id="editOptionText_${optionLetter}_Fallback" name="editOptionTextFallback" 
+                  rows="2" placeholder="Enter option ${optionLetter}" style="display: none;"></textarea>
+        <input type="hidden" name="editOptionText" id="editOptionTextHidden_${optionLetter}">
+      </div>
+      <button type="button" class="option-remove-btn" onclick="removeEditOption(this)">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `;
+  container.appendChild(optionItem);
+  
+  // Initialize MathLive for the new option field
+  setTimeout(() => {
+    const mathField = document.getElementById(`editOptionText_${optionLetter}`);
+    if (mathField) {
+      mathField.addEventListener('input', () => {
+        document.getElementById(`editOptionTextHidden_${optionLetter}`).value = mathField.value;
+      });
+    }
+  }, 100);
+  
+  editOptionCount++;
+}
+
+// Remove option for edit
+function removeEditOption(button) {
+  const optionItem = button.closest('.question-option-item');
+  const optionsContainer = document.getElementById('editOptionsContainer');
+  const currentOptions = optionsContainer.querySelectorAll('.question-option-item');
+  
+  // Ensure minimum 2 options for MCQ questions
+  if (currentOptions.length <= 2) {
+    showNotification('MCQ questions must have at least 2 options', 'warning');
+    return;
+  }
+  
+  optionItem.remove();
+  
+  // Update option numbering after removal
+  updateEditOptionNumbering();
+}
+
+// Add new correct answer for edit
+function addEditCorrectAnswer() {
+  const container = document.getElementById('editCorrectAnswersContainer');
+  const answerCount = container.querySelectorAll('.question-option-item').length;
+  const answerItem = document.createElement('div');
+  answerItem.className = 'question-option-item';
+  answerItem.innerHTML = `
+    <div class="option-content">
+      <div class="option-checkbox">
+        <input type="checkbox" name="editAnswerMandatory" value="true" class="option-checkbox-input" id="editMandatory${answerCount}" checked>
+        <label for="editMandatory${answerCount}" class="option-checkbox-label">
+          <i class="fas fa-check"></i>
+          <span class="mandatory-text">Mandatory</span>
+        </label>
+      </div>
+      <input type="text" class="option-text-input" name="editCorrectAnswers" 
+             placeholder="Enter correct answer...">
+      <button type="button" class="option-remove-btn" onclick="removeEditCorrectAnswer(this)">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `;
+  container.appendChild(answerItem);
+  
+  // Show remove buttons if more than one answer
+  updateEditAnswerRemoveButtons();
+}
+
+// Remove correct answer for edit
+function removeEditCorrectAnswer(button) {
+  const answerItem = button.closest('.question-option-item');
+  const container = document.getElementById('editCorrectAnswersContainer');
+  const currentAnswers = container.querySelectorAll('.question-option-item');
+  
+  // Ensure minimum 1 answer
+  if (currentAnswers.length <= 1) {
+    showNotification('Written questions must have at least one correct answer', 'warning');
+    return;
+  }
+  
+  answerItem.remove();
+  updateEditAnswerRemoveButtons();
+}
+
+// Update edit answer remove buttons visibility
+function updateEditAnswerRemoveButtons() {
+  const container = document.getElementById('editCorrectAnswersContainer');
+  const answers = container.querySelectorAll('.question-option-item');
+  const removeButtons = container.querySelectorAll('.option-remove-btn');
+  
+  removeButtons.forEach(button => {
+    button.style.display = answers.length > 1 ? 'block' : 'none';
+  });
+}
+
+// Setup create modal event listeners
+function setupCreateModalEvents() {
+  const createModal = document.getElementById('createQuestionModal');
+  if (createModal) {
+    createModal.addEventListener('show.bs.modal', function() {
+      loadPreviousTagsForCreate();
+    });
+  }
+}
+
+// Setup edit bank form
+function setupEditBankForm() {
+  const editBankForm = document.getElementById('editBankForm');
+  if (editBankForm) {
+    editBankForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Get form data
+      const formData = new FormData(this);
+      const bankData = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        status: formData.get('status'),
+        tags: formData.get('tags')
+      };
+      
+      // Validate form
+      if (!bankData.name || !bankData.description) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+      }
+      
+      // Show loading state
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+      submitBtn.disabled = true;
+      
+      // Send AJAX request
+      fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bankData)
+      })
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error('Failed to update question bank');
+        }
+      })
+      .then(data => {
+        showNotification('Question bank updated successfully!', 'success');
+        
+        // Update the page content
+        updateBankInfo(bankData);
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editBankModal'));
+        modal.hide();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error updating question bank. Please try again.', 'error');
+      })
+      .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      });
+    });
+  }
+}
+
+// Update bank info on the page
+function updateBankInfo(bankData) {
+  // Update bank name in header
+  const bankTitle = document.querySelector('.admin-dashboard-title');
+  if (bankTitle) {
+    bankTitle.textContent = bankData.name;
+  }
+  
+  // Update bank description
+  const bankSubtitle = document.querySelector('.admin-dashboard-subtitle');
+  if (bankSubtitle) {
+    bankSubtitle.textContent = bankData.description;
+  }
+  
+  // Update status badge
+  const statusBadge = document.querySelector('.admin-status-badge');
+  if (statusBadge) {
+    statusBadge.className = `admin-status-badge admin-status-${bankData.status}`;
+    statusBadge.innerHTML = `<i class="fas fa-circle me-1"></i>${bankData.status.charAt(0).toUpperCase() + bankData.status.slice(1)}`;
+  }
+  
+  // Update breadcrumb
+  const breadcrumbSubtitle = document.querySelector('.breadcrumb-subtitle');
+  if (breadcrumbSubtitle) {
+    breadcrumbSubtitle.textContent = bankData.name;
+  }
+}
+
+// Load previous tags from all questions in the bank (for edit modal)
+function loadPreviousTags() {
+  const allTags = new Set();
+  
+  // Collect all tags from existing questions
+  document.querySelectorAll('.question-card-modern').forEach(card => {
+    const tags = card.dataset.tags;
+    if (tags) {
+      tags.split(',').forEach(tag => {
+        if (tag.trim()) {
+          allTags.add(tag.trim());
+        }
+      });
+    }
+  });
+  
+  // Display previous tags
+  const previousTagsContainer = document.getElementById('previousTagsContainer');
+  const previousTagsSection = document.getElementById('previousTagsSection');
+  
+  if (allTags.size > 0) {
+    previousTagsContainer.innerHTML = '';
+    allTags.forEach(tag => {
+      const tagElement = document.createElement('span');
+      tagElement.className = 'previous-tag';
+      tagElement.textContent = tag;
+      tagElement.onclick = () => addTagToInput(tag);
+      previousTagsContainer.appendChild(tagElement);
+    });
+    previousTagsSection.style.display = 'block';
+  } else {
+    previousTagsSection.style.display = 'none';
+  }
+}
+
+// Load previous tags for create modal
+function loadPreviousTagsForCreate() {
+  const allTags = new Set();
+  
+  // Collect all tags from existing questions
+  document.querySelectorAll('.question-card-modern').forEach(card => {
+    const tags = card.dataset.tags;
+    if (tags) {
+      tags.split(',').forEach(tag => {
+        if (tag.trim()) {
+          allTags.add(tag.trim());
+        }
+      });
+    }
+  });
+  
+  // Display previous tags
+  const previousTagsContainer = document.getElementById('createPreviousTagsContainer');
+  const previousTagsSection = document.getElementById('createPreviousTagsSection');
+  
+  if (allTags.size > 0) {
+    previousTagsContainer.innerHTML = '';
+    allTags.forEach(tag => {
+      const tagElement = document.createElement('span');
+      tagElement.className = 'previous-tag';
+      tagElement.textContent = tag;
+      tagElement.onclick = () => addTagToCreateInput(tag);
+      previousTagsContainer.appendChild(tagElement);
+    });
+    previousTagsSection.style.display = 'block';
+  } else {
+    previousTagsSection.style.display = 'none';
+  }
+}
+
+// Add tag to input field (for edit modal)
+function addTagToInput(tag) {
+  const tagsInput = document.getElementById('editTags');
+  const currentTags = tagsInput.value.trim();
+  
+  if (currentTags) {
+    const tags = currentTags.split(',').map(t => t.trim());
+    if (!tags.includes(tag)) {
+      tagsInput.value = currentTags + ', ' + tag;
+    }
+  } else {
+    tagsInput.value = tag;
+  }
+  
+  // Highlight the clicked tag
+  event.target.classList.add('tag-selected');
+  setTimeout(() => {
+    event.target.classList.remove('tag-selected');
+  }, 1000);
+}
+
+// Add tag to create input field
+function addTagToCreateInput(tag) {
+  const tagsInput = document.getElementById('tags');
+  const currentTags = tagsInput.value.trim();
+  
+  if (currentTags) {
+    const tags = currentTags.split(',').map(t => t.trim());
+    if (!tags.includes(tag)) {
+      tagsInput.value = currentTags + ', ' + tag;
+    }
+  } else {
+    tagsInput.value = tag;
+  }
+  
+  // Highlight the clicked tag
+  event.target.classList.add('tag-selected');
+  setTimeout(() => {
+    event.target.classList.remove('tag-selected');
+  }, 1000);
+}
+
+// Update questions count after deletion
+function updateQuestionsCount() {
+  const questionsCount = document.getElementById('questionsCount');
+  const remainingQuestions = document.querySelectorAll('.question-card-modern').length;
+  if (questionsCount) {
+    questionsCount.textContent = remainingQuestions;
+  }
+}
+
+// ==================== REAL-TIME SEARCH AND FILTERING ====================
+
+// Store all questions for client-side filtering
+let allQuestions = [];
+let filteredQuestions = [];
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+  // Store all questions from the page
+  const questionCards = document.querySelectorAll('.question-card-modern');
+  allQuestions = Array.from(questionCards).map(card => ({
+    element: card,
+    id: card.dataset.questionId,
+    difficulty: card.dataset.difficulty,
+    tags: card.dataset.tags.toLowerCase(),
+    points: parseInt(card.dataset.points),
+    createdAt: new Date(card.dataset.createdAt),
+    text: card.querySelector('.question-text').textContent.toLowerCase()
+  }));
+  
+  filteredQuestions = [...allQuestions];
+  
+  // Initialize Chart.js only if Chart is available and canvas exists
+  if (typeof Chart !== 'undefined') {
+    const chartCanvas = document.getElementById('questionDistributionChart');
+    if (chartCanvas) {
+      initializeChart();
+    }
+  }
+  
+  // Setup search and filter event listeners
+  setupSearchAndFilters();
+  
+  // Setup image upload functionality
+  setupImageUpload();
+  
+  // Setup create modal event listeners
+  setupCreateModalEvents();
+  
+  // Setup edit bank form
+  setupEditBankForm();
+  
+  // Setup MathLive virtual keyboard z-index fix
+  setupMathLiveKeyboardFix();
+  
+});
+
+// Fix MathLive virtual keyboard z-index to appear above modals
+function setupMathLiveKeyboardFix() {
+  // Monitor for virtual keyboard appearance
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        const virtualKeyboard = document.querySelector('.ML__virtual-keyboard');
+        const keyboardContainer = document.querySelector('.ML__virtual-keyboard-container');
+        const keyboardBackdrop = document.querySelector('.ML__virtual-keyboard-backdrop');
+        const keyboard = document.querySelector('.ML__keyboard');
+        
+        if (virtualKeyboard) {
+          virtualKeyboard.style.zIndex = '99999';
+          virtualKeyboard.style.position = 'fixed';
+        }
+        if (keyboardContainer) {
+          keyboardContainer.style.zIndex = '99999';
+        }
+        if (keyboardBackdrop) {
+          keyboardBackdrop.style.zIndex = '99998';
+        }
+        if (keyboard) {
+          keyboard.style.zIndex = '99999';
+        }
+      }
+    });
+  });
+  
+  // Start observing
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+// Initialize the question distribution chart
+function initializeChart() {
+  const ctx = document.getElementById('questionDistributionChart');
+  if (!ctx) return;
+  
+  const chartData = {
+    labels: ['Easy', 'Medium', 'Hard'],
+    datasets: [{
+      data: [<%= questionStats.easyQuestions %>, <%= questionStats.mediumQuestions %>, <%= questionStats.hardQuestions %>],
+      backgroundColor: [
+        '#10b981',
+        '#f59e0b', 
+        '#ef4444'
+      ],
+      borderColor: [
+        '#059669',
+        '#d97706',
+        '#dc2626'
+      ],
+      borderWidth: 2,
+      hoverOffset: 4
+    }]
+  };
+  
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+              return `${context.label}: ${context.parsed} (${percentage}%)`;
+            }
+          }
+        }
+      },
+      cutout: '60%'
+    }
+  });
+}
+
+// Setup search and filter event listeners
+function setupSearchAndFilters() {
+  const searchInput = document.getElementById('questionsSearchInput');
+  const searchClearBtn = document.getElementById('searchClearBtn');
+  const difficultyFilter = document.getElementById('difficultyFilter');
+  const sortFilter = document.getElementById('sortFilter');
+  const tagsFilter = document.getElementById('tagsFilter');
+  
+  // Check if elements exist before adding event listeners
+  if (!searchInput || !searchClearBtn || !difficultyFilter || !sortFilter || !tagsFilter) {
+    console.warn('Some search/filter elements not found, skipping event listener setup');
+    return;
+  }
+  
+  // Search input event
+  searchInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    
+    if (query.length > 0) {
+      searchClearBtn.style.display = 'block';
+    } else {
+      searchClearBtn.style.display = 'none';
+    }
+    
+    filterQuestions();
+  });
+  
+  // Clear search button
+  searchClearBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    this.style.display = 'none';
+    filterQuestions();
+  });
+  
+  // Filter change events
+  difficultyFilter.addEventListener('change', filterQuestions);
+  sortFilter.addEventListener('change', filterAndSortQuestions);
+  tagsFilter.addEventListener('input', debounce(filterQuestions, 300));
+}
+
+// Filter questions based on search and filters
+function filterQuestions() {
+  const searchInput = document.getElementById('questionsSearchInput');
+  const difficultySelect = document.getElementById('difficultyFilter');
+  const tagsInput = document.getElementById('tagsFilter');
+  
+  // Check if elements exist
+  if (!searchInput || !difficultySelect || !tagsInput) {
+    return;
+  }
+  
+  const searchQuery = searchInput.value.toLowerCase().trim();
+  const difficultyFilter = difficultySelect.value;
+  const tagsFilter = tagsInput.value.toLowerCase().trim();
+  
+  filteredQuestions = allQuestions.filter(question => {
+    // Search filter
+    if (searchQuery && !question.text.includes(searchQuery) && !question.tags.includes(searchQuery)) {
+      return false;
+    }
+    
+    // Difficulty filter
+    if (difficultyFilter !== 'all' && question.difficulty !== difficultyFilter) {
+      return false;
+    }
+    
+    // Tags filter
+    if (tagsFilter && !question.tags.includes(tagsFilter)) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // Sort questions
+  sortQuestions();
+  
+  // Update display
+  updateQuestionsDisplay();
+}
+
+// Sort questions based on selected criteria
+function sortQuestions() {
+  const sortSelect = document.getElementById('sortFilter');
+  if (!sortSelect) return;
+  
+  const sortBy = sortSelect.value;
+  
+  filteredQuestions.sort((a, b) => {
+    switch (sortBy) {
+      case 'difficulty':
+        const difficultyOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
+        return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+      case 'points':
+        return b.points - a.points;
+      case 'createdAt':
+      default:
+        return b.createdAt - a.createdAt;
+    }
+  });
+}
+
+// Filter and sort questions (for sort filter change)
+function filterAndSortQuestions() {
+  filterQuestions();
+}
+
+// Update the questions display
+function updateQuestionsDisplay() {
+  const container = document.getElementById('questionsContainer');
+  const questionsCount = document.getElementById('questionsCount');
+  
+  // Check if elements exist
+  if (!container || !questionsCount) {
+    return;
+  }
+  
+  // Hide all questions first
+  allQuestions.forEach(question => {
+    question.element.style.display = 'none';
+  });
+  
+  // Show filtered questions with updated numbering
+  filteredQuestions.forEach((question, index) => {
+    question.element.style.display = 'block';
+    const questionNum = question.element.querySelector('.question-num');
+    if (questionNum) {
+      questionNum.textContent = index + 1;
+    }
+  });
+  
+  // Update count
+  questionsCount.textContent = filteredQuestions.length;
+  
+  // Show empty state if no results
+  if (filteredQuestions.length === 0) {
+    showEmptyState();
+  } else {
+    hideEmptyState();
+  }
+}
+
+// Show empty state for filtered results
+function showEmptyState() {
+  let emptyState = document.querySelector('.questions-empty-state-filtered');
+  
+  if (!emptyState) {
+    emptyState = document.createElement('div');
+    emptyState.className = 'questions-empty-state-filtered';
+    emptyState.innerHTML = `
+      <div class="empty-icon">
+        <i class="fas fa-search"></i>
+      </div>
+      <h3 class="empty-title">No Questions Found</h3>
+      <p class="empty-description">
+        No questions match your current search criteria. Try adjusting your filters.
+      </p>
+      <button class="btn btn-outline-primary" onclick="clearAllFilters()">
+        <i class="fas fa-times me-2"></i>
+        Clear All Filters
+      </button>
+    `;
+    
+    const container = document.getElementById('questionsContainer');
+    container.appendChild(emptyState);
+  }
+  
+  emptyState.style.display = 'block';
+}
+
+// Hide empty state
+function hideEmptyState() {
+  const emptyState = document.querySelector('.questions-empty-state-filtered');
+  if (emptyState) {
+    emptyState.style.display = 'none';
+  }
+}
+
+// Clear all filters
+function clearAllFilters() {
+  const searchInput = document.getElementById('questionsSearchInput');
+  const searchClearBtn = document.getElementById('searchClearBtn');
+  const difficultyFilter = document.getElementById('difficultyFilter');
+  const sortFilter = document.getElementById('sortFilter');
+  const tagsFilter = document.getElementById('tagsFilter');
+  
+  if (searchInput) searchInput.value = '';
+  if (searchClearBtn) searchClearBtn.style.display = 'none';
+  if (difficultyFilter) difficultyFilter.value = 'all';
+  if (sortFilter) sortFilter.value = 'createdAt';
+  if (tagsFilter) tagsFilter.value = '';
+  
+  filterQuestions();
+}
+
+// Debounce function for performance
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// ==================== IMAGE UPLOAD FUNCTIONALITY ====================
+
+// Setup image upload functionality
+function setupImageUpload() {
+  const imageFileInput = document.getElementById('questionImageFile');
+  const imagePreview = document.getElementById('questionImagePreview');
+  const imageProgress = document.getElementById('questionImageProgress');
+  const questionImageInput = document.getElementById('questionImage');
+  const uploadedImageUrl = document.getElementById('uploadedImageUrl');
+  
+  if (!imageFileInput || !imagePreview || !imageProgress) {
+    console.warn('Image upload elements not found');
+    return;
+  }
+  
+  // File input change event
+  imageFileInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+      uploadQuestionImage(this.files[0]);
+    }
+  });
+  
+  // Drag and drop functionality
+  imagePreview.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('drag-over');
+  });
+  
+  imagePreview.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+  });
+  
+  imagePreview.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+      uploadQuestionImage(files[0]);
+    }
+  });
+}
+
+// Upload question image to Cloudinary
+function uploadQuestionImage(file) {
+  const imagePreview = document.getElementById('questionImagePreview');
+  const imageProgress = document.getElementById('questionImageProgress');
+  const progressBar = imageProgress.querySelector('.progress-bar');
+  const progressText = imageProgress.querySelector('.progress-text');
+  const questionImageInput = document.getElementById('questionImage');
+  const uploadedImageUrl = document.getElementById('uploadedImageUrl');
+  
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    showNotification('Please select a valid image file', 'error');
+    return;
+  }
+  
+  // Validate file size (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    showNotification('Image size must be less than 10MB', 'error');
+    return;
+  }
+  
+  // Show progress
+  imageProgress.style.display = 'block';
+  progressBar.style.width = '0%';
+  progressText.textContent = 'Uploading...';
+  
+  // Simulate progress
+  let progress = 0;
+  const progressInterval = setInterval(() => {
+    progress += Math.random() * 15;
+    if (progress > 90) progress = 90;
+    progressBar.style.width = progress + '%';
+    progressText.textContent = `Uploading... ${Math.round(progress)}%`;
+  }, 200);
+  
+  // Create FormData
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'order_project'); // Using existing preset
+  
+  // Upload to Cloudinary
+  fetch('https://api.cloudinary.com/v1_1/dusod9wxt/upload', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Clear progress interval
+    clearInterval(progressInterval);
+    
+    if (data.secure_url) {
+      // Complete progress bar
+      progressBar.style.width = '100%';
+      progressText.textContent = 'Upload complete!';
+      
+      setTimeout(() => {
+        // Update UI with uploaded image
+        imagePreview.innerHTML = `
+          <div class="preview-success">
+            <img src="${data.secure_url}" alt="Uploaded image" class="preview-image">
+            <div class="preview-overlay">
+              <i class="fas fa-check-circle text-success"></i>
+              <p>Image uploaded successfully!</p>
+              <small>${file.name}</small>
+            </div>
+          </div>
+        `;
+        
+        // Update form inputs
+        questionImageInput.value = data.secure_url;
+        uploadedImageUrl.value = data.secure_url;
+        
+        // Hide progress
+        imageProgress.style.display = 'none';
+        
+        // Show success message
+        showNotification('Image uploaded successfully!', 'success');
+      }, 500);
+    } else {
+      throw new Error('Upload failed');
+    }
+  })
+  .catch(error => {
+    // Clear progress interval
+    clearInterval(progressInterval);
+    
+    console.error('Upload error:', error);
+    
+    // Reset UI
+    imagePreview.innerHTML = `
+      <div class="preview-overlay">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>Click or drag to upload image</p>
+        <small>JPG, PNG, GIF supported</small>
+      </div>
+    `;
+    imageProgress.style.display = 'none';
+    
+    // Show error message
+    showNotification('Error uploading image. Please try again.', 'error');
+  });
+}
+
+// Show notification function
+function showNotification(message, type = 'info') {
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(notification => notification.remove());
+  
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  
+  // Add to page
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 5000);
+}
+
+// MathLive Functions
+function showMathKeyboard(fieldId) {
+  const mathField = document.getElementById(fieldId);
+  if (mathField && mathField.executeCommand) {
+    mathField.executeCommand('showVirtualKeyboard');
+    
+    // Ensure virtual keyboard appears above modals
+    setTimeout(() => {
+      const virtualKeyboard = document.querySelector('.ML__virtual-keyboard');
+      const keyboardContainer = document.querySelector('.ML__virtual-keyboard-container');
+      const keyboardBackdrop = document.querySelector('.ML__virtual-keyboard-backdrop');
+      const keyboard = document.querySelector('.ML__keyboard');
+      
+      if (virtualKeyboard) {
+        virtualKeyboard.style.zIndex = '99999';
+        virtualKeyboard.style.position = 'fixed';
+      }
+      if (keyboardContainer) {
+        keyboardContainer.style.zIndex = '99999';
+      }
+      if (keyboardBackdrop) {
+        keyboardBackdrop.style.zIndex = '99998';
+      }
+      if (keyboard) {
+        keyboard.style.zIndex = '99999';
+      }
+    }, 100);
+  }
+}
+
+// Enhanced MathLive functions for better text/math integration
+function switchToMathMode(fieldId) {
+  const mathField = document.getElementById(fieldId);
+  const fallbackField = document.getElementById(fieldId + '_Fallback');
+  const mathModeBtn = document.getElementById(fieldId.replace('Text_', 'MathModeBtn').replace('Text', 'MathModeBtn'));
+  const textModeBtn = document.getElementById(fieldId.replace('Text_', 'TextModeBtn').replace('Text', 'TextModeBtn'));
+  const modeIndicator = document.getElementById(fieldId + 'ModeIndicator');
+  
+  if (mathField && fallbackField) {
+    // Convert text to LaTeX if it contains math expressions
+    let content = fallbackField.value.trim();
+    if (content) {
+      // Simple text to LaTeX conversion for common patterns
+      content = convertTextToLatex(content);
+      mathField.value = content;
+    }
+    
+    // Switch to MathLive
+    mathField.style.display = 'block';
+    fallbackField.style.display = 'none';
+    
+    // Update button states
+    if (mathModeBtn) mathModeBtn.style.display = 'none';
+    if (textModeBtn) textModeBtn.style.display = 'inline-block';
+    
+    // Update indicator
+    if (modeIndicator) {
+      modeIndicator.textContent = 'Math Mode: Use LaTeX syntax for equations';
+      modeIndicator.className = 'text-primary';
+    }
+  }
+}
+
+function switchToTextMode(fieldId) {
+  const mathField = document.getElementById(fieldId);
+  const fallbackField = document.getElementById(fieldId + '_Fallback');
+  const mathModeBtn = document.getElementById(fieldId.replace('Text_', 'MathModeBtn').replace('Text', 'MathModeBtn'));
+  const textModeBtn = document.getElementById(fieldId.replace('Text_', 'TextModeBtn').replace('Text', 'TextModeBtn'));
+  const modeIndicator = document.getElementById(fieldId + 'ModeIndicator');
+  
+  if (mathField && fallbackField) {
+    // Convert LaTeX to readable text
+    let content = mathField.value.trim();
+    if (content) {
+      content = convertLatexToText(content);
+      fallbackField.value = content;
+    }
+    
+    // Switch to textarea
+    mathField.style.display = 'none';
+    fallbackField.style.display = 'block';
+    
+    // Update button states
+    if (mathModeBtn) mathModeBtn.style.display = 'inline-block';
+    if (textModeBtn) textModeBtn.style.display = 'none';
+    
+    // Update indicator
+    if (modeIndicator) {
+      modeIndicator.textContent = 'Text Mode: Plain text input';
+      modeIndicator.className = 'text-secondary';
+    }
+  }
+}
+
+// Convert text to LaTeX for math expressions
+function convertTextToLatex(text) {
+  // Common text to LaTeX conversions
+  const conversions = [
+    { from: /\^(\d+)/g, to: '^{$1}' },           // x^2 -> x^{2}
+    { from: /sqrt\(([^)]+)\)/g, to: '\\sqrt{$1}' }, // sqrt(x) -> \sqrt{x}
+    { from: /frac\(([^,]+),\s*([^)]+)\)/g, to: '\\frac{$1}{$2}' }, // frac(a,b) -> \frac{a}{b}
+    { from: /pi/g, to: '\\pi' },                 // pi -> \pi
+    { from: /alpha/g, to: '\\alpha' },           // alpha -> \alpha
+    { from: /beta/g, to: '\\beta' },             // beta -> \beta
+    { from: /gamma/g, to: '\\gamma' },           // gamma -> \gamma
+    { from: /delta/g, to: '\\delta' },           // delta -> \delta
+    { from: /theta/g, to: '\\theta' },           // theta -> \theta
+    { from: /lambda/g, to: '\\lambda' },         // lambda -> \lambda
+    { from: /mu/g, to: '\\mu' },                 // mu -> \mu
+    { from: /sigma/g, to: '\\sigma' },           // sigma -> \sigma
+    { from: /tau/g, to: '\\tau' },               // tau -> \tau
+    { from: /phi/g, to: '\\phi' },               // phi -> \phi
+    { from: /omega/g, to: '\\omega' },           // omega -> \omega
+    { from: /infinity/g, to: '\\infty' },        // infinity -> \infty
+    { from: /integral/g, to: '\\int' },          // integral -> \int
+    { from: /sum/g, to: '\\sum' },               // sum -> \sum
+    { from: /product/g, to: '\\prod' },          // product -> \prod
+    { from: /limit/g, to: '\\lim' },             // limit -> \lim
+    { from: /sin\(/g, to: '\\sin(' },            // sin( -> \sin(
+    { from: /cos\(/g, to: '\\cos(' },            // cos( -> \cos(
+    { from: /tan\(/g, to: '\\tan(' },            // tan( -> \tan(
+    { from: /log\(/g, to: '\\log(' },            // log( -> \log(
+    { from: /ln\(/g, to: '\\ln(' },              // ln( -> \ln(
+    { from: /exp\(/g, to: '\\exp(' },            // exp( -> \exp(
+    { from: /leq/g, to: '\\leq' },               // leq -> \leq
+    { from: /geq/g, to: '\\geq' },               // geq -> \geq
+    { from: /neq/g, to: '\\neq' },               // neq -> \neq
+    { from: /approx/g, to: '\\approx' },         // approx -> \approx
+    { from: /equiv/g, to: '\\equiv' },           // equiv -> \equiv
+    { from: /subset/g, to: '\\subset' },         // subset -> \subset
+    { from: /supset/g, to: '\\supset' },         // supset -> \supset
+    { from: /in/g, to: '\\in' },                 // in -> \in
+    { from: /notin/g, to: '\\notin' },           // notin -> \notin
+    { from: /cup/g, to: '\\cup' },               // cup -> \cup
+    { from: /cap/g, to: '\\cap' },               // cap -> \cap
+    { from: /union/g, to: '\\cup' },             // union -> \cup
+    { from: /intersection/g, to: '\\cap' },      // intersection -> \cap
+    { from: /rightarrow/g, to: '\\rightarrow' }, // rightarrow -> \rightarrow
+    { from: /leftarrow/g, to: '\\leftarrow' },   // leftarrow -> \leftarrow
+    { from: /Rightarrow/g, to: '\\Rightarrow' }, // Rightarrow -> \Rightarrow
+    { from: /Leftarrow/g, to: '\\Leftarrow' },   // Leftarrow -> \Leftarrow
+    { from: /forall/g, to: '\\forall' },         // forall -> \forall
+    { from: /exists/g, to: '\\exists' },         // exists -> \exists
+    { from: /pm/g, to: '\\pm' },                 // pm -> \pm
+    { from: /mp/g, to: '\\mp' },                 // mp -> \mp
+    { from: /times/g, to: '\\times' },           // times -> \times
+    { from: /div/g, to: '\\div' },               // div -> \div
+    { from: /cdot/g, to: '\\cdot' },             // cdot -> \cdot
+    { from: /ast/g, to: '\\ast' },               // ast -> \ast
+    { from: /star/g, to: '\\star' },             // star -> \star
+    { from: /circ/g, to: '\\circ' },             // circ -> \circ
+    { from: /bullet/g, to: '\\bullet' },         // bullet -> \bullet
+    { from: /oplus/g, to: '\\oplus' },           // oplus -> \oplus
+    { from: /ominus/g, to: '\\ominus' },         // ominus -> \ominus
+    { from: /otimes/g, to: '\\otimes' },         // otimes -> \otimes
+    { from: /odot/g, to: '\\odot' }              // odot -> \odot
+  ];
+  
+  let result = text;
+  conversions.forEach(conversion => {
+    result = result.replace(conversion.from, conversion.to);
+  });
+  
+  return result;
+}
+
+// Convert LaTeX to readable text
+function convertLatexToText(text) {
+  // Common LaTeX to text conversions
+  const conversions = [
+    { from: /\\sqrt\{([^}]+)\}/g, to: 'sqrt($1)' },           // \sqrt{x} -> sqrt(x)
+    { from: /\\frac\{([^}]+)\}\{([^}]+)\}/g, to: 'frac($1, $2)' }, // \frac{a}{b} -> frac(a, b)
+    { from: /\\pi/g, to: 'pi' },                 // \pi -> pi
+    { from: /\\alpha/g, to: 'alpha' },           // \alpha -> alpha
+    { from: /\\beta/g, to: 'beta' },             // \beta -> beta
+    { from: /\\gamma/g, to: 'gamma' },           // \gamma -> gamma
+    { from: /\\delta/g, to: 'delta' },           // \delta -> delta
+    { from: /\\theta/g, to: 'theta' },           // \theta -> theta
+    { from: /\\lambda/g, to: 'lambda' },         // \lambda -> lambda
+    { from: /\\mu/g, to: 'mu' },                 // \mu -> mu
+    { from: /\\sigma/g, to: 'sigma' },           // \sigma -> sigma
+    { from: /\\tau/g, to: 'tau' },               // \tau -> tau
+    { from: /\\phi/g, to: 'phi' },               // \phi -> phi
+    { from: /\\omega/g, to: 'omega' },           // \omega -> omega
+    { from: /\\infty/g, to: 'infinity' },        // \infty -> infinity
+    { from: /\\int/g, to: 'integral' },          // \int -> integral
+    { from: /\\sum/g, to: 'sum' },               // \sum -> sum
+    { from: /\\prod/g, to: 'product' },          // \prod -> product
+    { from: /\\lim/g, to: 'limit' },             // \lim -> limit
+    { from: /\\sin\(/g, to: 'sin(' },            // \sin( -> sin(
+    { from: /\\cos\(/g, to: 'cos(' },            // \cos( -> cos(
+    { from: /\\tan\(/g, to: 'tan(' },            // \tan( -> tan(
+    { from: /\\log\(/g, to: 'log(' },            // \log( -> log(
+    { from: /\\ln\(/g, to: 'ln(' },              // \ln( -> ln(
+    { from: /\\exp\(/g, to: 'exp(' },            // \exp( -> exp(
+    { from: /\\leq/g, to: 'leq' },               // \leq -> leq
+    { from: /\\geq/g, to: 'geq' },               // \geq -> geq
+    { from: /\\neq/g, to: 'neq' },               // \neq -> neq
+    { from: /\\approx/g, to: 'approx' },         // \approx -> approx
+    { from: /\\equiv/g, to: 'equiv' },           // \equiv -> equiv
+    { from: /\\subset/g, to: 'subset' },         // \subset -> subset
+    { from: /\\supset/g, to: 'supset' },         // \supset -> supset
+    { from: /\\in/g, to: 'in' },                 // \in -> in
+    { from: /\\notin/g, to: 'notin' },           // \notin -> notin
+    { from: /\\cup/g, to: 'union' },             // \cup -> union
+    { from: /\\cap/g, to: 'intersection' },      // \cap -> intersection
+    { from: /\\rightarrow/g, to: 'rightarrow' }, // \rightarrow -> rightarrow
+    { from: /\\leftarrow/g, to: 'leftarrow' },   // \leftarrow -> leftarrow
+    { from: /\\Rightarrow/g, to: 'Rightarrow' }, // \Rightarrow -> Rightarrow
+    { from: /\\Leftarrow/g, to: 'Leftarrow' },   // \Leftarrow -> Leftarrow
+    { from: /\\forall/g, to: 'forall' },         // \forall -> forall
+    { from: /\\exists/g, to: 'exists' },         // \exists -> exists
+    { from: /\\pm/g, to: 'pm' },                 // \pm -> pm
+    { from: /\\mp/g, to: 'mp' },                 // \mp -> mp
+    { from: /\\times/g, to: 'times' },           // \times -> times
+    { from: /\\div/g, to: 'div' },               // \div -> div
+    { from: /\\cdot/g, to: 'cdot' },             // \cdot -> cdot
+    { from: /\\ast/g, to: 'ast' },               // \ast -> ast
+    { from: /\\star/g, to: 'star' },             // \star -> star
+    { from: /\\circ/g, to: 'circ' },             // \circ -> circ
+    { from: /\\bullet/g, to: 'bullet' },         // \bullet -> bullet
+    { from: /\\oplus/g, to: 'oplus' },           // \oplus -> oplus
+    { from: /\\ominus/g, to: 'ominus' },         // \ominus -> ominus
+    { from: /\\otimes/g, to: 'otimes' },         // \otimes -> otimes
+    { from: /\\odot/g, to: 'odot' },             // \odot -> odot
+    { from: /\^(\{([^}]+)\})/g, to: '^$2' },     // ^{x} -> ^x
+    { from: /\^(\w)/g, to: '^$1' },              // ^x -> ^x
+    { from: /_(\{([^}]+)\})/g, to: '_$2' },      // _{x} -> _x
+    { from: /_(\w)/g, to: '_$1' }                // _x -> _x
+  ];
+  
+  let result = text;
+  conversions.forEach(conversion => {
+    result = result.replace(conversion.from, conversion.to);
+  });
+  
+  return result;
+}
+
+</script>
+
+<style>
+/* Math field styles for preview */
+.preview-math-field {
+  background: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 6px !important;
+  font-family: 'KaTeX_Math', 'Times New Roman', serif !important;
+}
+
+.preview-math-field:focus {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Question preview option styles */
+.question-preview-option.correct {
+  background-color: #d4edda;
+  border-left: 4px solid #28a745;
+}
+
+.question-preview-option.correct .option-label {
+  background-color: #28a745;
+  color: white;
+}
+
+.question-preview-answer {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background-color: #e7f3ff;
+  border-left: 4px solid #007bff;
+  border-radius: 4px;
+  position: relative;
+}
+
+.question-preview-answer.mandatory {
+  background-color: #d4edda;
+  border-left-color: #28a745;
+}
+
+.question-preview-answer.optional {
+  background-color: #fff3cd;
+  border-left-color: #ffc107;
+}
+
+.answer-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.answer-text {
+  flex: 1;
+  font-size: 14px;
+}
+
+.answer-status {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.answer-status i {
+  margin-right: 4px;
+  font-size: 10px;
+}
+
+.question-preview-answer.mandatory .answer-status {
+  color: #155724;
+}
+
+.question-preview-answer.optional .answer-status {
+  color: #856404;
+}
+
+/* Option math field styles */
+.option-math-field {
+  background: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  min-height: 30px !important;
+}
+
+.answer-math-field {
+  background: #e7f3ff !important;
+  border: 1px solid #b3d9ff !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  min-height: 30px !important;
+}
+
+/* Correct answer indicator */
+.correct-indicator {
+  color: #28a745;
+  font-weight: bold;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* Option text container */
+.option-text {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+/* Checkbox styles for written answers */
+.option-checkbox {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.option-checkbox-input {
+  display: none;
+}
+
+.option-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.option-checkbox-label:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.option-checkbox-input:checked + .option-checkbox-label {
+  background: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.option-checkbox-label i {
+  margin-right: 6px;
+  font-size: 10px;
+}
+
+.mandatory-text {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Optional answer styling */
+.option-checkbox-input:not(:checked) + .option-checkbox-label {
+  background: #fff3cd;
+  border-color: #ffc107;
+  color: #856404;
+}
+
+/* Enhanced Answer Type Selector Styles */
+.answer-type-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.answer-type-option {
+  flex: 1;
+  position: relative;
+}
+
+.answer-type-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.answer-type-label {
+  display: flex;
+  align-items: flex-start;
+  padding: 1.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.answer-type-label::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.answer-type-label:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.answer-type-radio:checked + .answer-type-label {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.answer-type-radio:checked + .answer-type-label::before {
+  opacity: 0.1;
+}
+
+.answer-type-icon {
+  margin-right: 1rem;
+  font-size: 1.5rem;
+  color: #6b7280;
+  transition: all 0.3s ease;
+  z-index: 1;
+  position: relative;
+}
+
+.answer-type-radio:checked + .answer-type-label .answer-type-icon {
+  color: white;
+  transform: scale(1.1);
+}
+
+.answer-type-content {
+  flex: 1;
+  z-index: 1;
+  position: relative;
+}
+
+.answer-type-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: #1f2937;
+  transition: color 0.3s ease;
+}
+
+.answer-type-radio:checked + .answer-type-label .answer-type-title {
+  color: white;
+}
+
+.answer-type-description {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
+  transition: color 0.3s ease;
+}
+
+.answer-type-radio:checked + .answer-type-label .answer-type-description {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.answer-type-badge {
+  margin-top: 0.5rem;
+}
+
+.answer-type-badge .badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.answer-type-radio:checked + .answer-type-label .answer-type-badge .badge {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .answer-type-selector {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .answer-type-label {
+    padding: 1rem;
+  }
+  
+  .answer-type-icon {
+    font-size: 1.25rem;
+    margin-right: 0.75rem;
+  }
+  
+  .answer-type-title {
+    font-size: 1rem;
+  }
+  
+  .answer-type-description {
+    font-size: 0.85rem;
+  }
+}
+
+/* Animation for selection */
+@keyframes answerTypeSelect {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.answer-type-radio:checked + .answer-type-label {
+  animation: answerTypeSelect 0.3s ease;
+}
+
+.option-checkbox-input:not(:checked) + .option-checkbox-label .mandatory-text::after {
+  content: " (Optional)";
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Always mandatory styling (first answer) */
+.mandatory-always {
+  background: #d1ecf1 !important;
+  border-color: #17a2b8 !important;
+  color: #0c5460 !important;
+  cursor: not-allowed !important;
+}
+
+.mandatory-always:hover {
+  background: #d1ecf1 !important;
+  border-color: #17a2b8 !important;
+}
+
+.mandatory-always i {
+  color: #17a2b8 !important;
+}
+</style>

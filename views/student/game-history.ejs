@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Game History - Elkably E-Learning</title>
+  <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+  <link rel="stylesheet" href="/css/studentCSS/games.css">
+  <link rel="stylesheet" href="/css/theme-toggle.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta name="description" content="View your past multiplayer quiz game results">
+  <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+  <div class="student-layout">
+    <%- include('partials/student-sidebar', { currentPage: 'game-rooms', student: student }) %>
+    <main class="student-main">
+      <%- include('partials/student-header', { title: 'My Game History', student: student, theme: theme, currentPage: 'game-rooms' }) %>
+      <div class="student-container">
+  <div class="page-header">
+    <div class="page-header-content">
+      <h1 class="page-title">
+        <i class="fas fa-history"></i>
+        My Game History
+      </h1>
+      <p class="page-subtitle">View your past multiplayer quiz game results</p>
+    </div>
+    <div class="page-header-actions">
+      <a href="/student/game-rooms" class="btn btn-primary">
+        <i class="fas fa-gamepad"></i>
+        Play More Games
+      </a>
+    </div>
+  </div>
+
+  <!-- Game History Content -->
+  <div class="game-history-container">
+    <% if (sessions.length > 0) { %>
+      <div class="game-history-grid">
+        <% sessions.forEach(session => { %>
+          <div class="game-history-card">
+            <div class="history-card-header">
+              <div class="game-info">
+                <h3 class="game-title"><%= session.gameRoom.title %></h3>
+                <div class="game-meta">
+                  <span class="game-category"><%= session.gameRoom.category %></span>
+                  <span class="game-difficulty difficulty-<%= session.gameRoom.difficulty %>">
+                    <%= session.gameRoom.difficulty.charAt(0).toUpperCase() + session.gameRoom.difficulty.slice(1) %>
+                  </span>
+                </div>
+              </div>
+              <div class="game-date">
+                <%= new Date(session.createdAt).toLocaleDateString() %>
+              </div>
+            </div>
+
+            <div class="history-card-content">
+              <div class="performance-stats">
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value"><%= session.score %></span>
+                    <span class="stat-label">Final Score</span>
+                  </div>
+                </div>
+                
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value"><%= session.correctAnswers %>/<%= session.totalQuestions %></span>
+                    <span class="stat-label">Correct Answers</span>
+                  </div>
+                </div>
+                
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <i class="fas fa-percentage"></i>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value"><%= session.accuracy %>%</span>
+                    <span class="stat-label">Accuracy</span>
+                  </div>
+                </div>
+                
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value"><%= session.timeSpent %>s</span>
+                    <span class="stat-label">Time Spent</span>
+                  </div>
+                </div>
+              </div>
+
+              <% if (session.position) { %>
+                <div class="ranking-info">
+                  <div class="ranking-badge position-<%= session.position %>">
+                    <% if (session.position === 1) { %>
+                      <i class="fas fa-crown"></i>
+                      <span>1st Place</span>
+                    <% } else if (session.position === 2) { %>
+                      <i class="fas fa-medal"></i>
+                      <span>2nd Place</span>
+                    <% } else if (session.position === 3) { %>
+                      <i class="fas fa-medal"></i>
+                      <span>3rd Place</span>
+                    <% } else { %>
+                      <i class="fas fa-trophy"></i>
+                      <span><%= session.position %>th Place</span>
+                    <% } %>
+                  </div>
+                </div>
+              <% } %>
+
+              <div class="session-details">
+                <div class="detail-item">
+                  <span class="detail-label">Room Code:</span>
+                  <span class="detail-value">#<%= session.gameRoom.roomCode %></span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Questions:</span>
+                  <span class="detail-value"><%= session.gameRoom.questions.length %></span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Total Time:</span>
+                  <span class="detail-value"><%= session.gameRoom.totalTime %> min</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="history-card-footer">
+              <div class="session-status">
+                <span class="status-badge completed">
+                  <i class="fas fa-check"></i>
+                  Completed
+                </span>
+              </div>
+              <div class="session-time">
+                <%= new Date(session.createdAt).toLocaleString() %>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="fas fa-history"></i>
+        </div>
+        <h3>No Game History Yet</h3>
+        <p>You haven't completed any multiplayer quiz games yet. Start playing to see your results here!</p>
+        <a href="/student/game-rooms" class="btn btn-primary">
+          <i class="fas fa-gamepad"></i>
+          Start Playing
+        </a>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Pagination -->
+  <% if (pagination.pages > 1) { %>
+    <div class="pagination-wrapper">
+      <nav class="pagination">
+        <% if (pagination.page > 1) { %>
+          <a href="?page=<%= pagination.page - 1 %>" class="pagination-btn">
+            <i class="fas fa-chevron-left"></i>
+            Previous
+          </a>
+        <% } %>
+
+        <% for (let i = 1; i <= pagination.pages; i++) { %>
+          <% if (i === pagination.page) { %>
+            <span class="pagination-btn active"><%= i %></span>
+          <% } else { %>
+            <a href="?page=<%= i %>" class="pagination-btn"><%= i %></a>
+          <% } %>
+        <% } %>
+
+        <% if (pagination.page < pagination.pages) { %>
+          <a href="?page=<%= pagination.page + 1 %>" class="pagination-btn">
+            Next
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        <% } %>
+      </nav>
+    </div>
+  <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

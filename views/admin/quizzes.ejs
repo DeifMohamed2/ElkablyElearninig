@@ -1,0 +1,1136 @@
+<%- include('./partials/admin-header', { pageCSS: 'quizzes' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: currentPage }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Quizzes',
+        breadcrumbSubtitle: 'Create and manage quizzes for your students'
+    }) %>
+    
+    <!-- Content -->
+    <div class="admin-content">
+  <!-- Page Header -->
+  <div class="admin-dashboard-header">
+    <div class="admin-dashboard-title">
+      <i class="fas fa-question-circle"></i>
+      Quiz Management
+    </div>
+    <div class="admin-dashboard-subtitle">
+      Create and manage quizzes for your students
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="admin-stat-item">
+        <div class="admin-stat-icon">
+          <i class="fas fa-question-circle"></i>
+        </div>
+        <div class="admin-stat-number"><%= stats.totalQuizzes || 0 %></div>
+        <div class="admin-stat-label">Total Quizzes</div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="admin-stat-item">
+        <div class="admin-stat-icon">
+          <i class="fas fa-play-circle"></i>
+        </div>
+        <div class="admin-stat-number"><%= stats.activeQuizzes || 0 %></div>
+        <div class="admin-stat-label">Active Quizzes</div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="admin-stat-item">
+        <div class="admin-stat-icon">
+          <i class="fas fa-edit"></i>
+        </div>
+        <div class="admin-stat-number"><%= stats.draftQuizzes || 0 %></div>
+        <div class="admin-stat-label">Draft Quizzes</div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="admin-stat-item">
+        <div class="admin-stat-icon">
+          <i class="fas fa-trash"></i>
+        </div>
+        <div class="admin-stat-number" id="trashCount"><%= stats.trashQuizzes || 0 %></div>
+        <div class="admin-stat-label">Trash Quizzes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Actions -->
+  <div class="admin-filters">
+    <div class="row">
+      <div class="col-md-8">
+        <form method="GET" class="admin-filters-form">
+          <div class="admin-filters-row">
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">
+                <i class="fas fa-search"></i>
+                Search
+              </label>
+              <input type="text" name="search" class="admin-filter-control" placeholder="Search quizzes..." value="<%= filters.search || '' %>">
+            </div>
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">
+                <i class="fas fa-filter"></i>
+                Status
+              </label>
+              <select name="status" class="admin-filter-control">
+                <option value="">All Status</option>
+                <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
+                <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+                <option value="archived" <%= filters.status === 'archived' ? 'selected' : '' %>>Archived</option>
+              </select>
+            </div>
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">
+                <i class="fas fa-signal"></i>
+                Difficulty
+              </label>
+              <select name="difficulty" class="admin-filter-control">
+                <option value="">All Levels</option>
+                <option value="easy" <%= filters.difficulty === 'easy' ? 'selected' : '' %>>Easy</option>
+                <option value="medium" <%= filters.difficulty === 'medium' ? 'selected' : '' %>>Medium</option>
+                <option value="hard" <%= filters.difficulty === 'hard' ? 'selected' : '' %>>Hard</option>
+              </select>
+            </div>
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">
+                <i class="fas fa-sort"></i>
+                Sort By
+              </label>
+              <select name="sortBy" class="admin-filter-control">
+                <option value="createdAt" <%= filters.sortBy === 'createdAt' ? 'selected' : '' %>>Date Created</option>
+                <option value="title" <%= filters.sortBy === 'title' ? 'selected' : '' %>>Title</option>
+                <option value="totalQuestions" <%= filters.sortBy === 'totalQuestions' ? 'selected' : '' %>>Questions</option>
+                <option value="duration" <%= filters.sortBy === 'duration' ? 'selected' : '' %>>Duration</option>
+              </select>
+            </div>
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">
+                <i class="fas fa-sort-amount-down"></i>
+                Order
+              </label>
+              <select name="sortOrder" class="admin-filter-control">
+                <option value="desc" <%= filters.sortOrder === 'desc' ? 'selected' : '' %>>Descending</option>
+                <option value="asc" <%= filters.sortOrder === 'asc' ? 'selected' : '' %>>Ascending</option>
+              </select>
+            </div>
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">&nbsp;</label>
+              <button type="submit" class="admin-action-btn primary">
+                <i class="fas fa-search"></i>
+                Search
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="col-md-4">
+        <div class="admin-actions">
+          <a href="/admin/quizzes/create" class="admin-action-btn primary">
+            <i class="fas fa-plus"></i>
+            Create New Quiz
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Info -->
+  <div class="admin-results-info" style="background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+    <p class="mb-0" style="color: var(--admin-text-light); font-weight: 600;">
+      <i class="fas fa-info-circle" style="color: var(--admin-primary); margin-right: 8px;"></i>
+      Showing <strong><%= pagination.total %></strong> quizzes
+      <% if (filters.search || filters.status || filters.difficulty) { %>
+        with current filters
+      <% } %>
+    </p>
+  </div>
+
+  <!-- Quizzes Grid -->
+  <% if (quizzes && quizzes.length > 0) { %>
+    <div class="row">
+      <% quizzes.forEach((quiz, index) => { %>
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="quiz-card-modern admin-slide-in" data-delay="<%= index * 0.1 %>">
+            <!-- Quiz Header -->
+            <div class="quiz-card-header">
+              <div class="quiz-card-thumbnail" style="position: relative; overflow: hidden; border-radius: 8px;">
+                <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
+                  <img src="<%= quiz.thumbnail.url %>" alt="<%= quiz.title %>" class="quiz-thumbnail-img">
+                  <div class="quiz-thumbnail-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.3s ease; border-radius: 8px;">
+                    <button class="btn btn-sm btn-outline-light" onclick="editThumbnail('<%= quiz._id %>')" title="Edit Thumbnail" style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(255, 255, 255, 0.8); color: #374151; font-weight: 500; padding: 8px 12px; border-radius: 6px; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                      <i class="fas fa-edit" style="margin-right: 4px;"></i>
+                      Edit
+                    </button>
+                  </div>
+                <% } else { %>
+                  <div class="quiz-thumbnail-placeholder" onclick="editThumbnail('<%= quiz._id %>')" style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border: 2px dashed #cbd5e1; border-radius: 8px; transition: all 0.3s ease;">
+                    <i class="fas fa-image" style="font-size: 24px; color: #64748b; margin-bottom: 8px;"></i>
+                    <div class="add-thumbnail-btn" style="background: #3b82f6; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                      <i class="fas fa-plus"></i>
+                    </div>
+                    <span style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">Add Thumbnail</span>
+                  </div>
+                <% } %>
+              </div>
+              <div class="quiz-card-header-content">
+                <div class="quiz-status-badge quiz-status-<%= quiz.status %>">
+                  <%= quiz.status %>
+                </div>
+                <h3 class="quiz-title"><%= quiz.title %></h3>
+                <div class="quiz-code"><%= quiz.code %></div>
+              </div>
+            </div>
+
+            <!-- Quiz Body -->
+            <div class="quiz-card-body">
+              <p class="quiz-description"><%= quiz.description %></p>
+
+              <!-- Quiz Stats -->
+              <div class="quiz-stats-grid">
+                <div class="quiz-stat-item">
+                  <span class="quiz-stat-number"><%= quiz.selectedQuestions.length || 0 %></span>
+                  <span class="quiz-stat-label">Questions</span>
+                </div>
+                <div class="quiz-stat-item">
+                  <span class="quiz-stat-number"><%= quiz.totalPoints || 0 %></span>
+                  <span class="quiz-stat-label">Points</span>
+                </div>
+                <div class="quiz-stat-item">
+                  <span class="quiz-stat-number"><%= quiz.duration %></span>
+                  <span class="quiz-stat-label">Minutes</span>
+                </div>
+                <div class="quiz-stat-item">
+                  <span class="quiz-stat-number"><%= quiz.passingScore %>%</span>
+                  <span class="quiz-stat-label">Passing</span>
+                </div>
+              </div>
+
+              <!-- Quiz Meta -->
+              <div class="quiz-meta">
+                <div class="quiz-meta-item">
+                  <i class="fas fa-signal"></i>
+                  <span><%= quiz.difficulty %></span>
+                </div>
+                <div class="quiz-meta-item">
+                  <i class="fas fa-database"></i>
+                  <span><%= quiz.questionBank?.name || 'No Bank' %></span>
+                </div>
+                <div class="quiz-meta-item">
+                  <i class="fas fa-user"></i>
+                  <span><%= quiz.createdBy?.userName || 'Unknown' %></span>
+                </div>
+                <div class="quiz-meta-item">
+                  <i class="fas fa-calendar"></i>
+                  <span><%= new Date(quiz.createdAt).toLocaleDateString() %></span>
+                </div>
+              </div>
+
+              <!-- Quiz Tags -->
+              <% if (quiz.tags && quiz.tags.length > 0) { %>
+                <div class="quiz-tags">
+                  <% quiz.tags.slice(0, 3).forEach(tag => { %>
+                    <span class="quiz-tag"><%= tag %></span>
+                  <% }) %>
+                  <% if (quiz.tags.length > 3) { %>
+                    <span class="quiz-tag">+<%= quiz.tags.length - 3 %></span>
+                  <% } %>
+                </div>
+              <% } %>
+            </div>
+
+            <!-- Quiz Footer -->
+            <div class="quiz-card-footer">
+              <div class="quiz-actions">
+                <a href="/admin/quizzes/<%= quiz._id %>" class="quiz-action-btn quiz-action-btn-primary">
+                  <i class="fas fa-eye"></i>
+                  View
+                </a>
+                <a href="/admin/quizzes/<%= quiz._id %>/edit" class="quiz-action-btn quiz-action-btn-secondary">
+                  <i class="fas fa-edit"></i>
+                  Edit
+                </a>
+                <button class="quiz-action-btn quiz-action-btn-danger" onclick="deleteQuiz('<%= quiz._id %>')">
+                  <i class="fas fa-trash"></i>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Pagination -->
+    <% if (pagination.totalPages > 1) { %>
+      <div class="admin-pagination">
+        <% if (pagination.hasPrev) { %>
+          <a class="admin-pagination-btn" href="?page=<%= pagination.prevPage %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.difficulty ? '&difficulty=' + filters.difficulty : '' %><%= filters.sortBy ? '&sortBy=' + filters.sortBy : '' %><%= filters.sortOrder ? '&sortOrder=' + filters.sortOrder : '' %>">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        <% } %>
+
+        <% for (let i = Math.max(1, pagination.currentPage - 2); i <= Math.min(pagination.totalPages, pagination.currentPage + 2); i++) { %>
+          <a class="admin-pagination-btn <%= i === pagination.currentPage ? 'active' : '' %>" href="?page=<%= i %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.difficulty ? '&difficulty=' + filters.difficulty : '' %><%= filters.sortBy ? '&sortBy=' + filters.sortBy : '' %><%= filters.sortOrder ? '&sortOrder=' + filters.sortOrder : '' %>">
+            <%= i %>
+          </a>
+        <% } %>
+
+        <% if (pagination.hasNext) { %>
+          <a class="admin-pagination-btn" href="?page=<%= pagination.nextPage %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.difficulty ? '&difficulty=' + filters.difficulty : '' %><%= filters.sortBy ? '&sortBy=' + filters.sortBy : '' %><%= filters.sortOrder ? '&sortOrder=' + filters.sortOrder : '' %>">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        <% } %>
+      </div>
+    <% } %>
+
+  <% } else { %>
+    <!-- Empty State -->
+    <div class="admin-empty-state" style="text-align: center; padding: 60px 20px; background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 16px; margin: 40px 0;">
+      <div class="admin-empty-icon" style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--admin-primary), #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; color: #ffffff; font-size: 32px;">
+        <i class="fas fa-question-circle"></i>
+      </div>
+      <h4 class="admin-empty-title" style="color: var(--admin-text-light); font-size: 24px; font-weight: 700; margin-bottom: 16px;">No Quizzes Found</h4>
+      <p class="admin-empty-description" style="color: #64748b; font-size: 16px; margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        <% if (filters.search || filters.status || filters.difficulty) { %>
+          No quizzes match your current filters. Try adjusting your search criteria.
+        <% } else { %>
+          You haven't created any quizzes yet. Start by creating your first quiz.
+        <% } %>
+      </p>
+      <a href="/admin/quizzes/create" class="admin-action-btn primary" style="font-size: 16px; padding: 12px 24px;">
+        <i class="fas fa-plus"></i>
+        Create Your First Quiz
+      </a>
+    </div>
+  <% } %>
+
+  <!-- Trash Section -->
+  <div id="trashSection" style="display: none;">
+    <div class="admin-section-header" style="margin-top: 40px; margin-bottom: 24px;">
+      <h3 style="color: var(--admin-text-light); font-size: 20px; font-weight: 600; margin-bottom: 8px;">
+        <i class="fas fa-trash text-warning"></i>
+        Trash
+      </h3>
+      <p style="color: #64748b; font-size: 14px; margin: 0;">
+        Quizzes that have been moved to trash. You can restore them or permanently delete them.
+      </p>
+    </div>
+    
+    <div id="trashQuizzesContainer">
+      <!-- Trash quizzes will be loaded here -->
+    </div>
+  </div>
+
+  <!-- Toggle Trash Button -->
+  <div class="text-center mt-4">
+    <button class="btn btn-outline-warning" id="toggleTrashBtn" onclick="toggleTrashSection()">
+      <i class="fas fa-trash"></i>
+      <span id="toggleTrashText">Show Trash</span>
+    </button>
+  </div>
+    </div>
+    
+  </main>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteQuizModal" tabindex="-1" aria-labelledby="deleteQuizModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title" id="deleteQuizModalLabel">
+          <i class="fas fa-exclamation-triangle text-danger"></i>
+          Confirm Delete
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body admin-modal-body">
+        <p>Are you sure you want to move this quiz to trash? You can restore it later if needed.</p>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          <strong>Note:</strong> This will move the quiz to trash. It won't be permanently deleted and can be restored later.
+        </div>
+      </div>
+      <div class="modal-footer admin-modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="confirmDeleteBtn">
+          <i class="fas fa-trash"></i>
+          Move to Trash
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Thumbnail Edit Modal -->
+<div class="modal fade" id="editThumbnailModal" tabindex="-1" aria-labelledby="editThumbnailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header admin-modal-header">
+        <h5 class="modal-title" id="editThumbnailModalLabel">
+          <i class="fas fa-image"></i>
+          Edit Quiz Thumbnail
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body admin-modal-body">
+        <div class="quiz-thumbnail-edit-container">
+          <!-- Current Thumbnail Preview -->
+          <div class="current-thumbnail-section">
+            <h6>Current Thumbnail</h6>
+            <div class="current-thumbnail-preview" id="currentThumbnailPreview">
+              <div class="no-thumbnail-placeholder">
+                <i class="fas fa-image"></i>
+                <p>No thumbnail uploaded</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload New Thumbnail -->
+          <div class="new-thumbnail-section">
+            <h6>Upload New Thumbnail</h6>
+            <div class="quiz-thumbnail-upload-area" id="modalThumbnailUploadArea" style="border: 2px dashed #d1d5db; border-radius: 8px; padding: 20px; text-align: center; transition: all 0.3s ease;">
+              <div class="quiz-thumbnail-upload-content">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 24px; color: #6b7280; margin-bottom: 8px;"></i>
+                <p style="margin: 0; color: #374151; font-weight: 500;">Upload New Thumbnail</p>
+                <small style="color: #9ca3af;">PNG, JPG, GIF up to 5MB</small>
+              </div>
+              <input type="file" id="modalThumbnailInput" accept="image/*" class="form-control mt-3" onchange="if(this.files.length > 0) handleModalThumbnailUpload(this.files[0])">
+            </div>
+            
+            <!-- Upload Progress -->
+            <div class="quiz-thumbnail-progress" id="modalThumbnailProgress" style="display: none;">
+              <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" id="modalThumbnailProgressBar" style="width: 0%"></div>
+              </div>
+              <div class="quiz-thumbnail-progress-text" id="modalThumbnailProgressText">Uploading...</div>
+            </div>
+
+            <!-- New Thumbnail Preview -->
+            <div class="new-thumbnail-preview" id="newThumbnailPreview" style="display: none;">
+              <img id="newThumbnailImage" src="" alt="New thumbnail">
+              <div class="new-thumbnail-actions">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNewThumbnail()">
+                  <i class="fas fa-trash"></i> Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer admin-modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="saveThumbnailBtn" onclick="saveThumbnail()" disabled>
+          <i class="fas fa-save"></i>
+          Save Thumbnail
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentQuizId = null;
+let newThumbnailData = null;
+
+// Delete Quiz Function (Soft Delete)
+function deleteQuiz(quizId) {
+  const modal = new bootstrap.Modal(document.getElementById('deleteQuizModal'));
+  const confirmBtn = document.getElementById('confirmDeleteBtn');
+  
+  confirmBtn.onclick = async function() {
+    try {
+      // Show loading state
+      const originalText = confirmBtn.innerHTML;
+      confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Moving to trash...';
+      confirmBtn.disabled = true;
+      
+      // Make DELETE request with soft delete (default behavior)
+      const response = await fetch(`/admin/quizzes/${quizId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          immediate: false, // Soft delete
+          reason: 'Moved to trash from quizzes list'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success || response.ok) {
+        showNotification('Quiz moved to trash successfully!', 'success');
+        // Close modal
+        modal.hide();
+        // Update trash count
+        updateTrashCount();
+        // Remove the quiz card from the page
+        const quizCard = document.querySelector(`[onclick*="${quizId}"]`)?.closest('.col-lg-4');
+        if (quizCard) {
+          quizCard.style.transition = 'all 0.3s ease';
+          quizCard.style.transform = 'scale(0.8)';
+          quizCard.style.opacity = '0';
+          setTimeout(() => {
+            quizCard.remove();
+            // Check if no quizzes left and show empty state
+            const remainingCards = document.querySelectorAll('.quiz-card-modern');
+            if (remainingCards.length === 0) {
+              location.reload(); // Reload to show empty state
+            }
+          }, 300);
+        } else {
+          // Fallback: reload page
+          setTimeout(() => {
+            location.reload();
+          }, 1500);
+        }
+      } else {
+        throw new Error(data.message || 'Failed to delete quiz');
+      }
+    } catch (error) {
+      console.error('Delete quiz error:', error);
+      showNotification('Failed to delete quiz: ' + error.message, 'error');
+      
+      // Reset button state
+      confirmBtn.innerHTML = originalText;
+      confirmBtn.disabled = false;
+    }
+  };
+  
+  modal.show();
+}
+
+// Edit Thumbnail Function
+function editThumbnail(quizId) {
+  console.log('Opening edit thumbnail modal for quiz:', quizId);
+  currentQuizId = quizId;
+  newThumbnailData = null;
+  
+  // Reset modal state
+  resetThumbnailModal();
+  
+  // Load current thumbnail
+  loadCurrentThumbnail(quizId);
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('editThumbnailModal'));
+  modal.show();
+}
+
+// Load Current Thumbnail
+async function loadCurrentThumbnail(quizId) {
+  try {
+    const response = await fetch(`/admin/quizzes/${quizId}/thumbnail`);
+    const data = await response.json();
+    
+    const currentPreview = document.getElementById('currentThumbnailPreview');
+    
+    if (data.success && data.thumbnail) {
+      currentPreview.innerHTML = `
+        <img src="${data.thumbnail.url}" alt="Current thumbnail" class="current-thumbnail-img">
+      `;
+    } else {
+      currentPreview.innerHTML = `
+        <div class="no-thumbnail-placeholder">
+          <i class="fas fa-image"></i>
+          <p>No thumbnail uploaded</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading current thumbnail:', error);
+  }
+}
+
+// Reset Modal State
+function resetThumbnailModal() {
+  // Reset upload area
+  document.getElementById('modalThumbnailUploadArea').style.display = 'block';
+  document.getElementById('newThumbnailPreview').style.display = 'none';
+  document.getElementById('modalThumbnailProgress').style.display = 'none';
+  document.getElementById('modalThumbnailInput').value = '';
+  document.getElementById('saveThumbnailBtn').disabled = true;
+  
+  newThumbnailData = null;
+}
+
+// Initialize Modal Upload
+function initializeModalThumbnailUpload() {
+  console.log('Initializing modal thumbnail upload...');
+  
+  const fileInput = document.getElementById('modalThumbnailInput');
+
+  if (!fileInput) {
+    console.error('Modal thumbnail input not found');
+    return;
+  }
+
+  console.log('Found file input:', fileInput);
+
+  // Simple file input change event
+  fileInput.addEventListener('change', function(e) {
+    console.log('File input changed:', e.target.files);
+    if (e.target.files.length > 0) {
+      handleModalThumbnailUpload(e.target.files[0]);
+    }
+  });
+
+  console.log('Modal thumbnail upload initialized successfully');
+}
+
+// Initialize Thumbnail Placeholders
+function initializeThumbnailPlaceholders() {
+  const placeholders = document.querySelectorAll('.quiz-thumbnail-placeholder');
+  const thumbnailContainers = document.querySelectorAll('.quiz-card-thumbnail');
+  
+  // Initialize thumbnail overlay hover effects
+  thumbnailContainers.forEach(container => {
+    const overlay = container.querySelector('.quiz-thumbnail-overlay');
+    if (overlay) {
+      container.addEventListener('mouseenter', function() {
+        overlay.style.opacity = '1';
+      });
+      
+      container.addEventListener('mouseleave', function() {
+        overlay.style.opacity = '0';
+      });
+    }
+  });
+  
+  placeholders.forEach(placeholder => {
+    // Add hover effects
+    placeholder.addEventListener('mouseenter', function() {
+      this.style.borderColor = '#3b82f6';
+      this.style.backgroundColor = '#eff6ff';
+      this.style.transform = 'scale(1.02)';
+      
+      const addBtn = this.querySelector('.add-thumbnail-btn');
+      if (addBtn) {
+        addBtn.style.background = '#1d4ed8';
+        addBtn.style.transform = 'scale(1.1)';
+        addBtn.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.4)';
+      }
+    });
+    
+    placeholder.addEventListener('mouseleave', function() {
+      this.style.borderColor = '#cbd5e1';
+      this.style.backgroundColor = 'linear-gradient(135deg, #f8fafc, #e2e8f0)';
+      this.style.transform = 'scale(1)';
+      
+      const addBtn = this.querySelector('.add-thumbnail-btn');
+      if (addBtn) {
+        addBtn.style.background = '#3b82f6';
+        addBtn.style.transform = 'scale(1)';
+        addBtn.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.3)';
+      }
+    });
+    
+    // Add click animation
+    placeholder.addEventListener('mousedown', function() {
+      this.style.transform = 'scale(0.98)';
+    });
+    
+    placeholder.addEventListener('mouseup', function() {
+      this.style.transform = 'scale(1.02)';
+    });
+    
+    // Ensure click event works
+    placeholder.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const quizId = this.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+      if (quizId) {
+        editThumbnail(quizId);
+      }
+    });
+  });
+  
+  console.log('Thumbnail placeholders initialized');
+}
+
+// Handle Modal Thumbnail Upload
+async function handleModalThumbnailUpload(file) {
+  // Validate file
+  if (!file.type.startsWith('image/')) {
+    showNotification('Please select a valid image file', 'error');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showNotification('Image size must be less than 5MB', 'error');
+    return;
+  }
+
+  showModalThumbnailProgress();
+
+  try {
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+
+    const response = await fetch('/admin/quizzes/upload-thumbnail', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      newThumbnailData = result.thumbnail;
+      showNewThumbnailPreview(result.thumbnail.url);
+      hideModalThumbnailProgress();
+      document.getElementById('saveThumbnailBtn').disabled = false;
+      showNotification('Thumbnail uploaded successfully!', 'success');
+    } else {
+      throw new Error(result.message || 'Upload failed');
+    }
+  } catch (error) {
+    console.error('Modal thumbnail upload error:', error);
+    hideModalThumbnailProgress();
+    showNotification('Failed to upload thumbnail: ' + error.message, 'error');
+  }
+}
+
+// Show Modal Progress
+function showModalThumbnailProgress() {
+  const progressContainer = document.getElementById('modalThumbnailProgress');
+  const progressBar = document.getElementById('modalThumbnailProgressBar');
+  const progressText = document.getElementById('modalThumbnailProgressText');
+  
+  progressContainer.style.display = 'block';
+  progressBar.style.width = '0%';
+  progressText.textContent = 'Preparing upload...';
+  
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += Math.random() * 15;
+    if (progress > 90) progress = 90;
+    progressBar.style.width = progress + '%';
+    progressText.textContent = `Uploading... ${Math.round(progress)}%`;
+  }, 200);
+
+  progressContainer.dataset.interval = interval;
+}
+
+// Hide Modal Progress
+function hideModalThumbnailProgress() {
+  const progressContainer = document.getElementById('modalThumbnailProgress');
+  const progressBar = document.getElementById('modalThumbnailProgressBar');
+  
+  if (progressContainer.dataset.interval) {
+    clearInterval(progressContainer.dataset.interval);
+  }
+  
+  progressBar.style.width = '100%';
+  
+  setTimeout(() => {
+    progressContainer.style.display = 'none';
+  }, 500);
+}
+
+// Show New Thumbnail Preview
+function showNewThumbnailPreview(url) {
+  const preview = document.getElementById('newThumbnailPreview');
+  const image = document.getElementById('newThumbnailImage');
+  const uploadArea = document.getElementById('modalThumbnailUploadArea');
+  
+  image.src = url;
+  preview.style.display = 'block';
+  uploadArea.style.display = 'none';
+}
+
+// Remove New Thumbnail
+function removeNewThumbnail() {
+  const preview = document.getElementById('newThumbnailPreview');
+  const uploadArea = document.getElementById('modalThumbnailUploadArea');
+  const fileInput = document.getElementById('modalThumbnailInput');
+  
+  newThumbnailData = null;
+  preview.style.display = 'none';
+  uploadArea.style.display = 'block';
+  fileInput.value = '';
+  document.getElementById('saveThumbnailBtn').disabled = true;
+  
+  showNotification('Thumbnail removed', 'info');
+}
+
+// Save Thumbnail
+async function saveThumbnail() {
+  if (!currentQuizId || !newThumbnailData) {
+    showNotification('No thumbnail to save', 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/admin/quizzes/${currentQuizId}/thumbnail`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ thumbnail: newThumbnailData })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Thumbnail saved successfully!', 'success');
+      
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editThumbnailModal'));
+      modal.hide();
+      
+      // Reload page to show updated thumbnail
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      throw new Error(result.message || 'Failed to save thumbnail');
+    }
+  } catch (error) {
+    console.error('Save thumbnail error:', error);
+    showNotification('Failed to save thumbnail: ' + error.message, 'error');
+  }
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+    <button class="notification-close" onclick="this.parentElement.remove()">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 5000);
+}
+
+// Auto-submit form on filter change
+document.addEventListener('DOMContentLoaded', function() {
+  const filterSelects = document.querySelectorAll('.admin-filters-form select');
+  filterSelects.forEach(select => {
+    select.addEventListener('change', function() {
+      this.form.submit();
+    });
+  });
+  
+  // Set animation delays for quiz cards
+  const quizCards = document.querySelectorAll('.quiz-card-modern[data-delay]');
+  quizCards.forEach(card => {
+    const delay = card.getAttribute('data-delay');
+    card.style.animationDelay = delay + 's';
+  });
+  
+  // Initialize modal thumbnail upload
+  initializeModalThumbnailUpload();
+  
+  // Add admin fade-in animation to cards
+  const cards = document.querySelectorAll('.quiz-card-modern');
+  cards.forEach((card, index) => {
+    card.classList.add('admin-fade-in');
+    card.style.animationDelay = (index * 0.1) + 's';
+  });
+  
+  // Initialize thumbnail placeholder hover effects
+  initializeThumbnailPlaceholders();
+});
+
+// Search input with debounce
+let searchTimeout;
+const searchInput = document.querySelector('input[name="search"]');
+if (searchInput) {
+  searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      this.form.submit();
+    }, 500);
+  });
+}
+
+// Toggle Trash Section
+function toggleTrashSection() {
+  const trashSection = document.getElementById('trashSection');
+  const toggleBtn = document.getElementById('toggleTrashBtn');
+  const toggleText = document.getElementById('toggleTrashText');
+  
+  if (trashSection.style.display === 'none') {
+    // Show trash section
+    trashSection.style.display = 'block';
+    toggleText.textContent = 'Hide Trash';
+    toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i> <span id="toggleTrashText">Hide Trash</span>';
+    
+    // Load trash quizzes
+    loadTrashQuizzes();
+  } else {
+    // Hide trash section
+    trashSection.style.display = 'none';
+    toggleText.textContent = 'Show Trash';
+    toggleBtn.innerHTML = '<i class="fas fa-trash"></i> <span id="toggleTrashText">Show Trash</span>';
+  }
+}
+
+// Load Trash Quizzes
+async function loadTrashQuizzes() {
+  try {
+    console.log('Loading trash quizzes...');
+    const response = await fetch('/admin/quizzes/trash');
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('Trash data received:', data);
+    
+    const container = document.getElementById('trashQuizzesContainer');
+    
+    if (data.success && data.quizzes && data.quizzes.length > 0) {
+      container.innerHTML = `
+        <div class="row">
+          ${data.quizzes.map(quiz => `
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="quiz-card-modern admin-slide-in" style="opacity: 0.7; border: 2px solid #fbbf24;">
+                <!-- Quiz Header -->
+                <div class="quiz-card-header">
+                  <div class="quiz-card-thumbnail" style="position: relative; overflow: hidden; border-radius: 8px;">
+                    ${quiz.thumbnail && quiz.thumbnail.url ? 
+                      `<img src="${quiz.thumbnail.url}" alt="${quiz.title}" class="quiz-thumbnail-img">` :
+                      `<div class="quiz-thumbnail-placeholder" style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border: 2px dashed #cbd5e1; border-radius: 8px; transition: all 0.3s ease;">
+                        <i class="fas fa-image" style="font-size: 24px; color: #64748b; margin-bottom: 8px;"></i>
+                        <div class="add-thumbnail-btn" style="background: #3b82f6; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                          <i class="fas fa-plus"></i>
+                        </div>
+                        <span style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">Add Thumbnail</span>
+                      </div>`
+                    }
+                  </div>
+                  <div class="quiz-card-header-content">
+                    <div class="quiz-status-badge quiz-status-archived">
+                      Trashed
+                    </div>
+                    <h3 class="quiz-title">${quiz.title}</h3>
+                    <div class="quiz-code">${quiz.code}</div>
+                  </div>
+                </div>
+
+                <!-- Quiz Body -->
+                <div class="quiz-card-body">
+                  <p class="quiz-description">${quiz.description}</p>
+
+                  <!-- Quiz Stats -->
+                  <div class="quiz-stats-grid">
+                    <div class="quiz-stat-item">
+                      <span class="quiz-stat-number">${quiz.selectedQuestions ? quiz.selectedQuestions.length : 0}</span>
+                      <span class="quiz-stat-label">Questions</span>
+                    </div>
+                    <div class="quiz-stat-item">
+                      <span class="quiz-stat-number">${quiz.totalPoints || 0}</span>
+                      <span class="quiz-stat-label">Points</span>
+                    </div>
+                    <div class="quiz-stat-item">
+                      <span class="quiz-stat-number">${quiz.duration}</span>
+                      <span class="quiz-stat-label">Minutes</span>
+                    </div>
+                    <div class="quiz-stat-item">
+                      <span class="quiz-stat-number">${quiz.passingScore}%</span>
+                      <span class="quiz-stat-label">Passing</span>
+                    </div>
+                  </div>
+
+                  <!-- Quiz Meta -->
+                  <div class="quiz-meta">
+                    <div class="quiz-meta-item">
+                      <i class="fas fa-signal"></i>
+                      <span>${quiz.difficulty}</span>
+                    </div>
+                    <div class="quiz-meta-item">
+                      <i class="fas fa-database"></i>
+                      <span>${quiz.questionBank ? quiz.questionBank.name : 'No Bank'}</span>
+                    </div>
+                    <div class="quiz-meta-item">
+                      <i class="fas fa-user"></i>
+                      <span>${quiz.createdBy ? quiz.createdBy.userName : 'Unknown'}</span>
+                    </div>
+                    <div class="quiz-meta-item">
+                      <i class="fas fa-calendar"></i>
+                      <span>${new Date(quiz.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  <!-- Deleted Info -->
+                  <div class="quiz-meta" style="background: #fef3c7; padding: 8px; border-radius: 6px; margin-top: 8px;">
+                    <div class="quiz-meta-item">
+                      <i class="fas fa-trash text-warning"></i>
+                      <span>Deleted: ${new Date(quiz.deletedAt).toLocaleDateString()}</span>
+                    </div>
+                    ${quiz.deleteReason ? `
+                      <div class="quiz-meta-item">
+                        <i class="fas fa-comment text-warning"></i>
+                        <span>${quiz.deleteReason}</span>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+
+                <!-- Quiz Footer -->
+                <div class="quiz-card-footer">
+                  <div class="quiz-actions">
+                    <button class="quiz-action-btn quiz-action-btn-success" onclick="restoreQuiz('${quiz._id}')">
+                      <i class="fas fa-undo"></i>
+                      Restore
+                    </button>
+                    <button class="quiz-action-btn quiz-action-btn-danger" onclick="permanentDeleteQuiz('${quiz._id}')">
+                      <i class="fas fa-trash-alt"></i>
+                      Delete Forever
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      // Initialize thumbnail placeholders for trash quizzes
+      setTimeout(() => {
+        initializeThumbnailPlaceholders();
+      }, 100);
+    } else {
+      container.innerHTML = `
+        <div class="admin-empty-state" style="text-align: center; padding: 40px 20px; background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 16px;">
+          <div class="admin-empty-icon" style="width: 60px; height: 60px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #ffffff; font-size: 24px;">
+            <i class="fas fa-trash"></i>
+          </div>
+          <h4 style="color: var(--admin-text-light); font-size: 18px; font-weight: 600; margin-bottom: 8px;">Trash is Empty</h4>
+          <p style="color: #64748b; font-size: 14px; margin: 0;">No quizzes in trash.</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading trash quizzes:', error);
+    showNotification('Failed to load trash quizzes', 'error');
+  }
+}
+
+// Restore Quiz
+async function restoreQuiz(quizId) {
+  if (!confirm('Are you sure you want to restore this quiz?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/admin/quizzes/${quizId}/restore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification('Quiz restored successfully!', 'success');
+      // Reload trash section
+      loadTrashQuizzes();
+      // Update trash count
+      updateTrashCount();
+      // Reload main page to show restored quiz
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      throw new Error(data.message || 'Failed to restore quiz');
+    }
+  } catch (error) {
+    console.error('Restore quiz error:', error);
+    showNotification('Failed to restore quiz: ' + error.message, 'error');
+  }
+}
+
+// Permanent Delete Quiz
+async function permanentDeleteQuiz(quizId) {
+  if (!confirm('Are you sure you want to permanently delete this quiz? This action cannot be undone!')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/admin/quizzes/${quizId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        immediate: true,
+        reason: 'Permanently deleted from trash'
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification('Quiz permanently deleted!', 'success');
+      // Reload trash section
+      loadTrashQuizzes();
+      // Update trash count
+      updateTrashCount();
+    } else {
+      throw new Error(data.message || 'Failed to delete quiz');
+    }
+  } catch (error) {
+    console.error('Permanent delete quiz error:', error);
+    showNotification('Failed to delete quiz: ' + error.message, 'error');
+  }
+}
+
+// Update Trash Count
+async function updateTrashCount() {
+  try {
+    const response = await fetch('/admin/quizzes/stats');
+    const data = await response.json();
+    
+    if (data.success) {
+      const trashCountElement = document.getElementById('trashCount');
+      if (trashCountElement) {
+        trashCountElement.textContent = data.stats.trashQuizzes || 0;
+      }
+    }
+  } catch (error) {
+    console.error('Error updating trash count:', error);
+  }
+}
+</script>
+
+<%- include('./partials/admin-footer') %>

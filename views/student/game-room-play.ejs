@@ -1,0 +1,4447 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= gameRoom.title %> - Game Room - Elkably E-Learning</title>
+  <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+  <link rel="stylesheet" href="/css/studentCSS/games.css">
+  <link rel="stylesheet" href="/css/theme-toggle.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- MathLive for professional math input/rendering -->
+  <script src="https://unpkg.com/mathlive"></script>
+  <meta name="description" content="Play a real-time multiplayer quiz in <%= gameRoom.title %>">
+  <meta name="theme-color" content="#dc2626">
+
+  <!-- Enhanced game room styles -->
+  <style>
+    /* Game Completed Waiting Styles */
+    .game-completed-waiting {
+      animation: slideInUp 0.6s ease-out;
+    }
+
+    .completion-trophy {
+      margin-bottom: 0.5rem;
+    }
+
+    .completion-trophy i {
+      font-size: 4rem;
+      color: #ffd700;
+      animation: bounceIn 1s ease-out, glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes bounceIn {
+      0% {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+
+      70% {
+        transform: scale(0.9);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 20px #ffd700, 0 0 30px #ffd700, 0 0 40px #ffd700;
+      }
+
+      to {
+        text-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700, 0 0 30px #ffd700;
+      }
+    }
+
+    @keyframes slideInUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .completion-title {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffd700, #ffb300, #ff8f00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.3rem;
+      text-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+      letter-spacing: -0.5px;
+    }
+
+    .completion-subtitle {
+      font-size: 1.4rem;
+      color: #2d3748;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    /* Enhanced Outstanding Performance styling */
+    .completion-title.outstanding {
+      font-size: 3.2rem;
+      background: linear-gradient(135deg, #ffd700, #ffed4e, #fff176);
+      animation: titleGlow 2s ease-in-out infinite alternate;
+      margin-bottom: 0.2rem;
+    }
+
+    @keyframes titleGlow {
+      0% {
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
+      }
+
+      100% {
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.3);
+      }
+    }
+
+    .completion-subtitle.outstanding {
+      font-size: 1.5rem;
+      color: #1a202c;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Game completed waiting card adjustments */
+    .game-completed-waiting .card {
+      margin-top: 0;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .game-completed-waiting .card-header {
+      padding: 1.5rem 2rem 1rem 2rem;
+      background: linear-gradient(135deg, #ffffff, #f8f9ff);
+      border-bottom: 1px solid rgba(0, 123, 255, 0.1);
+    }
+
+    .your-performance-stats {
+      margin-bottom: 1.5rem;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #f8f9ff, #e7f3ff);
+      border-radius: 16px;
+      border: 1px solid rgba(0, 123, 255, 0.1);
+    }
+
+    .performance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .performance-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e1e5e9;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: slideInUp 0.6s ease-out;
+    }
+
+    .performance-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .performance-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #007bff;
+    }
+
+    .performance-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 0.5rem;
+      animation: countUp 1s ease-out;
+    }
+
+    @keyframes countUp {
+      from {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .performance-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .waiting-status {
+      text-align: center;
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #fff8e1, #fff3c4);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 193, 7, 0.2);
+    }
+
+    .waiting-animation-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .waiting-spinner {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto;
+    }
+
+    .spinner-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 4px solid rgba(0, 123, 255, 0.1);
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1.5s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.8rem;
+      color: #007bff;
+    }
+
+    .waiting-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 0.5rem;
+    }
+
+    .waiting-message {
+      font-size: 1.1rem;
+      color: #6c757d;
+      margin-bottom: 1.5rem;
+    }
+
+    .waiting-progress {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .progress-bar-container {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      height: 8px;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #007bff, #0056b3);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      position: relative;
+    }
+
+    .progress-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .progress-text {
+      font-size: 0.9rem;
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .live-rankings-preview {
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+    }
+
+    .rankings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e1e5e9;
+      transition: all 0.3s ease;
+    }
+
+    .ranking-position {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #007bff;
+      min-width: 30px;
+      text-align: center;
+    }
+
+    .ranking-position.first {
+      color: #ffd700;
+    }
+
+    .ranking-position.second {
+      color: #c0c0c0;
+    }
+
+    .ranking-position.third {
+      color: #cd7f32;
+    }
+
+    .ranking-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #007bff;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .ranking-info {
+      flex: 1;
+    }
+
+    .ranking-name {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 0.25rem;
+    }
+
+    .ranking-progress {
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+
+    .ranking-score {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #007bff;
+    }
+
+    .motivational-section {
+      margin-top: 1rem;
+    }
+
+    .motivational-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #e8f5e8, #d4edda);
+      border-radius: 12px;
+      border: 1px solid rgba(40, 167, 69, 0.2);
+      animation: fadeInUp 1s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .motivational-icon {
+      font-size: 2rem;
+      color: #28a745;
+    }
+
+    .motivational-text {
+      font-size: 1rem;
+      color: #155724;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .results-trophy {
+      margin-bottom: 1rem;
+    }
+
+    .results-trophy i {
+      font-size: 4rem;
+      animation: bounceIn 1s ease-out, celebration 3s ease-in-out infinite;
+    }
+
+    @keyframes celebration {
+
+      0%,
+      100% {
+        transform: scale(1) rotate(0deg);
+        color: #ffd700;
+      }
+
+      25% {
+        transform: scale(1.1) rotate(-5deg);
+        color: #ffed4e;
+      }
+
+      50% {
+        transform: scale(1.05) rotate(5deg);
+        color: #ffd700;
+      }
+
+      75% {
+        transform: scale(1.1) rotate(-5deg);
+        color: #ffed4e;
+      }
+    }
+
+    /* Dark theme adjustments for completion section */
+    .dark-theme .your-performance-stats {
+      background: linear-gradient(135deg, #2d3748, #4a5568);
+      border-color: rgba(0, 123, 255, 0.3);
+    }
+
+    .dark-theme .performance-card {
+      background: #2d3748;
+      border-color: #4a5568;
+      color: #e2e8f0;
+    }
+
+    .dark-theme .performance-value {
+      color: #e2e8f0;
+    }
+
+    .dark-theme .waiting-status {
+      background: linear-gradient(135deg, #4a5568, #2d3748);
+      border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    .dark-theme .live-rankings-preview {
+      background: #2d3748;
+      border-color: #4a5568;
+    }
+
+    .dark-theme .ranking-item {
+      background: #4a5568;
+      border-color: #6b7280;
+      color: #e2e8f0;
+    }
+
+    .dark-theme .motivational-card {
+      background: linear-gradient(135deg, #2d3748, #4a5568);
+      border-color: rgba(40, 167, 69, 0.3);
+      color: #e2e8f0;
+    }
+
+    /* Confetti Animation */
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-100vh) rotateZ(0deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(100vh) rotateZ(720deg);
+        opacity: 0;
+      }
+    }
+
+    .confetti-container {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      pointer-events: none !important;
+      z-index: 10000 !important;
+    }
+
+    .confetti-piece {
+      position: absolute !important;
+      width: 8px !important;
+      height: 8px !important;
+      border-radius: 2px !important;
+    }
+
+    /* Enhanced fade animations */
+    .fade-in {
+      animation: fadeInScale 0.6s ease-out forwards;
+    }
+
+    .fade-out {
+      animation: fadeOutScale 0.4s ease-in forwards;
+    }
+
+    @keyframes fadeInScale {
+      0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes fadeOutScale {
+      0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+      }
+    }
+
+    /* Trophy animation improvements */
+    .completion-trophy i,
+    .results-trophy i {
+      animation-duration: 1.5s;
+      animation-iteration-count: infinite;
+      animation-timing-function: ease-in-out;
+    }
+
+    .results-trophy i.fa-crown {
+      color: #ffd700 !important;
+      animation: crownBounce 2s ease-in-out infinite;
+    }
+
+    @keyframes crownBounce {
+
+      0%,
+      100% {
+        transform: scale(1) rotate(0deg);
+      }
+
+      25% {
+        transform: scale(1.1) rotate(-2deg);
+      }
+
+      50% {
+        transform: scale(1.05) rotate(2deg);
+      }
+
+      75% {
+        transform: scale(1.1) rotate(-1deg);
+      }
+    }
+
+    /* Enhanced performance card animations */
+    .performance-card {
+      animation-fill-mode: both;
+    }
+
+    .performance-card:nth-child(1) {
+      animation-delay: 0.1s;
+    }
+
+    .performance-card:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .performance-card:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    .performance-card:nth-child(4) {
+      animation-delay: 0.4s;
+    }
+
+    /* Loading states improvements */
+    .btn.loading {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      animation: loadingShimmer 1.5s infinite;
+    }
+
+    @keyframes loadingShimmer {
+      0% {
+        left: -100%;
+      }
+
+      100% {
+        left: 100%;
+      }
+    }
+
+    /* Success feedback animations */
+    .score-update {
+      animation: scoreGlow 0.8s ease-out;
+    }
+
+    @keyframes scoreGlow {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.2);
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.5);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    /* Question Options Styling */
+    .question-options {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 24px 0;
+      padding: 0;
+    }
+
+    .option-item {
+      border: 2px solid #e1e5e9;
+      border-radius: 12px;
+      padding: 16px 20px;
+      background-color: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .option-item:hover {
+      border-color: #007bff;
+      background-color: #f8f9ff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .option-item.selected {
+      border-color: #007bff;
+      background-color: #e7f3ff;
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    }
+
+    .option-letter {
+      background-color: #6c757d;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .option-item.selected .option-letter {
+      background-color: #007bff;
+    }
+
+    .option-text {
+      flex: 1;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    .option-select-indicator {
+      opacity: 0;
+      color: #007bff;
+      font-size: 20px;
+      transition: opacity 0.2s ease;
+    }
+
+    .option-item.selected .option-select-indicator {
+      opacity: 1;
+    }
+
+    /* Answer Feedback Styling */
+    .option-item.correct {
+      border-color: #28a745 !important;
+      background-color: rgba(40, 167, 69, 0.1) !important;
+    }
+
+    .option-item.correct .option-letter {
+      background-color: #28a745;
+    }
+
+    .option-item.incorrect {
+      border-color: #dc3545 !important;
+      background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+
+    .option-item.incorrect .option-letter {
+      background-color: #dc3545;
+    }
+
+    /* Written Answer Styling */
+    .written-answer-input {
+      width: 100% !important;
+      min-height: 120px !important;
+      padding: 16px !important;
+      border: 2px solid #e1e5e9 !important;
+      border-radius: 12px !important;
+      background: #ffffff !important;
+      color: #333 !important;
+      font-size: 16px !important;
+      line-height: 1.6 !important;
+      resize: vertical !important;
+      transition: border-color 0.2s ease !important;
+      font-family: inherit !important;
+    }
+
+    .written-answer-input:focus {
+      outline: none !important;
+      border-color: #007bff !important;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1) !important;
+    }
+
+    .written-answer-input:disabled {
+      background-color: #f8f9fa !important;
+      border-color: #e9ecef !important;
+      color: #6c757d !important;
+      cursor: not-allowed !important;
+    }
+
+    .correct-answer {
+      border-color: #28a745 !important;
+      background-color: rgba(40, 167, 69, 0.1) !important;
+    }
+
+    .incorrect-answer {
+      border-color: #dc3545 !important;
+      background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+
+    /* Submit Button Styling */
+    #submitAnswerBtn {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+      text-transform: none;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      min-width: 160px;
+    }
+
+    #submitAnswerBtn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #0056b3, #004494);
+      box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+    }
+
+    #submitAnswerBtn:disabled {
+      background: #6c757d !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    #submitAnswerBtn.loading {
+      background: #6c757d !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    /* Remove all transform animations from buttons */
+    .btn:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn:active {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Remove loading animation transforms */
+    .btn.loading {
+      pointer-events: none;
+      opacity: 0.8;
+      background: #6c757d;
+    }
+
+    /* Answer Feedback */
+    .answer-feedback {
+      margin: 20px 0;
+      padding: 16px 20px;
+      border-radius: 12px;
+      border-left: 4px solid;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      font-weight: 500;
+    }
+
+    .answer-feedback.correct {
+      background-color: rgba(40, 167, 69, 0.1);
+      border-left-color: #28a745;
+      color: #155724;
+    }
+
+    .answer-feedback.incorrect {
+      background-color: rgba(220, 53, 69, 0.1);
+      border-left-color: #dc3545;
+      color: #721c24;
+    }
+
+    .answer-feedback.error {
+      background-color: rgba(220, 53, 69, 0.1);
+      border-left-color: #dc3545;
+      color: #721c24;
+    }
+
+    .answer-feedback i {
+      font-size: 18px;
+    }
+
+    /* Score display enhancement */
+    .score-update {
+      transition: all 0.3s ease;
+      color: #28a745 !important;
+      font-weight: bold;
+    }
+
+    /* Dark theme adjustments */
+    .dark-theme .option-item {
+      background-color: #2d3748;
+      border-color: #4a5568;
+      color: #e2e8f0;
+    }
+
+    .dark-theme .option-item:hover {
+      background-color: #3d4852;
+      border-color: #007bff;
+    }
+
+    .dark-theme .option-item.selected {
+      background-color: #1a202c;
+      border-color: #007bff;
+    }
+
+    .dark-theme .written-answer-input {
+      background-color: #2d3748 !important;
+      border-color: #4a5568 !important;
+      color: #e2e8f0 !important;
+    }
+
+    .dark-theme .written-answer-input:focus {
+      border-color: #007bff !important;
+    }
+
+    /* Enhanced Leaderboard Styling */
+    .leaderboard-item-compact {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .leaderboard-item-compact.current-player {
+      background: #e3f2fd;
+      border-left-color: #2196f3;
+      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+    }
+
+    .leaderboard-position {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #6c757d;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+
+    .leaderboard-item-compact.position-1 .leaderboard-position {
+      background: #ffd700;
+      color: #333;
+    }
+
+    .leaderboard-item-compact.position-2 .leaderboard-position {
+      background: #c0c0c0;
+      color: #333;
+    }
+
+    .leaderboard-item-compact.position-3 .leaderboard-position {
+      background: #cd7f32;
+      color: white;
+    }
+
+    .leaderboard-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .leaderboard-name {
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .leaderboard-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #6c757d;
+    }
+
+    .leaderboard-stats .score {
+      font-weight: 600;
+      color: #28a745;
+    }
+
+    .leaderboard-stats .questions {
+      color: #007bff;
+    }
+
+    .leaderboard-stats .total {
+      color: #6c757d;
+    }
+
+    /* Dark theme adjustments for leaderboard */
+    .dark-theme .leaderboard-item-compact {
+      background: #2d3748;
+      color: #e2e8f0;
+    }
+
+    .dark-theme .leaderboard-item-compact.current-player {
+      background: #1a365d;
+      border-left-color: #3182ce;
+    }
+
+    .dark-theme .leaderboard-name {
+      color: #e2e8f0;
+    }
+
+    .dark-theme .leaderboard-stats .score {
+      color: #38a169;
+    }
+
+    .dark-theme .leaderboard-stats .questions {
+      color: #3182ce;
+    }
+
+    .dark-theme .leaderboard-stats .total {
+      color: #a0aec0;
+    }
+
+    /* Calculating results animation */
+    @keyframes slideProgress {
+      from {
+        transform: translateX(-100%);
+      }
+
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    /* Enhanced Game Sidebar Styling */
+    .game-sidebar {
+      background: var(--games-bg-card, #ffffff) !important;
+      border: 1px solid var(--games-border, #e1e5e9) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+      position: fixed !important;
+      top: 80px !important;
+      /* Below header */
+      right: -380px !important;
+      /* Hidden initially */
+      width: 360px !important;
+      height: calc(100vh - 100px) !important;
+      /* Full height minus header */
+      z-index: 1000 !important;
+      transition: right 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      /* Prevent outer scrolling */
+    }
+
+    .game-layout.sidebar-visible .game-sidebar {
+      right: 20px !important;
+    }
+
+    /* Sidebar Header */
+    .sidebar-header {
+      padding: 24px 24px 20px 24px !important;
+      border-bottom: 1px solid #f1f3f5 !important;
+      flex-shrink: 0 !important;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: white !important;
+      border-radius: 12px 12px 0 0 !important;
+      margin: 0 !important;
+    }
+
+    .sidebar-title-section h3 {
+      margin: 0 0 8px 0 !important;
+      font-size: 18px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      color: white !important;
+    }
+
+    .room-info {
+      display: flex !important;
+      gap: 12px !important;
+      font-size: 14px !important;
+      opacity: 0.9 !important;
+    }
+
+    .room-code {
+      background: rgba(255, 255, 255, 0.2) !important;
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      font-family: 'Monaco', 'Menlo', monospace !important;
+      font-weight: 600 !important;
+    }
+
+    .players-count {
+      background: rgba(255, 255, 255, 0.2) !important;
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      font-weight: 600 !important;
+    }
+
+    /* Scrollable Content Area */
+    .sidebar-content {
+      flex: 1 !important;
+      overflow-y: auto !important;
+      padding: 0 !important;
+      scroll-behavior: smooth !important;
+    }
+
+    .sidebar-content::-webkit-scrollbar {
+      width: 6px !important;
+    }
+
+    .sidebar-content::-webkit-scrollbar-track {
+      background: #f8f9fa !important;
+      border-radius: 3px !important;
+    }
+
+    .sidebar-content::-webkit-scrollbar-thumb {
+      background: #dee2e6 !important;
+      border-radius: 3px !important;
+    }
+
+    .sidebar-content::-webkit-scrollbar-thumb:hover {
+      background: #adb5bd !important;
+    }
+
+    /* Session Timer Section */
+    .session-timer-section {
+      padding: 20px 24px !important;
+      border-bottom: 1px solid #f1f3f5 !important;
+      background: #f8f9fa !important;
+      margin: 0 !important;
+    }
+
+    .timer-header {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin-bottom: 12px !important;
+      font-weight: 600 !important;
+      color: #495057 !important;
+      font-size: 14px !important;
+    }
+
+    .session-timer-display {
+      display: flex !important;
+      justify-content: center !important;
+    }
+
+    .timer-circle {
+      position: relative !important;
+      width: 80px !important;
+      height: 80px !important;
+    }
+
+    .timer-svg {
+      width: 100% !important;
+      height: 100% !important;
+      transform: rotate(-90deg) !important;
+    }
+
+    .timer-text {
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #495057 !important;
+    }
+
+    /* Players Section */
+    .players-sidebar-section {
+      padding: 20px 24px !important;
+      border-bottom: 1px solid #f1f3f5 !important;
+    }
+
+    .players-sidebar-section h4 {
+      margin: 0 0 16px 0 !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: #495057 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+
+    .players-list-compact {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      max-height: 200px !important;
+      overflow-y: auto !important;
+    }
+
+    /* Live Leaderboard Section */
+    .live-leaderboard-section {
+      padding: 20px 24px !important;
+      border-bottom: 1px solid #f1f3f5 !important;
+    }
+
+    .leaderboard-header {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin-bottom: 16px !important;
+      font-weight: 600 !important;
+      color: #495057 !important;
+      font-size: 14px !important;
+    }
+
+    .live-leaderboard {
+      max-height: 300px !important;
+      overflow-y: auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+    }
+
+    /* Question Progress Section */
+    .question-progress-section {
+      padding: 20px 24px 24px 24px !important;
+    }
+
+    .progress-header {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin-bottom: 16px !important;
+      font-weight: 600 !important;
+      color: #495057 !important;
+      font-size: 14px !important;
+    }
+
+    .question-progress-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)) !important;
+      gap: 6px !important;
+      max-height: 120px !important;
+      overflow-y: auto !important;
+    }
+
+    .question-progress-item {
+      width: 30px !important;
+      height: 30px !important;
+      border: 2px solid #dee2e6 !important;
+      border-radius: 6px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      color: #6c757d !important;
+      background: white !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .question-progress-item.current {
+      border-color: #007bff !important;
+      background: #007bff !important;
+      color: white !important;
+      transform: scale(1.1) !important;
+    }
+
+    .question-progress-item.answered {
+      border-color: #28a745 !important;
+      background: #28a745 !important;
+      color: white !important;
+    }
+
+    /* Toggle Button Enhancement */
+    .game-sidebar-toggle-btn {
+      position: fixed !important;
+      top: 90px !important;
+      right: 20px !important;
+      z-index: 1001 !important;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 12px !important;
+      width: 48px !important;
+      height: 48px !important;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+      transition: all 0.3s ease !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .game-sidebar-toggle-btn:hover {
+      transform: scale(1.05) !important;
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4) !important;
+    }
+
+    .game-sidebar-toggle-btn.sidebar-active {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3) !important;
+    }
+
+    /* Dark Theme Support */
+    .dark-theme .game-sidebar {
+      background: #2d3748 !important;
+      border-color: #4a5568 !important;
+    }
+
+    .dark-theme .sidebar-header {
+      border-bottom-color: #4a5568 !important;
+    }
+
+    .dark-theme .session-timer-section {
+      background: #374151 !important;
+      border-bottom-color: #4a5568 !important;
+    }
+
+    .dark-theme .players-sidebar-section,
+    .dark-theme .live-leaderboard-section,
+    .dark-theme .question-progress-section {
+      border-bottom-color: #4a5568 !important;
+    }
+
+    .dark-theme .timer-header,
+    .dark-theme .leaderboard-header,
+    .dark-theme .progress-header,
+    .dark-theme .players-sidebar-section h4 {
+      color: #e2e8f0 !important;
+    }
+
+    .dark-theme .timer-text {
+      color: #e2e8f0 !important;
+    }
+
+    .dark-theme .question-progress-item {
+      background: #374151 !important;
+      border-color: #4a5568 !important;
+      color: #9ca3af !important;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .game-sidebar {
+        width: 100vw !important;
+        right: -100vw !important;
+        top: 70px !important;
+        height: calc(100vh - 70px) !important;
+        border-radius: 0 !important;
+      }
+
+      .game-layout.sidebar-visible .game-sidebar {
+        right: 0 !important;
+      }
+
+      .game-sidebar-toggle-btn {
+        top: 80px !important;
+        right: 15px !important;
+        width: 44px !important;
+        height: 44px !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .sidebar-header {
+        padding: 20px 16px 16px 16px !important;
+      }
+
+      .session-timer-section,
+      .players-sidebar-section,
+      .live-leaderboard-section,
+      .question-progress-section {
+        padding: 16px !important;
+      }
+
+      .timer-circle {
+        width: 70px !important;
+        height: 70px !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="<%= theme %>-theme game-room-play-page">
+  <div class="student-layout">
+    <%- include('partials/student-sidebar', { currentPage: 'game-rooms', student: student }) %>
+    <main class="student-main">
+      <%- include('partials/student-header', { title: gameRoom.title + ' - Game Room', student: student, theme: theme, currentPage: 'game-rooms' }) %>
+
+      <div class="student-container">
+        <!-- Game Sidebar Toggle Button -->
+        <button class="game-sidebar-toggle-btn" id="gameSidebarToggleBtn">
+          <i class="fas fa-users" id="gameSidebarToggleIcon"></i>
+        </button>
+
+        <div class="game-layout" id="gameLayout">
+          <!-- Main Game Content -->
+          <div class="game-main-content">
+            <!-- Game Header -->
+            <div class="page-header">
+              <div class="page-header-content">
+                <h1 class="page-title">
+                  <i class="fas fa-gamepad"></i>
+                  <%= gameRoom.title %>
+                </h1>
+                <p class="page-subtitle">Room #<%= gameRoom.roomCode %> • <%= gameRoom.difficulty.charAt(0).toUpperCase() + gameRoom.difficulty.slice(1) %> • <%= gameRoom.questions.length %> questions</p>
+              </div>
+              <div class="page-header-actions">
+                <div class="game-status-badge status-<%= gameRoom.gameState %>">
+                  <div class="status-dot"></div>
+                  <span><%= gameRoom.gameState.charAt(0).toUpperCase() + gameRoom.gameState.slice(1) %></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Game Content -->
+            <div class="game-content">
+              <!-- Waiting Room -->
+              <div class="game-section waiting-room <%= gameRoom.gameState !== 'waiting' ? 'is-hidden' : '' %>" id="waitingRoom">
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                      <i class="fas fa-users"></i>
+                      Waiting for Players
+                    </h3>
+                    <div class="player-counter">
+                      <span class="current-count"><%= gameRoom.currentPlayers.length %></span>/<span class="max-count"><%= gameRoom.maxPlayers %></span>
+                      <span class="counter-label">players joined</span>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="waiting-content">
+                      <div class="waiting-animation">
+                        <i class="fas fa-users"></i>
+                      </div>
+                      <h4 class="waiting-title">Waiting for Players</h4>
+                      <p class="waiting-message" id="waitingMessage">
+                        <% if (gameRoom.maxPlayers - gameRoom.currentPlayers.length > 0) { %>
+                        Waiting for <strong><%= gameRoom.maxPlayers - gameRoom.currentPlayers.length %></strong> more players to join...
+                        <% } else { %>
+                        Room is full! Waiting for players to get ready...
+                        <% } %>
+                      </p>
+
+                      <!-- Countdown Display -->
+                      <div class="game-countdown-display" id="gameCountdownDisplay" style="display: none;">
+                        <div class="countdown-message">Game starting in:</div>
+                        <div class="countdown-number" id="gameCountdownNumber">5</div>
+                        <div class="countdown-progress">
+                          <div class="progress-bar" id="gameCountdownProgress"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Players List -->
+                    <div class="players-section">
+                      <h5 class="section-title">Joined Players</h5>
+                      <div class="players-list">
+                        <% gameRoom.currentPlayers.forEach((player, index) => { 
+                        const isCurrentPlayer = player && player.user && player.user._id && user && user._id && 
+                                                player.user._id.toString() === user._id.toString();
+                        %>
+                        <div class="player-card <%= isCurrentPlayer ? 'current-player' : '' %> <%= player && player.isReady ? 'player-ready' : '' %>">
+                          <div class="player-avatar">
+                            <% if (player && player.user && player.user.profilePicture) { %>
+                            <img src="<%= player.user.profilePicture %>" alt="<%= player.user.username %>">
+                            <% } else { %>
+                            <div class="avatar-fallback">
+                              <%= (player && player.user && player.user.username ? player.user.username.charAt(0).toUpperCase() : 'P') %>
+                            </div>
+                            <% } %>
+                            <% if (isCurrentPlayer) { %>
+                            <div class="current-player-badge">You</div>
+                            <% } %>
+                          </div>
+                          <div class="player-info">
+                            <span class="player-name"><%= (player && player.user && player.user.username) ? player.user.username : 'Player' %></span>
+                            <span class="player-joined">Joined <%= new Date(player.joinedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></span>
+                          </div>
+                          <div class="player-status">
+                            <% if (player && player.isReady) { %>
+                            <span class="status-badge ready">
+                              <i class="fas fa-check"></i>
+                              Ready
+                            </span>
+                            <% } else if (isCurrentPlayer) { %>
+                            <button class="btn btn-sm btn-primary ready-btn" onclick="setPlayerReady()">
+                              <i class="fas fa-check"></i>
+                              I'm Ready
+                            </button>
+                            <% } else { %>
+                            <span class="status-badge waiting">
+                              <i class="fas fa-clock"></i>
+                              Waiting
+                            </span>
+                            <% } %>
+                          </div>
+                        </div>
+                        <% }); %>
+                      </div>
+                    </div>
+
+                    <!-- Game Info -->
+                    <div class="game-info-section">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="info-card">
+                            <h6 class="info-title">
+                              <i class="fas fa-info-circle"></i>
+                              Game Information
+                            </h6>
+                            <div class="info-list">
+                              <div class="info-item">
+                                <i class="fas fa-clock"></i>
+                                <span>Total Time: <strong><%= gameRoom.totalTime %> minutes</strong></span>
+                              </div>
+                              <div class="info-item">
+                                <i class="fas fa-question-circle"></i>
+                                <span>Questions: <strong><%= gameRoom.questions.length %> total</strong></span>
+                              </div>
+                              <% if (gameRoom.timePerQuestion) { %>
+                              <div class="info-item">
+                                <i class="fas fa-stopwatch"></i>
+                                <span>Time per Question: <strong><%= gameRoom.timePerQuestion %> seconds</strong></span>
+                              </div>
+                              <% } %>
+                              <div class="info-item">
+                                <i class="fas fa-users"></i>
+                                <span>Players: <strong><%= gameRoom.currentPlayers.length %>/<%= gameRoom.maxPlayers %></strong></span>
+                              </div>
+                              <% if (gameRoom.category && gameRoom.category.trim().length > 0) { %>
+                              <div class="info-item">
+                                <i class="fas fa-tag"></i>
+                                <span>Category: <strong><%= gameRoom.category %></strong></span>
+                              </div>
+                              <% } %>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="info-card">
+                            <h6 class="info-title">
+                              <i class="fas fa-trophy"></i>
+                              Scoring System
+                            </h6>
+                            <div class="info-list">
+                              <div class="info-item">
+                                <i class="fas fa-star"></i>
+                                <span>10 points per correct answer</span>
+                              </div>
+                              <div class="info-item">
+                                <i class="fas fa-bolt"></i>
+                                <span>Time bonus for quick answers</span>
+                              </div>
+                              <div class="info-item">
+                                <i class="fas fa-crown"></i>
+                                <span>First to finish gets bonus</span>
+                              </div>
+                              <div class="info-item">
+                                <i class="fas fa-medal"></i>
+                                <span>Leaderboard ranking</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="waiting-actions">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <button class="btn btn-primary btn-lg w-100" onclick="setPlayerReady()">
+                            <i class="fas fa-check"></i>
+                            I'm Ready
+                          </button>
+                        </div>
+                        <div class="col-md-6">
+                          <button class="btn btn-outline-secondary btn-lg w-100" onclick="leaveRoom()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Leave Room
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Game Starting -->
+              <div class="game-section game-starting" id="gameStarting" style="display: none;">
+                <div class="card">
+                  <div class="card-body text-center">
+                    <div class="starting-animation">
+                      <i class="fas fa-rocket"></i>
+                    </div>
+                    <h3 class="countdown-title">Game Starting In</h3>
+                    <div class="countdown-display">
+                      <div class="countdown-number" id="countdownNumber">5</div>
+                      <div class="countdown-progress">
+                        <div class="progress-bar" id="countdownProgress"></div>
+                      </div>
+                    </div>
+                    <p class="countdown-message">Get ready to compete!</p>
+                    <div class="game-tips">
+                      <div class="tip-item">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>Answer quickly for bonus points</span>
+                      </div>
+                      <div class="tip-item">
+                        <i class="fas fa-bolt"></i>
+                        <span>First to answer all questions wins!</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Question Area -->
+              <div class="game-section question-area" id="questionArea" style="display: none;">
+                <div class="card">
+                  <div class="card-header">
+                    <div class="question-header">
+                      <div class="question-progress">
+                        <div class="progress-info">
+                          <span class="question-counter">
+                            Question <span id="currentQuestionNum">1</span> of <span id="totalQuestions"><%= gameRoom.questions.length %></span>
+                          </span>
+                          <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="questionProgressBar"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="question-stats">
+                        <div class="stat-item">
+                          <i class="fas fa-check-circle"></i>
+                          <span class="stat-value" id="correctAnswerCount">0</span>
+                          <span class="stat-label">Correct</span>
+                        </div>
+                        <div class="timer-container">
+                          <div class="timer-circle">
+                            <svg class="timer-svg" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="45" class="timer-bg"></circle>
+                              <circle cx="50" cy="50" r="45" class="timer-progress" id="timerProgress"></circle>
+                            </svg>
+                            <div class="timer-text" id="timerText">30</div>
+                          </div>
+                          <span class="timer-label">session time left</span>
+                        </div>
+                        <div class="stat-item">
+                          <i class="fas fa-trophy"></i>
+                          <span class="stat-value" id="currentScore">0</span>
+                          <span class="stat-label">Points</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <div class="question-content">
+                      <div class="question-text" id="questionText">
+                        <!-- Question will be loaded here -->
+                      </div>
+                      <div class="question-image" id="questionImage" style="display: none;">
+                        <!-- Question image will be loaded here -->
+                      </div>
+
+                      <!-- MCQ and True/False Options -->
+                      <div class="question-options" id="questionOptions">
+                        <!-- Options will be loaded here -->
+                      </div>
+
+                      <!-- Written Question Input -->
+                      <div class="written-question-container" id="writtenQuestionContainer" style="display: none;">
+                        <div class="written-question-note" style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:8px; padding:1rem; margin-bottom:1.5rem; display:flex; align-items:flex-start; gap:0.75rem; border-left:4px solid var(--primary-color);">
+                          <div class="note-icon" style="color:var(--primary-color); font-size:1.1rem; margin-top:0.1rem; flex-shrink:0;">
+                            <i class="fas fa-info-circle"></i>
+                          </div>
+                          <div class="note-content" style="flex:1; font-size:0.95rem; line-height:1.5; color:var(--text-color);">
+                            <strong>Note:</strong> If you think there are two answers, type them like this: <code style="background: rgba(var(--primary-color-rgb), 0.1); color: var(--primary-color); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; font-weight: 600;">10,-10</code>
+                          </div>
+                        </div>
+                        <textarea class="written-answer-input" id="writtenAnswerInput" placeholder="Enter your answer here..." oninput="handleWrittenAnswer()" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); if(gameState.selectedAnswer) submitAnswer();}" style="width:100%; min-height:120px; padding:1rem; border:2px solid var(--border-color); border-radius:12px; background:var(--bg-color); color:var(--text-color); font-size:1rem; line-height:1.6; resize:vertical; transition:all 0.3s ease; font-family:inherit;">
+                    </textarea>
+                      </div>
+
+                      <div class="answer-feedback" id="answerFeedback">
+                        <!-- Feedback will be shown here -->
+                      </div>
+                    </div>
+                    <div class="question-actions">
+                      <button type="button" class="btn btn-primary btn-lg" id="submitAnswerBtn" onclick="event.preventDefault(); submitAnswer(); return false;" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                        Submit Answer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Game Completed - Waiting for Others -->
+              <div class="game-section game-completed-waiting" id="gameCompletedWaiting" style="display: none;">
+                <div class="card">
+                  <div class="card-header text-center">
+                    <div class="completion-trophy">
+                      <i class="fas fa-trophy" id="completionTrophyIcon"></i>
+                    </div>
+                    <h3 class="completion-title">
+                      <span id="completionMessage">Excellent Work!</span>
+                    </h3>
+                    <p class="completion-subtitle" id="completionSubtitle">You've completed all questions!</p>
+                  </div>
+                  <div class="card-body">
+                    <!-- Your Performance Stats -->
+                    <div class="your-performance-stats" id="yourPerformanceStats">
+                      <h5 class="section-title">
+                        <i class="fas fa-chart-line"></i>
+                        Your Performance
+                      </h5>
+                      <div class="performance-grid">
+                        <div class="performance-card">
+                          <div class="performance-icon">
+                            <i class="fas fa-check-circle"></i>
+                          </div>
+                          <div class="performance-value" id="yourCorrectAnswers">0</div>
+                          <div class="performance-label">Correct Answers</div>
+                        </div>
+                        <div class="performance-card">
+                          <div class="performance-icon">
+                            <i class="fas fa-trophy"></i>
+                          </div>
+                          <div class="performance-value" id="yourTotalScore">0</div>
+                          <div class="performance-label">Total Score</div>
+                        </div>
+                        <div class="performance-card">
+                          <div class="performance-icon">
+                            <i class="fas fa-percentage"></i>
+                          </div>
+                          <div class="performance-value" id="yourAccuracy">0%</div>
+                          <div class="performance-label">Accuracy</div>
+                        </div>
+                        <div class="performance-card">
+                          <div class="performance-icon">
+                            <i class="fas fa-clock"></i>
+                          </div>
+                          <div class="performance-value" id="yourCompletionTime">--:--</div>
+                          <div class="performance-label">Completion Time</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Waiting Status -->
+                    <div class="waiting-status">
+                      <div class="waiting-animation-container">
+                        <div class="waiting-spinner">
+                          <div class="spinner-ring"></div>
+                          <div class="spinner-center">
+                            <i class="fas fa-users"></i>
+                          </div>
+                        </div>
+                      </div>
+                      <h4 class="waiting-title">Waiting for Other Players...</h4>
+                      <p class="waiting-message" id="waitingPlayersMessage">
+                        <span id="remainingPlayersCount">0</span> players are still completing their answers
+                      </p>
+                      <div class="waiting-progress">
+                        <div class="progress-bar-container">
+                          <div class="progress-bar-fill" id="waitingProgressBar" style="width: 0%;"></div>
+                        </div>
+                        <div class="progress-text" id="waitingProgressText">0% completed</div>
+                      </div>
+                    </div>
+
+                    <!-- Live Rankings Preview -->
+                    <div class="live-rankings-preview" id="liveRankingsPreview">
+                      <h5 class="section-title">
+                        <i class="fas fa-list-ol"></i>
+                        Current Rankings
+                      </h5>
+                      <div class="rankings-list" id="currentRankingsList">
+                        <!-- Current rankings will be populated here -->
+                      </div>
+                    </div>
+
+                    <!-- Motivational Messages -->
+                    <div class="motivational-section">
+                      <div class="motivational-card" id="motivationalCard">
+                        <div class="motivational-icon">
+                          <i class="fas fa-star" id="motivationalIcon"></i>
+                        </div>
+                        <div class="motivational-text" id="motivationalText">
+                          Great job completing all questions! Your performance will be evaluated once all players finish.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Game Results -->
+              <div class="game-section game-results" id="gameResults" style="display: none;">
+                <div class="card">
+                  <div class="card-header text-center">
+                    <div class="results-trophy">
+                      <i class="fas fa-trophy" id="resultsTrophyIcon"></i>
+                    </div>
+                    <h3 class="card-title">
+                      <span id="resultsTitle">Game Finished!</span>
+                    </h3>
+                    <p class="card-subtitle" id="resultsSubtitle">Here are the final results</p>
+                  </div>
+                  <div class="card-body">
+                    <!-- Personal Stats -->
+                    <div class="personal-stats" id="personalStats">
+                      <!-- Personal stats will be loaded here -->
+                    </div>
+
+                    <!-- Leaderboard -->
+                    <div class="leaderboard-section">
+                      <h5 class="section-title">
+                        <i class="fas fa-crown"></i>
+                        Final Leaderboard
+                      </h5>
+                      <div class="leaderboard" id="leaderboard">
+                        <!-- Leaderboard will be loaded here -->
+                      </div>
+                    </div>
+
+                    <!-- Results Actions -->
+                    <div class="results-actions">
+                      <div class="row">
+                        <div class="col-md-4">
+                          <button class="btn btn-primary w-100" onclick="playAgain()">
+                            <i class="fas fa-redo"></i>
+                            Play Again
+                          </button>
+                        </div>
+                        <div class="col-md-4">
+                          <button class="btn btn-outline-primary w-100" onclick="window.location.href='/student/game-rooms'">
+                            <i class="fas fa-gamepad"></i>
+                            Browse More Games
+                          </button>
+                        </div>
+                        <div class="col-md-4">
+                          <a href="/student/game-rooms" class="btn btn-secondary w-100">
+                            <i class="fas fa-home"></i>
+                            Back to Rooms
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Professional Game Sidebar -->
+            <div class="game-sidebar" id="gameSidebar">
+              <div class="sidebar-header">
+                <div class="sidebar-title-section">
+                  <h3><i class="fas fa-users"></i> Live Players</h3>
+                  <div class="room-info">
+                    <span class="room-code">#<%= gameRoom.roomCode %></span>
+                    <span class="players-count"><%= gameRoom.currentPlayers.length %>/<%= gameRoom.maxPlayers %></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sidebar-content">
+                <!-- Session Timer -->
+                <div class="session-timer-section">
+                  <div class="timer-header">
+                    <i class="fas fa-clock"></i>
+                    <span>Session Time</span>
+                  </div>
+                  <div class="session-timer-display" id="sessionTimerDisplay">
+                    <div class="timer-circle">
+                      <svg class="timer-svg" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" class="timer-bg"></circle>
+                        <circle cx="50" cy="50" r="45" class="timer-progress" id="sessionTimerProgress"></circle>
+                      </svg>
+                      <div class="timer-text" id="sessionTimerText">--:--</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live Players List -->
+                <div class="players-sidebar-section">
+                  <h4><i class="fas fa-users"></i> Players (<span id="playersCountText"><%= gameRoom.currentPlayers.length %></span>)</h4>
+                  <div class="players-list-compact" id="playersListCompact">
+                    <!-- Players will be loaded here -->
+                  </div>
+                </div>
+
+                <!-- Live Leaderboard -->
+                <div class="live-leaderboard-section" id="liveLeaderboardSection">
+                  <div class="leaderboard-header">
+                    <i class="fas fa-trophy"></i>
+                    <span>Live Leaderboard</span>
+                  </div>
+                  <div class="live-leaderboard" id="liveLeaderboard">
+                    <!-- Live leaderboard will be loaded here -->
+                  </div>
+                </div>
+
+                <!-- Question Progress -->
+                <div class="question-progress-section">
+                  <div class="progress-header">
+                    <i class="fas fa-list-ol"></i>
+                    <span>Question Progress</span>
+                  </div>
+                  <div class="question-progress-grid" id="questionProgressGrid">
+                    <!-- Question progress will be loaded here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </main>
+  </div>
+
+  <!-- Socket.IO -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    // Ensure functions are available globally immediately
+    window.setPlayerReady = function() {
+      console.log('Setting player ready...');
+
+      // Check if socket is connected
+      if (!window.gameState || !window.gameState.socket) {
+        console.error('Socket not available');
+        showToast('error', 'Connection Error', 'Not connected to game server. Please refresh the page.', 5000);
+        return;
+      }
+
+      if (!window.gameState.socket.connected) {
+        console.error('Socket not connected');
+        showToast('error', 'Connection Error', 'Lost connection to game server. Please refresh the page.', 5000);
+        return;
+      }
+
+      const currentPlayerElement = document.querySelector(`.player-card.current-player`);
+      if (currentPlayerElement) {
+        const readyButton = currentPlayerElement.querySelector('.ready-btn');
+        if (readyButton) {
+          // Disable button to prevent double clicks
+          readyButton.disabled = true;
+          readyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Setting Ready...';
+
+          const readyBadge = document.createElement('span');
+          readyBadge.className = 'status-badge ready';
+          readyBadge.innerHTML = '<i class="fas fa-check"></i> Ready';
+          readyButton.parentNode.replaceChild(readyBadge, readyButton);
+          currentPlayerElement.classList.add('player-ready-animation');
+          setTimeout(() => {
+            currentPlayerElement.classList.remove('player-ready-animation');
+          }, 1000);
+        }
+      }
+
+      // Emit to server with error handling
+      console.log('Emitting player-ready event for room:', window.gameState.roomCode);
+      window.gameState.socket.emit('player-ready', {
+        roomCode: window.gameState.roomCode
+      });
+
+      // Show feedback
+      showToast('success', 'Ready!', 'You are now ready to play. Waiting for other players...', 3000);
+    };
+
+    // Make setPlayerReady available as both window function and regular function
+    const setPlayerReady = window.setPlayerReady;
+
+    // Make other commonly used functions globally accessible
+    window.leaveRoom = function() {
+      if (confirm('Are you sure you want to leave the game room?')) {
+        if (window.gameState && window.gameState.socket) {
+          window.gameState.socket.once('left-room', function(data) {
+            console.log('Left room successfully:', data);
+            cleanupSocketConnection();
+            window.location.href = '/student/game-rooms';
+          });
+          window.gameState.socket.emit('leave-room', {
+            roomCode: window.gameState.roomCode
+          });
+        }
+        setTimeout(() => {
+          console.log('Leave room timeout - redirecting anyway');
+          cleanupSocketConnection();
+          window.location.href = '/student/game-rooms';
+        }, 1000);
+      }
+    };
+
+    window.submitAnswer = function(event) {
+      // Prevent any default form submission behavior
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      const submitBtn = document.getElementById('submitAnswerBtn');
+
+      // Prevent double submissions - check if already processing
+      if (submitBtn.disabled || submitBtn.classList.contains('loading') || window.gameState.isSubmitting) {
+        console.log('Submit already in progress, ignoring duplicate submission');
+        return false;
+      }
+
+      console.log('Submitting answer:', window.gameState.selectedAnswer, 'for question:', window.gameState.currentQuestion);
+
+      if (!window.gameState.selectedAnswer && window.gameState.selectedAnswer !== 0) {
+        console.log('No answer selected');
+
+        // Show feedback instead of shake animation
+        showAnswerFeedback(false, 0, 'Please select an answer before submitting!');
+        return false;
+      }
+
+      // Set submission flag to prevent double submission
+      window.gameState.isSubmitting = true;
+
+      clearInterval(window.gameState.timer);
+
+      // Immediately disable button and show loading state
+      submitBtn.disabled = true;
+      submitBtn.classList.add('loading');
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+      // Disable all interactive elements
+      const options = document.querySelectorAll('.option-item');
+      options.forEach(option => {
+        option.style.pointerEvents = 'none';
+        option.style.opacity = '0.7';
+      });
+
+      const writtenInput = document.getElementById('writtenAnswerInput');
+      if (writtenInput) {
+        writtenInput.disabled = true;
+      }
+
+      // Calculate time spent based on session timer
+      const sessionTimerText = document.getElementById('sessionTimerText');
+      const timeSpent = sessionTimerText ? parseInt(sessionTimerText.textContent.split(':').join('')) || 0 : 0;
+
+      // Mark this question as answered
+      window.gameState.answeredQuestions.add(window.gameState.currentQuestionIndex);
+
+      const answerData = {
+        roomCode: window.gameState.roomCode,
+        questionId: window.gameState.currentQuestion._id,
+        selectedAnswer: window.gameState.selectedAnswer,
+        timeSpent: Math.max(0, timeSpent),
+        questionIndex: window.gameState.currentQuestionIndex
+      };
+
+      console.log('Sending answer data:', answerData);
+
+      // Set a timeout to reset submission state if no response received within 10 seconds
+      const submissionTimeout = setTimeout(() => {
+        console.warn('Submission timeout - resetting button state');
+        window.gameState.isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Answer';
+
+        // Re-enable options
+        options.forEach(option => {
+          option.style.pointerEvents = 'auto';
+          option.style.opacity = '1';
+        });
+
+        if (writtenInput) {
+          writtenInput.disabled = false;
+        }
+
+        showAnswerFeedback(false, 0, 'Submission timed out. Please try again.');
+      }, 10000);
+
+      // Store timeout reference for cleanup
+      window.gameState.submissionTimeout = submissionTimeout;
+
+      window.gameState.socket.emit('answer-question', answerData);
+
+      return false; // Prevent any form submission
+    };
+
+    // Also make them available without window prefix
+    const leaveRoom = window.leaveRoom;
+    const submitAnswer = window.submitAnswer;
+
+    // Game state management
+    window.gameState = {
+      roomCode: '<%= gameRoom.roomCode %>',
+      userId: '<%= user._id %>',
+      currentQuestion: null,
+      selectedAnswer: null,
+      timeRemaining: 0,
+      timer: null,
+      socket: null,
+      answeredQuestions: new Set(),
+      currentQuestionIndex: 0,
+      totalQuestions: <%= gameRoom.questions.length %>,
+      sessionStartTime: null,
+      sessionTimeLimit: <%= gameRoom.totalTime %> * 60, // Convert to seconds
+      players: [],
+      liveLeaderboard: [],
+      isSubmitting: false,
+      submissionTimeout: null
+    };
+
+    // Also make it available without window prefix
+    let gameState = window.gameState;
+
+    // Initialize socket connection
+    function initializeSocket() {
+      if (gameState.socket) {
+        console.log('Cleaning up existing socket connection');
+        gameState.socket.disconnect();
+        gameState.socket = null;
+      }
+
+      console.log('Creating new socket connection');
+      gameState.socket = io({
+        transports: ['websocket', 'polling'],
+        upgrade: true,
+        rememberUpgrade: true,
+        timeout: 20000,
+        forceNew: true
+      });
+
+      // Socket event listeners
+      gameState.socket.on('joined-room', handleJoinedRoom);
+      gameState.socket.on('room-update', handleRoomUpdate);
+      gameState.socket.on('room-full', handleRoomFull);
+      gameState.socket.on('game-starting', handleGameStarting);
+      gameState.socket.on('game-countdown', handleGameCountdown);
+      gameState.socket.on('new-question', handleNewQuestion);
+      gameState.socket.on('answer-result', handleAnswerResult);
+      gameState.socket.on('player-progress', handlePlayerProgress);
+      gameState.socket.on('question-complete', handleQuestionComplete);
+      gameState.socket.on('session-timer-update', handleSessionTimerUpdate);
+      gameState.socket.on('session-time-up', handleSessionTimeUp);
+      gameState.socket.on('game-ended', handleGameEnded);
+      gameState.socket.on('game-ending-immediately', handleGameEndingImmediately);
+      gameState.socket.on('player-completed', handlePlayerCompleted);
+      gameState.socket.on('player-completion-confirmed', handlePlayerCompletionConfirmed);
+      gameState.socket.on('live-leaderboard-update', handleLiveLeaderboardUpdate);
+      gameState.socket.on('question-loaded', handleQuestionLoaded);
+      gameState.socket.on('player-completion-state', handlePlayerCompletionState);
+      gameState.socket.on('player-completion-detected', handlePlayerCompletionDetected);
+      gameState.socket.on('game-state', handleGameState);
+      gameState.socket.on('player-completion-update', handlePlayerCompletionUpdate);
+      gameState.socket.on('waiting-for-players', handleWaitingForPlayers);
+      gameState.socket.on('all-players-completed', handleAllPlayersCompleted);
+      gameState.socket.on('error', handleError);
+
+      gameState.socket.on('connect', function() {
+        console.log('Socket connected with ID:', gameState.socket.id);
+        console.log('Attempting to join room:', gameState.roomCode, 'as user:', gameState.userId);
+        showConnectionStatus('connected');
+
+        gameState.socket.emit('join-room', {
+          roomCode: gameState.roomCode,
+          userId: gameState.userId
+        });
+
+        // Request current game state in case we're reconnecting mid-game
+        gameState.socket.emit('request-game-state', {
+          roomCode: gameState.roomCode,
+          userId: gameState.userId
+        });
+      });
+
+      gameState.socket.on('disconnect', function(reason) {
+        console.log('Socket disconnected:', reason);
+
+        // Don't show error for intentional disconnects or page refresh
+        if (reason === 'io client disconnect' || reason === 'transport close') {
+          console.log('Intentional disconnect or page refresh detected');
+          return;
+        }
+
+        showConnectionStatus('reconnecting');
+
+        // Auto-reconnect for network issues
+        setTimeout(() => {
+          if (!gameState.socket.connected) {
+            console.log('Attempting to reconnect...');
+            showConnectionStatus('reconnecting');
+          }
+        }, 1000);
+      });
+
+      gameState.socket.on('reconnect', function(attemptNumber) {
+        console.log('Socket reconnected after', attemptNumber, 'attempts');
+        showConnectionStatus('connected');
+
+        // Re-join the room automatically
+        gameState.socket.emit('join-room', {
+          roomCode: gameState.roomCode,
+          userId: gameState.userId
+        });
+
+        // Request current game state
+        gameState.socket.emit('request-game-state', {
+          roomCode: gameState.roomCode,
+          userId: gameState.userId
+        });
+
+        showToast('success', 'Reconnected', 'Successfully reconnected to the game room', 3000);
+      });
+
+      gameState.socket.on('connect_error', function(error) {
+        console.error('Socket connection error:', error);
+        showConnectionStatus('error');
+      });
+
+      gameState.socket.on('reconnect_failed', function() {
+        console.error('Socket reconnection failed');
+        showConnectionStatus('failed');
+      });
+
+      // Heartbeat to keep connection alive
+      gameState.socket.on('heartbeat-response', function() {
+        console.log('Heartbeat received');
+      });
+
+      // Send heartbeat every 30 seconds
+      setInterval(() => {
+        if (gameState.socket && gameState.socket.connected) {
+          gameState.socket.emit('heartbeat');
+        }
+      }, 30000);
+    }
+
+    // Connection status management
+    function showConnectionStatus(status) {
+      // Remove any existing status indicator
+      const existingIndicator = document.querySelector('.connection-status');
+      if (existingIndicator) {
+        existingIndicator.remove();
+      }
+
+      // Don't show indicator for successful connections
+      if (status === 'connected') {
+        return;
+      }
+
+      // Create status indicator
+      const indicator = document.createElement('div');
+      indicator.className = `connection-status status-${status}`;
+
+      let message = '';
+      let autoRemove = false;
+
+      switch (status) {
+        case 'disconnected':
+          message = '<i class="fas fa-wifi"></i> Connection lost - trying to reconnect...';
+          break;
+        case 'reconnecting':
+          message = '<i class="fas fa-spinner fa-spin"></i> Reconnecting to game room...';
+          autoRemove = true;
+          break;
+        case 'connected':
+          message = '<i class="fas fa-check-circle"></i> Connected to game room';
+          autoRemove = true;
+          break;
+        case 'error':
+          message = '<i class="fas fa-exclamation-triangle"></i> Connection error - retrying...';
+          autoRemove = true;
+          break;
+        case 'failed':
+          message = '<i class="fas fa-times-circle"></i> Connection failed - please refresh the page to rejoin';
+          break;
+      }
+
+      indicator.innerHTML = message;
+      document.body.appendChild(indicator);
+
+      // Auto-remove some statuses after 5 seconds
+      if (autoRemove) {
+        setTimeout(() => {
+          if (indicator.parentNode) {
+            indicator.remove();
+          }
+        }, 5000);
+      }
+    }
+
+    // Handle joined room
+    function handleJoinedRoom(data) {
+      console.log('Joined room successfully:', data);
+      if (data.success) {
+        console.log('Room data received:', data.room);
+
+        // Handle different game states for reconnection
+        if (data.room && data.room.gameState === 'playing' && data.isExisting) {
+          console.log('Rejoining game in progress...');
+
+          // Show question area directly
+          const waitingRoom = document.getElementById('waitingRoom');
+          const gameStarting = document.getElementById('gameStarting');
+          const questionArea = document.getElementById('questionArea');
+          const gameResults = document.getElementById('gameResults');
+          const gameCompletedWaiting = document.getElementById('gameCompletedWaiting');
+
+          // Hide all other screens
+          waitingRoom.style.display = 'none';
+          gameStarting.style.display = 'none';
+          gameResults.style.display = 'none';
+          gameCompletedWaiting.style.display = 'none';
+
+          // Show question area
+          questionArea.style.display = 'block';
+          updateGameStatusUI('playing');
+
+          // The current question will be loaded by the 'question-loaded' event
+          showToast('success', 'Reconnected!', 'Welcome back! Loading your current question...', 3000);
+        } else if (data.room && data.room.gameState === 'waiting') {
+          // Normal join for waiting room
+          showToast('success', 'Joined Room!', 'Successfully joined the game room.', 2000);
+        } else if (data.room && data.room.gameState === 'playing') {
+          // Rejoining but not existing player - show appropriate message
+          showToast('info', 'Game in Progress', 'The game is already in progress.', 3000);
+        }
+
+        updateGameState(data.room);
+      } else {
+        console.error('Failed to join room:', data);
+        showToast('error', 'Join Failed', 'Failed to join the game room. Please try again.', 5000);
+      }
+    } // Handle room updates
+    function handleRoomUpdate(data) {
+      console.log('Room update received:', data);
+      if (data.room) {
+        console.log('Current players ready status:', data.room.currentPlayers.map(p => ({
+          username: p.user ? p.user.username : 'Unknown',
+          isReady: p.isReady
+        })));
+      }
+      updateGameState(data.room);
+    }
+
+    // Handle room full event
+    function handleRoomFull(data) {
+      console.log('Room is full, game starting soon...', data);
+
+      // Update the room state first
+      updateGameState(data.room);
+
+      // Show notification that room is full
+      showToast('info', 'Room Full!', data.message || 'All players have joined. Game starting soon...', 3000);
+
+      // Update UI to show room is full
+      const playersCount = document.querySelector('.players-count');
+      if (playersCount) {
+        playersCount.innerHTML = `<i class="fas fa-users"></i> ${data.room.currentPlayers.length}/${data.room.maxPlayers} Players (FULL)`;
+        playersCount.classList.add('room-full');
+      }
+
+      // Show countdown if provided
+      if (data.countdown) {
+        const roomStatus = document.querySelector('.room-status');
+        if (roomStatus) {
+          roomStatus.innerHTML = `<i class="fas fa-clock"></i> Starting in ${data.countdown} seconds...`;
+          roomStatus.classList.add('starting-soon');
+        }
+      }
+    }
+
+    // Handle game starting
+    function handleGameStarting(data) {
+      const waitingRoom = document.getElementById('waitingRoom');
+      const gameStarting = document.getElementById('gameStarting');
+      const questionArea = document.getElementById('questionArea');
+      const gameResults = document.getElementById('gameResults');
+
+      waitingRoom.classList.add('fade-out');
+      setTimeout(() => {
+        waitingRoom.style.display = 'none';
+        waitingRoom.classList.remove('fade-out');
+        gameStarting.style.display = 'block';
+        gameStarting.classList.add('fade-in');
+        questionArea.style.display = 'none';
+        gameResults.style.display = 'none';
+        updateGameStatusUI('starting');
+        playSound('game-starting');
+      }, 500);
+    }
+
+    // Handle countdown
+    function handleGameCountdown(data) {
+      const countdownEl = document.getElementById('countdownNumber');
+      const progressEl = document.getElementById('countdownProgress');
+      const currentCount = parseInt(data.countdown);
+
+      // Update game starting countdown
+      if (countdownEl && progressEl) {
+        countdownEl.classList.add('countdown-pulse');
+        countdownEl.textContent = currentCount;
+
+        const progressWidth = (currentCount / 5) * 100;
+        progressEl.style.width = progressWidth + '%';
+
+        setTimeout(() => {
+          countdownEl.classList.remove('countdown-pulse');
+        }, 500);
+      }
+
+      // Also update waiting room countdown if visible
+      const gameCountdownEl = document.getElementById('gameCountdownNumber');
+      const gameProgressEl = document.getElementById('gameCountdownProgress');
+      const gameCountdownDisplay = document.getElementById('gameCountdownDisplay');
+      const waitingMessage = document.getElementById('waitingMessage');
+
+      if (gameCountdownEl && gameProgressEl && gameCountdownDisplay) {
+        gameCountdownDisplay.style.display = 'block';
+        if (waitingMessage) {
+          waitingMessage.style.display = 'none';
+        }
+
+        gameCountdownEl.classList.add('countdown-pulse');
+        gameCountdownEl.textContent = currentCount;
+
+        const progressWidth = (currentCount / 5) * 100;
+        gameProgressEl.style.width = progressWidth + '%';
+
+        setTimeout(() => {
+          gameCountdownEl.classList.remove('countdown-pulse');
+        }, 500);
+      }
+
+      playSound('countdown-tick');
+    }
+
+    // Helper function for sound effects
+    function playSound(soundName) {
+      console.log('Playing sound:', soundName);
+    }
+
+    // Update game status UI in the header
+    function updateGameStatusUI(status) {
+      const statusBadge = document.querySelector('.game-status-badge');
+      if (statusBadge) {
+        statusBadge.classList.remove('status-waiting', 'status-starting', 'status-playing', 'status-finished');
+        statusBadge.classList.add('status-' + status);
+        const statusText = statusBadge.querySelector('span');
+        if (statusText) {
+          statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
+      }
+    }
+
+    // Handle new question
+    function handleNewQuestion(data) {
+      const waitingRoom = document.getElementById('waitingRoom');
+      const gameStarting = document.getElementById('gameStarting');
+      const questionArea = document.getElementById('questionArea');
+      const gameResults = document.getElementById('gameResults');
+
+      // Set session start time on first question
+      if (!gameState.sessionStartTime) {
+        gameState.sessionStartTime = Date.now();
+        console.log('Session started at:', new Date(gameState.sessionStartTime));
+      }
+
+      if (gameStarting.style.display !== 'none') {
+        gameStarting.classList.add('fade-out');
+      }
+
+      setTimeout(() => {
+        waitingRoom.style.display = 'none';
+        gameStarting.style.display = 'none';
+        gameStarting.classList.remove('fade-out');
+        gameResults.style.display = 'none';
+        questionArea.style.display = 'block';
+        questionArea.classList.add('fade-in');
+        setTimeout(() => {
+          questionArea.classList.remove('fade-in');
+        }, 500);
+        updateGameStatusUI('playing');
+      }, 500);
+
+      const question = data.question;
+      gameState.currentQuestion = question;
+      gameState.currentQuestionIndex = data.currentQuestionIndex || 0;
+      gameState.selectedAnswer = null;
+      gameState.timeRemaining = data.timeLimit || 30;
+
+      const currentQuestionNum = document.getElementById('currentQuestionNum');
+      const totalQuestions = document.getElementById('totalQuestions');
+      const questionProgressBar = document.getElementById('questionProgressBar');
+      const questionText = document.getElementById('questionText');
+
+      currentQuestionNum.textContent = data.currentQuestionIndex + 1;
+      totalQuestions.textContent = data.totalQuestions || question.totalQuestions || gameState.totalQuestions;
+
+      const progressPercent = ((data.currentQuestionIndex + 1) / (data.totalQuestions || gameState.totalQuestions)) * 100;
+      questionProgressBar.style.width = `${progressPercent}%`;
+
+      // Display question text with MathLive support
+      questionText.classList.add('question-fade-in');
+      const questionTextContent = question.questionText || question.question || 'No question text available';
+      if (questionTextContent.includes('\\') || questionTextContent.includes('$')) {
+        questionText.innerHTML = `
+          <math-field readonly 
+            style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+            class="question-math-field">
+            ${questionTextContent}
+          </math-field>
+        `;
+      } else {
+        questionText.innerHTML = `<h4>${questionTextContent}</h4>`;
+      }
+      setTimeout(() => {
+        questionText.classList.remove('question-fade-in');
+      }, 500);
+
+      // Display question image if exists
+      const questionImage = document.getElementById('questionImage');
+      if (question.questionImage && question.questionImage.trim() !== '') {
+        questionImage.src = question.questionImage;
+        questionImage.style.display = 'block';
+      } else {
+        questionImage.style.display = 'none';
+      }
+
+      // Show appropriate input type based on question type
+      const optionsContainer = document.getElementById('questionOptions');
+      const writtenContainer = document.getElementById('writtenQuestionContainer');
+
+      if (question.questionType === 'Written') {
+        optionsContainer.style.display = 'none';
+        writtenContainer.style.display = 'block';
+        loadWrittenQuestion(question);
+      } else {
+        optionsContainer.style.display = 'block';
+        writtenContainer.style.display = 'none';
+        loadOptions(question);
+        // Disable submit button for MCQ until an option is selected
+        document.getElementById('submitAnswerBtn').disabled = true;
+      }
+
+      const answerFeedback = document.getElementById('answerFeedback');
+      answerFeedback.classList.remove('correct', 'incorrect');
+      answerFeedback.style.display = 'none';
+
+      updateQuestionStats(data);
+      startQuestionTimer();
+      playSound('new-question');
+    }
+
+    // Update question stats
+    function updateQuestionStats(data) {
+      const correctAnswerCount = document.getElementById('correctAnswerCount');
+      const currentScore = document.getElementById('currentScore');
+
+      if (data.stats) {
+        if (data.stats.correctAnswers) {
+          correctAnswerCount.textContent = data.stats.correctAnswers;
+        }
+        if (data.stats.score) {
+          currentScore.textContent = data.stats.score;
+        }
+      }
+    }
+
+    // Start question timer (now displays session timer)
+    function startQuestionTimer() {
+      const timerText = document.getElementById('timerText');
+      const timerProgress = document.getElementById('timerProgress');
+
+      // Initialize timer display - will be updated by session timer events
+      timerText.textContent = '--:--';
+
+      // Set up progress circle
+      const circumference = 2 * Math.PI * 45;
+      timerProgress.style.strokeDasharray = circumference;
+      timerProgress.style.strokeDashoffset = '0';
+
+      timerText.classList.add('timer-start-animation');
+      setTimeout(() => {
+        timerText.classList.remove('timer-start-animation');
+      }, 500);
+
+      // Clear any existing timer
+      if (gameState.timer) {
+        clearInterval(gameState.timer);
+        gameState.timer = null;
+      }
+    }
+
+    // Handle answer result
+    function handleAnswerResult(data) {
+      console.log('Answer result received:', data);
+
+      // Clear submission timeout if exists
+      if (window.gameState.submissionTimeout) {
+        clearTimeout(window.gameState.submissionTimeout);
+        window.gameState.submissionTimeout = null;
+      }
+
+      // Reset submission state
+      window.gameState.isSubmitting = false;
+
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      submitBtn.classList.remove('loading');
+
+      if (data.success) {
+        console.log('Answer submitted successfully:', data);
+
+        // Show answer feedback
+        showAnswerFeedback(data.isCorrect, data.scoreEarned || 0);
+
+        // Update score display
+        const scoreDisplay = document.getElementById('currentScore');
+        if (scoreDisplay && data.stats) {
+          scoreDisplay.textContent = data.stats.score || data.totalScore || 0;
+        }
+
+        // Update stats
+        if (data.stats) {
+          const correctAnswersDisplay = document.querySelector('.correct-answers-count');
+          if (correctAnswersDisplay) {
+            correctAnswersDisplay.textContent = data.stats.correctAnswers || 0;
+          }
+        }
+
+        // Check if this player has completed all questions using server data
+        const currentQuestionIndex = data.currentQuestionIndex;
+        const totalQuestions = gameState.totalQuestions;
+        console.log(`Player question index: ${currentQuestionIndex}/${totalQuestions} questions`);
+
+        // Player has completed all questions if currentQuestionIndex >= totalQuestions
+        if (currentQuestionIndex >= totalQuestions) {
+          console.log('Player has completed all questions! Showing completion screen...');
+
+          // Show the completion waiting screen
+          setTimeout(() => {
+            showGameCompletionScreen(data.stats || {});
+          }, 2000); // Wait 2 seconds to show feedback first
+
+          return; // Don't re-enable submit button or auto-advance
+        }
+
+        // Re-enable submit button with proper text for next question
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Answer';
+
+        // Re-enable options
+        const options = document.querySelectorAll('.option-item');
+        options.forEach(option => {
+          option.style.pointerEvents = 'auto';
+          option.style.opacity = '1';
+        });
+
+        // Auto-advance after showing feedback (3 seconds delay)
+        setTimeout(() => {
+          console.log('Auto-advancing to next question...');
+          moveToNextQuestion();
+        }, 3000);
+      } else {
+        console.error('Answer submission failed:', data);
+
+        // Show error feedback
+        showAnswerFeedback(false, 0, data.message || 'Failed to submit answer');
+
+        // Re-enable submit button after error
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Answer';
+
+        // Re-enable options
+        const options = document.querySelectorAll('.option-item');
+        options.forEach(option => {
+          option.style.pointerEvents = 'auto';
+          option.style.opacity = '1';
+        });
+
+        const writtenInput = document.getElementById('writtenAnswerInput');
+        if (writtenInput) {
+          writtenInput.disabled = false;
+        }
+      }
+    }
+
+    // Show answer feedback (without revealing correct answers)
+    function showAnswerFeedback(isCorrect, scoreEarned = 0, errorMessage = null) {
+      if (errorMessage) {
+        // Show error message
+        const answerFeedback = document.getElementById('answerFeedback');
+        answerFeedback.className = 'answer-feedback error';
+        answerFeedback.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <span>${errorMessage}</span>`;
+        answerFeedback.style.display = 'flex';
+        answerFeedback.classList.add('fade-in');
+        return;
+      }
+
+      const options = document.querySelectorAll('.option-item');
+      options.forEach(option => {
+        // For MCQ questions, compare with index; for True/False, compare with text
+        const optionIndex = option.dataset.index;
+        const optionValue = option.dataset.value;
+
+        let isSelected = false;
+        if (gameState.currentQuestion && gameState.currentQuestion.questionType === 'True/False') {
+          isSelected = optionValue === gameState.selectedAnswer;
+        } else {
+          isSelected = optionIndex === gameState.selectedAnswer;
+        }
+
+        if (isSelected) {
+          option.classList.add(isCorrect ? 'correct' : 'incorrect');
+        }
+      });
+
+      const answerFeedback = document.getElementById('answerFeedback');
+      answerFeedback.className = `answer-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+
+      let feedbackMessage = '';
+      if (isCorrect) {
+        const scoreText = scoreEarned > 0 ? ` (+${scoreEarned} points)` : '';
+        feedbackMessage = `<i class="fas fa-check-circle"></i> <span>Correct!${scoreText}</span>`;
+      } else {
+        feedbackMessage = '<i class="fas fa-times-circle"></i> <span>Incorrect!</span>';
+      }
+
+      answerFeedback.innerHTML = feedbackMessage;
+      answerFeedback.style.display = 'flex';
+      answerFeedback.classList.add('fade-in');
+
+      // For written answers, highlight the input
+      const writtenInput = document.getElementById('writtenAnswerInput');
+      if (writtenInput && writtenInput.style.display !== 'none') {
+        writtenInput.classList.add(isCorrect ? 'correct-answer' : 'incorrect-answer');
+      }
+
+      // Auto-hide feedback after 2.5 seconds
+      setTimeout(() => {
+        if (answerFeedback) {
+          answerFeedback.style.display = 'none';
+          answerFeedback.classList.remove('fade-in');
+        }
+
+        // Remove highlighting classes
+        options.forEach(option => {
+          option.classList.remove('correct', 'incorrect');
+        });
+
+        if (writtenInput) {
+          writtenInput.classList.remove('correct-answer', 'incorrect-answer');
+        }
+      }, 2500);
+    }
+
+    // Handle player progress
+    function handlePlayerProgress(data) {
+      // Update player progress in sidebar
+      const player = gameState.players.find(p => p.user && p.user._id.toString() === data.userId);
+      if (player) {
+        player.score = data.score || 0;
+        player.answered = true;
+        updateSidebar();
+      }
+    }
+
+    // Handle player completed
+    function handlePlayerCompleted(data) {
+      console.log('Player completed:', data);
+      showToast('info', 'Player Completed', `${data.username} has finished all questions!`, 3000);
+
+      // Update the player in gameState to mark them as completed
+      if (gameState.players && data.userId) {
+        const player = gameState.players.find(p =>
+          p.user && p.user._id === data.userId
+        );
+        if (player) {
+          player.completed = true;
+          player.completedAt = data.completedAt;
+          console.log(`Marked player ${data.username} as completed`);
+        }
+      }
+
+      // Update the waiting status if we're in the completion screen
+      if (document.getElementById('gameCompletedWaiting').style.display !== 'none') {
+        updateWaitingStatus();
+        updateCurrentRankings();
+      }
+    }
+
+    // Handle player completion confirmation (when this player completes)
+    function handlePlayerCompletionConfirmed(data) {
+      console.log('Player completion confirmed:', data);
+
+      // Show toast message
+      showToast('success', 'Quiz Completed!', data.message || 'You have completed all questions! Waiting for other players...', 5000);
+
+      // Show the completion screen with waiting message
+      showGameCompletionScreen({
+        score: gameState.score || 0,
+        correctAnswers: gameState.correctAnswers || 0,
+        totalQuestions: gameState.totalQuestions || 0,
+        accuracy: gameState.accuracy || 0,
+        timeSpent: gameState.timeSpent || 0
+      });
+    }
+
+    // Handle game ending immediately (for last player to complete)
+    function handleGameEndingImmediately(data) {
+      console.log('Game ending immediately:', data);
+
+      // Show toast message about game ending
+      showToast('info', 'Game Ending!', data.message || 'All players have completed! Calculating final results...', 3000);
+
+      // Hide question area immediately and show ending message
+      const questionArea = document.getElementById('questionArea');
+      questionArea.style.display = 'none';
+
+      // Show a brief "calculating results" screen
+      showCalculatingResultsScreen();
+    }
+
+    // Show calculating results screen
+    function showCalculatingResultsScreen() {
+      // Create or show calculating results overlay
+      let calculatingOverlay = document.getElementById('calculatingResultsOverlay');
+      if (!calculatingOverlay) {
+        calculatingOverlay = document.createElement('div');
+        calculatingOverlay.id = 'calculatingResultsOverlay';
+        calculatingOverlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.9);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          color: white;
+        `;
+
+        calculatingOverlay.innerHTML = `
+          <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 20px;">
+              <i class="fas fa-calculator fa-spin"></i>
+            </div>
+            <h2 style="margin-bottom: 10px;">All players have completed!</h2>
+            <p style="font-size: 18px; margin-bottom: 20px;">Calculating final results...</p>
+            <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden;">
+              <div style="width: 100%; height: 100%; background: #007bff; animation: slideProgress 2s ease-in-out;"></div>
+            </div>
+            <p style="margin-top: 10px; font-size: 14px; opacity: 0.8;">100% completed</p>
+          </div>
+        `;
+
+        document.body.appendChild(calculatingOverlay);
+      }
+
+      calculatingOverlay.style.display = 'flex';
+    }
+
+    // Handle player completion update (more detailed than player-completed)
+    function handlePlayerCompletionUpdate(data) {
+      console.log('Player completion update:', data);
+
+      // Update players list with completion status
+      if (data.completedPlayers) {
+        gameState.players.forEach(player => {
+          const completedPlayer = data.completedPlayers.find(cp =>
+            cp.user && player.user && cp.user._id === player.user._id
+          );
+          if (completedPlayer) {
+            player.completed = true;
+            player.stats = completedPlayer.stats;
+          }
+        });
+      }
+
+      // Update waiting status if in completion screen
+      if (document.getElementById('gameCompletedWaiting').style.display !== 'none') {
+        updateWaitingStatus();
+        updateCurrentRankings();
+      }
+    }
+
+    // Handle waiting for players status
+    function handleWaitingForPlayers(data) {
+      console.log('Waiting for players:', data);
+
+      // Update the waiting message and progress
+      const waitingMessage = document.getElementById('waitingPlayersMessage');
+      const remainingCount = data.remainingPlayers || 0;
+
+      if (waitingMessage && remainingCount > 0) {
+        if (remainingCount === 1) {
+          waitingMessage.innerHTML = '<span id="remainingPlayersCount">1</span> player is still completing their answers';
+        } else {
+          waitingMessage.innerHTML = `<span id="remainingPlayersCount">${remainingCount}</span> players are still completing their answers`;
+        }
+      }
+
+      // Update progress
+      const totalPlayers = data.totalPlayers || gameState.players.length || 1;
+      const completedPlayers = totalPlayers - remainingCount;
+      const progressPercent = (completedPlayers / totalPlayers) * 100;
+
+      const waitingProgressBar = document.getElementById('waitingProgressBar');
+      const waitingProgressText = document.getElementById('waitingProgressText');
+
+      if (waitingProgressBar) {
+        waitingProgressBar.style.width = `${progressPercent}%`;
+      }
+
+      if (waitingProgressText) {
+        waitingProgressText.textContent = `${Math.round(progressPercent)}% completed`;
+      }
+    }
+
+    // Handle all players completed
+    function handleAllPlayersCompleted(data) {
+      console.log('All players completed:', data);
+
+      // Clear the waiting status interval
+      if (gameState.waitingStatusInterval) {
+        clearInterval(gameState.waitingStatusInterval);
+        gameState.waitingStatusInterval = null;
+      }
+
+      // Update the waiting message
+      const waitingMessage = document.getElementById('waitingPlayersMessage');
+      if (waitingMessage) {
+        waitingMessage.innerHTML = 'All players have completed! Calculating final results...';
+      }
+
+      // Update progress to 100%
+      const waitingProgressBar = document.getElementById('waitingProgressBar');
+      const waitingProgressText = document.getElementById('waitingProgressText');
+
+      if (waitingProgressBar) {
+        waitingProgressBar.style.width = '100%';
+      }
+
+      if (waitingProgressText) {
+        waitingProgressText.textContent = '100% completed';
+      }
+
+      // Show a countdown to results
+      showToast('success', 'Results Ready!', 'Final results will be shown in a moment...', 3000);
+
+      // The game-ended event should follow shortly
+    }
+
+    // Handle live leaderboard update
+    function handleLiveLeaderboardUpdate(data) {
+      gameState.liveLeaderboard = data.leaderboard || [];
+
+      // Update game state with room information if provided
+      if (data.roomState) {
+        if (data.roomState.totalQuestions) {
+          gameState.totalQuestions = data.roomState.totalQuestions;
+        }
+      }
+
+      updateLiveLeaderboard();
+    }
+
+    // Handle question loaded (for individual question control)
+    function handleQuestionLoaded(data) {
+      console.log('Question loaded:', data);
+
+      // Load the question into the UI
+      const question = data.question;
+      gameState.currentQuestion = question;
+      gameState.selectedAnswer = null;
+
+      const currentQuestionNum = document.getElementById('currentQuestionNum');
+      const totalQuestions = document.getElementById('totalQuestions');
+      const questionProgressBar = document.getElementById('questionProgressBar');
+      const questionText = document.getElementById('questionText');
+
+      currentQuestionNum.textContent = data.questionIndex + 1;
+      totalQuestions.textContent = data.totalQuestions;
+
+      const progressPercent = ((data.questionIndex + 1) / data.totalQuestions) * 100;
+      questionProgressBar.style.width = `${progressPercent}%`;
+
+      // Display question text with MathLive support
+      questionText.classList.add('question-fade-in');
+      const questionTextContent = question.questionText || question.question || 'No question text available';
+      if (questionTextContent.includes('\\') || questionTextContent.includes('$')) {
+        questionText.innerHTML = `
+          <math-field readonly 
+            style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+            class="question-math-field">
+            ${questionTextContent}
+          </math-field>
+        `;
+      } else {
+        questionText.innerHTML = `<h4>${questionTextContent}</h4>`;
+      }
+      setTimeout(() => {
+        questionText.classList.remove('question-fade-in');
+      }, 500);
+
+      // Display question image if exists
+      const questionImage = document.getElementById('questionImage');
+      if (question.questionImage && question.questionImage.trim() !== '') {
+        questionImage.src = question.questionImage;
+        questionImage.style.display = 'block';
+      } else {
+        questionImage.style.display = 'none';
+      }
+
+      // Show appropriate input type based on question type
+      const optionsContainer = document.getElementById('questionOptions');
+      const writtenContainer = document.getElementById('writtenQuestionContainer');
+
+      if (question.questionType === 'Written') {
+        optionsContainer.style.display = 'none';
+        writtenContainer.style.display = 'block';
+        loadWrittenQuestion(question);
+      } else {
+        optionsContainer.style.display = 'block';
+        writtenContainer.style.display = 'none';
+        loadOptions(question);
+      }
+
+      const answerFeedback = document.getElementById('answerFeedback');
+      answerFeedback.classList.remove('correct', 'incorrect');
+      answerFeedback.style.display = 'none';
+      document.getElementById('submitAnswerBtn').disabled = true;
+
+      updateQuestionProgress();
+    }
+
+    // Handle player completion state (when player has completed all questions)
+    function handlePlayerCompletionState(data) {
+      console.log('Player completion state received:', data);
+
+      // Update room and session data
+      if (data.room) {
+        gameState.room = data.room;
+        updateRoomDisplay(data.room);
+      }
+
+      if (data.session) {
+        gameState.session = data.session;
+        gameState.currentQuestionIndex = data.session.currentQuestionIndex;
+        gameState.totalQuestions = data.session.totalQuestions;
+        gameState.score = data.session.score;
+        gameState.correctAnswers = data.session.correctAnswers;
+      }
+
+      // Use player stats if provided, otherwise use session data
+      const stats = data.playerStats || {
+        score: gameState.score || 0,
+        correctAnswers: gameState.correctAnswers || 0,
+        totalQuestions: gameState.totalQuestions || 0,
+        accuracy: gameState.accuracy || Math.round((gameState.correctAnswers / gameState.totalQuestions) * 100),
+        timeSpent: gameState.timeSpent || 0
+      };
+
+      console.log('Player has completed all questions, showing completion screen with stats:', stats);
+
+      // Show the completion screen immediately
+      showGameCompletionScreen(stats);
+    }
+
+    // Handle player completion detected by server
+    function handlePlayerCompletionDetected(data) {
+      console.log('Player completion detected by server:', data);
+
+      if (data.isCompleted) {
+        console.log('Server detected completion, showing completion screen');
+
+        // Update the game state
+        gameState.currentQuestionIndex = data.currentQuestionIndex;
+        gameState.totalQuestions = data.totalQuestions;
+
+        // Show the completion screen immediately
+        setTimeout(() => {
+          showGameCompletionScreen({
+            score: gameState.score || 0,
+            correctAnswers: gameState.correctAnswers || 0,
+            totalQuestions: data.totalQuestions,
+            accuracy: gameState.accuracy || 0
+          });
+        }, 1000); // Small delay to show answer feedback first
+      }
+    }
+
+    // Handle question complete
+    function handleQuestionComplete(data) {
+      console.log('Question complete:', data);
+
+      // Show a notification that all players have answered
+      showToast('info', 'Question Complete', data.message || 'All players have answered. Moving to next question...', data.delay || 3000);
+
+      // Disable all interactive elements
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-clock"></i> Waiting for next question...';
+      }
+
+      const options = document.querySelectorAll('.option-item');
+      options.forEach(option => {
+        option.style.pointerEvents = 'none';
+        option.style.opacity = '0.7';
+      });
+
+      const writtenInput = document.getElementById('writtenAnswerInput');
+      if (writtenInput) {
+        writtenInput.disabled = true;
+      }
+    }
+
+    // Handle session timer update
+    function handleSessionTimerUpdate(data) {
+      console.log('Session timer update:', data);
+
+      // Update the timer display in the question area
+      const timerText = document.getElementById('timerText');
+      if (timerText) {
+        const minutes = data.remainingMinutes;
+        const seconds = data.remainingSecondsOnly;
+        timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        // Add warning styles when time is running low
+        const timerContainer = document.querySelector('.timer-container');
+        if (timerContainer) {
+          timerContainer.classList.remove('timer-warning', 'timer-danger');
+          if (data.remainingSeconds <= 60) {
+            timerContainer.classList.add('timer-danger');
+          } else if (data.remainingSeconds <= 300) { // 5 minutes
+            timerContainer.classList.add('timer-warning');
+          }
+        }
+      }
+
+      // Update the sidebar timer
+      const sidebarTimerText = document.getElementById('sessionTimerText');
+      const sidebarTimerProgress = document.getElementById('sessionTimerProgress');
+      if (sidebarTimerText) {
+        const minutes = data.remainingMinutes;
+        const seconds = data.remainingSecondsOnly;
+        sidebarTimerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        // Update progress circle
+        if (sidebarTimerProgress) {
+          const circumference = 2 * Math.PI * 45;
+          const progress = (data.remainingSeconds / gameState.sessionTimeLimit) * circumference;
+          sidebarTimerProgress.style.strokeDasharray = circumference;
+          sidebarTimerProgress.style.strokeDashoffset = circumference - progress;
+
+          // Change color based on remaining time
+          if (data.remainingSeconds <= 60) {
+            sidebarTimerProgress.style.stroke = 'var(--games-danger)';
+          } else if (data.remainingSeconds <= 300) {
+            sidebarTimerProgress.style.stroke = 'var(--games-warning)';
+          } else {
+            sidebarTimerProgress.style.stroke = 'var(--games-primary)';
+          }
+        }
+      }
+
+      // Update the timer in the header if it exists
+      const headerTimer = document.querySelector('.quiz-timer .timer-text');
+      if (headerTimer) {
+        const minutes = data.remainingMinutes;
+        const seconds = data.remainingSecondsOnly;
+        headerTimer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+
+    // Handle session time up
+    function handleSessionTimeUp(data) {
+      console.log('Session time up:', data);
+
+      // Show notification
+      showToast('warning', 'Time\'s Up!', data.message || 'The game session has ended due to time limit.', 5000);
+
+      // Disable all interactions
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-clock"></i> Time\'s Up!';
+      }
+
+      const options = document.querySelectorAll('.option-item');
+      options.forEach(option => {
+        option.style.pointerEvents = 'none';
+        option.style.opacity = '0.5';
+      });
+
+      const writtenInput = document.getElementById('writtenAnswerInput');
+      if (writtenInput) {
+        writtenInput.disabled = true;
+      }
+    }
+
+    // Load options for MCQ and True/False questions
+    function loadOptions(question) {
+      console.log('Loading options for question:', question);
+      const container = document.getElementById('questionOptions');
+      container.innerHTML = '';
+
+      if (!question.options || question.options.length === 0) {
+        container.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 2rem;">No options available for this question.</p>';
+        return;
+      }
+
+      const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+      question.options.forEach((option, index) => {
+        const optionElement = document.createElement('div');
+        optionElement.className = 'option-item'; // Removed animation class
+        optionElement.dataset.value = option.text || option;
+        optionElement.dataset.index = index; // Store the index for MCQ validation
+
+        const letter = optionLetters[index] || (index + 1).toString();
+        const optionText = option.text || option;
+
+        // Render option text with MathLive support if needed
+        let optionTextElement;
+        if (optionText.includes('\\') || optionText.includes('$')) {
+          optionTextElement = `
+            <math-field readonly 
+              style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+              class="option-math-field">
+              ${optionText}
+            </math-field>
+          `;
+        } else {
+          optionTextElement = optionText;
+        }
+
+        optionElement.innerHTML = `
+          <div class="option-content">
+            <div class="option-letter">${letter}</div>
+            <div class="option-text">${optionTextElement}</div>
+            ${option.image && option.image.trim() !== '' ? `<img src="${option.image}" alt="Option image" class="option-image" style="max-width: 100px; height: auto; border-radius: 6px; margin-left: auto;">` : ''}
+            <div class="option-select-indicator">
+              <i class="fas fa-check-circle"></i>
+            </div>
+          </div>
+        `;
+
+        // Pass both index and text, and let selectOption decide what to send
+        optionElement.addEventListener('click', () => selectOption(index, option.text || option, optionElement));
+        container.appendChild(optionElement);
+      });
+    }
+
+    // Load written question
+    function loadWrittenQuestion(question) {
+      console.log('Loading written question:', question);
+      const textInput = document.getElementById('writtenAnswerInput');
+
+      // Clear previous answer and ensure input is enabled
+      textInput.value = '';
+      textInput.disabled = false;
+      textInput.style.pointerEvents = 'auto';
+      textInput.style.opacity = '1';
+      textInput.readOnly = false;
+
+      // Remove any previous styling classes
+      textInput.classList.remove('correct-answer', 'incorrect-answer');
+
+      // Reset selected answer
+      window.gameState.selectedAnswer = '';
+
+      // Enable submit button initially (will be managed by handleWrittenAnswer)
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      submitBtn.disabled = true;
+      submitBtn.classList.remove('loading');
+      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Answer';
+
+      // Focus on the input for better UX
+      setTimeout(() => {
+        textInput.focus();
+        textInput.style.cursor = 'text';
+      }, 100);
+    }
+
+    // Handle written answer input
+    function handleWrittenAnswer() {
+      const textInput = document.getElementById('writtenAnswerInput');
+      const answer = textInput.value.trim();
+
+      // Store the answer
+      window.gameState.selectedAnswer = answer;
+
+      // Enable/disable submit button based on whether there's text
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      if (answer && answer.length > 0) {
+        submitBtn.disabled = false;
+        submitBtn.classList.add('ready');
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Answer';
+      } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.remove('ready');
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Answer';
+      }
+
+      console.log('Written answer updated:', answer, 'Submit button disabled:', submitBtn.disabled);
+    }
+
+    // Select an option
+    function selectOption(optionIndex, optionText, element) {
+      const allOptions = document.querySelectorAll('.option-item');
+      allOptions.forEach(opt => opt.classList.remove('selected'));
+      element.classList.add('selected');
+
+      // Store the appropriate answer format based on question type
+      if (gameState.currentQuestion && gameState.currentQuestion.questionType === 'True/False') {
+        // For True/False, send the text (backend expects text comparison)
+        gameState.selectedAnswer = optionText;
+      } else {
+        // For MCQ, send the index (backend expects index validation)
+        gameState.selectedAnswer = optionIndex.toString();
+      }
+
+      console.log('Selected answer:', gameState.selectedAnswer, 'for question type:', gameState.currentQuestion?.questionType);
+
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      submitBtn.disabled = false;
+      submitBtn.classList.add('ready');
+    }
+
+    // Handle game ended
+    function handleGameEnded(data) {
+      console.log('Game ended with data:', data);
+
+      if (gameState.timer) {
+        clearInterval(gameState.timer);
+        gameState.timer = null;
+      }
+
+      // Clear waiting status interval if it exists
+      if (gameState.waitingStatusInterval) {
+        clearInterval(gameState.waitingStatusInterval);
+        gameState.waitingStatusInterval = null;
+      }
+
+      const waitingRoom = document.getElementById('waitingRoom');
+      const gameStarting = document.getElementById('gameStarting');
+      const questionArea = document.getElementById('questionArea');
+      const gameCompletedWaiting = document.getElementById('gameCompletedWaiting');
+      const gameResults = document.getElementById('gameResults');
+
+      // Hide whichever screen is currently visible
+      const currentScreen = questionArea.style.display !== 'none' ? questionArea : gameCompletedWaiting;
+
+      if (currentScreen && currentScreen.style.display !== 'none') {
+        currentScreen.classList.add('fade-out');
+      }
+
+      setTimeout(() => {
+        waitingRoom.style.display = 'none';
+        gameStarting.style.display = 'none';
+        questionArea.style.display = 'none';
+        gameCompletedWaiting.style.display = 'none';
+
+        // Remove fade-out classes
+        questionArea.classList.remove('fade-out');
+        gameCompletedWaiting.classList.remove('fade-out');
+
+        // Show results with dramatic effect
+        gameResults.style.display = 'block';
+        gameResults.classList.add('fade-in');
+
+        // Update results UI with enhanced styling
+        updateResultsWithProfessionalStyling(data);
+
+        setTimeout(() => {
+          gameResults.classList.remove('fade-in');
+        }, 500);
+
+        updateGameStatusUI('finished');
+      }, 500);
+
+      displayLeaderboard(data.leaderboard);
+      if (data.personalStats) {
+        displayPersonalStats(data.personalStats);
+      }
+    }
+
+    // Update results with professional styling
+    function updateResultsWithProfessionalStyling(data) {
+      const resultsTrophy = document.getElementById('resultsTrophyIcon');
+      const resultsTitle = document.getElementById('resultsTitle');
+      const resultsSubtitle = document.getElementById('resultsSubtitle');
+
+      // Determine the results based on player's performance
+      let position = null;
+      let totalPlayers = 0;
+
+      if (data.leaderboard && data.leaderboard.length > 0) {
+        totalPlayers = data.leaderboard.length;
+
+        // Find current player's position
+        position = data.leaderboard.findIndex(player =>
+          player.user && player.user._id === gameState.userId
+        ) + 1;
+      }
+
+      // Update trophy and messaging based on position
+      if (position === 1) {
+        if (resultsTrophy) resultsTrophy.className = 'fas fa-crown';
+        if (resultsTrophy) resultsTrophy.style.color = '#ffd700';
+        if (resultsTitle) resultsTitle.textContent = '🎉 Victory! 🎉';
+        if (resultsSubtitle) resultsSubtitle.textContent = 'Congratulations! You finished in 1st place!';
+      } else if (position === 2) {
+        if (resultsTrophy) resultsTrophy.className = 'fas fa-trophy';
+        if (resultsTrophy) resultsTrophy.style.color = '#c0c0c0';
+        if (resultsTitle) resultsTitle.textContent = '🥈 Excellent Work!';
+        if (resultsSubtitle) resultsSubtitle.textContent = 'Amazing performance! You finished in 2nd place!';
+      } else if (position === 3) {
+        if (resultsTrophy) resultsTrophy.className = 'fas fa-medal';
+        if (resultsTrophy) resultsTrophy.style.color = '#cd7f32';
+        if (resultsTitle) resultsTitle.textContent = '🥉 Great Job!';
+        if (resultsSubtitle) resultsSubtitle.textContent = 'Fantastic effort! You finished in 3rd place!';
+      } else if (position && position <= totalPlayers) {
+        if (resultsTrophy) resultsTrophy.className = 'fas fa-star';
+        if (resultsTrophy) resultsTrophy.style.color = '#007bff';
+        if (resultsTitle) resultsTitle.textContent = '⭐ Well Done!';
+        if (resultsSubtitle) resultsSubtitle.textContent = `Good performance! You finished ${position}${getOrdinalSuffix(position)} out of ${totalPlayers} players!`;
+      } else {
+        if (resultsTrophy) resultsTrophy.className = 'fas fa-trophy';
+        if (resultsTrophy) resultsTrophy.style.color = '#ffd700';
+        if (resultsTitle) resultsTitle.textContent = '🎊 Game Complete!';
+        if (resultsSubtitle) resultsSubtitle.textContent = 'Thank you for participating! Here are the final results.';
+      }
+
+      // Add celebration confetti effect for top 3
+      if (position && position <= 3) {
+        createConfettiEffect();
+      }
+    }
+
+    // Get ordinal suffix for position (1st, 2nd, 3rd, 4th, etc.)
+    function getOrdinalSuffix(position) {
+      if (position >= 11 && position <= 13) {
+        return 'th';
+      }
+      switch (position % 10) {
+        case 1:
+          return 'st';
+        case 2:
+          return 'nd';
+        case 3:
+          return 'rd';
+        default:
+          return 'th';
+      }
+    }
+
+    // Create confetti effect for top performers
+    function createConfettiEffect() {
+      // Simple confetti effect using CSS animations
+      const confettiCount = 50;
+      const confettiContainer = document.createElement('div');
+      confettiContainer.className = 'confetti-container';
+      confettiContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10000;
+      `;
+
+      for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti-piece';
+        confetti.style.cssText = `
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          background: hsl(${Math.random() * 360}, 100%, 50%);
+          left: ${Math.random() * 100}%;
+          top: -10px;
+          animation: confetti-fall ${2 + Math.random() * 3}s linear forwards;
+          animation-delay: ${Math.random() * 2}s;
+        `;
+        confettiContainer.appendChild(confetti);
+      }
+
+      document.body.appendChild(confettiContainer);
+
+      // Remove confetti after animation
+      setTimeout(() => {
+        if (confettiContainer.parentNode) {
+          confettiContainer.remove();
+        }
+      }, 6000);
+    }
+
+    // Display leaderboard
+    function displayLeaderboard(leaderboard) {
+      const leaderboardContainer = document.getElementById('leaderboard');
+      leaderboardContainer.innerHTML = '';
+
+      leaderboard.forEach((player, index) => {
+        const position = index + 1;
+        const isCurrentPlayer = player.user && player.user._id === gameState.userId;
+        const playerElement = document.createElement('div');
+        playerElement.className = `leaderboard-item ${isCurrentPlayer ? 'current-player' : ''} position-${position}`;
+        playerElement.style.animationDelay = `${index * 0.1}s`;
+
+        let positionIcon = '';
+        let medalClass = '';
+        if (position === 1) {
+          positionIcon = '<i class="fas fa-medal gold"></i>';
+          medalClass = 'gold-winner';
+        } else if (position === 2) {
+          positionIcon = '<i class="fas fa-medal silver"></i>';
+          medalClass = 'silver-winner';
+        } else if (position === 3) {
+          positionIcon = '<i class="fas fa-medal bronze"></i>';
+          medalClass = 'bronze-winner';
+        }
+
+        if (medalClass) {
+          playerElement.classList.add(medalClass);
+        }
+
+        const username = player.user ? player.user.username : player.userName || 'Player';
+        const profilePicture = player.user && player.user.profilePicture;
+
+        playerElement.innerHTML = `
+          <div class="position">${positionIcon || position}</div>
+          <div class="player-info">
+            <div class="player-avatar">
+              ${profilePicture ? 
+                `<img src="${profilePicture}" alt="${username}">` :
+                `<div class="avatar-fallback">${username.charAt(0).toUpperCase()}</div>`
+              }
+            </div>
+            <div class="player-details">
+              <span class="player-name">${username} ${isCurrentPlayer ? '<span class="current-user-tag">(You)</span>' : ''}</span>
+              <span class="player-score">${player.score} points</span>
+            </div>
+          </div>
+          <div class="player-stats">
+            <div class="stat">
+              <span class="stat-value">${player.correctAnswers || 0}</span>
+              <span class="stat-label">Correct</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">${player.totalAnswers || player.questionsAnswered || '?'}</span>
+              <span class="stat-label">Total</span>
+            </div>
+          </div>
+        `;
+        leaderboardContainer.appendChild(playerElement);
+      });
+    }
+
+    // Display personal stats
+    function displayPersonalStats(stats) {
+      let statsContainer = document.getElementById('personalStats');
+      if (!statsContainer) {
+        statsContainer = document.createElement('div');
+        statsContainer.id = 'personalStats';
+        statsContainer.className = 'personal-stats';
+        const leaderboardSection = document.querySelector('.leaderboard-section');
+        leaderboardSection.parentNode.insertBefore(statsContainer, leaderboardSection);
+      }
+
+      const accuracyPercentage = stats.totalAnswers > 0 ?
+        Math.round((stats.correctAnswers / stats.totalAnswers) * 100) : 0;
+
+      statsContainer.innerHTML = `
+        <h5 class="section-title">
+          <i class="fas fa-chart-line"></i>
+          Your Performance
+        </h5>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${stats.score}</div>
+            <div class="stat-label">Total Score</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.correctAnswers}/${stats.totalAnswers || '?'}</div>
+            <div class="stat-label">Correct Answers</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${accuracyPercentage}%</div>
+            <div class="stat-label">Accuracy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.averageTime ? (Math.round(stats.averageTime * 10) / 10) + 's' : 'N/A'}</div>
+            <div class="stat-label">Avg. Time</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Handle game state response for reconnection
+    function handleGameState(data) {
+      console.log('Received game state:', data);
+
+      if (data.room) {
+        console.log('Updating game state with room data:', data.room.gameState);
+
+        // Update room state
+        updateGameState(data.room);
+
+        // Check if the game has finished
+        if (data.room.gameState === 'finished' || data.gameState === 'finished') {
+          console.log('Game has finished - handling end game state');
+          if (data.session) {
+            handleGameEnded({
+              finalStats: {
+                score: data.session.score,
+                correctAnswers: data.session.correctAnswers,
+                totalQuestions: data.session.totalQuestions,
+                accuracy: Math.round((data.session.correctAnswers / data.session.totalQuestions) * 100),
+                timeSpent: data.session.timeSpent
+              },
+              leaderboard: data.room.leaderboard || []
+            });
+          }
+          return;
+        }
+
+        // If the game is playing and we have session data, load the current question
+        if (data.room.gameState === 'playing' && data.session) {
+          console.log('Game is playing - handling session data:', data.session);
+
+          // Check if player has completed all questions
+          const hasCompletedAllQuestions = data.session.currentQuestionIndex >= data.session.totalQuestions;
+
+          if (hasCompletedAllQuestions) {
+            console.log('Player has completed all questions - showing completion screen');
+            showGameCompletionScreen({
+              score: data.session.score,
+              correctAnswers: data.session.correctAnswers,
+              totalQuestions: data.session.totalQuestions,
+              accuracy: Math.round((data.session.correctAnswers / data.session.totalQuestions) * 100),
+              timeSpent: data.session.timeSpent
+            });
+            return;
+          }
+
+          // Update current question if available
+          if (data.session.currentQuestion) {
+            window.gameState.currentQuestion = data.session.currentQuestion;
+            console.log('Setting current question for reconnection:', data.session.currentQuestion);
+
+            // Display the question
+            handleNewQuestion({
+              question: data.session.currentQuestion,
+              session: data.session
+            });
+          }
+
+          // Update session timers if available
+          if (data.session.sessionTime && data.session.sessionDuration) {
+            const timeRemaining = data.session.sessionDuration - data.session.sessionTime;
+            if (timeRemaining > 0) {
+              handleSessionTimerUpdate({
+                timeRemaining: timeRemaining,
+                totalTime: data.session.sessionDuration
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Handle errors
+    // Enhanced error handling
+    function handleError(data) {
+      console.error('Game error:', data);
+
+      const errorMessage = data.message || 'An error occurred';
+      let errorTitle = 'Game Error';
+      let shouldRedirect = false;
+
+      // Provide specific feedback for different error types
+      if (errorMessage.includes('Game has already started')) {
+        errorTitle = 'Cannot Join Game';
+        if (errorMessage.includes('You can only rejoin if you were previously playing')) {
+          // This is the new more helpful message
+          showToast('warning', errorTitle, errorMessage, 8000);
+        } else {
+          // Generic message - user trying to join started game
+          showToast('warning', errorTitle, 'This game has already started. You can only rejoin games you were previously participating in.', 8000);
+        }
+        shouldRedirect = true;
+      } else if (errorMessage.includes('Room is full')) {
+        errorTitle = 'Room Full';
+        showToast('warning', errorTitle, 'This game room has reached its maximum capacity. Please try another room.', 6000);
+        shouldRedirect = true;
+      } else if (errorMessage.includes('Room not found') || errorMessage.includes('not found')) {
+        errorTitle = 'Room Not Available';
+        showToast('error', errorTitle, 'The game room you\'re trying to join is no longer available.', 6000);
+        shouldRedirect = true;
+      } else {
+        // Generic error
+        showToast('error', errorTitle, errorMessage, 5000);
+      }
+
+      // Handle redirects with appropriate delays
+      if (shouldRedirect) {
+        setTimeout(() => {
+          window.location.href = '/student/game-rooms';
+        }, 3000);
+      }
+    }
+
+    // Toast notification system
+    function showToast(type, title, message, duration = 5000) {
+      // Create toast container if it doesn't exist
+      let toastContainer = document.querySelector('.toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+      }
+
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      toast.innerHTML = `
+        <div class="toast-header">
+          <i class="fas ${getToastIcon(type)}"></i>
+          ${title}
+          <button type="button" class="toast-close" onclick="this.parentElement.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="toast-body">${message}</div>
+      `;
+
+      toastContainer.appendChild(toast);
+
+      // Auto-remove toast after duration
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.style.animation = 'slideOutRight 0.3s ease-in';
+          setTimeout(() => {
+            if (toast.parentNode) {
+              toast.remove();
+            }
+          }, 300);
+        }
+      }, duration);
+    }
+
+    function getToastIcon(type) {
+      switch (type) {
+        case 'success':
+          return 'fa-check-circle';
+        case 'error':
+          return 'fa-exclamation-circle';
+        case 'warning':
+          return 'fa-exclamation-triangle';
+        case 'info':
+          return 'fa-info-circle';
+        default:
+          return 'fa-info-circle';
+      }
+    }
+
+    // Show game completion screen when player finishes all questions
+    function showGameCompletionScreen(playerStats) {
+      console.log('Showing game completion screen with stats:', playerStats);
+
+      // Hide question area and show completion screen
+      const questionArea = document.getElementById('questionArea');
+      const completionScreen = document.getElementById('gameCompletedWaiting');
+
+      questionArea.classList.add('fade-out');
+      setTimeout(() => {
+        questionArea.style.display = 'none';
+        completionScreen.style.display = 'block';
+        completionScreen.classList.add('fade-in');
+
+        // Populate player performance stats
+        populatePlayerPerformance(playerStats);
+
+        // Start the waiting animation and status updates
+        startWaitingForOthersAnimation();
+
+        // Update motivational message based on performance
+        updateMotivationalMessage(playerStats);
+
+        // Request current game status
+        if (gameState.socket) {
+          gameState.socket.emit('request-game-status', {
+            roomCode: gameState.roomCode
+          });
+        }
+
+        setTimeout(() => {
+          completionScreen.classList.remove('fade-in');
+        }, 500);
+      }, 500);
+    }
+
+    // Populate the player's performance stats
+    function populatePlayerPerformance(stats) {
+      const yourCorrectAnswers = document.getElementById('yourCorrectAnswers');
+      const yourTotalScore = document.getElementById('yourTotalScore');
+      const yourAccuracy = document.getElementById('yourAccuracy');
+      const yourCompletionTime = document.getElementById('yourCompletionTime');
+
+      if (yourCorrectAnswers) {
+        yourCorrectAnswers.textContent = stats.correctAnswers || 0;
+      }
+
+      if (yourTotalScore) {
+        yourTotalScore.textContent = stats.score || stats.totalScore || 0;
+      }
+
+      if (yourAccuracy) {
+        const accuracy = stats.correctAnswers && gameState.totalQuestions ?
+          Math.round((stats.correctAnswers / gameState.totalQuestions) * 100) :
+          0;
+        yourAccuracy.textContent = `${accuracy}%`;
+      }
+
+      if (yourCompletionTime) {
+        // Calculate completion time from session start
+        if (gameState.sessionStartTime) {
+          const completionTime = Date.now() - gameState.sessionStartTime;
+          const minutes = Math.floor(completionTime / 60000);
+          const seconds = Math.floor((completionTime % 60000) / 1000);
+          yourCompletionTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+          yourCompletionTime.textContent = '--:--';
+        }
+      }
+    }
+
+    // Start the waiting for others animation and status
+    function startWaitingForOthersAnimation() {
+      // Get current players status and update waiting message
+      updateWaitingStatus();
+
+      // Set up periodic updates for waiting status
+      gameState.waitingStatusInterval = setInterval(() => {
+        updateWaitingStatus();
+      }, 2000);
+    }
+
+    // Update waiting status and progress
+    function updateWaitingStatus() {
+      const remainingPlayersCount = document.getElementById('remainingPlayersCount');
+      const waitingProgressBar = document.getElementById('waitingProgressBar');
+      const waitingProgressText = document.getElementById('waitingProgressText');
+
+      // Calculate progress based on players who have completed
+      const totalPlayers = gameState.players.length || 1;
+      const completedPlayers = gameState.players.filter(p => p.completed).length || 1; // At least current player
+      const remainingPlayers = totalPlayers - completedPlayers;
+      const progressPercent = (completedPlayers / totalPlayers) * 100;
+
+      if (remainingPlayersCount) {
+        remainingPlayersCount.textContent = remainingPlayers;
+      }
+
+      if (waitingProgressBar) {
+        waitingProgressBar.style.width = `${progressPercent}%`;
+      }
+
+      if (waitingProgressText) {
+        waitingProgressText.textContent = `${Math.round(progressPercent)}% completed`;
+      }
+
+      // Update waiting message
+      const waitingMessage = document.getElementById('waitingPlayersMessage');
+      if (waitingMessage) {
+        if (remainingPlayers <= 0) {
+          waitingMessage.innerHTML = 'All players have completed! Calculating final results...';
+        } else if (remainingPlayers === 1) {
+          waitingMessage.innerHTML = '<span id="remainingPlayersCount">1</span> player is still completing their answers';
+        } else {
+          waitingMessage.innerHTML = `<span id="remainingPlayersCount">${remainingPlayers}</span> players are still completing their answers`;
+        }
+      }
+    }
+
+    // Update motivational message based on performance
+    function updateMotivationalMessage(stats) {
+      const motivationalIcon = document.getElementById('motivationalIcon');
+      const motivationalText = document.getElementById('motivationalText');
+      const completionMessage = document.getElementById('completionMessage');
+      const completionSubtitle = document.getElementById('completionSubtitle');
+
+      const accuracy = stats.correctAnswers && gameState.totalQuestions ?
+        (stats.correctAnswers / gameState.totalQuestions) * 100 :
+        0;
+
+      let message, subtitle, icon, iconClass;
+
+      if (accuracy >= 90) {
+        message = 'Outstanding Performance!';
+        subtitle = 'You\'ve mastered this quiz with excellent accuracy!';
+        icon = 'fas fa-crown';
+        iconClass = 'trophy-gold';
+        motivationalText.textContent = 'Incredible work! You\'ve demonstrated exceptional knowledge and skill. You\'re definitely among the top performers!';
+
+        // Apply outstanding styling
+        if (completionMessage) {
+          completionMessage.classList.add('outstanding');
+        }
+        if (completionSubtitle) {
+          completionSubtitle.classList.add('outstanding');
+        }
+      } else if (accuracy >= 75) {
+        message = 'Excellent Work!';
+        subtitle = 'You\'ve shown great understanding of the material!';
+        icon = 'fas fa-trophy';
+        iconClass = 'trophy-silver';
+        motivationalText.textContent = 'Great job! Your performance shows solid understanding and good preparation. Keep up the excellent work!';
+      } else if (accuracy >= 60) {
+        message = 'Good Job!';
+        subtitle = 'You\'ve completed all questions successfully!';
+        icon = 'fas fa-medal';
+        iconClass = 'trophy-bronze';
+        motivationalText.textContent = 'Well done! You\'ve shown good effort and understanding. There\'s always room for improvement, and you\'re on the right track!';
+      } else {
+        message = 'Great Effort!';
+        subtitle = 'You\'ve given it your best shot!';
+        icon = 'fas fa-star';
+        iconClass = 'trophy-participation';
+        motivationalText.textContent = 'Thank you for participating! Every attempt is a learning opportunity. Review the concepts and you\'ll do even better next time!';
+      }
+
+      if (completionMessage) completionMessage.textContent = message;
+      if (completionSubtitle) completionSubtitle.textContent = subtitle;
+      if (motivationalIcon) {
+        motivationalIcon.className = icon;
+        motivationalIcon.parentElement.className = `motivational-icon ${iconClass}`;
+      }
+
+      // Update trophy icon as well
+      const trophyIcon = document.getElementById('completionTrophyIcon');
+      if (trophyIcon) {
+        trophyIcon.className = icon;
+      }
+    }
+
+    // Update current rankings preview
+    function updateCurrentRankings() {
+      const rankingsList = document.getElementById('currentRankingsList');
+      if (!rankingsList || !gameState.liveLeaderboard.length) return;
+
+      rankingsList.innerHTML = '';
+
+      // Show top 5 players in current rankings
+      const topPlayers = gameState.liveLeaderboard.slice(0, 5);
+
+      topPlayers.forEach((player, index) => {
+        const position = index + 1;
+        const isCurrentPlayer = player.user && player.user._id === gameState.userId;
+
+        const rankingItem = document.createElement('div');
+        rankingItem.className = `ranking-item ${isCurrentPlayer ? 'current-player' : ''}`;
+
+        const positionClass = position === 1 ? 'first' : position === 2 ? 'second' : position === 3 ? 'third' : '';
+
+        const totalQuestions = player.totalQuestions || gameState.totalQuestions || 0;
+        const correctAnswers = player.correctAnswers || 0;
+        const currentQuestionIndex = player.currentQuestionIndex || 0;
+        const questionsAnswered = Math.min(currentQuestionIndex, totalQuestions);
+        const completionStatus = player.isCompleted ? ' ✓' : '';
+
+        rankingItem.innerHTML = `
+          <div class="ranking-position ${positionClass}">${position}</div>
+          <div class="ranking-avatar">
+            ${player.user && player.user.username ? player.user.username.charAt(0).toUpperCase() : 'P'}
+          </div>
+          <div class="ranking-info">
+            <div class="ranking-name">
+              ${player.user && player.user.username ? player.user.username : 'Player'}${completionStatus}
+              ${isCurrentPlayer ? ' (You)' : ''}
+            </div>
+            <div class="ranking-progress">
+              ${questionsAnswered}/${totalQuestions} questions • ${correctAnswers} correct
+            </div>
+          </div>
+          <div class="ranking-score">${player.score || 0} points</div>
+        `;
+
+        rankingsList.appendChild(rankingItem);
+      });
+    }
+
+    // Clean up socket connection
+    function cleanupSocketConnection() {
+      if (gameState.socket) {
+        console.log('Cleaning up socket connection');
+        gameState.socket.disconnect();
+        gameState.socket = null;
+      }
+    }
+
+    // Play again
+    function playAgain() {
+      window.location.href = '/student/game-rooms';
+    }
+
+    // Update players list
+    function updatePlayersList(players) {
+      const playersList = document.querySelector('.players-list');
+      if (!playersList) return;
+
+      playersList.innerHTML = '';
+
+      players.forEach((player, index) => {
+        const isCurrentPlayer = player && player.user && player.user._id &&
+          player.user._id.toString() === gameState.userId;
+
+        const playerElement = document.createElement('div');
+        playerElement.className = `player-card ${isCurrentPlayer ? 'current-player' : ''} ${player && player.isReady ? 'player-ready' : ''}`;
+
+        const username = (player && player.user && player.user.username) ? player.user.username : 'Player';
+        const profilePicture = player && player.user && player.user.profilePicture;
+        const joinedTime = player && player.joinedAt ? new Date(player.joinedAt).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        }) : '';
+
+        playerElement.innerHTML = `
+          <div class="player-avatar">
+            ${profilePicture ? 
+              `<img src="${profilePicture}" alt="${username}">` :
+              `<div class="avatar-fallback">${username.charAt(0).toUpperCase()}</div>`
+            }
+            ${isCurrentPlayer ? '<div class="current-player-badge">You</div>' : ''}
+          </div>
+          <div class="player-info">
+            <span class="player-name">${username}</span>
+            <span class="player-joined">Joined ${joinedTime}</span>
+          </div>
+          <div class="player-status">
+            ${player && player.isReady ? 
+              '<span class="status-badge ready"><i class="fas fa-check"></i> Ready</span>' :
+              isCurrentPlayer ? 
+                '<button class="btn btn-sm btn-primary ready-btn" onclick="setPlayerReady()"><i class="fas fa-check"></i> I\'m Ready</button>' :
+                '<span class="status-badge waiting"><i class="fas fa-clock"></i> Waiting</span>'
+            }
+          </div>
+        `;
+
+        playersList.appendChild(playerElement);
+      });
+    }
+
+    // Update game state
+    function updateGameState(room) {
+      console.log('Updating game state:', room);
+
+      // Handle UI transitions based on game state
+      const waitingRoom = document.getElementById('waitingRoom');
+      const gameStarting = document.getElementById('gameStarting');
+      const questionArea = document.getElementById('questionArea');
+      const gameResults = document.getElementById('gameResults');
+
+      // If game is playing and we're in waiting room, transition to question area
+      if (room.gameState === 'playing') {
+        console.log('Game is playing - transitioning to question area');
+
+        if (waitingRoom) {
+          waitingRoom.classList.add('is-hidden');
+          waitingRoom.style.display = 'none';
+        }
+        if (gameStarting) {
+          gameStarting.classList.add('is-hidden');
+          gameStarting.style.display = 'none';
+        }
+        if (questionArea) {
+          questionArea.classList.remove('is-hidden');
+          questionArea.style.display = 'block';
+        }
+        if (gameResults) {
+          gameResults.classList.add('is-hidden');
+          gameResults.style.display = 'none';
+        }
+
+        // Request current question if we don't have one
+        if (!window.gameState.currentQuestion && window.gameState.socket) {
+          console.log('Requesting current game state for reconnection');
+          window.gameState.socket.emit('request-game-state', {
+            roomCode: window.gameState.roomCode,
+            userId: window.gameState.userId
+          });
+        }
+      } else if (room.gameState === 'waiting') {
+        console.log('Game is waiting - showing waiting room');
+
+        if (waitingRoom) {
+          waitingRoom.classList.remove('is-hidden');
+          waitingRoom.style.display = 'block';
+        }
+        if (gameStarting) {
+          gameStarting.classList.add('is-hidden');
+          gameStarting.style.display = 'none';
+        }
+        if (questionArea) {
+          questionArea.classList.add('is-hidden');
+          questionArea.style.display = 'none';
+        }
+        if (gameResults) {
+          gameResults.classList.add('is-hidden');
+          gameResults.style.display = 'none';
+        }
+      } else if (room.gameState === 'completed') {
+        console.log('Game is completed - showing results');
+
+        if (waitingRoom) {
+          waitingRoom.classList.add('is-hidden');
+          waitingRoom.style.display = 'none';
+        }
+        if (gameStarting) {
+          gameStarting.classList.add('is-hidden');
+          gameStarting.style.display = 'none';
+        }
+        if (questionArea) {
+          questionArea.classList.add('is-hidden');
+          questionArea.style.display = 'none';
+        }
+        if (gameResults) {
+          gameResults.classList.remove('is-hidden');
+          gameResults.style.display = 'block';
+        }
+      }
+
+      // Update player count
+      const currentCountEl = document.querySelector('.current-count');
+      if (currentCountEl) {
+        currentCountEl.textContent = room.currentPlayers.length;
+      }
+
+      // Update waiting message
+      const waitingMessage = document.querySelector('.waiting-message');
+      if (waitingMessage) {
+        if (room.maxPlayers - room.currentPlayers.length > 0) {
+          waitingMessage.innerHTML = `Waiting for <strong>${room.maxPlayers - room.currentPlayers.length}</strong> more players to join...`;
+        } else {
+          waitingMessage.innerHTML = 'Room is full! Waiting for players to get ready...';
+        }
+      }
+
+      // Update players list
+      updatePlayersList(room.currentPlayers);
+
+      // Update game status badge
+      const statusBadge = document.querySelector('.game-status-badge');
+      if (statusBadge) {
+        statusBadge.classList.remove('status-waiting', 'status-starting', 'status-playing', 'status-finished');
+        statusBadge.classList.add('status-' + room.gameState);
+        const statusText = statusBadge.querySelector('span');
+        if (statusText) {
+          statusText.textContent = room.gameState.charAt(0).toUpperCase() + room.gameState.slice(1);
+        }
+      }
+    }
+
+    // Update sidebar functions
+    function updateSidebar() {
+      updatePlayersListCompact();
+      updateLiveLeaderboard();
+      updateQuestionProgress();
+    }
+
+    function updatePlayersListCompact() {
+      const container = document.getElementById('playersListCompact');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      gameState.players.forEach(player => {
+        const isCurrentPlayer = player.user && player.user._id &&
+          player.user._id.toString() === gameState.userId;
+
+        const playerElement = document.createElement('div');
+        playerElement.className = `player-compact ${isCurrentPlayer ? 'current-player' : ''} ${player.answered ? 'answered' : ''}`;
+
+        const username = player.user ? player.user.username : 'Player';
+        const profilePicture = player.user && player.user.profilePicture;
+
+        playerElement.innerHTML = `
+          <div class="player-compact-avatar">
+            ${profilePicture ? 
+              `<img src="${profilePicture}" alt="${username}">` :
+              `<div class="avatar-fallback">${username.charAt(0).toUpperCase()}</div>`
+            }
+          </div>
+          <div class="player-compact-info">
+            <div class="player-compact-name">${username}</div>
+            <div class="player-compact-status">${player.answered ? 'Answered' : 'Thinking'}</div>
+          </div>
+          <div class="player-compact-score">${player.score || 0}</div>
+        `;
+
+        container.appendChild(playerElement);
+      });
+    }
+
+    function updateLiveLeaderboard() {
+      const container = document.getElementById('liveLeaderboard');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      gameState.liveLeaderboard.forEach((player, index) => {
+        const isCurrentPlayer = player.user && player.user._id &&
+          player.user._id.toString() === gameState.userId;
+
+        const playerElement = document.createElement('div');
+        playerElement.className = `leaderboard-item-compact ${isCurrentPlayer ? 'current-player' : ''} position-${index + 1}`;
+
+        const username = player.user ? player.user.username : 'Player';
+        const totalQuestions = player.totalQuestions || gameState.totalQuestions || 0;
+        const correctAnswers = player.correctAnswers || 0;
+        const statusIcon = player.isCompleted ? '✓' : '';
+
+        playerElement.innerHTML = `
+          <div class="leaderboard-position">${index + 1}</div>
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">${username} ${isCurrentPlayer ? '(You)' : ''} ${statusIcon}</div>
+            <div class="leaderboard-stats">
+              <span class="score">${player.score || 0} points</span>
+              <span class="questions">${correctAnswers} Correct</span>
+              <span class="total">${totalQuestions} Total</span>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(playerElement);
+      });
+    }
+
+    function updateQuestionProgress() {
+      const container = document.getElementById('questionProgressGrid');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      for (let i = 0; i < gameState.totalQuestions; i++) {
+        const progressItem = document.createElement('div');
+        progressItem.className = 'question-progress-item';
+
+        if (i === gameState.currentQuestionIndex) {
+          progressItem.classList.add('current');
+        } else if (gameState.answeredQuestions.has(i)) {
+          progressItem.classList.add('answered');
+        }
+
+        progressItem.textContent = i + 1;
+        container.appendChild(progressItem);
+      }
+    }
+
+    // Individual question control functions
+    function moveToNextQuestion() {
+      const currentIndex = gameState.currentQuestionIndex;
+      const totalQuestions = gameState.totalQuestions;
+
+      console.log(`moveToNextQuestion: current ${currentIndex}, total ${totalQuestions}`);
+
+      if (currentIndex < totalQuestions - 1) {
+        gameState.currentQuestionIndex++;
+        loadQuestionByIndex(gameState.currentQuestionIndex);
+        updateQuestionProgress();
+      } else {
+        console.log('All questions completed, calling completeGame()');
+        // All questions completed
+        completeGame();
+      }
+    }
+
+    function loadQuestionByIndex(index) {
+      // This would load the question from the server or local storage
+      // For now, we'll emit a request for the specific question
+      if (gameState.socket) {
+        gameState.socket.emit('request-question', {
+          roomCode: gameState.roomCode,
+          questionIndex: index
+        });
+      }
+    }
+
+    function completeGame() {
+      // End the game for this player
+      if (gameState.socket) {
+        gameState.socket.emit('player-completed', {
+          roomCode: gameState.roomCode,
+          userId: gameState.userId
+        });
+      }
+    }
+
+    // Prevent page reload
+    function preventPageReload() {
+      window.addEventListener('beforeunload', function(e) {
+        if (gameState.socket && gameState.socket.connected) {
+          const message = 'Are you sure you want to leave? Your progress will be lost!';
+          e.returnValue = message;
+          return message;
+        }
+      });
+
+      // Prevent F5 refresh
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+          e.preventDefault();
+          showToast('warning', 'Refresh Blocked', 'Please use the navigation buttons instead of refreshing the page.', 3000);
+          return false;
+        }
+      });
+
+      // Disable right-click context menu
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      });
+
+      // Disable common keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        // Disable Ctrl+R, Ctrl+Shift+R, F5
+        if ((e.ctrlKey && e.key === 'r') ||
+          (e.ctrlKey && e.shiftKey && e.key === 'R') ||
+          e.key === 'F5') {
+          e.preventDefault();
+          showToast('warning', 'Refresh Blocked', 'Please use the navigation buttons instead of refreshing the page.', 3000);
+        }
+
+        // Disable Ctrl+W (close tab)
+        if (e.ctrlKey && e.key === 'w') {
+          e.preventDefault();
+          showToast('warning', 'Tab Close Blocked', 'Please use the leave room button instead.', 3000);
+        }
+
+        // Disable Alt+F4 (close window)
+        if (e.altKey && e.key === 'F4') {
+          e.preventDefault();
+          showToast('warning', 'Window Close Blocked', 'Please use the leave room button instead.', 3000);
+        }
+      });
+    }
+
+    // Game Sidebar toggle functionality
+    function toggleGameSidebar() {
+      const gameLayout = document.getElementById('gameLayout');
+      const toggleBtn = document.getElementById('gameSidebarToggleBtn');
+      const toggleIcon = document.getElementById('gameSidebarToggleIcon');
+
+      const isVisible = gameLayout.classList.contains('sidebar-visible');
+      const isMobile = window.innerWidth <= 768;
+
+      if (isVisible) {
+        // Hide sidebar
+        gameLayout.classList.remove('sidebar-visible');
+        toggleBtn.classList.remove('sidebar-active');
+        toggleIcon.classList.remove('fa-times');
+        toggleIcon.classList.add('fa-users');
+      } else {
+        // Show sidebar
+        gameLayout.classList.add('sidebar-visible');
+        toggleBtn.classList.add('sidebar-active');
+        toggleIcon.classList.remove('fa-users');
+        toggleIcon.classList.add('fa-times');
+      }
+
+      // Save preference to localStorage
+      localStorage.setItem('gameSidebarVisible', !isVisible);
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set up game sidebar toggle event listener
+      const gameSidebarToggleBtn = document.getElementById('gameSidebarToggleBtn');
+      if (gameSidebarToggleBtn) {
+        gameSidebarToggleBtn.addEventListener('click', toggleGameSidebar);
+      }
+
+      initializeSocket();
+      preventPageReload();
+      initializeSidebar();
+
+      // Initialize question progress
+      updateQuestionProgress();
+
+      // Check saved sidebar preference (default is hidden)
+      const sidebarVisible = localStorage.getItem('gameSidebarVisible') === 'true';
+      if (sidebarVisible) {
+        toggleGameSidebar();
+      }
+    });
+
+    function initializeSidebar() {
+      // Initialize sidebar with current room data
+      const players = <%- JSON.stringify(gameRoom.currentPlayers) %>;
+      gameState.players = players.map(player => {
+        return Object.assign({}, player, {
+          answered: false,
+          score: 0
+        });
+      });
+      updateSidebar();
+    }
+
+    // Handle window resize for responsive sidebar behavior
+    window.addEventListener('resize', function() {
+      const gameLayout = document.getElementById('gameLayout');
+      const toggleBtn = document.getElementById('gameSidebarToggleBtn');
+      const isMobile = window.innerWidth <= 768;
+      const isVisible = gameLayout.classList.contains('sidebar-visible');
+
+      // Update toggle button position based on screen size and sidebar state
+      if (isVisible) {
+        toggleBtn.classList.add('sidebar-active');
+      } else {
+        toggleBtn.classList.remove('sidebar-active');
+      }
+    });
+
+    // Close sidebar when clicking outside on mobile and desktop
+    document.addEventListener('click', function(event) {
+      const gameSidebar = document.getElementById('gameSidebar');
+      const toggleBtn = document.getElementById('gameSidebarToggleBtn');
+      const gameLayout = document.getElementById('gameLayout');
+      const isMobile = window.innerWidth <= 768;
+      const isTablet = window.innerWidth <= 992;
+      const isVisible = gameLayout.classList.contains('sidebar-visible');
+
+      // For mobile and desktop (not tablet), close when clicking outside
+      if ((isMobile || (!isTablet && window.innerWidth > 992)) && isVisible &&
+        !gameSidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+        toggleGameSidebar();
+      }
+    });
+  </script>
+</body>
+
+</html>

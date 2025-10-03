@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/adminCSS/admin-main.css">
+  <link rel="stylesheet" href="/css/adminCSS/students.css">
+  <link rel="stylesheet" href="/css/theme-toggle.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
+  <style>
+    .student-details-container {
+      padding: 2rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      min-height: 100vh;
+      margin-left: 250px;
+      transition: margin-left 0.3s ease;
+      position: relative;
+    }
+
+    .student-details-container::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(184,1,1,0.03)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding: 2rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      border: 2px solid #e2e8f0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #b80101, #8b0000);
+      opacity: 0.8;
+    }
+
+    .page-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0;
+      background: linear-gradient(135deg, #b80101, #8b0000);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #64748b;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #b80101;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .breadcrumb a:hover {
+      color: #8b0000;
+      text-decoration: underline;
+    }
+
+    .breadcrumb i {
+      color: #b80101;
+      font-size: 0.8rem;
+    }
+
+    .student-profile-header {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 2px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .student-profile-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #b80101, #8b0000, #b80101);
+      opacity: 0.8;
+    }
+
+    .student-profile-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 3rem;
+    }
+
+    .student-avatar-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .student-avatar-large {
+      width: 140px;
+      height: 140px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 3.5rem;
+      position: relative;
+      box-shadow: 0 15px 35px rgba(184, 1, 1, 0.3);
+      border: 4px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .status-badge {
+      position: absolute;
+      bottom: -8px;
+      right: -8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      border: 4px solid white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .status-active {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+
+    .status-inactive {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+    }
+
+    .student-status-info {
+      text-align: center;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .status-indicator.active {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 2px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-indicator.inactive {
+      background: rgba(107, 114, 128, 0.1);
+      color: #6b7280;
+      border: 2px solid rgba(107, 114, 128, 0.2);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .student-info-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .student-primary-info {
+      margin-bottom: 2rem;
+    }
+
+    .student-name {
+      margin: 0 0 1rem 0;
+      color: #1e293b;
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #b80101, #8b0000);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .student-code-badge {
+      background: linear-gradient(135deg, #b80101, #8b0000);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      display: inline-block;
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .student-details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.7);
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .detail-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #b80101, #8b0000);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .detail-item:hover::before {
+      transform: scaleX(1);
+    }
+
+    .detail-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(184, 1, 1, 0.15);
+      border-color: #b80101;
+    }
+
+    .detail-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, #b80101, #8b0000);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .detail-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .detail-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .detail-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1e293b;
+      word-break: break-word;
+    }
+
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .analytics-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 2px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .analytics-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #b80101, #8b0000);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .analytics-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .analytics-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(184, 1, 1, 0.15);
+      border-color: #b80101;
+    }
+
+    .analytics-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 1.8rem;
+      color: white;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .icon-courses {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+
+    .icon-bundles {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
+
+    .icon-quizzes {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .icon-time {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .icon-completion {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .icon-score {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+    }
+
+    .analytics-number {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #b80101, #8b0000);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .analytics-label {
+      color: #64748b;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .content-tabs {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 2px solid #e2e8f0;
+      border-radius: 20px;
+      margin-bottom: 2rem;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .content-tabs::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #b80101, #8b0000);
+      opacity: 0.8;
+    }
+
+    .tab-nav {
+      display: flex;
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 1.5rem;
+      background: none;
+      border: none;
+      color: #64748b;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      position: relative;
+    }
+
+    .tab-btn::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #b80101, #8b0000);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #b80101, #8b0000);
+      color: white;
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .tab-btn.active::before {
+      transform: scaleX(1);
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: rgba(184, 1, 1, 0.1);
+      color: #b80101;
+    }
+
+    .tab-btn:hover:not(.active)::before {
+      transform: scaleX(1);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 2rem;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table th {
+      background: var(--bg-color);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .data-table td {
+      color: var(--text-secondary);
+    }
+
+    .data-table tr:hover {
+      background: var(--hover-bg);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--border-color);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary-color);
+      transition: width 0.3s ease;
+    }
+
+    .score-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 60px;
+    }
+
+    .score-excellent {
+      background: #10b981;
+      color: white;
+    }
+
+    .score-good {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .score-average {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .score-poor {
+      background: #ef4444;
+      color: white;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: white;
+    }
+
+    .activity-quiz {
+      background: #f59e0b;
+    }
+
+    .activity-content {
+      background: #10b981;
+    }
+
+    .activity-course {
+      background: #3b82f6;
+    }
+
+    .activity-content h4 {
+      margin: 0 0 0.25rem 0;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .activity-content p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .activity-time {
+      margin-left: auto;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 2rem 0;
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      min-width: 140px;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+      color: white;
+      border: 1px solid #b80101;
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #8b0000 0%, #660000 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      color: #1e293b;
+      border: 2px solid #e2e8f0;
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-secondary:hover {
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+      color: white;
+      transform: translateY(-2px);
+      border-color: #b80101;
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      border: 1px solid #ef4444;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: 1px solid #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-success:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-summary-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-summary-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .stat-summary-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 768px) {
+      .student-details-container {
+        padding: 1rem;
+        margin-left: 0;
+      }
+
+      .student-profile-header {
+        padding: 1.5rem;
+      }
+
+      .student-profile-content {
+        flex-direction: column;
+        gap: 2rem;
+        text-align: center;
+      }
+
+      .student-avatar-large {
+        width: 120px;
+        height: 120px;
+        font-size: 3rem;
+      }
+
+      .student-name {
+        font-size: 2rem;
+      }
+
+      .student-details-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .detail-item {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+      }
+
+      .detail-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+      }
+
+      .analytics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tab-nav {
+        flex-direction: column;
+      }
+
+      .data-table {
+        font-size: 0.8rem;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 0.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .student-profile-header {
+        padding: 1rem;
+      }
+
+      .student-avatar-large {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+      }
+
+      .student-name {
+        font-size: 1.8rem;
+      }
+
+      .detail-item {
+        padding: 0.75rem;
+      }
+
+      .detail-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 0.9rem;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .student-details-container {
+        margin-left: 0;
+      }
+    }
+
+    /* Detailed Course Progress Styles */
+    .detailed-courses-section {
+      margin-top: 2rem;
+    }
+
+    .detailed-courses-section h4 {
+      color: #1e293b;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .course-progress-card {
+      background: white;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .course-progress-card:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .course-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .course-header h5 {
+      margin: 0;
+      color: #1e293b;
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .course-toggle {
+      background: #f1f5f9;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #64748b;
+    }
+
+    .course-toggle:hover {
+      background: #e2e8f0;
+      color: #3b82f6;
+    }
+
+    .course-toggle i {
+      transition: transform 0.3s ease;
+    }
+
+    .course-toggle.collapsed i {
+      transform: rotate(-90deg);
+    }
+
+    .course-progress-bar {
+      width: 200px;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      color: #64748b;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .course-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+
+    .course-stats .stat-item {
+      text-align: center;
+    }
+
+    .course-stats .stat-number {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #3b82f6;
+      margin-bottom: 0.25rem;
+    }
+
+    .course-stats .stat-label {
+      font-size: 0.8rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .course-content {
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .course-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+    }
+
+    .topics-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .topic-item {
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .topic-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .topic-header h6 {
+      margin: 0;
+      color: #1e293b;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .topic-progress {
+      color: #3b82f6;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .topic-progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .content-summary {
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+
+    /* Quiz Performance Styles */
+    .quiz-performance-card {
+      background: white;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .quiz-header {
+      margin-bottom: 1rem;
+    }
+
+    .quiz-header h4 {
+      margin: 0 0 0.5rem 0;
+      color: #1e293b;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .quiz-meta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .quiz-meta span {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .quiz-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+
+    .quiz-stats .stat-item {
+      text-align: center;
+    }
+
+    .quiz-stats .stat-number {
+      display: block;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #3b82f6;
+      margin-bottom: 0.25rem;
+    }
+
+    .quiz-stats .stat-label {
+      font-size: 0.8rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .attempts-details h5 {
+      color: #1e293b;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .attempts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .attempt-item {
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .attempt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .attempt-number {
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .attempt-date {
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+
+    .attempt-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .attempt-score {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .score-details {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .attempt-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .time-spent {
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+
+    .attempt-status {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .attempt-status.passed {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .attempt-status.failed {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    /* New styles for enhanced course/topic display */
+    .courses-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .courses-search {
+      position: relative;
+      width: 300px;
+    }
+
+    .courses-search input {
+      width: 100%;
+      padding: 0.5rem 1rem 0.5rem 2.5rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .courses-search i {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6b7280;
+    }
+
+    .topic-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .topic-toggle.collapsed i {
+      transform: rotate(-90deg);
+    }
+
+    .topic-content-details {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .topic-content-details.show {
+      display: block;
+    }
+
+    .content-details-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .content-details-table th,
+    .content-details-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+
+    .content-details-table th {
+      font-weight: 600;
+      color: #4b5563;
+      background: #f9fafb;
+    }
+
+    .content-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .content-type-badge.video {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .content-type-badge.quiz,
+    .content-type-badge.homework {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .content-type-badge.pdf,
+    .content-type-badge.reading {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+
+    .content-type-badge.assignment {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .content-status {
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .content-status.completed {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .content-status.pending {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .empty-content-message {
+      text-align: center;
+      padding: 1.5rem;
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    /* No results message for search */
+    .no-results-message {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: #6b7280;
+      background: #f9fafb;
+      border-radius: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .no-results-message.show {
+      display: block;
+    }
+
+    /* Action Buttons Section */
+    .action-buttons-section {
+      margin-top: 3rem;
+      padding: 2rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 2px solid #e2e8f0;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-buttons-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #b80101, #8b0000);
+      opacity: 0.8;
+    }
+
+    .action-buttons-container {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .action-buttons-container {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      .action-buttons-section {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <%- include('partials/admin-header') %>
+  <%- include('partials/admin-sidebar') %>
+
+  <div class="admin-main-content">
+    <div class="student-details-container">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <div class="breadcrumb">
+            <a href="/admin/students">Students</a>
+            <i class="fas fa-chevron-right"></i>
+            <span><%= student.firstName %> <%= student.lastName %></span>
+          </div>
+          <h1 class="page-title">Student Details</h1>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            Print Report
+          </button>
+          <button class="btn btn-primary" onclick="exportStudentData()">
+            <i class="fas fa-download"></i>
+            Export Comprehensive Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Enhanced Student Profile Header -->
+      <div class="student-profile-header">
+        <div class="student-profile-content">
+          <div class="student-avatar-section">
+            <div class="student-avatar-large">
+              <% if (student.profilePicture && student.profilePicture.trim() !== '') { %>
+                <img src="<%= student.profilePicture %>" alt="Profile Picture" style="width: 100%; height: 100%; border-radius: 16px; object-fit: cover;">
+              <% } else { %>
+                <%= student.firstName.charAt(0).toUpperCase() %><%= student.lastName.charAt(0).toUpperCase() %>
+              <% } %>
+         
+            </div>
+            <div class="student-status-info">
+              <div class="status-indicator <%= student.isActive ? 'active' : 'inactive' %>">
+                <span class="status-dot"></span>
+                <span class="status-text"><%= student.isActive ? 'Active Student' : 'Inactive Student' %></span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="student-info-section">
+            <div class="student-primary-info">
+              <h1 class="student-name"><%= student.firstName %> <%= student.lastName %></h1>
+              <div class="student-code-badge"><%= student.studentCode %></div>
+            </div>
+            
+            <div class="student-details-grid">
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-envelope"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Email</div>
+                  <div class="detail-value"><%= student.studentEmail %></div>
+                </div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-phone"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Phone</div>
+                  <div class="detail-value"><%= student.parentCountryCode %> <%= student.parentNumber %></div>
+                </div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Grade</div>
+                  <div class="detail-value"><%= student.grade %></div>
+                </div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-school"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">School</div>
+                  <div class="detail-value"><%= student.schoolName %></div>
+                </div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">English Teacher</div>
+                  <div class="detail-value"><%= student.englishTeacher %></div>
+                </div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="fas fa-calendar-plus"></i>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label">Joined</div>
+                  <div class="detail-value"><%= new Date(student.createdAt).toLocaleDateString() %></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Overview -->
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <div class="analytics-icon icon-courses">
+            <i class="fas fa-book"></i>
+          </div>
+          <div class="analytics-number"><%= analytics.totalEnrolledCourses %></div>
+          <div class="analytics-label">Enrolled Courses</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon icon-bundles">
+            <i class="fas fa-box"></i>
+          </div>
+          <div class="analytics-number"><%= analytics.totalPurchasedBundles %></div>
+          <div class="analytics-label">Purchased Bundles</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon icon-quizzes">
+            <i class="fas fa-question-circle"></i>
+          </div>
+          <div class="analytics-number"><%= analytics.totalQuizAttempts %></div>
+          <div class="analytics-label">Quiz Attempts</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon icon-score">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="analytics-number"><%= (analytics.averageQuizScore) %>%</div>
+          <div class="analytics-label">Average Score</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon icon-time">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="analytics-number"><%= analytics.totalTimeSpent %>h</div>
+          <div class="analytics-label">Time Spent</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-icon icon-completion">
+            <i class="fas fa-percentage"></i>
+          </div>
+          <div class="analytics-number"><%= (analytics.completionRate) %>%</div>
+          <div class="analytics-label">Completion Rate</div>
+        </div>
+      </div>
+
+      <!-- Content Tabs -->
+      <div class="content-tabs">
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="showTab('overview')">
+            <i class="fas fa-chart-pie"></i>
+            Overview
+          </button>
+          <button class="tab-btn" onclick="showTab('courses')">
+            <i class="fas fa-book"></i>
+            Courses
+          </button>
+          <button class="tab-btn" onclick="showTab('quizzes')">
+            <i class="fas fa-question-circle"></i>
+            Quiz Performance
+          </button>
+          <button class="tab-btn" onclick="showTab('purchases')">
+            <i class="fas fa-shopping-cart"></i>
+            Purchases
+          </button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+          <h3>Performance Overview</h3>
+          <div class="stats-summary">
+            <div class="stat-summary-item">
+              <div class="stat-summary-number"><%= analytics.completedCourses %></div>
+              <div class="stat-summary-label">Completed Courses</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-number"><%= analytics.totalContentCompleted %></div>
+              <div class="stat-summary-label">Content Completed</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-number"><%= analytics.totalContentItems %></div>
+              <div class="stat-summary-label">Total Content Items</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-number"><%= analytics.lastLogin %></div>
+              <div class="stat-summary-label">Last Login</div>
+            </div>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="performanceChart"></canvas>
+          </div>
+
+          <!-- Detailed Course Progress with Search -->
+          <% if (detailedCourses && detailedCourses.length > 0) { %>
+          <div class="detailed-courses-section">
+            <div class="courses-header">
+              <h4>Detailed Course Progress</h4>
+              <div class="courses-search">
+                <input type="text" id="courseSearch" placeholder="Search courses or topics..." onkeyup="searchCoursesAndTopics()">
+                <i class="fas fa-search"></i>
+              </div>
+            </div>
+
+            <% detailedCourses.forEach((course, index) => { %>
+            <div class="course-progress-card" data-course-title="<%= course.course.title.toLowerCase() %>">
+              <div class="course-header" onclick="toggleCourse(<%= index %>)">
+                <h5><%= course.course.title %></h5>
+                <div class="course-progress-bar">
+                  <div class="progress-fill" style="width: <%= (course.progress) %>%"></div>
+                </div>
+                <span class="progress-text"><%= (course.progress) %>% Complete</span>
+                <button class="course-toggle" id="toggle-<%= index %>">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+
+              <div class="course-content" id="content-<%= index %>">
+                <div class="course-stats">
+                  <div class="stat-item">
+                    <span class="stat-number"><%= course.detailedProgress.completedTopics %></span>
+                    <span class="stat-label">Topics Completed</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-number"><%= course.detailedProgress.completedContent %></span>
+                    <span class="stat-label">Content Completed</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-number"><%= course.detailedProgress.totalContent %></span>
+                    <span class="stat-label">Total Content</span>
+                  </div>
+                </div>
+
+                <!-- Topics Progress -->
+                <div class="topics-progress">
+                  <% course.detailedProgress.topicsProgress.forEach((topic, topicIndex) => { %>
+                  <div class="topic-item" data-topic-title="<%= topic.title.toLowerCase() %>">
+                    <div class="topic-header" onclick="toggleTopic(<%= index %>, <%= topicIndex %>)">
+                      <h6><%= topic.title %></h6>
+                      <span class="topic-progress"><%= (topic.progress) %>%</span>
+                      <button class="topic-toggle" id="topic-toggle-<%= index %>-<%= topicIndex %>">
+                        <i class="fas fa-angle-down"></i>
+                      </button>
+                    </div>
+                    <div class="topic-progress-bar">
+                      <div class="progress-fill" style="width: <%= (topic.progress) %>%"></div>
+                    </div>
+                    <div class="content-summary">
+                      <%= topic.completedContent %>/<%= topic.contentCount %> content items completed
+                    </div>
+
+                    <!-- Topic Content Details (initially hidden) -->
+                    <div class="topic-content-details" id="topic-content-<%= index %>-<%= topicIndex %>">
+                      <% if (topic.contentItems && topic.contentItems.length > 0) { %>
+                      <table class="content-details-table">
+                        <thead>
+                          <tr>
+                            <th>Content</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Completion</th>
+                            <th>Details</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% topic.contentItems.forEach(content => { %>
+                          <tr>
+                            <td><%= content.title %></td>
+                            <td>
+                              <span class="content-type-badge <%= content.type %>">
+                                <i class="fas fa-<%= getContentTypeIcon(content.type) %>"></i>
+                                <%= content.type.charAt(0).toUpperCase() + content.type.slice(1) %>
+                              </span>
+                            </td>
+                            <td>
+                              <span class="content-status <%= content.completed ? 'completed' : 'pending' %>">
+                                <%= content.completed ? 'Completed' : 'Not Started' %>
+                              </span>
+                            </td>
+                            <td>
+                              <% if (content.completedDate) { %>
+                              <%= new Date(content.completedDate).toLocaleDateString() %>
+                              <% } else if (content.lastAccessed) { %>
+                              <%= new Date(content.lastAccessed).toLocaleDateString() %>
+                              <% } else { %>
+                              -
+                              <% } %>
+                            </td>
+                            <td>
+                              <% if (content.type === 'quiz' || content.type === 'homework') { %>
+                                <% if (content.score !== undefined && content.quizAttempts && content.quizAttempts.length > 0) { %>
+                                  <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                    <span class="score-badge <%= getScoreBadgeClass(content.score) %>">
+                                      <%= (content.score) %>%
+                                    </span>
+                                    <small style="color: #64748b; font-size: 0.75rem;">
+                                      <%= content.quizAttempts.length %> attempt<%= content.quizAttempts.length !== 1 ? 's' : '' %>
+                                    </small>
+                                  </div>
+                                <% } else if (content.score !== undefined) { %>
+                                  <span class="score-badge <%= getScoreBadgeClass(content.score) %>">
+                                    <%= (content.score) %>%
+                                  </span>
+                                <% } else { %>
+                                  No attempts
+                                <% } %>
+                              <% } else if (content.type === 'video' && content.timeSpent) { %>
+                                <span class="time-spent">
+                                  <%= formatTimeSpent(content.timeSpent) %>
+                                </span>
+                              <% } else { %>
+                                -
+                              <% } %>
+                            </td>
+                          </tr>
+                          <% }); %>
+                        </tbody>
+                      </table>
+                      <% } else { %>
+                      <div class="empty-content-message">No content items available</div>
+                      <% } %>
+                    </div>
+                  </div>
+                  <% }); %>
+                </div>
+              </div>
+            </div>
+            <% }); %>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Courses Tab -->
+        <div id="courses" class="tab-content">
+          <h3>Course Progress</h3>
+          <% if (courseProgress && courseProgress.length > 0) { %>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Course</th>
+                <th>Level</th>
+                <th>Progress</th>
+                <th>Time Spent</th>
+                <th>Status</th>
+                <th>Last Accessed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% courseProgress.forEach(course => { %>
+              <tr>
+                <td>
+                  <strong><%= course.courseTitle %></strong>
+                </td>
+                <td><%= course.courseCode %></td>
+                <td>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: <%= (course.progressPercentage) %>%"></div>
+                  </div>
+                  <small><%= course.completedContent %>/<%= course.totalContent %> items</small>
+                </td>
+                <td><%= course.timeSpent %>h</td>
+                <td>
+                  <span class="score-badge <%= course.status === 'completed' ? 'score-excellent' : course.status === 'active' ? 'score-good' : 'score-average' %>">
+                    <%= course.status %>
+                  </span>
+                </td>
+                <td><%= new Date(course.lastAccessed).toLocaleDateString() %></td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+          <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-book"></i>
+            <h3>No Course Progress</h3>
+            <p>This student hasn't enrolled in any courses yet.</p>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Quiz Performance Tab -->
+        <div id="quizzes" class="tab-content">
+          <h3>Quiz Performance</h3>
+          <% if (detailedQuizPerformance && detailedQuizPerformance.length > 0) { %>
+          <% detailedQuizPerformance.forEach(quiz => { %>
+          <div class="quiz-performance-card">
+            <div class="quiz-header">
+              <h4><%= quiz.quizTitle %></h4>
+              <div class="quiz-meta">
+                <span class="quiz-code"><%= quiz.code %></span>
+                <span class="quiz-questions"><%= quiz.totalQuestions %> Questions</span>
+                <span class="quiz-passing">Passing: <%= quiz.passingScore %>%</span>
+              </div>
+            </div>
+
+            <div class="quiz-stats">
+              <div class="stat-item">
+                <span class="stat-number"><%= (quiz.bestScore) %>%</span>
+                <span class="stat-label">Best Score</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number"><%= (quiz.averageScore) %>%</span>
+                <span class="stat-label">Average Score</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number"><%= quiz.totalAttempts %></span>
+                <span class="stat-label">Total Attempts</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number"><%= (quiz.passingScore) %>%</span>
+                <span class="stat-label">Pass Rate</span>
+              </div>
+            </div>
+
+            <div class="attempts-details">
+              <h5>Attempt History</h5>
+              <div class="attempts-list">
+                <% quiz.attempts.forEach(attempt => { %>
+                <div class="attempt-item">
+                  <div class="attempt-header">
+                    <span class="attempt-number">Attempt #<%= attempt.attemptNumber %></span>
+                    <span class="attempt-date"><%= new Date(attempt.completedAt).toLocaleDateString() %></span>
+                  </div>
+              <div class="attempt-details">
+                    <div class="attempt-score">
+                      <span class="score-badge <%= attempt.score >= 90 ? 'score-excellent' : attempt.score >= 70 ? 'score-good' : attempt.score >= 50 ? 'score-average' : 'score-poor' %>">
+                        <%= (attempt.score) %>%
+                      </span>
+                      <span class="score-details">
+                        <%= attempt.correctAnswers %>/<%= attempt.totalQuestions %> correct
+                      </span>
+                    </div>
+                    <div class="attempt-meta">
+                      <span class="time-spent">
+                        <% 
+                                                            const minutes = Math.floor(attempt.timeSpent / 60);
+                                                            const seconds = attempt.timeSpent % 60;
+                                                            %>
+                        <%= minutes %>m <%= seconds %>s
+                      </span>
+                      <span class="attempt-status <%= attempt.passed ? 'passed' : 'failed' %>">
+                        <%= attempt.passed ? 'Passed' : 'Failed' %>
+                      </span>
+                      <% if (quiz.quizId || quiz.quiz) { %>
+                        <a class="btn btn-primary" style="margin-left: 8px;" href="/admin/quizzes/<%= (quiz.quizId || quiz.quiz) %>/review/<%= student._id %>?attempt=<%= attempt.attemptNumber %>">
+                          <i class="fas fa-eye"></i>
+                          Review Answers
+                        </a>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+          <% }); %>
+          <% } else if (student.quizAttempts && student.quizAttempts.length > 0) { %>
+          <!-- Fallback display for quiz attempts when detailed data is not available -->
+          <% student.quizAttempts.forEach(quizAttempt => { %>
+          <div class="quiz-performance-card">
+            <div class="quiz-header">
+              <h4>Quiz ID: <%= quizAttempt.quiz %></h4>
+              <div class="quiz-meta">
+                <span class="quiz-code">Best Score: <%= quizAttempt.bestScore %>%</span>
+                <span class="quiz-questions">Total Attempts: <%= quizAttempt.attempts.length %></span>
+                <span class="quiz-passing">Last Attempt: <%= new Date(quizAttempt.lastAttempt).toLocaleDateString() %></span>
+              </div>
+            </div>
+
+            <div class="attempts-details">
+              <h5>Attempt History</h5>
+              <div class="attempts-list">
+                <% quizAttempt.attempts.forEach(attempt => { %>
+                <div class="attempt-item">
+                  <div class="attempt-header">
+                    <span class="attempt-number">Attempt #<%= attempt.attemptNumber %></span>
+                    <span class="attempt-date"><%= new Date(attempt.completedAt).toLocaleDateString() %></span>
+                  </div>
+                  <div class="attempt-details">
+                    <div class="attempt-score">
+                      <span class="score-badge <%= attempt.score >= 90 ? 'score-excellent' : attempt.score >= 70 ? 'score-good' : attempt.score >= 50 ? 'score-average' : 'score-poor' %>">
+                        <%= (attempt.score) %>%
+                      </span>
+                      <span class="score-details">
+                        <%= attempt.correctAnswers %>/<%= attempt.totalQuestions %> correct
+                      </span>
+                    </div>
+                    <div class="attempt-meta">
+                      <span class="time-spent">
+                        <% 
+                                                            const minutes = Math.floor(attempt.timeSpent / 60);
+                                                            const seconds = attempt.timeSpent % 60;
+                                                            %>
+                        <%= minutes %>m <%= seconds %>s
+                      </span>
+                      <span class="attempt-status <%= attempt.passed ? 'passed' : 'failed' %>">
+                        <%= attempt.passed ? 'Passed' : 'Failed' %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+          <% }); %>
+          <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-question-circle"></i>
+            <h3>No Quiz Attempts</h3>
+            <p>This student hasn't attempted any quizzes yet.</p>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Recent Activity Tab removed -->
+
+        <!-- Purchases Tab -->
+        <div id="purchases" class="tab-content">
+          <h3>Purchase History</h3>
+          <% if (student.purchasedBundles && student.purchasedBundles.length > 0) { %>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Bundle</th>
+                <th>Price</th>
+                <th>Order Number</th>
+                <th>Purchase Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% student.purchasedBundles.forEach(purchase => { %>
+              <tr>
+                <td>
+                  <strong><%= purchase.bundle?.title || 'Unknown Bundle' %></strong>
+                  <br><small><%= purchase.bundle?.bundleCode || 'N/A' %></small>
+                </td>
+                <td>$<%= purchase.price %></td>
+                <td><%= purchase.orderNumber %></td>
+                <td><%= new Date(purchase.purchasedAt).toLocaleDateString() %></td>
+                <td>
+                  <span class="score-badge <%= purchase.status === 'active' ? 'score-excellent' : purchase.status === 'expired' ? 'score-average' : 'score-poor' %>">
+                    <%= purchase.status %>
+                  </span>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+          <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-shopping-cart"></i>
+            <h3>No Purchases</h3>
+            <p>This student hasn't made any purchases yet.</p>
+          </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Enhanced Action Buttons -->
+      <div class="action-buttons-section">
+        <div class="action-buttons-container">
+          <button class="btn btn-<%= student.isActive ? 'danger' : 'success' %>" onclick="toggleStudentStatus('<%= student._id %>', <%= student.isActive %>)">
+            <i class="fas fa-<%= student.isActive ? 'ban' : 'check' %>"></i>
+            <%= student.isActive ? 'Deactivate Student' : 'Activate Student' %>
+          </button>
+          <a href="/admin/students" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Students
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/admin-footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script>
+
+    // Tab functionality
+    function showTab(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      // Remove active class from all tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // Show selected tab content
+      document.getElementById(tabName).classList.add('active');
+
+      // Add active class to clicked button
+      event.currentTarget.classList.add('active');
+    }
+
+    // Toggle student status
+    async function toggleStudentStatus(studentId, currentStatus) {
+      const newStatus = !currentStatus;
+      const action = newStatus ? 'activate' : 'deactivate';
+
+      if (!confirm(`Are you sure you want to ${action} this student?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/admin/students/${studentId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isActive: newStatus
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          location.reload();
+        } else {
+          alert('Error updating student status: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error updating student status');
+      }
+    }
+
+    // Export student data with enhanced functionality
+    function exportStudentData() {
+      const studentId = '<%= student._id %>';
+      const studentCode = '<%= student.studentCode %>';
+      
+      // Show loading state
+      const exportBtn = document.querySelector('.btn-primary');
+      const originalText = exportBtn.innerHTML;
+      exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+      exportBtn.disabled = true;
+
+      // Create comprehensive export URL
+      const url = new URL(window.location);
+      url.pathname = `/admin/students/${studentId}/export`;
+      url.searchParams.set('format', 'csv');
+      url.searchParams.set('comprehensive', 'true');
+      url.searchParams.set('includeAnalytics', 'true');
+
+      // Create a temporary link to trigger download
+      const link = document.createElement('a');
+      link.href = url.toString();
+      link.download = `student_${studentCode}_comprehensive_report_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Reset button after a delay
+      setTimeout(() => {
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+      }, 2000);
+    }
+
+    // Toggle course content
+    function toggleCourse(index) {
+      const content = document.getElementById(`content-${index}`);
+      const toggle = document.getElementById(`toggle-${index}`);
+
+      if (content.classList.contains('collapsed')) {
+        // Expand
+        content.classList.remove('collapsed');
+        toggle.classList.remove('collapsed');
+      } else {
+        // Collapse
+        content.classList.add('collapsed');
+        toggle.classList.add('collapsed');
+      }
+    }
+
+    // Toggle topic content details
+    function toggleTopic(courseIndex, topicIndex) {
+      const topicContentDetails = document.getElementById(`topic-content-${courseIndex}-${topicIndex}`);
+      const topicToggle = document.getElementById(`topic-toggle-${courseIndex}-${topicIndex}`);
+
+      if (topicContentDetails.classList.contains('show')) {
+        // Collapse
+        topicContentDetails.classList.remove('show');
+        topicToggle.classList.add('collapsed');
+      } else {
+        // Expand
+        topicContentDetails.classList.add('show');
+        topicToggle.classList.remove('collapsed');
+      }
+    }
+
+    // Search courses and topics
+    function searchCoursesAndTopics() {
+      const searchInput = document.getElementById('courseSearch');
+      const searchTerm = searchInput.value.toLowerCase().trim();
+
+      const courseCards = document.querySelectorAll('.course-progress-card');
+      const topicItems = document.querySelectorAll('.topic-item');
+      let hasResults = false;
+
+      if (!searchTerm) {
+        // Reset all visibility if search is empty
+        courseCards.forEach(card => card.style.display = 'block');
+        topicItems.forEach(topic => topic.style.display = 'block');
+
+        // Hide any "no results" message
+        const noResultsMessage = document.querySelector('.no-results-message');
+        if (noResultsMessage) {
+          noResultsMessage.classList.remove('show');
+        }
+        return;
+      }
+
+      // Check each course
+      courseCards.forEach(card => {
+        const courseTitle = card.getAttribute('data-course-title');
+        const courseTopics = card.querySelectorAll('.topic-item');
+        let courseHasMatch = false;
+
+        // First check if course title matches
+        if (courseTitle && courseTitle.includes(searchTerm)) {
+          courseHasMatch = true;
+          hasResults = true;
+
+          // Show all topics in this course
+          courseTopics.forEach(topic => {
+            topic.style.display = 'block';
+          });
+        } else {
+          // Check if any topics in this course match
+          courseTopics.forEach(topic => {
+            const topicTitle = topic.getAttribute('data-topic-title');
+
+            if (topicTitle && topicTitle.includes(searchTerm)) {
+              topic.style.display = 'block';
+              courseHasMatch = true;
+              hasResults = true;
+            } else {
+              topic.style.display = 'none';
+            }
+          });
+        }
+
+        // Show/hide course based on matches
+        card.style.display = courseHasMatch ? 'block' : 'none';
+
+        // Expand course if it has matching content
+        if (courseHasMatch) {
+          const courseIndex = Array.from(courseCards).indexOf(card);
+          const content = document.getElementById(`content-${courseIndex}`);
+          const toggle = document.getElementById(`toggle-${courseIndex}`);
+
+          content.classList.remove('collapsed');
+          toggle.classList.remove('collapsed');
+        }
+      });
+
+      // Show/hide no results message
+      let noResultsMessage = document.querySelector('.no-results-message');
+
+      if (!noResultsMessage) {
+        // Create message if it doesn't exist
+        noResultsMessage = document.createElement('div');
+        noResultsMessage.className = 'no-results-message';
+        noResultsMessage.innerHTML = '<i class="fas fa-search"></i><h3>No Results Found</h3><p>Try different search terms.</p>';
+        document.querySelector('.detailed-courses-section').appendChild(noResultsMessage);
+      }
+
+      if (hasResults) {
+        noResultsMessage.classList.remove('show');
+      } else {
+        noResultsMessage.classList.add('show');
+      }
+    }
+
+    // Initialize performance chart
+    document.addEventListener('DOMContentLoaded', function() {
+      const ctx = document.getElementById('performanceChart').getContext('2d');
+
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Completed', 'In Progress', 'Not Started'],
+          datasets: [{
+            data: [
+              <%= analytics.totalContentCompleted %>,
+              <%= analytics.totalContentItems - analytics.totalContentCompleted %>,
+              0
+            ],
+            backgroundColor: [
+              '#10b981',
+              '#3b82f6',
+              '#e5e7eb'
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                usePointStyle: true
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

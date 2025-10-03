@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Elkably Admin Setup</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Auth CSS -->
+  <link rel="stylesheet" href="/css/auth.css">
+  
+  <script>
+    // Apply theme on page load
+    (function() {
+      try {
+        var saved = localStorage.getItem('theme');
+        if (saved) {
+          document.documentElement.classList.remove('light-theme', 'dark-theme');
+          document.body.classList.remove('light-theme', 'dark-theme');
+          document.documentElement.classList.add(saved + '-theme');
+          document.body.classList.add(saved + '-theme');
+        } else {
+          document.documentElement.classList.add('light-theme');
+          document.body.classList.add('light-theme');
+        }
+      } catch (e) {
+        document.documentElement.classList.add('light-theme');
+        document.body.classList.add('light-theme');
+      }
+    })();
+  </script>
+</head>
+<body class="<%= theme %>">
+
+<!-- Admin Setup Container -->
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="card-body">
+      
+      <!-- Header -->
+      <div class="auth-header">
+        <div class="auth-icon-container">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <h2 class="auth-title">Admin Account Setup</h2>
+        <p class="auth-subtitle">Create your administrator account</p>
+      </div>
+
+      <!-- Display Errors -->
+      <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+      <div class="alert alert-danger auth-alert" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Setup Failed!</strong>
+        </div>
+        <hr class="my-2">
+        <ul class="mb-0">
+          <% errors.forEach(function(error) { %>
+          <li><%= error.msg %></li>
+          <% }); %>
+        </ul>
+      </div>
+      <% } %>
+
+      <!-- Setup Form -->
+      <form method="POST" action="/auth/admin/create" class="auth-form needs-validation" novalidate>
+        
+        <div class="form-group-modern">
+          <label for="userName" class="form-label-modern">
+            <i class="fas fa-user form-label-icon"></i>
+            User Name
+          </label>
+          <div class="input-group-modern">
+            <input type="text" id="userName" name="userName" class="form-control-modern" 
+                   placeholder="Enter your admin username" 
+                   value="<%= typeof userName !== 'undefined' ? userName : '' %>" required>
+            <div class="input-focus-line"></div>
+          </div>
+          <div class="invalid-feedback-modern">Please enter your username.</div>
+        </div>
+
+        <div class="form-group-modern">
+          <label for="phoneNumber" class="form-label-modern">
+            <i class="fas fa-phone form-label-icon"></i>
+            Phone Number
+          </label>
+          <div class="input-group-modern">
+            <input type="tel" id="phoneNumber" name="phoneNumber" class="form-control-modern" 
+                   placeholder="Enter your phone number" 
+                   value="<%= typeof phoneNumber !== 'undefined' ? phoneNumber : '' %>" required>
+            <div class="input-focus-line"></div>
+          </div>
+          <div class="invalid-feedback-modern">Please enter your phone number.</div>
+        </div>
+
+        <div class="form-group-modern">
+          <label for="email" class="form-label-modern">
+            <i class="fas fa-envelope form-label-icon"></i>
+            Email Address (Optional)
+          </label>
+          <div class="input-group-modern">
+            <input type="email" id="email" name="email" class="form-control-modern" 
+                   placeholder="Enter your email address" 
+                   value="<%= typeof email !== 'undefined' ? email : '' %>">
+            <div class="input-focus-line"></div>
+          </div>
+          <div class="form-text-modern">Email is optional but recommended for account recovery.</div>
+        </div>
+
+        <div class="form-group-modern">
+          <label for="password" class="form-label-modern">
+            <i class="fas fa-lock form-label-icon"></i>
+            Password
+          </label>
+          <div class="input-group-modern">
+            <input type="password" id="password" name="password" class="form-control-modern" 
+                   placeholder="Create a secure password" required minlength="6">
+            <button class="btn-toggle-password" type="button" id="togglePassword">
+              <i class="fas fa-eye"></i>
+            </button>
+            <div class="input-focus-line"></div>
+          </div>
+          <div class="form-text-modern">Password must be at least 6 characters long.</div>
+          <div class="invalid-feedback-modern">Password must be at least 6 characters.</div>
+        </div>
+
+        <input type="hidden" name="token" value="<%= typeof token !== 'undefined' ? token : '' %>">
+
+        <button type="submit" class="btn-auth-primary">
+          <span class="btn-text">Create Admin Account</span>
+          <i class="fas fa-user-shield btn-icon"></i>
+          <div class="btn-ripple"></div>
+        </button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Auth Common JavaScript -->
+<script src="/js/auth-common.js"></script>
+
+</body>
+</html>

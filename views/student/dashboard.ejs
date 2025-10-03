@@ -1,0 +1,672 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/dashboard.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Debug: Force dashboard styles -->
+    <style>
+        /* Force basic layout styles */
+        .student-layout {
+            display: flex !important;
+            min-height: 100vh !important;
+            background-color: #f8fafc !important;
+        }
+        
+        .student-sidebar {
+            width: 280px !important;
+            background: #ffffff !important;
+            border-right: 1px solid #e5e7eb !important;
+            position: fixed !important;
+            height: 100vh !important;
+            left: 0 !important;
+            top: 0 !important;
+            z-index: 1030 !important;
+            transition: all 0.3s ease-in-out !important;
+            overflow-y: auto !important;
+        }
+        
+        .student-main {
+            flex: 1 !important;
+            margin-left: 280px !important;
+            min-height: 100vh !important;
+            transition: all 0.3s ease-in-out !important;
+        }
+        
+        .student-header {
+            background: #ffffff !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            padding: 1.5rem 2rem !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 1020 !important;
+            backdrop-filter: blur(10px) !important;
+        }
+        
+        .student-content {
+            padding: 2rem !important;
+            background-color: #f8fafc !important;
+        }
+        
+        .stats-grid.enhanced {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+            gap: 1.5rem !important;
+            margin-bottom: 2rem !important;
+        }
+        
+        .stat-card.enhanced {
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.75rem !important;
+            padding: 1.5rem !important;
+            transition: all 0.3s ease-in-out !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        .stat-card.enhanced:hover {
+            transform: translateY(-4px) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            border-color: #dc2626 !important;
+        }
+        
+        .welcome-section.simple {
+            background: #ffffff !important;
+            color: #1f2937 !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.75rem !important;
+            padding: 2rem !important;
+            margin-bottom: 2rem !important;
+        }
+        
+        .welcome-title-simple {
+            font-size: 2rem !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .student-name-simple {
+            color: #dc2626 !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Sidebar Navigation Styles */
+        .sidebar-brand {
+            padding: 2rem !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            text-align: center !important;
+        }
+        
+        .sidebar-brand h2 {
+            color: #dc2626 !important;
+            font-weight: 700 !important;
+            font-size: 1.5rem !important;
+            margin: 0 !important;
+        }
+        
+        .sidebar-nav {
+            padding: 1.5rem 0 !important;
+        }
+        
+        .nav-section {
+            margin-bottom: 2rem !important;
+        }
+        
+        .nav-section-title {
+            padding: 0 1.5rem !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            color: #9ca3af !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .nav-item {
+            display: flex !important;
+            align-items: center !important;
+            padding: 1rem 1.5rem !important;
+            color: #6b7280 !important;
+            text-decoration: none !important;
+            transition: all 0.15s ease-in-out !important;
+            position: relative !important;
+            border-left: 3px solid transparent !important;
+        }
+        
+        .nav-item:hover {
+            background-color: #f1f5f9 !important;
+            color: #1f2937 !important;
+            border-left-color: #dc2626 !important;
+        }
+        
+        .nav-item.active {
+            background-color: #fef2f2 !important;
+            color: #dc2626 !important;
+            border-left-color: #dc2626 !important;
+            font-weight: 600 !important;
+        }
+        
+        .nav-icon {
+            width: 20px !important;
+            height: 20px !important;
+            margin-right: 1rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 1.1rem !important;
+        }
+        
+        /* Header Styles */
+        .header-left {
+            display: flex !important;
+            align-items: center !important;
+            gap: 1.5rem !important;
+        }
+        
+        .header-title {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin: 0 !important;
+        }
+        
+        .header-right {
+            display: flex !important;
+            align-items: center !important;
+            gap: 1.5rem !important;
+            margin-left: auto !important;
+        }
+        
+        .user-profile {
+            display: flex !important;
+            align-items: center !important;
+            gap: 1rem !important;
+            padding: 0.5rem 1rem !important;
+            border-radius: 0.75rem !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease-in-out !important;
+        }
+        
+        .user-profile:hover {
+            background-color: #f1f5f9 !important;
+        }
+        
+        .user-avatar {
+            width: 40px !important;
+            height: 40px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+        }
+        
+        .user-info {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        
+        .user-name {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+            font-size: 0.9rem !important;
+        }
+        
+        .user-role {
+            font-size: 0.8rem !important;
+            color: #9ca3af !important;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .student-sidebar {
+                transform: translateX(-100%) !important;
+            }
+            
+            .student-sidebar.open {
+                transform: translateX(0) !important;
+            }
+            
+            .student-main {
+                margin-left: 0 !important;
+            }
+        }
+    </style>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Student Dashboard - Track your learning progress and access your courses">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'dashboard', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: title, student: student, theme: theme, currentPage: 'dashboard' }) %>
+            
+            <!-- Dashboard Content -->
+            <div class="student-content">
+                <!-- Simple Welcome Section -->
+                <div class="welcome-section simple">
+                    <h1 class="welcome-title-simple">
+                        Welcome back, <span class="student-name-simple"><%= student.name %>!</span>
+                    </h1>
+                </div>
+
+                <!-- Enhanced Stats Grid -->
+                <div class="stats-grid enhanced">
+                    <div class="stat-card primary enhanced">
+                        <div class="stat-header">
+                            <div class="stat-icon">
+                                <i class="fas fa-book-open"></i>
+                            </div>
+                            <div class="stat-trend positive">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+12%</span>
+                            </div>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value"><%= stats.totalCourses %></div>
+                            <div class="stat-label">Enrolled Courses</div>
+                            <div class="stat-description">Active learning paths</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card success enhanced">
+                        <div class="stat-header">
+                            <div class="stat-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-trend positive">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+5</span>
+                            </div>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value"><%= stats.completedCourses %></div>
+                            <div class="stat-label">Completed Courses</div>
+                            <div class="stat-description">Certificates earned</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card warning enhanced">
+                        <div class="stat-header">
+                            <div class="stat-icon">
+                                <i class="fas fa-question-circle"></i>
+                            </div>
+                            <div class="stat-trend neutral">
+                                <i class="fas fa-minus"></i>
+                                <span>0%</span>
+                            </div>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value"><%= stats.totalQuizAttempts %></div>
+                            <div class="stat-label">Quiz Attempts</div>
+                            <div class="stat-description">Knowledge assessments</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card info enhanced">
+                        <div class="stat-header">
+                            <div class="stat-icon">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="stat-trend positive">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+3%</span>
+                            </div>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value"><%= stats.averageScore %>%</div>
+                            <div class="stat-label">Average Score</div>
+                            <div class="stat-description">Overall performance</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enhanced Main Content Grid -->
+                <div class="main-content-grid">
+                    <!-- Left Column -->
+                    <div class="content-column">
+                        <!-- Simple Active Courses -->
+                        <div class="card simple-card">
+                            <div class="card-header simple">
+                                <h3 class="card-title">
+                                    <i class="fas fa-play-circle"></i>
+                                    Active learning paths
+                                </h3>
+                                <a href="/student/enrolled-courses" class="btn btn-outline btn-sm">
+                                    View All
+                                </a>
+                            </div>
+                            <div class="card-body">
+                                <% if (activeCourses && activeCourses.length > 0) { %>
+                                    <div class="courses-list">
+                                        <% activeCourses.forEach(course => { %>
+                                            <div class="course-card enhanced">
+                                                <div class="course-header">
+                                                    <div class="course-info">
+                                                        <h4 class="course-title"><%= course.title %></h4>
+                                                        <div class="course-meta">
+                                                            <span class="course-level">Intermediate</span>
+                                                            <span class="course-duration">4h 30m</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="course-progress-badge">
+                                                        <span class="progress-percentage"><%= course.progress %>%</span>
+                                                        <div class="progress-circle">
+                                                            <svg viewBox="0 0 36 36" class="progress-ring">
+                                                                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                                                <path class="circle" stroke-dasharray="<%= course.progress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="course-progress-bar">
+                                                    <div class="progress-track">
+                                                        <div class="progress-fill" style="width: <%= course.progress %>%"></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="course-footer">
+                                                    <div class="course-stats">
+                                                        <span class="last-accessed">
+                                                            <i class="fas fa-clock"></i>
+                                                            <%= new Date(course.lastAccessed).toLocaleDateString() %>
+                                                        </span>
+                                                    </div>
+                                                    <a href="/student/course/<%= course._id %>/content" class="btn btn-primary btn-sm enhanced">
+                                                        <i class="fas fa-play"></i>
+                                                        Continue
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } else { %>
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <i class="fas fa-book-open"></i>
+                                        </div>
+                                        <h4>No Active Courses</h4>
+                                        <p>Start your learning journey by enrolling in a course</p>
+                                        <a href="/" class="btn btn-primary enhanced">
+                                            <i class="fas fa-search"></i>
+                                            Browse Courses
+                                        </a>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Recent Activity -->
+                        <div class="card enhanced-card">
+                            <div class="card-header enhanced">
+                                <div class="card-title-section">
+                                    <div class="card-icon">
+                                        <i class="fas fa-history"></i>
+                                    </div>
+                                    <div class="card-title-content">
+                                        <h3 class="card-title">Recent Activity</h3>
+                                        <p class="card-subtitle">Your learning journey</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <% if (recentProgress && recentProgress.length > 0) { %>
+                                    <div class="activity-timeline">
+                                        <% recentProgress.forEach((activity, index) => { %>
+                                            <div class="activity-item <%= index === 0 ? 'latest' : '' %>">
+                                                <div class="activity-indicator">
+                                                    <div class="activity-icon">
+                                                        <i class="fas fa-<%= getActivityIcon(activity.activity) %>"></i>
+                                                    </div>
+                                                    <% if (index < recentProgress.length - 1) { %>
+                                                        <div class="activity-line"></div>
+                                                    <% } %>
+                                                </div>
+                                                <div class="activity-content">
+                                                    <div class="activity-main">
+                                                        <h4 class="activity-title"><%= getActivityText(activity.activity) %></h4>
+                                                        <p class="activity-description">
+                                                            <%= activity.course ? activity.course.title : 'General activity' %>
+                                                        </p>
+                                                    </div>
+                                                    <div class="activity-meta">
+                                                        <span class="activity-time">
+                                                            <%= new Date(activity.timestamp).toLocaleDateString() %>
+                                                        </span>
+                                                        <% if (activity.points > 0) { %>
+                                                            <span class="activity-points">
+                                                                <i class="fas fa-star"></i>
+                                                                +<%= activity.points %> pts
+                                                            </span>
+                                                        <% } %>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } else { %>
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <h4>No Recent Activity</h4>
+                                        <p>Start learning to see your activity here</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Right Column -->
+                    <div class="sidebar-column">
+                        <!-- Enhanced Available Quizzes -->
+                        <div class="card enhanced-card">
+                            <div class="card-header enhanced">
+                                <div class="card-title-section">
+                                    <div class="card-icon">
+                                        <i class="fas fa-question-circle"></i>
+                                    </div>
+                                    <div class="card-title-content">
+                                        <h3 class="card-title">Available Quizzes</h3>
+                                        <p class="card-subtitle">Test your knowledge</p>
+                                    </div>
+                                </div>
+                                <a href="/student/quizzes" class="btn btn-outline btn-sm enhanced">
+                                    <i class="fas fa-arrow-right"></i>
+                                    View All
+                                </a>
+                            </div>
+                            <div class="card-body">
+                                <% if (upcomingQuizzes && upcomingQuizzes.length > 0) { %>
+                                    <div class="quizzes-list">
+                                        <% upcomingQuizzes.slice(0, 3).forEach(quiz => { %>
+                                            <div class="quiz-card enhanced">
+                                                <div class="quiz-header">
+                                                    <h4 class="quiz-title"><%= quiz.title %></h4>
+                                                    <span class="quiz-difficulty <%= quiz.difficulty %>">
+                                                        <%= quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) %>
+                                                    </span>
+                                                </div>
+                                                
+                                                <div class="quiz-stats">
+                                                    <div class="quiz-stat">
+                                                        <div class="stat-icon">
+                                                            <i class="fas fa-question"></i>
+                                                        </div>
+                                                        <div class="stat-info">
+                                                            <span class="stat-value"><%= quiz.totalQuestions %></span>
+                                                            <span class="stat-label">Questions</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="quiz-stat">
+                                                        <div class="stat-icon">
+                                                            <i class="fas fa-clock"></i>
+                                                        </div>
+                                                        <div class="stat-info">
+                                                            <span class="stat-value">
+                                                                <% if (quiz.duration && quiz.duration > 0) { %>
+                                                                    <%= quiz.duration %>m
+                                                                <% } else { %>
+                                                                    No limit
+                                                                <% } %>
+                                                            </span>
+                                                            <span class="stat-label">Duration</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <a href="/student/quiz/<%= quiz._id %>/take" class="btn btn-primary btn-sm enhanced full-width">
+                                                    <i class="fas fa-play"></i>
+                                                    Start Quiz
+                                                </a>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } else { %>
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <i class="fas fa-question-circle"></i>
+                                        </div>
+                                        <h4>No Quizzes Available</h4>
+                                        <p>Check back later for new quizzes</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Quick Actions -->
+                        <div class="card enhanced-card">
+                            <div class="card-header enhanced">
+                                <div class="card-title-section">
+                                    <div class="card-icon">
+                                        <i class="fas fa-bolt"></i>
+                                    </div>
+                                    <div class="card-title-content">
+                                        <h3 class="card-title">Quick Actions</h3>
+                                        <p class="card-subtitle">Navigate quickly</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="quick-actions">
+                                    <a href="/student/wishlist" class="quick-action-item">
+                                        <div class="action-icon">
+                                            <i class="fas fa-heart"></i>
+                                        </div>
+                                        <div class="action-content">
+                                            <span class="action-title">My Wishlist</span>
+                                            <span class="action-subtitle"><%= stats.wishlistCount %> items</span>
+                                        </div>
+                                        <i class="fas fa-chevron-right action-arrow"></i>
+                                    </a>
+                                    
+                                    <a href="/student/homework-attempts" class="quick-action-item">
+                                        <div class="action-icon">
+                                            <i class="fas fa-tasks"></i>
+                                        </div>
+                                        <div class="action-content">
+                                            <span class="action-title">Homework Attempts</span>
+                                            <span class="action-subtitle">View submissions</span>
+                                        </div>
+                                        <i class="fas fa-chevron-right action-arrow"></i>
+                                    </a>
+                                    
+                                    <a href="/student/profile" class="quick-action-item">
+                                        <div class="action-icon">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="action-content">
+                                            <span class="action-title">View Profile</span>
+                                            <span class="action-subtitle">Manage account</span>
+                                        </div>
+                                        <i class="fas fa-chevron-right action-arrow"></i>
+                                    </a>
+                                    
+                                    <a href="/student/settings" class="quick-action-item">
+                                        <div class="action-icon">
+                                            <i class="fas fa-cog"></i>
+                                        </div>
+                                        <div class="action-content">
+                                            <span class="action-title">Settings</span>
+                                            <span class="action-subtitle">Preferences</span>
+                                        </div>
+                                        <i class="fas fa-chevron-right action-arrow"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Helper functions for activity display
+        function getActivityIcon(activity) {
+            const icons = {
+                'course_started': 'play',
+                'course_completed': 'check-circle',
+                'topic_started': 'play-circle',
+                'topic_completed': 'check',
+                'quiz_attempted': 'question-circle',
+                'quiz_completed': 'flag-checkered',
+                'quiz_passed': 'trophy',
+                'quiz_failed': 'times-circle',
+                'homework_submitted': 'paper-plane',
+                'homework_graded': 'clipboard-check',
+                'certificate_earned': 'certificate',
+                'badge_earned': 'medal',
+                'streak_achieved': 'fire',
+                'milestone_reached': 'star'
+            };
+            return icons[activity] || 'clock';
+        }
+
+        function getActivityText(activity) {
+            const texts = {
+                'course_started': 'Started a new course',
+                'course_completed': 'Completed a course',
+                'topic_started': 'Started a new topic',
+                'topic_completed': 'Completed a topic',
+                'quiz_attempted': 'Attempted a quiz',
+                'quiz_completed': 'Completed a quiz',
+                'quiz_passed': 'Passed a quiz',
+                'quiz_failed': 'Failed a quiz',
+                'homework_submitted': 'Submitted homework',
+                'homework_graded': 'Homework graded',
+                'certificate_earned': 'Earned a certificate',
+                'badge_earned': 'Earned a badge',
+                'streak_achieved': 'Achieved a streak',
+                'milestone_reached': 'Reached a milestone'
+            };
+            return texts[activity] || 'Activity recorded';
+        }
+
+        // Make functions available globally
+        window.getActivityIcon = getActivityIcon;
+        window.getActivityText = getActivityText;
+    </script>
+</body>
+</html>

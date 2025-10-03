@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= contentItem.title %> - Quiz Results - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/quizzes.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- MathLive for professional math rendering -->
+    <script src="https://unpkg.com/mathlive"></script>
+    
+    <!-- Enhanced Styles -->
+    <style>
+        /* Results Container */
+        .results-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        /* Results Header */
+        .results-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .results-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .results-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        /* Score Display */
+        .score-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: white;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .score-circle.passed {
+            background: #10b981;
+        }
+
+        .score-circle.failed {
+            background: #ef4444;
+        }
+
+        .score-circle.warning {
+            background: #f59e0b;
+        }
+
+        .score-details {
+            text-align: left;
+        }
+
+        .score-details h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .score-details p {
+            margin: 0.25rem 0;
+            opacity: 0.9;
+        }
+
+        .pass-status {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .pass-status.passed {
+            color: #10b981;
+        }
+
+        .pass-status.failed {
+            color: #ef4444;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--muted-text);
+            font-weight: 500;
+        }
+
+        /* Attempt History */
+        .attempt-history {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .attempt-history h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .attempt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .attempt-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .attempt-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .attempt-number {
+            background: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .attempt-details h4 {
+            margin: 0 0 0.25rem 0;
+            color: var(--text-color);
+        }
+
+        .attempt-details p {
+            margin: 0;
+            color: var(--muted-text);
+            font-size: 0.9rem;
+        }
+
+        .attempt-score {
+            text-align: right;
+        }
+
+        .attempt-score .score {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .attempt-score .status {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .attempt-score .score.passed {
+            color: #10b981;
+        }
+
+        .attempt-score .score.failed {
+            color: #ef4444;
+        }
+
+        /* Answer Review Section */
+        .answer-review {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .answer-review h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .question-review {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .question-review:last-child {
+            margin-bottom: 0;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .question-number {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .question-status {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .question-status.correct {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .question-status.incorrect {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* Math Field Styles */
+        .question-math-field {
+            width: 100%;
+            min-height: 40px;
+            font-size: 16px;
+            border: none;
+            background: transparent;
+            padding: 8px;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        .question-math-field.ML__focused {
+            border: none;
+            box-shadow: none;
+        }
+
+        /* Written Question Styles */
+        .written-question-container {
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .written-question-note {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .note-icon {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            margin-top: 0.1rem;
+            flex-shrink: 0;
+        }
+
+        .note-content {
+            flex: 1;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-color);
+        }
+
+        .note-content code {
+            background: rgba(var(--primary-color-rgb), 0.1);
+            color: var(--primary-color);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        /* Written Answer Display */
+        .written-answer-display {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-color);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .written-answer-display.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .written-answer-display.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .written-answer-display.empty {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.05);
+            font-style: italic;
+            color: var(--muted-text);
+        }
+
+        /* Correct Answer Display */
+        .correct-answer-display {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .correct-answer-label {
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .correct-answer-text {
+            color: var(--text-color);
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .options-review {
+            margin-bottom: 1rem;
+        }
+
+        .option-review {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .option-review.selected {
+            border-color: var(--primary-color);
+            background: rgba(var(--primary-color-rgb), 0.05);
+        }
+
+        .option-review.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .option-review.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .option-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .option-indicator.selected {
+            background: var(--primary-color);
+        }
+
+        .option-indicator.correct {
+            background: #10b981;
+        }
+
+        .option-indicator.incorrect {
+            background: #ef4444;
+        }
+
+        .option-indicator.neutral {
+            background: var(--muted-bg);
+            color: var(--muted-text);
+        }
+
+        .option-text {
+            flex: 1;
+            color: var(--text-color);
+        }
+
+        .answer-explanation {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.05);
+            border-left: 4px solid #3b82f6;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .answer-explanation h5 {
+            margin: 0 0 0.5rem 0;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .answer-explanation p {
+            margin: 0;
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        /* Dark theme adjustments */
+        .dark-theme .stat-card,
+        .dark-theme .attempt-history,
+        .dark-theme .answer-review {
+            background: var(--dark-card-bg);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .attempt-item {
+            background: var(--dark-bg-color);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .question-review {
+            background: var(--dark-bg-color);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .option-review {
+            background: var(--dark-card-bg);
+        }
+
+        .dark-theme .option-review.selected {
+            background: rgba(var(--primary-color-rgb), 0.1);
+        }
+
+        .dark-theme .option-review.correct {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .dark-theme .option-review.incorrect {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .dark-theme .answer-explanation {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .dark-theme .written-question-container {
+            background: var(--dark-bg-color);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .written-question-note {
+            background: #1e293b;
+            border-color: #475569;
+        }
+
+        .dark-theme .note-content {
+            color: #d1d5db;
+        }
+
+        .dark-theme .note-content code {
+            background: rgba(var(--primary-color-rgb), 0.2);
+            color: var(--primary-color);
+        }
+
+        .dark-theme .written-answer-display {
+            background: var(--dark-card-bg);
+            border-color: var(--dark-border-color);
+            color: var(--dark-text-color);
+        }
+
+        .dark-theme .written-answer-display.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .dark-theme .written-answer-display.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .dark-theme .written-answer-display.empty {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--dark-muted-text);
+        }
+
+        .dark-theme .correct-answer-display {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: #10b981;
+        }
+
+        .dark-theme .correct-answer-text {
+            color: var(--dark-text-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .results-container {
+                padding: 0.5rem;
+            }
+
+            .results-header {
+                padding: 1.5rem;
+            }
+
+            .results-title {
+                font-size: 1.5rem;
+            }
+
+            .score-display {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .score-circle {
+                width: 100px;
+                height: 100px;
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .attempt-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .attempt-info {
+                justify-content: center;
+            }
+
+            .attempt-score {
+                text-align: center;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+    </style>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Quiz Results - <%= contentItem.title %>">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'courses', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: 'Quiz Results', student: student, theme: theme, currentPage: 'quiz-results' }) %>
+            
+            <!-- Results Content -->
+            <div class="student-content">
+                <div class="results-container">
+                    <!-- Back Button -->
+                    <div class="back-button-container">
+                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to Content
+                        </a>
+                    </div>
+
+                    <!-- Results Header -->
+                    <div class="results-header">
+                        <h1 class="results-title">
+                            <i class="fas fa-<%= contentItem.type === 'quiz' ? 'question-circle' : 'tasks' %>"></i>
+                            <%= contentItem.title %>
+                        </h1>
+                        <p class="results-subtitle">Quiz Results & Performance Analysis</p>
+                        
+                        <!-- Score Display -->
+                        <div class="score-display">
+                            <div class="score-circle <%= latestAttempt.passed ? 'passed' : 'failed' %>">
+                                <%= latestAttempt.score %>%
+                            </div>
+                            <div class="score-details">
+                                <h3>Your Score</h3>
+                                <p><%= latestAttempt.correctAnswers %> out of <%= latestAttempt.totalQuestions %> correct</p>
+                                <p>Time Spent: <%= Math.floor(latestAttempt.timeSpent / 60) %>m <%= latestAttempt.timeSpent % 60 %>s</p>
+                                <p>Completed: <%= new Date(latestAttempt.completedAt).toLocaleString() %></p>
+                                <div class="pass-status <%= latestAttempt.passed ? 'passed' : 'failed' %>">
+                                    <%= latestAttempt.passed ? 'PASSED' : 'FAILED' %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-value"><%= contentProgress.bestScore %>%</div>
+                            <div class="stat-label">Best Score</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-redo"></i>
+                            </div>
+                            <div class="stat-value"><%= contentProgress.attempts %></div>
+                            <div class="stat-label">Total Attempts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-value"><%= Math.floor(latestAttempt.timeSpent / 60) %>m</div>
+                            <div class="stat-label">Time Spent</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="stat-value"><%= latestAttempt.passingScore %>%</div>
+                            <div class="stat-label">Passing Score</div>
+                        </div>
+                    </div>
+
+                    <!-- Attempt History -->
+                    <div class="attempt-history">
+                        <h3>
+                            <i class="fas fa-history"></i>
+                            Attempt History
+                        </h3>
+                        <% contentProgress.quizAttempts.forEach((attempt, index) => { %>
+                            <div class="attempt-item">
+                                <div class="attempt-info">
+                                    <div class="attempt-number"><%= attempt.attemptNumber %></div>
+                                    <div class="attempt-details">
+                                        <h4>Attempt <%= attempt.attemptNumber %></h4>
+                                        <p>Completed on <%= new Date(attempt.completedAt).toLocaleString() %></p>
+                                    </div>
+                                </div>
+                                <div class="attempt-score">
+                                    <div class="score <%= attempt.passed ? 'passed' : 'failed' %>">
+                                        <%= attempt.score %>%
+                                    </div>
+                                    <div class="status">
+                                        <%= attempt.passed ? 'Passed' : 'Failed' %>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+
+                    <!-- Answer Review -->
+                    <% if (canShowAnswers && contentItem.selectedQuestions) { %>
+                        <div class="answer-review">
+                            <h3>
+                                <i class="fas fa-eye"></i>
+                                Answer Review
+                            </h3>
+                            <% contentItem.selectedQuestions.forEach((selectedQ, index) => { %>
+                                <% 
+                                    const question = selectedQ.question;
+                                    const userAnswer = latestAttempt.answers.find(a => a.questionId.toString() === question._id.toString());
+                                    const isCorrect = userAnswer ? userAnswer.isCorrect : false;
+                                %>
+                                <div class="question-review">
+                                    <div class="question-header">
+                                        <div class="question-number">Question <%= index + 1 %></div>
+                                        <div class="question-status <%= isCorrect ? 'correct' : 'incorrect' %>">
+                                            <%= isCorrect ? 'Correct' : 'Incorrect' %>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="question-text">
+                                        <% if (question.questionText.includes('\\') || question.questionText.includes('$')) { %>
+                                            <math-field readonly 
+                                                style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+                                                class="question-math-field">
+                                                <%= question.questionText %>
+                                            </math-field>
+                                        <% } else { %>
+                                            <%= question.questionText %>
+                                        <% } %>
+                                    </div>
+                                    
+                                    <% if (question.questionType === 'Written') { %>
+                                        <!-- Written Question Answer Review -->
+                                        <div class="written-question-container">
+                                            <div class="written-question-note">
+                                                <div class="note-icon">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </div>
+                                                <div class="note-content">
+                                                    <strong>Note:</strong> If you think there are two answers, type them like this: <code>10,-10</code>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- User's Answer -->
+                                            <div class="written-answer-display <%= isCorrect ? 'correct' : (userAnswer && userAnswer.selectedAnswer ? 'incorrect' : 'empty') %>">
+                                                <strong>Your Answer:</strong><br>
+                                                <%= userAnswer && userAnswer.selectedAnswer ? userAnswer.selectedAnswer : 'No answer provided' %>
+                                            </div>
+                                            
+                                            <!-- Correct Answer(s) -->
+                                            <div class="correct-answer-display">
+                                                <div class="correct-answer-label">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    Correct Answer<%= question.correctAnswers && question.correctAnswers.length > 1 ? 's' : '' %>:
+                                                </div>
+                                                <div class="correct-answer-text">
+                                                    <%= question.correctAnswers && question.correctAnswers.length > 0 ? 
+                                                        question.correctAnswers.map(ca => ca.text).join(', ') : 
+                                                        'No correct answers defined' %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% } else { %>
+                                        <!-- MCQ/True-False Options Review -->
+                                        <div class="options-review">
+                                            <% question.options.forEach((option, optionIndex) => { %>
+                                                <% 
+                                                    const isSelected = userAnswer && userAnswer.selectedAnswer === optionIndex.toString();
+                                                    const isCorrectOption = optionIndex.toString() === question.correctAnswer;
+                                                    let optionClass = 'neutral';
+                                                    let indicatorClass = 'neutral';
+                                                    
+                                                    if (isCorrectOption) {
+                                                        optionClass = 'correct';
+                                                        indicatorClass = 'correct';
+                                                    } else if (isSelected && !isCorrectOption) {
+                                                        optionClass = 'incorrect';
+                                                        indicatorClass = 'incorrect';
+                                                    } else if (isSelected) {
+                                                        optionClass = 'selected';
+                                                        indicatorClass = 'selected';
+                                                    }
+                                                %>
+                                                <div class="option-review <%= optionClass %>">
+                                                    <div class="option-indicator <%= indicatorClass %>">
+                                                        <%= String.fromCharCode(65 + optionIndex) %>
+                                                    </div>
+                                                    <div class="option-text">
+                                                        <% if (option.text && (option.text.includes('\\') || option.text.includes('$'))) { %>
+                                                            <math-field readonly 
+                                                                style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+                                                                class="option-math-field">
+                                                                <%= option.text %>
+                                                            </math-field>
+                                                        <% } else { %>
+                                                            <%= option.text %>
+                                                        <% } %>
+                                                    </div>
+                                                </div>
+                                            <% }); %>
+                                        </div>
+                                    <% } %>
+                                    
+                                    <% if (question.explanation && question.explanation.trim() !== '') { %>
+                                        <div class="answer-explanation">
+                                            <h5>Explanation:</h5>
+                                            <p><%= question.explanation %></p>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else if (!canShowAnswers) { %>
+                        <div class="answer-review">
+                            <h3>
+                                <i class="fas fa-lock"></i>
+                                Answer Review Not Available
+                            </h3>
+                            <p>Answer review is not enabled for this quiz. Contact your instructor if you have questions about your answers.</p>
+                        </div>
+                    <% } %>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to Content
+                        </a>
+                        <a href="/student/course/<%= course._id %>/content" class="btn btn-primary">
+                            <i class="fas fa-list"></i>
+                            Course Content
+                        </a>
+                        <% if (!latestAttempt.passed && contentProgress.attempts < (contentItem.type === 'quiz' ? (contentItem.quizSettings?.maxAttempts || 3) : (contentItem.homeworkSettings?.maxAttempts || 1))) { %>
+                            <a href="/student/content/<%= contentItem._id %>/take" class="btn btn-success">
+                                <i class="fas fa-redo"></i>
+                                Try Again
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

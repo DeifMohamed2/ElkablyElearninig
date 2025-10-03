@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/orders.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Order Details - View detailed information about your purchase">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'order-history', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: title, student: student, theme: theme, currentPage: 'order-details' }) %>
+            
+            <!-- Order Details Content -->
+            <div class="student-content">
+                <!-- Back Button -->
+                <div class="back-button-container">
+                    <a href="/student/order-history" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Order History
+                    </a>
+                </div>
+
+                <!-- Order Details Card -->
+                <div class="order-details-card">
+                    <!-- Order Header -->
+                    <div class="order-details-header">
+                        <div class="order-header-content">
+                            <div class="order-title-section">
+                                <h2 style="color: var(--text-primary); margin: 0; font-size: 1.75rem;">
+                                    Order #<%= order.orderNumber %>
+                                </h2>
+                                <div class="order-status-section">
+                                    <span class="status-badge status-<%= order.status %>">
+                                        <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                                    </span>
+                                    <span class="order-date">
+                                        <i class="fas fa-calendar"></i>
+                                        <%= new Date(order.purchasedAt).toLocaleDateString('en-US', { 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        }) %>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Content -->
+                    <div class="order-details-content">
+                        <!-- Item Information -->
+                        <div class="order-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-shopping-bag"></i>
+                                Item Information
+                            </h3>
+                            
+                            <div class="item-details-card">
+                                <div class="item-main-info">
+                                    <!-- Item Thumbnail -->
+                                    <div class="item-thumbnail-large">
+                                        <% if (order.item && order.item.thumbnail) { %>
+                                            <img src="<%= order.item.thumbnail %>" alt="<%= order.item.title %>">
+                                        <% } else { %>
+                                            <div class="thumbnail-placeholder-large">
+                                                <% if (order.type === 'course') { %>
+                                                    <i class="fas fa-book-open"></i>
+                                                <% } else { %>
+                                                    <i class="fas fa-layer-group"></i>
+                                                <% } %>
+                                            </div>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Item Details -->
+                                    <div class="item-info">
+                                        <div class="item-header">
+                                            <h3 class="item-title-large">
+                                                <%= order.item ? order.item.title : 'Item not found' %>
+                                            </h3>
+                                            <div class="item-type-badge-large">
+                                                <% if (order.type === 'course') { %>
+                                                    <span class="badge badge-primary badge-lg">
+                                                        <i class="fas fa-book"></i> Course
+                                                    </span>
+                                                <% } else { %>
+                                                    <span class="badge badge-success badge-lg">
+                                                        <i class="fas fa-layer-group"></i> Bundle
+                                                    </span>
+                                                <% } %>
+                                            </div>
+                                        </div>
+
+                                        <div class="item-description">
+                                            <p><%= order.item ? (order.item.shortDescription || order.item.description) : 'Description not available' %></p>
+                                        </div>
+
+                                        <!-- Item Meta Information -->
+                                        <div class="item-meta-grid">
+                                            <% if (order.type === 'course' && order.item) { %>
+                                                <div class="meta-item">
+                                                    <div class="meta-icon">
+                                                        <i class="fas fa-graduation-cap"></i>
+                                                    </div>
+                                                    <div class="meta-content">
+                                                        <div class="meta-label">Level</div>
+                                                        <div class="meta-value"><%= order.item.level %></div>
+                                                    </div>
+                                                </div>
+                                                <div class="meta-item">
+                                                    <div class="meta-icon">
+                                                        <i class="fas fa-clock"></i>
+                                                    </div>
+                                                    <div class="meta-content">
+                                                        <div class="meta-label">Duration</div>
+                                                        <div class="meta-value"><%= order.item.duration %> hours</div>
+                                                    </div>
+                                                </div>
+                                                <div class="meta-item">
+                                                    <div class="meta-icon">
+                                                        <i class="fas fa-book"></i>
+                                                    </div>
+                                                    <div class="meta-content">
+                                                        <div class="meta-label">Topics</div>
+                                                        <div class="meta-value"><%= order.item.topics ? order.item.topics.length : 0 %> topics</div>
+                                                    </div>
+                                                </div>
+                                            <% } else if (order.type === 'bundle' && order.item) { %>
+                                                <div class="meta-item">
+                                                    <div class="meta-icon">
+                                                        <i class="fas fa-calendar-alt"></i>
+                                                    </div>
+                                                    <div class="meta-content">
+                                                        <div class="meta-label">Year</div>
+                                                        <div class="meta-value"><%= order.item.year %></div>
+                                                    </div>
+                                                </div>
+                                                <div class="meta-item">
+                                                    <div class="meta-icon">
+                                                        <i class="fas fa-book"></i>
+                                                    </div>
+                                                    <div class="meta-content">
+                                                        <div class="meta-label">Subject</div>
+                                                        <div class="meta-value"><%= order.item.subject %></div>
+                                                    </div>
+                                                </div>
+                                                <div class="meta-item">
+                                                    <div class="meta-icon">
+                                                        <i class="fas fa-layer-group"></i>
+                                                    </div>
+                                                    <div class="meta-content">
+                                                        <div class="meta-label">Courses</div>
+                                                        <div class="meta-value"><%= order.item.courses ? order.item.courses.length : 0 %> courses</div>
+                                                    </div>
+                                                </div>
+                                                <div class="meta-item">
+                                                    <div class="meta-icon">
+                                                        <i class="fas fa-clock"></i>
+                                                    </div>
+                                                    <div class="meta-content">
+                                                        <div class="meta-label">Total Duration</div>
+                                                        <div class="meta-value"><%= order.item.duration %> hours</div>
+                                                    </div>
+                                                </div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bundle Courses (if applicable) -->
+                        <% if (order.type === 'bundle' && order.item && order.item.courses && order.item.courses.length > 0) { %>
+                            <div class="order-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-list"></i>
+                                    Included Courses
+                                </h3>
+                                
+                                <div class="courses-list">
+                                    <% order.item.courses.forEach((course, index) => { %>
+                                        <div class="course-item">
+                                            <div class="course-number">
+                                                <%= index + 1 %>
+                                            </div>
+                                            <div class="course-info">
+                                                <h4 class="course-title"><%= course.title %></h4>
+                                                <div class="course-meta">
+                                                    <span class="course-duration">
+                                                        <i class="fas fa-clock"></i>
+                                                        <%= course.duration %>h
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                            </div>
+                        <% } %>
+
+                        <!-- Order Summary -->
+                        <div class="order-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-receipt"></i>
+                                Order Summary
+                            </h3>
+                            
+                            <div class="order-summary-card">
+                                <div class="summary-row">
+                                    <span class="summary-label">Item Price</span>
+                                    <span class="summary-value">$<%= order.price.toFixed(2) %></span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="summary-label">Tax</span>
+                                    <span class="summary-value">$0.00</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="summary-label">Discount</span>
+                                    <span class="summary-value">$0.00</span>
+                                </div>
+                                <div class="summary-divider"></div>
+                                <div class="summary-row total">
+                                    <span class="summary-label">Total Paid</span>
+                                    <span class="summary-value">$<%= order.price.toFixed(2) %></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Order Actions -->
+                        <div class="order-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-cog"></i>
+                                Actions
+                            </h3>
+                            
+                            <div class="order-actions-card">
+                                <% if (order.status === 'active') { %>
+                                    <% if (order.type === 'course') { %>
+                                        <a href="/student/course/<%= order.course %>" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-play"></i>
+                                            Start Learning
+                                        </a>
+                                    <% } else { %>
+                                        <a href="/student/enrolled-courses" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-play"></i>
+                                            View Enrolled Courses
+                                        </a>
+                                    <% } %>
+                                <% } else { %>
+                                    <div class="inactive-order-message">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>This order is no longer active. Please contact support if you need assistance.</span>
+                                    </div>
+                                <% } %>
+                                
+                                <div class="secondary-actions">
+                                    <a href="/student/order-history" class="btn btn-outline">
+                                        <i class="fas fa-arrow-left"></i>
+                                        Back to Orders
+                                    </a>
+                                    <button class="btn btn-outline" onclick="window.print()">
+                                        <i class="fas fa-print"></i>
+                                        Print Receipt
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            .order-details-card {
+                background: var(--bg-primary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+                box-shadow: var(--shadow-md);
+            }
+            
+            .order-details-header {
+                background: linear-gradient(135deg, var(--primary-color), #dc2626);
+                color: white;
+                padding: var(--spacing-xl);
+            }
+            
+            .order-header-content {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+            
+            .order-title-section h2 {
+                color: white;
+                margin-bottom: var(--spacing-sm);
+            }
+            
+            .order-status-section {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-md);
+            }
+            
+            .order-date {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-sm);
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 0.9rem;
+            }
+            
+            .order-details-content {
+                padding: var(--spacing-xl);
+            }
+            
+            .order-section {
+                margin-bottom: var(--spacing-2xl);
+            }
+            
+            .order-section:last-child {
+                margin-bottom: 0;
+            }
+            
+            .section-title {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-sm);
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: var(--text-primary);
+                margin-bottom: var(--spacing-lg);
+                padding-bottom: var(--spacing-sm);
+                border-bottom: 2px solid var(--border-color);
+            }
+            
+            .section-title i {
+                color: var(--primary-color);
+            }
+            
+            .item-details-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-lg);
+                padding: var(--spacing-xl);
+            }
+            
+            .item-main-info {
+                display: flex;
+                gap: var(--spacing-xl);
+                align-items: flex-start;
+            }
+            
+            .item-thumbnail-large {
+                width: 120px;
+                height: 120px;
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+                flex-shrink: 0;
+            }
+            
+            .item-thumbnail-large img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            
+            .thumbnail-placeholder-large {
+                width: 100%;
+                height: 100%;
+                background: var(--bg-primary);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--text-muted);
+                font-size: 2.5rem;
+            }
+            
+            .item-info {
+                flex: 1;
+            }
+            
+            .item-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: var(--spacing-md);
+            }
+            
+            .item-title-large {
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: var(--text-primary);
+                margin: 0;
+            }
+            
+            .badge-lg {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+            
+            .item-description {
+                margin-bottom: var(--spacing-lg);
+            }
+            
+            .item-description p {
+                color: var(--text-secondary);
+                line-height: 1.6;
+                margin: 0;
+            }
+            
+            .item-meta-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: var(--spacing-lg);
+            }
+            
+            .meta-item {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-md);
+                padding: var(--spacing-md);
+                background: var(--bg-primary);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--border-color);
+            }
+            
+            .meta-icon {
+                width: 40px;
+                height: 40px;
+                background: var(--primary-color);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+            
+            .meta-content {
+                flex: 1;
+            }
+            
+            .meta-label {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 0.25rem;
+            }
+            
+            .meta-value {
+                font-size: 1rem;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+            
+            .courses-list {
+                display: flex;
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+            
+            .course-item {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-md);
+                padding: var(--spacing-lg);
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+            }
+            
+            .course-number {
+                width: 32px;
+                height: 32px;
+                background: var(--primary-color);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                flex-shrink: 0;
+            }
+            
+            .course-info {
+                flex: 1;
+            }
+            
+            .course-title {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: var(--text-primary);
+                margin: 0 0 var(--spacing-xs) 0;
+            }
+            
+            .course-meta {
+                display: flex;
+                gap: var(--spacing-md);
+            }
+            
+            .course-duration {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-xs);
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+            }
+            
+            .order-summary-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-lg);
+                padding: var(--spacing-xl);
+            }
+            
+            .summary-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: var(--spacing-sm) 0;
+            }
+            
+            .summary-row.total {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: var(--text-primary);
+                border-top: 2px solid var(--border-color);
+                margin-top: var(--spacing-sm);
+                padding-top: var(--spacing-md);
+            }
+            
+            .summary-label {
+                color: var(--text-secondary);
+            }
+            
+            .summary-value {
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+            
+            .summary-divider {
+                height: 1px;
+                background: var(--border-color);
+                margin: var(--spacing-sm) 0;
+            }
+            
+            .order-actions-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-lg);
+                padding: var(--spacing-xl);
+                text-align: center;
+            }
+            
+            .inactive-order-message {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: var(--spacing-sm);
+                padding: var(--spacing-lg);
+                background: #fef3c7;
+                color: #92400e;
+                border-radius: var(--radius-md);
+                margin-bottom: var(--spacing-lg);
+            }
+            
+            .secondary-actions {
+                display: flex;
+                gap: var(--spacing-md);
+                justify-content: center;
+                margin-top: var(--spacing-lg);
+            }
+            
+            @media (max-width: 768px) {
+                .order-header-content {
+                    flex-direction: column;
+                    gap: var(--spacing-md);
+                }
+                
+                .order-status-section {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: var(--spacing-sm);
+                }
+                
+                .item-main-info {
+                    flex-direction: column;
+                    gap: var(--spacing-lg);
+                }
+                
+                .item-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: var(--spacing-sm);
+                }
+                
+                .item-meta-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .secondary-actions {
+                    flex-direction: column;
+                }
+            }
+            
+            @media print {
+                .order-actions-card {
+                    display: none;
+                }
+                
+                .back-button-container {
+                    display: none;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

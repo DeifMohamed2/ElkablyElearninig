@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Elkably E-Learning</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+    <link rel="stylesheet" href="/css/studentCSS/courses.css">
+    <link rel="stylesheet" href="/css/theme-toggle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="My Wishlist - Save courses for later">
+    <meta name="theme-color" content="#dc2626">
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Student Layout -->
+    <div class="student-layout">
+        <!-- Include Sidebar -->
+        <%- include('partials/student-sidebar', { currentPage: 'wishlist', student: student }) %>
+        
+        <!-- Main Content -->
+        <main class="student-main">
+            <!-- Include Header -->
+            <%- include('partials/student-header', { title: title, student: student, theme: theme, currentPage: 'wishlist' }) %>
+            
+            <!-- Wishlist Content -->
+            <div class="student-content">
+                <!-- Page Header -->
+                <div class="page-header" style="margin-bottom: var(--spacing-xl);">
+                    <h2 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">
+                        My Wishlist
+                    </h2>
+                    <p style="color: var(--text-secondary);">
+                        Courses you've saved for later. Enroll when you're ready to start learning.
+                    </p>
+                </div>
+
+                <!-- Wishlist Content -->
+                <% if ((wishlistCourses && wishlistCourses.length > 0) || (wishlistBundles && wishlistBundles.length > 0)) { %>
+                    
+                    <!-- Courses Section -->
+                    <% if (wishlistCourses && wishlistCourses.length > 0) { %>
+                        <div class="wishlist-section" style="margin-bottom: var(--spacing-2xl);">
+                            <div class="section-header" style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+                                <div class="section-icon" style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary-color), #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-book-open" style="color: white; font-size: 1.2rem;"></i>
+                                </div>
+                                <div>
+                                    <h3 style="color: var(--text-primary); margin: 0; font-size: 1.5rem; font-weight: 600;">
+                                        Courses (<%= wishlistCourses.length %>)
+                                    </h3>
+                                    <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">
+                                        Individual courses you've saved for later
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="courses-grid">
+                                <% wishlistCourses.forEach(course => { %>
+                                    <div class="course-card">
+                                        <!-- Course Thumbnail -->
+                                        <div class="course-thumbnail">
+                                            <% if (course.thumbnail) { %>
+                                                <img src="<%= course.thumbnail %>" alt="<%= course.title %>" style="width: 100%; height: 100%; object-fit: cover;">
+                                            <% } else { %>
+                                                <i class="fas fa-book-open"></i>
+                                            <% } %>
+                                        </div>
+
+                                        <!-- Course Content -->
+                                        <div class="course-content">
+                                            <!-- Course Header -->
+                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-sm);">
+                                                <h3 class="course-title"><%= course.title %></h3>
+                                                <div style="display: flex; gap: var(--spacing-xs);">
+                                                    <button class="btn btn-outline btn-sm" onclick="removeFromWishlist('<%= course._id %>', 'course')" title="Remove from wishlist">
+                                                        <i class="fas fa-heart-broken"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Course Description -->
+                                            <p class="course-description">
+                                                <%= course.shortDescription || course.description.substring(0, 100) + '...' %>
+                                            </p>
+
+                                            <!-- Course Meta -->
+                                            <div class="course-meta">
+                                                <span class="course-level"><%= course.level %></span>
+                                                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                    <i class="fas fa-clock" style="color: var(--text-muted); font-size: 0.75rem;"></i>
+                                                    <span style="font-size: 0.75rem; color: var(--text-muted);"><%= course.duration %>h</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Course Tags -->
+                                            <% if (course.tags && course.tags.length > 0) { %>
+                                                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs); margin-bottom: var(--spacing-md);">
+                                                    <% course.tags.slice(0, 3).forEach(tag => { %>
+                                                        <span class="badge badge-info" style="font-size: 0.625rem;">
+                                                            <%= tag %>
+                                                        </span>
+                                                    <% }); %>
+                                                    <% if (course.tags.length > 3) { %>
+                                                        <span style="font-size: 0.625rem; color: var(--text-muted);">
+                                                            +<%= course.tags.length - 3 %> more
+                                                        </span>
+                                                    <% } %>
+                                                </div>
+                                            <% } %>
+
+                                            <!-- Course Footer -->
+                                            <div class="course-footer">
+                                                <div style="display: flex; align-items: center; gap: var(--spacing-xs);">
+                                                    <i class="fas fa-book" style="color: var(--text-muted); font-size: 0.75rem;"></i>
+                                                    <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                                        <%= course.topics ? course.topics.length : 0 %> topics
+                                                    </span>
+                                                </div>
+                                                <div style="display: flex; gap: var(--spacing-xs);">
+                                                    <button class="btn btn-outline btn-sm" onclick="removeFromWishlist('<%= course._id %>', 'course')">
+                                                        Remove
+                                                    </button>
+                                                    <a href="/course/<%= course._id %>" class="btn btn-primary btn-sm">
+                                                        View Details
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        </div>
+                    <% } %>
+
+                    <!-- Bundles Section -->
+                    <% if (wishlistBundles && wishlistBundles.length > 0) { %>
+                        <div class="wishlist-section" style="margin-bottom: var(--spacing-2xl);">
+                            <div class="section-header" style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+                                <div class="section-icon" style="width: 40px; height: 40px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-layer-group" style="color: white; font-size: 1.2rem;"></i>
+                                </div>
+                                <div>
+                                    <h3 style="color: var(--text-primary); margin: 0; font-size: 1.5rem; font-weight: 600;">
+                                        Course Bundles (<%= wishlistBundles.length %>)
+                                    </h3>
+                                    <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">
+                                        Complete course bundles you've saved for later
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="courses-grid">
+                                <% wishlistBundles.forEach(bundle => { %>
+                                    <div class="course-card bundle-card">
+                                        <!-- Bundle Thumbnail -->
+                                        <div class="course-thumbnail">
+                                            <% if (bundle.thumbnail) { %>
+                                                <img src="<%= bundle.thumbnail %>" alt="<%= bundle.title %>" style="width: 100%; height: 100%; object-fit: cover;">
+                                            <% } else { %>
+                                                <i class="fas fa-layer-group"></i>
+                                            <% } %>
+                                            <!-- Bundle Badge -->
+                                            <div class="bundle-badge" style="position: absolute; top: var(--spacing-sm); right: var(--spacing-sm); background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600;">
+                                                BUNDLE
+                                            </div>
+                                        </div>
+
+                                        <!-- Bundle Content -->
+                                        <div class="course-content">
+                                            <!-- Bundle Header -->
+                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-sm);">
+                                                <h3 class="course-title"><%= bundle.title %></h3>
+                                                <div style="display: flex; gap: var(--spacing-xs);">
+                                                    <button class="btn btn-outline btn-sm" onclick="removeFromWishlist('<%= bundle._id %>', 'bundle')" title="Remove from wishlist">
+                                                        <i class="fas fa-heart-broken"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Bundle Description -->
+                                            <p class="course-description">
+                                                <%= bundle.shortDescription || bundle.description.substring(0, 100) + '...' %>
+                                            </p>
+
+                                            <!-- Bundle Meta -->
+                                            <div class="course-meta">
+                                                <span class="course-level"><%= bundle.year %> - <%= bundle.subject %></span>
+                                                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                    <i class="fas fa-clock" style="color: var(--text-muted); font-size: 0.75rem;"></i>
+                                                    <span style="font-size: 0.75rem; color: var(--text-muted);"><%= bundle.duration %>h</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Bundle Price -->
+                                            <div style="margin-bottom: var(--spacing-md);">
+                                                <% if (bundle.discountPrice && bundle.discountPrice > 0) { %>
+                                                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                        <span style="font-size: 1.1rem; font-weight: 600; color: var(--success-color);">
+                                                            $<%= (bundle.price - (bundle.price * bundle.discountPrice / 100)).toFixed(2) %>
+                                                        </span>
+                                                        <span style="font-size: 0.9rem; color: var(--text-muted); text-decoration: line-through;">
+                                                            $<%= bundle.price %>
+                                                        </span>
+                                                        <span class="badge badge-success" style="font-size: 0.625rem;">
+                                                            <%= bundle.discountPrice %>% OFF
+                                                        </span>
+                                                    </div>
+                                                <% } else { %>
+                                                    <span style="font-size: 1.1rem; font-weight: 600; color: var(--primary-color);">
+                                                        $<%= bundle.price %>
+                                                    </span>
+                                                <% } %>
+                                            </div>
+
+                                            <!-- Bundle Tags -->
+                                            <% if (bundle.tags && bundle.tags.length > 0) { %>
+                                                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs); margin-bottom: var(--spacing-md);">
+                                                    <% bundle.tags.slice(0, 3).forEach(tag => { %>
+                                                        <span class="badge badge-info" style="font-size: 0.625rem;">
+                                                            <%= tag %>
+                                                        </span>
+                                                    <% }); %>
+                                                    <% if (bundle.tags.length > 3) { %>
+                                                        <span style="font-size: 0.625rem; color: var(--text-muted);">
+                                                            +<%= bundle.tags.length - 3 %> more
+                                                        </span>
+                                                    <% } %>
+                                                </div>
+                                            <% } %>
+
+                                            <!-- Bundle Footer -->
+                                            <div class="course-footer">
+                                                <div style="display: flex; align-items: center; gap: var(--spacing-xs);">
+                                                    <i class="fas fa-layer-group" style="color: var(--text-muted); font-size: 0.75rem;"></i>
+                                                    <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                                        <%= bundle.courses ? bundle.courses.length : 0 %> courses
+                                                    </span>
+                                                </div>
+                                                <div style="display: flex; gap: var(--spacing-xs);">
+                                                    <button class="btn btn-outline btn-sm" onclick="removeFromWishlist('<%= bundle._id %>', 'bundle')">
+                                                        Remove
+                                                    </button>
+                                                    <a href="/bundle/<%= bundle._id %>" class="btn btn-primary btn-sm">
+                                                        View Details
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        </div>
+                    <% } %>
+
+                    <!-- Pagination -->
+                    <% if (pagination.totalPages > 1) { %>
+                        <div class="pagination">
+                            <% if (pagination.hasPrev) { %>
+                                <a href="?page=<%= pagination.prevPage %>" class="pagination-item">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            <% } %>
+
+                            <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+                                <% if (i === pagination.currentPage) { %>
+                                    <span class="pagination-item active"><%= i %></span>
+                                <% } else { %>
+                                    <a href="?page=<%= i %>" class="pagination-item"><%= i %></a>
+                                <% } %>
+                            <% } %>
+
+                            <% if (pagination.hasNext) { %>
+                                <a href="?page=<%= pagination.nextPage %>" class="pagination-item">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            <% } %>
+                        </div>
+                    <% } %>
+
+                <% } else { %>
+                    <!-- Empty State -->
+                    <div class="empty-state" style="text-align: center; padding: var(--spacing-2xl);">
+                        <div style="width: 200px; height: 200px; margin: 0 auto var(--spacing-xl); background-color: var(--bg-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-heart" style="font-size: 4rem; color: var(--text-muted); opacity: 0.5;"></i>
+                        </div>
+                        <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); font-size: 1.5rem;">
+                            Your Wishlist is Empty
+                        </h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-xl); max-width: 500px; margin-left: auto; margin-right: auto;">
+                            Start building your wishlist by saving courses that interest you. You can add courses to your wishlist from the course catalog and enroll when you're ready.
+                        </p>
+                        <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                            <a href="/" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search" style="margin-right: var(--spacing-sm);"></i>
+                                Browse Courses
+                            </a>
+                            <a href="/student/enrolled-courses" class="btn btn-outline btn-lg">
+                                <i class="fas fa-book-open" style="margin-right: var(--spacing-sm);"></i>
+                                View Enrolled
+                            </a>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Remove item from wishlist
+        async function removeFromWishlist(itemId, itemType = 'course') {
+            const itemName = itemType === 'course' ? 'course' : 'bundle';
+            if (!confirm(`Are you sure you want to remove this ${itemName} from your wishlist?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/student/wishlist/remove/${itemId}?type=${itemType}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    // Remove the card from the DOM
+                    const itemCard = document.querySelector(`[onclick*="${itemId}"]`).closest('.course-card');
+                    if (itemCard) {
+                        itemCard.style.opacity = '0';
+                        itemCard.style.transform = 'scale(0.9)';
+                        setTimeout(() => {
+                            itemCard.remove();
+                            
+                            // Check if wishlist is now empty
+                            const remainingCards = document.querySelectorAll('.course-card');
+                            if (remainingCards.length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+                    }
+                    
+                    // Show success message
+                    showNotification(`${itemName.charAt(0).toUpperCase() + itemName.slice(1)} removed from wishlist`, 'success');
+                } else {
+                    throw new Error(`Failed to remove ${itemName} from wishlist`);
+                }
+            } catch (error) {
+                console.error(`Error removing ${itemName} from wishlist:`, error);
+                showNotification(`Error removing ${itemName} from wishlist`, 'error');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'error' ? 'danger' : type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                max-width: 300px;
+                padding: var(--spacing-md);
+                border-radius: var(--radius-md);
+                box-shadow: var(--shadow-lg);
+                animation: slideInRight 0.3s ease-out;
+            `;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Remove notification after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Add hover effects
+        document.addEventListener('DOMContentLoaded', function() {
+            const courseCards = document.querySelectorAll('.course-card');
+            
+            courseCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-4px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            
+            .course-card {
+                transition: all 0.3s ease;
+            }
+            
+            .bundle-card {
+                position: relative;
+                border: 2px solid transparent;
+                background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                            linear-gradient(135deg, #059669, #10b981) border-box;
+            }
+            
+            .bundle-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 25px rgba(5, 150, 105, 0.15);
+            }
+            
+            .course-thumbnail {
+                position: relative;
+            }
+            
+            .bundle-badge {
+                position: absolute;
+                top: var(--spacing-sm);
+                right: var(--spacing-sm);
+                background: linear-gradient(135deg, #059669, #10b981);
+                color: white;
+                padding: 0.25rem 0.5rem;
+                border-radius: var(--radius-sm);
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            
+            .wishlist-section {
+                margin-bottom: var(--spacing-2xl);
+            }
+            
+            .section-header {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-lg);
+                padding: var(--spacing-lg);
+                background: var(--bg-secondary);
+                border-radius: var(--radius-lg);
+                border: 1px solid var(--border-color);
+            }
+            
+            .section-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+            
+            .btn {
+                transition: all 0.2s ease;
+            }
+            
+            @media (max-width: 768px) {
+                .section-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: var(--spacing-sm);
+                }
+                
+                .bundle-badge {
+                    font-size: 0.625rem;
+                    padding: 0.2rem 0.4rem;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

@@ -1,0 +1,792 @@
+<%- include('partials/admin-header', { title: 'Create Game Room', pageCSS: 'game-rooms' }) %>
+
+<div class="page-game-rooms">
+  <div class="admin-layout">
+    <%- include('./partials/admin-sidebar', { currentPage: currentPage || 'game-rooms' }) %>
+    <main class="admin-main">
+      <%- include('./partials/admin-topbar', { 
+          breadcrumb: 'Game Rooms',
+          breadcrumbSubtitle: 'Create New Game Room',
+          showSearch: false
+      }) %>
+      <div class="admin-content">
+        <div class="admin-container">
+          <div class="admin-header">
+            <div class="admin-header-content">
+              <h1 class="admin-title">
+                <i class="fas fa-plus-circle"></i>
+                Create New Game Room
+              </h1>
+              <p class="admin-subtitle">Create a multiplayer quiz game room</p>
+            </div>
+            <div class="admin-header-actions">
+              <a href="/admin/game-rooms" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Rooms
+              </a>
+            </div>
+          </div>
+
+          <div class="game-room-form">
+            <form method="POST" action="/admin/game-rooms/create" id="createRoomForm">
+              <div class="game-room-form-grid">
+                <!-- Basic Information -->
+                <div class="game-room-form-section">
+          <h3 class="game-room-section-title">
+            <i class="fas fa-info-circle"></i>
+            Basic Information
+          </h3>
+          
+          <div class="game-room-form-row">
+            <div class="game-room-form-group">
+              <label for="title" class="game-room-form-label">
+                <i class="fas fa-tag"></i>
+                Room Title *
+              </label>
+              <input type="text" id="title" name="title" class="game-room-form-control" required
+                     placeholder="Enter room title">
+            </div>
+
+            <div class="game-room-form-group">
+              <label for="difficulty" class="game-room-form-label">
+                <i class="fas fa-signal"></i>
+                Difficulty
+              </label>
+              <select id="difficulty" name="difficulty" class="game-room-form-control">
+                <option value="Easy">Easy</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="game-room-form-group">
+            <label for="description" class="game-room-form-label">
+              <i class="fas fa-align-left"></i>
+              Description
+            </label>
+            <textarea id="description" name="description" class="game-room-form-control" rows="3"
+                      placeholder="Enter room description"></textarea>
+          </div>
+
+          <div class="game-room-form-group">
+            <label for="bank" class="game-room-form-label">
+              <i class="fas fa-database"></i>
+              Question Bank *
+            </label>
+            <select id="bank" name="bank" class="game-room-form-control" required>
+              <option value="">Select Question Bank</option>
+              <% if (typeof banks !== 'undefined' && banks && banks.length) { %>
+                <% banks.forEach(function(bank) { %>
+                  <option value="<%= bank._id %>"><%= bank.name %> (<%= bank.totalQuestions || 0 %> questions)</option>
+                <% }) %>
+              <% } %>
+            </select>
+            <div class="game-room-form-help">
+              <i class="fas fa-info-circle"></i>
+              Choose a question bank to load questions for selection
+            </div>
+          </div>
+        </div>
+
+        <!-- Game Settings -->
+        <div class="game-room-form-section">
+          <h3 class="game-room-section-title">
+            <i class="fas fa-cog"></i>
+            Game Settings
+          </h3>
+          
+          <div class="game-room-form-row">
+            <div class="game-room-form-group">
+              <label for="maxPlayers" class="game-room-form-label">
+                <i class="fas fa-users"></i>
+                Maximum Players *
+              </label>
+              <select id="maxPlayers" name="maxPlayers" class="game-room-form-control" required>
+                <option value="2">2 Players</option>
+                <option value="3">3 Players</option>
+                <option value="4" selected>4 Players</option>
+                <option value="5">5 Players</option>
+                <option value="6">6 Players</option>
+                <option value="7">7 Players</option>
+                <option value="8">8 Players</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="game-room-form-group">
+            <label for="totalTime" class="game-room-form-label">
+              <i class="fas fa-stopwatch"></i>
+              Duration (minutes) *
+            </label>
+            <input type="number" id="totalTime" name="totalTime" class="game-room-form-control" 
+                   min="1" max="240" required>
+          </div>
+        </div>
+
+        <!-- Questions Selection -->
+        <div class="questions-selection-container">
+          <div class="questions-filter-section">
+            <h3 class="game-room-section-title">
+              <i class="fas fa-question-circle"></i>
+              Questions Selection
+            </h3>
+            
+            <!-- Range Selection -->
+            <div class="questions-range-selection" id="rangeSelection" style="display: none;">
+              <div class="range-selection-header">
+                <div class="range-selection-title">
+                  <i class="fas fa-layer-group"></i>
+                  Range Selection
+                </div>
+                <button type="button" class="range-toggle-btn" onclick="toggleRangeSelection()">
+                  <i class="fas fa-times"></i>
+                  Close Range
+                </button>
+              </div>
+              
+              <div class="range-controls">
+                <div class="game-room-form-group">
+                  <label for="rangeInput" class="game-room-form-label">Select Range</label>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="rangeInput" class="game-room-form-control" 
+                           placeholder="e.g., 1-4, 3, 7-10" style="flex: 1;"
+                           onkeypress="if(event.key==='Enter') applyRangeSelection()">
+                    <button type="button" class="game-room-btn game-room-btn-primary" onclick="applyRangeSelection()">
+                      <i class="fas fa-check"></i>
+                      Select
+                    </button>
+                  </div>
+                  <div class="game-room-form-help">
+                    <i class="fas fa-info-circle"></i>
+                    Enter question numbers or ranges (e.g., 1-4, 3, 7-10)
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="questions-filter-row">
+              <div class="game-room-form-group">
+                <label for="filterCategory" class="game-room-form-label">Filter by Category</label>
+                <select id="filterCategory" class="game-room-form-control">
+                  <option value="">All Categories</option>
+                  <option value="Mathematics">Mathematics</option>
+                  <option value="Physics">Physics</option>
+                  <option value="Chemistry">Chemistry</option>
+                  <option value="Biology">Biology</option>
+                  <option value="English">English</option>
+                  <option value="History">History</option>
+                  <option value="Geography">Geography</option>
+                  <option value="General Knowledge">General Knowledge</option>
+                </select>
+              </div>
+              
+              <div class="game-room-form-group">
+                <label for="filterDifficulty" class="game-room-form-label">Filter by Difficulty</label>
+                <select id="filterDifficulty" class="game-room-form-control">
+                  <option value="">All Difficulties</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+              
+              <div class="game-room-form-group">
+                <label for="searchQuestions" class="game-room-form-label">Search Questions</label>
+                <input type="text" id="searchQuestions" class="game-room-form-control" 
+                       placeholder="Search in questions...">
+              </div>
+              
+              <div class="game-room-form-group">
+                <label class="game-room-form-label">Quick Actions</label>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="range-toggle-btn" onclick="toggleRangeSelection()">
+                    <i class="fas fa-layer-group"></i>
+                    Range Select
+                  </button>
+                  <button type="button" class="game-room-btn game-room-btn-secondary" onclick="selectAllVisible()">
+                    <i class="fas fa-check-square"></i>
+                    Select All
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="selected-questions-header">
+            <h4 class="selected-questions-title">
+              <i class="fas fa-check-circle"></i>
+              Selected Questions
+              <span class="selected-count-badge" id="selectedCount">0</span>
+            </h4>
+            <div class="selected-questions-actions">
+              <button type="button" class="clear-selection-btn" onclick="clearSelection()">
+                <i class="fas fa-trash"></i>
+                Clear All
+              </button>
+            </div>
+          </div>
+            
+          <div class="questions-grid" id="questionsGrid">
+              <% if (questions && questions.length > 0) { %>
+                <% questions.forEach((question, index) => { %>
+                  <div class="question-circle-item" data-category="<%= (question.category || '').toString() %>" 
+                       data-difficulty="<%= (question.difficulty || '').toString() %>" 
+                       data-search="<%= ((question.question || '')).toLowerCase() %>"
+                       data-question-index="<%= index + 1 %>"
+                       data-question-id="<%= question._id %>">
+                    <div class="question-circle" data-question-id="<%= question._id %>">
+                      <span class="question-number"><%= index + 1 %></span>
+                      <div class="question-circle-eye" data-preview-id="<%= question._id %>">
+                        <i class="fas fa-eye"></i>
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              <% } else { %>
+                <div class="no-questions-state" id="noQuestions">
+                  <i class="fas fa-database"></i>
+                  <h4>Select a Question Bank to load questions</h4>
+                  <p>Choose a bank from the dropdown above to fetch its questions.</p>
+                </div>
+              <% } %>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="game-room-form-actions">
+          <a href="/admin/game-rooms" class="game-room-btn game-room-btn-secondary">
+            <i class="fas fa-times"></i>
+            Cancel
+          </a>
+          <button type="submit" class="game-room-btn game-room-btn-primary" id="submitBtn" disabled>
+            <i class="fas fa-save"></i>
+            Create Game Room
+          </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MathJax Configuration -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<script>
+// Form validation and interactions
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('createRoomForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const selectedCount = document.getElementById('selectedCount');
+  const questionCheckboxes = document.querySelectorAll('.question-checkbox');
+  const bankSelect = document.getElementById('bank');
+  
+  // Filter elements
+  const filterCategory = document.getElementById('filterCategory');
+  const filterDifficulty = document.getElementById('filterDifficulty');
+  const searchQuestions = document.getElementById('searchQuestions');
+  
+  // Range selection elements
+  const rangeSelection = document.getElementById('rangeSelection');
+  const rangeInput = document.getElementById('rangeInput');
+  
+  // Total time input only
+  const totalTime = document.getElementById('totalTime');
+  
+  // updateSelectedCount is now defined globally
+  
+  function filterQuestions() {
+    const categoryFilter = filterCategory.value.toLowerCase();
+    const difficultyFilter = filterDifficulty.value.toLowerCase();
+    const searchFilter = searchQuestions.value.toLowerCase();
+    
+    let visibleIndex = 0;
+    document.querySelectorAll('.question-circle-item').forEach(item => {
+      const category = item.dataset.category.toLowerCase();
+      const difficulty = item.dataset.difficulty.toLowerCase();
+      const search = item.dataset.search;
+      
+      const categoryMatch = !categoryFilter || category.includes(categoryFilter);
+      const difficultyMatch = !difficultyFilter || difficulty === difficultyFilter;
+      const searchMatch = !searchFilter || search.includes(searchFilter);
+      
+      const isVisible = categoryMatch && difficultyMatch && searchMatch;
+      item.style.display = isVisible ? 'block' : 'none';
+      if (isVisible) {
+        visibleIndex += 1;
+        const circle = item.querySelector('.question-number');
+        if (circle) circle.textContent = visibleIndex;
+      }
+    });
+  }
+  
+  // removed autoCalculateTime
+  
+  // Range selection functions are now defined globally
+
+  // selectedQuestionIds is now defined globally
+  
+  function toggleQuestionSelection(questionId, element) {
+    if (selectedQuestionIds.has(questionId)) {
+      selectedQuestionIds.delete(questionId);
+      element.classList.remove('selected');
+    } else {
+      selectedQuestionIds.add(questionId);
+      element.classList.add('selected');
+    }
+    updateSelectedCount();
+  }
+
+  // Event listeners
+  filterCategory.addEventListener('change', filterQuestions);
+  filterDifficulty.addEventListener('change', filterQuestions);
+  searchQuestions.addEventListener('input', filterQuestions);
+  
+  // no per-question timer
+  
+  // Load questions when bank changes
+  if (bankSelect) {
+    bankSelect.addEventListener('change', async function() {
+      const bankId = this.value;
+      const grid = document.getElementById('questionsGrid');
+      const noQuestions = document.getElementById('noQuestions');
+      grid.innerHTML = '';
+      if (!bankId) {
+        if (noQuestions) noQuestions.style.display = 'block';
+        return;
+      }
+      if (noQuestions) noQuestions.style.display = 'none';
+      grid.innerHTML = '<div class="no-questions-state"><i class="fas fa-spinner fa-spin"></i><h4>Loading questions...</h4></div>';
+      try {
+        const res = await fetch(`/admin/api/question-banks/${bankId}/questions`, { credentials: 'include' });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        const items = (data.questions || []);
+        if (!items.length) {
+          grid.innerHTML = '<div class="no-questions-state"><i class="fas fa-question-circle"></i><h4>No Questions in this bank</h4></div>';
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        items.forEach((q, index) => {
+          const card = document.createElement('div');
+          card.className = 'question-circle-item';
+          card.dataset.category = (q.category || '').toString();
+          card.dataset.difficulty = (q.difficulty || '').toString();
+          card.dataset.search = ((q.question || '')).toLowerCase();
+          card.dataset.questionIndex = index + 1;
+          card.dataset.questionId = q._id;
+          card.innerHTML = `
+            <div class=\"question-circle\" data-question-id=\"${q._id}\">\n\
+              <span class=\"question-number\">${index + 1}</span>\n\
+              <div class=\"question-circle-eye\" data-preview-id=\"${q._id}\">\n\
+                <i class=\"fas fa-eye\"></i>\n\
+              </div>\n\
+            </div>`;
+          frag.appendChild(card);
+        });
+        grid.innerHTML = '';
+        grid.appendChild(frag);
+        // Bind circle selection and preview listeners
+        document.querySelectorAll('.question-circle').forEach(circle => {
+          circle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const questionId = circle.getAttribute('data-question-id');
+            if (questionId) toggleQuestionSelection(questionId, circle);
+          });
+        });
+        
+        document.querySelectorAll('.question-circle-eye').forEach(eye => {
+          eye.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = eye.getAttribute('data-preview-id');
+            if (id) previewQuestion(id);
+          });
+        });
+        updateSelectedCount();
+      } catch (e) {
+        console.error('Error loading questions:', e);
+        grid.innerHTML = `
+          <div class="no-questions-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Failed to load questions</h4>
+            <p>Error: ${e.message || 'Unknown error'}</p>
+          </div>
+        `;
+      }
+    });
+  }
+  
+  // Form submission with JavaScript
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (selectedQuestionIds.size === 0) {
+      alert('Please select at least one question for the game room.');
+      return;
+    }
+    
+    // Show loading state
+    const originalBtnContent = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    submitBtn.disabled = true;
+    
+    try {
+      // Build JSON payload explicitly to avoid multipart/form-data
+      const payload = {
+        title: document.getElementById('title') ? document.getElementById('title').value : '',
+        description: document.getElementById('description') ? document.getElementById('description').value : '',
+        difficulty: document.getElementById('difficulty') ? document.getElementById('difficulty').value : '',
+        maxPlayers: document.getElementById('maxPlayers') ? document.getElementById('maxPlayers').value : '',
+        totalTime: document.getElementById('totalTime') ? document.getElementById('totalTime').value : '',
+        selectedQuestions: Array.from(selectedQuestionIds)
+      };
+      
+      const response = await fetch('/admin/game-rooms/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include'
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Success - redirect to game rooms page
+        alert('Game room created successfully!');
+        window.location.href = '/admin/game-rooms';
+      } else {
+        // Error - show message
+        alert(result.message || 'Failed to create game room');
+        // Restore button state
+        submitBtn.innerHTML = originalBtnContent;
+        submitBtn.disabled = false;
+      }
+    } catch (error) {
+      console.error('Error creating game room:', error);
+      alert('An error occurred while creating the game room. Please try again.');
+      // Restore button state
+      submitBtn.innerHTML = originalBtnContent;
+      submitBtn.disabled = false;
+    }
+  });
+  
+  // Initialize
+  updateSelectedCount();
+});
+
+// Global variables and functions (moved outside DOMContentLoaded)
+let selectedQuestionIds = new Set();
+
+// Global functions
+function clearSelection() {
+  selectedQuestionIds.clear();
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    circle.classList.remove('selected');
+  });
+  updateSelectedCount();
+}
+
+function toggleRangeSelection() {
+  const rangeSelection = document.getElementById('rangeSelection');
+  const isVisible = rangeSelection.style.display !== 'none';
+  rangeSelection.style.display = isVisible ? 'none' : 'block';
+  
+  if (!isVisible) {
+    updateRangeInfo();
+  }
+}
+
+function updateRangeInfo() {
+  // Get visible questions count
+  const visibleItems = Array.from(document.querySelectorAll('.question-circle-item'))
+    .filter(item => item.style.display !== 'none');
+  
+  // Get selected questions within visible items
+  const selectedVisibleItems = visibleItems.filter(item => {
+    const questionId = item.dataset.questionId;
+    return selectedQuestionIds.has(questionId);
+  });
+  
+  // Update range selection info if needed
+  const rangeInfoElement = document.querySelector('.range-selection-title');
+  if (rangeInfoElement) {
+    rangeInfoElement.innerHTML = `
+      <i class="fas fa-layer-group"></i>
+      Range Selection <span class="range-info-badge">${selectedVisibleItems.length}/${visibleItems.length}</span>
+    `;
+  }
+}
+
+function selectAllVisible() {
+  const visibleItems = Array.from(document.querySelectorAll('.question-circle-item'))
+    .filter(item => item.style.display !== 'none');
+  
+  visibleItems.forEach(item => {
+    const questionId = item.dataset.questionId;
+    selectedQuestionIds.add(questionId);
+  });
+  
+  // Update visual selection
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    const questionId = circle.getAttribute('data-question-id');
+    circle.classList.toggle('selected', selectedQuestionIds.has(questionId));
+  });
+  
+  updateSelectedCount();
+}
+
+function applyRangeSelection() {
+  const rangeInput = document.getElementById('rangeInput');
+  const rangeText = rangeInput.value.trim();
+  if (!rangeText) {
+    alert('Please enter a range (e.g., 1-4, 3, 7-10)');
+    return;
+  }
+
+  const questionNumbers = parseRangeInput(rangeText);
+  if (questionNumbers.length === 0) {
+    alert('Invalid range format. Use: 1-4, 3, 7-10');
+    return;
+  }
+
+  // Get all visible question elements
+  const allItems = Array.from(document.querySelectorAll('.question-circle-item'));
+  const visibleItems = allItems.filter(item => item.style.display !== 'none');
+  const totalVisible = visibleItems.length;
+
+  if (totalVisible === 0) {
+    alert('No visible questions to select. Adjust filters or load a bank.');
+    return;
+  }
+
+  let selectedCount = 0;
+
+  // Apply selection based on question numbers
+  questionNumbers.forEach(num => {
+    if (num >= 1 && num <= visibleItems.length) {
+      const item = visibleItems[num - 1]; // Convert to 0-based index
+      const questionId = item.dataset.questionId;
+      
+      if (!selectedQuestionIds.has(questionId)) {
+        selectedQuestionIds.add(questionId);
+        selectedCount++;
+      }
+    }
+  });
+
+  // Update visual selection
+  document.querySelectorAll('.question-circle').forEach(circle => {
+    const questionId = circle.getAttribute('data-question-id');
+    circle.classList.toggle('selected', selectedQuestionIds.has(questionId));
+  });
+
+  updateSelectedCount();
+  updateSelectedCount();
+  
+  if (selectedCount > 0) {
+    alert(`Selected ${selectedCount} questions from range`);
+    rangeInput.value = ''; // Clear input
+  } else {
+    alert('No valid questions found in the specified range');
+  }
+}
+
+// Parse range input (e.g., "1-4, 3, 7-10")
+function parseRangeInput(input) {
+  const numbers = new Set();
+  const parts = input.split(',').map(part => part.trim());
+  
+  parts.forEach(part => {
+    if (part.includes('-')) {
+      // Range (e.g., "1-4")
+      const [start, end] = part.split('-').map(n => parseInt(n.trim()));
+      if (!isNaN(start) && !isNaN(end) && start <= end) {
+        for (let i = start; i <= end; i++) {
+          numbers.add(i);
+        }
+      }
+    } else {
+      // Single number (e.g., "3")
+      const num = parseInt(part);
+      if (!isNaN(num)) {
+        numbers.add(num);
+      }
+    }
+  });
+  
+  return Array.from(numbers).sort((a, b) => a - b);
+}
+
+function updateSelectedCount() {
+  const selectedCount = document.getElementById('selectedCount');
+  const submitBtn = document.getElementById('submitBtn');
+  const selected = selectedQuestionIds.size;
+  if (selectedCount) selectedCount.textContent = selected;
+  if (submitBtn) submitBtn.disabled = selected === 0;
+}
+
+// removed autoCalculateTime
+
+// Preview question helper with MathJax support
+async function previewQuestion(questionId) {
+  try {
+    const res = await fetch(`/admin/quizzes/api/questions/${questionId}/preview`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Failed to load');
+
+    const q = data.question || {};
+    const container = document.createElement('div');
+    
+    // Build options HTML
+    let optionsHtml = '';
+    if (q.questionType === 'Written') {
+      // For written questions, show correct answers
+      if (q.correctAnswers && q.correctAnswers.length > 0) {
+        optionsHtml = `
+          <div class="question-preview-explanation">
+            <div class="question-preview-explanation-title">
+              <i class="fas fa-check-circle"></i> Correct Answer(s)
+            </div>
+            <div class="question-preview-explanation-text">
+              ${q.correctAnswers.map(answer => 
+                typeof answer === 'string' ? answer : answer.text
+              ).join(', ')}
+            </div>
+          </div>
+        `;
+      }
+    } else if (Array.isArray(q.options) && q.options.length) {
+      // For MCQ/True-False questions
+      optionsHtml = `
+        <div class="question-preview-options">
+          ${q.options.map((opt, idx) => `
+            <div class="question-preview-option${opt.isCorrect ? ' correct' : ''}">
+              <span class="option-label">${String.fromCharCode(65 + idx)}</span>
+              <div class="option-text">${(opt && opt.text) || ''}${opt && opt.isCorrect ? ' <span class="correct-indicator">(Correct)</span>' : ''}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    container.innerHTML = `
+      <div class="modal fade question-preview-modal" id="tempPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                <i class="fas fa-eye"></i>
+                Question Preview
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="question-preview-header">
+                <div>
+                  <span class="question-difficulty-badge difficulty-${(q.difficulty || '').toLowerCase()}">
+                    ${q.difficulty || 'Medium'}
+                  </span>
+                  <span class="question-category-badge">${q.questionType || 'MCQ'}</span>
+                </div>
+                <div>
+                  <span class="admin-badge admin-badge-primary">
+                    <i class="fas fa-star"></i>
+                    ${q.points || 1} pts
+                  </span>
+                </div>
+              </div>
+              
+              <div class="question-preview-text math-content">
+                ${q.questionText || q.question || ''}
+              </div>
+              
+              ${optionsHtml}
+              
+              ${(q.explanation && q.explanation.trim()) ? `
+                <div class="question-preview-explanation">
+                  <div class="question-preview-explanation-title">
+                    <i class="fas fa-lightbulb"></i>
+                    Explanation
+                  </div>
+                  <div class="question-preview-explanation-text math-content">
+                    ${q.explanation}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="game-room-btn game-room-btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times"></i>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    
+    document.body.appendChild(container);
+    const modalEl = document.getElementById('tempPreviewModal');
+    const modal = new bootstrap.Modal(modalEl);
+    
+    // Process MathJax after modal is shown
+    modalEl.addEventListener('shown.bs.modal', () => {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([modalEl]).catch((err) => {
+          console.warn('MathJax typesetting error:', err);
+        });
+      }
+    });
+    
+    modal.show();
+    modalEl.addEventListener('hidden.bs.modal', () => container.remove());
+  } catch (err) {
+    console.error('Preview error:', err);
+    alert('Failed to load question preview.');
+  }
+}
+</script>
+
+<!-- Math content styling -->
+<style>
+.math-content {
+  font-family: 'Times New Roman', serif;
+}
+
+.math-content .MathJax {
+  font-size: 1.1em;
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+</style>
+
+<%- include('partials/admin-footer') %>
