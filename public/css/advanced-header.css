@@ -562,6 +562,13 @@
   isolation: isolate; /* Creates new stacking context */
 }
 
+/* Mobile optimized dropdown container */
+.mobile-optimized {
+  z-index: 1000000 !important; /* Ensure container has maximum z-index */
+  position: relative;
+  isolation: isolate;
+}
+
 .user-account-btn {
   display: flex;
   align-items: center;
@@ -1791,9 +1798,25 @@ body.dropdown-open {
 /* Fix for browsers with different stacking context behavior */
 .user-dropdown-menu {
   /* Ensure dropdown is always on top */
-  z-index: 99999 !important;
+  z-index: 999999 !important; /* Maximum z-index to be above all content */
   /* Force new stacking context */
   isolation: isolate;
+  /* Additional stacking context fixes */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Ensure dropdown appears above all content sections */
+.user-dropdown-menu,
+.mobile-optimized .user-dropdown-menu {
+  z-index: 999999 !important;
+  position: fixed !important;
+}
+
+/* Override any content section z-index */
+body .user-dropdown-menu {
+  z-index: 999999 !important;
 }
 
 /* Mobile Overlay for Better UX */
@@ -1804,7 +1827,7 @@ body.dropdown-open {
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 99998;
+  z-index: 999998; /* Increased z-index to be above content */
   display: none;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -1824,7 +1847,7 @@ body.dropdown-open {
   transform-origin: top center;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
   border-radius: 16px !important;
-  z-index: 99999 !important;
+  z-index: 999999 !important; /* Significantly increased z-index */
 }
 
 /* Mobile Button Enhancements */
@@ -1840,10 +1863,12 @@ body.dropdown-open {
     left: 15px !important;
     right: 15px !important;
     border-radius: 12px !important;
+    z-index: 999999 !important; /* Ensure maximum z-index on mobile */
   }
   
   .mobile-dropdown-overlay {
     background: rgba(0, 0, 0, 0.4);
+    z-index: 999998 !important; /* High z-index for overlay */
   }
 }
 
@@ -1853,6 +1878,7 @@ body.dropdown-open {
     left: 10px !important;
     right: 10px !important;
     border-radius: 10px !important;
+    z-index: 999999 !important; /* Maximum z-index for small mobile */
   }
 }
 
