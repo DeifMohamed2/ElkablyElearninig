@@ -171,21 +171,18 @@
         <!-- Auth Actions -->
         <div class="header-auth-actions">
           <% if (locals.user) { %>
-            <!-- Mobile-Friendly User Dropdown -->
-            <div class="user-account-dropdown mobile-optimized">
-              <button class="user-account-btn mobile-btn" type="button" id="userDropdown" aria-expanded="false">
+            <!-- Professional User Dropdown -->
+            <div class="professional-user-dropdown" id="professionalUserDropdown">
+              <button class="user-dropdown-trigger" type="button" id="userDropdownTrigger" aria-expanded="false" aria-haspopup="true">
                 <div class="user-avatar">
                   <i class="fas fa-user-circle"></i>
                 </div>
                 <span class="user-name"><%= user.name %></span>
-                <i class="fas fa-chevron-down dropdown-arrow"></i>
+                <i class="fas fa-chevron-down dropdown-chevron"></i>
               </button>
               
-              <!-- Mobile Overlay -->
-              <div class="mobile-dropdown-overlay" id="mobileDropdownOverlay"></div>
-              
               <!-- Dropdown Menu -->
-              <div class="user-dropdown-menu mobile-dropdown" id="userDropdownMenu">
+              <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userDropdownTrigger">
                 <div class="dropdown-content">
                   <div class="dropdown-header">
                     <div class="user-info">
@@ -200,34 +197,34 @@
                   </div>
                   <div class="dropdown-divider"></div>
                   <div class="dropdown-items">
-                    <a class="dropdown-item" href="/dashboard">
+                    <a class="dropdown-item" href="/dashboard" role="menuitem">
                       <i class="fas fa-tachometer-alt"></i>
                       <span>Dashboard</span>
                     </a>
-                    <a class="dropdown-item" href="/profile">
+                    <a class="dropdown-item" href="/profile" role="menuitem">
                       <i class="fas fa-user-edit"></i>
                       <span>Profile</span>
                     </a>
-                    <a class="dropdown-item" href="/enrolled-courses">
+                    <a class="dropdown-item" href="/enrolled-courses" role="menuitem">
                       <i class="fas fa-graduation-cap"></i>
                       <span>My Courses</span>
                     </a>
-                    <a class="dropdown-item" href="/quizzes">
+                    <a class="dropdown-item" href="/quizzes" role="menuitem">
                       <i class="fas fa-clipboard-check"></i>
                       <span>Quizzes</span>
                     </a>
-                    <a class="dropdown-item" href="/wishlist">
+                    <a class="dropdown-item" href="/wishlist" role="menuitem">
                       <i class="fas fa-heart"></i>
                       <span>Wishlist</span>
                     </a>
-                    <a class="dropdown-item" href="/settings">
+                    <a class="dropdown-item" href="/settings" role="menuitem">
                       <i class="fas fa-cog"></i>
                       <span>Settings</span>
                     </a>
                   </div>
                   <div class="dropdown-divider"></div>
                   <div class="dropdown-footer">
-                    <a class="dropdown-item logout-item" href="/auth/logout">
+                    <a class="dropdown-item logout-item" href="/auth/logout" role="menuitem">
                       <i class="fas fa-sign-out-alt"></i>
                       <span>Logout</span>
                     </a>
@@ -375,274 +372,177 @@
   
   <!-- Enhanced Mobile-Friendly Dropdown Toggle -->
   <script>
-    // Enhanced dropdown toggle with better mobile support
-    function toggleUserDropdown(event) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
+    // Professional User Dropdown Implementation
+    class ProfessionalUserDropdown {
+      constructor() {
+        this.dropdown = document.getElementById('professionalUserDropdown');
+        this.trigger = document.getElementById('userDropdownTrigger');
+        this.menu = document.getElementById('userDropdownMenu');
+        this.isOpen = false;
+        this.isMobile = window.innerWidth <= 768;
+        
+        this.init();
       }
       
-      const dropdown = document.querySelector('.user-account-dropdown');
-      const menu = document.getElementById('userDropdownMenu');
-      const button = document.getElementById('userDropdown');
-      const overlay = document.getElementById('mobileDropdownOverlay');
-      
-      if (!dropdown || !menu || !button) {
-        console.warn('Dropdown elements not found');
-        return;
+      init() {
+        if (!this.dropdown || !this.trigger || !this.menu) {
+          console.log('User dropdown elements not found - user may not be authenticated');
+          return;
+        }
+        
+        // Bind events
+        this.bindEvents();
+        
+        // Set initial state
+        this.setInitialState();
+        
+        console.log('Professional user dropdown initialized');
       }
       
-      const isOpen = dropdown.classList.contains('show');
-      
-      if (isOpen) {
-        closeDropdown();
-      } else {
-        openDropdown();
-      }
-      
-      function openDropdown() {
-        // Add show class
-        dropdown.classList.add('show');
-        button.setAttribute('aria-expanded', 'true');
-        
-        // Force maximum z-index immediately
-        menu.style.setProperty('z-index', '999999', 'important');
-        menu.style.setProperty('position', 'fixed', 'important');
-        
-        // Show menu with animation
-        menu.style.display = 'block';
-        menu.style.opacity = '0';
-        menu.style.transform = 'translateY(-20px) scale(0.95)';
-        menu.style.visibility = 'visible';
-        
-        // Force reflow
-        menu.offsetHeight;
-        
-        // Animate in
-        requestAnimationFrame(() => {
-          menu.style.opacity = '1';
-          menu.style.transform = 'translateY(0) scale(1)';
-          menu.style.pointerEvents = 'auto';
-          
-          // Force z-index again after animation
-          menu.style.setProperty('z-index', '999999', 'important');
-          menu.style.setProperty('position', 'fixed', 'important');
-          
-          // Additional production fixes
-          menu.style.setProperty('isolation', 'isolate', 'important');
-          menu.style.setProperty('transform', 'translateZ(0)', 'important');
+      bindEvents() {
+        // Trigger click event
+        this.trigger.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.toggle();
         });
         
-        // Show overlay on mobile with high z-index
-        if (overlay && window.innerWidth <= 768) {
-          overlay.style.display = 'block';
-          overlay.style.setProperty('z-index', '999998', 'important');
-          overlay.style.opacity = '0';
-          requestAnimationFrame(() => {
-            overlay.style.opacity = '1';
-          });
-        }
-        
-        // Prevent body scroll on mobile
-        if (window.innerWidth <= 768) {
-          document.body.style.overflow = 'hidden';
-        }
-        
-        // Force dropdown to top by temporarily adjusting other elements
-        forceDropdownToTop();
-        
-        console.log('Dropdown opened successfully with forced z-index');
-      }
-      
-      function forceDropdownToTop() {
-        // Find all elements that might be covering the dropdown
-        const potentialBlockers = document.querySelectorAll([
-          '.hero-section',
-          '.content-card',
-          '.main-content',
-          '.section',
-          '[class*="hero"]',
-          '[class*="content"]',
-          '[class*="card"]'
-        ].join(', '));
-        
-        potentialBlockers.forEach(element => {
-          const computedStyle = window.getComputedStyle(element);
-          const zIndex = parseInt(computedStyle.zIndex) || 0;
-          
-          // If element has high z-index, temporarily lower it
-          if (zIndex > 1000) {
-            // Store original z-index
-            if (!element.hasAttribute('data-original-z-index')) {
-              element.setAttribute('data-original-z-index', zIndex.toString());
-            }
-            element.style.setProperty('z-index', '1', 'important');
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+          if (!this.dropdown.contains(e.target)) {
+            this.close();
           }
         });
         
-        // Force dropdown to absolute top
-        menu.style.setProperty('z-index', '999999', 'important');
-        menu.style.setProperty('position', 'fixed', 'important');
-        menu.style.setProperty('top', '80px', 'important');
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.isOpen) {
+            this.close();
+          }
+        });
         
-        // Additional force methods with multiple attempts
-        setTimeout(() => {
-          menu.style.setProperty('z-index', '999999', 'important');
-        }, 10);
+        // Handle window resize
+        window.addEventListener('resize', () => {
+          this.isMobile = window.innerWidth <= 768;
+          if (this.isOpen) {
+            this.updatePosition();
+          }
+        });
         
-        setTimeout(() => {
-          menu.style.setProperty('z-index', '999999', 'important');
-        }, 50);
-        
-        setTimeout(() => {
-          menu.style.setProperty('z-index', '999999', 'important');
-        }, 100);
-        
-        // Nuclear option - append to body to break stacking context
-        if (menu.parentNode !== document.body) {
-          document.body.appendChild(menu);
+        // Prevent menu clicks from closing dropdown
+        this.menu.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      }
+      
+      setInitialState() {
+        this.menu.style.display = 'none';
+        this.menu.style.opacity = '0';
+        this.menu.style.visibility = 'hidden';
+        this.menu.style.transform = 'translateY(-10px) scale(0.95)';
+        this.trigger.setAttribute('aria-expanded', 'false');
+      }
+      
+      toggle() {
+        if (this.isOpen) {
+          this.close();
+        } else {
+          this.open();
         }
       }
       
-      function closeDropdown() {
-        // Restore original z-index values
-        restoreOriginalZIndex();
+      open() {
+        if (this.isOpen) return;
         
-        // Animate out
-        menu.style.opacity = '0';
-        menu.style.transform = 'translateY(-20px) scale(0.95)';
-        menu.style.pointerEvents = 'none';
+        this.isOpen = true;
+        this.dropdown.classList.add('dropdown-open');
+        this.trigger.setAttribute('aria-expanded', 'true');
         
-        // Hide overlay
-        if (overlay) {
-          overlay.style.opacity = '0';
-          setTimeout(() => {
-            overlay.style.display = 'none';
-          }, 300);
+        // Show menu
+        this.menu.style.display = 'block';
+        this.menu.style.visibility = 'visible';
+        
+        // Update position
+        this.updatePosition();
+        
+        // Animate in
+        requestAnimationFrame(() => {
+          this.menu.style.opacity = '1';
+          this.menu.style.transform = 'translateY(0) scale(1)';
+        });
+        
+        // Prevent body scroll on mobile
+        if (this.isMobile) {
+          document.body.style.overflow = 'hidden';
         }
         
-        // Remove classes after animation
+        console.log('Dropdown opened');
+      }
+      
+      close() {
+        if (!this.isOpen) return;
+        
+        this.isOpen = false;
+        this.dropdown.classList.remove('dropdown-open');
+        this.trigger.setAttribute('aria-expanded', 'false');
+        
+        // Animate out
+        this.menu.style.opacity = '0';
+        this.menu.style.transform = 'translateY(-10px) scale(0.95)';
+        
+        // Hide after animation
         setTimeout(() => {
-          dropdown.classList.remove('show');
-          button.setAttribute('aria-expanded', 'false');
-          menu.style.display = 'none';
-          menu.style.visibility = 'hidden';
-        }, 300);
+          if (!this.isOpen) {
+            this.menu.style.display = 'none';
+            this.menu.style.visibility = 'hidden';
+          }
+        }, 200);
         
         // Restore body scroll
         document.body.style.overflow = '';
         
-        console.log('Dropdown closed successfully');
+        console.log('Dropdown closed');
       }
       
-      function restoreOriginalZIndex() {
-        // Restore original z-index values for content elements
-        const elementsToRestore = document.querySelectorAll('[data-original-z-index]');
-        elementsToRestore.forEach(element => {
-          const originalZIndex = element.getAttribute('data-original-z-index');
-          if (originalZIndex) {
-            element.style.setProperty('z-index', originalZIndex, 'important');
+      updatePosition() {
+        if (!this.isOpen) return;
+        
+        const triggerRect = this.trigger.getBoundingClientRect();
+        const menuRect = this.menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        if (this.isMobile) {
+          // Mobile: Center the dropdown
+          this.menu.style.position = 'fixed';
+          this.menu.style.top = '50%';
+          this.menu.style.left = '50%';
+          this.menu.style.transform = 'translate(-50%, -50%) scale(1)';
+          this.menu.style.width = '90vw';
+          this.menu.style.maxWidth = '400px';
+          this.menu.style.zIndex = '999999';
+        } else {
+          // Desktop: Position relative to trigger
+          this.menu.style.position = 'absolute';
+          this.menu.style.top = '100%';
+          this.menu.style.right = '0';
+          this.menu.style.left = 'auto';
+          this.menu.style.width = '300px';
+          this.menu.style.transform = 'translateY(0) scale(1)';
+          this.menu.style.zIndex = '999999';
+          
+          // Adjust if menu goes off-screen
+          if (triggerRect.right - 300 < 0) {
+            this.menu.style.right = 'auto';
+            this.menu.style.left = '0';
           }
-          element.removeAttribute('data-original-z-index');
-        });
+        }
       }
     }
     
-    // Add click event listener with proper event handling
+    // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
-      const button = document.getElementById('userDropdown');
-      if (button) {
-        // Remove any existing onclick handlers
-        button.removeAttribute('onclick');
-        
-        // Add proper event listener
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleUserDropdown(e);
-        });
-        
-        console.log('Dropdown button event listener attached');
-      }
-      
-      // Overlay click handler
-      const overlay = document.getElementById('mobileDropdownOverlay');
-      if (overlay) {
-        overlay.addEventListener('click', function() {
-          toggleUserDropdown();
-        });
-      }
-    });
-    
-    // Test function to check if elements exist
-    function testDropdownElements() {
-      console.log('Testing dropdown elements...');
-      const dropdown = document.querySelector('.user-account-dropdown');
-      const menu = document.querySelector('.user-dropdown-menu');
-      const button = document.getElementById('userDropdown');
-      
-      console.log('Dropdown element:', dropdown);
-      console.log('Menu element:', menu);
-      console.log('Button element:', button);
-      
-      // Only proceed if user is authenticated and elements exist
-      if (!dropdown || !menu || !button) {
-        console.log('User dropdown elements not found - user may not be authenticated');
-        return;
-      }
-      
-      if (menu) {
-        console.log('Menu styles:', {
-          position: getComputedStyle(menu).position,
-          display: getComputedStyle(menu).display,
-          opacity: getComputedStyle(menu).opacity,
-          visibility: getComputedStyle(menu).visibility,
-          zIndex: getComputedStyle(menu).zIndex
-        });
-      }
-    }
-    
-    // Run test when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(testDropdownElements, 1000);
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      const dropdown = document.querySelector('.user-account-dropdown');
-      if (dropdown && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('show');
-        const button = document.getElementById('userDropdown');
-        const menu = document.querySelector('.user-dropdown-menu');
-        if (button) button.setAttribute('aria-expanded', 'false');
-        if (menu) {
-          menu.style.opacity = '0';
-          menu.style.visibility = 'hidden';
-          menu.style.transform = 'translateY(-20px) scale(0.95)';
-          menu.style.pointerEvents = 'none';
-        }
-        document.body.classList.remove('dropdown-open');
-      }
-    });
-    
-    // Close dropdown on escape key
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        const dropdown = document.querySelector('.user-account-dropdown');
-        if (dropdown && dropdown.classList.contains('show')) {
-          dropdown.classList.remove('show');
-          const button = document.getElementById('userDropdown');
-          const menu = document.querySelector('.user-dropdown-menu');
-          if (button) button.setAttribute('aria-expanded', 'false');
-          if (menu) {
-            menu.style.opacity = '0';
-            menu.style.visibility = 'hidden';
-            menu.style.transform = 'translateY(-20px) scale(0.95)';
-            menu.style.pointerEvents = 'none';
-          }
-          document.body.classList.remove('dropdown-open');
-        }
-      }
+      new ProfessionalUserDropdown();
     });
   </script>
 
@@ -1065,8 +965,448 @@ function removeFromCartSidebar(itemId, itemType) {
     });
   </script>
 
-  <!-- Flash Messages Fixed Positioning Styles -->
+  <!-- Professional User Dropdown Styles -->
   <style>
+    /* Professional User Dropdown Container */
+    .professional-user-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    /* Dropdown Trigger Button */
+    .user-dropdown-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-weight: 500;
+      color: #495057;
+      min-width: 160px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .user-dropdown-trigger::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+      transition: left 0.5s;
+    }
+    
+    .user-dropdown-trigger:hover::before {
+      left: 100%;
+    }
+    
+    .user-dropdown-trigger:hover {
+      border-color: #3498db;
+      box-shadow: 0 4px 20px rgba(52, 152, 219, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .user-dropdown-trigger:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .user-dropdown-trigger[aria-expanded="true"] {
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      color: white;
+    }
+    
+    .user-dropdown-trigger[aria-expanded="true"] .dropdown-chevron {
+      transform: rotate(180deg);
+    }
+    
+    /* User Avatar */
+    .user-dropdown-trigger .user-avatar {
+      font-size: 1.5rem;
+      color: #3498db;
+      transition: all 0.3s ease;
+    }
+    
+    .user-dropdown-trigger[aria-expanded="true"] .user-avatar {
+      color: white;
+    }
+    
+    /* User Name */
+    .user-dropdown-trigger .user-name {
+      flex: 1;
+      text-align: left;
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+    
+    /* Dropdown Chevron */
+    .dropdown-chevron {
+      font-size: 0.8rem;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0.7;
+    }
+    
+    .user-dropdown-trigger[aria-expanded="true"] .dropdown-chevron {
+      opacity: 1;
+      color: white;
+    }
+    
+    /* Dropdown Menu */
+    .user-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      width: 300px;
+      background: #ffffff;
+      border: 1px solid #e9ecef;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      z-index: 999999;
+      margin-top: 0.5rem;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px) scale(0.95);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+    }
+    
+    .professional-user-dropdown.dropdown-open .user-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+    
+    /* Dropdown Content */
+    .dropdown-content {
+      padding: 0;
+    }
+    
+    /* Dropdown Header */
+    .dropdown-header {
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .user-avatar-large {
+      font-size: 2.5rem;
+      color: #3498db;
+      background: #ffffff;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+    }
+    
+    .user-details {
+      flex: 1;
+    }
+    
+    .user-name-large {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 0.25rem;
+    }
+    
+    .user-email {
+      font-size: 0.85rem;
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    /* Dropdown Divider */
+    .dropdown-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+      margin: 0;
+    }
+    
+    /* Dropdown Items */
+    .dropdown-items {
+      padding: 0.5rem 0;
+    }
+    
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.5rem;
+      color: #495057;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .dropdown-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+      transition: width 0.3s ease;
+      z-index: -1;
+    }
+    
+    .dropdown-item:hover::before {
+      width: 100%;
+    }
+    
+    .dropdown-item:hover {
+      background: rgba(52, 152, 219, 0.05);
+      color: #3498db;
+      transform: translateX(5px);
+    }
+    
+    .dropdown-item i {
+      width: 20px;
+      text-align: center;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+    }
+    
+    .dropdown-item:hover i {
+      transform: scale(1.1);
+      color: #3498db;
+    }
+    
+    /* Dropdown Footer */
+    .dropdown-footer {
+      padding: 0.5rem 0;
+      background: #f8f9fa;
+    }
+    
+    .logout-item {
+      color: #dc3545 !important;
+      font-weight: 600;
+    }
+    
+    .logout-item::before {
+      background: linear-gradient(90deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05)) !important;
+    }
+    
+    .logout-item:hover {
+      background: rgba(220, 53, 69, 0.05) !important;
+      color: #dc3545 !important;
+    }
+    
+    .logout-item:hover i {
+      color: #dc3545 !important;
+    }
+    
+    /* Dark Theme Support */
+    .dark-theme .user-dropdown-trigger {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      border-color: #495057;
+      color: #e9ecef;
+    }
+    
+    .dark-theme .user-dropdown-trigger:hover {
+      border-color: #3498db;
+      box-shadow: 0 4px 20px rgba(52, 152, 219, 0.3);
+    }
+    
+    .dark-theme .user-dropdown-trigger[aria-expanded="true"] {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+    
+    .dark-theme .user-dropdown-menu {
+      background: #2c3e50;
+      border-color: #495057;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+    
+    .dark-theme .dropdown-header {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      border-bottom-color: #495057;
+    }
+    
+    .dark-theme .user-name-large {
+      color: #e9ecef;
+    }
+    
+    .dark-theme .user-email {
+      color: #adb5bd;
+    }
+    
+    .dark-theme .dropdown-divider {
+      background: linear-gradient(90deg, transparent, #495057, transparent);
+    }
+    
+    .dark-theme .dropdown-item {
+      color: #e9ecef;
+    }
+    
+    .dark-theme .dropdown-item:hover {
+      background: rgba(52, 152, 219, 0.1);
+      color: #3498db;
+    }
+    
+    .dark-theme .dropdown-footer {
+      background: #34495e;
+    }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .user-dropdown-trigger {
+        min-width: 120px;
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+      }
+      
+      .user-dropdown-trigger .user-name {
+        max-width: 80px;
+        font-size: 0.85rem;
+      }
+      
+      .user-dropdown-menu {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translate(-50%, -50%) scale(0.95) !important;
+        width: 90vw !important;
+        max-width: 400px !important;
+        margin-top: 0 !important;
+        z-index: 999999 !important;
+      }
+      
+      .professional-user-dropdown.dropdown-open .user-dropdown-menu {
+        transform: translate(-50%, -50%) scale(1) !important;
+      }
+      
+      .dropdown-header {
+        padding: 1rem;
+      }
+      
+      .user-avatar-large {
+        width: 50px;
+        height: 50px;
+        font-size: 2rem;
+      }
+      
+      .user-name-large {
+        font-size: 1rem;
+      }
+      
+      .user-email {
+        font-size: 0.8rem;
+      }
+      
+      .dropdown-item {
+        padding: 1rem 1.5rem;
+        font-size: 0.95rem;
+      }
+      
+      /* Mobile Backdrop */
+      .professional-user-dropdown.dropdown-open::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999998;
+        backdrop-filter: blur(5px);
+      }
+    }
+    
+    /* Animation Improvements */
+    @keyframes dropdownSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    @keyframes dropdownSlideOut {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+      }
+    }
+    
+    /* High DPI Display Support */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      .user-dropdown-menu {
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      }
+    }
+    
+    /* Focus Management */
+    .user-dropdown-trigger:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+    }
+    
+    .dropdown-item:focus {
+      outline: none;
+      background: rgba(52, 152, 219, 0.1);
+      color: #3498db;
+    }
+    
+    /* Smooth scrolling for long dropdown menus */
+    .dropdown-items {
+      max-height: 300px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(52, 152, 219, 0.3) transparent;
+    }
+    
+    .dropdown-items::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .dropdown-items::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .dropdown-items::-webkit-scrollbar-thumb {
+      background: rgba(52, 152, 219, 0.3);
+      border-radius: 3px;
+    }
+    
+    .dropdown-items::-webkit-scrollbar-thumb:hover {
+      background: rgba(52, 152, 219, 0.5);
+    }
+  </style>
     .flash-messages-container-fixed {
       position: fixed;
       top: 20px;
