@@ -171,144 +171,61 @@
         <!-- Auth Actions -->
         <div class="header-auth-actions">
           <% if (locals.user) { %>
-            <!-- Professional Modal-Style User Dropdown -->
-            <div class="modal-dropdown-container">
-              <!-- Trigger Button -->
-              <button class="modal-dropdown-trigger" type="button" id="modalDropdownTrigger" aria-expanded="false">
-                <div class="trigger-avatar">
+            <div class="user-account-dropdown">
+              <button class="user-account-btn" type="button" id="userDropdown" aria-expanded="false" onclick="toggleUserDropdown(event)">
+                <div class="user-avatar">
                   <i class="fas fa-user-circle"></i>
-                  <div class="avatar-glow"></div>
                 </div>
-                <div class="trigger-info">
-                  <span class="trigger-name"><%= user.name %></span>
-                  <span class="trigger-role">Student</span>
-                </div>
-                <div class="trigger-arrow">
-                  <i class="fas fa-chevron-down"></i>
-                </div>
+                <span class="user-name"><%= user.name %></span>
+                <i class="fas fa-chevron-down dropdown-arrow"></i>
               </button>
-              
-              <!-- Modal Backdrop -->
-              <div class="modal-dropdown-backdrop" id="modalDropdownBackdrop"></div>
-              
-              <!-- Modal Content -->
-              <div class="modal-dropdown-content" id="modalDropdownContent">
-                <div class="modal-header">
-                  <div class="modal-close-btn" id="modalCloseBtn">
-                    <i class="fas fa-times"></i>
-                  </div>
-                  <div class="modal-title">Account Menu</div>
-                </div>
-                
-                <div class="modal-body">
-                  <!-- User Info Section -->
-                  <div class="user-profile-section">
-                    <div class="profile-avatar">
-                      <i class="fas fa-user-circle"></i>
-                      <div class="profile-status"></div>
-                    </div>
-                    <div class="profile-info">
-                      <div class="profile-name"><%= user.name %></div>
-                      <div class="profile-email"><%= user.email %></div>
-                      <div class="profile-badge">
-                        <i class="fas fa-user-graduate"></i>
-                        <span>Student Account</span>
+              <div class="user-dropdown-menu" aria-labelledby="userDropdown">
+                <div class="dropdown-content">
+                  <div class="dropdown-header">
+                    <div class="user-info">
+                      <div class="user-avatar-large">
+                        <i class="fas fa-user-circle"></i>
+                      </div>
+                      <div class="user-details">
+                        <div class="user-name-large"><%= user.name %></div>
+                        <div class="user-email"><%= user.email %></div>
                       </div>
                     </div>
                   </div>
-                  
-                  <!-- Navigation Menu -->
-                  <div class="modal-navigation">
-                    <a href="/dashboard" class="modal-nav-item">
-                      <div class="nav-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                      </div>
-                      <div class="nav-content">
-                        <span class="nav-title">Dashboard</span>
-                        <span class="nav-subtitle">View your progress</span>
-                      </div>
-                      <div class="nav-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                      </div>
+                  <div class="dropdown-divider"></div>
+                  <div class="dropdown-items">
+                    <a class="dropdown-item" href="/dashboard">
+                      <i class="fas fa-tachometer-alt"></i>
+                      <span>Dashboard</span>
                     </a>
-                    
-                    <a href="/profile" class="modal-nav-item">
-                      <div class="nav-icon">
-                        <i class="fas fa-user-edit"></i>
-                      </div>
-                      <div class="nav-content">
-                        <span class="nav-title">Profile</span>
-                        <span class="nav-subtitle">Manage your account</span>
-                      </div>
-                      <div class="nav-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                      </div>
+                    <a class="dropdown-item" href="/profile">
+                      <i class="fas fa-user-edit"></i>
+                      <span>Profile</span>
                     </a>
-                    
-                    <a href="/enrolled-courses" class="modal-nav-item">
-                      <div class="nav-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                      </div>
-                      <div class="nav-content">
-                        <span class="nav-title">My Courses</span>
-                        <span class="nav-subtitle">Continue learning</span>
-                      </div>
-                      <div class="nav-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                      </div>
+                    <a class="dropdown-item" href="/enrolled-courses">
+                      <i class="fas fa-graduation-cap"></i>
+                      <span>My Courses</span>
                     </a>
-                    
-                    <a href="/quizzes" class="modal-nav-item">
-                      <div class="nav-icon">
-                        <i class="fas fa-clipboard-check"></i>
-                      </div>
-                      <div class="nav-content">
-                        <span class="nav-title">Quizzes</span>
-                        <span class="nav-subtitle">Test your knowledge</span>
-                      </div>
-                      <div class="nav-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                      </div>
+                    <a class="dropdown-item" href="/quizzes">
+                      <i class="fas fa-clipboard-check"></i>
+                      <span>Quizzes</span>
                     </a>
-                    
-                    <a href="/wishlist" class="modal-nav-item">
-                      <div class="nav-icon">
-                        <i class="fas fa-heart"></i>
-                      </div>
-                      <div class="nav-content">
-                        <span class="nav-title">Wishlist</span>
-                        <span class="nav-subtitle">Saved courses</span>
-                      </div>
-                      <div class="nav-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                      </div>
+                    <a class="dropdown-item" href="/wishlist">
+                      <i class="fas fa-heart"></i>
+                      <span>Wishlist</span>
                     </a>
-                    
-                    <a href="/settings" class="modal-nav-item">
-                      <div class="nav-icon">
-                        <i class="fas fa-cog"></i>
-                      </div>
-                      <div class="nav-content">
-                        <span class="nav-title">Settings</span>
-                        <span class="nav-subtitle">Preferences & privacy</span>
-                      </div>
-                      <div class="nav-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                      </div>
+                    <a class="dropdown-item" href="/settings">
+                      <i class="fas fa-cog"></i>
+                      <span>Settings</span>
                     </a>
                   </div>
-                </div>
-                
-                <div class="modal-footer">
-                  <a href="/auth/logout" class="modal-logout-btn">
-                    <div class="logout-icon">
+                  <div class="dropdown-divider"></div>
+                  <div class="dropdown-footer">
+                    <a class="dropdown-item logout-item" href="/auth/logout">
                       <i class="fas fa-sign-out-alt"></i>
-                    </div>
-                    <span>Logout</span>
-                    <div class="logout-indicator">
-                      <i class="fas fa-external-link-alt"></i>
-                    </div>
-                  </a>
+                      <span>Logout</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -450,178 +367,128 @@
   <!-- Advanced Header JavaScript -->
   <script src="/js/advanced-header.js" defer></script>
   
-    <!-- Professional Modal Dropdown System -->
-    <script>
-      class ModalDropdown {
-        constructor() {
-          this.trigger = document.getElementById('modalDropdownTrigger');
-          this.backdrop = document.getElementById('modalDropdownBackdrop');
-          this.modal = document.getElementById('modalDropdownContent');
-          this.closeBtn = document.getElementById('modalCloseBtn');
-          this.isOpen = false;
-          
-          this.init();
-        }
-        
-        init() {
-          if (!this.trigger || !this.modal) {
-            console.warn('Modal dropdown elements not found');
-            return;
-          }
-          
-          this.bindEvents();
-          console.log('Modal dropdown initialized successfully');
-        }
-        
-        bindEvents() {
-          // Trigger click
-          this.trigger.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggle();
-          });
-          
-          // Close button
-          if (this.closeBtn) {
-            this.closeBtn.addEventListener('click', () => {
-              this.close();
-            });
-          }
-          
-          // Backdrop click
-          if (this.backdrop) {
-            this.backdrop.addEventListener('click', () => {
-              this.close();
-            });
-          }
-          
-          // Escape key
-          document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isOpen) {
-              this.close();
-            }
-          });
-          
-          // Prevent modal clicks from closing
-          if (this.modal) {
-            this.modal.addEventListener('click', (e) => {
-              e.stopPropagation();
-            });
-          }
-        }
-        
-        toggle() {
-          if (this.isOpen) {
-            this.close();
-          } else {
-            this.open();
-          }
-        }
-        
-        open() {
-          if (this.isOpen) return;
-          
-          this.isOpen = true;
-          
-          // Add active class to trigger
-          this.trigger.classList.add('active');
-          this.trigger.setAttribute('aria-expanded', 'true');
-          
-          // Show backdrop
-          if (this.backdrop) {
-            this.backdrop.style.display = 'block';
-            this.backdrop.style.opacity = '0';
-            requestAnimationFrame(() => {
-              this.backdrop.style.opacity = '1';
-            });
-          }
-          
-          // Show modal
-          this.modal.style.display = 'flex';
-          this.modal.style.opacity = '0';
-          this.modal.style.transform = 'translateY(50px) scale(0.9)';
-          
-          // Force reflow
-          this.modal.offsetHeight;
-          
-          // Animate in
-          requestAnimationFrame(() => {
-            this.modal.style.opacity = '1';
-            this.modal.style.transform = 'translateY(0) scale(1)';
-          });
-          
-          // Prevent body scroll
-          document.body.style.overflow = 'hidden';
-          document.body.classList.add('modal-open');
-          
-          console.log('Modal dropdown opened successfully');
-        }
-        
-        close() {
-          if (!this.isOpen) return;
-          
-          this.isOpen = false;
-          
-          // Remove active class
-          this.trigger.classList.remove('active');
-          this.trigger.setAttribute('aria-expanded', 'false');
-          
-          // Animate out
-          this.modal.style.opacity = '0';
-          this.modal.style.transform = 'translateY(50px) scale(0.9)';
-          
-          // Hide backdrop
-          if (this.backdrop) {
-            this.backdrop.style.opacity = '0';
-          }
-          
-          // Hide elements after animation
-          setTimeout(() => {
-            this.modal.style.display = 'none';
-            if (this.backdrop) {
-              this.backdrop.style.display = 'none';
-            }
-          }, 300);
-          
-          // Restore body scroll
-          document.body.style.overflow = '';
-          document.body.classList.remove('modal-open');
-          
-          console.log('Modal dropdown closed successfully');
-        }
-      }
+  <!-- Inline Dropdown Toggle Function -->
+  <script>
+    function toggleUserDropdown(event) {
+      event.preventDefault();
+      event.stopPropagation();
       
-      // Initialize modal dropdown when DOM is ready
-      document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(() => {
-          new ModalDropdown();
-        }, 100);
+      console.log('toggleUserDropdown called');
+      
+      const dropdown = document.querySelector('.user-account-dropdown');
+      const menu = document.querySelector('.user-dropdown-menu');
+      const button = document.getElementById('userDropdown');
+      
+      console.log('Elements found:', { 
+        dropdown: !!dropdown, 
+        menu: !!menu, 
+        button: !!button,
+        dropdownClass: dropdown ? dropdown.className : 'not found',
+        menuStyle: menu ? menu.style.display : 'not found'
       });
       
-      // Test function to verify elements exist
-      function testModalElements() {
-        console.log('Testing modal dropdown elements...');
-        const trigger = document.getElementById('modalDropdownTrigger');
-        const modal = document.getElementById('modalDropdownContent');
-        const backdrop = document.getElementById('modalDropdownBackdrop');
-        
-        console.log('Trigger element:', trigger);
-        console.log('Modal element:', modal);
-        console.log('Backdrop element:', backdrop);
-        
-        if (!trigger || !modal) {
-          console.log('Modal dropdown elements not found - user may not be authenticated');
-          return;
-        }
-        
-        console.log('Modal dropdown elements found and ready');
+      if (!dropdown || !menu || !button) {
+        console.log('Required elements not found');
+        return;
       }
       
-      // Run test when DOM is ready
-      document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(testModalElements, 1000);
-      });
-    </script>
+      const isOpen = dropdown.classList.contains('show');
+      console.log('Current state - isOpen:', isOpen);
+      
+      if (isOpen) {
+        // Close dropdown
+        dropdown.classList.remove('show');
+        button.setAttribute('aria-expanded', 'false');
+        menu.style.opacity = '0';
+        menu.style.visibility = 'hidden';
+        menu.style.transform = 'translateY(-20px) scale(0.95)';
+        menu.style.pointerEvents = 'none';
+        document.body.classList.remove('dropdown-open');
+        console.log('Dropdown closed');
+      } else {
+        // Open dropdown
+        dropdown.classList.add('show');
+        button.setAttribute('aria-expanded', 'true');
+        menu.style.opacity = '1';
+        menu.style.visibility = 'visible';
+        menu.style.transform = 'translateY(0) scale(1)';
+        menu.style.pointerEvents = 'auto';
+        document.body.classList.add('dropdown-open');
+        console.log('Dropdown opened - classes:', dropdown.className);
+      }
+    }
+    
+    // Test function to check if elements exist
+    function testDropdownElements() {
+      console.log('Testing dropdown elements...');
+      const dropdown = document.querySelector('.user-account-dropdown');
+      const menu = document.querySelector('.user-dropdown-menu');
+      const button = document.getElementById('userDropdown');
+      
+      console.log('Dropdown element:', dropdown);
+      console.log('Menu element:', menu);
+      console.log('Button element:', button);
+      
+      // Only proceed if user is authenticated and elements exist
+      if (!dropdown || !menu || !button) {
+        console.log('User dropdown elements not found - user may not be authenticated');
+        return;
+      }
+      
+      if (menu) {
+        console.log('Menu styles:', {
+          position: getComputedStyle(menu).position,
+          display: getComputedStyle(menu).display,
+          opacity: getComputedStyle(menu).opacity,
+          visibility: getComputedStyle(menu).visibility,
+          zIndex: getComputedStyle(menu).zIndex
+        });
+      }
+    }
+    
+    // Run test when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(testDropdownElements, 1000);
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      const dropdown = document.querySelector('.user-account-dropdown');
+      if (dropdown && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+        const button = document.getElementById('userDropdown');
+        const menu = document.querySelector('.user-dropdown-menu');
+        if (button) button.setAttribute('aria-expanded', 'false');
+        if (menu) {
+          menu.style.opacity = '0';
+          menu.style.visibility = 'hidden';
+          menu.style.transform = 'translateY(-20px) scale(0.95)';
+          menu.style.pointerEvents = 'none';
+        }
+        document.body.classList.remove('dropdown-open');
+      }
+    });
+    
+    // Close dropdown on escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const dropdown = document.querySelector('.user-account-dropdown');
+        if (dropdown && dropdown.classList.contains('show')) {
+          dropdown.classList.remove('show');
+          const button = document.getElementById('userDropdown');
+          const menu = document.querySelector('.user-dropdown-menu');
+          if (button) button.setAttribute('aria-expanded', 'false');
+          if (menu) {
+            menu.style.opacity = '0';
+            menu.style.visibility = 'hidden';
+            menu.style.transform = 'translateY(-20px) scale(0.95)';
+            menu.style.pointerEvents = 'none';
+          }
+          document.body.classList.remove('dropdown-open');
+        }
+      }
+    });
+  </script>
 
   <!-- Cart Data -->
   <script>

@@ -343,12 +343,14 @@
       indicator.innerHTML = message;
       document.body.appendChild(indicator);
 
-      // Auto-remove all status messages after 5 seconds
-      setTimeout(() => {
-        if (indicator.parentNode) {
-          indicator.remove();
-        }
-      }, 5000);
+      // Auto-remove reconnecting status after 10 seconds
+      if (status === 'reconnecting') {
+        setTimeout(() => {
+          if (indicator.parentNode) {
+            indicator.remove();
+          }
+        }, 10000);
+      }
     }
 
     function updateRoomCard(room) {
