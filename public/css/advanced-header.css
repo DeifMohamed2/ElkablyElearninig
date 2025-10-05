@@ -7,7 +7,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 1000;
+  z-index: 1000; /* Keep header at reasonable z-index */
   height: 96px; /* Slightly taller to fit larger logo */
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
@@ -558,7 +558,7 @@
 /* User Account Dropdown */
 .user-account-dropdown {
   position: relative;
-  z-index: 1001;
+  z-index: 10000; /* Increased to ensure proper layering */
 }
 
 .user-account-btn {
@@ -656,7 +656,7 @@
   visibility: hidden;
   transform: translateY(-20px) scale(0.95);
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  z-index: 9999;
+  z-index: 99999; /* Increased z-index to ensure it's above everything */
   overflow: hidden;
   pointer-events: none;
 }
@@ -673,6 +673,22 @@
   visibility: visible;
   transform: translateY(0) scale(1);
   pointer-events: auto;
+  z-index: 99999 !important; /* Ensure it's always on top when shown */
+}
+
+/* Production-safe dropdown positioning */
+.user-dropdown-menu {
+  /* Ensure it's always above header and other elements */
+  z-index: 99999 !important;
+  position: fixed !important;
+  /* Add transform-origin for better scaling */
+  transform-origin: top right;
+}
+
+/* Force dropdown above header in all scenarios */
+.advanced-header ~ .user-dropdown-menu,
+.advanced-header + .user-dropdown-menu {
+  z-index: 99999 !important;
 }
 
 /* Dropdown Content Structure */
@@ -874,6 +890,23 @@ body.dropdown-open {
   transition: opacity 0.3s ease;
 }
 
+/* Production-safe backdrop filter fallback */
+@supports not (backdrop-filter: blur(20px)) {
+  .user-dropdown-menu {
+    background: rgba(15, 23, 42, 0.95) !important;
+  }
+  .light-theme .user-dropdown-menu {
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+}
+
+/* Ensure dropdown is always visible when shown */
+.user-account-dropdown.show .user-dropdown-menu,
+.user-account-dropdown.show .user-dropdown-menu * {
+  z-index: 99999 !important;
+  position: relative;
+}
+
 .user-account-dropdown.show .user-dropdown-menu::before {
   opacity: 1;
 }
@@ -886,6 +919,8 @@ body.dropdown-open {
     width: auto;
     max-width: none;
     top: 90px !important;
+    z-index: 99999 !important; /* Force high z-index on mobile */
+    position: fixed !important; /* Ensure fixed positioning */
   }
 
   .user-info {
@@ -917,6 +952,8 @@ body.dropdown-open {
     top: 80px !important;
     right: 5px;
     left: 5px;
+    z-index: 99999 !important; /* Force high z-index on small mobile */
+    position: fixed !important; /* Ensure fixed positioning */
   }
 
   .dropdown-header {
@@ -1188,7 +1225,7 @@ body.dropdown-open {
     -webkit-backdrop-filter: blur(15px);
     overflow: hidden;
     transition: height 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    z-index: 999;
+    z-index: 999; /* Keep below dropdown menu */
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     opacity: 0;
@@ -1630,6 +1667,14 @@ body.dropdown-open {
   height: calc(100vh - 80px);
 }
 
+/* Critical: Ensure dropdown is always above everything */
+.user-dropdown-menu,
+.user-dropdown-menu *,
+.user-account-dropdown .user-dropdown-menu,
+.user-account-dropdown.show .user-dropdown-menu {
+  z-index: 99999 !important;
+}
+
 /* Force mobile user avatar centering - most specific selector */
 @media (max-width: 576px) {
   .advanced-header
@@ -1796,3 +1841,4 @@ body.dropdown-open {
 
   /* Mobile dropdown styles - Removed */
 }
+
