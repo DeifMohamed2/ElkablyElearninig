@@ -405,6 +405,10 @@
         dropdown.classList.add('show');
         button.setAttribute('aria-expanded', 'true');
         
+        // Force maximum z-index immediately
+        menu.style.setProperty('z-index', '999999', 'important');
+        menu.style.setProperty('position', 'fixed', 'important');
+        
         // Show menu with animation
         menu.style.display = 'block';
         menu.style.opacity = '0';
@@ -419,13 +423,20 @@
           menu.style.opacity = '1';
           menu.style.transform = 'translateY(0) scale(1)';
           menu.style.pointerEvents = 'auto';
-          menu.style.zIndex = '999999'; // Force maximum z-index
-          menu.style.position = 'fixed'; // Ensure fixed positioning
+          
+          // Force z-index again after animation
+          menu.style.setProperty('z-index', '999999', 'important');
+          menu.style.setProperty('position', 'fixed', 'important');
+          
+          // Additional production fixes
+          menu.style.setProperty('isolation', 'isolate', 'important');
+          menu.style.setProperty('transform', 'translateZ(0)', 'important');
         });
         
-        // Show overlay on mobile
+        // Show overlay on mobile with high z-index
         if (overlay && window.innerWidth <= 768) {
           overlay.style.display = 'block';
+          overlay.style.setProperty('z-index', '999998', 'important');
           overlay.style.opacity = '0';
           requestAnimationFrame(() => {
             overlay.style.opacity = '1';
@@ -437,10 +448,66 @@
           document.body.style.overflow = 'hidden';
         }
         
-        console.log('Dropdown opened successfully');
+        // Force dropdown to top by temporarily adjusting other elements
+        forceDropdownToTop();
+        
+        console.log('Dropdown opened successfully with forced z-index');
+      }
+      
+      function forceDropdownToTop() {
+        // Find all elements that might be covering the dropdown
+        const potentialBlockers = document.querySelectorAll([
+          '.hero-section',
+          '.content-card',
+          '.main-content',
+          '.section',
+          '[class*="hero"]',
+          '[class*="content"]',
+          '[class*="card"]'
+        ].join(', '));
+        
+        potentialBlockers.forEach(element => {
+          const computedStyle = window.getComputedStyle(element);
+          const zIndex = parseInt(computedStyle.zIndex) || 0;
+          
+          // If element has high z-index, temporarily lower it
+          if (zIndex > 1000) {
+            // Store original z-index
+            if (!element.hasAttribute('data-original-z-index')) {
+              element.setAttribute('data-original-z-index', zIndex.toString());
+            }
+            element.style.setProperty('z-index', '1', 'important');
+          }
+        });
+        
+        // Force dropdown to absolute top
+        menu.style.setProperty('z-index', '999999', 'important');
+        menu.style.setProperty('position', 'fixed', 'important');
+        menu.style.setProperty('top', '80px', 'important');
+        
+        // Additional force methods with multiple attempts
+        setTimeout(() => {
+          menu.style.setProperty('z-index', '999999', 'important');
+        }, 10);
+        
+        setTimeout(() => {
+          menu.style.setProperty('z-index', '999999', 'important');
+        }, 50);
+        
+        setTimeout(() => {
+          menu.style.setProperty('z-index', '999999', 'important');
+        }, 100);
+        
+        // Nuclear option - append to body to break stacking context
+        if (menu.parentNode !== document.body) {
+          document.body.appendChild(menu);
+        }
       }
       
       function closeDropdown() {
+        // Restore original z-index values
+        restoreOriginalZIndex();
+        
         // Animate out
         menu.style.opacity = '0';
         menu.style.transform = 'translateY(-20px) scale(0.95)';
@@ -466,6 +533,18 @@
         document.body.style.overflow = '';
         
         console.log('Dropdown closed successfully');
+      }
+      
+      function restoreOriginalZIndex() {
+        // Restore original z-index values for content elements
+        const elementsToRestore = document.querySelectorAll('[data-original-z-index]');
+        elementsToRestore.forEach(element => {
+          const originalZIndex = element.getAttribute('data-original-z-index');
+          if (originalZIndex) {
+            element.style.setProperty('z-index', originalZIndex, 'important');
+          }
+          element.removeAttribute('data-original-z-index');
+        });
       }
     }
     
