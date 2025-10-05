@@ -104,7 +104,7 @@ const UserSchema = new mongoose.Schema(
     },
     isActive: {
       type: Boolean,
-      default: false, // New users need admin approval
+      default: true, // New users need admin approval
     },
     enrolledCourses: [{
       course: {
