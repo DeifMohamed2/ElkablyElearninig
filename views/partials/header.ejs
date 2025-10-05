@@ -171,15 +171,21 @@
         <!-- Auth Actions -->
         <div class="header-auth-actions">
           <% if (locals.user) { %>
-            <div class="user-account-dropdown">
-              <button class="user-account-btn" type="button" id="userDropdown" aria-expanded="false" onclick="toggleUserDropdown(event)">
+            <!-- Mobile-Friendly User Dropdown -->
+            <div class="user-account-dropdown mobile-optimized">
+              <button class="user-account-btn mobile-btn" type="button" id="userDropdown" aria-expanded="false">
                 <div class="user-avatar">
                   <i class="fas fa-user-circle"></i>
                 </div>
                 <span class="user-name"><%= user.name %></span>
                 <i class="fas fa-chevron-down dropdown-arrow"></i>
               </button>
-              <div class="user-dropdown-menu" aria-labelledby="userDropdown">
+              
+              <!-- Mobile Overlay -->
+              <div class="mobile-dropdown-overlay" id="mobileDropdownOverlay"></div>
+              
+              <!-- Dropdown Menu -->
+              <div class="user-dropdown-menu mobile-dropdown" id="userDropdownMenu">
                 <div class="dropdown-content">
                   <div class="dropdown-header">
                     <div class="user-info">
@@ -367,66 +373,125 @@
   <!-- Advanced Header JavaScript -->
   <script src="/js/advanced-header.js" defer></script>
   
-  <!-- Inline Dropdown Toggle Function -->
+  <!-- Enhanced Mobile-Friendly Dropdown Toggle -->
   <script>
+    // Enhanced dropdown toggle with better mobile support
     function toggleUserDropdown(event) {
-      event.preventDefault();
-      event.stopPropagation();
-      
-      console.log('toggleUserDropdown called');
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       
       const dropdown = document.querySelector('.user-account-dropdown');
-      const menu = document.querySelector('.user-dropdown-menu');
+      const menu = document.getElementById('userDropdownMenu');
       const button = document.getElementById('userDropdown');
-      
-      console.log('Elements found:', { 
-        dropdown: !!dropdown, 
-        menu: !!menu, 
-        button: !!button,
-        dropdownClass: dropdown ? dropdown.className : 'not found',
-        menuStyle: menu ? menu.style.display : 'not found'
-      });
+      const overlay = document.getElementById('mobileDropdownOverlay');
       
       if (!dropdown || !menu || !button) {
-        console.log('Required elements not found');
+        console.warn('Dropdown elements not found');
         return;
       }
       
       const isOpen = dropdown.classList.contains('show');
-      console.log('Current state - isOpen:', isOpen);
       
       if (isOpen) {
-        // Close dropdown
-        dropdown.classList.remove('show');
-        button.setAttribute('aria-expanded', 'false');
-        menu.style.opacity = '0';
-        menu.style.visibility = 'hidden';
-        menu.style.transform = 'translateY(-20px) scale(0.95)';
-        menu.style.pointerEvents = 'none';
-        menu.style.zIndex = '99999'; // Ensure z-index is maintained
-        document.body.classList.remove('dropdown-open');
-        console.log('Dropdown closed');
+        closeDropdown();
       } else {
-        // Open dropdown
+        openDropdown();
+      }
+      
+      function openDropdown() {
+        // Add show class
         dropdown.classList.add('show');
         button.setAttribute('aria-expanded', 'true');
-        menu.style.opacity = '1';
-        menu.style.visibility = 'visible';
-        menu.style.transform = 'translateY(0) scale(1)';
-        menu.style.pointerEvents = 'auto';
-        menu.style.zIndex = '99999'; // Force highest z-index
-        menu.style.position = 'fixed'; // Ensure fixed positioning
-        document.body.classList.add('dropdown-open');
-        console.log('Dropdown opened - classes:', dropdown.className);
         
-        // Additional mobile fixes
-        if (window.innerWidth <= 768) {
-          // Force reflow for mobile browsers
-          menu.offsetHeight;
-          menu.style.display = 'block';
+        // Show menu with animation
+        menu.style.display = 'block';
+        menu.style.opacity = '0';
+        menu.style.transform = 'translateY(-20px) scale(0.95)';
+        menu.style.visibility = 'visible';
+        
+        // Force reflow
+        menu.offsetHeight;
+        
+        // Animate in
+        requestAnimationFrame(() => {
+          menu.style.opacity = '1';
+          menu.style.transform = 'translateY(0) scale(1)';
+          menu.style.pointerEvents = 'auto';
+        });
+        
+        // Show overlay on mobile
+        if (overlay && window.innerWidth <= 768) {
+          overlay.style.display = 'block';
+          overlay.style.opacity = '0';
+          requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+          });
         }
+        
+        // Prevent body scroll on mobile
+        if (window.innerWidth <= 768) {
+          document.body.style.overflow = 'hidden';
+        }
+        
+        console.log('Dropdown opened successfully');
+      }
+      
+      function closeDropdown() {
+        // Animate out
+        menu.style.opacity = '0';
+        menu.style.transform = 'translateY(-20px) scale(0.95)';
+        menu.style.pointerEvents = 'none';
+        
+        // Hide overlay
+        if (overlay) {
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            overlay.style.display = 'none';
+          }, 300);
+        }
+        
+        // Remove classes after animation
+        setTimeout(() => {
+          dropdown.classList.remove('show');
+          button.setAttribute('aria-expanded', 'false');
+          menu.style.display = 'none';
+          menu.style.visibility = 'hidden';
+        }, 300);
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        console.log('Dropdown closed successfully');
       }
     }
+    
+    // Add click event listener with proper event handling
+    document.addEventListener('DOMContentLoaded', function() {
+      const button = document.getElementById('userDropdown');
+      if (button) {
+        // Remove any existing onclick handlers
+        button.removeAttribute('onclick');
+        
+        // Add proper event listener
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleUserDropdown(e);
+        });
+        
+        console.log('Dropdown button event listener attached');
+      }
+      
+      // Overlay click handler
+      const overlay = document.getElementById('mobileDropdownOverlay');
+      if (overlay) {
+        overlay.addEventListener('click', function() {
+          toggleUserDropdown();
+        });
+      }
+    });
     
     // Test function to check if elements exist
     function testDropdownElements() {
