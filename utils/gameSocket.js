@@ -8,6 +8,7 @@ class GameSocketHandler {
     this.activeRooms = new Map(); // roomCode -> room data
     this.playerSessions = new Map(); // socketId -> session data
     this.disconnectionTimers = new Map(); // userId-roomCode -> timeout
+    this.endingGames = new Set(); // roomCode -> prevent duplicate endGame calls
     this.reconnectionGracePeriod = 10000; // 10 seconds grace period for reconnection
     this.setupSocketHandlers();
   }
@@ -31,6 +32,9 @@ class GameSocketHandler {
       }
       this.sessionTimers.clear();
     }
+
+    // Clear ending games set
+    this.endingGames.clear();
 
     // Clear session data
     this.playerSessions.clear();
@@ -1199,13 +1203,33 @@ class GameSocketHandler {
         clearInterval(timer);
         console.log(`Session timer expired for room ${room.roomCode}`);
 
+        // Get the latest room state before ending the game
+        const latestRoom = await GameRoom.findById(room._id);
+        if (!latestRoom || latestRoom.gameState === 'finished') {
+          console.log(
+            `Room ${room.roomCode} already finished, skipping timer-based endGame`
+          );
+          if (this.sessionTimers) {
+            this.sessionTimers.delete(room.roomCode);
+          }
+          return;
+        }
+
         // End the game
         this.io.to(room.roomCode).emit('session-time-up', {
           message: "Time's up! The game session has ended.",
         });
 
         setTimeout(async () => {
-          await this.endGame(room);
+          // Get the most up-to-date room state before ending
+          const freshRoom = await GameRoom.findById(room._id);
+          if (freshRoom && freshRoom.gameState !== 'finished') {
+            await this.endGame(freshRoom);
+          } else {
+            console.log(
+              `Room ${room.roomCode} already finished by another process, skipping timer endGame`
+            );
+          }
         }, 2000);
       }
     }, 1000);
@@ -1268,22 +1292,78 @@ class GameSocketHandler {
 
   async endGame(room) {
     try {
+      // Check if this room is already being ended
+      if (this.endingGames.has(room.roomCode)) {
+        console.log(
+          `Room ${room.roomCode} is already being ended, skipping duplicate endGame call`
+        );
+        return;
+      }
+
+      // Mark this room as being ended
+      this.endingGames.add(room.roomCode);
+
+      // Check if game is already finished to prevent duplicate processing
+      const currentRoom = await GameRoom.findById(room._id);
+      if (!currentRoom || currentRoom.gameState === 'finished') {
+        console.log(
+          `Game in room ${room.roomCode} already finished, skipping endGame`
+        );
+        this.endingGames.delete(room.roomCode); // Clean up flag
+        return;
+      }
+
+      // Atomically set game state to 'finished' to prevent race conditions
+      const updatedRoom = await GameRoom.findByIdAndUpdate(
+        room._id,
+        {
+          gameState: 'finished',
+          gameEndedAt: new Date(),
+        },
+        { new: true }
+      );
+
+      if (!updatedRoom || updatedRoom.gameState !== 'finished') {
+        console.log(`Failed to update room ${room.roomCode} to finished state`);
+        this.endingGames.delete(room.roomCode); // Clean up flag
+        return;
+      }
+
+      console.log(`Starting endGame process for room ${room.roomCode}`);
+
       // Get all sessions for this room (both active and completed)
       const sessions = await GameSession.find({
         gameRoom: room._id,
         $or: [{ isActive: true }, { status: 'completed' }],
       }).populate('user', 'username email profilePicture');
 
-      // Complete any remaining active sessions and build leaderboard
-      const leaderboard = [];
+      console.log(
+        `Found ${sessions.length} sessions for room ${room.roomCode}`
+      );
+
+      // Create a Map to ensure each user appears only once in the leaderboard
+      const playerMap = new Map();
+
+      // Process each session and deduplicate by user ID
       for (let i = 0; i < sessions.length; i++) {
         const session = sessions[i];
+        const userId = session.user._id.toString();
+
+        // Skip if we already processed this user (deduplication)
+        if (playerMap.has(userId)) {
+          console.log(
+            `Skipping duplicate session for user ${userId} in room ${room.roomCode}`
+          );
+          continue;
+        }
+
         let result;
 
         // If session is not already completed, complete it now
         if (session.status !== 'completed') {
           result = session.completeGame();
           await session.save();
+          console.log(`Completed session for user ${userId}`);
         } else {
           // Session already completed, use existing data
           result = {
@@ -1292,17 +1372,28 @@ class GameSocketHandler {
             correctAnswers: session.correctAnswers,
             totalQuestions: session.totalQuestions,
           };
+          console.log(
+            `Using existing completed session data for user ${userId}`
+          );
         }
 
-        leaderboard.push({
+        // Add to playerMap for deduplication
+        playerMap.set(userId, {
           user: session.user,
           score: result.finalScore,
           timeCompleted: result.timeSpent,
           correctAnswers: result.correctAnswers,
           totalQuestions: result.totalQuestions,
-          position: i + 1,
+          position: 0, // Will be set after sorting
         });
       }
+
+      // Convert Map to array for leaderboard
+      const leaderboard = Array.from(playerMap.values());
+
+      console.log(
+        `Created leaderboard with ${leaderboard.length} unique players for room ${room.roomCode}`
+      );
 
       // Sort leaderboard
       leaderboard.sort((a, b) => {
@@ -1315,7 +1406,7 @@ class GameSocketHandler {
         entry.position = index + 1;
       });
 
-      // Use atomic operation to end game and update leaderboard
+      // Use atomic operation to update leaderboard and winner
       const winner =
         leaderboard.length > 0
           ? {
@@ -1326,8 +1417,6 @@ class GameSocketHandler {
           : null;
 
       await GameRoom.findByIdAndUpdate(room._id, {
-        gameState: 'finished',
-        gameEndedAt: new Date(),
         leaderboard: leaderboard,
         winner: winner,
       });
@@ -1343,12 +1432,19 @@ class GameSocketHandler {
       this.io.to(room.roomCode).emit('game-ended', {
         leaderboard: leaderboard,
         winner: leaderboard[0],
-        room: this.formatRoomData(room),
+        room: this.formatRoomData(updatedRoom),
       });
 
-      console.log(`Game ended in room ${room.roomCode} - all timers cleared`);
+      console.log(
+        `Game ended in room ${room.roomCode} with ${leaderboard.length} unique players - all timers cleared`
+      );
+
+      // Clean up the ending flag
+      this.endingGames.delete(room.roomCode);
     } catch (error) {
       console.error('Error ending game:', error);
+      // Clean up the ending flag even on error
+      this.endingGames.delete(room.roomCode);
     }
   }
 
@@ -1533,7 +1629,15 @@ class GameSocketHandler {
             isLastPlayer: true,
           });
 
-          await this.endGame(room);
+          // Get the latest room state before ending the game
+          const latestRoom = await GameRoom.findById(room._id);
+          if (latestRoom && latestRoom.gameState !== 'finished') {
+            await this.endGame(latestRoom);
+          } else {
+            console.log(
+              `Room ${roomCode} already finished, skipping player completion endGame`
+            );
+          }
         } else {
           console.log(
             `Waiting for more players: ${completedSessions.length}/${room.currentPlayers.length} completed`
