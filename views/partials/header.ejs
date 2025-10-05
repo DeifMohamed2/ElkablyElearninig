@@ -403,6 +403,7 @@
         menu.style.visibility = 'hidden';
         menu.style.transform = 'translateY(-20px) scale(0.95)';
         menu.style.pointerEvents = 'none';
+        menu.style.zIndex = '99999'; // Ensure z-index is maintained
         document.body.classList.remove('dropdown-open');
         console.log('Dropdown closed');
       } else {
@@ -413,8 +414,17 @@
         menu.style.visibility = 'visible';
         menu.style.transform = 'translateY(0) scale(1)';
         menu.style.pointerEvents = 'auto';
+        menu.style.zIndex = '99999'; // Force highest z-index
+        menu.style.position = 'fixed'; // Ensure fixed positioning
         document.body.classList.add('dropdown-open');
         console.log('Dropdown opened - classes:', dropdown.className);
+        
+        // Additional mobile fixes
+        if (window.innerWidth <= 768) {
+          // Force reflow for mobile browsers
+          menu.offsetHeight;
+          menu.style.display = 'block';
+        }
       }
     }
     
