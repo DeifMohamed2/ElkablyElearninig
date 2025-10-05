@@ -5,7 +5,6 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
-const connectDB = require('./config/db');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const mongoose = require('mongoose');
@@ -52,9 +51,6 @@ const upload = multer({
     }
   }
 });
-
-// Connect to MongoDB
-connectDB();
 
 // Get MongoDB connection for session store
 
@@ -201,9 +197,19 @@ console.log('Socket.IO initialized', io.engine.clientsCount);
 
 
 
-// Start server
+// Database connection and server startup
+const dbURI = 'mongodb+srv://deif:1qaz2wsx@3devway.aa4i6ga.mongodb.net/Elkably-Elearning?retryWrites=true&w=majority&appName=Cluster0';
 const PORT = process.env.PORT || 4091;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Socket.IO enabled for real-time game functionality`);
-});
+
+mongoose
+  .connect(dbURI)
+  .then((result) => {
+    server.listen(PORT, () => {
+      console.log('Connected to database and listening on port', PORT);
+      console.log(`Socket.IO enabled for real-time game functionality`);
+    });
+  })
+  .catch((err) => {
+    console.log('Database connection error:', err);
+    process.exit(1);
+  });
