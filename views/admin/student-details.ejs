@@ -177,34 +177,7 @@
       text-align: center;
     }
 
-    .status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
 
-    .status-indicator.active {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
-      border: 2px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .status-indicator.inactive {
-      background: rgba(107, 114, 128, 0.1);
-      color: #6b7280;
-      border: 2px solid rgba(107, 114, 128, 0.2);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
 
     .student-info-section {
       flex: 1;
@@ -724,7 +697,7 @@
 
     .stats-summary {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 1rem;
       margin-bottom: 2rem;
     }
@@ -761,10 +734,11 @@
       }
 
       .student-profile-content {
-        flex-direction: column;
         gap: 2rem;
+        display: block;
         text-align: center;
       }
+
 
       .student-avatar-large {
         width: 120px;
@@ -836,6 +810,7 @@
         height: 35px;
         font-size: 0.9rem;
       }
+
     }
 
     @media (max-width: 1024px) {
@@ -1385,13 +1360,10 @@
           <h1 class="page-title">Student Details</h1>
         </div>
         <div class="page-actions">
-          <button class="btn btn-secondary" onclick="window.print()">
-            <i class="fas fa-print"></i>
-            Print Report
-          </button>
+    
           <button class="btn btn-primary" onclick="exportStudentData()">
-            <i class="fas fa-download"></i>
-            Export Comprehensive Report
+            <i class="fas fa-file-excel"></i>
+            Export Excel Report
           </button>
         </div>
       </div>
@@ -1409,10 +1381,7 @@
          
             </div>
             <div class="student-status-info">
-              <div class="status-indicator <%= student.isActive ? 'active' : 'inactive' %>">
-                <span class="status-dot"></span>
-                <span class="status-text"><%= student.isActive ? 'Active Student' : 'Inactive Student' %></span>
-              </div>
+              <span><%= student.isActive ? 'Active Student' : 'Inactive Student' %></span>
             </div>
           </div>
           
@@ -1455,11 +1424,11 @@
               
               <div class="detail-item">
                 <div class="detail-icon">
-                  <i class="fas fa-school"></i>
+                  <i class="fas fa-user-friends"></i>
                 </div>
                 <div class="detail-content">
-                  <div class="detail-label">School</div>
-                  <div class="detail-value"><%= student.schoolName %></div>
+                  <div class="detail-label">Parent Phone</div>
+                  <div class="detail-value"><%= student.parentCountryCode %> <%= student.parentNumber %></div>
                 </div>
               </div>
               
@@ -1524,13 +1493,6 @@
           <div class="analytics-number"><%= analytics.totalTimeSpent %>h</div>
           <div class="analytics-label">Time Spent</div>
         </div>
-        <div class="analytics-card">
-          <div class="analytics-icon icon-completion">
-            <i class="fas fa-percentage"></i>
-          </div>
-          <div class="analytics-number"><%= (analytics.completionRate) %>%</div>
-          <div class="analytics-label">Completion Rate</div>
-        </div>
       </div>
 
       <!-- Content Tabs -->
@@ -1571,8 +1533,6 @@
               <div class="stat-summary-label">Total Content Items</div>
             </div>
             <div class="stat-summary-item">
-              <div class="stat-summary-number"><%= analytics.lastLogin %></div>
-              <div class="stat-summary-label">Last Login</div>
             </div>
           </div>
 
@@ -2023,35 +1983,47 @@
 
     // Export student data with enhanced functionality
     function exportStudentData() {
-      const studentId = '<%= student._id %>';
-      const studentCode = '<%= student.studentCode %>';
-      
-      // Show loading state
-      const exportBtn = document.querySelector('.btn-primary');
-      const originalText = exportBtn.innerHTML;
-      exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
-      exportBtn.disabled = true;
+      try {
+        const studentId = '<%= student._id %>';
+        const studentCode = '<%= student.studentCode %>';
+        
+        // Show loading state
+        const exportBtn = document.querySelector('.btn-primary');
+        if (exportBtn) {
+          const originalText = exportBtn.innerHTML;
+          exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+          exportBtn.disabled = true;
 
-      // Create comprehensive export URL
-      const url = new URL(window.location);
-      url.pathname = `/admin/students/${studentId}/export`;
-      url.searchParams.set('format', 'csv');
-      url.searchParams.set('comprehensive', 'true');
-      url.searchParams.set('includeAnalytics', 'true');
+          // Reset button after a delay
+          setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+          }, 3000);
+        }
 
-      // Create a temporary link to trigger download
-      const link = document.createElement('a');
-      link.href = url.toString();
-      link.download = `student_${studentCode}_comprehensive_report_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+        // Create comprehensive export URL for Excel
+        const url = new URL(window.location);
+        url.pathname = `/admin/students/${studentId}/export`;
+        url.searchParams.set('format', 'excel');
+        url.searchParams.set('comprehensive', 'true');
+        url.searchParams.set('includeAnalytics', 'true');
 
-      // Reset button after a delay
-      setTimeout(() => {
-        exportBtn.innerHTML = originalText;
-        exportBtn.disabled = false;
-      }, 2000);
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = url.toString();
+        link.download = `student_${studentCode}_comprehensive_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('Error exporting student data:', error);
+        // Reset button on error
+        const exportBtn = document.querySelector('.btn-primary');
+        if (exportBtn) {
+          exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> Export Excel Report';
+          exportBtn.disabled = false;
+        }
+      }
     }
 
     // Toggle course content
@@ -2059,14 +2031,16 @@
       const content = document.getElementById(`content-${index}`);
       const toggle = document.getElementById(`toggle-${index}`);
 
-      if (content.classList.contains('collapsed')) {
-        // Expand
-        content.classList.remove('collapsed');
-        toggle.classList.remove('collapsed');
-      } else {
-        // Collapse
-        content.classList.add('collapsed');
-        toggle.classList.add('collapsed');
+      if (content && toggle) {
+        if (content.classList.contains('collapsed')) {
+          // Expand
+          content.classList.remove('collapsed');
+          toggle.classList.remove('collapsed');
+        } else {
+          // Collapse
+          content.classList.add('collapsed');
+          toggle.classList.add('collapsed');
+        }
       }
     }
 
@@ -2075,20 +2049,24 @@
       const topicContentDetails = document.getElementById(`topic-content-${courseIndex}-${topicIndex}`);
       const topicToggle = document.getElementById(`topic-toggle-${courseIndex}-${topicIndex}`);
 
-      if (topicContentDetails.classList.contains('show')) {
-        // Collapse
-        topicContentDetails.classList.remove('show');
-        topicToggle.classList.add('collapsed');
-      } else {
-        // Expand
-        topicContentDetails.classList.add('show');
-        topicToggle.classList.remove('collapsed');
+      if (topicContentDetails && topicToggle) {
+        if (topicContentDetails.classList.contains('show')) {
+          // Collapse
+          topicContentDetails.classList.remove('show');
+          topicToggle.classList.add('collapsed');
+        } else {
+          // Expand
+          topicContentDetails.classList.add('show');
+          topicToggle.classList.remove('collapsed');
+        }
       }
     }
 
     // Search courses and topics
     function searchCoursesAndTopics() {
       const searchInput = document.getElementById('courseSearch');
+      if (!searchInput) return;
+      
       const searchTerm = searchInput.value.toLowerCase().trim();
 
       const courseCards = document.querySelectorAll('.course-progress-card');
@@ -2172,7 +2150,10 @@
 
     // Initialize performance chart
     document.addEventListener('DOMContentLoaded', function() {
-      const ctx = document.getElementById('performanceChart').getContext('2d');
+      const chartElement = document.getElementById('performanceChart');
+      if (!chartElement) return;
+      
+      const ctx = chartElement.getContext('2d');
 
       new Chart(ctx, {
         type: 'doughnut',

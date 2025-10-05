@@ -713,7 +713,7 @@
                         <div class="quiz-progress">
                             <div class="progress-info">
                                 <span>Question <span id="currentQuestionNumber">1</span> of <span id="totalQuestions"><%= (quiz.selectedQuestions && quiz.selectedQuestions.length) ? quiz.selectedQuestions.length : 0 %></span></span>
-                                <span id="progressPercentage">0%</span>
+                                <span id="progressPercentage" style="margin-left: 10px; " >0%</span>
                             </div>
                             <div class="progress-bar">
                                 <div class="progress-fill" id="progressFill" style="width: 0%"></div>
@@ -882,22 +882,41 @@
         function loadSavedState() {
             try {
                 const raw = localStorage.getItem(quizCacheKey);
-                if (!raw) return;
+                console.log('Loading saved state, raw data:', raw ? 'exists' : 'none');
+                
+                if (!raw) {
+                    console.log('No saved state found');
+                    return;
+                }
+                
                 const data = JSON.parse(raw);
-                if (!data) return;
+                console.log('Parsed saved state:', data);
+                
+                if (!data) {
+                    console.log('Invalid saved state data');
+                    return;
+                }
+                
                 // Clear if attempt mismatch
                 if (!data.attemptNumber || data.attemptNumber !== quizData.attemptNumber) {
+                    console.log('Attempt mismatch, clearing saved state');
                     clearSavedState();
                     return;
                 }
+                
                 if (data.answers && typeof data.answers === 'object') {
                     answers = data.answers;
+                    console.log('Loaded answers:', Object.keys(answers).length, 'questions answered');
                 }
+                
                 if (typeof data.currentQuestionIndex === 'number') {
                     currentQuestionIndex = Math.min(Math.max(0, data.currentQuestionIndex), quizData.questions.length - 1);
+                    console.log('Loaded current question index:', currentQuestionIndex);
                 }
             } catch (e) {
-                console.warn('Failed to load saved quiz state', e);
+                console.error('Failed to load saved quiz state', e);
+                // Clear corrupted state
+                clearSavedState();
             }
         }
         function saveState() {
@@ -909,8 +928,13 @@
                     savedAt: Date.now()
                 };
                 localStorage.setItem(quizCacheKey, JSON.stringify(data));
+                console.log('Saved quiz state:', {
+                    answersCount: Object.keys(answers).length,
+                    currentQuestionIndex: currentQuestionIndex,
+                    attemptNumber: quizData.attemptNumber
+                });
             } catch (e) {
-                console.warn('Failed to save quiz state', e);
+                console.error('Failed to save quiz state', e);
             }
         }
         function clearSavedState() {
@@ -929,15 +953,22 @@
         // Initialize quiz
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing quiz...');
-            // Restore saved state before initialization
-            loadSavedState();
-            // Clear any existing cache for fresh attempts
-            if (quizData.attemptNumber === 1) {
-                // Fresh attempt: clear any cached answers from previous attempts
-                clearSavedState();
+            
+            // Check if this is a fresh attempt (no saved state exists)
+            const hasExistingState = localStorage.getItem(quizCacheKey);
+            
+            if (!hasExistingState && quizData.attemptNumber === 1) {
+                // This is a completely fresh attempt - start clean
+                console.log('Starting fresh attempt');
                 answers = {};
                 currentQuestionIndex = 0;
+                clearSavedState(); // Clear any stale data
+            } else {
+                // Restore saved state for continuing attempts
+                console.log('Restoring saved state...');
+                loadSavedState();
             }
+            
             initializeQuiz();
             generateQuestionNavigation();
             updateQuizSummary();
@@ -981,13 +1012,11 @@
                 return;
             }
             
-            loadQuestion(0);
+            // Load the current question (either 0 for fresh attempts or saved index)
+            loadQuestion(currentQuestionIndex);
             quizStarted = true;
-            // If a saved currentQuestionIndex exists, navigate to it and apply selections
-            if (currentQuestionIndex > 0) {
-                loadQuestion(currentQuestionIndex);
-            }
-            // Re-apply selected states on options
+            
+            // Re-apply selected states on options and update navigation
             updateQuestionNavigation();
             checkSubmitButton();
         }
@@ -1081,15 +1110,19 @@
                 return;
             }
             
+            const questionId = question._id;
+            const savedAnswer = answers[questionId];
+            console.log('Loading options for question ID:', questionId, 'saved answer:', savedAnswer);
+            
             question.options.forEach((option, index) => {
                 const optionElement = document.createElement('div');
                 optionElement.className = 'option-item';
                 optionElement.onclick = () => selectOption(index);
                 
                 // Check if this option is already selected
-                const questionId = question._id;
-                if (answers[questionId] === index.toString()) {
+                if (savedAnswer === index.toString()) {
                     optionElement.classList.add('selected');
+                    console.log('Restoring selection for option:', index);
                 }
 
                 // Render option text with math support if needed
@@ -1122,9 +1155,13 @@
             const questionId = question._id;
             const existingAnswer = answers[questionId];
             const textInput = document.getElementById('writtenAnswerInput');
+            
+            // Reset input
             textInput.value = '';
+            
             if (existingAnswer) {
                 textInput.value = existingAnswer;
+                console.log('Restored written answer for question ID:', questionId, 'answer:', existingAnswer);
             }
         }
 
@@ -1132,15 +1169,28 @@
             const question = quizData.questions[currentQuestionIndex].question;
             const questionId = question._id;
             const answer = document.getElementById('writtenAnswerInput').value.trim();
+            
+            console.log('Handling written answer:', { questionId, answer });
+            
+            // Store answer
             answers[questionId] = answer;
+            console.log('Answers object updated:', answers);
+            
+            // Save state immediately
             saveState();
+            
+            // Update quiz summary
             updateQuizSummary();
+            
+            // Enable submit button if all questions answered
             checkSubmitButton();
         }
 
         function selectOption(optionIndex) {
             const question = quizData.questions[currentQuestionIndex].question;
             const questionId = question._id;
+            
+            console.log('Selecting option:', { questionId, optionIndex });
             
             // Remove previous selection
             document.querySelectorAll('.option-item').forEach(item => {
@@ -1152,6 +1202,8 @@
             
             // Store answer
             answers[questionId] = optionIndex.toString();
+            console.log('Answers object updated:', answers);
+            
             // Persist after selection
             saveState();
             

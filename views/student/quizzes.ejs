@@ -40,12 +40,12 @@
 
                 <!-- Quizzes Grid -->
                 <% if (quizzes && quizzes.length > 0) { %>
-                    <div class="courses-grid" style="grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));">
+                    <div class="quizzes-grid">
                         <% quizzes.forEach(quiz => { 
                             const studentAttempt = studentQuizAttempts.find(attempt => attempt.quiz.toString() === quiz._id.toString());
                             const canAttempt = !studentAttempt || studentAttempt.attempts.length < quiz.maxAttempts;
                         %>
-                            <div class="quiz-card" style="cursor: pointer;" onclick="window.location.href='/student/quiz/<%= quiz._id %>/details'">
+                            <div class="quiz-card">
                                 <!-- Quiz Thumbnail -->
                                 <div class="quiz-thumbnail">
                                     <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
@@ -64,7 +64,6 @@
                                 <div class="quiz-header">
                                     <div>
                                         <h3 class="quiz-title"><%= quiz.title %></h3>
-                                        <span class="quiz-code"><%= quiz.code %></span>
                                     </div>
                                     <div class="quiz-status">
                                         <span class="quiz-status-badge active">Active</span>
@@ -72,14 +71,16 @@
                                 </div>
 
                                 <!-- Quiz Description -->
-                                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-md); line-height: 1.5;">
-                                    <%= quiz.description.substring(0, 120) + (quiz.description.length > 120 ? '...' : '') %>
-                                </p>
+                                <div style="padding: 0 var(--spacing-lg); margin-bottom: var(--spacing-md);">
+                                    <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5;">
+                                        <%= quiz.description.substring(0, 120) + (quiz.description.length > 120 ? '...' : '') %>
+                                    </p>
+                                </div>
 
                                 <!-- Quiz Info -->
                                 <div class="quiz-info">
                                     <div class="quiz-stat">
-                                        <div class="quiz-stat-value"><%= quiz.totalQuestions %></div>
+                                        <div class="quiz-stat-value"><%= quiz.selectedQuestions.length %></div>
                                         <div class="quiz-stat-label">Questions</div>
                                     </div>
                                     <div class="quiz-stat">
@@ -123,41 +124,19 @@
                                     </div>
                                 <% } %>
 
-                                <!-- Quiz Features -->
-                                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs); margin-bottom: var(--spacing-md);">
-                                    <% if (quiz.shuffleQuestions) { %>
-                                        <span class="badge badge-info">Shuffled</span>
-                                    <% } %>
-                                    <% if (quiz.showCorrectAnswers) { %>
-                                        <span class="badge badge-success">Shows Answers</span>
-                                    <% } %>
-                                    <% if (quiz.showResults) { %>
-                                        <span class="badge badge-warning">Shows Results</span>
-                                    <% } %>
-                                </div>
+
 
                                 <!-- Quiz Footer -->
-                                <div class="quiz-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0 var(--spacing-lg) var(--spacing-lg);">
-                                    <div style="display: flex; align-items: center; gap: var(--spacing-xs);">
-                                        <i class="fas fa-user" style="color: var(--text-muted); font-size: 0.75rem;"></i>
-                                        <span style="font-size: 0.75rem; color: var(--text-muted);">
-                                            <%= quiz.createdBy ? quiz.createdBy.name : 'Admin' %>
-                                        </span>
-                                    </div>
+                                <div class="quiz-footer">
+                                   
                                     
-                                    <% if (canAttempt) { %>
-                                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='/student/quiz/<%= quiz._id %>/details'">
-                                            <% if (studentAttempt && studentAttempt.attempts.length > 0) { %>
-                                                View Details
-                                            <% } else { %>
-                                                View Details
-                                            <% } %>
-                                        </button>
-                                    <% } else { %>
-                                        <button class="btn btn-outline btn-sm" disabled>
-                                            Max Attempts Reached
-                                        </button>
-                                    <% } %>
+                                    <button class="btn btn-primary btn-lg" style="background: linear-gradient(135deg, #dc2626, #b91c1c); border: none; border-radius: 8px; padding: 12px 20px; font-weight: 600; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); transition: all 0.3s ease;" onclick="window.location.href='/student/quiz/<%= quiz._id %>/details'">
+                                        <% if (studentAttempt && studentAttempt.attempts.length > 0) { %>
+                                            <i class="fas fa-eye" style="margin-right: 8px;"></i>View Details
+                                        <% } else { %>
+                                            <i class="fas fa-play" style="margin-right: 8px;"></i>Start Quiz
+                                        <% } %>
+                                    </button>
                                 </div>
                             </div>
                         <% }); %>
@@ -218,47 +197,63 @@
 
     <!-- JavaScript -->
     <script>
-        // Add hover effects and interactions
+        // Enhanced quiz card interactions
         document.addEventListener('DOMContentLoaded', function() {
             const quizCards = document.querySelectorAll('.quiz-card');
+            const quizButtons = document.querySelectorAll('.quiz-card button');
             
-            quizCards.forEach(card => {
-                const button = card.querySelector('button');
-                const canClick = !button || !button.disabled;
+            // Enhanced button hover effects
+            quizButtons.forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.4)';
+                    this.style.background = 'linear-gradient(135deg, #b91c1c, #991b1b)';
+                });
                 
-                if (canClick) {
-                    card.addEventListener('mouseenter', function() {
-                        this.style.transform = 'translateY(-2px)';
-                        this.style.boxShadow = 'var(--shadow-md)';
-                    });
-                    
-                    card.addEventListener('mouseleave', function() {
-                        this.style.transform = 'translateY(0)';
-                        this.style.boxShadow = 'var(--shadow-sm)';
-                    });
-                }
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)';
+                    this.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+                });
+                
+                button.addEventListener('mousedown', function() {
+                    this.style.transform = 'scale(0.95)';
+                });
+                
+                button.addEventListener('mouseup', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+            });
+            
+            // Animate cards on load
+            quizCards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease-out';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
             });
         });
 
         // Quiz difficulty color coding
         function updateDifficultyColors() {
-            const difficulties = document.querySelectorAll('.quiz-difficulty');
+            const difficulties = document.querySelectorAll('.quiz-difficulty-badge');
             
             difficulties.forEach(diff => {
-                const difficulty = diff.className.split(' ').find(cls => cls !== 'quiz-difficulty');
+                const difficulty = diff.className.split(' ').find(cls => 
+                    cls === 'easy' || cls === 'medium' || cls === 'hard'
+                );
+                
                 if (difficulty) {
-                    diff.style.backgroundColor = getDifficultyColor(difficulty);
+                    // Add pulse animation for medium and hard quizzes
+                    if (difficulty === 'medium' || difficulty === 'hard') {
+                        diff.style.animation = 'pulse 2s infinite';
+                    }
                 }
             });
-        }
-
-        function getDifficultyColor(difficulty) {
-            const colors = {
-                'easy': 'rgba(16, 185, 129, 0.1)',
-                'medium': 'rgba(245, 158, 11, 0.1)',
-                'hard': 'rgba(239, 68, 68, 0.1)'
-            };
-            return colors[difficulty] || 'rgba(107, 114, 128, 0.1)';
         }
 
         // Initialize on page load

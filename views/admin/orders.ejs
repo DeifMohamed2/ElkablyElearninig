@@ -25,6 +25,12 @@
             <h1 class="mb-0">Orders Management</h1>
             <p class="text-muted">Track and manage all customer orders and transactions</p>
           </div>
+          <div class="admin-header-actions">
+            <button onclick="exportOrdersToExcel()" class="btn btn-success" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+              <i class="fas fa-file-excel"></i>
+              Export to Excel
+            </button>
+          </div>
         </div>
 
         <!-- Analytics Cards -->
@@ -296,29 +302,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Export Options -->
-        <div class="card shadow-sm mt-4 export-options">
-          <div class="card-header" style="background: linear-gradient(135deg, var(--admin-primary), #dc2626); border-bottom: none;">
-            <h5 class="mb-0" style="color: #ffffff; font-weight: 700; display: flex; align-items: center; gap: 12px;">
-              <i class="fas fa-file-export"></i> Export Orders
-            </h5>
-          </div>
-          <div class="card-body" style="padding: 24px;">
-            <p class="text-muted" style="color: #64748b; font-size: 14px; margin-bottom: 16px;">Export filtered orders data in various formats</p>
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-primary" disabled style="padding: 12px 20px; border: 2px solid var(--admin-border-light); background: var(--admin-card-light); color: var(--admin-text-light); border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-right: 12px; margin-bottom: 8px;">
-                <i class="fas fa-file-excel me-1"></i> Excel
-              </button>
-              <button class="btn btn-outline-primary" disabled style="padding: 12px 20px; border: 2px solid var(--admin-border-light); background: var(--admin-card-light); color: var(--admin-text-light); border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-right: 12px; margin-bottom: 8px;">
-                <i class="fas fa-file-csv me-1"></i> CSV
-              </button>
-              <button class="btn btn-outline-primary" disabled style="padding: 12px 20px; border: 2px solid var(--admin-border-light); background: var(--admin-card-light); color: var(--admin-text-light); border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-right: 12px; margin-bottom: 8px;">
-                <i class="fas fa-file-pdf me-1"></i> PDF
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </main>
@@ -328,6 +311,31 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.min.js" integrity="sha512-n/G+dROKbKL3GVngGWmWfwK0yPctjZQM752diVYnXZtD/48agpUKLIn0xDQL9ydZ91x6BiOmTIFwWjjFi2kEFg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Orders Page JS -->
 <script>
+  // Excel Export Function
+  function exportOrdersToExcel() {
+    // Show loading state
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+    btn.disabled = true;
+
+    // Get current filters
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryString = urlParams.toString();
+
+    // Create export URL with current filters
+    const exportUrl = `/admin/orders/export?${queryString}`;
+
+    // Trigger download
+    window.location.href = exportUrl;
+
+    // Reset button after a delay
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }, 2000);
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     // Sales Analytics Chart
     const ctx = document.getElementById('ordersSalesChart').getContext('2d');

@@ -95,81 +95,11 @@ function initializeHeaderScrollEffects() {
 }
 
 /**
- * Initialize mobile navigation functionality
+ * Initialize mobile navigation functionality - Removed mobile toggle
  */
 function initializeMobileNavigation() {
-  const mobileToggle = document.querySelector('.header-mobile-toggle');
-  const navSection = document.querySelector('.header-nav-section');
-  const navLinks = document.querySelectorAll('.nav-link');
-
-  if (!mobileToggle || !navSection) return;
-
-  // Toggle mobile menu
-  mobileToggle.addEventListener('click', function() {
-    const isActive = navSection.classList.contains('active');
-    
-    if (isActive) {
-      closeMobileMenu();
-    } else {
-      openMobileMenu();
-    }
-  });
-
-  // Close mobile menu when clicking on nav links
-  navLinks.forEach(link => {
-    link.addEventListener('click', function() {
-      if (window.innerWidth <= 992) {
-        closeMobileMenu();
-      }
-    });
-  });
-
-
-  // Close mobile menu when clicking outside
-  document.addEventListener('click', function(e) {
-    if (navSection.classList.contains('active') && 
-        !navSection.contains(e.target) && 
-        !mobileToggle.contains(e.target)) {
-      closeMobileMenu();
-    }
-  });
-
-  // Close mobile menu on window resize
-  window.addEventListener('resize', function() {
-    if (window.innerWidth > 992) {
-      closeMobileMenu();
-    }
-  });
-
-  function openMobileMenu() {
-    navSection.classList.add('active');
-    mobileToggle.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
-    // Animate nav links
-    const navItems = navSection.querySelectorAll('.nav-item');
-    navItems.forEach((item, index) => {
-      item.style.animationDelay = `${index * 0.1}s`;
-      item.classList.add('animate-in');
-    });
-  }
-
-  function closeMobileMenu() {
-    navSection.classList.remove('active');
-    mobileToggle.classList.remove('active');
-    document.body.style.overflow = '';
-    
-    // Remove animation classes
-    const navItems = navSection.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-      item.classList.remove('animate-in');
-    });
-    
-    // Close any open dropdowns
-    document.querySelectorAll('.nav-item-dropdown.active').forEach(item => {
-      item.classList.remove('active');
-    });
-  }
+  // Mobile toggle functionality removed - navigation now uses dropdown in header
+  console.log('Mobile navigation initialized - no toggle button needed');
 }
 
 /**
@@ -346,12 +276,24 @@ function initializeCartToggle() {
   const cartSidebarClose = document.getElementById('cartSidebarClose');
   const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
 
-  if (!cartToggle || !cartSidebar) return;
+  if (!cartToggle || !cartSidebar) {
+    console.log('Cart elements not found');
+    return;
+  }
+
+  console.log('Cart elements found, initializing...');
 
   // Open cart sidebar
-  cartToggle.addEventListener('click', function() {
+  cartToggle.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Cart toggle clicked');
+    
     cartSidebar.classList.add('cart-sidebar-open');
     document.body.classList.add('cart-sidebar-active');
+    
+    // Prevent body scroll when cart is open
+    document.body.style.overflow = 'hidden';
   });
 
   // Close cart sidebar
@@ -371,8 +313,10 @@ function initializeCartToggle() {
   });
 
   function closeCartSidebar() {
+    console.log('Closing cart sidebar');
     cartSidebar.classList.remove('cart-sidebar-open');
     document.body.classList.remove('cart-sidebar-active');
+    document.body.style.overflow = '';
   }
 }
 

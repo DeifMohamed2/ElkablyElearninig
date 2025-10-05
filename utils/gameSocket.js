@@ -73,6 +73,47 @@ class GameSocketHandler {
         await this.handlePlayerCompleted(socket, data);
       });
 
+      // Admin force-start event (admin client should emit this with { roomCode, adminId })
+      socket.on('admin-force-start', async (data) => {
+        try {
+          const { roomCode } = data;
+          if (!roomCode)
+            return socket.emit('error', { message: 'Missing roomCode' });
+
+          const room = await GameRoom.findOne({ roomCode }).populate(
+            'currentPlayers.user'
+          );
+          if (!room) return socket.emit('error', { message: 'Room not found' });
+
+          // Attempt to start game forcing bypass of min players
+          const startResult = room.startGame({ force: true });
+          if (!startResult.success) {
+            return socket.emit('error', { message: startResult.message });
+          }
+
+          // Persist state and notify players
+          const updatedRoom = await GameRoom.findByIdAndUpdate(
+            room._id,
+            { gameState: 'starting', gameStartedAt: new Date() },
+            { new: true }
+          ).populate('questions');
+
+          this.io.to(updatedRoom.roomCode).emit('game-starting', {
+            room: this.formatRoomData(updatedRoom),
+            countdown: 5,
+            forced: true,
+          });
+
+          // Start countdown then begin gameplay
+          setTimeout(async () => {
+            await this.beginGameplay(updatedRoom);
+          }, 5000);
+        } catch (error) {
+          console.error('Error handling admin-force-start:', error);
+          socket.emit('error', { message: 'Failed to force start game' });
+        }
+      });
+
       // Request current state
       socket.on('request-game-state', async (data) => {
         await this.handleRequestGameState(socket, data);
@@ -163,16 +204,22 @@ class GameSocketHandler {
       // 2. Player was already in the room (reconnection after disconnect/reload)
       // 3. Player has an active session (disconnected but session still exists)
       // 4. Game is in playing state and player has session (mid-game reconnection)
+      // BUT NEVER allow joining if game is finished
       const canJoin =
-        room.gameState === 'waiting' ||
-        isExistingPlayer ||
-        existingSession ||
-        (room.gameState === 'playing' && existingSession);
+        room.gameState !== 'finished' &&
+        (room.gameState === 'waiting' ||
+          isExistingPlayer ||
+          existingSession ||
+          (room.gameState === 'playing' && existingSession));
 
       if (!canJoin) {
+        const reason =
+          room.gameState === 'finished'
+            ? 'This game has already finished. Please join a new game room.'
+            : 'Game has already started. You can only rejoin if you were previously playing.';
+
         return socket.emit('error', {
-          message:
-            'Game has already started. You can only rejoin if you were previously playing.',
+          message: reason,
         });
       }
 
@@ -856,14 +903,46 @@ class GameSocketHandler {
                 console.log(`Player ${userId || 'null'} left room ${roomCode}`);
 
                 // Update game session
-                await GameSession.findOneAndUpdate(
-                  { user: userId, gameRoom: room._id, isActive: true },
-                  {
-                    isActive: false,
-                    status: 'disconnected',
-                    timeCompleted: new Date(),
+                // If session still active, mark as disconnected and completed if necessary
+                const session = await GameSession.findOne({
+                  user: userId,
+                  gameRoom: room._id,
+                  isActive: true,
+                });
+                if (session) {
+                  try {
+                    // If player had answered some questions, complete their session so they don't block others
+                    if (
+                      session.currentQuestionIndex >= session.totalQuestions ||
+                      session.answers.length > 0
+                    ) {
+                      session.status = 'completed';
+                      session.timeCompleted = new Date();
+                      session.isActive = false;
+                      session.timeSpent = Math.floor(
+                        (session.timeCompleted - session.timeStarted) / 1000
+                      );
+                      await session.save();
+                      console.log(
+                        `Session ${session._id} marked completed due to disconnect (grace expired)`
+                      );
+                    } else {
+                      // Otherwise mark as disconnected so endGame will not wait on them
+                      session.status = 'disconnected';
+                      session.isActive = false;
+                      session.timeCompleted = new Date();
+                      await session.save();
+                      console.log(
+                        `Session ${session._id} marked disconnected (grace expired)`
+                      );
+                    }
+                  } catch (sessErr) {
+                    console.error(
+                      'Error updating session on delayed removal:',
+                      sessErr
+                    );
                   }
-                );
+                }
               }
             }
           } else {
@@ -1091,14 +1170,29 @@ class GameSocketHandler {
     let remainingSeconds = initialTimeSeconds;
 
     const timer = setInterval(async () => {
+      // Check if room still exists and game is not finished
+      const currentRoom = await GameRoom.findById(room._id);
+      if (!currentRoom || currentRoom.gameState === 'finished') {
+        console.log(
+          `Stopping session timer for room ${room.roomCode} - game finished or room removed`
+        );
+        clearInterval(timer);
+        if (this.sessionTimers) {
+          this.sessionTimers.delete(room.roomCode);
+        }
+        return;
+      }
+
       remainingSeconds--;
 
-      // Emit timer update to all players
-      this.io.to(room.roomCode).emit('session-timer-update', {
-        remainingSeconds: remainingSeconds,
-        remainingMinutes: Math.floor(remainingSeconds / 60),
-        remainingSecondsOnly: remainingSeconds % 60,
-      });
+      // Only emit timer updates if game is still active (not finished)
+      if (currentRoom.gameState !== 'finished') {
+        this.io.to(room.roomCode).emit('session-timer-update', {
+          remainingSeconds: remainingSeconds,
+          remainingMinutes: Math.floor(remainingSeconds / 60),
+          remainingSecondsOnly: remainingSeconds % 60,
+        });
+      }
 
       // Check if time is up
       if (remainingSeconds <= 0) {
@@ -1238,6 +1332,13 @@ class GameSocketHandler {
         winner: winner,
       });
 
+      // Clean up session timer for this room
+      if (this.sessionTimers && this.sessionTimers.has(room.roomCode)) {
+        clearInterval(this.sessionTimers.get(room.roomCode));
+        this.sessionTimers.delete(room.roomCode);
+        console.log(`Cleared session timer for finished room ${room.roomCode}`);
+      }
+
       // Emit game results
       this.io.to(room.roomCode).emit('game-ended', {
         leaderboard: leaderboard,
@@ -1245,7 +1346,7 @@ class GameSocketHandler {
         room: this.formatRoomData(room),
       });
 
-      console.log(`Game ended in room ${room.roomCode}`);
+      console.log(`Game ended in room ${room.roomCode} - all timers cleared`);
     } catch (error) {
       console.error('Error ending game:', error);
     }
@@ -1389,33 +1490,38 @@ class GameSocketHandler {
           p.user._id.toString()
         );
 
-        const allActiveSessions = await GameSession.find({
+        // Consider both completed and disconnected sessions as not blocking the end
+        const allSessionsForPlayers = await GameSession.find({
           gameRoom: room._id,
           user: { $in: currentPlayerIds },
-          isActive: true,
         });
 
-        const completedSessions = allActiveSessions.filter(
+        const completedOrDisconnected = allSessionsForPlayers.filter(
+          (session) => ['completed', 'disconnected'].includes(session.status)
+        );
+
+        // Sessions that are strictly completed (not disconnected)
+        const completedSessions = allSessionsForPlayers.filter(
           (session) => session.status === 'completed'
         );
 
         console.log(
-          `Room ${roomCode}: ${completedSessions.length}/${allActiveSessions.length} players completed`
+          `Room ${roomCode}: ${completedOrDisconnected.length}/${allSessionsForPlayers.length} players completed/disconnected`
         );
         console.log(
           'Current player sessions status:',
-          allActiveSessions.map((s) => ({
+          allSessionsForPlayers.map((s) => ({
             user: s.user,
             status: s.status,
-            isActive: s.isActive,
+            isActive: s.status !== 'disconnected',
           }))
         );
 
         // Only end game when ALL current players have completed
         if (
-          completedSessions.length === allActiveSessions.length &&
-          allActiveSessions.length > 0 &&
-          completedSessions.length === room.currentPlayers.length // Must equal total current players
+          completedOrDisconnected.length === allSessionsForPlayers.length &&
+          allSessionsForPlayers.length > 0 &&
+          completedOrDisconnected.length === room.currentPlayers.length // Must equal total current players
         ) {
           console.log(
             `ALL players (${completedSessions.length}/${room.currentPlayers.length}) completed in room ${roomCode}, ending game...`
@@ -1455,9 +1561,9 @@ class GameSocketHandler {
 
   async updateLiveLeaderboard(room) {
     try {
+      // Include all sessions for the room so completed players also appear on the leaderboard
       const sessions = await GameSession.find({
         gameRoom: room._id,
-        isActive: true,
       }).populate('user', 'username email profilePicture');
 
       // Create live leaderboard sorted by score

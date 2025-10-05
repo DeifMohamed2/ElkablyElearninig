@@ -15,6 +15,7 @@ const getAllQuizzes = async (req, res) => {
     const {
       status,
       difficulty,
+      testType,
       search,
       sortBy = 'createdAt',
       sortOrder = 'desc',
@@ -24,6 +25,7 @@ const getAllQuizzes = async (req, res) => {
     const filter = {};
     if (status) filter.status = status;
     if (difficulty) filter.difficulty = difficulty;
+    if (testType) filter.testType = testType;
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -272,6 +274,7 @@ const createQuiz = async (req, res) => {
       description,
       code,
       questionBank,
+      testType,
       duration,
       difficulty,
       selectedQuestions,
@@ -416,6 +419,7 @@ const createQuiz = async (req, res) => {
       description,
       code,
       questionBank,
+      testType,
       selectedQuestions: parsedQuestions,
       duration: parseInt(duration),
       difficulty,

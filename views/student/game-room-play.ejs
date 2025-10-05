@@ -1060,11 +1060,11 @@
     /* Sidebar Header */
     .sidebar-header {
       padding: 24px 24px 20px 24px !important;
-      border-bottom: 1px solid #f1f3f5 !important;
+      border-bottom: 1px solid var(--games-border) !important;
       flex-shrink: 0 !important;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      background: linear-gradient(135deg, var(--games-primary) 0%, var(--games-primary-hover) 100%) !important;
       color: white !important;
-      border-radius: 12px 12px 0 0 !important;
+      border-radius: var(--games-radius-xl) var(--games-radius-xl) 0 0 !important;
       margin: 0 !important;
     }
 
@@ -1273,10 +1273,10 @@
     /* Toggle Button Enhancement */
     .game-sidebar-toggle-btn {
       position: fixed !important;
-      top: 90px !important;
+      top: 200px !important;
       right: 20px !important;
       z-index: 1001 !important;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      background: linear-gradient(135deg, var(--games-primary) 0%, var(--games-primary-hover) 100%) !important;
       color: white !important;
       border: none !important;
       border-radius: 12px !important;
@@ -1886,6 +1886,29 @@
                   <h4><i class="fas fa-users"></i> Players (<span id="playersCountText"><%= gameRoom.currentPlayers.length %></span>)</h4>
                   <div class="players-list-compact" id="playersListCompact">
                     <!-- Players will be loaded here -->
+                    <% if (gameRoom && gameRoom.currentPlayers && gameRoom.currentPlayers.length > 0) { %>
+                    <% gameRoom.currentPlayers.forEach(function(player, idx) { 
+                          const p = player && player.user ? player.user : null;
+                          const isCurrent = p && user && p._id && user._id && p._id.toString() === user._id.toString();
+                      %>
+                    <div class="player-compact <%= isCurrent ? 'current-player' : '' %> <%= player && player.answered ? 'answered' : '' %>">
+                      <div class="player-compact-avatar">
+                        <% if (p && p.profilePicture) { %>
+                        <img src="<%= p.profilePicture %>" alt="<%= p.username %>">
+                        <% } else { %>
+                        <div class="avatar-fallback"><%= p && p.username ? p.username.charAt(0).toUpperCase() : 'P' %></div>
+                        <% } %>
+                      </div>
+                      <div class="player-compact-info">
+                        <div class="player-compact-name"><%= p && p.username ? p.username : 'Player' %></div>
+                        <div class="player-compact-status"><%= player && player.isReady ? 'Ready' : (isCurrent ? 'You' : 'Waiting') %></div>
+                      </div>
+                      <div class="player-compact-score"><%= typeof player.score !== 'undefined' ? player.score : '-' %></div>
+                    </div>
+                    <% }); %>
+                    <% } else { %>
+                    <div class="empty-players">No players yet</div>
+                    <% } %>
                   </div>
                 </div>
 
@@ -2079,6 +2102,39 @@
       // Store timeout reference for cleanup
       window.gameState.submissionTimeout = submissionTimeout;
 
+      // Temporary ack handlers to ensure UI state is cleared on response or error
+      const clearSubmissionState = () => {
+        if (window.gameState.submissionTimeout) {
+          clearTimeout(window.gameState.submissionTimeout);
+          window.gameState.submissionTimeout = null;
+        }
+        window.gameState.isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Answer';
+
+        // Re-enable options
+        options.forEach(option => {
+          option.style.pointerEvents = 'auto';
+          option.style.opacity = '1';
+        });
+
+        if (writtenInput) {
+          writtenInput.disabled = false;
+        }
+      };
+
+      // One-time listeners
+      window.gameState.socket.once('answer-result', (res) => {
+        console.log('Answer result received, clearing submission UI');
+        clearSubmissionState();
+      });
+      window.gameState.socket.once('error', (err) => {
+        console.error('Server error received for submission:', err);
+        clearSubmissionState();
+        showToast('error', 'Submission Error', err.message || 'Failed to submit answer', 5000);
+      });
+
       window.gameState.socket.emit('answer-question', answerData);
 
       return false; // Prevent any form submission
@@ -2088,25 +2144,29 @@
     const leaveRoom = window.leaveRoom;
     const submitAnswer = window.submitAnswer;
 
-    // Game state management
-    window.gameState = {
-      roomCode: '<%= gameRoom.roomCode %>',
-      userId: '<%= user._id %>',
+    // Game state management (rendered as a safe JSON literal)
+    window.gameState = <%- JSON.stringify({
+      roomCode: (gameRoom && gameRoom.roomCode) ? gameRoom.roomCode : '',
+      userId: (user && user._id) ? user._id : '',
       currentQuestion: null,
       selectedAnswer: null,
       timeRemaining: 0,
       timer: null,
       socket: null,
-      answeredQuestions: new Set(),
+      // answeredQuestions is serialized as array and converted to Set below
+      answeredQuestions: [],
       currentQuestionIndex: 0,
-      totalQuestions: <%= gameRoom.questions.length %>,
+      totalQuestions: (gameRoom && gameRoom.questions) ? gameRoom.questions.length : 0,
       sessionStartTime: null,
-      sessionTimeLimit: <%= gameRoom.totalTime %> * 60, // Convert to seconds
+      sessionTimeLimit: (gameRoom && gameRoom.totalTime) ? (gameRoom.totalTime * 60) : 0,
       players: [],
       liveLeaderboard: [],
       isSubmitting: false,
       submissionTimeout: null
-    };
+    }) %>;
+
+    // Convert answeredQuestions array to a Set for runtime usage
+    window.gameState.answeredQuestions = new Set(window.gameState.answeredQuestions || []);
 
     // Also make it available without window prefix
     let gameState = window.gameState;
@@ -2331,6 +2391,12 @@
       }
     } // Handle room updates
     function handleRoomUpdate(data) {
+      // Ignore updates if game is finished
+      if (gameState.gameFinished || gameState.gameState === 'finished') {
+        console.log('Ignoring room update - game is finished');
+        return;
+      }
+
       console.log('Room update received:', data);
       if (data.room) {
         console.log('Current players ready status:', data.room.currentPlayers.map(p => ({
@@ -2453,6 +2519,30 @@
 
     // Handle new question
     function handleNewQuestion(data) {
+      // Clear any existing question complete toasts
+      if (gameState.currentQuestionCompleteToast) {
+        const toast = document.getElementById(gameState.currentQuestionCompleteToast);
+        if (toast) {
+          if (toast.removeTimeout) {
+            clearTimeout(toast.removeTimeout);
+          }
+          toast.remove();
+        }
+        gameState.currentQuestionCompleteToast = null;
+      }
+
+      // Clear any other existing toasts that might persist
+      const existingToasts = document.querySelectorAll('.toast');
+      existingToasts.forEach(toast => {
+        if (toast.textContent.includes('All players have answered') ||
+          toast.textContent.includes('Question Complete')) {
+          if (toast.removeTimeout) {
+            clearTimeout(toast.removeTimeout);
+          }
+          toast.remove();
+        }
+      });
+
       const waitingRoom = document.getElementById('waitingRoom');
       const gameStarting = document.getElementById('gameStarting');
       const questionArea = document.getElementById('questionArea');
@@ -2821,6 +2911,9 @@
 
     // Show calculating results screen
     function showCalculatingResultsScreen() {
+      // Clear any existing waiting status first
+      clearWaitingStatus();
+
       // Create or show calculating results overlay
       let calculatingOverlay = document.getElementById('calculatingResultsOverlay');
       if (!calculatingOverlay) {
@@ -2846,12 +2939,12 @@
             <div style="font-size: 48px; margin-bottom: 20px;">
               <i class="fas fa-calculator fa-spin"></i>
             </div>
-            <h2 style="margin-bottom: 10px;">All players have completed!</h2>
-            <p style="font-size: 18px; margin-bottom: 20px;">Calculating final results...</p>
+            <h2 style="margin-bottom: 10px;">Calculating final results...</h2>
+            <p style="font-size: 18px; margin-bottom: 20px;">Please wait while we process the final standings</p>
             <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden;">
               <div style="width: 100%; height: 100%; background: #007bff; animation: slideProgress 2s ease-in-out;"></div>
             </div>
-            <p style="margin-top: 10px; font-size: 14px; opacity: 0.8;">100% completed</p>
+            <p style="margin-top: 10px; font-size: 14px; opacity: 0.8;">Processing results...</p>
           </div>
         `;
 
@@ -2928,23 +3021,11 @@
         gameState.waitingStatusInterval = null;
       }
 
-      // Update the waiting message
-      const waitingMessage = document.getElementById('waitingPlayersMessage');
-      if (waitingMessage) {
-        waitingMessage.innerHTML = 'All players have completed! Calculating final results...';
-      }
+      // Instead of showing "All players completed" message, clear the waiting section
+      clearWaitingStatus();
 
-      // Update progress to 100%
-      const waitingProgressBar = document.getElementById('waitingProgressBar');
-      const waitingProgressText = document.getElementById('waitingProgressText');
-
-      if (waitingProgressBar) {
-        waitingProgressBar.style.width = '100%';
-      }
-
-      if (waitingProgressText) {
-        waitingProgressText.textContent = '100% completed';
-      }
+      // Show a brief calculating results animation
+      showCalculatingResultsScreen();
 
       // Show a countdown to results
       showToast('success', 'Results Ready!', 'Final results will be shown in a moment...', 3000);
@@ -2954,6 +3035,13 @@
 
     // Handle live leaderboard update
     function handleLiveLeaderboardUpdate(data) {
+      // Don't ignore leaderboard updates during completion phase - only ignore after finished
+      if (gameState.gameFinished || gameState.gameState === 'finished') {
+        console.log('Ignoring leaderboard update - game is finished');
+        return;
+      }
+
+      console.log('Updating live leaderboard:', data);
       gameState.liveLeaderboard = data.leaderboard || [];
 
       // Update game state with room information if provided
@@ -2961,9 +3049,18 @@
         if (data.roomState.totalQuestions) {
           gameState.totalQuestions = data.roomState.totalQuestions;
         }
+
+        // Update players completion status
+        if (data.roomState.players) {
+          gameState.players = data.roomState.players;
+        }
       }
 
+      // Update leaderboard display
       updateLiveLeaderboard();
+
+      // Also update the current rankings preview if visible
+      updateCurrentRankings();
     }
 
     // Handle question loaded (for individual question control)
@@ -3095,8 +3192,19 @@
     function handleQuestionComplete(data) {
       console.log('Question complete:', data);
 
+      // Clear any existing toasts before showing new one
+      const existingToasts = document.querySelectorAll('.toast');
+      existingToasts.forEach(toast => {
+        if (toast.parentNode) {
+          toast.remove();
+        }
+      });
+
       // Show a notification that all players have answered
-      showToast('info', 'Question Complete', data.message || 'All players have answered. Moving to next question...', data.delay || 3000);
+      const toastId = showToast('info', 'Question Complete', data.message || 'All players have answered. Moving to next question...', data.delay || 3000);
+
+      // Store the toast ID for potential cleanup
+      gameState.currentQuestionCompleteToast = toastId;
 
       // Disable all interactive elements
       const submitBtn = document.getElementById('submitAnswerBtn');
@@ -3120,6 +3228,12 @@
     // Handle session timer update
     function handleSessionTimerUpdate(data) {
       console.log('Session timer update:', data);
+
+      // Ignore timer updates if game is finished
+      if (gameState.gameFinished || gameState.gameState === 'finished') {
+        console.log('Ignoring timer update - game is finished');
+        return;
+      }
 
       // Update the timer display in the question area
       const timerText = document.getElementById('timerText');
@@ -3334,6 +3448,10 @@
     function handleGameEnded(data) {
       console.log('Game ended with data:', data);
 
+      // Mark game as finished
+      gameState.gameFinished = true;
+      gameState.gameState = 'finished';
+
       if (gameState.timer) {
         clearInterval(gameState.timer);
         gameState.timer = null;
@@ -3345,28 +3463,44 @@
         gameState.waitingStatusInterval = null;
       }
 
+      // Hide all completion-related messaging
+      clearWaitingStatus();
+
+      // Hide calculating results overlay if it exists
+      const calculatingOverlay = document.getElementById('calculatingResultsOverlay');
+      if (calculatingOverlay) {
+        calculatingOverlay.style.display = 'none';
+      }
+
+      // Clean up socket connection - game is over
+      setTimeout(() => {
+        cleanupSocketConnection();
+      }, 5000); // Give 5 seconds for final data sync
+
       const waitingRoom = document.getElementById('waitingRoom');
       const gameStarting = document.getElementById('gameStarting');
       const questionArea = document.getElementById('questionArea');
       const gameCompletedWaiting = document.getElementById('gameCompletedWaiting');
       const gameResults = document.getElementById('gameResults');
 
-      // Hide whichever screen is currently visible
-      const currentScreen = questionArea.style.display !== 'none' ? questionArea : gameCompletedWaiting;
+      // Hide whichever screen is currently visible with fade out
+      const currentScreen = gameCompletedWaiting.style.display !== 'none' ? gameCompletedWaiting :
+        questionArea.style.display !== 'none' ? questionArea : null;
 
       if (currentScreen && currentScreen.style.display !== 'none') {
         currentScreen.classList.add('fade-out');
       }
 
       setTimeout(() => {
+        // Hide all other screens
         waitingRoom.style.display = 'none';
         gameStarting.style.display = 'none';
         questionArea.style.display = 'none';
         gameCompletedWaiting.style.display = 'none';
 
         // Remove fade-out classes
-        questionArea.classList.remove('fade-out');
-        gameCompletedWaiting.classList.remove('fade-out');
+        if (questionArea) questionArea.classList.remove('fade-out');
+        if (gameCompletedWaiting) gameCompletedWaiting.classList.remove('fade-out');
 
         // Show results with dramatic effect
         gameResults.style.display = 'block';
@@ -3725,9 +3859,11 @@
         document.body.appendChild(toastContainer);
       }
 
-      // Create toast element
+      // Create toast element with unique ID
+      const toastId = 'toast_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
+      toast.id = toastId;
 
       toast.innerHTML = `
         <div class="toast-header">
@@ -3743,7 +3879,7 @@
       toastContainer.appendChild(toast);
 
       // Auto-remove toast after duration
-      setTimeout(() => {
+      const removeTimeout = setTimeout(() => {
         if (toast.parentNode) {
           toast.style.animation = 'slideOutRight 0.3s ease-in';
           setTimeout(() => {
@@ -3753,6 +3889,11 @@
           }, 300);
         }
       }, duration);
+
+      // Store timeout reference for potential early removal
+      toast.removeTimeout = removeTimeout;
+
+      return toastId;
     }
 
     function getToastIcon(type) {
@@ -3772,6 +3913,13 @@
 
     // Show game completion screen when player finishes all questions
     function showGameCompletionScreen(playerStats) {
+      // Prevent multiple calls to this function
+      if (gameState.completionScreenShown) {
+        console.log('Completion screen already shown, ignoring duplicate call');
+        return;
+      }
+
+      gameState.completionScreenShown = true;
       console.log('Showing game completion screen with stats:', playerStats);
 
       // Hide question area and show completion screen
@@ -3854,9 +4002,15 @@
 
     // Update waiting status and progress
     function updateWaitingStatus() {
+      // Don't update if game is finished
+      if (gameState.gameFinished || gameState.gameState === 'finished') {
+        return;
+      }
+
       const remainingPlayersCount = document.getElementById('remainingPlayersCount');
       const waitingProgressBar = document.getElementById('waitingProgressBar');
       const waitingProgressText = document.getElementById('waitingProgressText');
+      const waitingMessage = document.getElementById('waitingPlayersMessage');
 
       // Calculate progress based on players who have completed
       const totalPlayers = gameState.players.length || 1;
@@ -3876,16 +4030,36 @@
         waitingProgressText.textContent = `${Math.round(progressPercent)}% completed`;
       }
 
-      // Update waiting message
-      const waitingMessage = document.getElementById('waitingPlayersMessage');
+      // Update waiting message - but hide it when all players are done
       if (waitingMessage) {
         if (remainingPlayers <= 0) {
-          waitingMessage.innerHTML = 'All players have completed! Calculating final results...';
+          // Instead of showing "All players completed", start hiding the waiting section
+          clearWaitingStatus();
+
+          // Clear the interval since we don't need to keep updating
+          if (gameState.waitingStatusInterval) {
+            clearInterval(gameState.waitingStatusInterval);
+            gameState.waitingStatusInterval = null;
+          }
         } else if (remainingPlayers === 1) {
           waitingMessage.innerHTML = '<span id="remainingPlayersCount">1</span> player is still completing their answers';
         } else {
           waitingMessage.innerHTML = `<span id="remainingPlayersCount">${remainingPlayers}</span> players are still completing their answers`;
         }
+      }
+    }
+
+    // Clear waiting status when all players are done
+    function clearWaitingStatus() {
+      const waitingSection = document.querySelector('.waiting-status');
+      const waitingMessage = document.getElementById('waitingPlayersMessage');
+
+      if (waitingSection) {
+        waitingSection.style.display = 'none';
+      }
+
+      if (waitingMessage) {
+        waitingMessage.innerHTML = '';
       }
     }
 
@@ -3999,10 +4173,48 @@
     // Clean up socket connection
     function cleanupSocketConnection() {
       if (gameState.socket) {
-        console.log('Cleaning up socket connection');
+        console.log('Cleaning up socket connection and event listeners');
+
+        // Remove all socket event listeners to prevent memory leaks
+        gameState.socket.removeAllListeners('joined-room');
+        gameState.socket.removeAllListeners('room-update');
+        gameState.socket.removeAllListeners('game-started');
+        gameState.socket.removeAllListeners('game-starting');
+        gameState.socket.removeAllListeners('new-question');
+        gameState.socket.removeAllListeners('question-complete');
+        gameState.socket.removeAllListeners('answer-result');
+        gameState.socket.removeAllListeners('game-ended');
+        gameState.socket.removeAllListeners('session-timer-update');
+        gameState.socket.removeAllListeners('session-time-up');
+        gameState.socket.removeAllListeners('player-progress');
+        gameState.socket.removeAllListeners('live-leaderboard');
+        gameState.socket.removeAllListeners('error');
+        gameState.socket.removeAllListeners('disconnect');
+        gameState.socket.removeAllListeners('heartbeat-response');
+
+        // Disconnect the socket
         gameState.socket.disconnect();
         gameState.socket = null;
       }
+
+      // Clear all intervals
+      if (gameState.timer) {
+        clearInterval(gameState.timer);
+        gameState.timer = null;
+      }
+
+      if (gameState.waitingStatusInterval) {
+        clearInterval(gameState.waitingStatusInterval);
+        gameState.waitingStatusInterval = null;
+      }
+
+      // Clear any remaining timeouts or intervals
+      const highestTimeoutId = setTimeout(function() {}, 0);
+      for (let i = 0; i < highestTimeoutId; i++) {
+        clearTimeout(i);
+      }
+
+      console.log('Socket cleanup completed');
     }
 
     // Play again
@@ -4212,9 +4424,22 @@
       const container = document.getElementById('liveLeaderboard');
       if (!container) return;
 
+      // Clear existing content
       container.innerHTML = '';
 
-      gameState.liveLeaderboard.forEach((player, index) => {
+      // Show loading state if no leaderboard data
+      if (!gameState.liveLeaderboard || gameState.liveLeaderboard.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-3">Loading leaderboard...</div>';
+        return;
+      }
+
+      // Sort leaderboard by score (descending) and time (ascending for tie-breaking)
+      const sortedLeaderboard = [...gameState.liveLeaderboard].sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return (a.timeSpent || 0) - (b.timeSpent || 0);
+      });
+
+      sortedLeaderboard.forEach((player, index) => {
         const isCurrentPlayer = player.user && player.user._id &&
           player.user._id.toString() === gameState.userId;
 
@@ -4225,13 +4450,14 @@
         const totalQuestions = player.totalQuestions || gameState.totalQuestions || 0;
         const correctAnswers = player.correctAnswers || 0;
         const statusIcon = player.isCompleted ? '✓' : '';
+        const score = player.score || 0;
 
         playerElement.innerHTML = `
           <div class="leaderboard-position">${index + 1}</div>
           <div class="leaderboard-info">
             <div class="leaderboard-name">${username} ${isCurrentPlayer ? '(You)' : ''} ${statusIcon}</div>
             <div class="leaderboard-stats">
-              <span class="score">${player.score || 0} points</span>
+              <span class="score">${score} points</span>
               <span class="questions">${correctAnswers} Correct</span>
               <span class="total">${totalQuestions} Total</span>
             </div>
@@ -4240,6 +4466,8 @@
 
         container.appendChild(playerElement);
       });
+
+      console.log('Updated live leaderboard with', sortedLeaderboard.length, 'players');
     }
 
     function updateQuestionProgress() {
@@ -4305,16 +4533,28 @@
     // Prevent page reload
     function preventPageReload() {
       window.addEventListener('beforeunload', function(e) {
-        if (gameState.socket && gameState.socket.connected) {
+        // Always clean up socket when leaving the page
+        if (gameState.socket) {
+          cleanupSocketConnection();
+        }
+
+        // Only show warning if game is still active
+        if (gameState.socket && gameState.socket.connected &&
+          gameState.gameState !== 'finished' && !gameState.gameFinished) {
           const message = 'Are you sure you want to leave? Your progress will be lost!';
           e.returnValue = message;
           return message;
         }
       });
 
-      // Prevent F5 refresh
+      // Prevent F5 refresh during active game
       document.addEventListener('keydown', function(e) {
         if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+          // Allow refresh if game is finished
+          if (gameState.gameFinished || gameState.gameState === 'finished') {
+            return true;
+          }
+
           e.preventDefault();
           showToast('warning', 'Refresh Blocked', 'Please use the navigation buttons instead of refreshing the page.', 3000);
           return false;
@@ -4400,12 +4640,12 @@
     });
 
     function initializeSidebar() {
-      // Initialize sidebar with current room data
-      const players = <%- JSON.stringify(gameRoom.currentPlayers) %>;
-      gameState.players = players.map(player => {
+      // Initialize sidebar with current room data (safe JSON output)
+      const players = <%- JSON.stringify((gameRoom && gameRoom.currentPlayers) ? gameRoom.currentPlayers : []) %> || [];
+      gameState.players = players.map(function(player) {
         return Object.assign({}, player, {
           answered: false,
-          score: 0
+          score: (typeof player.score !== 'undefined') ? player.score : 0
         });
       });
       updateSidebar();

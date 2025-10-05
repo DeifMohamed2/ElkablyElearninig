@@ -90,14 +90,6 @@
         </a>
       </div>
       
-      <!-- Mobile Toggle Button -->
-      <button class="header-mobile-toggle" type="button" aria-label="Toggle navigation menu">
-        <div class="toggle-icon">
-          <span class="toggle-line"></span>
-          <span class="toggle-line"></span>
-          <span class="toggle-line"></span>
-        </div>
-      </button>
       
       <!-- Navigation Section -->
       <div class="header-nav-section">
@@ -131,7 +123,7 @@
               </a>
             </li>
             <li class="nav-item">
-              <a href="/courses" class="nav-link">
+              <a href="#courses" class="nav-link">
                 <div class="nav-icon-wrapper">
                   <i class="fas fa-graduation-cap"></i>
                 </div>
@@ -256,7 +248,7 @@
           <button class="cart-toggle-btn" id="cartToggle" aria-label="Toggle shopping cart" title="View shopping cart">
             <div class="cart-icon-wrapper">
               <i class="fas fa-shopping-cart cart-icon"></i>
-              <span class="cart-count" id="cartCount"><%= cartCount %></span>
+              <span class="cart-count" id="cartCount"><%= cartCount || 0 %></span>
             </div>
             <span class="visually-hidden">Shopping Cart</span>
           </button>
@@ -436,6 +428,12 @@
       console.log('Dropdown element:', dropdown);
       console.log('Menu element:', menu);
       console.log('Button element:', button);
+      
+      // Only proceed if user is authenticated and elements exist
+      if (!dropdown || !menu || !button) {
+        console.log('User dropdown elements not found - user may not be authenticated');
+        return;
+      }
       
       if (menu) {
         console.log('Menu styles:', {
@@ -629,40 +627,111 @@
       }
     };
 
-    // Remove item from cart sidebar
-    function removeFromCartSidebar(itemId, itemType) {
-      console.log('Removing item from cart sidebar:', itemId, itemType);
+// Remove item from cart sidebar
+function removeFromCartSidebar(itemId, itemType) {
+  console.log('Removing item from cart sidebar:', itemId, itemType);
+  
+  fetch('/purchase/cart/remove', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      itemId: itemId,
+      itemType: itemType
+    })
+  })
+  .then(response => {
+    console.log('Response status:', response.status);
+    // Check if response is not ok (e.g., 401 Unauthorized)
+    if (!response.ok) {
+      if (response.status === 401) {
+        showCartNotification('Please login to manage cart items', 'error');
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 3500);
+        return;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('Remove cart response:', data);
+    if (data.success) {
+      // Update session cart data
+      if (window.sessionCart) {
+        window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+      }
+      showCartNotification('Item removed from cart', 'success');
+      window.globalCart.updateCartSidebar();
+    } else {
+      showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error removing from cart:', error);
+    showCartNotification('Error removing item from cart', 'error');
+  });
+}
+
+    // Global addToCart function for use across all pages
+    function addToCart(item) {
+      // Check if user is logged in (server-side check)
+      <% if (!user) { %>
+        showCartNotification('Please login to add items to cart', 'error');
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 3500);
+        return;
+      <% } %>
       
-      fetch('/purchase/cart/remove', {
+      // Add to cart via API
+      fetch('/purchase/cart/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          itemId: itemId,
-          itemType: itemType
+          itemId: item.id,
+          itemType: item.type || 'course',
+          title: item.title,
+          price: item.price,
+          image: item.image
         })
       })
       .then(response => {
-        console.log('Response status:', response.status);
+        // Check if response is not ok (e.g., 401 Unauthorized)
+        if (!response.ok) {
+          if (response.status === 401) {
+            showCartNotification('Please login to add items to cart', 'error');
+            setTimeout(() => {
+              window.location.href = '/auth/login';
+            }, 3500);
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return response.json();
       })
       .then(data => {
-        console.log('Remove cart response:', data);
         if (data.success) {
-          // Update session cart data
-          if (window.sessionCart) {
-            window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+          showCartNotification(data.message || 'Item added to cart successfully', 'success');
+          
+          // Update global cart count and refresh cart data
+          if (window.globalCart) {
+            window.globalCart.refreshCartData();
           }
-          showCartNotification('Item removed from cart');
-          window.globalCart.updateCartSidebar();
+          
+          // Show cart sidebar
+          showCartSidebar();
         } else {
-          showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+          showCartNotification(data.message || 'Failed to add item to cart', 'error');
         }
       })
       .catch(error => {
-        console.error('Error removing from cart:', error);
-        showCartNotification('Error removing item from cart', 'error');
+        console.error('Error:', error);
+        showCartNotification('Error adding item to cart', 'error');
       });
     }
 
@@ -698,6 +767,17 @@
       })
       .then(response => {
         console.log('Response status:', response.status);
+        // Check if response is not ok (e.g., 401 Unauthorized)
+        if (!response.ok) {
+          if (response.status === 401) {
+            showCartNotification('Please login to manage cart items', 'error');
+            setTimeout(() => {
+              window.location.href = '/auth/login';
+            }, 3500);
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return response.json();
       })
       .then(data => {
@@ -705,7 +785,7 @@
         if (data.success) {
           // Update session cart data
           window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
-          showCartNotification('Item removed from cart');
+          showCartNotification('Item removed from cart', 'success');
           window.globalCart.updateCartSidebar();
         } else {
           showCartNotification(data.message || 'Failed to remove item from cart', 'error');
@@ -742,6 +822,7 @@
       if (cartSidebar) {
         cartSidebar.classList.add('cart-sidebar-open');
         document.body.classList.add('cart-sidebar-active');
+        document.body.style.overflow = 'hidden';
       }
     }
 
@@ -751,6 +832,7 @@
       if (cartSidebar) {
         cartSidebar.classList.remove('cart-sidebar-open');
         document.body.classList.remove('cart-sidebar-active');
+        document.body.style.overflow = '';
       }
     }
 
@@ -759,9 +841,15 @@
       // Create notification element
       const notification = document.createElement('div');
       notification.className = `cart-notification cart-notification-${type}`;
+      
+      // Choose icon based on type
+      const iconClass = type === 'success' ? 'fas fa-check-circle' : 
+                       type === 'error' ? 'fas fa-exclamation-circle' : 
+                       'fas fa-info-circle';
+      
       notification.innerHTML = `
         <div class="cart-notification-content">
-          <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+          <i class="${iconClass}"></i>
           <span>${message}</span>
         </div>
       `;
@@ -775,7 +863,7 @@
       setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => notification.remove(), 300);
-      }, 3000);
+      }, 4000);
     }
 
     // Cart sidebar event listeners
@@ -788,19 +876,21 @@
       // Refresh cart data from server to ensure accuracy
       window.globalCart.refreshCartData();
       
-      // Cart toggle button
-      const cartToggle = document.getElementById('cartToggle');
-      const cartSidebar = document.getElementById('cartSidebar');
-      const cartSidebarClose = document.getElementById('cartSidebarClose');
-      const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
+    // Cart toggle button
+    const cartToggle = document.getElementById('cartToggle');
+    const cartSidebar = document.getElementById('cartSidebar');
+    const cartSidebarClose = document.getElementById('cartSidebarClose');
+    const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
 
-      if (cartToggle) {
-        cartToggle.addEventListener('click', function() {
-          // Refresh cart data when opening sidebar
-          window.globalCart.refreshCartData();
-          showCartSidebar();
-        });
-      }
+    if (cartToggle) {
+      cartToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Refresh cart data when opening sidebar
+        window.globalCart.refreshCartData();
+        showCartSidebar();
+      });
+    }
 
       if (cartSidebarClose) {
         cartSidebarClose.addEventListener('click', hideCartSidebar);
@@ -1057,43 +1147,99 @@
 
     .cart-notification {
       position: fixed;
-      top: 2rem;
-      right: 2rem;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
       background: white;
-      border-radius: 10px;
-      padding: 1rem 1.5rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
-      transform: translateX(100%);
+      border: 2px solid #ddd;
+      border-radius: 16px;
+      padding: 25px 35px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      z-index: 10000;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      min-width: 350px;
+      text-align: center;
       opacity: 0;
-      transition: all 0.3s ease;
+      visibility: hidden;
+      backdrop-filter: blur(10px);
     }
 
     .cart-notification.show {
-      transform: translateX(0);
+      transform: translate(-50%, -50%) scale(1);
       opacity: 1;
+      visibility: visible;
     }
 
     .cart-notification-success {
-      border-left: 4px solid #27ae60;
+      border-left: 4px solid #4caf50;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
     }
 
     .cart-notification-error {
-      border-left: 4px solid #e74c3c;
+      border-left: 4px solid #f44336;
+      background: linear-gradient(135deg, #ffffff 0%, #fff8f8 100%);
+    }
+
+    .cart-notification-info {
+      border-left: 4px solid #2196f3;
+      background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
     }
 
     .cart-notification-content {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: center;
+      gap: 12px;
+      color: #333;
+      font-weight: 500;
+      position: relative;
     }
 
     .cart-notification-success .cart-notification-content i {
-      color: #27ae60;
+      color: #4caf50;
+      font-size: 20px;
+      animation: notificationIconPulse 0.6s ease-in-out;
     }
 
     .cart-notification-error .cart-notification-content i {
-      color: #e74c3c;
+      color: #f44336;
+      font-size: 20px;
+      animation: notificationIconPulse 0.6s ease-in-out;
+    }
+
+    .cart-notification-info .cart-notification-content i {
+      color: #2196f3;
+      font-size: 20px;
+      animation: notificationIconPulse 0.6s ease-in-out;
+    }
+
+    @keyframes notificationIconPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    /* Dark theme support */
+    .dark-theme .cart-notification {
+      background: #1a1a1a;
+      border-color: #333;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .dark-theme .cart-notification-content {
+      color: #fff;
+    }
+
+    .dark-theme .cart-notification-success {
+      background: linear-gradient(135deg, #1a1a1a 0%, #0f1a0f 100%);
+    }
+
+    .dark-theme .cart-notification-error {
+      background: linear-gradient(135deg, #1a1a1a 0%, #1a0f0f 100%);
+    }
+
+    .dark-theme .cart-notification-info {
+      background: linear-gradient(135deg, #1a1a1a 0%, #0f141a 100%);
     }
 
     .btn-cart-checkout:disabled {

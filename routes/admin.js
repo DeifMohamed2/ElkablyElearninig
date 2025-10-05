@@ -61,6 +61,17 @@ const {
   reorderBrilliantStudents,
   getBrilliantStudentsStats,
   exportBrilliantStudents,
+  // Admin Management
+  getCreateAdminForm,
+  createNewAdmin,
+  // Export functions
+  exportCourses,
+  exportOrders,
+  exportQuizzes,
+  exportComprehensiveReport,
+  exportCourseDetails,
+  exportTopicDetails,
+  exportQuizDetails,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -74,8 +85,9 @@ const {
   getEditGameRoom,
   updateGameRoom,
   deleteGameRoom,
+  permanentDeleteGameRoom,
   getGameRoomStats,
-  getQuestionsByBank
+  getQuestionsByBank,
 } = require('../controllers/gameRoomController');
 
 // Admin Dashboard
@@ -205,6 +217,7 @@ router.use('/question-banks', questionBankRoutes);
 
 // Orders Management
 router.get('/orders', isAdmin, getOrders);
+router.get('/orders/export', isAdmin, exportOrders);
 router.get('/orders/:orderNumber', isAdmin, getOrderDetails);
 router.get('/orders/:orderNumber/invoice', isAdmin, generateInvoice);
 router.post('/orders/:orderNumber/refund', isAdmin, refundOrder);
@@ -216,9 +229,23 @@ router.post('/game-rooms/create', isAdmin, createGameRoom);
 router.get('/game-rooms/:id/edit', isAdmin, getEditGameRoom);
 router.put('/game-rooms/:id', isAdmin, updateGameRoom);
 router.delete('/game-rooms/:id/delete', isAdmin, deleteGameRoom);
+router.get('/game-rooms/:id/delete', isAdmin, deleteGameRoom); // GET route for simple navigation
+router.post(
+  '/game-rooms/:id/permanent-delete',
+  isAdmin,
+  permanentDeleteGameRoom
+); // Permanent delete route
 router.get('/game-rooms/:id/stats', isAdmin, getGameRoomStats);
 // API - fetch questions by bank
-router.get('/api/question-banks/:bankId/questions', isAdmin, getQuestionsByBank);
+router.get(
+  '/api/question-banks/:bankId/questions',
+  isAdmin,
+  getQuestionsByBank
+);
+
+// Admin Management Routes
+router.get('/create-admin', isAdmin, getCreateAdminForm);
+router.post('/create-admin', isAdmin, createNewAdmin);
 
 // Brilliant Students Management Routes
 router.get('/brilliant-students', isAdmin, getBrilliantStudents);
@@ -229,5 +256,17 @@ router.post('/brilliant-students/reorder', isAdmin, reorderBrilliantStudents);
 router.get('/brilliant-students/:id', isAdmin, getBrilliantStudentDetails);
 router.put('/brilliant-students/:id', isAdmin, updateBrilliantStudent);
 router.delete('/brilliant-students/:id', isAdmin, deleteBrilliantStudent);
+
+// Excel Export Routes
+router.get('/export/courses', isAdmin, exportCourses);
+router.get('/courses/:courseId/export', isAdmin, exportCourseDetails);
+router.get(
+  '/courses/:courseCode/topics/:topicId/export',
+  isAdmin,
+  exportTopicDetails
+);
+router.get('/export/orders', isAdmin, exportOrders);
+router.get('/export/quizzes', isAdmin, exportQuizzes);
+router.get('/export/comprehensive', isAdmin, exportComprehensiveReport);
 
 module.exports = router;

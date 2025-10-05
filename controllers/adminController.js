@@ -10,12 +10,14 @@ const Purchase = require('../models/Purchase');
 const Quiz = require('../models/Quiz');
 const BrilliantStudent = require('../models/BrilliantStudent');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const ExcelExporter = require('../utils/excelExporter');
 
 // Admin Dashboard with Real Data
 const getAdminDashboard = async (req, res) => {
   try {
     console.log('Fetching dashboard data...');
-    
+
     // Fetch real data from database using correct field names
     const [
       totalStudents,
@@ -33,118 +35,106 @@ const getAdminDashboard = async (req, res) => {
       studentGrowth,
       revenueData,
       progressStats,
-      brilliantStudentsStats
+      brilliantStudentsStats,
     ] = await Promise.all([
       // Student statistics - using correct field names from User model
       User.countDocuments({ role: 'student' }),
       User.countDocuments({ role: 'student', isActive: true }),
-      User.countDocuments({ 
-        role: 'student', 
-        createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+      User.countDocuments({
+        role: 'student',
+        createdAt: {
+          $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+        },
       }),
-      
+
       // Course statistics
       Course.countDocuments(),
       Course.countDocuments({ status: 'published' }),
       Course.countDocuments({ status: 'draft' }),
-      
+
       // Revenue statistics - excluding refunded orders
       Purchase.aggregate([
-        { 
-          $match: { 
+        {
+          $match: {
             status: { $in: ['completed', 'paid'] },
-            $or: [
-              { refundedAt: { $exists: false } },
-              { refundedAt: null }
-            ]
-          }
+            $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+          },
         },
-        { $group: { _id: null, total: { $sum: '$total' } } }
+        { $group: { _id: null, total: { $sum: '$total' } } },
       ]),
       Purchase.aggregate([
-        { 
-          $match: { 
-            createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) },
+        {
+          $match: {
+            createdAt: {
+              $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+            },
             status: { $in: ['completed', 'paid'] },
-            $or: [
-              { refundedAt: { $exists: false } },
-              { refundedAt: null }
-            ]
-          }
+            $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+          },
         },
-        { $group: { _id: null, total: { $sum: '$total' } } }
+        { $group: { _id: null, total: { $sum: '$total' } } },
       ]),
-      Purchase.countDocuments({ 
+      Purchase.countDocuments({
         status: { $in: ['completed', 'paid'] },
-        $or: [
-          { refundedAt: { $exists: false } },
-          { refundedAt: null }
-        ]
+        $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
       }),
-      
+
       // Recent activity - using correct field names
       User.find({ role: 'student' })
         .sort({ createdAt: -1 })
         .limit(5)
         .select('firstName lastName studentEmail createdAt'),
-      
+
       // New orders (last 24 hours) for notifications
       Purchase.find({
         createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-        status: { $in: ['completed', 'paid'] }
+        status: { $in: ['completed', 'paid'] },
       })
         .populate('user', 'firstName lastName studentEmail')
         .sort({ createdAt: -1 })
         .limit(10),
-      
-      // Top performing courses (including featured)
+
+      // Top performing courses (including featured) - Get courses with enrollment data
       Course.find({ status: { $in: ['published', 'draft'] } })
-        .populate({
-          path: 'enrolledStudents',
-          select: 'enrolledCourses',
-          populate: {
-            path: 'enrolledCourses.course',
-            select: '_id'
-          }
-        })
-        .sort({ enrolledStudents: -1 })
+        .populate('bundle', 'title')
+        .sort({ createdAt: -1 })
         .limit(6)
-        .select('title level category status enrolledStudents price featured'),
-      
+        .select('title level category status price featured bundle'),
+
       // Student growth data (last 7 days)
       User.aggregate([
         {
           $match: {
             role: 'student',
-            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-          }
+            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          },
         },
         {
           $group: {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            count: { $sum: 1 }
-          }
+            count: { $sum: 1 },
+          },
         },
-        { $sort: { _id: 1 } }
+        { $sort: { _id: 1 } },
       ]),
-      
+
       // Revenue data (last 7 days)
       Purchase.aggregate([
         {
           $match: {
             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-            status: 'completed'
-          }
+            status: 'completed',
+          },
         },
         {
           $group: {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            total: { $sum: '$total' }
-          }
+            total: { $sum: '$total' },
+          },
         },
-        { $sort: { _id: 1 } }
+        { $sort: { _id: 1 } },
       ]),
-      
+
       // Progress statistics
       Progress.aggregate([
         {
@@ -153,55 +143,64 @@ const getAdminDashboard = async (req, res) => {
             total: { $sum: 1 },
             completed: {
               $sum: {
-                $cond: [{ $eq: ['$completed', true] }, 1, 0]
-              }
-            }
-          }
-        }
+                $cond: [{ $eq: ['$completed', true] }, 1, 0],
+              },
+            },
+          },
+        },
       ]),
-      
+
       // Brilliant students statistics
-      BrilliantStudent.getStatistics()
+      BrilliantStudent.getStatistics(),
     ]);
 
     console.log('Data fetched successfully:', {
       totalStudents,
       totalCourses,
-      totalRevenue: totalRevenue[0]?.total || 0
+      totalRevenue: totalRevenue[0]?.total || 0,
     });
 
     // Calculate engagement metrics based on real data
     const progressData = progressStats[0] || { total: 0, completed: 0 };
-    
+
     // Calculate engagement score based on multiple factors
-    const totalEnrolledStudents = await User.countDocuments({ 
-      role: 'student', 
-      'enrolledCourses.0': { $exists: true } 
+    const totalEnrolledStudents = await User.countDocuments({
+      role: 'student',
+      'enrolledCourses.0': { $exists: true },
     });
-    
-    const activeStudentsCount = await User.countDocuments({ 
-      role: 'student', 
+
+    const activeStudentsCount = await User.countDocuments({
+      role: 'student',
       'enrolledCourses.status': 'active',
-      isActive: true
+      isActive: true,
     });
-    
-    const studentsWithProgress = await User.countDocuments({ 
-      role: 'student', 
-      'enrolledCourses.contentProgress.0': { $exists: true }
+
+    const studentsWithProgress = await User.countDocuments({
+      role: 'student',
+      'enrolledCourses.contentProgress.0': { $exists: true },
     });
-    
+
     // Calculate engagement score based on active students and progress
     let engagementScore = 0;
     if (totalEnrolledStudents > 0) {
-      const activeEngagement = (activeStudentsCount / totalEnrolledStudents) * 40; // 40% weight
-      const progressEngagement = progressData.total > 0 ? (progressData.completed / progressData.total) * 60 : 0; // 60% weight
+      const activeEngagement =
+        (activeStudentsCount / totalEnrolledStudents) * 40; // 40% weight
+      const progressEngagement =
+        progressData.total > 0
+          ? (progressData.completed / progressData.total) * 60
+          : 0; // 60% weight
       engagementScore = Math.round(activeEngagement + progressEngagement);
     }
 
     // Calculate growth percentages (mock for now - would need historical data)
-    const studentGrowthPercent = totalStudents > 0 ? Math.floor(Math.random() * 20) + 5 : 0;
-    const courseGrowthPercent = totalCourses > 0 ? Math.floor(Math.random() * 15) + 3 : 0;
-    const revenueGrowthPercent = (totalRevenue[0]?.total || 0) > 0 ? Math.floor(Math.random() * 25) + 10 : 0;
+    const studentGrowthPercent =
+      totalStudents > 0 ? Math.floor(Math.random() * 20) + 5 : 0;
+    const courseGrowthPercent =
+      totalCourses > 0 ? Math.floor(Math.random() * 15) + 3 : 0;
+    const revenueGrowthPercent =
+      (totalRevenue[0]?.total || 0) > 0
+        ? Math.floor(Math.random() * 25) + 10
+        : 0;
 
     // Prepare dashboard data
     const dashboardData = {
@@ -209,37 +208,52 @@ const getAdminDashboard = async (req, res) => {
         total: totalStudents || 0,
         active: activeStudents || 0,
         newThisMonth: newStudentsThisMonth || 0,
-        growth: studentGrowthPercent
+        growth: studentGrowthPercent,
       },
       courses: {
         total: totalCourses || 0,
         published: publishedCourses || 0,
         draft: draftCourses || 0,
-        growth: courseGrowthPercent
+        growth: courseGrowthPercent,
       },
       revenue: {
         total: Math.round(totalRevenue[0]?.total || 0),
         thisMonth: Math.round(monthlyRevenue[0]?.total || 0),
         orders: totalOrders || 0,
-        growth: revenueGrowthPercent
+        growth: revenueGrowthPercent,
       },
       engagement: {
         score: engagementScore,
-        trend: engagementScore > 70 ? 'up' : engagementScore > 50 ? 'neutral' : 'down',
+        trend:
+          engagementScore > 70
+            ? 'up'
+            : engagementScore > 50
+            ? 'neutral'
+            : 'down',
         change: engagementScore > 70 ? 5 : engagementScore > 50 ? 0 : -3,
         avgSession: '24m',
-        completion: progressData.total > 0 ? Math.round((progressData.completed / progressData.total) * 100) : 0,
+        completion:
+          progressData.total > 0
+            ? Math.round((progressData.completed / progressData.total) * 100)
+            : 0,
         activeStudents: activeStudentsCount,
         totalEnrolled: totalEnrolledStudents,
-        studentsWithProgress: studentsWithProgress
+        studentsWithProgress: studentsWithProgress,
       },
       brilliantStudents: {
-        total: Object.values(brilliantStudentsStats).reduce((sum, stat) => sum + (stat.count || 0), 0),
+        total: Object.values(brilliantStudentsStats).reduce(
+          (sum, stat) => sum + (stat.count || 0),
+          0
+        ),
         est: brilliantStudentsStats.EST?.count || 0,
         dsat: brilliantStudentsStats.DSAT?.count || 0,
         act: brilliantStudentsStats.ACT?.count || 0,
-        avgScore: Object.values(brilliantStudentsStats).reduce((sum, stat) => sum + (stat.avgScore || 0), 0) / Object.keys(brilliantStudentsStats).length || 0,
-        stats: brilliantStudentsStats
+        avgScore:
+          Object.values(brilliantStudentsStats).reduce(
+            (sum, stat) => sum + (stat.avgScore || 0),
+            0
+          ) / Object.keys(brilliantStudentsStats).length || 0,
+        stats: brilliantStudentsStats,
       },
       recentActivity: [
         // Recent students
@@ -247,7 +261,7 @@ const getAdminDashboard = async (req, res) => {
           icon: 'user-plus',
           message: `New student registered: ${user.firstName} ${user.lastName}`,
           time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
-          type: 'student'
+          type: 'student',
         })),
         // New orders
         ...newOrders.map((order, index) => ({
@@ -256,41 +270,75 @@ const getAdminDashboard = async (req, res) => {
           time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
           type: 'order',
           orderId: order._id,
-          customer: order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Unknown'
-        }))
-      ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10),
-      topCourses: topCourses.map(course => {
-        // Calculate completion rate based on enrolled students
-        let completionRate = 0;
-        if (course.enrolledStudents && course.enrolledStudents.length > 0) {
-          // Count students who have completed the course
-          const completedStudents = course.enrolledStudents.filter(student => {
-            // Check if the student has this course in their enrolledCourses with status 'completed'
-            return student.enrolledCourses && student.enrolledCourses.some(enrollment => 
-              enrollment.course.toString() === course._id.toString() && enrollment.status === 'completed'
-            );
-          }).length;
-          
-          completionRate = Math.round((completedStudents / course.enrolledStudents.length) * 100);
-        }
-        
-        return {
-          title: course.title,
-          level: course.level || 'Beginner',
-          category: course.category || 'General',
-          status: course.status,
-          featured: course.featured || false,
-          enrollments: course.enrolledStudents?.length || 0,
-          completionRate: completionRate,
-          revenue: Math.round((course.enrolledStudents?.length || 0) * (course.price || 0))
-        };
-      }),
+          customer: order.user
+            ? `${order.user.firstName} ${order.user.lastName}`
+            : 'Unknown',
+        })),
+      ]
+        .sort((a, b) => new Date(b.time) - new Date(a.time))
+        .slice(0, 10),
+      topCourses: await Promise.all(
+        topCourses.map(async (course) => {
+          // Get actual enrollment data from User model
+          const enrolledStudents = await User.find({
+            role: 'student',
+            'enrolledCourses.course': course._id,
+          }).select('enrolledCourses');
+
+          // Calculate enrollments and completions
+          let enrollments = 0;
+          let completedStudents = 0;
+          let totalRevenue = 0;
+
+          if (enrolledStudents.length > 0) {
+            enrollments = enrolledStudents.length;
+
+            // Count completed students
+            completedStudents = enrolledStudents.filter((student) => {
+              const enrollment = student.enrolledCourses.find(
+                (ec) =>
+                  ec.course && ec.course.toString() === course._id.toString()
+              );
+              return enrollment && enrollment.status === 'completed';
+            }).length;
+
+            // Calculate revenue from individual course purchases
+            const coursePurchases = await User.find({
+              'purchasedCourses.course': course._id,
+              'purchasedCourses.status': 'active',
+            });
+
+            totalRevenue = coursePurchases.reduce((sum, user) => {
+              const purchase = user.purchasedCourses.find(
+                (pc) => pc.course.toString() === course._id.toString()
+              );
+              return sum + (purchase ? purchase.price : 0);
+            }, 0);
+          }
+
+          const completionRate =
+            enrollments > 0
+              ? Math.round((completedStudents / enrollments) * 100)
+              : 0;
+
+          return {
+            title: course.title,
+            level: course.level || 'Beginner',
+            category: course.category || 'General',
+            status: course.status,
+            featured: course.featured || false,
+            enrollments: enrollments,
+            completionRate: completionRate,
+            revenue: totalRevenue,
+          };
+        })
+      ),
       charts: {
         studentGrowth: studentGrowth,
-        revenueData: revenueData
+        revenueData: revenueData,
       },
       newOrdersCount: newOrders.length,
-      newOrders: newOrders.slice(0, 5) // Show latest 5 orders for notifications
+      newOrders: newOrders.slice(0, 5), // Show latest 5 orders for notifications
     };
 
     console.log('Dashboard data prepared:', dashboardData);
@@ -299,28 +347,33 @@ const getAdminDashboard = async (req, res) => {
       title: 'Elkably Analytics Dashboard',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
-      dashboardData: dashboardData
+      dashboardData: dashboardData,
     });
-
   } catch (error) {
     console.error('Dashboard error:', error);
-    
+
     // Fallback data in case of error
     const fallbackData = {
       students: { total: 0, active: 0, newThisMonth: 0, growth: 0 },
       courses: { total: 0, published: 0, draft: 0, growth: 0 },
       revenue: { total: 0, thisMonth: 0, orders: 0, growth: 0 },
-      engagement: { score: 0, trend: 'neutral', change: 0, avgSession: '0m', completion: 0 },
+      engagement: {
+        score: 0,
+        trend: 'neutral',
+        change: 0,
+        avgSession: '0m',
+        completion: 0,
+      },
       recentActivity: [],
       topCourses: [],
-      charts: { studentGrowth: [], revenueData: [] }
+      charts: { studentGrowth: [], revenueData: [] },
     };
 
     return res.render('admin/dashboard', {
       title: 'Elkably Analytics Dashboard',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
-      dashboardData: fallbackData
+      dashboardData: fallbackData,
     });
   }
 };
@@ -460,7 +513,6 @@ const createCourse = async (req, res) => {
       description: description.trim(),
       shortDescription: shortDescription.trim(),
       level,
-      subject: bundle.subject,
       year: bundle.year, // Use bundle's year
       category: category.trim(),
       duration: parseInt(duration),
@@ -865,14 +917,13 @@ const updateCourse = async (req, res) => {
       courseCode,
       oldBundleId: oldBundleId ? oldBundleId.toString() : 'null',
       newBundleId: newBundleId || 'null',
-      isChanging: newBundleId && (!oldBundleId || newBundleId !== oldBundleId.toString())
+      isChanging:
+        newBundleId && (!oldBundleId || newBundleId !== oldBundleId.toString()),
     });
 
     // If bundle is being changed, handle bundle relationships
-    const isBundleChanging = newBundleId && (
-      !oldBundleId || 
-      newBundleId !== oldBundleId.toString()
-    );
+    const isBundleChanging =
+      newBundleId && (!oldBundleId || newBundleId !== oldBundleId.toString());
 
     if (isBundleChanging) {
       // Validate new bundle exists
@@ -894,28 +945,26 @@ const updateCourse = async (req, res) => {
 
       // Remove course from old bundle (if it exists)
       if (oldBundleId) {
-        await BundleCourse.findByIdAndUpdate(
-          oldBundleId,
-          { $pull: { courses: currentCourse._id } }
-        );
+        await BundleCourse.findByIdAndUpdate(oldBundleId, {
+          $pull: { courses: currentCourse._id },
+        });
       }
 
       // Add course to new bundle
-      await BundleCourse.findByIdAndUpdate(
-        newBundleId,
-        { $addToSet: { courses: currentCourse._id } }
-      );
+      await BundleCourse.findByIdAndUpdate(newBundleId, {
+        $addToSet: { courses: currentCourse._id },
+      });
 
       // Update course with new bundle and related fields
       updateData.bundle = newBundleId;
       updateData.subject = newBundle.subject;
       updateData.year = newBundle.year;
-      
+
       console.log('Bundle relationships updated:', {
         removedFromOldBundle: oldBundleId || 'none',
         addedToNewBundle: newBundleId,
         newSubject: newBundle.subject,
-        newYear: newBundle.year
+        newYear: newBundle.year,
       });
     }
 
@@ -968,9 +1017,9 @@ const deleteCourse = async (req, res) => {
     const course = await Course.findOne({ courseCode });
 
     if (!course) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Course not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
       });
     }
 
@@ -979,57 +1028,58 @@ const deleteCourse = async (req, res) => {
       // Permanently delete the course and its associated topics
       // Use the course's ObjectId to delete topics
       await Topic.deleteMany({ course: course._id });
-      
+
       // Remove course from all users' enrollments and purchases
       await User.updateMany(
         {},
         {
           $pull: {
-            'enrolledCourses': { course: course._id },
-            'purchasedCourses': { course: course._id }
-          }
+            enrolledCourses: { course: course._id },
+            purchasedCourses: { course: course._id },
+          },
         }
       );
-      
+
       // Remove course from wishlists (handle both object and array formats)
       await User.updateMany(
         { 'wishlist.courses': course._id },
         {
           $pull: {
-            'wishlist.courses': course._id
-          }
+            'wishlist.courses': course._id,
+          },
         }
       );
-      
+
       // Delete the course
       await Course.findOneAndDelete({ courseCode });
-      
-      return res.json({ 
-        success: true, 
-        message: 'Course permanently deleted from database and removed from all users!',
-        action: 'deleted'
+
+      return res.json({
+        success: true,
+        message:
+          'Course permanently deleted from database and removed from all users!',
+        action: 'deleted',
       });
     } else {
       // Archive the course instead of deleting
       await Course.findOneAndUpdate(
         { courseCode },
-        { 
+        {
           status: 'archived',
-          isActive: false 
+          isActive: false,
         }
       );
-      
-      return res.json({ 
-        success: true, 
+
+      return res.json({
+        success: true,
         message: 'Course moved to archived status!',
-        action: 'archived'
+        action: 'archived',
       });
     }
   } catch (error) {
     console.error('Error deleting course:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Error deleting course' 
+    return res.status(500).json({
+      success: false,
+      message: 'Error deleting course',
     });
   }
 };
@@ -1240,10 +1290,15 @@ const updateTopic = async (req, res) => {
           return res.status(400).json({
             success: false,
             message: 'Description must be at least 10 characters long',
-            errors: { description: 'Description must be at least 10 characters long' }
+            errors: {
+              description: 'Description must be at least 10 characters long',
+            },
           });
         }
-        req.flash('error_msg', 'Description must be at least 10 characters long');
+        req.flash(
+          'error_msg',
+          'Description must be at least 10 characters long'
+        );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
       topic.description = trimmedDescription;
@@ -1297,17 +1352,17 @@ const updateTopic = async (req, res) => {
       // Handle validation errors specifically
       if (error.name === 'ValidationError') {
         const validationErrors = {};
-        Object.keys(error.errors).forEach(key => {
+        Object.keys(error.errors).forEach((key) => {
           validationErrors[key] = error.errors[key].message;
         });
-        
+
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: validationErrors
+          errors: validationErrors,
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         message: error.message || 'Error updating topic',
@@ -1316,12 +1371,14 @@ const updateTopic = async (req, res) => {
 
     // Handle validation errors for regular form submission
     if (error.name === 'ValidationError') {
-      const validationErrors = Object.keys(error.errors).map(key => error.errors[key].message).join(', ');
+      const validationErrors = Object.keys(error.errors)
+        .map((key) => error.errors[key].message)
+        .join(', ');
       req.flash('error_msg', `Validation failed: ${validationErrors}`);
     } else {
       req.flash('error_msg', 'Error updating topic');
     }
-    
+
     res.redirect(`/admin/courses/${req.params.courseCode}/content`);
   }
 };
@@ -1554,8 +1611,12 @@ const getTopicDetails = async (req, res) => {
         : 0;
 
     // Calculate average time spent across all students
-    const totalTimeSpent = students.reduce((sum, s) => sum + s.timeSpentMinutes, 0);
-    const averageTimeSpent = totalStudents > 0 ? Math.round(totalTimeSpent / totalStudents) : 0;
+    const totalTimeSpent = students.reduce(
+      (sum, s) => sum + s.timeSpentMinutes,
+      0
+    );
+    const averageTimeSpent =
+      totalStudents > 0 ? Math.round(totalTimeSpent / totalStudents) : 0;
 
     // Calculate quiz/homework specific analytics
     let totalQuizAttempts = 0;
@@ -1576,7 +1637,7 @@ const getTopicDetails = async (req, res) => {
           );
           if (cp && cp.quizAttempts) {
             totalQuizAttempts += cp.quizAttempts.length;
-            cp.quizAttempts.forEach(attempt => {
+            cp.quizAttempts.forEach((attempt) => {
               if (attempt.score !== null && attempt.score !== undefined) {
                 totalQuizScores.push(attempt.score);
               }
@@ -1587,9 +1648,13 @@ const getTopicDetails = async (req, res) => {
     });
 
     if (totalQuizScores.length > 0) {
-      averageQuizScore = Math.round(totalQuizScores.reduce((a, b) => a + b, 0) / totalQuizScores.length);
+      averageQuizScore = Math.round(
+        totalQuizScores.reduce((a, b) => a + b, 0) / totalQuizScores.length
+      );
       const passingScore = 60; // Default passing score
-      const passedAttempts = totalQuizScores.filter(score => score >= passingScore).length;
+      const passedAttempts = totalQuizScores.filter(
+        (score) => score >= passingScore
+      ).length;
       passRate = Math.round((passedAttempts / totalQuizScores.length) * 100);
     }
 
@@ -1605,7 +1670,7 @@ const getTopicDetails = async (req, res) => {
       averageQuizScore,
       passRate,
       totalContentItems: topic.content ? topic.content.length : 0,
-      totalTimeSpent: Math.round(totalTimeSpent)
+      totalTimeSpent: Math.round(totalTimeSpent),
     };
 
     return res.render('admin/topic-details', {
@@ -1815,21 +1880,23 @@ const getContentDetails = async (req, res) => {
     // Get real student progress data from database
     const enrolledStudents = await User.find({
       'enrolledCourses.course': course._id,
-      isActive: true
-    }).select('firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses');
+      isActive: true,
+    }).select(
+      'firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses'
+    );
 
     const studentProgress = [];
 
     for (const student of enrolledStudents) {
       const enrollment = student.enrolledCourses.find(
-        e => e.course && e.course.toString() === course._id.toString()
+        (e) => e.course && e.course.toString() === course._id.toString()
       );
 
       if (!enrollment) continue;
 
       // Find content progress for this specific content
       const contentProgress = enrollment.contentProgress.find(
-        cp => cp.contentId.toString() === contentId
+        (cp) => cp.contentId.toString() === contentId
       );
 
       let progressData = {
@@ -1839,23 +1906,38 @@ const getContentDetails = async (req, res) => {
         studentCode: student.studentCode,
         parentPhone: `${student.parentCountryCode}${student.parentNumber}`,
         studentPhone: `${student.studentCountryCode}${student.studentNumber}`,
-        enrolledDate: enrollment.enrolledAt ? enrollment.enrolledAt.toISOString().split('T')[0] : 'N/A',
-        lastAccessed: contentProgress ? contentProgress.lastAccessed.toISOString().split('T')[0] : 'Never',
-        status: contentProgress ? contentProgress.completionStatus : 'not_started',
+        enrolledDate: enrollment.enrolledAt
+          ? enrollment.enrolledAt.toISOString().split('T')[0]
+          : 'N/A',
+        lastAccessed: contentProgress
+          ? contentProgress.lastAccessed.toISOString().split('T')[0]
+          : 'Never',
+        status: contentProgress
+          ? contentProgress.completionStatus
+          : 'not_started',
         progress: contentProgress ? contentProgress.progressPercentage : 0,
-        timeSpent: contentProgress ? Math.round(contentProgress.timeSpent || 0) : 0,
+        timeSpent: contentProgress
+          ? Math.round(contentProgress.timeSpent || 0)
+          : 0,
         attempts: contentProgress ? contentProgress.attempts : 0,
         grade: null,
         passed: null,
         bestScore: contentProgress ? contentProgress.bestScore : null,
         totalPoints: contentProgress ? contentProgress.totalPoints : 0,
-        quizAttempts: contentProgress ? contentProgress.quizAttempts : []
+        quizAttempts: contentProgress ? contentProgress.quizAttempts : [],
       };
 
       // For quiz/homework content, get detailed attempt data
       if (contentItem.type === 'quiz' || contentItem.type === 'homework') {
-        if (contentProgress && contentProgress.quizAttempts && contentProgress.quizAttempts.length > 0) {
-          const latestAttempt = contentProgress.quizAttempts[contentProgress.quizAttempts.length - 1];
+        if (
+          contentProgress &&
+          contentProgress.quizAttempts &&
+          contentProgress.quizAttempts.length > 0
+        ) {
+          const latestAttempt =
+            contentProgress.quizAttempts[
+              contentProgress.quizAttempts.length - 1
+            ];
           progressData.grade = latestAttempt.score;
           progressData.passed = latestAttempt.passed;
           progressData.attempts = contentProgress.quizAttempts.length;
@@ -1871,14 +1953,14 @@ const getContentDetails = async (req, res) => {
         // First sort by completion status (completed first)
         if (a.status === 'completed' && b.status !== 'completed') return -1;
         if (b.status === 'completed' && a.status !== 'completed') return 1;
-        
+
         // Then by best score (highest first)
         if (a.bestScore !== null && b.bestScore !== null) {
           return b.bestScore - a.bestScore;
         }
         if (a.bestScore !== null && b.bestScore === null) return -1;
         if (b.bestScore !== null && a.bestScore === null) return 1;
-        
+
         // Then by progress percentage
         return b.progress - a.progress;
       });
@@ -1915,21 +1997,30 @@ const getContentDetails = async (req, res) => {
     let lowestScore = null;
 
     if (contentItem.type === 'quiz' || contentItem.type === 'homework') {
-      const studentsWithGrades = studentProgress.filter((s) => s.grade !== null && s.grade !== undefined);
-      const studentsWithBestScores = studentProgress.filter((s) => s.bestScore !== null && s.bestScore !== undefined);
-      
+      const studentsWithGrades = studentProgress.filter(
+        (s) => s.grade !== null && s.grade !== undefined
+      );
+      const studentsWithBestScores = studentProgress.filter(
+        (s) => s.bestScore !== null && s.bestScore !== undefined
+      );
+
       if (studentsWithGrades.length > 0) {
         averageGrade = Math.round(
-          studentsWithGrades.reduce((sum, s) => sum + s.grade, 0) / studentsWithGrades.length
+          studentsWithGrades.reduce((sum, s) => sum + s.grade, 0) /
+            studentsWithGrades.length
         );
         passRate = Math.round(
-          (studentsWithGrades.filter((s) => s.passed === true).length / studentsWithGrades.length) * 100
+          (studentsWithGrades.filter((s) => s.passed === true).length /
+            studentsWithGrades.length) *
+            100
         );
       }
 
       if (studentsWithBestScores.length > 0) {
-        const scores = studentsWithBestScores.map(s => s.bestScore);
-        averageScore = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+        const scores = studentsWithBestScores.map((s) => s.bestScore);
+        averageScore = Math.round(
+          scores.reduce((sum, score) => sum + score, 0) / scores.length
+        );
         highestScore = Math.max(...scores);
         lowestScore = Math.min(...scores);
       }
@@ -1942,15 +2033,22 @@ const getContentDetails = async (req, res) => {
       failedStudents,
       inProgressStudents,
       notStartedStudents,
-      completionRate: totalStudents > 0 ? Math.round((completedStudents / totalStudents) * 100) : 0,
+      completionRate:
+        totalStudents > 0
+          ? Math.round((completedStudents / totalStudents) * 100)
+          : 0,
       averageGrade,
       passRate,
       averageScore,
       highestScore,
       lowestScore,
-      averageTimeSpent: totalStudents > 0 ? Math.round(
-        studentProgress.reduce((sum, s) => sum + s.timeSpent, 0) / totalStudents
-      ) : 0,
+      averageTimeSpent:
+        totalStudents > 0
+          ? Math.round(
+              studentProgress.reduce((sum, s) => sum + s.timeSpent, 0) /
+                totalStudents
+            )
+          : 0,
       totalAttempts: studentProgress.reduce((sum, s) => sum + s.attempts, 0),
       totalPoints: studentProgress.reduce((sum, s) => sum + s.totalPoints, 0),
     };
@@ -2007,7 +2105,7 @@ const deleteTopic = async (req, res) => {
     if (!topic) {
       return res.status(404).json({
         success: false,
-        message: 'Topic not found'
+        message: 'Topic not found',
       });
     }
 
@@ -2021,13 +2119,13 @@ const deleteTopic = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Topic deleted successfully!'
+      message: 'Topic deleted successfully!',
     });
   } catch (error) {
     console.error('Error deleting topic:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error deleting topic'
+      message: 'Error deleting topic',
     });
   }
 };
@@ -2089,7 +2187,12 @@ const addTopicContent = async (req, res) => {
       type,
       title: title.trim(),
       description: description ? description.trim() : '',
-      content: (type === 'quiz' || type === 'homework') ? '' : (content ? content.trim() : ''),
+      content:
+        type === 'quiz' || type === 'homework'
+          ? ''
+          : content
+          ? content.trim()
+          : '',
       duration: duration ? parseInt(duration) : 0,
       isRequired: isRequired === 'on',
       order: order ? parseInt(order) : contentCount + 1,
@@ -2101,7 +2204,10 @@ const addTopicContent = async (req, res) => {
     // Handle Quiz content
     if (type === 'quiz') {
       if (!questionBank || !selectedQuestions) {
-        req.flash('error_msg', 'Question bank and selected questions are required for quiz content');
+        req.flash(
+          'error_msg',
+          'Question bank and selected questions are required for quiz content'
+        );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
 
@@ -2114,23 +2220,31 @@ const addTopicContent = async (req, res) => {
       // Parse selected questions
       let selectedQuestionsArray = [];
       if (typeof selectedQuestions === 'string') {
-        selectedQuestionsArray = selectedQuestions.split(',').map(q => q.trim()).filter(q => q);
+        selectedQuestionsArray = selectedQuestions
+          .split(',')
+          .map((q) => q.trim())
+          .filter((q) => q);
       } else if (Array.isArray(selectedQuestions)) {
-        selectedQuestionsArray = selectedQuestions.filter(q => q);
+        selectedQuestionsArray = selectedQuestions.filter((q) => q);
       }
 
       if (selectedQuestionsArray.length === 0) {
-        req.flash('error_msg', 'Please select at least one question for the quiz');
+        req.flash(
+          'error_msg',
+          'Please select at least one question for the quiz'
+        );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
 
       // Add quiz-specific fields to contentItem
       contentItem.questionBank = questionBank;
-      contentItem.selectedQuestions = selectedQuestionsArray.map((questionId, index) => ({
-        question: questionId,
-        points: 1,
-        order: index
-      }));
+      contentItem.selectedQuestions = selectedQuestionsArray.map(
+        (questionId, index) => ({
+          question: questionId,
+          points: 1,
+          order: index,
+        })
+      );
       contentItem.quizSettings = {
         duration: quizDuration ? parseInt(quizDuration) : 30,
         passingScore: quizPassingScore ? parseInt(quizPassingScore) : 60,
@@ -2139,7 +2253,7 @@ const addTopicContent = async (req, res) => {
         shuffleOptions: quizShuffleOptions === 'on',
         showCorrectAnswers: quizShowCorrectAnswers === 'on',
         showResults: quizShowResults === 'on',
-        instructions: quizInstructions ? quizInstructions.trim() : ''
+        instructions: quizInstructions ? quizInstructions.trim() : '',
       };
       contentItem.duration = quizDuration ? parseInt(quizDuration) : 30;
       contentItem.completionCriteria = 'pass_quiz';
@@ -2148,7 +2262,10 @@ const addTopicContent = async (req, res) => {
     // Handle Homework content
     if (type === 'homework') {
       if (!questionBank || !selectedQuestions) {
-        req.flash('error_msg', 'Question bank and selected questions are required for homework content');
+        req.flash(
+          'error_msg',
+          'Question bank and selected questions are required for homework content'
+        );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
 
@@ -2161,31 +2278,41 @@ const addTopicContent = async (req, res) => {
       // Parse selected questions
       let selectedQuestionsArray = [];
       if (typeof selectedQuestions === 'string') {
-        selectedQuestionsArray = selectedQuestions.split(',').map(q => q.trim()).filter(q => q);
+        selectedQuestionsArray = selectedQuestions
+          .split(',')
+          .map((q) => q.trim())
+          .filter((q) => q);
       } else if (Array.isArray(selectedQuestions)) {
-        selectedQuestionsArray = selectedQuestions.filter(q => q);
+        selectedQuestionsArray = selectedQuestions.filter((q) => q);
       }
 
       if (selectedQuestionsArray.length === 0) {
-        req.flash('error_msg', 'Please select at least one question for the homework');
+        req.flash(
+          'error_msg',
+          'Please select at least one question for the homework'
+        );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
 
       // Add homework-specific fields to contentItem
       contentItem.questionBank = questionBank;
-      contentItem.selectedQuestions = selectedQuestionsArray.map((questionId, index) => ({
-        question: questionId,
-        points: 1,
-        order: index
-      }));
+      contentItem.selectedQuestions = selectedQuestionsArray.map(
+        (questionId, index) => ({
+          question: questionId,
+          points: 1,
+          order: index,
+        })
+      );
       contentItem.homeworkSettings = {
         passingCriteria: 'pass',
-        passingScore: homeworkPassingScore ? parseInt(homeworkPassingScore) : 60,
+        passingScore: homeworkPassingScore
+          ? parseInt(homeworkPassingScore)
+          : 60,
         maxAttempts: homeworkMaxAttempts ? parseInt(homeworkMaxAttempts) : 1,
         shuffleQuestions: homeworkShuffleQuestions === 'on',
         shuffleOptions: homeworkShuffleOptions === 'on',
         showCorrectAnswers: homeworkShowCorrectAnswers === 'on',
-        instructions: homeworkInstructions ? homeworkInstructions.trim() : ''
+        instructions: homeworkInstructions ? homeworkInstructions.trim() : '',
       };
       contentItem.duration = 0; // No duration for homework
       contentItem.completionCriteria = 'pass_quiz';
@@ -2266,7 +2393,7 @@ const deleteTopicContent = async (req, res) => {
     if (!topic) {
       return res.status(404).json({
         success: false,
-        message: 'Topic not found'
+        message: 'Topic not found',
       });
     }
 
@@ -2275,13 +2402,13 @@ const deleteTopicContent = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Content deleted successfully!'
+      message: 'Content deleted successfully!',
     });
   } catch (error) {
     console.error('Error deleting content:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error deleting content'
+      message: 'Error deleting content',
     });
   }
 };
@@ -2427,39 +2554,45 @@ const getOrderDetails = async (req, res) => {
       )
       .populate({
         path: 'items.item',
-        select: 'title courseCode bundleCode thumbnail description',
-        populate: [
-          {
-            path: 'courses',
-            select: 'title thumbnail',
-            model: 'Course'
-          },
-          {
-            path: 'bundle',
-            select: 'title thumbnail',
-            model: 'BundleCourse'
-          }
-        ]
-      })
-      .lean();
+        select: 'title courseCode bundleCode thumbnail description courses',
+      });
 
     if (!order) {
       req.flash('error_msg', 'Order not found');
       return res.redirect('/admin/orders');
     }
 
+    // If we need to populate courses for bundle items, do it separately
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        if (item.itemType === 'bundle' && item.item) {
+          // Populate courses for bundle items
+          await Purchase.populate(order, {
+            path: 'items.item.courses',
+            select: 'title thumbnail',
+            model: 'Course',
+          });
+          break; // Only need to do this once
+        }
+      }
+    }
+
     // Compute detailed item summaries with thumbnails and codes
     const itemsSummary = order.items.map((it) => {
       // Extract item details
       const itemDetails = it.item || {};
-      
+
       // Handle thumbnails based on item type
       let thumbnail = null;
-      
+
       if (it.itemType === 'bundle') {
         // For bundles, use bundle thumbnail first, then first course thumbnail as fallback
         thumbnail = itemDetails.thumbnail;
-        if (!thumbnail && itemDetails.courses && itemDetails.courses.length > 0) {
+        if (
+          !thumbnail &&
+          itemDetails.courses &&
+          itemDetails.courses.length > 0
+        ) {
           thumbnail = itemDetails.courses[0].thumbnail;
         }
       } else if (it.itemType === 'course') {
@@ -2469,7 +2602,7 @@ const getOrderDetails = async (req, res) => {
         // For quizzes, use quiz thumbnail or default
         thumbnail = itemDetails.thumbnail;
       }
-      
+
       return {
         title: it.title,
         type: it.itemType,
@@ -2482,7 +2615,6 @@ const getOrderDetails = async (req, res) => {
         bundleCode: itemDetails.bundleCode || null,
         description: itemDetails.description || null,
         courses: itemDetails.courses || [],
-        bundle: itemDetails.bundle || null,
       };
     });
 
@@ -2547,14 +2679,14 @@ const generateInvoice = async (req, res) => {
           {
             path: 'courses',
             select: 'title thumbnail',
-            model: 'Course'
+            model: 'Course',
           },
           {
             path: 'bundle',
             select: 'title thumbnail',
-            model: 'BundleCourse'
-          }
-        ]
+            model: 'BundleCourse',
+          },
+        ],
       })
       .lean();
 
@@ -2566,14 +2698,18 @@ const generateInvoice = async (req, res) => {
     // Compute detailed item summaries with thumbnails and codes
     const itemsSummary = order.items.map((it) => {
       const itemDetails = it.item || {};
-      
+
       // Handle thumbnails based on item type
       let thumbnail = null;
-      
+
       if (it.itemType === 'bundle') {
         // For bundles, use bundle thumbnail first, then first course thumbnail as fallback
         thumbnail = itemDetails.thumbnail;
-        if (!thumbnail && itemDetails.courses && itemDetails.courses.length > 0) {
+        if (
+          !thumbnail &&
+          itemDetails.courses &&
+          itemDetails.courses.length > 0
+        ) {
           thumbnail = itemDetails.courses[0].thumbnail;
         }
       } else if (it.itemType === 'course') {
@@ -2583,7 +2719,7 @@ const generateInvoice = async (req, res) => {
         // For quizzes, use quiz thumbnail or default
         thumbnail = itemDetails.thumbnail;
       }
-      
+
       return {
         title: it.title,
         type: it.itemType,
@@ -2616,7 +2752,7 @@ const generateInvoice = async (req, res) => {
       phone: '+1 (555) 123-4567',
       email: 'info@elkably.com',
       website: 'www.elkably.com',
-      logo: '/images/logo.png'
+      logo: '/images/logo.png',
     };
 
     return res.render('admin/invoice', {
@@ -3237,7 +3373,8 @@ const createBundle = async (req, res) => {
       description,
       shortDescription,
       year,
-      subject = 'All Subjects',
+      subject,
+      testType,
       price,
       discountPrice,
       status = 'draft',
@@ -3256,7 +3393,8 @@ const createBundle = async (req, res) => {
       description: description.trim(),
       shortDescription: shortDescription.trim(),
       year,
-      subject: subject.trim(),
+      subject,
+      testType,
       price: parseFloat(price),
       discountPrice: discountPrice ? parseFloat(discountPrice) : null,
       status,
@@ -3403,6 +3541,8 @@ const createCourseForBundle = async (req, res) => {
       description,
       shortDescription,
       level,
+      courseType,
+      subject,
       category,
       duration,
       price = 0,
@@ -3421,7 +3561,8 @@ const createCourseForBundle = async (req, res) => {
       description: description.trim(),
       shortDescription: shortDescription.trim(),
       level,
-      subject: bundle.subject,
+      courseType,
+      subject,
       year: bundle.year, // Use bundle's year
       category: category.trim(),
       duration: parseInt(duration),
@@ -3520,6 +3661,7 @@ const updateBundle = async (req, res) => {
       description,
       shortDescription,
       year,
+      testType,
       subject,
       price,
       discountPrice,
@@ -3528,15 +3670,16 @@ const updateBundle = async (req, res) => {
     } = req.body;
 
     // Check if request expects JSON response (AJAX request)
-    const isAjaxRequest = req.headers['x-requested-with'] === 'XMLHttpRequest' || 
-                         req.headers['accept']?.includes('application/json');
+    const isAjaxRequest =
+      req.headers['x-requested-with'] === 'XMLHttpRequest' ||
+      req.headers['accept']?.includes('application/json');
 
     const bundle = await BundleCourse.findOne({ bundleCode });
     if (!bundle) {
       if (isAjaxRequest) {
         return res.status(404).json({
           success: false,
-          message: 'Bundle not found'
+          message: 'Bundle not found',
         });
       }
       req.flash('error_msg', 'Bundle not found');
@@ -3547,6 +3690,7 @@ const updateBundle = async (req, res) => {
     bundle.description = description.trim();
     bundle.shortDescription = shortDescription.trim();
     bundle.year = year;
+    bundle.testType = testType;
     bundle.subject = subject.trim();
     bundle.price = parseFloat(price);
     bundle.discountPrice = discountPrice ? parseFloat(discountPrice) : null;
@@ -3559,7 +3703,7 @@ const updateBundle = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'Bundle updated successfully!',
-        bundle: bundle
+        bundle: bundle,
       });
     }
 
@@ -3569,8 +3713,9 @@ const updateBundle = async (req, res) => {
     console.error('Error updating bundle:', error);
 
     // Check if request expects JSON response (AJAX request)
-    const isAjaxRequest = req.headers['x-requested-with'] === 'XMLHttpRequest' || 
-                         req.headers['accept']?.includes('application/json');
+    const isAjaxRequest =
+      req.headers['x-requested-with'] === 'XMLHttpRequest' ||
+      req.headers['accept']?.includes('application/json');
 
     if (isAjaxRequest) {
       if (error.name === 'ValidationError') {
@@ -3580,12 +3725,12 @@ const updateBundle = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: `Validation Error: ${validationErrors.join(', ')}`,
-          errors: validationErrors
+          errors: validationErrors,
         });
       } else {
         return res.status(500).json({
           success: false,
-          message: 'Error updating bundle. Please try again.'
+          message: 'Error updating bundle. Please try again.',
         });
       }
     }
@@ -3616,7 +3761,7 @@ const deleteBundle = async (req, res) => {
     if (!bundle) {
       return res.status(404).json({
         success: false,
-        message: 'Bundle not found'
+        message: 'Bundle not found',
       });
     }
 
@@ -3628,13 +3773,13 @@ const deleteBundle = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Bundle deleted successfully!'
+      message: 'Bundle deleted successfully!',
     });
   } catch (error) {
     console.error('Error deleting bundle:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error deleting bundle'
+      message: 'Error deleting bundle',
     });
   }
 };
@@ -4741,22 +4886,28 @@ const toggleStudentStatus = async (req, res) => {
 const exportStudentData = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const { format = 'csv' } = req.query;
 
-    // If we have a specific studentId, export just that student
+    // If we have a specific studentId, export just that student with comprehensive details
     if (studentId) {
       const student = await User.findById(studentId)
         .populate({
           path: 'enrolledCourses.course',
-          select: 'title courseCode',
+          populate: {
+            path: 'topics',
+            model: 'Topic',
+          },
         })
         .populate({
           path: 'purchasedBundles.bundle',
-          select: 'title bundleCode',
+          select: 'title bundleCode price courses',
+          populate: {
+            path: 'courses',
+            select: 'title courseCode',
+          },
         })
         .populate({
           path: 'quizAttempts.quiz',
-          select: 'title code',
+          select: 'title code course passingScore',
         })
         .select('-password')
         .lean();
@@ -4766,109 +4917,546 @@ const exportStudentData = async (req, res) => {
         return res.redirect('/admin/students');
       }
 
-      // Get detailed analytics data
-      const progressData = await Progress.find({ student: studentId })
-        .populate('course', 'title courseCode')
-        .populate('topic', 'title')
-        .sort({ timestamp: -1 })
-        .lean();
+      // Get comprehensive course progress with topics and content
+      const comprehensiveCourseProgress = await Promise.all(
+        (student.enrolledCourses || []).map(async (enrollment) => {
+          const course = enrollment.course;
+          if (!course) return null;
 
-      // Generate comprehensive export data including analytics
-      const exportData = {
-        personalInfo: {
-          studentCode: student.studentCode,
-          firstName: student.firstName,
-          lastName: student.lastName,
-          email: student.studentEmail,
-          username: student.username,
-          grade: student.grade,
-          schoolName: student.schoolName,
-          phone: student.studentNumber,
-          parentPhone: student.parentNumber,
-          isActive: student.isActive,
-          enrollmentDate: student.createdAt,
-          lastLogin: student.lastLogin,
-        },
-        courseProgress:
-          student.enrolledCourses?.map((ec) => ({
-            courseTitle: ec.course?.title || 'Unknown Course',
-            courseCode: ec.course?.courseCode || 'N/A',
-            enrollmentDate: ec.enrolledAt,
-            progress: ec.progress || 0,
-            status: ec.status || 'not_started',
-            lastAccessed: ec.lastAccessed,
-          })) || [],
-        quizPerformance:
-          student.quizAttempts?.map((qa) => ({
-            quizTitle: qa.quiz?.title || 'Quiz',
-            code: qa.quiz?.code || 'N/A',
-            bestScore: Math.max(...qa.attempts.map((a) => a.score || 0), 0),
-            averageScore:
-              qa.attempts.length > 0
-                ? Math.round(
-                    qa.attempts.reduce((sum, a) => sum + (a.score || 0), 0) /
-                      qa.attempts.length
-                  )
-                : 0,
-            attempts: qa.attempts.length,
-            passRate:
-              qa.attempts.length > 0
-                ? Math.round(
-                    (qa.attempts.filter(
-                      (a) => (a.score || 0) >= (qa.quiz?.passingScore || 60)
-                    ).length /
-                      qa.attempts.length) *
-                      100
-                  )
-                : 0,
-          })) || [],
-        purchaseHistory:
-          student.purchasedBundles?.map((pb) => ({
-            bundleTitle: pb.bundle?.title || 'Unknown Bundle',
-            bundleCode: pb.bundle?.bundleCode || 'N/A',
-            price: pb.price || 0,
-            purchaseDate: pb.purchasedAt,
-            expiryDate: pb.expiresAt,
-            status: pb.status || 'unknown',
-          })) || [],
-        analytics: {
-          totalTimeSpent: calculateTotalTimeSpent(student, progressData),
-          averageQuizScore: calculateAverageQuizScore(student),
-          completionRate:
-            student.enrolledCourses?.length > 0
-              ? Math.round(
-                  student.enrolledCourses.reduce(
-                    (sum, ec) => sum + (ec.progress || 0),
-                    0
-                  ) / student.enrolledCourses.length
-                )
-              : 0,
-          engagementScore: calculateEngagementScore(student, progressData),
-        },
-      };
+          // Get progress data for this course using correct field name
+          const progressData = await Progress.find({
+            student: studentId, // Changed from 'user' to 'student'
+            course: course._id,
+          })
+            .populate('topic')
+            .lean();
 
-      if (format === 'csv') {
-        // Generate CSV from the comprehensive data
-        const csvData = generateSingleStudentCSV(exportData);
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader(
-          'Content-Disposition',
-          `attachment; filename=${student.studentCode}-export.csv`
-        );
-        return res.send(csvData);
-      } else if (format === 'json') {
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader(
-          'Content-Disposition',
-          `attachment; filename=${student.studentCode}-export.json`
-        );
-        return res.json(exportData);
-      } else if (format === 'pdf') {
-        req.flash('info_msg', 'PDF export not yet implemented');
-        return res.redirect(`/admin/students/${studentId}`);
+          // Get detailed topics with content
+          const topics = await Promise.all(
+            (course.topics || []).map(async (topic) => {
+              const topicProgress = progressData.filter(
+                (p) =>
+                  p.topic && p.topic._id.toString() === topic._id.toString()
+              );
+
+              const contentProgress = (topic.content || []).map((content) => {
+                const contentProgressData = topicProgress.find(
+                  (p) =>
+                    p.content && p.content.toString() === content._id.toString()
+                );
+
+                // Also check user's embedded contentProgress for this content
+                const userContentProgress = enrollment.contentProgress?.find(
+                  (cp) =>
+                    cp.contentId &&
+                    cp.contentId.toString() === content._id.toString()
+                );
+
+                // Determine actual status from progress data or user data
+                let actualStatus = 'Not Started';
+                let actualScore = null;
+                let actualAttempts = 0;
+                let actualTimeSpent = 0;
+
+                if (contentProgressData) {
+                  actualStatus = contentProgressData.status || 'Not Started';
+                  actualScore = contentProgressData.score;
+                  actualAttempts = contentProgressData.attempts || 0;
+                  actualTimeSpent = contentProgressData.timeSpent || 0;
+                } else if (userContentProgress) {
+                  const statusMap = {
+                    not_started: 'Not Started',
+                    in_progress: 'In Progress',
+                    completed: 'Completed',
+                    failed: 'Failed',
+                  };
+                  actualStatus =
+                    statusMap[userContentProgress.completionStatus] ||
+                    'Not Started';
+                  actualScore = userContentProgress.score;
+                  actualAttempts = userContentProgress.attempts || 0;
+                  actualTimeSpent = userContentProgress.timeSpent || 0;
+                }
+
+                const contentResult = {
+                  title: content.title || 'Untitled Content',
+                  contentType: content.type || content.contentType || 'Unknown', // Fix content type detection
+                  status: actualStatus,
+                  score: actualScore,
+                  attempts: actualAttempts,
+                  timeSpent: actualTimeSpent,
+                  lastAccessed:
+                    contentProgressData?.lastAccessed ||
+                    userContentProgress?.lastAccessed ||
+                    null,
+                  // Add question count for quiz/homework content
+                  questionCount:
+                    ['quiz', 'homework'].includes(content.type) &&
+                    content.selectedQuestions
+                      ? content.selectedQuestions.length
+                      : null,
+                };
+
+                // Debug content type detection
+                if (contentResult.contentType === 'Unknown') {
+                  console.log(
+                    `Unknown content type for: ${content.title}, Available fields:`,
+                    Object.keys(content)
+                  );
+                  console.log(
+                    'Content object:',
+                    JSON.stringify(content, null, 2)
+                  );
+                }
+
+                return contentResult;
+              });
+
+              const completedContent = contentProgress.filter(
+                (c) => c.status === 'Completed'
+              ).length;
+              const topicProgressPercentage =
+                (topic.content || []).length > 0
+                  ? Math.round((completedContent / topic.content.length) * 100)
+                  : 0;
+
+              return {
+                title: topic.title,
+                order: topic.order,
+                progress: topicProgressPercentage,
+                status:
+                  topicProgressPercentage === 100
+                    ? 'Completed'
+                    : topicProgressPercentage > 0
+                    ? 'In Progress'
+                    : 'Not Started',
+                totalContent: (topic.content || []).length,
+                completedContent,
+                timeSpent: topicProgress.reduce(
+                  (sum, p) => sum + (p.timeSpent || 0),
+                  0
+                ),
+                lastAccessed:
+                  topicProgress.length > 0
+                    ? Math.max(
+                        ...topicProgress.map(
+                          (p) => new Date(p.lastAccessed || 0)
+                        )
+                      )
+                    : null,
+                content: contentProgress,
+              };
+            })
+          );
+
+          const completedTopics = topics.filter(
+            (t) => t.status === 'Completed'
+          ).length;
+          const courseProgress =
+            topics.length > 0
+              ? Math.round((completedTopics / topics.length) * 100)
+              : 0;
+
+          // Determine actual course status based on progress and enrollment data
+          let courseStatus = 'Not Started';
+          if (progressData.length > 0 || enrollment.progress > 0) {
+            if (courseProgress === 100) {
+              courseStatus = 'Completed';
+            } else if (courseProgress > 0 || progressData.length > 0) {
+              courseStatus = 'In Progress';
+            }
+          }
+
+          // Override with user's enrollment status if available
+          if (enrollment.status) {
+            const statusMap = {
+              active: courseProgress > 0 ? 'In Progress' : 'Enrolled',
+              completed: 'Completed',
+              paused: 'Paused',
+              dropped: 'Dropped',
+            };
+            courseStatus = statusMap[enrollment.status] || courseStatus;
+          }
+
+          console.log(
+            `Course ${course.title}: Progress Data Count: ${progressData.length}, Course Progress: ${courseProgress}%, Enrollment Status: ${enrollment.status}, Final Status: ${courseStatus}`
+          );
+
+          return {
+            courseTitle: course.title,
+            courseCode: course.courseCode,
+            enrollmentDate: enrollment.enrollmentDate || enrollment.enrolledAt,
+            progress: Math.max(courseProgress, enrollment.progress || 0), // Use the higher value
+            status: courseStatus,
+            timeSpent: progressData.reduce(
+              (sum, p) => sum + (p.timeSpent || 0),
+              0
+            ),
+            lastAccessed:
+              Math.max(
+                progressData.length > 0
+                  ? Math.max(
+                      ...progressData.map((p) => new Date(p.lastAccessed || 0))
+                    )
+                  : 0,
+                enrollment.lastAccessed ? new Date(enrollment.lastAccessed) : 0
+              ) || null,
+            completedTopics,
+            totalTopics: topics.length,
+            completionRate: Math.max(courseProgress, enrollment.progress || 0),
+            topics,
+          };
+        })
+      );
+
+      // Get comprehensive quiz performance
+      const quizAttempts = student.quizAttempts || [];
+      const comprehensiveQuizPerformance = [];
+
+      // Group attempts by quiz
+      const quizGroups = {};
+      quizAttempts.forEach((quizAttempt) => {
+        if (quizAttempt.quiz) {
+          const quizId =
+            quizAttempt.quiz._id?.toString() || quizAttempt.quiz.toString();
+          if (!quizGroups[quizId]) {
+            quizGroups[quizId] = {
+              quiz: quizAttempt.quiz,
+              attempts: [],
+            };
+          }
+          if (quizAttempt.attempts) {
+            quizGroups[quizId].attempts.push(...quizAttempt.attempts);
+          }
+        }
+      });
+
+      // Process each quiz group
+      for (const [quizId, quizData] of Object.entries(quizGroups)) {
+        try {
+          const quiz = quizData.quiz;
+          const attempts = quizData.attempts;
+
+          if (attempts.length === 0) continue;
+
+          // Get quiz details to get question count
+          const quizDetails = await Quiz.findById(quizId).lean();
+          const course = quiz.course
+            ? await Course.findById(quiz.course).lean()
+            : null;
+
+          const scores = attempts.map((a) => a.score || 0);
+          const bestScore = Math.max(...scores);
+          const averageScore =
+            scores.reduce((sum, score) => sum + score, 0) / scores.length;
+          const lowestScore = Math.min(...scores);
+          const totalTimeSpent = attempts.reduce(
+            (sum, a) => sum + (a.timeSpent || 0),
+            0
+          );
+          const passedAttempts = attempts.filter(
+            (a) =>
+              a.status === 'passed' ||
+              (a.score || 0) >=
+                (quiz.passingScore || quizDetails?.passingScore || 60)
+          ).length;
+
+          // Calculate total questions from quiz details
+          const totalQuestions =
+            quizDetails?.selectedQuestions?.length ||
+            quiz.selectedQuestions?.length ||
+            attempts[0]?.totalQuestions ||
+            0;
+
+          comprehensiveQuizPerformance.push({
+            quizTitle: quiz.title || 'Unknown Quiz',
+            code: quiz.code || 'N/A',
+            courseName: course?.title || 'Unknown Course',
+            bestScore,
+            averageScore: Math.round(averageScore),
+            lowestScore,
+            totalAttempts: attempts.length,
+            passRate: Math.round((passedAttempts / attempts.length) * 100),
+            totalTimeSpent,
+            averageTimeSpent: Math.round(totalTimeSpent / attempts.length),
+            totalQuestions, // Add total questions
+            attempts: attempts.map((attempt, index) => ({
+              attemptNumber: index + 1,
+              createdAt: attempt.createdAt,
+              score: attempt.score || 0,
+              maxScore: attempt.maxScore || 100,
+              percentage:
+                attempt.percentage ||
+                Math.round(
+                  ((attempt.score || 0) / (attempt.maxScore || 100)) * 100
+                ),
+              timeSpent: attempt.timeSpent || 0,
+              status: attempt.status || 'Unknown',
+              correctAnswers: attempt.correctAnswers || 0,
+              totalQuestions: attempt.totalQuestions || totalQuestions,
+              accuracy:
+                (attempt.totalQuestions || totalQuestions) > 0
+                  ? Math.round(
+                      ((attempt.correctAnswers || 0) /
+                        (attempt.totalQuestions || totalQuestions)) *
+                        100
+                    )
+                  : 0,
+              questionDetails: attempt.questionDetails || [],
+            })),
+          });
+        } catch (error) {
+          console.error('Error processing quiz data:', error);
+        }
       }
 
-      return res.redirect(`/admin/students/${studentId}`);
+      // Get comprehensive purchase history
+      const comprehensivePurchaseHistory = await Promise.all(
+        (student.purchasedBundles || []).map(async (purchase) => {
+          const bundle = purchase.bundle;
+          if (!bundle) return null;
+
+          // Get courses included in this bundle
+          const includedCourses = await Promise.all(
+            (bundle.courses || []).map(async (courseRef) => {
+              const courseId = courseRef._id || courseRef;
+              const course = courseRef.title
+                ? courseRef
+                : await Course.findById(courseId).lean();
+              const enrollment = student.enrolledCourses?.find(
+                (e) =>
+                  e.course && e.course._id.toString() === courseId.toString()
+              );
+
+              const progressData = await Progress.find({
+                student: studentId,
+                course: courseId,
+              }).lean();
+
+              const progress =
+                progressData.length > 0
+                  ? Math.round(
+                      progressData.reduce(
+                        (sum, p) => sum + (p.progress || 0),
+                        0
+                      ) / progressData.length
+                    )
+                  : 0;
+
+              return {
+                title: course?.title || 'Unknown Course',
+                courseCode: course?.courseCode || 'N/A',
+                enrollmentDate:
+                  enrollment?.enrollmentDate || enrollment?.enrolledAt || null,
+                progress,
+                status:
+                  progress === 100
+                    ? 'Completed'
+                    : progress > 0
+                    ? 'In Progress'
+                    : 'Not Started',
+                timeSpent: progressData.reduce(
+                  (sum, p) => sum + (p.timeSpent || 0),
+                  0
+                ),
+                lastAccessed:
+                  progressData.length > 0
+                    ? Math.max(
+                        ...progressData.map(
+                          (p) => new Date(p.lastAccessed || 0)
+                        )
+                      )
+                    : null,
+              };
+            })
+          );
+
+          const bundleProgress =
+            includedCourses.length > 0
+              ? Math.round(
+                  includedCourses.reduce(
+                    (sum, course) => sum + course.progress,
+                    0
+                  ) / includedCourses.length
+                )
+              : 0;
+
+          return {
+            bundleTitle: bundle.title,
+            bundleCode: bundle.bundleCode,
+            orderNumber: purchase.orderNumber,
+            price: purchase.price || bundle.price,
+            purchaseDate: purchase.purchaseDate || purchase.purchasedAt,
+            expiryDate: purchase.expiryDate || purchase.expiresAt,
+            status: purchase.status || 'Active',
+            paymentMethod: purchase.paymentMethod || 'Unknown',
+            usagePercentage: bundleProgress,
+            includedCourses: includedCourses.filter(
+              (course) => course !== null
+            ),
+          };
+        })
+      );
+
+      // Generate activity timeline
+      const activityTimeline = [];
+
+      // Add login activities (if loginHistory exists)
+      if (student.loginHistory) {
+        student.loginHistory.forEach((login) => {
+          activityTimeline.push({
+            timestamp: login.timestamp,
+            activityType: 'Login',
+            description: 'User logged into the system',
+            duration: login.duration || 0,
+            status: 'Completed',
+            details: `IP: ${login.ipAddress || 'Unknown'}`,
+          });
+        });
+      }
+
+      // Add progress activities
+      const allProgressData = await Progress.find({ student: studentId })
+        .populate('course')
+        .populate('topic')
+        .lean();
+
+      allProgressData.forEach((progress) => {
+        activityTimeline.push({
+          timestamp: progress.lastAccessed || progress.createdAt,
+          activityType: 'Content Access',
+          description: `Accessed content in ${
+            progress.topic?.title || 'Unknown Topic'
+          }`,
+          courseOrQuiz: progress.course?.title || 'Unknown Course',
+          duration: progress.timeSpent || 0,
+          scoreOrProgress: `${progress.progress || 0}%`,
+          status: progress.status || 'Unknown',
+          details: `Topic: ${progress.topic?.title || 'Unknown'}`,
+        });
+      });
+
+      // Add quiz activities
+      quizAttempts.forEach((quizAttempt) => {
+        if (quizAttempt.attempts) {
+          quizAttempt.attempts.forEach((attempt) => {
+            activityTimeline.push({
+              timestamp: attempt.createdAt,
+              activityType: 'Quiz Attempt',
+              description: `Attempted quiz: ${
+                quizAttempt.quiz?.title || 'Unknown Quiz'
+              }`,
+              courseOrQuiz: quizAttempt.quiz?.title || 'Quiz',
+              duration: attempt.timeSpent || 0,
+              scoreOrProgress: `${attempt.score || 0}%`,
+              status: attempt.status || 'Unknown',
+              details: `Score: ${attempt.score || 0}/${
+                attempt.maxScore || 100
+              }`,
+            });
+          });
+        }
+      });
+
+      // Sort activities by timestamp
+      activityTimeline.sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
+
+      // Generate engagement analytics
+      const engagementAnalytics = {
+        totalLoginDays: student.loginHistory?.length || 0,
+        avgSessionDuration:
+          student.loginHistory?.length > 0
+            ? student.loginHistory.reduce(
+                (sum, session) => sum + (session.duration || 0),
+                0
+              ) / student.loginHistory.length
+            : 0,
+        engagementScore: calculateEngagementScore(student, allProgressData),
+        activityStreak: calculateActivityStreak(activityTimeline),
+        contentInteractionRate: calculateContentInteractionRate(
+          student,
+          allProgressData
+        ),
+        quizParticipationRate: calculateQuizParticipationRate(student),
+        weeklyPattern: calculateWeeklyPattern(activityTimeline),
+      };
+
+      // Prepare comprehensive export data
+      const studentData = {
+        ...student,
+        comprehensiveCourseProgress: comprehensiveCourseProgress.filter(
+          (course) => course !== null
+        ),
+        comprehensiveQuizPerformance,
+        comprehensivePurchaseHistory: comprehensivePurchaseHistory.filter(
+          (purchase) => purchase !== null
+        ),
+        activityTimeline,
+        engagementAnalytics,
+        // Calculate summary stats
+        totalTimeSpent: calculateTotalTimeSpent(student, allProgressData),
+        averageQuizScore: calculateAverageQuizScore(student),
+        completionRate:
+          comprehensiveCourseProgress.length > 0
+            ? Math.round(
+                comprehensiveCourseProgress.reduce(
+                  (sum, course) => sum + course.progress,
+                  0
+                ) / comprehensiveCourseProgress.length
+              )
+            : 0,
+        engagementScore: engagementAnalytics.engagementScore,
+
+        // Legacy format for backward compatibility
+        courseProgress: comprehensiveCourseProgress.map((course) => ({
+          courseTitle: course.courseTitle,
+          courseCode: course.courseCode,
+          enrollmentDate: course.enrollmentDate,
+          progress: course.progress,
+          status: course.status,
+          lastAccessed: course.lastAccessed,
+        })),
+
+        quizPerformance: comprehensiveQuizPerformance.map((quiz) => ({
+          quizTitle: quiz.quizTitle,
+          code: quiz.code,
+          bestScore: quiz.bestScore,
+          averageScore: quiz.averageScore,
+          attempts: quiz.totalAttempts,
+          passRate: quiz.passRate,
+        })),
+
+        purchaseHistory: comprehensivePurchaseHistory.map((purchase) => ({
+          bundleTitle: purchase.bundleTitle,
+          bundleCode: purchase.bundleCode,
+          price: purchase.price,
+          purchaseDate: purchase.purchaseDate,
+          expiryDate: purchase.expiryDate,
+          status: purchase.status,
+        })),
+      };
+
+      const exporter = new ExcelExporter();
+      const workbook = await exporter.exportStudents([studentData], true);
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${
+        student.studentCode || student._id
+      }-comprehensive-report-${timestamp}.xlsx`;
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"`
+      );
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.send(buffer);
     }
 
     // For bulk export of multiple students
@@ -4887,24 +5475,50 @@ const exportStudentData = async (req, res) => {
       .select('-password')
       .lean();
 
-    if (format === 'csv') {
-      const csvData = generateComprehensiveStudentCSV(students);
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `students_comprehensive_export_${timestamp}.csv`;
-      
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      return res.send(csvData);
-    } else if (format === 'json') {
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `students_comprehensive_export_${timestamp}.json`;
-      
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      return res.json(students);
-    }
+    // Add analytics to each student
+    const studentsWithAnalytics = await Promise.all(
+      students.map(async (student) => {
+        const progressData = await Progress.find({ student: student._id })
+          .populate('course', 'title courseCode')
+          .populate('topic', 'title')
+          .sort({ timestamp: -1 })
+          .lean();
+
+        return {
+          ...student,
+          totalTimeSpent: calculateTotalTimeSpent(student, progressData),
+          averageQuizScore: calculateAverageQuizScore(student),
+          completionRate:
+            student.enrolledCourses?.length > 0
+              ? Math.round(
+                  student.enrolledCourses.reduce(
+                    (sum, ec) => sum + (ec.progress || 0),
+                    0
+                  ) / student.enrolledCourses.length
+                )
+              : 0,
+          engagementScore: calculateEngagementScore(student, progressData),
+        };
+      })
+    );
+
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.exportStudents(
+      studentsWithAnalytics,
+      false
+    );
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `students-comprehensive-report-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
   } catch (error) {
     console.error('Error exporting student data:', error);
     return res.status(500).json({ success: false, message: 'Export failed' });
@@ -4951,9 +5565,9 @@ const deleteStudent = async (req, res) => {
 
     // Validate studentId
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid student ID format' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid student ID format',
       });
     }
 
@@ -4966,9 +5580,9 @@ const deleteStudent = async (req, res) => {
 
     // Check if student is already deleted
     if (student.deletedAt) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Student has already been deleted' 
+      return res.status(400).json({
+        success: false,
+        message: 'Student has already been deleted',
       });
     }
 
@@ -4977,7 +5591,7 @@ const deleteStudent = async (req, res) => {
       id: student._id,
       name: `${student.firstName} ${student.lastName}`,
       email: student.studentEmail,
-      username: student.username
+      username: student.username,
     };
 
     // Soft delete by deactivating and marking as deleted
@@ -4987,13 +5601,16 @@ const deleteStudent = async (req, res) => {
     await student.save();
 
     // Log the action with detailed information
-    console.log(`Admin ${req.session.user?.username || 'unknown'} deleted student:`, {
-      studentId: studentInfo.id,
-      studentName: studentInfo.name,
-      studentEmail: studentInfo.email,
-      deletedAt: new Date().toISOString(),
-      deletedBy: req.session.user?.id || 'unknown'
-    });
+    console.log(
+      `Admin ${req.session.user?.username || 'unknown'} deleted student:`,
+      {
+        studentId: studentInfo.id,
+        studentName: studentInfo.name,
+        studentEmail: studentInfo.email,
+        deletedAt: new Date().toISOString(),
+        deletedBy: req.session.user?.id || 'unknown',
+      }
+    );
 
     return res.json({
       success: true,
@@ -5001,23 +5618,24 @@ const deleteStudent = async (req, res) => {
       deletedStudent: {
         id: studentInfo.id,
         name: studentInfo.name,
-        email: studentInfo.email
-      }
+        email: studentInfo.email,
+      },
     });
   } catch (error) {
     console.error('Error deleting student:', error);
-    
+
     // Handle specific database errors
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid student ID format' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid student ID format',
       });
     }
-    
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Failed to delete student. Please try again or contact support if the problem persists.' 
+
+    return res.status(500).json({
+      success: false,
+      message:
+        'Failed to delete student. Please try again or contact support if the problem persists.',
     });
   }
 };
@@ -5669,281 +6287,6 @@ const calculateEngagementScore = (student, progressData) => {
   return score;
 };
 
-// Generate CSV for a single student's detailed export
-const generateSingleStudentCSV = (exportData) => {
-  const {
-    personalInfo,
-    courseProgress,
-    quizPerformance,
-    purchaseHistory,
-    analytics,
-  } = exportData;
-
-  let csvRows = [];
-
-  // Personal Information Section
-  csvRows.push('PERSONAL INFORMATION');
-  csvRows.push(
-    'Student Code,First Name,Last Name,Email,Username,Grade,School,Phone,Parent Phone,Status,Enrollment Date,Last Login'
-  );
-  csvRows.push(
-    `"${personalInfo.studentCode}","${personalInfo.firstName}","${
-      personalInfo.lastName
-    }","${personalInfo.email}","${personalInfo.username}","${
-      personalInfo.grade
-    }","${personalInfo.schoolName}","${personalInfo.phone}","${
-      personalInfo.parentPhone
-    }","${personalInfo.isActive ? 'Active' : 'Inactive'}","${new Date(
-      personalInfo.enrollmentDate
-    ).toLocaleDateString()}","${
-      personalInfo.lastLogin
-        ? new Date(personalInfo.lastLogin).toLocaleDateString()
-        : 'Never'
-    }"`
-  );
-  csvRows.push('');
-
-  // Analytics Summary
-  csvRows.push('ANALYTICS SUMMARY');
-  csvRows.push(
-    'Total Time Spent (hours),Average Quiz Score,Completion Rate,Engagement Score'
-  );
-  csvRows.push(
-    `"${analytics.totalTimeSpent}","${analytics.averageQuizScore}%","${analytics.completionRate}%","${analytics.engagementScore}/100"`
-  );
-  csvRows.push('');
-
-  // Course Progress
-  if (courseProgress.length > 0) {
-    csvRows.push('COURSE PROGRESS');
-    csvRows.push(
-      'Course Title,Course Code,Enrollment Date,Progress,Status,Last Accessed'
-    );
-    courseProgress.forEach((course) => {
-      csvRows.push(
-        `"${course.courseTitle}","${course.courseCode}","${new Date(
-          course.enrollmentDate
-        ).toLocaleDateString()}","${course.progress}%","${course.status}","${
-          course.lastAccessed
-            ? new Date(course.lastAccessed).toLocaleDateString()
-            : 'N/A'
-        }"`
-      );
-    });
-    csvRows.push('');
-  }
-
-  // Quiz Performance
-  if (quizPerformance.length > 0) {
-    csvRows.push('QUIZ PERFORMANCE');
-    csvRows.push(
-      'Quiz Title,Quiz Code,Best Score,Average Score,Number of Attempts,Pass Rate'
-    );
-    quizPerformance.forEach((quiz) => {
-      csvRows.push(
-        `"${quiz.quizTitle}","${quiz.code}","${quiz.bestScore}%","${quiz.averageScore}%","${quiz.attempts}","${quiz.passRate}%"`
-      );
-    });
-    csvRows.push('');
-  }
-
-  // Purchase History
-  if (purchaseHistory.length > 0) {
-    csvRows.push('PURCHASE HISTORY');
-    csvRows.push(
-      'Bundle Title,Bundle Code,Price,Purchase Date,Expiry Date,Status'
-    );
-    purchaseHistory.forEach((purchase) => {
-      csvRows.push(
-        `"${purchase.bundleTitle}","${purchase.bundleCode}","$${
-          purchase.price
-        }","${new Date(purchase.purchaseDate).toLocaleDateString()}","${
-          purchase.expiryDate
-            ? new Date(purchase.expiryDate).toLocaleDateString()
-            : 'N/A'
-        }","${purchase.status}"`
-      );
-    });
-  }
-
-  return csvRows.join('\n');
-};
-
-const generateStudentCSV = (students) => {
-  const headers = [
-    'Student Code',
-    'First Name',
-    'Last Name',
-    'Email',
-    'Username',
-    'Grade',
-    'School',
-    'Status',
-    'Enrollment Date',
-    'Total Courses',
-    'Active Courses',
-    'Completed Courses',
-    'Total Bundles',
-  ];
-
-  const csvRows = [headers.join(',')];
-
-  students.forEach((student) => {
-    const row = [
-      student.studentCode,
-      student.firstName,
-      student.lastName,
-      student.studentEmail,
-      student.username,
-      student.grade,
-      student.schoolName,
-      student.isActive ? 'Active' : 'Inactive',
-      new Date(student.createdAt).toLocaleDateString(),
-      student.enrolledCourses ? student.enrolledCourses.length : 0,
-      student.enrolledCourses
-        ? student.enrolledCourses.filter((ec) => ec.status === 'active').length
-        : 0,
-      student.enrolledCourses
-        ? student.enrolledCourses.filter((ec) => ec.status === 'completed')
-            .length
-        : 0,
-      student.purchasedBundles ? student.purchasedBundles.length : 0,
-    ];
-
-    csvRows.push(row.map((field) => `"${field}"`).join(','));
-  });
-
-  return csvRows.join('\n');
-};
-
-// Enhanced comprehensive CSV generation
-const generateComprehensiveStudentCSV = (students) => {
-  const headers = [
-    'Student Code',
-    'First Name',
-    'Last Name',
-    'Email',
-    'Username',
-    'Grade',
-    'School Name',
-    'English Teacher',
-    'Phone Number',
-    'Parent Phone',
-    'Parent Country Code',
-    'Status',
-    'Enrollment Date',
-    'Last Login',
-    'Days Since Enrollment',
-    'Days Since Last Activity',
-    'Total Enrolled Courses',
-    'Active Courses',
-    'Completed Courses',
-    'Total Purchased Bundles',
-    'Active Bundles',
-    'Total Quiz Attempts',
-    'Average Quiz Score',
-    'Best Quiz Score',
-    'Overall Progress (%)',
-    'Total Time Spent (hours)',
-    'Engagement Score',
-    'Course Details',
-    'Bundle Details',
-    'Quiz Performance Details'
-  ];
-
-  const rows = students.map(student => {
-    const totalCourses = student.enrolledCourses?.length || 0;
-    const activeCourses = student.enrolledCourses?.filter(ec => ec.status === 'active').length || 0;
-    const completedCourses = student.enrolledCourses?.filter(ec => ec.progress >= 100).length || 0;
-    const totalBundles = student.purchasedBundles?.length || 0;
-    const activeBundles = student.purchasedBundles?.filter(pb => pb.status === 'active').length || 0;
-    const totalQuizAttempts = student.quizAttempts?.reduce((sum, qa) => sum + qa.attempts.length, 0) || 0;
-    const averageQuizScore = calculateAverageQuizScore(student);
-    const bestQuizScore = student.quizAttempts?.reduce((best, qa) => {
-      const maxScore = Math.max(...qa.attempts.map(a => a.score || 0), 0);
-      return Math.max(best, maxScore);
-    }, 0) || 0;
-    const overallProgress = totalCourses > 0 ? 
-      Math.round(student.enrolledCourses.reduce((sum, ec) => sum + (ec.progress || 0), 0) / totalCourses) : 0;
-    const engagementScore = calculateEngagementScore(student, []);
-    
-    const enrollmentDate = student.createdAt ? new Date(student.createdAt) : null;
-    const lastLogin = student.lastLogin ? new Date(student.lastLogin) : null;
-    const now = new Date();
-    
-    const daysSinceEnrollment = enrollmentDate ? 
-      Math.floor((now - enrollmentDate) / (1000 * 60 * 60 * 24)) : 0;
-    const daysSinceLastActivity = lastLogin ? 
-      Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24)) : null;
-
-    // Course details
-    const courseDetails = student.enrolledCourses?.map(ec => 
-      `${ec.course?.title || 'Unknown'} (${ec.progress || 0}%)`
-    ).join('; ') || 'None';
-
-    // Bundle details
-    const bundleDetails = student.purchasedBundles?.map(pb => 
-      `${pb.bundle?.title || 'Unknown'} - ${pb.status || 'Unknown'}`
-    ).join('; ') || 'None';
-
-    // Quiz performance details
-    const quizDetails = student.quizAttempts?.map(qa => 
-      `${qa.quiz?.title || 'Quiz'}: ${Math.max(...qa.attempts.map(a => a.score || 0), 0)}% (${qa.attempts.length} attempts)`
-    ).join('; ') || 'None';
-
-    return [
-      student.studentCode || '',
-      student.firstName || '',
-      student.lastName || '',
-      student.studentEmail || '',
-      student.username || '',
-      student.grade || '',
-      student.schoolName || '',
-      student.englishTeacher || '',
-      student.studentNumber || '',
-      student.parentNumber || '',
-      student.parentCountryCode || '',
-      student.isActive ? 'Active' : 'Inactive',
-      enrollmentDate ? enrollmentDate.toLocaleDateString() : '',
-      lastLogin ? lastLogin.toLocaleDateString() : 'Never',
-      daysSinceEnrollment,
-      daysSinceLastActivity !== null ? daysSinceLastActivity : 'Never',
-      totalCourses,
-      activeCourses,
-      completedCourses,
-      totalBundles,
-      activeBundles,
-      totalQuizAttempts,
-      averageQuizScore,
-      bestQuizScore,
-      overallProgress,
-      '0', // Total time spent - would need to calculate from progress data
-      engagementScore,
-      courseDetails,
-      bundleDetails,
-      quizDetails
-    ];
-  });
-
-  // Add metadata header
-  const metadata = [
-    `# Elkably Student Management System - Comprehensive Export`,
-    `# Generated on: ${new Date().toLocaleString()}`,
-    `# Total Students: ${students.length}`,
-    `# Export Type: Comprehensive Student Data`,
-    `#`,
-    ``
-  ];
-
-  const csvContent = [
-    ...metadata,
-    headers.join(','),
-    ...rows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
-  ].join('\n');
-
-  return csvContent;
-};
-
 // ========================================
 // BRILLIANT STUDENTS MANAGEMENT
 // ========================================
@@ -5954,37 +6297,37 @@ const getBrilliantStudents = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    
+
     // Build filter object
     const filter = {};
-    
+
     if (req.query.testType && req.query.testType !== 'all') {
       filter.testType = req.query.testType;
     }
-    
+
     if (req.query.isActive !== undefined) {
       filter.isActive = req.query.isActive === 'true';
     }
-    
+
     if (req.query.search) {
       filter.name = { $regex: req.query.search, $options: 'i' };
     }
-    
+
     // Get students with pagination
     const students = await BrilliantStudent.find(filter)
       .sort({ displayOrder: 1, percentage: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    
+
     const totalStudents = await BrilliantStudent.countDocuments(filter);
     const totalPages = Math.ceil(totalStudents / limit);
-    
+
     // Get statistics
     const stats = await BrilliantStudent.getStatistics();
-    
+
     // Get filter options
     const testTypes = await BrilliantStudent.distinct('testType');
-    
+
     res.render('admin/brilliant-students', {
       title: 'Brilliant Students Management',
       students,
@@ -5995,16 +6338,16 @@ const getBrilliantStudents = async (req, res) => {
         hasNext: page < totalPages,
         hasPrev: page > 1,
         nextPage: page + 1,
-        prevPage: page - 1
+        prevPage: page - 1,
       },
       filters: {
         testType: req.query.testType || 'all',
         isActive: req.query.isActive,
-        search: req.query.search || ''
+        search: req.query.search || '',
       },
       stats,
       testTypes,
-      currentUrl: req.originalUrl
+      currentUrl: req.originalUrl,
     });
   } catch (error) {
     console.error('Error fetching brilliant students:', error);
@@ -6017,17 +6360,20 @@ const getBrilliantStudents = async (req, res) => {
 const getBrilliantStudentDetails = async (req, res) => {
   try {
     const studentId = req.params.id;
-    
+
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.json({ success: false, message: 'Invalid student ID' });
     }
-    
+
     const student = await BrilliantStudent.findById(studentId);
-    
+
     if (!student) {
-      return res.json({ success: false, message: 'Brilliant student not found' });
+      return res.json({
+        success: false,
+        message: 'Brilliant student not found',
+      });
     }
-    
+
     res.json({
       success: true,
       data: {
@@ -6040,12 +6386,15 @@ const getBrilliantStudentDetails = async (req, res) => {
         image: student.image,
         fallbackInitials: student.fallbackInitials,
         isActive: student.isActive,
-        displayOrder: student.displayOrder
-      }
+        displayOrder: student.displayOrder,
+      },
     });
   } catch (error) {
     console.error('Error fetching brilliant student details:', error);
-    res.json({ success: false, message: 'Failed to fetch brilliant student details' });
+    res.json({
+      success: false,
+      message: 'Failed to fetch brilliant student details',
+    });
   }
 };
 
@@ -6060,24 +6409,31 @@ const createBrilliantStudent = async (req, res) => {
       image,
       fallbackInitials,
       isActive,
-      displayOrder
+      displayOrder,
     } = req.body;
-    
+
     console.log('Received data:', req.body);
-    
+
     // Validate required fields
     if (!name || !testType || !score || !fallbackInitials) {
       return res.status(400).json({
         success: false,
-        message: 'Please fill in all required fields (name, test type, score, fallback initials)',
-        field: !name ? 'name' : !testType ? 'testType' : !score ? 'score' : 'fallbackInitials'
+        message:
+          'Please fill in all required fields (name, test type, score, fallback initials)',
+        field: !name
+          ? 'name'
+          : !testType
+          ? 'testType'
+          : !score
+          ? 'score'
+          : 'fallbackInitials',
       });
     }
-    
+
     // Set maxScore based on test type if not provided
     let finalMaxScore = parseInt(maxScore);
     if (!finalMaxScore || isNaN(finalMaxScore)) {
-      switch(testType) {
+      switch (testType) {
         case 'EST':
           finalMaxScore = 800;
           break;
@@ -6090,40 +6446,49 @@ const createBrilliantStudent = async (req, res) => {
         default:
           return res.status(400).json({
             success: false,
-            message: 'Invalid test type. Must be EST, DSAT, or ACT'
+            message: 'Invalid test type. Must be EST, DSAT, or ACT',
           });
       }
     }
-    
+
     const finalScore = parseInt(score);
     if (isNaN(finalScore)) {
       return res.status(400).json({
         success: false,
-        message: 'Score must be a valid number'
+        message: 'Score must be a valid number',
       });
     }
-    
+
     // Validate score ranges
-    if (testType === 'EST' && (finalScore < 0 || finalScore > 800 || finalMaxScore !== 800)) {
+    if (
+      testType === 'EST' &&
+      (finalScore < 0 || finalScore > 800 || finalMaxScore !== 800)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'EST scores must be between 0-800',
-        maxAllowed: 800
+        maxAllowed: 800,
       });
-    } else if (testType === 'DSAT' && (finalScore < 0 || finalScore > 1600 || finalMaxScore !== 1600)) {
+    } else if (
+      testType === 'DSAT' &&
+      (finalScore < 0 || finalScore > 1600 || finalMaxScore !== 1600)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'DSAT scores must be between 0-1600',
-        maxAllowed: 1600
+        maxAllowed: 1600,
       });
-    } else if (testType === 'ACT' && (finalScore < 0 || finalScore > 36 || finalMaxScore !== 36)) {
+    } else if (
+      testType === 'ACT' &&
+      (finalScore < 0 || finalScore > 36 || finalMaxScore !== 36)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'ACT scores must be between 0-36',
-        maxAllowed: 36
+        maxAllowed: 36,
       });
     }
-    
+
     const studentData = {
       name: name.trim(),
       testType,
@@ -6132,16 +6497,16 @@ const createBrilliantStudent = async (req, res) => {
       fallbackInitials: fallbackInitials.trim().toUpperCase(),
       isActive: isActive === 'true' || isActive === true,
       displayOrder: parseInt(displayOrder) || 0,
-      image: image || null
+      image: image || null,
     };
-    
+
     console.log('Creating student with data:', studentData);
-    
+
     const student = new BrilliantStudent(studentData);
     await student.save();
-    
+
     console.log('Student created successfully:', student._id);
-    
+
     return res.status(201).json({
       success: true,
       message: 'Brilliant student created successfully',
@@ -6151,26 +6516,29 @@ const createBrilliantStudent = async (req, res) => {
         testType: student.testType,
         score: student.score,
         maxScore: student.maxScore,
-        percentage: student.percentage
-      }
+        percentage: student.percentage,
+      },
     });
   } catch (error) {
     console.error('Error creating brilliant student:', error);
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+      const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: errors
+        errors: errors,
       });
     }
-    
+
     return res.status(500).json({
       success: false,
       message: 'Failed to create brilliant student',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error:
+        process.env.NODE_ENV === 'development'
+          ? error.message
+          : 'Internal server error',
     });
   }
 };
@@ -6179,14 +6547,14 @@ const createBrilliantStudent = async (req, res) => {
 const updateBrilliantStudent = async (req, res) => {
   try {
     const studentId = req.params.id;
-    
+
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid student ID'
+        message: 'Invalid student ID',
       });
     }
-    
+
     const {
       name,
       testType,
@@ -6195,24 +6563,31 @@ const updateBrilliantStudent = async (req, res) => {
       image,
       fallbackInitials,
       isActive,
-      displayOrder
+      displayOrder,
     } = req.body;
-    
+
     console.log('Updating student:', studentId, 'with data:', req.body);
-    
+
     // Validate required fields
     if (!name || !testType || !score || !fallbackInitials) {
       return res.status(400).json({
         success: false,
-        message: 'Please fill in all required fields (name, test type, score, fallback initials)',
-        field: !name ? 'name' : !testType ? 'testType' : !score ? 'score' : 'fallbackInitials'
+        message:
+          'Please fill in all required fields (name, test type, score, fallback initials)',
+        field: !name
+          ? 'name'
+          : !testType
+          ? 'testType'
+          : !score
+          ? 'score'
+          : 'fallbackInitials',
       });
     }
-    
+
     // Set maxScore based on test type if not provided
     let finalMaxScore = parseInt(maxScore);
     if (!finalMaxScore || isNaN(finalMaxScore)) {
-      switch(testType) {
+      switch (testType) {
         case 'EST':
           finalMaxScore = 800;
           break;
@@ -6225,40 +6600,49 @@ const updateBrilliantStudent = async (req, res) => {
         default:
           return res.status(400).json({
             success: false,
-            message: 'Invalid test type. Must be EST, DSAT, or ACT'
+            message: 'Invalid test type. Must be EST, DSAT, or ACT',
           });
       }
     }
-    
+
     const finalScore = parseInt(score);
     if (isNaN(finalScore)) {
       return res.status(400).json({
         success: false,
-        message: 'Score must be a valid number'
+        message: 'Score must be a valid number',
       });
     }
-    
+
     // Validate score ranges
-    if (testType === 'EST' && (finalScore < 0 || finalScore > 800 || finalMaxScore !== 800)) {
+    if (
+      testType === 'EST' &&
+      (finalScore < 0 || finalScore > 800 || finalMaxScore !== 800)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'EST scores must be between 0-800',
-        maxAllowed: 800
+        maxAllowed: 800,
       });
-    } else if (testType === 'DSAT' && (finalScore < 0 || finalScore > 1600 || finalMaxScore !== 1600)) {
+    } else if (
+      testType === 'DSAT' &&
+      (finalScore < 0 || finalScore > 1600 || finalMaxScore !== 1600)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'DSAT scores must be between 0-1600',
-        maxAllowed: 1600
+        maxAllowed: 1600,
       });
-    } else if (testType === 'ACT' && (finalScore < 0 || finalScore > 36 || finalMaxScore !== 36)) {
+    } else if (
+      testType === 'ACT' &&
+      (finalScore < 0 || finalScore > 36 || finalMaxScore !== 36)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'ACT scores must be between 0-36',
-        maxAllowed: 36
+        maxAllowed: 36,
       });
     }
-    
+
     const updateData = {
       name: name.trim(),
       testType,
@@ -6266,33 +6650,33 @@ const updateBrilliantStudent = async (req, res) => {
       maxScore: finalMaxScore,
       fallbackInitials: fallbackInitials.trim().toUpperCase(),
       isActive: isActive === 'true' || isActive === true,
-      displayOrder: parseInt(displayOrder) || 0
+      displayOrder: parseInt(displayOrder) || 0,
     };
-    
+
     // Add image if provided
     if (image && image.trim()) {
       updateData.image = image.trim();
     } else {
       updateData.image = null;
     }
-    
+
     console.log('Updating student with data:', updateData);
-    
+
     const student = await BrilliantStudent.findByIdAndUpdate(
       studentId,
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Brilliant student not found'
+        message: 'Brilliant student not found',
       });
     }
-    
+
     console.log('Student updated successfully:', student._id);
-    
+
     return res.status(200).json({
       success: true,
       message: 'Brilliant student updated successfully',
@@ -6302,26 +6686,29 @@ const updateBrilliantStudent = async (req, res) => {
         testType: student.testType,
         score: student.score,
         maxScore: student.maxScore,
-        percentage: student.percentage
-      }
+        percentage: student.percentage,
+      },
     });
   } catch (error) {
     console.error('Error updating brilliant student:', error);
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+      const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: errors
+        errors: errors,
       });
     }
-    
+
     return res.status(500).json({
       success: false,
       message: 'Failed to update brilliant student',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error:
+        process.env.NODE_ENV === 'development'
+          ? error.message
+          : 'Internal server error',
     });
   }
 };
@@ -6330,34 +6717,39 @@ const updateBrilliantStudent = async (req, res) => {
 const deleteBrilliantStudent = async (req, res) => {
   try {
     const studentId = req.params.id;
-    
+
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.json({ success: false, message: 'Invalid student ID' });
     }
-    
+
     const student = await BrilliantStudent.findByIdAndDelete(studentId);
-    
+
     if (!student) {
-      return res.json({ success: false, message: 'Brilliant student not found' });
+      return res.json({
+        success: false,
+        message: 'Brilliant student not found',
+      });
     }
-    
-    res.json({ success: true, message: 'Brilliant student deleted successfully' });
+
+    res.json({
+      success: true,
+      message: 'Brilliant student deleted successfully',
+    });
   } catch (error) {
     console.error('Error deleting brilliant student:', error);
     res.json({ success: false, message: 'Failed to delete brilliant student' });
   }
 };
 
-
 // Reorder brilliant students
 const reorderBrilliantStudents = async (req, res) => {
   try {
     const { students } = req.body;
-    
+
     if (!Array.isArray(students)) {
       return res.json({ success: false, message: 'Invalid students data' });
     }
-    
+
     const updatePromises = students.map((student, index) => {
       return BrilliantStudent.findByIdAndUpdate(
         student.id,
@@ -6365,9 +6757,9 @@ const reorderBrilliantStudents = async (req, res) => {
         { new: true }
       );
     });
-    
+
     await Promise.all(updatePromises);
-    
+
     res.json({ success: true, message: 'Students reordered successfully' });
   } catch (error) {
     console.error('Error reordering brilliant students:', error);
@@ -6380,16 +6772,18 @@ const getBrilliantStudentsStats = async (req, res) => {
   try {
     const stats = await BrilliantStudent.getStatistics();
     const totalStudents = await BrilliantStudent.countDocuments();
-    const activeStudents = await BrilliantStudent.countDocuments({ isActive: true });
-    
+    const activeStudents = await BrilliantStudent.countDocuments({
+      isActive: true,
+    });
+
     res.json({
       success: true,
       stats: {
         total: totalStudents,
         active: activeStudents,
         inactive: totalStudents - activeStudents,
-        byTestType: stats
-      }
+        byTestType: stats,
+      },
     });
   } catch (error) {
     console.error('Error fetching brilliant students statistics:', error);
@@ -6402,7 +6796,7 @@ const exportBrilliantStudents = async (req, res) => {
   try {
     const testType = req.query.testType;
     const isActive = req.query.isActive;
-    
+
     const filter = {};
     if (testType && testType !== 'all') {
       filter.testType = testType;
@@ -6410,38 +6804,1375 @@ const exportBrilliantStudents = async (req, res) => {
     if (isActive !== undefined) {
       filter.isActive = isActive === 'true';
     }
-    
-    const students = await BrilliantStudent.find(filter)
-      .sort({ testType: 1, displayOrder: 1, percentage: -1 });
-    
-    // Convert to CSV format
-    const csvHeader = 'Name,Test Type,Score,Max Score,Percentage,Category,University,Major,Graduation Year,Active,Display Order,Testimonial\n';
-    const csvRows = students.map(student => {
-      return [
-        student.name,
-        student.testType,
-        student.score,
-        student.maxScore,
-        student.percentage,
-        student.category,
-        student.university || '',
-        student.major || '',
-        student.graduationYear || '',
-        student.isActive ? 'Yes' : 'No',
-        student.displayOrder,
-        student.testimonial || ''
-      ].join(',');
-    }).join('\n');
-    
-    const csvContent = csvHeader + csvRows;
-    
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=brilliant-students.csv');
-    res.send(csvContent);
+
+    const students = await BrilliantStudent.find(filter).sort({
+      testType: 1,
+      displayOrder: 1,
+      percentage: -1,
+    });
+
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.exportBrilliantStudents(students);
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `brilliant-students-report-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
   } catch (error) {
     console.error('Error exporting brilliant students:', error);
     req.flash('error', 'Failed to export brilliant students data');
     res.redirect('/admin/brilliant-students');
+  }
+};
+
+// Export courses data
+const exportCourses = async (req, res) => {
+  try {
+    const courses = await Course.find({})
+      .populate('enrolledStudents', 'studentCode firstName lastName')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Add enrolled students count to each course
+    const coursesWithStats = courses.map((course) => ({
+      ...course,
+      enrolledStudents: course.enrolledStudents?.length || 0,
+    }));
+
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.exportCourses(coursesWithStats);
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `courses-report-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting courses:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
+  }
+};
+
+// Export orders data
+const exportOrders = async (req, res) => {
+  try {
+    const orders = await Purchase.find({})
+      .populate('student', 'studentCode firstName lastName studentEmail')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Format orders data for export
+    const formattedOrders = orders.map((order) => ({
+      orderNumber: order.orderNumber,
+      studentName: order.student
+        ? `${order.student.firstName} ${order.student.lastName}`
+        : 'Unknown',
+      studentEmail: order.student?.studentEmail || '',
+      items: order.items?.map((item) => item.title).join(', ') || '',
+      totalAmount: order.totalAmount,
+      paymentMethod: order.paymentMethod || '',
+      status: order.status,
+      createdAt: order.createdAt,
+      processedAt: order.processedAt || order.createdAt,
+    }));
+
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.exportOrders(formattedOrders);
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `orders-report-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting orders:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
+  }
+};
+
+// Export quizzes data
+const exportQuizzes = async (req, res) => {
+  try {
+    const quizzes = await Quiz.find({})
+      .populate('questions')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.exportQuizzes(quizzes);
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `quizzes-report-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting quizzes:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
+  }
+};
+
+// Export comprehensive admin report
+const exportComprehensiveReport = async (req, res) => {
+  try {
+    const exporter = new ExcelExporter();
+
+    // Get all data
+    const [students, courses, orders, quizzes, brilliantStudents] =
+      await Promise.all([
+        User.find({ role: 'student' }).select('-password').lean(),
+        Course.find({}).lean(),
+        Purchase.find({})
+          .populate('student', 'studentCode firstName lastName studentEmail')
+          .lean(),
+        Quiz.find({}).populate('questions').lean(),
+        BrilliantStudent.find({}).lean(),
+      ]);
+
+    // Create comprehensive report with multiple sheets
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Elkably E-Learning System';
+    workbook.lastModifiedBy = 'Admin';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    // Dashboard Summary Sheet
+    const summarySheet = workbook.addWorksheet('Dashboard Summary');
+    summarySheet.mergeCells('A1:D1');
+    summarySheet.getCell('A1').value =
+      'Elkably E-Learning System - Comprehensive Report';
+    summarySheet.getCell('A1').font = { name: 'Calibri', size: 16, bold: true };
+    summarySheet.getCell('A1').alignment = { horizontal: 'center' };
+    summarySheet.getRow(1).height = 30;
+
+    summarySheet.getCell('A3').value = 'Report Generated:';
+    summarySheet.getCell('B3').value = new Date().toLocaleString();
+    summarySheet.getCell('A4').value = 'Total Students:';
+    summarySheet.getCell('B4').value = students.length;
+    summarySheet.getCell('A5').value = 'Total Courses:';
+    summarySheet.getCell('B5').value = courses.length;
+    summarySheet.getCell('A6').value = 'Total Orders:';
+    summarySheet.getCell('B6').value = orders.length;
+    summarySheet.getCell('A7').value = 'Total Quizzes:';
+    summarySheet.getCell('B7').value = quizzes.length;
+    summarySheet.getCell('A8').value = 'Brilliant Students:';
+    summarySheet.getCell('B8').value = brilliantStudents.length;
+
+    // Auto-fit columns
+    summarySheet.getColumn('A').width = 20;
+    summarySheet.getColumn('B').width = 25;
+
+    // Export individual sheets using the exporter
+    await exporter.exportStudents(students, false);
+    await exporter.exportCourses(courses);
+    await exporter.exportOrders(
+      orders.map((order) => ({
+        orderNumber: order.orderNumber,
+        studentName: order.student
+          ? `${order.student.firstName} ${order.student.lastName}`
+          : 'Unknown',
+        studentEmail: order.student?.studentEmail || '',
+        items: order.items?.map((item) => item.title).join(', ') || '',
+        totalAmount: order.totalAmount,
+        paymentMethod: order.paymentMethod || '',
+        status: order.status,
+        createdAt: order.createdAt,
+        processedAt: order.processedAt || order.createdAt,
+      }))
+    );
+    await exporter.exportQuizzes(quizzes);
+    await exporter.exportBrilliantStudents(brilliantStudents);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `comprehensive-admin-report-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting comprehensive report:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
+  }
+};
+
+// Export course details with all analytics
+const exportCourseDetails = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    // Get course data
+    const course = await Course.findById(courseId).populate('topics').lean();
+
+    if (!course) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Course not found' });
+    }
+
+    // Get enrolled students
+    const enrolledStudents = await User.find({
+      'enrolledCourses.course': courseId,
+      role: 'student',
+    })
+      .select('-password')
+      .lean();
+
+    // Get progress data for all students in this course
+    const progressData = await Progress.find({
+      course: courseId,
+    })
+      .populate('user', 'firstName lastName studentCode email grade schoolName')
+      .populate('topic', 'title order')
+      .lean();
+
+    // Calculate analytics similar to getCourseDetails
+    const analytics = {
+      totalEnrolled: enrolledStudents.length,
+      averageProgress: 0,
+      completionRate: 0,
+      contentCompletionRate: 0,
+    };
+
+    if (enrolledStudents.length > 0) {
+      const progressSum = enrolledStudents.reduce((sum, student) => {
+        const enrollment = student.enrolledCourses.find(
+          (e) => e.course && e.course.toString() === courseId.toString()
+        );
+        return sum + (enrollment?.progress || 0);
+      }, 0);
+      analytics.averageProgress = Math.round(
+        progressSum / enrolledStudents.length
+      );
+
+      const completedStudents = enrolledStudents.filter((student) => {
+        const enrollment = student.enrolledCourses.find(
+          (e) => e.course && e.course.toString() === courseId.toString()
+        );
+        return (enrollment?.progress || 0) >= 100;
+      }).length;
+      analytics.completionRate = Math.round(
+        (completedStudents / enrolledStudents.length) * 100
+      );
+    }
+
+    // Process students data
+    const studentsData = enrolledStudents.map((student) => {
+      const enrollment = student.enrolledCourses.find(
+        (e) => e.course && e.course.toString() === courseId.toString()
+      );
+
+      const studentProgress = progressData.filter(
+        (p) => p.user && p.user._id.toString() === student._id.toString()
+      );
+
+      return {
+        name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+        studentCode: student.studentCode || '',
+        email: student.email || '',
+        grade: student.grade || '',
+        schoolName: student.schoolName || '',
+        progress: enrollment?.progress || 0,
+        status:
+          (enrollment?.progress || 0) >= 100
+            ? 'completed'
+            : (enrollment?.progress || 0) > 0
+            ? 'in-progress'
+            : 'not-started',
+        enrolledAt: enrollment?.enrollmentDate || enrollment?.enrolledAt,
+        lastAccessed: enrollment?.lastAccessed,
+        timeSpent: studentProgress.reduce(
+          (sum, p) => sum + (p.timeSpent || 0),
+          0
+        ),
+        activitiesCompleted: studentProgress.filter(
+          (p) => p.status === 'completed'
+        ).length,
+        totalActivities: studentProgress.length,
+      };
+    });
+
+    // Process topics analytics
+    const topicsAnalytics = await Promise.all(
+      (course.topics || []).map(async (topic) => {
+        const topicProgress = progressData.filter(
+          (p) => p.topic && p.topic._id.toString() === topic._id.toString()
+        );
+
+        const contentAnalytics = (topic.content || []).map((content) => {
+          const contentProgress = topicProgress.filter(
+            (p) =>
+              p.contentId && p.contentId.toString() === content._id.toString()
+          );
+
+          const viewers = new Set(
+            contentProgress.map((p) => p.user._id.toString())
+          ).size;
+          const completions = contentProgress.filter(
+            (p) => p.status === 'completed'
+          ).length;
+          const totalTimeSpent = contentProgress.reduce(
+            (sum, p) => sum + (p.timeSpent || 0),
+            0
+          );
+          const attempts = contentProgress.reduce(
+            (sum, p) => sum + (p.attempts || 0),
+            0
+          );
+
+          // Calculate average score for quiz/homework content
+          let averageScore = null;
+          let passRate = null;
+          if (
+            content.contentType === 'quiz' ||
+            content.contentType === 'homework'
+          ) {
+            const scores = contentProgress
+              .map((p) => p.score)
+              .filter((s) => s != null);
+            if (scores.length > 0) {
+              averageScore = Math.round(
+                scores.reduce((sum, score) => sum + score, 0) / scores.length
+              );
+              const passingScore = content.quizSettings?.passingScore || 60;
+              passRate = Math.round(
+                (scores.filter((s) => s >= passingScore).length /
+                  scores.length) *
+                  100
+              );
+            }
+          }
+
+          return {
+            _id: content._id,
+            title: content.title || 'Untitled Content',
+            order: content.order || 0,
+            type: content.contentType || 'unknown',
+            viewers,
+            completions,
+            averageTimeSpent:
+              totalTimeSpent > 0
+                ? Math.round(totalTimeSpent / Math.max(viewers, 1))
+                : 0,
+            attempts,
+            averageScore,
+            passRate,
+            totalQuestions: content.selectedQuestions?.length || 0,
+          };
+        });
+
+        return {
+          _id: topic._id,
+          title: topic.title,
+          order: topic.order,
+          contentCount: (topic.content || []).length,
+          contents: contentAnalytics,
+          totals: {
+            viewers: new Set(topicProgress.map((p) => p.user._id.toString()))
+              .size,
+            completions: topicProgress.filter((p) => p.status === 'completed')
+              .length,
+          },
+        };
+      })
+    );
+
+    // Create comprehensive Excel export
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.createCourseDetailsReport({
+      course,
+      analytics,
+      students: studentsData,
+      topicsAnalytics,
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `course-${course.courseCode}-details-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting course details:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
+  }
+};
+
+// Export topic details to Excel
+const exportTopicDetails = async (req, res) => {
+  try {
+    const { courseCode, topicId } = req.params;
+
+    // Find course and topic
+    const course = await Course.findOne({ courseCode }).lean();
+    if (!course) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Course not found' });
+    }
+
+    const topic = await Topic.findById(topicId).lean();
+    if (!topic || topic.courseId.toString() !== course._id.toString()) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Topic not found' });
+    }
+
+    // Get enrolled students
+    const enrolledStudents = await User.find({
+      role: 'student',
+      enrolledCourses: course._id,
+    }).lean();
+
+    // Get progress data for all students in this topic
+    const progressData = await Progress.find({
+      courseId: course._id,
+      topicId: topic._id,
+    }).lean();
+
+    // Create progress map for quick lookup
+    const progressMap = new Map();
+    progressData.forEach((progress) => {
+      const key = progress.studentId.toString();
+      if (!progressMap.has(key)) {
+        progressMap.set(key, []);
+      }
+      progressMap.get(key).push(progress);
+    });
+
+    // Calculate analytics for each student
+    const studentsAnalytics = enrolledStudents.map((student) => {
+      const studentProgress = progressMap.get(student._id.toString()) || [];
+
+      // Calculate overall topic progress
+      const totalContentItems = topic.content ? topic.content.length : 0;
+      const completedItems = studentProgress.filter(
+        (p) => p.status === 'completed'
+      ).length;
+      const progressPercentage =
+        totalContentItems > 0
+          ? Math.round((completedItems / totalContentItems) * 100)
+          : 0;
+
+      // Calculate total time spent
+      const totalTimeSpent = studentProgress.reduce(
+        (sum, p) => sum + (p.timeSpent || 0),
+        0
+      );
+
+      // Find last activity
+      const lastActivity =
+        studentProgress.length > 0
+          ? Math.max(
+              ...studentProgress.map((p) => new Date(p.updatedAt).getTime())
+            )
+          : null;
+
+      // Determine status
+      let status = 'not-started';
+      if (completedItems === totalContentItems && totalContentItems > 0) {
+        status = 'completed';
+      } else if (completedItems > 0) {
+        status = 'in-progress';
+      }
+
+      return {
+        name: student.name || 'N/A',
+        email: student.email || 'N/A',
+        studentCode: student.studentCode || 'N/A',
+        parentPhone: student.parentPhone || 'N/A',
+        studentPhone: student.studentPhone || 'N/A',
+        grade: student.grade || 'N/A',
+        schoolName: student.schoolName || 'N/A',
+        progress: progressPercentage,
+        status: status,
+        totalTimeSpent: Math.round(totalTimeSpent / 60), // Convert to minutes
+        lastActivity: lastActivity ? new Date(lastActivity) : null,
+        completedItems: completedItems,
+        totalItems: totalContentItems,
+      };
+    });
+
+    // Calculate topic analytics
+    const topicAnalytics = {
+      totalStudents: enrolledStudents.length,
+      viewedStudents: studentsAnalytics.filter((s) => s.progress > 0).length,
+      completedStudents: studentsAnalytics.filter(
+        (s) => s.status === 'completed'
+      ).length,
+      averageProgress:
+        studentsAnalytics.length > 0
+          ? Math.round(
+              studentsAnalytics.reduce((sum, s) => sum + s.progress, 0) /
+                studentsAnalytics.length
+            )
+          : 0,
+      completionRate:
+        enrolledStudents.length > 0
+          ? Math.round(
+              (studentsAnalytics.filter((s) => s.status === 'completed')
+                .length /
+                enrolledStudents.length) *
+                100
+            )
+          : 0,
+      averageTimeSpent:
+        studentsAnalytics.length > 0
+          ? Math.round(
+              studentsAnalytics.reduce((sum, s) => sum + s.totalTimeSpent, 0) /
+                studentsAnalytics.length
+            )
+          : 0,
+      totalContentItems: topic.content ? topic.content.length : 0,
+    };
+
+    // Get content analytics
+    const contentAnalytics = [];
+    if (topic.content && topic.content.length > 0) {
+      for (const content of topic.content) {
+        // Get progress for this specific content
+        const contentProgress = progressData.filter(
+          (p) =>
+            p.contentId && p.contentId.toString() === content._id.toString()
+        );
+
+        const viewers = new Set(
+          contentProgress.map((p) => p.studentId.toString())
+        ).size;
+        const completions = contentProgress.filter(
+          (p) => p.status === 'completed'
+        ).length;
+        const totalTimeSpent = contentProgress.reduce(
+          (sum, p) => sum + (p.timeSpent || 0),
+          0
+        );
+        const averageTimeSpent =
+          viewers > 0 ? Math.round(totalTimeSpent / viewers / 60) : 0;
+
+        // Quiz/Homework specific metrics
+        let attempts = 0;
+        let totalScore = 0;
+        let scores = [];
+        let passCount = 0;
+
+        if (content.type === 'quiz' || content.type === 'homework') {
+          contentProgress.forEach((p) => {
+            if (p.quizAttempts && Array.isArray(p.quizAttempts)) {
+              attempts += p.quizAttempts.length;
+              p.quizAttempts.forEach((attempt) => {
+                if (attempt.score !== undefined && attempt.score !== null) {
+                  totalScore += attempt.score;
+                  scores.push(attempt.score);
+                  if (attempt.score >= 60) {
+                    // Assuming 60% is pass
+                    passCount++;
+                  }
+                }
+              });
+            }
+          });
+        }
+
+        const averageScore =
+          scores.length > 0 ? Math.round(totalScore / scores.length) : null;
+        const passRate =
+          attempts > 0 ? Math.round((passCount / attempts) * 100) : null;
+
+        contentAnalytics.push({
+          title: content.title || 'Untitled',
+          type: content.type || 'unknown',
+          viewers: viewers,
+          completions: completions,
+          completionRate:
+            viewers > 0 ? Math.round((completions / viewers) * 100) : 0,
+          averageTimeSpent: averageTimeSpent,
+          attempts: attempts,
+          averageScore: averageScore,
+          passRate: passRate,
+          totalQuestions: content.selectedQuestions
+            ? content.selectedQuestions.length
+            : 0,
+        });
+      }
+    }
+
+    // Create Excel export
+    const excelExporter = new ExcelExporter();
+
+    const exportData = {
+      course: course,
+      topic: topic,
+      analytics: topicAnalytics,
+      students: studentsAnalytics,
+      contentAnalytics: contentAnalytics,
+    };
+
+    const workbook = await excelExporter.createTopicDetailsReport(exportData);
+
+    // Set response headers for file download
+    const filename = `topic-${topic.order}-${topic.title.replace(
+      /[^a-zA-Z0-9]/g,
+      '-'
+    )}-details.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Write workbook to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting topic details:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
+  }
+};
+
+// Export question bank details to Excel
+const exportQuestionBankDetails = async (req, res) => {
+  try {
+    const { questionBankId } = req.params;
+
+    // Find question bank with questions
+    const questionBank = await QuestionBank.findById(questionBankId)
+      .populate({
+        path: 'questions',
+        model: 'Question',
+        options: { sort: { difficulty: 1, createdAt: 1 } },
+      })
+      .lean();
+
+    if (!questionBank) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Question bank not found' });
+    }
+
+    // Get all questions for this bank
+    const questions = await Question.find({ bank: questionBankId })
+      .sort({ difficulty: 1, createdAt: 1 })
+      .lean();
+
+    // Calculate statistics
+    const stats = {
+      totalQuestions: questions.length,
+      easyQuestions: questions.filter((q) => q.difficulty === 'Easy').length,
+      mediumQuestions: questions.filter((q) => q.difficulty === 'Medium')
+        .length,
+      hardQuestions: questions.filter((q) => q.difficulty === 'Hard').length,
+      mcqQuestions: questions.filter((q) => q.questionType === 'MCQ').length,
+      trueFalseQuestions: questions.filter(
+        (q) => q.questionType === 'True/False'
+      ).length,
+      writtenQuestions: questions.filter((q) => q.questionType === 'Written')
+        .length,
+      draftQuestions: questions.filter((q) => q.status === 'draft').length,
+      activeQuestions: questions.filter((q) => q.status === 'active').length,
+      archivedQuestions: questions.filter((q) => q.status === 'archived')
+        .length,
+    };
+
+    // Prepare question data for export
+    const questionData = questions.map((question, index) => {
+      let correctAnswer = '';
+      let optionsText = '';
+
+      if (question.questionType === 'Written') {
+        correctAnswer =
+          question.correctAnswers && question.correctAnswers.length > 0
+            ? question.correctAnswers
+                .map((ans) => {
+                  const answerText =
+                    typeof ans === 'string' ? ans : ans.text || '';
+                  const isMandatory =
+                    typeof ans === 'object' && ans.isMandatory !== undefined
+                      ? ans.isMandatory
+                      : true;
+                  return `${answerText}${
+                    isMandatory ? ' (Mandatory)' : ' (Optional)'
+                  }`;
+                })
+                .join('; ')
+            : 'N/A';
+      } else if (question.options && question.options.length > 0) {
+        optionsText = question.options
+          .map(
+            (opt, idx) =>
+              `${String.fromCharCode(65 + idx)}. ${opt.text}${
+                opt.isCorrect ? ' ✓' : ''
+              }`
+          )
+          .join(' | ');
+
+        const correctOption = question.options.find((opt) => opt.isCorrect);
+        correctAnswer = correctOption ? correctOption.text : 'N/A';
+      }
+
+      return {
+        number: index + 1,
+        questionText: question.questionText || '',
+        questionType: question.questionType || 'MCQ',
+        difficulty: question.difficulty || 'Easy',
+        options: optionsText,
+        correctAnswer: correctAnswer,
+        explanation: question.explanation || '',
+        points: question.points || 1,
+        tags:
+          question.tags && question.tags.length > 0
+            ? question.tags.join(', ')
+            : '',
+        status: question.status || 'draft',
+        usageCount: question.usageCount || 0,
+        averageScore: question.averageScore || 0,
+        createdAt: question.createdAt
+          ? new Date(question.createdAt).toLocaleDateString()
+          : '',
+      };
+    });
+
+    // Create Excel export
+    const excelExporter = new ExcelExporter();
+
+    const exportData = {
+      questionBank: questionBank,
+      stats: stats,
+      questions: questionData,
+    };
+
+    const workbook = await excelExporter.createQuestionBankDetailsReport(
+      exportData
+    );
+
+    // Set response headers for file download
+    const filename = `questionbank-${
+      questionBank.bankCode
+    }-${questionBank.name.replace(/[^a-zA-Z0-9]/g, '-')}-questions.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Write workbook to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting question bank details:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
+  }
+};
+
+// Export quiz details to Excel
+const exportQuizDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get quiz with all related data
+    const quiz = await Quiz.findById(id)
+      .populate({
+        path: 'questionBank',
+        select: 'name bankCode',
+      })
+      .populate({
+        path: 'selectedQuestions.question',
+        select:
+          'questionText questionType difficulty options correctAnswers explanation tags points',
+      })
+      .populate('createdBy', 'firstName lastName')
+      .populate('lastModifiedBy', 'firstName lastName')
+      .lean();
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found',
+      });
+    }
+
+    // Get participants with their quiz attempts
+    const participants = await User.find({
+      'quizAttempts.quiz': quiz._id,
+    })
+      .select(
+        'firstName lastName studentCode studentEmail grade quizAttempts createdAt'
+      )
+      .lean();
+
+    // Process participant data
+    const participantDetails = participants
+      .map((participant) => {
+        const quizAttempt = participant.quizAttempts.find(
+          (attempt) => attempt.quiz.toString() === quiz._id.toString()
+        );
+
+        if (!quizAttempt) return null;
+
+        const completedAttempts = quizAttempt.attempts.filter(
+          (attempt) => attempt.status === 'completed'
+        );
+
+        const bestAttempt = completedAttempts.reduce(
+          (best, current) => {
+            return (current.score || 0) > (best.score || 0) ? current : best;
+          },
+          { score: 0 }
+        );
+
+        const totalAttempts = completedAttempts.length;
+        const averageScore =
+          completedAttempts.length > 0
+            ? completedAttempts.reduce(
+                (sum, attempt) => sum + (attempt.score || 0),
+                0
+              ) / completedAttempts.length
+            : 0;
+
+        const totalTimeSpent = completedAttempts.reduce(
+          (sum, attempt) => sum + (attempt.timeSpent || 0),
+          0
+        );
+
+        return {
+          studentCode: participant.studentCode,
+          firstName: participant.firstName,
+          lastName: participant.lastName,
+          email: participant.studentEmail,
+          grade: participant.grade,
+          enrollmentDate: participant.createdAt,
+          totalAttempts,
+          bestScore: bestAttempt.score || 0,
+          averageScore: Math.round(averageScore * 100) / 100,
+          totalTimeSpent,
+          lastAttemptDate:
+            completedAttempts.length > 0
+              ? completedAttempts[completedAttempts.length - 1].completedAt
+              : null,
+          passed: (bestAttempt.score || 0) >= (quiz.passingScore || 60),
+          attempts: completedAttempts.map((attempt) => ({
+            attemptNumber: attempt.attemptNumber,
+            score: attempt.score || 0,
+            timeSpent: attempt.timeSpent || 0,
+            startedAt: attempt.startedAt,
+            completedAt: attempt.completedAt,
+            correctAnswers: attempt.correctAnswers || 0,
+            totalQuestions: attempt.totalQuestions || 0,
+            passed: attempt.passed || false,
+          })),
+        };
+      })
+      .filter(Boolean);
+
+    // Calculate quiz analytics
+    const analytics = {
+      totalParticipants: participantDetails.length,
+      totalAttempts: participantDetails.reduce(
+        (sum, p) => sum + p.totalAttempts,
+        0
+      ),
+      averageScore:
+        participantDetails.length > 0
+          ? Math.round(
+              (participantDetails.reduce((sum, p) => sum + p.bestScore, 0) /
+                participantDetails.length) *
+                100
+            ) / 100
+          : 0,
+      passRate:
+        participantDetails.length > 0
+          ? Math.round(
+              (participantDetails.filter((p) => p.passed).length /
+                participantDetails.length) *
+                100 *
+                100
+            ) / 100
+          : 0,
+      averageTimeSpent:
+        participantDetails.length > 0
+          ? Math.round(
+              (participantDetails.reduce(
+                (sum, p) => sum + p.totalTimeSpent,
+                0
+              ) /
+                participantDetails.length) *
+                100
+            ) / 100
+          : 0,
+      scoreDistribution: {
+        excellent: participantDetails.filter((p) => p.bestScore >= 90).length,
+        good: participantDetails.filter(
+          (p) => p.bestScore >= 70 && p.bestScore < 90
+        ).length,
+        average: participantDetails.filter(
+          (p) => p.bestScore >= 50 && p.bestScore < 70
+        ).length,
+        poor: participantDetails.filter((p) => p.bestScore < 50).length,
+      },
+    };
+
+    // Question analysis
+    const questionAnalysis = quiz.selectedQuestions.map((sq, index) => {
+      const question = sq.question;
+
+      // Analyze question performance across all attempts
+      let correctCount = 0;
+      let totalAnswers = 0;
+
+      participantDetails.forEach((participant) => {
+        participant.attempts.forEach((attempt) => {
+          // Check if attempt has answers and they're in array format
+          if (attempt.answers && Array.isArray(attempt.answers)) {
+            const questionAnswer = attempt.answers.find(
+              (ans) =>
+                ans.questionId &&
+                ans.questionId.toString() === question._id.toString()
+            );
+            if (questionAnswer) {
+              totalAnswers++;
+              if (questionAnswer.isCorrect) {
+                correctCount++;
+              }
+            }
+          }
+        });
+      });
+
+      return {
+        questionNumber: index + 1,
+        questionText: question.questionText || '',
+        questionType: question.questionType || 'MCQ',
+        difficulty: question.difficulty || 'Easy',
+        points: sq.points || 1,
+        totalAnswers,
+        correctAnswers: correctCount,
+        accuracyRate:
+          totalAnswers > 0
+            ? Math.round((correctCount / totalAnswers) * 100 * 100) / 100
+            : 0,
+        tags: question.tags ? question.tags.join(', ') : '',
+      };
+    });
+
+    // Prepare data for Excel export
+    const data = {
+      quiz: {
+        title: quiz.title,
+        description: quiz.description,
+        code: quiz.code,
+        questionBank: quiz.questionBank ? quiz.questionBank.name : 'Unknown',
+        questionBankCode: quiz.questionBank
+          ? quiz.questionBank.bankCode
+          : 'N/A',
+        duration: quiz.duration,
+        testType: quiz.testType,
+        difficulty: quiz.difficulty,
+        passingScore: quiz.passingScore,
+        maxAttempts: quiz.maxAttempts,
+        status: quiz.status,
+        totalQuestions: quiz.selectedQuestions.length,
+        totalPoints: quiz.selectedQuestions.reduce(
+          (sum, sq) => sum + (sq.points || 1),
+          0
+        ),
+        createdBy: quiz.createdBy
+          ? `${quiz.createdBy.firstName} ${quiz.createdBy.lastName}`
+          : 'Unknown',
+        createdAt: quiz.createdAt,
+        lastModified: quiz.updatedAt,
+        tags: quiz.tags ? quiz.tags.join(', ') : '',
+        instructions: quiz.instructions || '',
+        shuffleQuestions: quiz.shuffleQuestions || false,
+        shuffleOptions: quiz.shuffleOptions || false,
+        showCorrectAnswers: quiz.showCorrectAnswers !== false,
+        showResults: quiz.showResults !== false,
+      },
+      analytics,
+      participants: participantDetails,
+      questions: questionAnalysis,
+      selectedQuestions: quiz.selectedQuestions.map((sq, index) => {
+        const question = sq.question;
+        let optionsText = '';
+        let correctAnswerText = '';
+
+        if (question.questionType === 'Written') {
+          correctAnswerText =
+            question.correctAnswers && question.correctAnswers.length > 0
+              ? question.correctAnswers
+                  .map((ans) => {
+                    if (typeof ans === 'string') return ans;
+                    return `${ans.text || ''}${
+                      ans.isMandatory !== false ? ' (Mandatory)' : ' (Optional)'
+                    }`;
+                  })
+                  .join('; ')
+              : 'N/A';
+        } else if (question.options && question.options.length > 0) {
+          optionsText = question.options
+            .map(
+              (opt, idx) =>
+                `${String.fromCharCode(65 + idx)}. ${opt.text}${
+                  opt.isCorrect ? ' ✓' : ''
+                }`
+            )
+            .join(' | ');
+
+          const correctOption = question.options.find((opt) => opt.isCorrect);
+          correctAnswerText = correctOption ? correctOption.text : 'N/A';
+        }
+
+        return {
+          order: sq.order || index + 1,
+          points: sq.points || 1,
+          questionText: question.questionText || '',
+          questionType: question.questionType || 'MCQ',
+          difficulty: question.difficulty || 'Easy',
+          options: optionsText,
+          correctAnswer: correctAnswerText,
+          explanation: question.explanation || '',
+          tags: question.tags ? question.tags.join(', ') : '',
+        };
+      }),
+    };
+
+    // Create Excel exporter and generate report
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.createQuizDetailsReport(data);
+
+    // Generate buffer and send
+    const buffer = await workbook.xlsx.writeBuffer();
+    const filename = `Quiz_${quiz.code}_Details_${
+      new Date().toISOString().split('T')[0]
+    }.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+
+    res.send(buffer);
+  } catch (error) {
+    console.error('Export quiz details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export quiz details',
+      error: error.message,
+    });
+  }
+};
+
+// Additional helper functions for comprehensive analytics
+
+// Calculate activity streak from timeline
+const calculateActivityStreak = (activityTimeline) => {
+  if (!activityTimeline || activityTimeline.length === 0) return 0;
+
+  const sortedActivities = activityTimeline.sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  );
+  const today = new Date();
+  let streak = 0;
+  let currentDate = new Date(today);
+
+  for (let i = 0; i < 30; i++) {
+    // Check last 30 days
+    const dayActivities = sortedActivities.filter((activity) => {
+      const activityDate = new Date(activity.timestamp);
+      return activityDate.toDateString() === currentDate.toDateString();
+    });
+
+    if (dayActivities.length > 0) {
+      streak++;
+    } else if (streak > 0) {
+      break; // Streak broken
+    }
+
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return streak;
+};
+
+// Calculate content interaction rate
+const calculateContentInteractionRate = (student, progressData) => {
+  if (!student.enrolledCourses || student.enrolledCourses.length === 0)
+    return 0;
+
+  const totalCourses = student.enrolledCourses.length;
+  const coursesWithProgress = progressData
+    ? new Set(
+        progressData.map((p) => p.course?._id || p.course).filter(Boolean)
+      ).size
+    : 0;
+
+  return totalCourses > 0
+    ? Math.round((coursesWithProgress / totalCourses) * 100)
+    : 0;
+};
+
+// Calculate quiz participation rate
+const calculateQuizParticipationRate = (student) => {
+  if (!student.quizAttempts || student.quizAttempts.length === 0) return 0;
+
+  // This would need quiz availability data to be accurate
+  // For now, we'll use a simplified calculation
+  const totalAttempts = student.quizAttempts.reduce(
+    (sum, qa) => sum + (qa.attempts?.length || 0),
+    0
+  );
+  const uniqueQuizzes = student.quizAttempts.length;
+
+  return uniqueQuizzes > 0
+    ? Math.min(100, Math.round((totalAttempts / uniqueQuizzes) * 20))
+    : 0;
+};
+
+// Calculate weekly activity pattern
+const calculateWeeklyPattern = (activityTimeline) => {
+  const pattern = {
+    Monday: {
+      logins: 0,
+      timeSpent: 0,
+      activities: 0,
+      avgScore: 0,
+      engagement: 0,
+    },
+    Tuesday: {
+      logins: 0,
+      timeSpent: 0,
+      activities: 0,
+      avgScore: 0,
+      engagement: 0,
+    },
+    Wednesday: {
+      logins: 0,
+      timeSpent: 0,
+      activities: 0,
+      avgScore: 0,
+      engagement: 0,
+    },
+    Thursday: {
+      logins: 0,
+      timeSpent: 0,
+      activities: 0,
+      avgScore: 0,
+      engagement: 0,
+    },
+    Friday: {
+      logins: 0,
+      timeSpent: 0,
+      activities: 0,
+      avgScore: 0,
+      engagement: 0,
+    },
+    Saturday: {
+      logins: 0,
+      timeSpent: 0,
+      activities: 0,
+      avgScore: 0,
+      engagement: 0,
+    },
+    Sunday: {
+      logins: 0,
+      timeSpent: 0,
+      activities: 0,
+      avgScore: 0,
+      engagement: 0,
+    },
+  };
+
+  const weekDays = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
+
+  if (!activityTimeline || activityTimeline.length === 0) return pattern;
+
+  activityTimeline.forEach((activity) => {
+    const date = new Date(activity.timestamp);
+    const dayName = weekDays[date.getDay()];
+
+    if (pattern[dayName]) {
+      if (activity.activityType === 'Login') {
+        pattern[dayName].logins++;
+      }
+      pattern[dayName].timeSpent += activity.duration || 0;
+      pattern[dayName].activities++;
+
+      if (activity.scoreOrProgress && activity.scoreOrProgress.includes('%')) {
+        const score = parseInt(activity.scoreOrProgress.replace('%', ''));
+        if (!isNaN(score)) {
+          pattern[dayName].avgScore = Math.round(
+            (pattern[dayName].avgScore + score) / 2
+          );
+        }
+      }
+    }
+  });
+
+  // Calculate engagement based on activity
+  Object.keys(pattern).forEach((day) => {
+    const dayData = pattern[day];
+    let engagement = 0;
+    if (dayData.logins > 0) engagement += 30;
+    if (dayData.timeSpent > 1800) engagement += 40; // More than 30 minutes
+    if (dayData.activities > 5) engagement += 30;
+    pattern[day].engagement = Math.min(100, engagement);
+  });
+
+  return pattern;
+};
+
+// Admin Management Functions
+const getCreateAdminForm = async (req, res) => {
+  try {
+    res.render('admin/create-admin-panel', {
+      title: 'Create New Admin',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+    });
+  } catch (error) {
+    console.error('Error loading create admin form:', error);
+    req.flash('error', 'Failed to load create admin form');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+const createNewAdmin = async (req, res) => {
+  try {
+    const { userName, phoneNumber, email, password } = req.body;
+
+    // Basic validation
+    if (!userName || !phoneNumber || !password) {
+      req.flash('error', 'Username, phone number, and password are required');
+      return res.render('admin/create-admin-panel', {
+        title: 'Create New Admin',
+        currentPage: 'create-admin',
+        theme: req.cookies.theme || 'light',
+        user: req.user,
+        errors: ['Username, phone number, and password are required'],
+        userName,
+        phoneNumber,
+        email,
+      });
+    }
+
+    if (password.length < 6) {
+      req.flash('error', 'Password must be at least 6 characters long');
+      return res.render('admin/create-admin-panel', {
+        title: 'Create New Admin',
+        currentPage: 'create-admin',
+        theme: req.cookies.theme || 'light',
+        user: req.user,
+        errors: ['Password must be at least 6 characters long'],
+        userName,
+        phoneNumber,
+        email,
+      });
+    }
+
+    // Check if admin already exists
+    const existingAdmin = await Admin.findOne({
+      $or: [
+        { userName: userName },
+        { phoneNumber: phoneNumber },
+        ...(email ? [{ email: email }] : []),
+      ],
+    });
+
+    if (existingAdmin) {
+      return res.render('admin/create-admin-panel', {
+        title: 'Create New Admin',
+        currentPage: 'create-admin',
+        theme: req.cookies.theme || 'light',
+        user: req.user,
+        errors: [
+          'Admin with this username, phone number, or email already exists',
+        ],
+        userName,
+        phoneNumber,
+        email,
+      });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new admin
+    const newAdmin = new Admin({
+      userName,
+      phoneNumber,
+      email: email || undefined,
+      password: hashedPassword,
+      role: 'admin',
+      isActive: true,
+      createdBy: req.user._id,
+      createdAt: new Date(),
+    });
+
+    await newAdmin.save();
+
+    return res.render('admin/create-admin-panel', {
+      title: 'Create New Admin',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      success: `Admin account for ${userName} created successfully!`,
+    });
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    return res.render('admin/create-admin-panel', {
+      title: 'Create New Admin',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      errors: ['Failed to create admin account: ' + error.message],
+      userName: req.body.userName,
+      phoneNumber: req.body.phoneNumber,
+      email: req.body.email,
+    });
   }
 };
 
@@ -6505,5 +8236,17 @@ module.exports = {
   deleteBrilliantStudent,
   reorderBrilliantStudents,
   getBrilliantStudentsStats,
-  exportBrilliantStudents
+  exportBrilliantStudents,
+  // Admin Management
+  getCreateAdminForm,
+  createNewAdmin,
+  // Export functions
+  exportCourses,
+  exportOrders,
+  exportQuizzes,
+  exportComprehensiveReport,
+  exportCourseDetails,
+  exportTopicDetails,
+  exportQuestionBankDetails,
+  exportQuizDetails,
 };

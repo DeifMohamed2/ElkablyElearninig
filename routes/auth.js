@@ -25,7 +25,7 @@ router.post('/register', registerUser);
 router.get('/logout', logoutUser);
 
 // Hidden admin creation (token-protected)
-router.get('/admin/create', getCreateAdminPage);
-router.post('/admin/create', createAdmin);
+router.get('/admin/create-admin', getCreateAdminPage);
+router.post('/admin/create-admin', createAdmin);
 
 module.exports = router;

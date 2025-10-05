@@ -2,24 +2,24 @@
 
 <!-- Admin Layout -->
 <div class="admin-layout">
-  
+
   <!-- Sidebar -->
   <%- include('./partials/admin-sidebar', { currentPage: 'bundles' }) %>
-  
+
   <!-- Main Content -->
   <main class="admin-main">
-    
+
     <!-- Top Bar -->
     <%- include('./partials/admin-topbar', { 
         breadcrumb: 'Bundle Courses',
         breadcrumbSubtitle: 'Manage Course Bundles and Packages',
         showSearch: true
     }) %>
-    
+
     <!-- Content Area -->
     <div class="admin-content">
       <div class="admin-dashboard admin-fade-in">
-        
+
         <!-- Page Header -->
         <div class="admin-dashboard-header">
           <div class="d-flex justify-content-between align-items-center">
@@ -49,7 +49,7 @@
             <h3 class="admin-stat-number"><%= stats ? stats.totalBundles : 0 %></h3>
             <p class="admin-stat-label">Total Bundles</p>
           </div>
-          
+
           <div class="admin-stat-card admin-slide-in">
             <div class="admin-stat-header">
               <div class="admin-stat-icon">
@@ -63,7 +63,7 @@
             <h3 class="admin-stat-number"><%= stats ? stats.publishedBundles : 0 %></h3>
             <p class="admin-stat-label">Published Bundles</p>
           </div>
-          
+
           <div class="admin-stat-card admin-slide-in">
             <div class="admin-stat-header">
               <div class="admin-stat-icon">
@@ -77,7 +77,7 @@
             <h3 class="admin-stat-number"><%= stats ? stats.draftBundles : 0 %></h3>
             <p class="admin-stat-label">Draft Bundles</p>
           </div>
-          
+
           <div class="admin-stat-card admin-slide-in">
             <div class="admin-stat-header">
               <div class="admin-stat-icon">
@@ -104,9 +104,9 @@
                   <select name="year" class="form-select">
                     <option value="">All Years</option>
                     <% if (filterOptions && filterOptions.years) { %>
-                      <% filterOptions.years.forEach(year => { %>
-                        <option value="<%= year %>" <%= currentFilters.year === year ? 'selected' : '' %>><%= year %></option>
-                      <% }); %>
+                    <% filterOptions.years.forEach(year => { %>
+                    <option value="<%= year %>" <%= currentFilters.year === year ? 'selected' : '' %>><%= year %></option>
+                    <% }); %>
                     <% } %>
                   </select>
                 </div>
@@ -153,104 +153,104 @@
 
           <div class="admin-courses-grid">
             <% if (bundles && bundles.length > 0) { %>
-              <% bundles.forEach(bundle => { %>
-                <div class="admin-course-card admin-bundle-card" data-status="<%= bundle.status %>" data-bundle-code="<%= bundle.bundleCode %>">
-                  <div class="admin-course-thumbnail">
-                    <img src="<%= bundle.thumbnail || '/images/bundle-placeholder.jpg' %>" alt="Bundle Thumbnail">
-                    <div class="admin-course-status <%= bundle.status %>"><%= bundle.status.charAt(0).toUpperCase() + bundle.status.slice(1) %></div>
-                    <div class="admin-bundle-badge">
-                      <i class="fas fa-box me-1"></i>
-                      Bundle
-                    </div>
-                  </div>
-                  
-                  <div class="admin-course-content">
-                    <div class="admin-course-header">
-                      <h4 class="admin-course-title"><%= bundle.title %></h4>
-                      <span class="admin-course-code"><%= bundle.bundleCode %></span>
-                    </div>
-                    
-                    <p class="admin-course-description"><%= bundle.shortDescription %></p>
-                    
-                    <div class="admin-course-meta">
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span><%= bundle.year %></span>
-                      </div>
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-book"></i>
-                        <span><%= bundle.subject %></span>
-                      </div>
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-layer-group"></i>
-                        <span><%= bundle.courses ? bundle.courses.length : 0 %> courses</span>
-                      </div>
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span><%= bundle.duration || 0 %> hours</span>
-                      </div>
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-users"></i>
-                        <span><%= bundle.enrolledStudents ? bundle.enrolledStudents.length : 0 %> students</span>
-                      </div>
-                    </div>
-                    
-                    <div class="admin-bundle-pricing-content">
-                      <% if (bundle.discountPrice) { %>
-                        <div class="admin-price-container">
-                          <div class="admin-price-row">
-                            <span class="admin-original-price">EGP <%= bundle.price %></span>
-                            <span class="admin-discount-price">EGP <%= bundle.finalPrice.toFixed(2) %></span>
-                          </div>
-                          <div class="admin-savings-row">
-                            <span class="admin-savings">Save EGP <%= bundle.savings.toFixed(2) %> (<%= bundle.savingsPercentage %>% off)</span>
-                          </div>
-                        </div>
-                      <% } else { %>
-                        <div class="admin-price-container">
-                          <span class="admin-regular-price">EGP <%= bundle.price %></span>
-                        </div>
-                      <% } %>
-                    </div>
-                    
-                    <div class="admin-course-actions">
-                      <a href="/admin/bundles/<%= bundle.bundleCode %>/info" class="btn btn-sm btn-info me-1">
-                        <i class="fas fa-chart-bar me-1"></i>
-                        Info
-                      </a>
-                      <a href="/admin/bundles/<%= bundle.bundleCode %>/manage" class="btn btn-sm btn-primary me-1">
-                        <i class="fas fa-edit me-1"></i>
-                        Manage
-                      </a>
-                      <button class="btn btn-sm btn-outline-secondary me-1" onclick="editBundle('<%= bundle.bundleCode %>')">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-danger" onclick="deleteBundle('<%= bundle.bundleCode %>')">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </div>
+            <% bundles.forEach(bundle => { %>
+            <div class="admin-course-card admin-bundle-card" data-status="<%= bundle.status %>" data-bundle-code="<%= bundle.bundleCode %>">
+              <div class="admin-course-thumbnail">
+                <img src="<%= bundle.thumbnail || '/images/bundle-placeholder.jpg' %>" alt="Bundle Thumbnail">
+                <div class="admin-course-status <%= bundle.status %>"><%= bundle.status.charAt(0).toUpperCase() + bundle.status.slice(1) %></div>
+                <div class="admin-bundle-badge">
+                  <i class="fas fa-box me-1"></i>
+                  Bundle
                 </div>
-              <% }); %>
-            <% } else { %>
-              <div class="admin-empty-state">
-                <div class="admin-empty-icon">
-                  <i class="fas fa-box"></i>
-                </div>
-                <h4>No bundles found</h4>
-                <p>Create your first course bundle to get started</p>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createBundleModal">
-                  <i class="fas fa-plus me-2"></i>
-                  Create Bundle
-                </button>
               </div>
+
+              <div class="admin-course-content">
+                <div class="admin-course-header">
+                  <h4 class="admin-course-title"><%= bundle.title %></h4>
+                  <span class="admin-course-code"><%= bundle.bundleCode %></span>
+                </div>
+
+                <p class="admin-course-description"><%= bundle.shortDescription %></p>
+
+                <div class="admin-course-meta">
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span><%= bundle.year %></span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-book"></i>
+                    <span><%= bundle.subject %></span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span><%= bundle.courses ? bundle.courses.length : 0 %> courses</span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-clock"></i>
+                    <span><%= bundle.duration || 0 %> hours</span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-users"></i>
+                    <span><%= bundle.enrolledStudents ? bundle.enrolledStudents.length : 0 %> students</span>
+                  </div>
+                </div>
+
+                <div class="admin-bundle-pricing-content">
+                  <% if (bundle.discountPrice) { %>
+                  <div class="admin-price-container">
+                    <div class="admin-price-row">
+                      <span class="admin-original-price">EGP <%= bundle.price %></span>
+                      <span class="admin-discount-price">EGP <%= bundle.finalPrice.toFixed(2) %></span>
+                    </div>
+                    <div class="admin-savings-row">
+                      <span class="admin-savings">Save EGP <%= bundle.savings.toFixed(2) %> (<%= bundle.savingsPercentage %>% off)</span>
+                    </div>
+                  </div>
+                  <% } else { %>
+                  <div class="admin-price-container">
+                    <span class="admin-regular-price">EGP <%= bundle.price %></span>
+                  </div>
+                  <% } %>
+                </div>
+
+                <div class="admin-course-actions">
+                  <a href="/admin/bundles/<%= bundle.bundleCode %>/info" class="btn btn-sm btn-info me-1">
+                    <i class="fas fa-chart-bar me-1"></i>
+                    Info
+                  </a>
+                  <a href="/admin/bundles/<%= bundle.bundleCode %>/manage" class="btn btn-sm btn-primary me-1">
+                    <i class="fas fa-edit me-1"></i>
+                    Manage
+                  </a>
+                  <button class="btn btn-sm btn-outline-secondary me-1" onclick="editBundle('<%= bundle.bundleCode %>')">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteBundle('<%= bundle.bundleCode %>')">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <% }); %>
+            <% } else { %>
+            <div class="admin-empty-state">
+              <div class="admin-empty-icon">
+                <i class="fas fa-box"></i>
+              </div>
+              <h4>No bundles found</h4>
+              <p>Create your first course bundle to get started</p>
+              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createBundleModal">
+                <i class="fas fa-plus me-2"></i>
+                Create Bundle
+              </button>
+            </div>
             <% } %>
           </div>
         </div>
-        
+
       </div>
     </div>
-    
+
   </main>
 </div>
 
@@ -267,7 +267,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <form id="createBundleForm" method="POST" action="/admin/bundles/create">
         <div class="modal-body admin-modal-body">
           <!-- Bundle Thumbnail Upload Section -->
@@ -302,49 +302,46 @@
                   <i class="fas fa-info-circle me-2"></i>
                   Bundle Information
                 </h6>
-                
+
                 <div class="admin-form-group">
                   <label for="bundleTitle" class="admin-form-label">
                     <i class="fas fa-heading me-2"></i>
                     Bundle Title
                   </label>
-                  <input type="text" class="admin-form-control" id="bundleTitle" name="title" 
-                         minlength="3" maxlength="100" required>
+                  <input type="text" class="admin-form-control" id="bundleTitle" name="title" minlength="3" maxlength="100" required>
                   <small class="admin-form-text">Title must be between 3 and 100 characters</small>
                   <div class="invalid-feedback" id="bundleTitleError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="bundleDescription" class="admin-form-label">
                     <i class="fas fa-align-left me-2"></i>
                     Bundle Description
                   </label>
-                  <textarea class="admin-form-control" id="bundleDescription" name="description" 
-                            rows="4" minlength="5" maxlength="1000" required></textarea>
+                  <textarea class="admin-form-control" id="bundleDescription" name="description" rows="4" minlength="5" maxlength="1000" required></textarea>
                   <small class="admin-form-text">Description must be between 5 and 1000 characters</small>
                   <div class="invalid-feedback" id="bundleDescriptionError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="bundleShortDescription" class="admin-form-label">
                     <i class="fas fa-text-width me-2"></i>
                     Short Description
                   </label>
-                  <input type="text" class="admin-form-control" id="bundleShortDescription" name="shortDescription" 
-                         minlength="3" maxlength="200" required>
+                  <input type="text" class="admin-form-control" id="bundleShortDescription" name="shortDescription" minlength="3" maxlength="200" required>
                   <small class="admin-form-text">Short description must be between 3 and 200 characters</small>
                   <div class="invalid-feedback" id="bundleShortDescriptionError"></div>
                 </div>
               </div>
             </div>
-            
+
             <div class="col-md-4">
               <div class="admin-form-section">
                 <h6 class="admin-form-section-title">
                   <i class="fas fa-cog me-2"></i>
                   Bundle Settings
                 </h6>
-                
+
                 <div class="admin-form-group">
                   <label for="bundleYear" class="admin-form-label">
                     <i class="fas fa-graduation-cap me-2"></i>
@@ -373,7 +370,7 @@
                     <option value="Grade 12">Grade 12</option>
                   </select>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="bundleCourseType" class="admin-form-label">
                     <i class="fas fa-laptop me-2"></i>
@@ -386,32 +383,57 @@
                   </select>
                   <small class="admin-form-text">Choose whether this bundle contains online or onground courses</small>
                 </div>
-                
+
+                <div class="admin-form-group">
+                  <label for="bundleTestType" class="admin-form-label">
+                    <i class="fas fa-certificate me-2"></i>
+                    Test Type
+                  </label>
+                  <select class="admin-form-control" id="bundleTestType" name="testType" required>
+                    <option value="">Select Test Type</option>
+                    <option value="EST">EST</option>
+                    <option value="SAT">SAT</option>
+                    <option value="ACT">ACT</option>
+                  </select>
+                  <small class="admin-form-text">Choose the test type this bundle prepares for</small>
+                </div>
+
+                <div class="admin-form-group">
+                  <label for="bundleSubject" class="admin-form-label">
+                    <i class="fas fa-book me-2"></i>
+                    Subject
+                  </label>
+                  <select class="admin-form-control" id="bundleSubject" name="subject" required>
+                    <option value="">Select Subject</option>
+                    <option value="Basics">Basics</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                  <small class="admin-form-text">Choose the subject level for this bundle</small>
+                </div>
+
                 <div class="admin-form-group">
                   <label for="bundlePrice" class="admin-form-label">
                     <i class="fas fa-dollar-sign me-2"></i>
                     Regular Price (EGP)
                   </label>
-                  <input type="number" class="admin-form-control" id="bundlePrice" name="price" 
-                         min="0" step="0.01" required>
+                  <input type="number" class="admin-form-control" id="bundlePrice" name="price" min="0" step="0.01" required>
                   <small class="admin-form-text">Price must be 0 or greater</small>
                   <div class="invalid-feedback" id="bundlePriceError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="bundleDiscountPrice" class="admin-form-label">
                     <i class="fas fa-percentage me-2"></i>
                     Discount Percentage (%)
                   </label>
-                  <input type="number" class="admin-form-control" id="bundleDiscountPrice" name="discountPrice" 
-                         min="0" max="100" step="1">
+                  <input type="number" class="admin-form-control" id="bundleDiscountPrice" name="discountPrice" min="0" max="100" step="1">
                   <small class="admin-form-text">Optional: Set a discount percentage (0-100)</small>
                   <div class="invalid-feedback" id="bundleDiscountPriceError"></div>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <div class="admin-form-group mt-4">
             <div class="alert alert-info">
               <i class="fas fa-info-circle me-2"></i>
@@ -419,7 +441,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="modal-footer admin-modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary admin-btn-primary">
@@ -438,14 +460,14 @@
 <script src="/js/cloudinary-upload.js"></script>
 
 <script>
-// Bundle management functions
-function editBundle(bundleCode) {
-  window.location.href = `/admin/bundles/${bundleCode}/manage`;
-}
+  // Bundle management functions
+  function editBundle(bundleCode) {
+    window.location.href = `/admin/bundles/${bundleCode}/manage`;
+  }
 
-async function deleteBundle(bundleCode) {
-  // Create a beautiful confirmation modal instead of browser confirm
-  const confirmModalHtml = `
+  async function deleteBundle(bundleCode) {
+    // Create a beautiful confirmation modal instead of browser confirm
+    const confirmModalHtml = `
     <div class="modal fade" id="deleteBundleConfirmModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -476,86 +498,86 @@ async function deleteBundle(bundleCode) {
       </div>
     </div>
   `;
-  
-  // Remove existing modal if any
-  const existingModal = document.getElementById('deleteBundleConfirmModal');
-  if (existingModal) existingModal.remove();
-  
-  // Add modal to body
-  document.body.insertAdjacentHTML('beforeend', confirmModalHtml);
-  
-  // Show modal
-  const modal = new bootstrap.Modal(document.getElementById('deleteBundleConfirmModal'));
-  modal.show();
-  
-  // Handle delete confirmation
-  document.getElementById('confirmDeleteBundleBtn').addEventListener('click', async function() {
-    // Show loading state
-    const deleteBtn = this;
-    const originalText = deleteBtn.innerHTML;
-    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Deleting...';
-    deleteBtn.disabled = true;
-    
-    try {
-      const response = await fetch(`/admin/bundles/${bundleCode}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        modal.hide();
-        showNotification('Bundle deleted successfully!', 'success');
-        
-        // Remove the bundle card from UI with animation
-        const bundleCard = document.querySelector(`[data-bundle-code="${bundleCode}"]`);
-        
-        if (bundleCard) {
-          bundleCard.style.transition = 'all 0.3s ease';
-          bundleCard.style.transform = 'scale(0.8)';
-          bundleCard.style.opacity = '0';
-          setTimeout(() => {
-            bundleCard.remove();
-            // Update stats if needed
-            updateBundleStats();
-          }, 300);
-        } else {
-          // If we can't find the specific card, reload the page
-          setTimeout(() => {
-            location.reload();
-          }, 1000);
-        }
-      } else {
-        throw new Error(data.message || 'Failed to delete bundle');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      showNotification('Error deleting bundle: ' + error.message, 'error');
-      // Restore button state
-      deleteBtn.innerHTML = originalText;
-      deleteBtn.disabled = false;
-    }
-  });
-  
-  // Clean up modal when hidden
-  document.getElementById('deleteBundleConfirmModal').addEventListener('hidden.bs.modal', function() {
-    this.remove();
-  });
-}
 
-// Notification function
-function showNotification(message, type = 'info') {
-  // Remove existing notifications
-  const existingNotifications = document.querySelectorAll('.notification');
-  existingNotifications.forEach(notification => notification.remove());
-  
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.innerHTML = `
+    // Remove existing modal if any
+    const existingModal = document.getElementById('deleteBundleConfirmModal');
+    if (existingModal) existingModal.remove();
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', confirmModalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteBundleConfirmModal'));
+    modal.show();
+
+    // Handle delete confirmation
+    document.getElementById('confirmDeleteBundleBtn').addEventListener('click', async function() {
+      // Show loading state
+      const deleteBtn = this;
+      const originalText = deleteBtn.innerHTML;
+      deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Deleting...';
+      deleteBtn.disabled = true;
+
+      try {
+        const response = await fetch(`/admin/bundles/${bundleCode}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          modal.hide();
+          showNotification('Bundle deleted successfully!', 'success');
+
+          // Remove the bundle card from UI with animation
+          const bundleCard = document.querySelector(`[data-bundle-code="${bundleCode}"]`);
+
+          if (bundleCard) {
+            bundleCard.style.transition = 'all 0.3s ease';
+            bundleCard.style.transform = 'scale(0.8)';
+            bundleCard.style.opacity = '0';
+            setTimeout(() => {
+              bundleCard.remove();
+              // Update stats if needed
+              updateBundleStats();
+            }, 300);
+          } else {
+            // If we can't find the specific card, reload the page
+            setTimeout(() => {
+              location.reload();
+            }, 1000);
+          }
+        } else {
+          throw new Error(data.message || 'Failed to delete bundle');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error deleting bundle: ' + error.message, 'error');
+        // Restore button state
+        deleteBtn.innerHTML = originalText;
+        deleteBtn.disabled = false;
+      }
+    });
+
+    // Clean up modal when hidden
+    document.getElementById('deleteBundleConfirmModal').addEventListener('hidden.bs.modal', function() {
+      this.remove();
+    });
+  }
+
+  // Notification function
+  function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => notification.remove());
+
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
     <div class="notification-content">
       <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
       <span>${message}</span>
@@ -564,173 +586,175 @@ function showNotification(message, type = 'info') {
       </button>
     </div>
   `;
-  
-  // Add to page
-  document.body.appendChild(notification);
-  
-  // Auto remove after 5 seconds
-  setTimeout(() => {
-    if (notification.parentElement) {
-      notification.remove();
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+
+  // Update bundle stats after deletion
+  function updateBundleStats() {
+    const remainingBundles = document.querySelectorAll('.admin-bundle-card');
+    const totalBundlesElement = document.querySelector('.admin-stat-number');
+
+    if (totalBundlesElement) {
+      totalBundlesElement.textContent = remainingBundles.length;
     }
-  }, 5000);
-}
 
-// Update bundle stats after deletion
-function updateBundleStats() {
-  const remainingBundles = document.querySelectorAll('.admin-bundle-card');
-  const totalBundlesElement = document.querySelector('.admin-stat-number');
-  
-  if (totalBundlesElement) {
-    totalBundlesElement.textContent = remainingBundles.length;
+    // Update results info
+    const resultsInfo = document.querySelector('.admin-results-info span');
+    if (resultsInfo) {
+      resultsInfo.textContent = `Showing ${remainingBundles.length} of ${remainingBundles.length} bundles`;
+    }
   }
-  
-  // Update results info
-  const resultsInfo = document.querySelector('.admin-results-info span');
-  if (resultsInfo) {
-    resultsInfo.textContent = `Showing ${remainingBundles.length} of ${remainingBundles.length} bundles`;
-  }
-}
 
-// Setup form validation for bundle creation
-document.addEventListener('DOMContentLoaded', function() {
-  setupBundleFormValidation();
-});
-
-function setupBundleFormValidation() {
-  const form = document.getElementById('createBundleForm');
-  const inputs = form.querySelectorAll('input, textarea, select');
-  
-  // Add real-time validation
-  inputs.forEach(input => {
-    input.addEventListener('input', function() {
-      validateBundleField(this);
-    });
-    
-    input.addEventListener('blur', function() {
-      validateBundleField(this);
-    });
+  // Setup form validation for bundle creation
+  document.addEventListener('DOMContentLoaded', function() {
+    setupBundleFormValidation();
   });
-  
-  // Prevent form submission if validation fails
-  form.addEventListener('submit', function(e) {
-    let isValid = true;
-    
+
+  function setupBundleFormValidation() {
+    const form = document.getElementById('createBundleForm');
+    const inputs = form.querySelectorAll('input, textarea, select');
+
+    // Add real-time validation
     inputs.forEach(input => {
-      if (!validateBundleField(input)) {
-        isValid = false;
+      input.addEventListener('input', function() {
+        validateBundleField(this);
+      });
+
+      input.addEventListener('blur', function() {
+        validateBundleField(this);
+      });
+    });
+
+    // Prevent form submission if validation fails
+    form.addEventListener('submit', function(e) {
+      let isValid = true;
+
+      inputs.forEach(input => {
+        if (!validateBundleField(input)) {
+          isValid = false;
+        }
+      });
+
+      if (!isValid) {
+        e.preventDefault();
+        showBundleFormError('Please fix the validation errors before submitting.');
       }
     });
-    
-    if (!isValid) {
-      e.preventDefault();
-      showBundleFormError('Please fix the validation errors before submitting.');
-    }
-  });
-}
+  }
 
-function validateBundleField(field) {
-  const value = field.value.trim();
-  const fieldName = field.name;
-  let isValid = true;
-  let errorMessage = '';
-  
-  // Clear previous error
-  field.classList.remove('is-invalid');
-  const errorElement = document.getElementById(fieldName + 'Error');
-  if (errorElement) {
-    errorElement.textContent = '';
-  }
-  
-  // Required field validation
-  if (field.hasAttribute('required') && !value) {
-    isValid = false;
-    errorMessage = `${getBundleFieldLabel(fieldName)} is required.`;
-  }
-  
-  // Length validation
-  if (value && field.hasAttribute('minlength')) {
-    const minLength = parseInt(field.getAttribute('minlength'));
-    if (value.length < minLength) {
-      isValid = false;
-      errorMessage = `${getBundleFieldLabel(fieldName)} must be at least ${minLength} characters.`;
-    }
-  }
-  
-  if (value && field.hasAttribute('maxlength')) {
-    const maxLength = parseInt(field.getAttribute('maxlength'));
-    if (value.length > maxLength) {
-      isValid = false;
-      errorMessage = `${getBundleFieldLabel(fieldName)} must not exceed ${maxLength} characters.`;
-    }
-  }
-  
-  // Number validation
-  if (field.type === 'number' && value) {
-    const numValue = parseFloat(value);
-    if (field.hasAttribute('min') && numValue < parseFloat(field.getAttribute('min'))) {
-      isValid = false;
-      errorMessage = `${getBundleFieldLabel(fieldName)} must be at least ${field.getAttribute('min')}.`;
-    }
-  }
-  
-  // Special validation for discount price
-  if (fieldName === 'discountPrice' && value) {
-    const discountPercentage = parseFloat(value);
-    
-    if (discountPercentage < 0 || discountPercentage > 100) {
-      isValid = false;
-      errorMessage = 'Discount percentage must be between 0 and 100.';
-    }
-  }
-  
-  // Year selection validation
-  if (fieldName === 'year' && !value) {
-    isValid = false;
-    errorMessage = 'Please select a year/grade for this bundle.';
-  }
-  
-  // Show error if validation failed
-  if (!isValid) {
-    field.classList.add('is-invalid');
+  function validateBundleField(field) {
+    const value = field.value.trim();
+    const fieldName = field.name;
+    let isValid = true;
+    let errorMessage = '';
+
+    // Clear previous error
+    field.classList.remove('is-invalid');
+    const errorElement = document.getElementById(fieldName + 'Error');
     if (errorElement) {
-      errorElement.textContent = errorMessage;
+      errorElement.textContent = '';
     }
-  }
-  
-  return isValid;
-}
 
-function getBundleFieldLabel(fieldName) {
-  const labels = {
-    'title': 'Title',
-    'description': 'Description',
-    'shortDescription': 'Short Description',
-    'year': 'Year/Grade',
-    'price': 'Price',
-    'discountPrice': 'Discount Percentage'
-  };
-  return labels[fieldName] || fieldName;
-}
+    // Required field validation
+    if (field.hasAttribute('required') && !value) {
+      isValid = false;
+      errorMessage = `${getBundleFieldLabel(fieldName)} is required.`;
+    }
 
-function showBundleFormError(message) {
-  // Create or update error message
-  let errorDiv = document.querySelector('.form-validation-error');
-  if (!errorDiv) {
-    errorDiv = document.createElement('div');
-    errorDiv.className = 'form-validation-error alert alert-danger mt-3';
-    const form = document.getElementById('createBundleForm');
-    form.appendChild(errorDiv);
+    // Length validation
+    if (value && field.hasAttribute('minlength')) {
+      const minLength = parseInt(field.getAttribute('minlength'));
+      if (value.length < minLength) {
+        isValid = false;
+        errorMessage = `${getBundleFieldLabel(fieldName)} must be at least ${minLength} characters.`;
+      }
+    }
+
+    if (value && field.hasAttribute('maxlength')) {
+      const maxLength = parseInt(field.getAttribute('maxlength'));
+      if (value.length > maxLength) {
+        isValid = false;
+        errorMessage = `${getBundleFieldLabel(fieldName)} must not exceed ${maxLength} characters.`;
+      }
+    }
+
+    // Number validation
+    if (field.type === 'number' && value) {
+      const numValue = parseFloat(value);
+      if (field.hasAttribute('min') && numValue < parseFloat(field.getAttribute('min'))) {
+        isValid = false;
+        errorMessage = `${getBundleFieldLabel(fieldName)} must be at least ${field.getAttribute('min')}.`;
+      }
+    }
+
+    // Special validation for discount price
+    if (fieldName === 'discountPrice' && value) {
+      const discountPercentage = parseFloat(value);
+
+      if (discountPercentage < 0 || discountPercentage > 100) {
+        isValid = false;
+        errorMessage = 'Discount percentage must be between 0 and 100.';
+      }
+    }
+
+    // Year selection validation
+    if (fieldName === 'year' && !value) {
+      isValid = false;
+      errorMessage = 'Please select a year/grade for this bundle.';
+    }
+
+    // Show error if validation failed
+    if (!isValid) {
+      field.classList.add('is-invalid');
+      if (errorElement) {
+        errorElement.textContent = errorMessage;
+      }
+    }
+
+    return isValid;
   }
-  
-  errorDiv.innerHTML = `
+
+  function getBundleFieldLabel(fieldName) {
+    const labels = {
+      'title': 'Title',
+      'description': 'Description',
+      'shortDescription': 'Short Description',
+      'year': 'Year/Grade',
+      'price': 'Price',
+      'discountPrice': 'Discount Percentage'
+    };
+    return labels[fieldName] || fieldName;
+  }
+
+  function showBundleFormError(message) {
+    // Create or update error message
+    let errorDiv = document.querySelector('.form-validation-error');
+    if (!errorDiv) {
+      errorDiv = document.createElement('div');
+      errorDiv.className = 'form-validation-error alert alert-danger mt-3';
+      const form = document.getElementById('createBundleForm');
+      form.appendChild(errorDiv);
+    }
+
+    errorDiv.innerHTML = `
     <i class="fas fa-exclamation-triangle me-2"></i>
     ${message}
   `;
-  errorDiv.style.display = 'block';
-  
-  // Scroll to error
-  errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-</script>
+    errorDiv.style.display = 'block';
 
+    // Scroll to error
+    errorDiv.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  }
+</script>

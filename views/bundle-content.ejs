@@ -15,7 +15,7 @@
 </div>
 
 <!-- Bundle Content Section -->
-<section class="bundle-content-section">
+<section class="bundle-content-section" style="padding-top: 120px; margin-top: 80px;">
   <div class="container">
     <!-- Breadcrumb -->
     <nav class="breadcrumb-nav">
@@ -130,10 +130,7 @@
                 <i class="fas fa-clock"></i>
                 <span><%= bundle.duration || 0 %> Hour<%= (bundle.duration || 0) !== 1 ? 's' : '' %></span>
               </div>
-              <div class="stat-item">
-                <i class="fas fa-users"></i>
-                <span><%= bundle.enrolledStudents.length %> Student<%= bundle.enrolledStudents.length !== 1 ? 's' : '' %></span>
-              </div>
+         
               <div class="stat-item">
                 <i class="fas fa-star"></i>
                 <span>4.8 Rating</span>
@@ -177,16 +174,9 @@
               <% } %>
             </div>
 
-            <div class="purchase-guarantee">
-              <i class="fas fa-shield-alt"></i>
-              <span>30-Day Money Back Guarantee</span>
-            </div>
-
+   
             <div class="bundle-info mt-auto">
-              <div class="info-item">
-                <i class="fas fa-calendar"></i>
-                <span>Lifetime Access</span>
-              </div>
+        
               <div class="info-item">
                 <i class="fas fa-download"></i>
                 <span>Downloadable Resources</span>
@@ -259,7 +249,7 @@
           
           <div class="course-card-body-enhanced">
             <div class="course-meta">
-              <span class="course-year"><%= course.year %></span>
+              <!-- <span class="course-year"><%= course.year %></span> -->
               <span class="course-subject"><%= course.subject %></span>
             </div>
             
@@ -277,10 +267,7 @@
                 <i class="fas fa-book"></i>
                 <span><%= course.category %></span>
               </div>
-              <div class="stat-item">
-                <i class="fas fa-users"></i>
-                <span><%= course.enrolledStudents ? course.enrolledStudents.length : 0 %> Students</span>
-              </div>
+        
             </div>
             
             <div class="course-price-container-enhanced">
@@ -348,46 +335,6 @@
     </div>
 
 
-    <!-- Related Bundles -->
-    <% if (relatedBundles.length > 0) { %>
-    <div class="related-bundles-section mt-5 fade-in-up">
-      <h2 class="section-title">Related Bundles</h2>
-      <div class="related-bundles-grid">
-        <% relatedBundles.forEach(relatedBundle => { %>
-        <article class="related-bundle-card">
-          <div class="bundle-card-media">
-            <img src="<%= relatedBundle.thumbnail || '/images/adad.png' %>" alt="<%= relatedBundle.title %>" loading="lazy">
-            <div class="bundle-offer-badge">
-              <%= relatedBundle.courseType === 'online' ? 'Online' : 'On-Ground' %>
-            </div>
-          </div>
-          <div class="bundle-card-body">
-            <h3 class="bundle-card-title"><%= relatedBundle.title %></h3>
-            <p class="bundle-card-description"><%= relatedBundle.shortDescription %></p>
-            <div class="bundle-price-container">
-              <% if (relatedBundle.discountPrice) { %>
-                <span class="bundle-price-original">$<%= relatedBundle.price %></span>
-                <span class="bundle-price-current">$<%= relatedBundle.finalPrice.toFixed(2) %></span>
-              <% } else { %>
-                <span class="bundle-price-current">$<%= relatedBundle.price %></span>
-              <% } %>
-            </div>
-            <div class="bundle-features">
-              <span class="bundle-feature"><%= relatedBundle.courses.length %> Courses</span>
-              <span class="bundle-feature"><%= relatedBundle.duration || 0 %> Hours</span>
-            </div>
-            <div class="bundle-actions">
-              <a href="/bundle/<%= relatedBundle._id %>" class="btn-view-bundle">
-                <span>View Details</span>
-                <i class="fas fa-arrow-right"></i>
-              </a>
-            </div>
-          </div>
-        </article>
-        <% }); %>
-      </div>
-    </div>
-    <% } %>
   </div>
 </section>
 
@@ -396,10 +343,10 @@
 function addCourseToCart(courseId) {
   // Check if user is logged in
   <% if (!user) { %>
-    showNotification('Please login to add items to cart', 'error');
+    showCartNotification('Please login to add items to cart', 'error');
     setTimeout(() => {
       window.location.href = '/auth/login';
-    }, 2000);
+    }, 3500); // Increased delay
     return;
   <% } %>
   
@@ -445,7 +392,7 @@ function addCourseToCart(courseId) {
       icon.classList.remove('fa-spinner', 'fa-spin');
       icon.classList.add('fa-check');
       
-      showNotification(data.message, 'success');
+      showCartNotification(data.message, 'success');
       
       // Update global cart count and refresh cart data
       if (window.globalCart) {
@@ -465,7 +412,7 @@ function addCourseToCart(courseId) {
       icon.classList.remove('fa-spinner', 'fa-spin');
       icon.classList.add('fa-shopping-cart');
       
-      showNotification(data.message, 'error');
+      showCartNotification(data.message || 'Failed to add item to cart', 'error');
     }
   })
   .catch(error => {
@@ -475,7 +422,7 @@ function addCourseToCart(courseId) {
     icon.classList.remove('fa-spinner', 'fa-spin');
     icon.classList.add('fa-shopping-cart');
     
-    showNotification('Error adding item to cart', 'error');
+    showCartNotification('Network error. Please try again.', 'error');
   });
 }
 
@@ -483,10 +430,10 @@ function addCourseToCart(courseId) {
 function addBundleToCart(bundleId) {
   // Check if user is logged in
   <% if (!user) { %>
-    showNotification('Please login to add items to cart', 'error');
+    showCartNotification('Please login to add items to cart', 'error');
     setTimeout(() => {
       window.location.href = '/auth/login';
-    }, 2000);
+    }, 3500); // Increased delay
     return;
   <% } %>
   
@@ -529,7 +476,7 @@ function addBundleToCart(bundleId) {
       icon.classList.remove('fa-spinner', 'fa-spin');
       icon.classList.add('fa-check');
       
-      showNotification(data.message, 'success');
+      showCartNotification(data.message, 'success');
       
       // Update global cart count and refresh cart data
       if (window.globalCart) {
@@ -549,7 +496,7 @@ function addBundleToCart(bundleId) {
       icon.classList.remove('fa-spinner', 'fa-spin');
       icon.classList.add('fa-shopping-cart');
       
-      showNotification(data.message, 'error');
+      showCartNotification(data.message || 'Failed to add item to cart', 'error');
     }
   })
   .catch(error => {
@@ -559,7 +506,7 @@ function addBundleToCart(bundleId) {
     icon.classList.remove('fa-spinner', 'fa-spin');
     icon.classList.add('fa-shopping-cart');
     
-    showNotification('Error adding item to cart', 'error');
+    showCartNotification('Network error. Please try again.', 'error');
   });
 }
 
@@ -686,28 +633,42 @@ document.addEventListener('DOMContentLoaded', function() {
 // Access course function for enrolled courses
 function accessCourse(courseId) {
   // Redirect to the course content or student dashboard
-  window.location.href = `/student/course/${courseId}`;
+  window.location.href = `/student/enrolled-courses`;
 }
 
-// Show notification function
-function showNotification(message, type = 'info') {
+// Show cart notification (consistent across all pages)
+function showCartNotification(message, type = 'success') {
+  // Create notification element
   const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
+  notification.className = `cart-notification cart-notification-${type}`;
+  
+  // Choose icon based on type
+  const iconClass = type === 'success' ? 'fas fa-check-circle' : 
+                   type === 'error' ? 'fas fa-exclamation-circle' : 
+                   'fas fa-info-circle';
+  
   notification.innerHTML = `
-    <div class="notification-content">
-      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+    <div class="cart-notification-content">
+      <i class="${iconClass}"></i>
       <span>${message}</span>
     </div>
   `;
   
   document.body.appendChild(notification);
   
+  // Show notification
   setTimeout(() => notification.classList.add('show'), 100);
   
+  // Hide notification
   setTimeout(() => {
     notification.classList.remove('show');
     setTimeout(() => notification.remove(), 300);
-  }, 3000);
+  }, 4000); // Increased duration
+}
+
+// Alias for backward compatibility
+function showNotification(message, type = 'info') {
+  showCartNotification(message, type);
 }
 
 // Add ripple effect CSS for enhanced interactions
@@ -920,12 +881,12 @@ function addToCart(item) {
       // Show cart sidebar
       showCartSidebar();
     } else {
-      showCartNotification(data.message, 'error');
+      showCartNotification(data.message || 'Failed to add item to cart', 'error');
     }
   })
   .catch(error => {
     console.error('Error:', error);
-    showCartNotification('Error adding item to cart', 'error');
+    showCartNotification('Network error. Please try again.', 'error');
   });
 }
 
@@ -1185,10 +1146,10 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleWishlist(itemId, itemType) {
   // Check if user is logged in
   <% if (!user) { %>
-    showNotification('Please login to manage your wishlist', 'error');
+    showCartNotification('Please login to manage your wishlist', 'error');
     setTimeout(() => {
       window.location.href = '/auth/login';
-    }, 2000);
+    }, 3500); // Increased delay
     return;
   <% } %>
   
@@ -1228,7 +1189,7 @@ function toggleWishlist(itemId, itemType) {
         heartIcon.style.color = '';
       }
       
-      showNotification(data.message, 'success');
+      showCartNotification(data.message, 'success');
     } else {
       // Revert to original state
       heartIcon.classList.remove('fa-spinner', 'fa-spin');
@@ -1240,7 +1201,7 @@ function toggleWishlist(itemId, itemType) {
         heartIcon.style.color = '';
       }
       
-      showNotification(data.message, 'error');
+      showCartNotification(data.message || 'Failed to add item to cart', 'error');
     }
   })
   .catch(error => {
@@ -1255,7 +1216,7 @@ function toggleWishlist(itemId, itemType) {
       heartIcon.style.color = '';
     }
     
-    showNotification('Error updating wishlist', 'error');
+    showCartNotification('Error updating wishlist', 'error');
   });
 }
 </script>
@@ -1317,6 +1278,7 @@ function toggleWishlist(itemId, itemType) {
 
 <!-- Import CSS -->
 <link rel="stylesheet" href="/css/index.css">
+
 
 <style>
 .btn-purchased-enhanced, .btn-purchased {

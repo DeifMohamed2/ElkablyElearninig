@@ -4,6 +4,113 @@
    Scoped to .brilliant-students-container only
    ======================================== */
 
+/* Upload Section Styles */
+.brilliant-students-container .upload-section {
+  border: 2px dashed var(--admin-border-light);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: var(--transition);
+  background: var(--admin-card-light);
+}
+
+.dark-theme .brilliant-students-container .upload-section {
+  border-color: var(--admin-border-dark);
+  background: var(--admin-card-dark);
+}
+
+.brilliant-students-container .upload-section:hover {
+  border-color: var(--admin-primary);
+  background: rgba(184, 1, 1, 0.05);
+}
+
+.dark-theme .brilliant-students-container .upload-section:hover {
+  background: rgba(184, 1, 1, 0.1);
+}
+
+.brilliant-students-container .upload-input {
+  display: none;
+}
+
+.brilliant-students-container .upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--admin-primary);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.brilliant-students-container .upload-label:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.brilliant-students-container .upload-preview {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 120px;
+  background: var(--admin-card-light);
+  border: 1px solid var(--admin-border-light);
+}
+
+.dark-theme .brilliant-students-container .upload-preview {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+}
+
+.brilliant-students-container .preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(184, 1, 1, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.brilliant-students-container .preview-overlay i {
+  font-size: 24px;
+  color: var(--admin-primary);
+}
+
+.brilliant-students-container .preview-overlay p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--admin-text-light);
+}
+
+.dark-theme .brilliant-students-container .preview-overlay p {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .preview-overlay small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.brilliant-students-container .preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brilliant-students-container .drag-over {
+  border-color: var(--admin-primary) !important;
+  background: rgba(184, 1, 1, 0.1) !important;
+}
+
 /* Upload Progress Bar Styles */
 .brilliant-students-container .upload-progress {
   margin-top: 12px;
@@ -57,7 +164,7 @@
 }
 
 /* Main Container */
-.brilliant-students-container .brilliant-students-container {
+.brilliant-students-container {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
@@ -385,6 +492,59 @@
   margin-bottom: 32px;
 }
 
+/* No Students Message */
+.brilliant-students-container .no-students-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--admin-card-light);
+  border: 2px dashed var(--admin-border-light);
+  border-radius: 16px;
+  color: var(--admin-text-light);
+}
+
+.dark-theme .brilliant-students-container .no-students-message {
+  background: var(--admin-card-dark);
+  border-color: var(--admin-border-dark);
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .no-students-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--admin-primary), #dc2626);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: #ffffff;
+  font-size: 32px;
+  box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+}
+
+.brilliant-students-container .no-students-message h3 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: var(--admin-text-light);
+}
+
+.dark-theme .brilliant-students-container .no-students-message h3 {
+  color: var(--admin-text-dark);
+}
+
+.brilliant-students-container .no-students-message p {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.dark-theme .brilliant-students-container .no-students-message p {
+  color: var(--admin-text-dark);
+}
+
 .brilliant-students-container .student-card {
   background: var(--admin-card-light);
   border: 2px solid var(--admin-border-light);
@@ -651,18 +811,26 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
-  display: flex;
+  display: none; /* Changed from flex to none to ensure it's hidden */
   align-items: center;
   justify-content: center;
   z-index: 1000;
   opacity: 0;
   visibility: hidden;
-  transition: var(--transition);
+  transition: all 0.3s ease; /* Fallback transition */
+}
+
+/* Ensure modal is hidden by default with multiple approaches */
+.brilliant-student-modal {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 .brilliant-students-container .brilliant-student-modal.show {
-  opacity: 1;
-  visibility: visible;
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .brilliant-students-container .modal-content {
@@ -673,16 +841,35 @@
   max-height: 90vh;
   overflow-y: auto;
   transform: scale(0.95);
-  transition: var(--transition);
+  transition: all 0.3s ease;
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .dark-theme .brilliant-students-container .modal-content {
   background: var(--admin-card-dark);
   border-color: var(--admin-border-dark);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
 }
 
 .brilliant-students-container .brilliant-student-modal.show .modal-content {
   transform: scale(1);
+}
+
+/* Fallback modal styling in case CSS variables fail */
+.brilliant-students-container .modal-content {
+  background: #ffffff;
+  border: 2px solid #e9ecef;
+  color: #2c3e50;
+}
+
+.dark-theme .brilliant-students-container .modal-content {
+  background: #1a1f2e;
+  border-color: #2d3748;
+  color: #e2e8f0;
 }
 
 .brilliant-students-container .modal-header {
@@ -738,13 +925,48 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
+  margin-bottom: 20px;
 }
 
+/* Bootstrap-like form styling */
 .brilliant-students-container .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 1rem;
 }
+
+.brilliant-students-container .form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.dark-theme .brilliant-students-container .form-label {
+  color: #e2e8f0;
+}
+
+.brilliant-students-container .form-control {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.brilliant-students-container .form-control:focus {
+  color: #495057;
+  background-color: #fff;
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Remove duplicate form-group definition - already defined above */
 
 .brilliant-students-container .form-label {
   font-weight: 600;
@@ -769,13 +991,32 @@
   border-radius: 8px;
   background: var(--admin-card-light);
   font-size: 14px;
-  transition: var(--transition);
+  transition: all 0.3s ease;
   color: var(--admin-text-light);
   pointer-events: auto;
   user-select: text;
   -webkit-user-select: text;
   -moz-user-select: text;
   -ms-user-select: text;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fallback form styling */
+.brilliant-students-container .form-input,
+.brilliant-students-container .form-select,
+.brilliant-students-container .form-textarea {
+  background: #ffffff;
+  border: 2px solid #e9ecef;
+  color: #2c3e50;
+}
+
+.dark-theme .brilliant-students-container .form-input,
+.dark-theme .brilliant-students-container .form-select,
+.dark-theme .brilliant-students-container .form-textarea {
+  background: #1a1f2e;
+  border-color: #2d3748;
+  color: #e2e8f0;
 }
 
 .brilliant-students-container .form-input:focus,
@@ -846,6 +1087,49 @@
   margin-top: 24px;
   padding-top: 16px;
   border-top: 2px solid var(--admin-border-light);
+}
+
+/* Bootstrap-like button styling */
+.brilliant-students-container .btn {
+  display: inline-block;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #212529;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  background-color: transparent;
+  border: 1px solid transparent;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 0.375rem;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.brilliant-students-container .btn-primary {
+  color: #fff;
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.brilliant-students-container .btn-primary:hover {
+  color: #fff;
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+.brilliant-students-container .btn-secondary {
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.brilliant-students-container .btn-secondary:hover {
+  color: #fff;
+  background-color: #5c636a;
+  border-color: #565e64;
 }
 
 .dark-theme .brilliant-students-container .modal-actions {
@@ -972,8 +1256,26 @@
   }
 }
 
+/* Notification Styles */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  transition: transform 0.3s ease;
+}
+
+/* .notification.show {
+  transform: translateX(0);
+} */
+
 /* Success/Error States */
-.brilliant-students-container .success-message {
+.brilliant-students-container .success-message,
+.notification.success-message {
   background: rgba(16, 185, 129, 0.1);
   color: #10b981;
   padding: 12px 16px;
@@ -984,7 +1286,8 @@
   font-weight: 600;
 }
 
-.brilliant-students-container .error-message {
+.brilliant-students-container .error-message,
+.notification.error-message {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
   padding: 12px 16px;

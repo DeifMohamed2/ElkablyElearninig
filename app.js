@@ -196,6 +196,11 @@ new GameSocketHandler(io);
 // Make io accessible in routes
 app.set('io', io);
 console.log('Socket.IO initialized', io.engine.clientsCount);
+
+
+
+
+
 // Start server
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {

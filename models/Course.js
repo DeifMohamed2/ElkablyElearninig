@@ -37,18 +37,7 @@ const CourseSchema = new mongoose.Schema(
     year: {
       type: String,
       required: true,
-      enum: [
-        'Year 7', 'Year 8', 'Year 9', 'Year 10', 
-        'Year 11', 'Year 12', 'Year 13',
-        'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 
-        'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 
-        'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
-      ],
-    },
-    subject: {
-      type: String,
-      trim: true,
-      default: 'General',
+      enum: ['Grade 10', 'Grade 11', 'Grade 12'],
     },
     category: {
       type: String,
@@ -95,42 +84,50 @@ const CourseSchema = new mongoose.Schema(
       ref: 'BundleCourse',
       required: true,
     },
-    topics: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Topic',
-    }],
-    enrolledStudents: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    }],
-    tags: [{
-      type: String,
-      trim: true,
-    }],
-    prerequisites: [{
-      type: String,
-      trim: true,
-    }],
+    topics: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Topic',
+      },
+    ],
+    enrolledStudents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    prerequisites: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
   },
-  { 
+  {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
 // Virtual for topic count
-CourseSchema.virtual('topicCount').get(function() {
+CourseSchema.virtual('topicCount').get(function () {
   return this.topics ? this.topics.length : 0;
 });
 
 // Virtual for enrolled student count
-CourseSchema.virtual('enrolledCount').get(function() {
+CourseSchema.virtual('enrolledCount').get(function () {
   return this.enrolledStudents ? this.enrolledStudents.length : 0;
 });
 
 // Virtual for savings calculation
-CourseSchema.virtual('savings').get(function() {
+CourseSchema.virtual('savings').get(function () {
   if (this.discountPrice && this.price) {
     return this.price * (this.discountPrice / 100);
   }
@@ -138,15 +135,15 @@ CourseSchema.virtual('savings').get(function() {
 });
 
 // Virtual for final price after discount
-CourseSchema.virtual('finalPrice').get(function() {
+CourseSchema.virtual('finalPrice').get(function () {
   if (this.discountPrice && this.price) {
-    return this.price - (this.price * (this.discountPrice / 100));
+    return this.price - this.price * (this.discountPrice / 100);
   }
   return this.price;
 });
 
 // Virtual for savings percentage (this is the discount percentage)
-CourseSchema.virtual('savingsPercentage').get(function() {
+CourseSchema.virtual('savingsPercentage').get(function () {
   if (this.discountPrice) {
     return this.discountPrice;
   }
@@ -154,26 +151,28 @@ CourseSchema.virtual('savingsPercentage').get(function() {
 });
 
 // Generate course code before saving
-CourseSchema.pre('save', async function(next) {
+CourseSchema.pre('save', async function (next) {
   if (this.isNew && !this.courseCode) {
     let courseCode;
     let isUnique = false;
     let attempts = 0;
-    
+
     while (!isUnique && attempts < 10) {
       const prefix = this.title.substring(0, 3).toUpperCase();
       const timestamp = Date.now().toString().slice(-6);
       const randomNum = Math.floor(Math.random() * 100);
       courseCode = `${prefix}${timestamp}${randomNum}`;
-      
+
       // Check if this courseCode already exists
-      const existingCourse = await mongoose.model('Course').findOne({ courseCode });
+      const existingCourse = await mongoose
+        .model('Course')
+        .findOne({ courseCode });
       if (!existingCourse) {
         isUnique = true;
       }
       attempts++;
     }
-    
+
     this.courseCode = courseCode;
   }
   next();

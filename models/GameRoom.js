@@ -208,11 +208,11 @@ gameRoomSchema.statics.addPlayerAtomic = async function (
       };
     }
 
-    // If player doesn't exist, check if we can add them (only for waiting rooms)
+    // If player doesn't exist, check if we can add them (allow during waiting or starting countdown)
     const addNew = await this.findOneAndUpdate(
       {
         _id: roomId,
-        gameState: 'waiting',
+        gameState: { $in: ['waiting', 'starting'] },
         'currentPlayers.user': { $ne: userId },
         $expr: { $lt: [{ $size: '$currentPlayers' }, '$maxPlayers'] },
       },
@@ -324,9 +324,16 @@ gameRoomSchema.methods.allPlayersReady = function () {
 };
 
 // Method to start game
-gameRoomSchema.methods.startGame = function () {
-  if (this.currentPlayers.length < 2) {
+// options: { force: true } will bypass the minimum-players check (but room must have at least 1 player)
+gameRoomSchema.methods.startGame = function (options = {}) {
+  const force = options.force === true;
+
+  // Must have at least one player to start
+  if (!force && this.currentPlayers.length < 2) {
     return { success: false, message: 'Need at least 2 players to start' };
+  }
+  if (force && this.currentPlayers.length < 1) {
+    return { success: false, message: 'No players in room to start' };
   }
 
   this.gameState = 'starting';

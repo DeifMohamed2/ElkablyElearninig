@@ -42,8 +42,13 @@ const BundleCourseSchema = new mongoose.Schema(
     },
     subject: {
       type: String,
-      trim: true,
-      default: 'All Subjects',
+      enum: ['Basics', 'Advanced'],
+      required: true,
+    },
+    testType: {
+      type: String,
+      enum: ['EST', 'SAT', 'ACT'],
+      required: true,
     },
     courseType: {
       type: String,
@@ -196,5 +201,8 @@ BundleCourseSchema.pre('save', async function (next) {
 BundleCourseSchema.index({ year: 1, subject: 1 });
 BundleCourseSchema.index({ status: 1 });
 BundleCourseSchema.index({ createdBy: 1 });
+BundleCourseSchema.index({ testType: 1 });
+BundleCourseSchema.index({ courseType: 1, testType: 1, subject: 1 });
+BundleCourseSchema.index({ courseType: 1, status: 1, isActive: 1 });
 
 module.exports = mongoose.model('BundleCourse', BundleCourseSchema);

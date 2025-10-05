@@ -2,24 +2,24 @@
 
 <!-- Admin Layout -->
 <div class="admin-layout">
-  
+
   <!-- Sidebar -->
   <%- include('./partials/admin-sidebar', { currentPage: 'courses' }) %>
-  
+
   <!-- Main Content -->
   <main class="admin-main">
-    
+
     <!-- Top Bar -->
     <%- include('./partials/admin-topbar', { 
         breadcrumb: 'Courses',
         breadcrumbSubtitle: 'Manage Your Course Library',
         showSearch: true
     }) %>
-    
+
     <!-- Content Area -->
     <div class="admin-content">
       <div class="admin-dashboard admin-fade-in">
-        
+
         <!-- Page Header -->
         <div class="admin-dashboard-header">
           <div class="d-flex justify-content-between align-items-center">
@@ -49,7 +49,7 @@
             <h3 class="admin-stat-number"><%= stats.totalCourses %></h3>
             <p class="admin-stat-label">Total Courses</p>
           </div>
-          
+
           <div class="admin-stat-card admin-slide-in">
             <div class="admin-stat-header">
               <div class="admin-stat-icon">
@@ -63,7 +63,7 @@
             <h3 class="admin-stat-number"><%= stats.publishedCourses %></h3>
             <p class="admin-stat-label">Published Courses</p>
           </div>
-          
+
           <div class="admin-stat-card admin-slide-in">
             <div class="admin-stat-header">
               <div class="admin-stat-icon">
@@ -77,7 +77,7 @@
             <h3 class="admin-stat-number"><%= stats.draftCourses %></h3>
             <p class="admin-stat-label">Draft Courses</p>
           </div>
-          
+
           <div class="admin-stat-card admin-slide-in">
             <div class="admin-stat-header">
               <div class="admin-stat-icon">
@@ -100,7 +100,7 @@
               <h5><i class="fas fa-filter me-2"></i>Course Filters</h5>
               <div class="admin-active-filters">
                 <% if (currentFilters.year || currentFilters.level || currentFilters.bundle || currentFilters.status !== 'all' || currentFilters.search) { %>
-                  <span class="badge bg-primary me-1">Active Filters</span>
+                <span class="badge bg-primary me-1">Active Filters</span>
                 <% } %>
               </div>
             </div>
@@ -113,9 +113,9 @@
                   <select name="year" class="form-select">
                     <option value="">All Years</option>
                     <% if (filterOptions && filterOptions.years) { %>
-                      <% filterOptions.years.forEach(year => { %>
-                        <option value="<%= year %>" <%= currentFilters.year === year ? 'selected' : '' %>><%= year %></option>
-                      <% }); %>
+                    <% filterOptions.years.forEach(year => { %>
+                    <option value="<%= year %>" <%= currentFilters.year === year ? 'selected' : '' %>><%= year %></option>
+                    <% }); %>
                     <% } %>
                   </select>
                 </div>
@@ -126,11 +126,11 @@
                   <select name="bundle" class="form-select">
                     <option value="">All Bundles</option>
                     <% if (filterOptions && filterOptions.bundles) { %>
-                      <% filterOptions.bundles.forEach(bundle => { %>
-                        <option value="<%= bundle._id %>" <%= currentFilters.bundle === bundle._id.toString() ? 'selected' : '' %>>
-                          <%= bundle.title %> (<%= bundle.bundleCode %>)
-                        </option>
-                      <% }); %>
+                    <% filterOptions.bundles.forEach(bundle => { %>
+                    <option value="<%= bundle._id %>" <%= currentFilters.bundle === bundle._id.toString() ? 'selected' : '' %>>
+                      <%= bundle.title %> (<%= bundle.bundleCode %>)
+                    </option>
+                    <% }); %>
                     <% } %>
                   </select>
                 </div>
@@ -207,93 +207,101 @@
 
           <div class="admin-courses-grid">
             <% if (courses && courses.length > 0) { %>
-              <% courses.forEach(course => { %>
-                <div class="admin-course-card" data-status="<%= course.status %>">
-                  <div class="admin-course-thumbnail">
-                    <img src="<%= course.thumbnail || '/images/course-placeholder.jpg' %>" alt="Course Thumbnail">
-                    <div class="admin-course-badges">
-                      <div class="admin-course-status <%= course.status %>"><%= course.status.charAt(0).toUpperCase() + course.status.slice(1) %></div>
-                
-                    </div>
-                  </div>
-                  
-                  <div class="admin-course-content">
-                    <div class="admin-course-header">
-                      <h4 class="admin-course-title"><%= course.title %></h4>
-                      <span class="admin-course-code"><%= course.courseCode %></span>
-                    </div>
-                    
-                    <p class="admin-course-description"><%= course.shortDescription %></p>
-                    
-                    <div class="admin-course-meta">
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span><%= course.year %></span>
-                      </div>
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-layer-group"></i>
-                        <span><%= course.level %></span>
-                      </div>
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span><%= course.duration %> hours</span>
-                      </div>
-                      <div class="admin-course-meta-item">
-                        <i class="fas fa-dollar-sign"></i>
-                        <% if (course.discountPrice) { %>
-                          <span class="text-decoration-line-through">EGP <%= course.price %></span>
-                          <span class="text-success fw-bold">EGP <%= course.finalPrice.toFixed(2) %></span>
-                          <small class="text-muted">(<%= course.savingsPercentage %>% off)</small>
-                        <% } else { %>
-                          <span>EGP <%= course.price %></span>
-                        <% } %>
-                      </div>
-                    </div>
-                    
-                    <% if (course.bundle) { %>
-                      <div class="admin-bundle-info">
-                        <small class="text-muted">
-                          <i class="fas fa-box me-1"></i>
-                          Bundle: <strong><%= course.bundle.title %></strong>
-                        </small>
-                      </div>
-                    <% } %>
-                    
-                    <div class="admin-course-actions">
-                      <a href="/admin/courses/<%= course.courseCode %>/details" class="btn btn-sm btn-info">
-                        <i class="fas fa-chart-line me-1"></i>
-                        Course Details
-                      </a>
-                      <a href="/admin/courses/<%= course.courseCode %>/content" class="btn btn-sm btn-primary">
-                        <i class="fas fa-edit me-1"></i>
-                        Manage Content
-                      </a>
-                      <button class="btn btn-sm btn-outline-danger" onclick="deleteCourse('<%= course.courseCode %>', event)">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </div>
+            <% courses.forEach(course => { %>
+            <div class="admin-course-card" data-status="<%= course.status %>">
+              <div class="admin-course-thumbnail">
+                <img src="<%= course.thumbnail || '/images/course-placeholder.jpg' %>" alt="Course Thumbnail">
+                <div class="admin-course-badges">
+                  <div class="admin-course-status <%= course.status %>"><%= course.status.charAt(0).toUpperCase() + course.status.slice(1) %></div>
+
                 </div>
-              <% }); %>
-            <% } else { %>
-              <div class="admin-empty-state">
-                <div class="admin-empty-icon">
-                  <i class="fas fa-book"></i>
-                </div>
-                <h4>No courses found</h4>
-                <p>Create your first course to get started</p>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCourseModal">
-                  <i class="fas fa-plus me-2"></i>
-                  Create Course
-                </button>
               </div>
+
+              <div class="admin-course-content">
+                <div class="admin-course-header">
+                  <h4 class="admin-course-title"><%= course.title %></h4>
+                  <span class="admin-course-code"><%= course.courseCode %></span>
+                </div>
+
+                <p class="admin-course-description"><%= course.shortDescription %></p>
+
+                <div class="admin-course-meta">
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span><%= course.year %></span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span><%= course.level %></span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-certificate"></i>
+                    <span><%= course.bundle ? course.bundle.testType : 'N/A' %></span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-book"></i>
+                    <span><%= course.bundle ? course.bundle.subject : 'N/A' %></span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-clock"></i>
+                    <span><%= course.duration %> hours</span>
+                  </div>
+                  <div class="admin-course-meta-item">
+                    <i class="fas fa-dollar-sign"></i>
+                    <% if (course.discountPrice) { %>
+                    <span class="text-decoration-line-through">EGP <%= course.price %></span>
+                    <span class="text-success fw-bold">EGP <%= course.finalPrice.toFixed(2) %></span>
+                    <small class="text-muted">(<%= course.savingsPercentage %>% off)</small>
+                    <% } else { %>
+                    <span>EGP <%= course.price %></span>
+                    <% } %>
+                  </div>
+                </div>
+
+                <% if (course.bundle) { %>
+                <div class="admin-bundle-info">
+                  <small class="text-muted">
+                    <i class="fas fa-box me-1"></i>
+                    Bundle: <strong><%= course.bundle.title %></strong>
+                  </small>
+                </div>
+                <% } %>
+
+                <div class="admin-course-actions">
+                  <a href="/admin/courses/<%= course.courseCode %>/details" class="btn btn-sm btn-info">
+                    <i class="fas fa-chart-line me-1"></i>
+                    Course Details
+                  </a>
+                  <a href="/admin/courses/<%= course.courseCode %>/content" class="btn btn-sm btn-primary">
+                    <i class="fas fa-edit me-1"></i>
+                    Manage Content
+                  </a>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteCourse('<%= course.courseCode %>', event)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <% }); %>
+            <% } else { %>
+            <div class="admin-empty-state">
+              <div class="admin-empty-icon">
+                <i class="fas fa-book"></i>
+              </div>
+              <h4>No courses found</h4>
+              <p>Create your first course to get started</p>
+              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+                <i class="fas fa-plus me-2"></i>
+                Create Course
+              </button>
+            </div>
             <% } %>
           </div>
         </div>
-        
+
       </div>
     </div>
-    
+
   </main>
 </div>
 
@@ -310,7 +318,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <form id="createCourseForm" method="POST" action="/admin/courses/create">
         <div class="modal-body admin-modal-body">
           <!-- Course Thumbnail Upload Section -->
@@ -345,49 +353,46 @@
                   <i class="fas fa-info-circle me-2"></i>
                   Course Information
                 </h6>
-                
+
                 <div class="admin-form-group">
                   <label for="courseTitle" class="admin-form-label">
                     <i class="fas fa-heading me-2"></i>
                     Course Title
                   </label>
-                  <input type="text" class="admin-form-control" id="courseTitle" name="title" 
-                         minlength="3" maxlength="100" required>
+                  <input type="text" class="admin-form-control" id="courseTitle" name="title" minlength="3" maxlength="100" required>
                   <small class="admin-form-text">Title must be between 3 and 100 characters</small>
                   <div class="invalid-feedback" id="courseTitleError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="courseDescription" class="admin-form-label">
                     <i class="fas fa-align-left me-2"></i>
                     Course Description
                   </label>
-                  <textarea class="admin-form-control" id="courseDescription" name="description" 
-                            rows="4" minlength="10" maxlength="500" required></textarea>
+                  <textarea class="admin-form-control" id="courseDescription" name="description" rows="4" minlength="10" maxlength="500" required></textarea>
                   <small class="admin-form-text">Description must be between 10 and 500 characters</small>
                   <div class="invalid-feedback" id="courseDescriptionError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="shortDescription" class="admin-form-label">
                     <i class="fas fa-text-width me-2"></i>
                     Short Description
                   </label>
-                  <input type="text" class="admin-form-control" id="shortDescription" name="shortDescription" 
-                         minlength="5" maxlength="150" required>
+                  <input type="text" class="admin-form-control" id="shortDescription" name="shortDescription" minlength="5" maxlength="150" required>
                   <small class="admin-form-text">Short description must be between 5 and 150 characters</small>
                   <div class="invalid-feedback" id="shortDescriptionError"></div>
                 </div>
               </div>
             </div>
-            
+
             <div class="col-md-4">
               <div class="admin-form-section">
                 <h6 class="admin-form-section-title">
                   <i class="fas fa-cog me-2"></i>
                   Course Settings
                 </h6>
-                
+
                 <div class="admin-form-group">
                   <label for="courseBundle" class="admin-form-label">
                     <i class="fas fa-box me-2"></i>
@@ -399,7 +404,7 @@
                   </select>
                   <small class="admin-form-text">Course will be added to the selected bundle</small>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="courseLevel" class="admin-form-label">
                     <i class="fas fa-layer-group me-2"></i>
@@ -412,46 +417,42 @@
                     <option value="Advanced">Advanced</option>
                   </select>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="courseCategory" class="admin-form-label">
                     <i class="fas fa-tags me-2"></i>
                     Category
                   </label>
-                  <input type="text" class="admin-form-control" id="courseCategory" name="category" 
-                         placeholder="e.g., Core, Elective, Supplementary" required>
+                  <input type="text" class="admin-form-control" id="courseCategory" name="category" placeholder="e.g., Core, Elective, Supplementary" required>
                   <div class="invalid-feedback" id="courseCategoryError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="courseDuration" class="admin-form-label">
                     <i class="fas fa-clock me-2"></i>
                     Duration (hours)
                   </label>
-                  <input type="number" class="admin-form-control" id="courseDuration" name="duration" 
-                         min="1" required>
+                  <input type="number" class="admin-form-control" id="courseDuration" name="duration" min="1" required>
                   <small class="admin-form-text">Duration must be at least 1 hour</small>
                   <div class="invalid-feedback" id="courseDurationError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="coursePrice" class="admin-form-label">
                     <i class="fas fa-dollar-sign me-2"></i>
                     Price (EGP)
                   </label>
-                  <input type="number" class="admin-form-control" id="coursePrice" name="price" 
-                         min="0" step="0.01" required>
+                  <input type="number" class="admin-form-control" id="coursePrice" name="price" min="0" step="0.01" required>
                   <small class="admin-form-text">Individual course price</small>
                   <div class="invalid-feedback" id="coursePriceError"></div>
                 </div>
-                
+
                 <div class="admin-form-group">
                   <label for="courseDiscountPrice" class="admin-form-label">
                     <i class="fas fa-percentage me-2"></i>
                     Discount Percentage (%)
                   </label>
-                  <input type="number" class="admin-form-control" id="courseDiscountPrice" name="discountPrice" 
-                         min="0" max="100" step="1" value="0">
+                  <input type="number" class="admin-form-control" id="courseDiscountPrice" name="discountPrice" min="0" max="100" step="1" value="0">
                   <small class="admin-form-text">Optional: Set a discount percentage (0-100)</small>
                   <div class="invalid-feedback" id="courseDiscountPriceError"></div>
                 </div>
@@ -459,7 +460,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="modal-footer admin-modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary admin-btn-primary">
@@ -481,19 +482,19 @@
 <script src="/js/cloudinary-upload.js"></script>
 
 <script>
-// Toast notification system
-function showToast(message, type = 'info') {
-  const toastContainer = document.getElementById('toast-container');
-  
-  // Create toast element
-  const toast = document.createElement('div');
-  toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0`;
-  toast.setAttribute('role', 'alert');
-  toast.setAttribute('aria-live', 'assertive');
-  toast.setAttribute('aria-atomic', 'true');
-  
-  // Toast content
-  toast.innerHTML = `
+  // Toast notification system
+  function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+
+    // Toast content
+    toast.innerHTML = `
     <div class="d-flex">
       <div class="toast-body d-flex align-items-center">
         <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2"></i>
@@ -502,226 +503,229 @@ function showToast(message, type = 'info') {
       <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
   `;
-  
-  // Add to container
-  toastContainer.appendChild(toast);
-  
-  // Initialize and show toast
-  const bsToast = new bootstrap.Toast(toast, {
-    autohide: true,
-    delay: type === 'error' ? 5000 : 3000
-  });
-  
-  bsToast.show();
-  
-  // Remove from DOM after hiding
-  toast.addEventListener('hidden.bs.toast', () => {
-    toast.remove();
-  });
-}
 
-// Load available bundles for course creation
-document.addEventListener('DOMContentLoaded', function() {
-  loadAvailableBundles();
-  setupFormValidation();
-});
+    // Add to container
+    toastContainer.appendChild(toast);
 
-function loadAvailableBundles() {
-  fetch('/admin/api/bundles')
-    .then(response => response.json())
-    .then(bundles => {
-      const bundleSelect = document.getElementById('courseBundle');
-      bundleSelect.innerHTML = '<option value="">Select Bundle</option>';
-      
-      bundles.forEach(bundle => {
-        const option = document.createElement('option');
-        option.value = bundle._id;
-        option.textContent = `${bundle.title} (${bundle.bundleCode}) - ${bundle.year}`;
-        bundleSelect.appendChild(option);
+    // Initialize and show toast
+    const bsToast = new bootstrap.Toast(toast, {
+      autohide: true,
+      delay: type === 'error' ? 5000 : 3000
+    });
+
+    bsToast.show();
+
+    // Remove from DOM after hiding
+    toast.addEventListener('hidden.bs.toast', () => {
+      toast.remove();
+    });
+  }
+
+  // Load available bundles for course creation
+  document.addEventListener('DOMContentLoaded', function() {
+    loadAvailableBundles();
+    setupFormValidation();
+  });
+
+  function loadAvailableBundles() {
+    fetch('/admin/api/bundles')
+      .then(response => response.json())
+      .then(bundles => {
+        const bundleSelect = document.getElementById('courseBundle');
+        bundleSelect.innerHTML = '<option value="">Select Bundle</option>';
+
+        bundles.forEach(bundle => {
+          const option = document.createElement('option');
+          option.value = bundle._id;
+          option.textContent = `${bundle.title} (${bundle.bundleCode}) - ${bundle.year}`;
+          bundleSelect.appendChild(option);
+        });
+      })
+      .catch(error => {
+        console.error('Error loading bundles:', error);
+        const bundleSelect = document.getElementById('courseBundle');
+        bundleSelect.innerHTML = '<option value="">Error loading bundles</option>';
       });
-    })
-    .catch(error => {
-      console.error('Error loading bundles:', error);
-      const bundleSelect = document.getElementById('courseBundle');
-      bundleSelect.innerHTML = '<option value="">Error loading bundles</option>';
-    });
-}
+  }
 
-function setupFormValidation() {
-  const form = document.getElementById('createCourseForm');
-  const inputs = form.querySelectorAll('input, textarea, select');
-  
-  // Add real-time validation
-  inputs.forEach(input => {
-    input.addEventListener('input', function() {
-      validateField(this);
-    });
-    
-    input.addEventListener('blur', function() {
-      validateField(this);
-    });
-  });
-  
-  // Prevent form submission if validation fails
-  form.addEventListener('submit', function(e) {
-    let isValid = true;
-    
+  function setupFormValidation() {
+    const form = document.getElementById('createCourseForm');
+    const inputs = form.querySelectorAll('input, textarea, select');
+
+    // Add real-time validation
     inputs.forEach(input => {
-      if (!validateField(input)) {
-        isValid = false;
+      input.addEventListener('input', function() {
+        validateField(this);
+      });
+
+      input.addEventListener('blur', function() {
+        validateField(this);
+      });
+    });
+
+    // Prevent form submission if validation fails
+    form.addEventListener('submit', function(e) {
+      let isValid = true;
+
+      inputs.forEach(input => {
+        if (!validateField(input)) {
+          isValid = false;
+        }
+      });
+
+      if (!isValid) {
+        e.preventDefault();
+        showFormError('Please fix the validation errors before submitting.');
       }
     });
-    
-    if (!isValid) {
-      e.preventDefault();
-      showFormError('Please fix the validation errors before submitting.');
-    }
-  });
-}
+  }
 
-function validateField(field) {
-  const value = field.value.trim();
-  const fieldName = field.name;
-  let isValid = true;
-  let errorMessage = '';
-  
-  // Clear previous error
-  field.classList.remove('is-invalid');
-  const errorElement = document.getElementById(fieldName + 'Error');
-  if (errorElement) {
-    errorElement.textContent = '';
-  }
-  
-  // Required field validation
-  if (field.hasAttribute('required') && !value) {
-    isValid = false;
-    errorMessage = `${getFieldLabel(fieldName)} is required.`;
-  }
-  
-  // Length validation
-  if (value && field.hasAttribute('minlength')) {
-    const minLength = parseInt(field.getAttribute('minlength'));
-    if (value.length < minLength) {
-      isValid = false;
-      errorMessage = `${getFieldLabel(fieldName)} must be at least ${minLength} characters.`;
-    }
-  }
-  
-  if (value && field.hasAttribute('maxlength')) {
-    const maxLength = parseInt(field.getAttribute('maxlength'));
-    if (value.length > maxLength) {
-      isValid = false;
-      errorMessage = `${getFieldLabel(fieldName)} must not exceed ${maxLength} characters.`;
-    }
-  }
-  
-  // Number validation
-  if (field.type === 'number' && value) {
-    const numValue = parseFloat(value);
-    if (field.hasAttribute('min') && numValue < parseFloat(field.getAttribute('min'))) {
-      isValid = false;
-      errorMessage = `${getFieldLabel(fieldName)} must be at least ${field.getAttribute('min')}.`;
-    }
-    if (field.hasAttribute('max') && numValue > parseFloat(field.getAttribute('max'))) {
-      isValid = false;
-      errorMessage = `${getFieldLabel(fieldName)} must not exceed ${field.getAttribute('max')}.`;
-    }
-  }
-  
-  // Bundle selection validation
-  if (fieldName === 'bundleId' && !value) {
-    isValid = false;
-    errorMessage = 'Please select a bundle for this course.';
-  }
-  
-  // Show error if validation failed
-  if (!isValid) {
-    field.classList.add('is-invalid');
+  function validateField(field) {
+    const value = field.value.trim();
+    const fieldName = field.name;
+    let isValid = true;
+    let errorMessage = '';
+
+    // Clear previous error
+    field.classList.remove('is-invalid');
+    const errorElement = document.getElementById(fieldName + 'Error');
     if (errorElement) {
-      errorElement.textContent = errorMessage;
+      errorElement.textContent = '';
     }
-  }
-  
-  return isValid;
-}
 
-function getFieldLabel(fieldName) {
-  const labels = {
-    'title': 'Title',
-    'description': 'Description',
-    'shortDescription': 'Short Description',
-    'bundleId': 'Bundle',
-    'category': 'Category',
-    'duration': 'Duration',
-    'price': 'Price',
-    'discountPrice': 'Discount Percentage'
-  };
-  return labels[fieldName] || fieldName;
-}
+    // Required field validation
+    if (field.hasAttribute('required') && !value) {
+      isValid = false;
+      errorMessage = `${getFieldLabel(fieldName)} is required.`;
+    }
 
-function showFormError(message) {
-  // Create or update error message
-  let errorDiv = document.querySelector('.form-validation-error');
-  if (!errorDiv) {
-    errorDiv = document.createElement('div');
-    errorDiv.className = 'form-validation-error alert alert-danger mt-3';
-    const form = document.getElementById('createCourseForm');
-    form.appendChild(errorDiv);
+    // Length validation
+    if (value && field.hasAttribute('minlength')) {
+      const minLength = parseInt(field.getAttribute('minlength'));
+      if (value.length < minLength) {
+        isValid = false;
+        errorMessage = `${getFieldLabel(fieldName)} must be at least ${minLength} characters.`;
+      }
+    }
+
+    if (value && field.hasAttribute('maxlength')) {
+      const maxLength = parseInt(field.getAttribute('maxlength'));
+      if (value.length > maxLength) {
+        isValid = false;
+        errorMessage = `${getFieldLabel(fieldName)} must not exceed ${maxLength} characters.`;
+      }
+    }
+
+    // Number validation
+    if (field.type === 'number' && value) {
+      const numValue = parseFloat(value);
+      if (field.hasAttribute('min') && numValue < parseFloat(field.getAttribute('min'))) {
+        isValid = false;
+        errorMessage = `${getFieldLabel(fieldName)} must be at least ${field.getAttribute('min')}.`;
+      }
+      if (field.hasAttribute('max') && numValue > parseFloat(field.getAttribute('max'))) {
+        isValid = false;
+        errorMessage = `${getFieldLabel(fieldName)} must not exceed ${field.getAttribute('max')}.`;
+      }
+    }
+
+    // Bundle selection validation
+    if (fieldName === 'bundleId' && !value) {
+      isValid = false;
+      errorMessage = 'Please select a bundle for this course.';
+    }
+
+    // Show error if validation failed
+    if (!isValid) {
+      field.classList.add('is-invalid');
+      if (errorElement) {
+        errorElement.textContent = errorMessage;
+      }
+    }
+
+    return isValid;
   }
-  
-  errorDiv.innerHTML = `
+
+  function getFieldLabel(fieldName) {
+    const labels = {
+      'title': 'Title',
+      'description': 'Description',
+      'shortDescription': 'Short Description',
+      'bundleId': 'Bundle',
+      'category': 'Category',
+      'duration': 'Duration',
+      'price': 'Price',
+      'discountPrice': 'Discount Percentage'
+    };
+    return labels[fieldName] || fieldName;
+  }
+
+  function showFormError(message) {
+    // Create or update error message
+    let errorDiv = document.querySelector('.form-validation-error');
+    if (!errorDiv) {
+      errorDiv = document.createElement('div');
+      errorDiv.className = 'form-validation-error alert alert-danger mt-3';
+      const form = document.getElementById('createCourseForm');
+      form.appendChild(errorDiv);
+    }
+
+    errorDiv.innerHTML = `
     <i class="fas fa-exclamation-triangle me-2"></i>
     ${message}
   `;
-  errorDiv.style.display = 'block';
-  
-  // Scroll to error
-  errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
+    errorDiv.style.display = 'block';
 
-// Course management functions
-function editCourse(courseCode) {
-  // TODO: Implement edit course functionality
-  console.log('Edit course:', courseCode);
-}
-
-function deleteCourse(courseCode, event) {
-  // Find the specific course card by looking for the button that was clicked
-  const deleteButton = event.target;
-  const courseCard = deleteButton.closest('.admin-course-card');
-  const courseStatus = courseCard ? courseCard.getAttribute('data-status') : 'unknown';
-  
-  let confirmMessage;
-  if (courseStatus === 'archived') {
-    confirmMessage = 'This course is already archived. Are you sure you want to PERMANENTLY DELETE it from the database? This action cannot be undone and will remove all associated data.';
-  } else {
-    confirmMessage = 'Are you sure you want to delete this course? It will be moved to archived status instead of being permanently deleted.';
-  }
-  
-  if (confirm(confirmMessage)) {
-    fetch(`/admin/courses/${courseCode}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Show success toast
-        showToast(data.message, 'success');
-        // Reload the page to show updated status
-        setTimeout(() => {
-          location.reload();
-        }, 1500);
-      } else {
-        showToast(data.message || 'Error deleting course', 'error');
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      showToast('Error deleting course', 'error');
+    // Scroll to error
+    errorDiv.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
     });
   }
-}
+
+  // Course management functions
+  function editCourse(courseCode) {
+    // TODO: Implement edit course functionality
+    console.log('Edit course:', courseCode);
+  }
+
+  function deleteCourse(courseCode, event) {
+    // Find the specific course card by looking for the button that was clicked
+    const deleteButton = event.target;
+    const courseCard = deleteButton.closest('.admin-course-card');
+    const courseStatus = courseCard ? courseCard.getAttribute('data-status') : 'unknown';
+
+    let confirmMessage;
+    if (courseStatus === 'archived') {
+      confirmMessage = 'This course is already archived. Are you sure you want to PERMANENTLY DELETE it from the database? This action cannot be undone and will remove all associated data.';
+    } else {
+      confirmMessage = 'Are you sure you want to delete this course? It will be moved to archived status instead of being permanently deleted.';
+    }
+
+    if (confirm(confirmMessage)) {
+      fetch(`/admin/courses/${courseCode}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Show success toast
+            showToast(data.message, 'success');
+            // Reload the page to show updated status
+            setTimeout(() => {
+              location.reload();
+            }, 1500);
+          } else {
+            showToast(data.message || 'Error deleting course', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Error deleting course', 'error');
+        });
+    }
+  }
 </script>

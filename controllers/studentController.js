@@ -12,20 +12,20 @@ const mongoose = require('mongoose');
 const dashboard = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    
+
     // Get student with populated data
     const student = await User.findById(studentId)
       .populate({
         path: 'enrolledCourses.course',
         populate: {
           path: 'topics',
-          model: 'Topic'
-        }
+          model: 'Topic',
+        },
       })
       .populate('wishlist')
       .populate({
         path: 'quizAttempts.quiz',
-        model: 'Quiz'
+        model: 'Quiz',
       });
 
     if (!student) {
@@ -46,36 +46,47 @@ const dashboard = async (req, res) => {
       completedCourses: student.completedCourses,
       totalQuizAttempts: student.totalQuizAttempts,
       averageScore: student.averageQuizScore,
-      totalPoints: student.quizAttempts.reduce((total, quiz) => 
-        total + quiz.attempts.reduce((quizTotal, attempt) => quizTotal + (attempt.score || 0), 0), 0
+      totalPoints: student.quizAttempts.reduce(
+        (total, quiz) =>
+          total +
+          quiz.attempts.reduce(
+            (quizTotal, attempt) => quizTotal + (attempt.score || 0),
+            0
+          ),
+        0
       ),
-      wishlistCount: student.wishlist.length
+      wishlistCount: student.wishlist.length,
     };
 
     // Get active courses (recently accessed)
     const activeCourses = student.enrolledCourses
-      .filter(enrollment => enrollment.status === 'active' && enrollment.course)
+      .filter(
+        (enrollment) => enrollment.status === 'active' && enrollment.course
+      )
       .sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed))
       .slice(0, 6)
-      .map(enrollment => ({
+      .map((enrollment) => ({
         ...enrollment.course.toObject(),
         progress: enrollment.progress,
         lastAccessed: enrollment.lastAccessed,
-        status: enrollment.status
+        status: enrollment.status,
       }));
 
     // Get upcoming quizzes (if any)
     const courseIds = student.enrolledCourses
-      .filter(e => e.course)
-      .map(e => e.course._id);
-    
-    const upcomingQuizzes = courseIds.length > 0 ? await Quiz.find({
-      status: 'active',
-      _id: { $in: courseIds }
-    })
-    .populate('questionBank')
-    .sort({ createdAt: -1 })
-    .limit(5) : [];
+      .filter((e) => e.course)
+      .map((e) => e.course._id);
+
+    const upcomingQuizzes =
+      courseIds.length > 0
+        ? await Quiz.find({
+            status: 'active',
+            _id: { $in: courseIds },
+          })
+            .populate('questionBank')
+            .sort({ createdAt: -1 })
+            .limit(5)
+        : [];
 
     res.render('student/dashboard', {
       title: 'Student Dashboard',
@@ -84,9 +95,8 @@ const dashboard = async (req, res) => {
       recentProgress,
       activeCourses,
       upcomingQuizzes,
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Dashboard error:', error);
     req.flash('error_msg', 'Error loading dashboard');
@@ -102,33 +112,39 @@ const enrolledCourses = async (req, res) => {
     const limit = 12;
     const skip = (page - 1) * limit;
 
-    const student = await User.findById(studentId)
-      .populate({
-        path: 'enrolledCourses.course',
-        populate: {
-          path: 'topics bundle',
-          model: 'Topic'
-        }
-      });
+    const student = await User.findById(studentId).populate({
+      path: 'enrolledCourses.course',
+      populate: {
+        path: 'topics bundle',
+        model: 'Topic',
+      },
+    });
 
     if (!student) {
       req.flash('error_msg', 'Student not found');
       return res.redirect('/auth/login');
     }
 
-    // Recalculate progress for all enrolled courses before displaying
-    await Promise.all(student.enrolledCourses.map(async (enrollment) => {
-      await student.calculateCourseProgress(enrollment.course);
-    }));
-    
-    // Save the updated student with recalculated progress
+    // Filter out enrollments with null/deleted courses and recalculate progress
+    const validEnrollments = student.enrolledCourses.filter(
+      (enrollment) => enrollment.course
+    );
+
+    await Promise.all(
+      validEnrollments.map(async (enrollment) => {
+        await student.calculateCourseProgress(enrollment.course);
+      })
+    );
+
+    // Update the student's enrolled courses to only include valid ones
+    student.enrolledCourses = validEnrollments;
     await student.save();
-    
-    const enrolledCourses = student.enrolledCourses
+
+    const enrolledCourses = validEnrollments
       .sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed))
       .slice(skip, skip + limit);
 
-    const totalCourses = student.enrolledCourses.length;
+    const totalCourses = validEnrollments.length;
     const totalPages = Math.ceil(totalCourses / limit);
 
     res.render('student/enrolled-courses', {
@@ -141,11 +157,10 @@ const enrolledCourses = async (req, res) => {
         hasNext: page < totalPages,
         hasPrev: page > 1,
         nextPage: page + 1,
-        prevPage: page - 1
+        prevPage: page - 1,
       },
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Enrolled courses error:', error);
     req.flash('error_msg', 'Error loading enrolled courses');
@@ -161,7 +176,7 @@ const courseDetails = async (req, res) => {
 
     const student = await User.findById(studentId);
     const enrollment = student.enrolledCourses.find(
-      e => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId
     );
 
     if (!enrollment) {
@@ -182,18 +197,23 @@ const courseDetails = async (req, res) => {
     // Get course progress
     const courseProgress = await Progress.find({
       student: studentId,
-      course: courseId
+      course: courseId,
     }).sort({ timestamp: -1 });
 
     // Calculate topic progress based on actual completion percentages
-    const topicsWithProgress = await Promise.all(course.topics.map(async (topic) => {
-      const topicProgress = await student.calculateTopicProgress(courseId, topic._id);
-      return {
-        ...topic.toObject(),
-        completed: enrollment.completedTopics.includes(topic._id),
-        progress: topicProgress
-      };
-    }));
+    const topicsWithProgress = await Promise.all(
+      course.topics.map(async (topic) => {
+        const topicProgress = await student.calculateTopicProgress(
+          courseId,
+          topic._id
+        );
+        return {
+          ...topic.toObject(),
+          completed: enrollment.completedTopics.includes(topic._id),
+          progress: topicProgress,
+        };
+      })
+    );
 
     res.render('student/course-details', {
       title: `${course.title} - Course Details`,
@@ -202,9 +222,8 @@ const courseDetails = async (req, res) => {
       enrollment,
       topicsWithProgress,
       courseProgress,
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Course details error:', error);
     req.flash('error_msg', 'Error loading course details');
@@ -215,13 +234,13 @@ const courseDetails = async (req, res) => {
 // Helper function to get content type icons
 const getContentIcon = (type) => {
   const icons = {
-    'video': 'play-circle',
-    'pdf': 'file-pdf',
-    'quiz': 'question-circle',
-    'homework': 'tasks',
-    'assignment': 'clipboard-list',
-    'reading': 'book-open',
-    'link': 'external-link-alt'
+    video: 'play-circle',
+    pdf: 'file-pdf',
+    quiz: 'question-circle',
+    homework: 'tasks',
+    assignment: 'clipboard-list',
+    reading: 'book-open',
+    link: 'external-link-alt',
   };
   return icons[type] || 'file';
 };
@@ -234,7 +253,7 @@ const courseContent = async (req, res) => {
 
     const student = await User.findById(studentId);
     const enrollment = student.enrolledCourses.find(
-      e => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId
     );
 
     if (!enrollment) {
@@ -247,8 +266,8 @@ const courseContent = async (req, res) => {
         path: 'topics',
         populate: {
           path: 'content',
-          model: 'ContentItem'
-        }
+          model: 'ContentItem',
+        },
       })
       .populate('bundle', 'name')
       .populate('createdBy', 'name');
@@ -262,52 +281,73 @@ const courseContent = async (req, res) => {
     const completedContentIds = student.getCompletedContentIds(courseId);
 
     // Process topics with enhanced content status
-    const topicsWithProgress = await Promise.all(course.topics.map(async (topic) => {
-      const topicCompleted = enrollment.completedTopics.includes(topic._id);
-      
-      // Calculate topic progress based on actual completion percentages
-      const topicProgress = await student.calculateTopicProgress(courseId, topic._id);
-      
-      // Process content items with enhanced unlock/completion status
-      const contentWithStatus = topic.content.map((contentItem, index) => {
-        const isCompleted = completedContentIds.includes(contentItem._id.toString());
-        const unlockStatus = student.isContentUnlocked(courseId, contentItem._id, contentItem);
-        
-        // Get content progress details for more accurate completion status
-        const contentProgressDetails = student.getContentProgressDetails(courseId, contentItem._id);
-        const actualProgress = contentProgressDetails ? contentProgressDetails.progressPercentage : 0;
-        
-        // Get prerequisite names for better user experience
-        let prerequisiteNames = [];
-        if (contentItem.prerequisites && contentItem.prerequisites.length > 0) {
-          // Find prerequisite content names
-          const allContent = course.topics.flatMap(t => t.content);
-          prerequisiteNames = contentItem.prerequisites.map(prereqId => {
-            const prereqContent = allContent.find(c => c._id.toString() === prereqId.toString());
-            return prereqContent ? prereqContent.title : 'Unknown Content';
-          });
-        }
-        
-        return {
-          ...contentItem.toObject(),
-          isUnlocked: unlockStatus.unlocked,
-          isCompleted: isCompleted,
-          actualProgress: actualProgress,
-          unlockReason: unlockStatus.reason,
-          canAccess: unlockStatus.unlocked || isCompleted,
-          prerequisiteNames: prerequisiteNames,
-          contentIndex: index,
-          topicId: topic._id
-        };
-      });
+    const topicsWithProgress = await Promise.all(
+      course.topics.map(async (topic) => {
+        const topicCompleted = enrollment.completedTopics.includes(topic._id);
 
-      return {
-        ...topic.toObject(),
-        content: contentWithStatus,
-        completed: topicCompleted,
-        progress: topicProgress
-      };
-    }));
+        // Calculate topic progress based on actual completion percentages
+        const topicProgress = await student.calculateTopicProgress(
+          courseId,
+          topic._id
+        );
+
+        // Process content items with enhanced unlock/completion status
+        const contentWithStatus = topic.content.map((contentItem, index) => {
+          const isCompleted = completedContentIds.includes(
+            contentItem._id.toString()
+          );
+          const unlockStatus = student.isContentUnlocked(
+            courseId,
+            contentItem._id,
+            contentItem
+          );
+
+          // Get content progress details for more accurate completion status
+          const contentProgressDetails = student.getContentProgressDetails(
+            courseId,
+            contentItem._id
+          );
+          const actualProgress = contentProgressDetails
+            ? contentProgressDetails.progressPercentage
+            : 0;
+
+          // Get prerequisite names for better user experience
+          let prerequisiteNames = [];
+          if (
+            contentItem.prerequisites &&
+            contentItem.prerequisites.length > 0
+          ) {
+            // Find prerequisite content names
+            const allContent = course.topics.flatMap((t) => t.content);
+            prerequisiteNames = contentItem.prerequisites.map((prereqId) => {
+              const prereqContent = allContent.find(
+                (c) => c._id.toString() === prereqId.toString()
+              );
+              return prereqContent ? prereqContent.title : 'Unknown Content';
+            });
+          }
+
+          return {
+            ...contentItem.toObject(),
+            isUnlocked: unlockStatus.unlocked,
+            isCompleted: isCompleted,
+            actualProgress: actualProgress,
+            unlockReason: unlockStatus.reason,
+            canAccess: unlockStatus.unlocked || isCompleted,
+            prerequisiteNames: prerequisiteNames,
+            contentIndex: index,
+            topicId: topic._id,
+          };
+        });
+
+        return {
+          ...topic.toObject(),
+          content: contentWithStatus,
+          completed: topicCompleted,
+          progress: topicProgress,
+        };
+      })
+    );
 
     res.render('student/course-content', {
       title: `${course.title} - Course Content`,
@@ -316,9 +356,8 @@ const courseContent = async (req, res) => {
       enrollment,
       topicsWithProgress,
       getContentIcon, // Pass the helper function to the template
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Course content error:', error);
     req.flash('error_msg', 'Error loading course content');
@@ -333,25 +372,26 @@ const contentDetails = async (req, res) => {
     const contentId = req.params.id;
 
     const student = await User.findById(studentId);
-    
+
     // Find the content across all enrolled courses
     let contentItem = null;
     let course = null;
     let topic = null;
-    
+
     for (const enrollment of student.enrolledCourses) {
-      const courseData = await Course.findById(enrollment.course)
-        .populate({
-          path: 'topics',
-          populate: {
-            path: 'content',
-            model: 'ContentItem'
-          }
-        });
-      
+      const courseData = await Course.findById(enrollment.course).populate({
+        path: 'topics',
+        populate: {
+          path: 'content',
+          model: 'ContentItem',
+        },
+      });
+
       if (courseData) {
         for (const topicData of courseData.topics) {
-          const foundContent = topicData.content.find(c => c._id.toString() === contentId);
+          const foundContent = topicData.content.find(
+            (c) => c._id.toString() === contentId
+          );
           if (foundContent) {
             contentItem = foundContent;
             course = courseData;
@@ -364,22 +404,36 @@ const contentDetails = async (req, res) => {
     }
 
     if (!contentItem) {
-      req.flash('error_msg', 'Content not found or you are not enrolled in this course');
+      req.flash(
+        'error_msg',
+        'Content not found or you are not enrolled in this course'
+      );
       return res.redirect('/student/enrolled-courses');
     }
 
     // Check if content is unlocked
-    const unlockStatus = student.isContentUnlocked(course._id, contentId, contentItem);
+    const unlockStatus = student.isContentUnlocked(
+      course._id,
+      contentId,
+      contentItem
+    );
     if (!unlockStatus.unlocked) {
       req.flash('error_msg', `Content is locked: ${unlockStatus.reason}`);
       return res.redirect(`/student/course/${course._id}/content`);
     }
 
     // Get content progress with detailed data
-    const contentProgress = student.getContentProgressDetails(course._id, contentId);
-    const isCompleted = contentProgress ? contentProgress.completionStatus === 'completed' : false;
-    const progressPercentage = contentProgress ? contentProgress.progressPercentage || 0 : 0;
-    
+    const contentProgress = student.getContentProgressDetails(
+      course._id,
+      contentId
+    );
+    const isCompleted = contentProgress
+      ? contentProgress.completionStatus === 'completed'
+      : false;
+    const progressPercentage = contentProgress
+      ? contentProgress.progressPercentage || 0
+      : 0;
+
     // Get quiz attempts if it's a quiz/homework content
     let attempts = 0;
     let bestScore = 0;
@@ -394,16 +448,20 @@ const contentDetails = async (req, res) => {
     }
 
     // Get navigation data (previous and next content)
-    const allContent = course.topics.flatMap(t => t.content.map(c => ({ ...c.toObject(), topicId: t._id })));
-    const currentIndex = allContent.findIndex(c => c._id.toString() === contentId);
-    
+    const allContent = course.topics.flatMap((t) =>
+      t.content.map((c) => ({ ...c.toObject(), topicId: t._id }))
+    );
+    const currentIndex = allContent.findIndex(
+      (c) => c._id.toString() === contentId
+    );
+
     let previousContent = null;
     let nextContent = null;
-    
+
     if (currentIndex > 0) {
       previousContent = allContent[currentIndex - 1];
     }
-    
+
     if (currentIndex < allContent.length - 1) {
       nextContent = allContent[currentIndex + 1];
     }
@@ -411,7 +469,11 @@ const contentDetails = async (req, res) => {
     // Check if next content is accessible
     let nextContentAccessible = false;
     if (nextContent) {
-      const nextUnlockStatus = student.isContentUnlocked(course._id, nextContent._id, nextContent);
+      const nextUnlockStatus = student.isContentUnlocked(
+        course._id,
+        nextContent._id,
+        nextContent
+      );
       nextContentAccessible = nextUnlockStatus.unlocked;
     }
 
@@ -421,27 +483,62 @@ const contentDetails = async (req, res) => {
     let serverTiming = null;
     let attemptPolicy = null;
     if (['quiz', 'homework'].includes(contentItem.type)) {
-      const durationMinutes = (contentItem.type === 'quiz')
-        ? ((contentItem.quizSettings && contentItem.quizSettings.duration) ? contentItem.quizSettings.duration : 0)
-        : ((contentItem.homeworkSettings && contentItem.homeworkSettings.duration) ? contentItem.homeworkSettings.duration : (contentItem.duration || 0));
-      const passingScore = (contentItem.type === 'quiz')
-        ? ((contentItem.quizSettings && typeof contentItem.quizSettings.passingScore === 'number') ? contentItem.quizSettings.passingScore : 60)
-        : ((contentItem.homeworkSettings && typeof contentItem.homeworkSettings.passingScore === 'number') ? contentItem.homeworkSettings.passingScore : 60);
+      const durationMinutes =
+        contentItem.type === 'quiz'
+          ? contentItem.quizSettings && contentItem.quizSettings.duration
+            ? contentItem.quizSettings.duration
+            : 0
+          : contentItem.homeworkSettings &&
+            contentItem.homeworkSettings.duration
+          ? contentItem.homeworkSettings.duration
+          : contentItem.duration || 0;
+      const passingScore =
+        contentItem.type === 'quiz'
+          ? contentItem.quizSettings &&
+            typeof contentItem.quizSettings.passingScore === 'number'
+            ? contentItem.quizSettings.passingScore
+            : 60
+          : contentItem.homeworkSettings &&
+            typeof contentItem.homeworkSettings.passingScore === 'number'
+          ? contentItem.homeworkSettings.passingScore
+          : 60;
 
       let remainingSeconds = 0;
       let isExpired = false;
-      if (contentProgress && contentProgress.expectedEnd && durationMinutes > 0) {
-        remainingSeconds = Math.max(0, Math.floor((new Date(contentProgress.expectedEnd).getTime() - Date.now()) / 1000));
+      if (
+        contentProgress &&
+        contentProgress.expectedEnd &&
+        durationMinutes > 0
+      ) {
+        remainingSeconds = Math.max(
+          0,
+          Math.floor(
+            (new Date(contentProgress.expectedEnd).getTime() - Date.now()) /
+              1000
+          )
+        );
         isExpired = remainingSeconds === 0;
       }
-      serverTiming = { durationMinutes, passingScore, remainingSeconds, isExpired };
+      serverTiming = {
+        durationMinutes,
+        passingScore,
+        remainingSeconds,
+        isExpired,
+      };
 
       // Attempts policy
-      const maxAttempts = (contentItem.type === 'quiz')
-        ? (contentItem.quizSettings && contentItem.quizSettings.maxAttempts ? contentItem.quizSettings.maxAttempts : 0)
-        : (contentItem.homeworkSettings && contentItem.homeworkSettings.maxAttempts ? contentItem.homeworkSettings.maxAttempts : 0);
+      const maxAttempts =
+        contentItem.type === 'quiz'
+          ? contentItem.quizSettings && contentItem.quizSettings.maxAttempts
+            ? contentItem.quizSettings.maxAttempts
+            : 0
+          : contentItem.homeworkSettings &&
+            contentItem.homeworkSettings.maxAttempts
+          ? contentItem.homeworkSettings.maxAttempts
+          : 0;
       const totalAttemptsUsed = attempts;
-      const remainingAttempts = maxAttempts > 0 ? Math.max(0, maxAttempts - totalAttemptsUsed) : null;
+      const remainingAttempts =
+        maxAttempts > 0 ? Math.max(0, maxAttempts - totalAttemptsUsed) : null;
       const outOfAttempts = maxAttempts > 0 && remainingAttempts === 0;
       attemptPolicy = { maxAttempts, remainingAttempts, outOfAttempts };
     }
@@ -455,27 +552,30 @@ const contentDetails = async (req, res) => {
       contentProgress: {
         isCompleted: isCompleted,
         progressPercentage: progressPercentage,
-        completionStatus: contentProgress ? contentProgress.completionStatus : 'not_started',
+        completionStatus: contentProgress
+          ? contentProgress.completionStatus
+          : 'not_started',
         lastAccessed: contentProgress ? contentProgress.lastAccessed : null,
         completedAt: contentProgress ? contentProgress.completedAt : null,
         attempts: attempts,
         bestScore: bestScore,
-        attemptsList: attemptsList
+        attemptsList: attemptsList,
       },
       timing: serverTiming,
       attemptPolicy: attemptPolicy,
-      requiresAcknowledgment: (!isCompleted && ['pdf','reading','link','assignment'].includes(contentItem.type)),
+      requiresAcknowledgment:
+        !isCompleted &&
+        ['pdf', 'reading', 'link', 'assignment'].includes(contentItem.type),
       navigation: {
         previousContent: previousContent,
         nextContent: nextContent,
         nextContentAccessible: nextContentAccessible,
         currentIndex: currentIndex,
-        totalContent: allContent.length
+        totalContent: allContent.length,
       },
       getContentIcon, // Pass the helper function to the template
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Content details error:', error);
     req.flash('error_msg', 'Error loading content');
@@ -487,54 +587,76 @@ const contentDetails = async (req, res) => {
 const updateContentProgress = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    const { courseId, topicId, contentId, contentType, progressData } = req.body;
+    const { courseId, topicId, contentId, contentType, progressData } =
+      req.body;
 
-    console.log('Updating content progress:', { studentId, courseId, topicId, contentId, contentType, progressData });
+    console.log('Updating content progress:', {
+      studentId,
+      courseId,
+      topicId,
+      contentId,
+      contentType,
+      progressData,
+    });
 
     const student = await User.findById(studentId);
-    
+
     // Validate enrollment
     const enrollment = student.enrolledCourses.find(
-      e => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId
     );
 
     if (!enrollment) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You are not enrolled in this course' 
+      return res.status(403).json({
+        success: false,
+        message: 'You are not enrolled in this course',
       });
     }
 
-    console.log('Before update - enrollment contentProgress length:', enrollment.contentProgress.length);
+    console.log(
+      'Before update - enrollment contentProgress length:',
+      enrollment.contentProgress.length
+    );
 
     // Update content progress
-    await student.updateContentProgress(courseId, topicId, contentId, contentType, progressData);
+    await student.updateContentProgress(
+      courseId,
+      topicId,
+      contentId,
+      contentType,
+      progressData
+    );
 
     // Refresh student data to get updated progress
     const updatedStudent = await User.findById(studentId);
     const updatedEnrollment = updatedStudent.enrolledCourses.find(
-      e => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId
     );
 
-    console.log('After update - enrollment contentProgress length:', updatedEnrollment.contentProgress.length);
+    console.log(
+      'After update - enrollment contentProgress length:',
+      updatedEnrollment.contentProgress.length
+    );
     console.log('Updated contentProgress:', updatedEnrollment.contentProgress);
 
     // Get updated progress
-    const updatedProgress = updatedStudent.getContentProgressDetails(courseId, contentId);
+    const updatedProgress = updatedStudent.getContentProgressDetails(
+      courseId,
+      contentId
+    );
 
     res.json({
       success: true,
       contentProgress: updatedProgress,
       courseProgress: updatedEnrollment.progress,
       totalContentProgress: updatedEnrollment.contentProgress.length,
-      message: 'Progress updated successfully'
+      message: 'Progress updated successfully',
     });
-
   } catch (error) {
     console.error('Update content progress error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error updating progress' 
+    res.status(500).json({
+      success: false,
+      message: 'Error updating progress',
     });
   }
 };
@@ -548,18 +670,20 @@ const quizzes = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const student = await User.findById(studentId);
-    const enrolledCourseIds = student.enrolledCourses.map(e => e.course);
+    const enrolledCourseIds = student.enrolledCourses
+      .filter((e) => e.course)
+      .map((e) => e.course);
 
     // Get all active quizzes with enhanced data
     const quizzes = await Quiz.find({
-      status: 'active'
+      status: 'active',
     })
-    .populate('questionBank', 'name description totalQuestions')
-    .populate('createdBy', 'name email')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean({ virtuals: true }); // Include virtual fields like totalQuestions
+      .populate('questionBank', 'name description totalQuestions')
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean({ virtuals: true }); // Include virtual fields like totalQuestions
 
     const totalQuizzes = await Quiz.countDocuments({ status: 'active' });
     const totalPages = Math.ceil(totalQuizzes / limit);
@@ -578,11 +702,10 @@ const quizzes = async (req, res) => {
         hasNext: page < totalPages,
         hasPrev: page > 1,
         nextPage: page + 1,
-        prevPage: page - 1
+        prevPage: page - 1,
       },
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Quizzes error:', error);
     req.flash('error_msg', 'Error loading quizzes');
@@ -601,7 +724,6 @@ const takeQuiz = async (req, res) => {
       .populate('selectedQuestions.question')
       .populate('questionBank');
 
-      
     if (!quiz) {
       req.flash('error_msg', 'Quiz not found');
       return res.redirect('/student/quizzes');
@@ -615,11 +737,17 @@ const takeQuiz = async (req, res) => {
 
     // Check attempt limit
     const studentQuizAttempt = student.quizAttempts.find(
-      attempt => attempt.quiz.toString() === quizId
+      (attempt) => attempt.quiz.toString() === quizId
     );
 
-    if (studentQuizAttempt && studentQuizAttempt.attempts.length >= quiz.maxAttempts) {
-      req.flash('error_msg', `You have reached the maximum number of attempts (${quiz.maxAttempts}) for this quiz`);
+    if (
+      studentQuizAttempt &&
+      studentQuizAttempt.attempts.length >= quiz.maxAttempts
+    ) {
+      req.flash(
+        'error_msg',
+        `You have reached the maximum number of attempts (${quiz.maxAttempts}) for this quiz`
+      );
       return res.redirect('/student/quizzes');
     }
 
@@ -631,9 +759,11 @@ const takeQuiz = async (req, res) => {
 
     // Shuffle options if enabled
     if (quiz.shuffleOptions) {
-      questions.forEach(q => {
+      questions.forEach((q) => {
         if (q.question.options && Array.isArray(q.question.options)) {
-          q.question.options = q.question.options.sort(() => Math.random() - 0.5);
+          q.question.options = q.question.options.sort(
+            () => Math.random() - 0.5
+          );
         }
       });
     }
@@ -643,12 +773,13 @@ const takeQuiz = async (req, res) => {
       student,
       quiz: {
         ...quiz.toObject(),
-        selectedQuestions: questions
+        selectedQuestions: questions,
       },
-      attemptNumber: studentQuizAttempt ? studentQuizAttempt.attempts.length + 1 : 1,
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      attemptNumber: studentQuizAttempt
+        ? studentQuizAttempt.attempts.length + 1
+        : 1,
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Take quiz error:', error);
     req.flash('error_msg', 'Error starting quiz');
@@ -664,11 +795,14 @@ const submitQuiz = async (req, res) => {
     const answers = req.body.answers || {};
 
     const student = await User.findById(studentId);
-    const quiz = await Quiz.findById(quizId)
-      .populate('selectedQuestions.question');
+    const quiz = await Quiz.findById(quizId).populate(
+      'selectedQuestions.question'
+    );
 
     if (!quiz) {
-      return res.status(404).json({ success: false, message: 'Quiz not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'Quiz not found' });
     }
 
     // Calculate score
@@ -676,12 +810,12 @@ const submitQuiz = async (req, res) => {
     let totalPoints = 0;
     const detailedAnswers = [];
 
-    quiz.selectedQuestions.forEach(selectedQ => {
+    quiz.selectedQuestions.forEach((selectedQ) => {
       const question = selectedQ.question;
       const userAnswer = answers[question._id.toString()];
       let isCorrect = false;
       let points = 0;
-      
+
       if (question.questionType === 'Written') {
         // Handle written questions with multiple correct answers using helper method
         isCorrect = question.isCorrectWrittenAnswer(userAnswer);
@@ -689,7 +823,7 @@ const submitQuiz = async (req, res) => {
         // Handle MCQ and True/False questions
         isCorrect = userAnswer === question.correctAnswer;
       }
-      
+
       if (isCorrect) {
         correctAnswers++;
         totalPoints += selectedQ.points || 1;
@@ -699,18 +833,22 @@ const submitQuiz = async (req, res) => {
       detailedAnswers.push({
         questionId: question._id,
         selectedAnswer: userAnswer,
-        correctAnswer: question.questionType === 'Written' 
-          ? question.getAllCorrectAnswers()
-          : (Array.isArray(question.correctAnswer) ? question.correctAnswer[0] : question.correctAnswer),
+        correctAnswer:
+          question.questionType === 'Written'
+            ? question.getAllCorrectAnswers()
+            : Array.isArray(question.correctAnswer)
+            ? question.correctAnswer[0]
+            : question.correctAnswer,
         isCorrect,
         points,
-        questionType: question.questionType
+        questionType: question.questionType,
       });
     });
 
-    const score = quiz.selectedQuestions.length > 0 
-      ? Math.round((correctAnswers / quiz.selectedQuestions.length) * 100) 
-      : 0;
+    const score =
+      quiz.selectedQuestions.length > 0
+        ? Math.round((correctAnswers / quiz.selectedQuestions.length) * 100)
+        : 0;
 
     const attemptData = {
       score,
@@ -720,7 +858,7 @@ const submitQuiz = async (req, res) => {
       startedAt: new Date(req.body.startedAt),
       completedAt: new Date(),
       status: 'completed',
-      answers: detailedAnswers
+      answers: detailedAnswers,
     };
 
     // Save quiz attempt
@@ -735,10 +873,10 @@ const submitQuiz = async (req, res) => {
         score,
         timeSpent: attemptData.timeSpent,
         points: totalPoints,
-        quizTitle: quiz.title
+        quizTitle: quiz.title,
       },
       points: totalPoints,
-      experience: totalPoints * 10 // Convert points to experience
+      experience: totalPoints * 10, // Convert points to experience
     });
     await progress.save();
 
@@ -749,9 +887,8 @@ const submitQuiz = async (req, res) => {
       totalQuestions: quiz.selectedQuestions.length,
       passed: score >= quiz.passingScore,
       passingScore: quiz.passingScore,
-      points: totalPoints
+      points: totalPoints,
     });
-
   } catch (error) {
     console.error('Submit quiz error:', error);
     res.status(500).json({ success: false, message: 'Error submitting quiz' });
@@ -776,25 +913,36 @@ const wishlist = async (req, res) => {
     // Get wishlist courses
     const Course = require('../models/Course');
     const BundleCourse = require('../models/BundleCourse');
-    
+
     const wishlistCourseIds = student.wishlist.courses || [];
     const wishlistBundleIds = student.wishlist.bundles || [];
 
     // Fetch courses
     const wishlistCourses = await Course.find({
-      _id: { $in: wishlistCourseIds }
-    }).select('title description shortDescription thumbnail level duration tags topics price');
+      _id: { $in: wishlistCourseIds },
+    }).select(
+      'title description shortDescription thumbnail level duration tags topics price'
+    );
 
     // Fetch bundles
     const wishlistBundles = await BundleCourse.find({
-      _id: { $in: wishlistBundleIds }
-    }).populate('courses', 'title duration')
-      .select('title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses');
+      _id: { $in: wishlistBundleIds },
+    })
+      .populate('courses', 'title duration')
+      .select(
+        'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
+      );
 
     // Combine and paginate
     const allItems = [
-      ...wishlistCourses.map(course => ({ ...course.toObject(), type: 'course' })),
-      ...wishlistBundles.map(bundle => ({ ...bundle.toObject(), type: 'bundle' }))
+      ...wishlistCourses.map((course) => ({
+        ...course.toObject(),
+        type: 'course',
+      })),
+      ...wishlistBundles.map((bundle) => ({
+        ...bundle.toObject(),
+        type: 'bundle',
+      })),
     ];
 
     const totalItems = allItems.length;
@@ -804,19 +952,18 @@ const wishlist = async (req, res) => {
     res.render('student/wishlist', {
       title: 'My Wishlist',
       student,
-      wishlistCourses: paginatedItems.filter(item => item.type === 'course'),
-      wishlistBundles: paginatedItems.filter(item => item.type === 'bundle'),
+      wishlistCourses: paginatedItems.filter((item) => item.type === 'course'),
+      wishlistBundles: paginatedItems.filter((item) => item.type === 'bundle'),
       pagination: {
         currentPage: page,
         totalPages,
         hasNext: page < totalPages,
         hasPrev: page > 1,
         nextPage: page + 1,
-        prevPage: page - 1
+        prevPage: page - 1,
       },
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Wishlist error:', error);
     req.flash('error_msg', 'Error loading wishlist');
@@ -832,7 +979,7 @@ const addToWishlist = async (req, res) => {
     const itemType = req.query.type || 'course'; // 'course' or 'bundle'
 
     const student = await User.findById(studentId);
-    
+
     if (itemType === 'course') {
       await student.addCourseToWishlist(itemId);
       req.flash('success_msg', 'Course added to wishlist');
@@ -842,7 +989,6 @@ const addToWishlist = async (req, res) => {
     }
 
     res.redirect('back');
-
   } catch (error) {
     console.error('Add to wishlist error:', error);
     req.flash('error_msg', 'Error adding item to wishlist');
@@ -858,7 +1004,7 @@ const removeFromWishlist = async (req, res) => {
     const itemType = req.query.type || 'course'; // 'course' or 'bundle'
 
     const student = await User.findById(studentId);
-    
+
     if (itemType === 'course') {
       await student.removeCourseFromWishlist(itemId);
       req.flash('success_msg', 'Course removed from wishlist');
@@ -868,7 +1014,6 @@ const removeFromWishlist = async (req, res) => {
     }
 
     res.redirect('back');
-
   } catch (error) {
     console.error('Remove from wishlist error:', error);
     req.flash('error_msg', 'Error removing item from wishlist');
@@ -900,11 +1045,13 @@ const orderHistory = async (req, res) => {
     // Populate course/bundle details for each order
     const Course = require('../models/Course');
     const BundleCourse = require('../models/BundleCourse');
-    
+
     const populatedOrders = await Promise.all(
       paginatedOrders.map(async (order) => {
         if (order.type === 'course') {
-          const course = await Course.findById(order.course).select('title thumbnail level duration');
+          const course = await Course.findById(order.course).select(
+            'title thumbnail level duration'
+          );
           return { ...order, item: course };
         } else if (order.type === 'bundle') {
           const bundle = await BundleCourse.findById(order.bundle)
@@ -926,11 +1073,10 @@ const orderHistory = async (req, res) => {
         hasNext: page < totalPages,
         hasPrev: page > 1,
         nextPage: page + 1,
-        prevPage: page - 1
+        prevPage: page - 1,
       },
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Order history error:', error);
     req.flash('error_msg', 'Error loading order history');
@@ -953,7 +1099,7 @@ const orderDetails = async (req, res) => {
 
     // Find the specific order
     const purchaseHistory = student.getPurchaseHistory();
-    const order = purchaseHistory.find(p => p.orderNumber === orderNumber);
+    const order = purchaseHistory.find((p) => p.orderNumber === orderNumber);
 
     if (!order) {
       req.flash('error_msg', 'Order not found');
@@ -963,25 +1109,31 @@ const orderDetails = async (req, res) => {
     // Populate item details
     const Course = require('../models/Course');
     const BundleCourse = require('../models/BundleCourse');
-    
+
     let item = null;
     if (order.type === 'course') {
       item = await Course.findById(order.course)
         .populate('topics', 'title description')
-        .select('title description shortDescription thumbnail level duration tags topics price');
+        .select(
+          'title description shortDescription thumbnail level duration tags topics price'
+        );
     } else if (order.type === 'bundle') {
       item = await BundleCourse.findById(order.bundle)
-        .populate('courses', 'title description shortDescription thumbnail level duration')
-        .select('title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses');
+        .populate(
+          'courses',
+          'title description shortDescription thumbnail level duration'
+        )
+        .select(
+          'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
+        );
     }
 
     res.render('student/order-details', {
       title: `Order #${orderNumber}`,
       student,
       order: { ...order, item },
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Order details error:', error);
     req.flash('error_msg', 'Error loading order details');
@@ -1002,17 +1154,17 @@ const homeworkAttempts = async (req, res) => {
     // Get homework-related progress
     const homeworkProgress = await Progress.find({
       student: studentId,
-      activity: { $in: ['homework_submitted', 'homework_graded'] }
+      activity: { $in: ['homework_submitted', 'homework_graded'] },
     })
-    .populate('course', 'title')
-    .populate('topic', 'title')
-    .sort({ timestamp: -1 })
-    .skip(skip)
-    .limit(limit);
+      .populate('course', 'title')
+      .populate('topic', 'title')
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const totalAttempts = await Progress.countDocuments({
       student: studentId,
-      activity: { $in: ['homework_submitted', 'homework_graded'] }
+      activity: { $in: ['homework_submitted', 'homework_graded'] },
     });
     const totalPages = Math.ceil(totalAttempts / limit);
 
@@ -1026,11 +1178,10 @@ const homeworkAttempts = async (req, res) => {
         hasNext: page < totalPages,
         hasPrev: page > 1,
         nextPage: page + 1,
-        prevPage: page - 1
+        prevPage: page - 1,
       },
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Homework attempts error:', error);
     req.flash('error_msg', 'Error loading homework attempts');
@@ -1056,9 +1207,8 @@ const profile = async (req, res) => {
       title: 'My Profile',
       student,
       achievements,
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Profile error:', error);
     req.flash('error_msg', 'Error loading profile');
@@ -1081,40 +1231,51 @@ const updateProfile = async (req, res) => {
     delete updates.username; // Username should not be editable
 
     // Only allow specific fields to be updated
-    const allowedFields = ['firstName', 'lastName', 'schoolName', 'englishTeacher', 'howDidYouKnow'];
+    const allowedFields = [
+      'firstName',
+      'lastName',
+      'schoolName',
+      'englishTeacher',
+      'howDidYouKnow',
+    ];
     const filteredUpdates = {};
-    
-    allowedFields.forEach(field => {
+
+    allowedFields.forEach((field) => {
       if (updates[field] !== undefined) {
         filteredUpdates[field] = updates[field];
       }
     });
 
     // Validate required fields
-    if (filteredUpdates.firstName && filteredUpdates.firstName.trim().length < 2) {
+    if (
+      filteredUpdates.firstName &&
+      filteredUpdates.firstName.trim().length < 2
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'First name must be at least 2 characters long'
+        message: 'First name must be at least 2 characters long',
       });
     }
 
-    if (filteredUpdates.lastName && filteredUpdates.lastName.trim().length < 2) {
+    if (
+      filteredUpdates.lastName &&
+      filteredUpdates.lastName.trim().length < 2
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Last name must be at least 2 characters long'
+        message: 'Last name must be at least 2 characters long',
       });
     }
 
-    const student = await User.findByIdAndUpdate(
-      studentId, 
-      filteredUpdates, 
-      { new: true, runValidators: true }
-    );
+    const student = await User.findByIdAndUpdate(studentId, filteredUpdates, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Student not found'
+        message: 'Student not found',
       });
     }
 
@@ -1127,24 +1288,23 @@ const updateProfile = async (req, res) => {
         lastName: student.lastName,
         schoolName: student.schoolName,
         englishTeacher: student.englishTeacher,
-        howDidYouKnow: student.howDidYouKnow
-      }
+        howDidYouKnow: student.howDidYouKnow,
+      },
     });
-
   } catch (error) {
     console.error('Update profile error:', error);
-    
+
     if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
+      const messages = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({
         success: false,
-        message: messages.join(', ')
+        message: messages.join(', '),
       });
     }
 
     res.status(500).json({
       success: false,
-      message: 'Error updating profile'
+      message: 'Error updating profile',
     });
   }
 };
@@ -1163,9 +1323,8 @@ const settings = async (req, res) => {
     res.render('student/settings', {
       title: 'Settings',
       student,
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Settings error:', error);
     req.flash('error_msg', 'Error loading settings');
@@ -1180,21 +1339,21 @@ const updateSettings = async (req, res) => {
     const { theme, notifications, language } = req.body;
 
     const student = await User.findById(studentId);
-    
+
     // Update preferences
     const updatedPreferences = { ...student.preferences };
-    
+
     if (theme) {
       updatedPreferences.theme = theme;
     }
-    
+
     if (notifications) {
       updatedPreferences.notifications = {
         ...updatedPreferences.notifications,
-        ...notifications
+        ...notifications,
       };
     }
-    
+
     if (language) {
       updatedPreferences.language = language;
     }
@@ -1204,26 +1363,25 @@ const updateSettings = async (req, res) => {
 
     // Update session theme if theme was changed
     if (theme) {
-    req.session.user.preferences = student.preferences;
-    
-    // Set theme cookie
-      res.cookie('theme', theme, { 
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      httpOnly: false 
-    });
+      req.session.user.preferences = student.preferences;
+
+      // Set theme cookie
+      res.cookie('theme', theme, {
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        httpOnly: false,
+      });
     }
 
     res.json({
       success: true,
       message: 'Settings updated successfully',
-      preferences: student.preferences
+      preferences: student.preferences,
     });
-
   } catch (error) {
     console.error('Update settings error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error updating settings'
+      message: 'Error updating settings',
     });
   }
 };
@@ -1232,11 +1390,11 @@ const updateSettings = async (req, res) => {
 const updateProfilePicture = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'No image file provided'
+        message: 'No image file provided',
       });
     }
 
@@ -1244,7 +1402,7 @@ const updateProfilePicture = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Student not found'
+        message: 'Student not found',
       });
     }
 
@@ -1253,13 +1411,22 @@ const updateProfilePicture = async (req, res) => {
     const uploadResult = await uploadImage(req.file.buffer, {
       folder: 'profile-pictures',
       transformation: [
-        { width: 300, height: 300, crop: 'fill', gravity: 'face', quality: 'auto' },
-        { format: 'auto' }
-      ]
+        {
+          width: 300,
+          height: 300,
+          crop: 'fill',
+          gravity: 'face',
+          quality: 'auto',
+        },
+        { format: 'auto' },
+      ],
     });
 
     // Delete old profile picture if it exists
-    if (student.profilePicture && student.profilePicture.includes('cloudinary')) {
+    if (
+      student.profilePicture &&
+      student.profilePicture.includes('cloudinary')
+    ) {
       try {
         const { deleteImage } = require('../utils/cloudinary');
         const publicId = student.profilePicture.split('/').pop().split('.')[0];
@@ -1277,14 +1444,13 @@ const updateProfilePicture = async (req, res) => {
     res.json({
       success: true,
       message: 'Profile picture updated successfully',
-      profilePicture: student.profilePicture
+      profilePicture: student.profilePicture,
     });
-
   } catch (error) {
     console.error('Update profile picture error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error updating profile picture'
+      message: 'Error updating profile picture',
     });
   }
 };
@@ -1298,14 +1464,14 @@ const changePassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Current password and new password are required'
+        message: 'Current password and new password are required',
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long'
+        message: 'New password must be at least 6 characters long',
       });
     }
 
@@ -1313,17 +1479,17 @@ const changePassword = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Student not found'
+        message: 'Student not found',
       });
     }
 
     // Verify current password
     const isMatch = await student.matchPassword(currentPassword);
-    
+
     if (!isMatch) {
       return res.status(400).json({
         success: false,
-        message: 'Current password is incorrect'
+        message: 'Current password is incorrect',
       });
     }
 
@@ -1333,14 +1499,13 @@ const changePassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Password changed successfully'
+      message: 'Password changed successfully',
     });
-
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error changing password'
+      message: 'Error changing password',
     });
   }
 };
@@ -1349,7 +1514,7 @@ const changePassword = async (req, res) => {
 const exportData = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    
+
     const student = await User.findById(studentId)
       .populate('enrolledCourses.course')
       .populate('purchasedCourses.course')
@@ -1358,7 +1523,7 @@ const exportData = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Student not found'
+        message: 'Student not found',
       });
     }
 
@@ -1371,52 +1536,56 @@ const exportData = async (req, res) => {
         studentCode: student.studentCode,
         grade: student.grade,
         schoolName: student.schoolName,
-        joinedAt: student.createdAt
+        joinedAt: student.createdAt,
       },
       learningProgress: {
-        enrolledCourses: student.enrolledCourses.map(enrollment => ({
+        enrolledCourses: student.enrolledCourses.map((enrollment) => ({
           courseName: enrollment.course?.name || 'Unknown Course',
           progress: enrollment.progress,
           status: enrollment.status,
           enrolledAt: enrollment.enrolledAt,
           lastAccessed: enrollment.lastAccessed,
-          completedTopics: enrollment.completedTopics.length
+          completedTopics: enrollment.completedTopics.length,
         })),
         completedCourses: student.completedCourses,
         totalQuizAttempts: student.totalQuizAttempts,
-        averageQuizScore: student.averageQuizScore
+        averageQuizScore: student.averageQuizScore,
       },
       purchases: {
-        courses: student.purchasedCourses.map(purchase => ({
+        courses: student.purchasedCourses.map((purchase) => ({
           courseName: purchase.course?.name || 'Unknown Course',
           price: purchase.price,
           orderNumber: purchase.orderNumber,
           purchasedAt: purchase.purchasedAt,
-          status: purchase.status
+          status: purchase.status,
         })),
-        bundles: student.purchasedBundles.map(purchase => ({
+        bundles: student.purchasedBundles.map((purchase) => ({
           bundleName: purchase.bundle?.name || 'Unknown Bundle',
           price: purchase.price,
           orderNumber: purchase.orderNumber,
           purchasedAt: purchase.purchasedAt,
-          status: purchase.status
-        }))
+          status: purchase.status,
+        })),
       },
       preferences: student.preferences,
-      exportedAt: new Date().toISOString()
+      exportedAt: new Date().toISOString(),
     };
 
     // Set headers for file download
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="elkably-learning-data-${student.studentCode}-${new Date().toISOString().split('T')[0]}.json"`);
-    
-    res.json(exportData);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="elkably-learning-data-${student.studentCode}-${
+        new Date().toISOString().split('T')[0]
+      }.json"`
+    );
 
+    res.json(exportData);
   } catch (error) {
     console.error('Export data error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error exporting data'
+      message: 'Error exporting data',
     });
   }
 };
@@ -1425,12 +1594,12 @@ const exportData = async (req, res) => {
 const deleteAccount = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    
+
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Student not found'
+        message: 'Student not found',
       });
     }
 
@@ -1446,18 +1615,16 @@ const deleteAccount = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Account deleted successfully',
     });
-
   } catch (error) {
     console.error('Delete account error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error deleting account'
+      message: 'Error deleting account',
     });
   }
 };
-
 
 // Take Content Quiz - Start taking quiz/homework
 const takeContentQuiz = async (req, res) => {
@@ -1466,25 +1633,26 @@ const takeContentQuiz = async (req, res) => {
     const contentId = req.params.id;
 
     const student = await User.findById(studentId);
-    
+
     // Find the content across all enrolled courses
     let contentItem = null;
     let course = null;
     let topic = null;
-    
+
     for (const enrollment of student.enrolledCourses) {
-      const courseData = await Course.findById(enrollment.course)
-        .populate({
-          path: 'topics',
-          populate: {
-            path: 'content',
-            model: 'ContentItem'
-          }
-        });
-      
+      const courseData = await Course.findById(enrollment.course).populate({
+        path: 'topics',
+        populate: {
+          path: 'content',
+          model: 'ContentItem',
+        },
+      });
+
       if (courseData) {
         for (const topicData of courseData.topics) {
-          const foundContent = topicData.content.find(c => c._id.toString() === contentId);
+          const foundContent = topicData.content.find(
+            (c) => c._id.toString() === contentId
+          );
           if (foundContent) {
             contentItem = foundContent;
             course = courseData;
@@ -1497,7 +1665,10 @@ const takeContentQuiz = async (req, res) => {
     }
 
     if (!contentItem) {
-      req.flash('error_msg', 'Content not found or you are not enrolled in this course');
+      req.flash(
+        'error_msg',
+        'Content not found or you are not enrolled in this course'
+      );
       return res.redirect('/student/enrolled-courses');
     }
 
@@ -1508,42 +1679,72 @@ const takeContentQuiz = async (req, res) => {
     }
 
     // Check if content is unlocked
-    const unlockStatus = student.isContentUnlocked(course._id, contentId, contentItem);
+    const unlockStatus = student.isContentUnlocked(
+      course._id,
+      contentId,
+      contentItem
+    );
     if (!unlockStatus.unlocked) {
       req.flash('error_msg', `Content is locked: ${unlockStatus.reason}`);
       return res.redirect(`/student/course/${course._id}/content`);
     }
 
     // Check attempt limits
-    const maxAttempts = contentItem.type === 'quiz' ? 
-      (contentItem.quizSettings?.maxAttempts || 3) : 
-      (contentItem.homeworkSettings?.maxAttempts || 1);
-    
-    const canAttempt = student.canAttemptQuiz(course._id, contentId, maxAttempts);
+    const maxAttempts =
+      contentItem.type === 'quiz'
+        ? contentItem.quizSettings?.maxAttempts || 3
+        : contentItem.homeworkSettings?.maxAttempts || 1;
+
+    const canAttempt = student.canAttemptQuiz(
+      course._id,
+      contentId,
+      maxAttempts
+    );
     if (!canAttempt.canAttempt) {
       req.flash('error_msg', `Cannot attempt: ${canAttempt.reason}`);
       return res.redirect(`/student/content/${contentId}`);
     }
 
     // Check existing content progress and persistent timing
-    let contentProgress = student.getContentProgressDetails(course._id, contentId);
+    let contentProgress = student.getContentProgressDetails(
+      course._id,
+      contentId
+    );
 
     if (contentProgress && contentProgress.completionStatus === 'completed') {
-      req.flash('info_msg', 'You have already completed this quiz successfully!');
+      req.flash(
+        'info_msg',
+        'You have already completed this quiz successfully!'
+      );
       return res.redirect(`/student/content/${contentId}/results`);
     }
 
     // Determine duration in minutes and passing score for quiz/homework
-    const durationMinutes = (contentItem.type === 'quiz')
-      ? ((contentItem.quizSettings && contentItem.quizSettings.duration) ? contentItem.quizSettings.duration : 0)
-      : ((contentItem.homeworkSettings && contentItem.homeworkSettings.duration) ? contentItem.homeworkSettings.duration : (contentItem.duration || 0));
-    const passingScore = (contentItem.type === 'quiz')
-      ? ((contentItem.quizSettings && typeof contentItem.quizSettings.passingScore === 'number') ? contentItem.quizSettings.passingScore : 60)
-      : ((contentItem.homeworkSettings && typeof contentItem.homeworkSettings.passingScore === 'number') ? contentItem.homeworkSettings.passingScore : 60);
+    const durationMinutes =
+      contentItem.type === 'quiz'
+        ? contentItem.quizSettings && contentItem.quizSettings.duration
+          ? contentItem.quizSettings.duration
+          : 0
+        : contentItem.homeworkSettings && contentItem.homeworkSettings.duration
+        ? contentItem.homeworkSettings.duration
+        : contentItem.duration || 0;
+    const passingScore =
+      contentItem.type === 'quiz'
+        ? contentItem.quizSettings &&
+          typeof contentItem.quizSettings.passingScore === 'number'
+          ? contentItem.quizSettings.passingScore
+          : 60
+        : contentItem.homeworkSettings &&
+          typeof contentItem.homeworkSettings.passingScore === 'number'
+        ? contentItem.homeworkSettings.passingScore
+        : 60;
 
     // If no progress, create with in_progress and expectedEnd; if exists and no expectedEnd, set it
     if (!contentProgress) {
-      const expectedEnd = durationMinutes > 0 ? new Date(Date.now() + durationMinutes * 60 * 1000) : null;
+      const expectedEnd =
+        durationMinutes > 0
+          ? new Date(Date.now() + durationMinutes * 60 * 1000)
+          : null;
       await student.updateContentProgress(
         course._id.toString(),
         topic._id.toString(),
@@ -1553,12 +1754,15 @@ const takeContentQuiz = async (req, res) => {
           completionStatus: 'in_progress',
           progressPercentage: 0,
           lastAccessed: new Date(),
-          expectedEnd: expectedEnd
+          expectedEnd: expectedEnd,
         }
       );
       // refresh contentProgress after update
       const refreshed = await User.findById(studentId);
-      contentProgress = refreshed.getContentProgressDetails(course._id, contentId);
+      contentProgress = refreshed.getContentProgressDetails(
+        course._id,
+        contentId
+      );
     } else if (!contentProgress.expectedEnd && durationMinutes > 0) {
       // Set expectedEnd if missing
       const expectedEnd = new Date(Date.now() + durationMinutes * 60 * 1000);
@@ -1568,23 +1772,38 @@ const takeContentQuiz = async (req, res) => {
         contentId,
         contentItem.type,
         {
-          completionStatus: contentProgress.completionStatus === 'not_started' ? 'in_progress' : contentProgress.completionStatus,
+          completionStatus:
+            contentProgress.completionStatus === 'not_started'
+              ? 'in_progress'
+              : contentProgress.completionStatus,
           expectedEnd: expectedEnd,
-          lastAccessed: new Date()
+          lastAccessed: new Date(),
         }
       );
       const refreshed = await User.findById(studentId);
-      contentProgress = refreshed.getContentProgressDetails(course._id, contentId);
+      contentProgress = refreshed.getContentProgressDetails(
+        course._id,
+        contentId
+      );
     }
 
     // Calculate remaining time in seconds based on expectedEnd
     let remainingSeconds = 0;
     let isExpired = false;
     if (contentProgress && contentProgress.expectedEnd && durationMinutes > 0) {
-      remainingSeconds = Math.max(0, Math.floor((new Date(contentProgress.expectedEnd).getTime() - Date.now()) / 1000));
+      remainingSeconds = Math.max(
+        0,
+        Math.floor(
+          (new Date(contentProgress.expectedEnd).getTime() - Date.now()) / 1000
+        )
+      );
       isExpired = remainingSeconds === 0;
       // If expired and still not completed/failed, mark as failed progress-wise (attempt will be created on client auto-submit)
-      if (isExpired && contentProgress.completionStatus !== 'completed' && contentProgress.completionStatus !== 'failed') {
+      if (
+        isExpired &&
+        contentProgress.completionStatus !== 'completed' &&
+        contentProgress.completionStatus !== 'failed'
+      ) {
         await student.updateContentProgress(
           course._id.toString(),
           topic._id.toString(),
@@ -1593,27 +1812,30 @@ const takeContentQuiz = async (req, res) => {
           {
             completionStatus: 'failed',
             progressPercentage: contentProgress.progressPercentage || 0,
-            lastAccessed: new Date()
+            lastAccessed: new Date(),
           }
         );
       }
     }
 
     // Get content progress to determine attempt number
-    const attemptNumber = contentProgress ? (contentProgress.attempts || 0) + 1 : 1;
+    const attemptNumber = contentProgress
+      ? (contentProgress.attempts || 0) + 1
+      : 1;
 
     // Populate questions for the quiz/homework
-    const populatedContent = await Topic.findById(topic._id)
-      .populate({
-        path: 'content',
-        match: { _id: contentId },
-        populate: {
-          path: 'selectedQuestions.question',
-          model: 'Question'
-        }
-      });
+    const populatedContent = await Topic.findById(topic._id).populate({
+      path: 'content',
+      match: { _id: contentId },
+      populate: {
+        path: 'selectedQuestions.question',
+        model: 'Question',
+      },
+    });
 
-    const populatedContentItem = populatedContent.content.find(c => c._id.toString() === contentId);
+    const populatedContentItem = populatedContent.content.find(
+      (c) => c._id.toString() === contentId
+    );
     console.log('Populated Content Item:', populatedContentItem);
     res.render('student/take-content-quiz', {
       title: `Taking ${contentItem.title}`,
@@ -1626,11 +1848,10 @@ const takeContentQuiz = async (req, res) => {
         durationMinutes: durationMinutes,
         remainingSeconds: remainingSeconds,
         isExpired: isExpired,
-        passingScore: passingScore
+        passingScore: passingScore,
       },
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Take content quiz error:', error);
     req.flash('error_msg', 'Error starting quiz');
@@ -1642,30 +1863,48 @@ const takeContentQuiz = async (req, res) => {
 const submitContentQuiz = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    const { contentId, courseId, topicId, contentType, answers, timeSpent, startedAt, completedAt, attemptNumber } = req.body;
+    const {
+      contentId,
+      courseId,
+      topicId,
+      contentType,
+      answers,
+      timeSpent,
+      startedAt,
+      completedAt,
+      attemptNumber,
+    } = req.body;
 
-    console.log('Submitting content quiz:', { studentId, contentId, courseId, topicId, contentType, answers });
+    console.log('Submitting content quiz:', {
+      studentId,
+      contentId,
+      courseId,
+      topicId,
+      contentType,
+      answers,
+    });
 
     const student = await User.findById(studentId);
-    
+
     // Find the content to get questions and settings
     let contentItem = null;
     let course = null;
     let topic = null;
-    
+
     for (const enrollment of student.enrolledCourses) {
-      const courseData = await Course.findById(enrollment.course)
-        .populate({
-          path: 'topics',
-          populate: {
-            path: 'content',
-            model: 'ContentItem'
-          }
-        });
-      
+      const courseData = await Course.findById(enrollment.course).populate({
+        path: 'topics',
+        populate: {
+          path: 'content',
+          model: 'ContentItem',
+        },
+      });
+
       if (courseData) {
         for (const topicData of courseData.topics) {
-          const foundContent = topicData.content.find(c => c._id.toString() === contentId);
+          const foundContent = topicData.content.find(
+            (c) => c._id.toString() === contentId
+          );
           if (foundContent) {
             contentItem = foundContent;
             course = courseData;
@@ -1678,41 +1917,42 @@ const submitContentQuiz = async (req, res) => {
     }
 
     if (!contentItem) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Content not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Content not found',
       });
     }
 
     // Validate enrollment
     const enrollment = student.enrolledCourses.find(
-      e => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId
     );
 
     if (!enrollment) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You are not enrolled in this course' 
+      return res.status(403).json({
+        success: false,
+        message: 'You are not enrolled in this course',
       });
     }
 
     // Get questions with populated data
-    const populatedContent = await Topic.findById(topic._id)
-      .populate({
-        path: 'content',
-        match: { _id: contentId },
-        populate: {
-          path: 'selectedQuestions.question',
-          model: 'Question'
-        }
-      });
+    const populatedContent = await Topic.findById(topic._id).populate({
+      path: 'content',
+      match: { _id: contentId },
+      populate: {
+        path: 'selectedQuestions.question',
+        model: 'Question',
+      },
+    });
 
-    const populatedContentItem = populatedContent.content.find(c => c._id.toString() === contentId);
-    
+    const populatedContentItem = populatedContent.content.find(
+      (c) => c._id.toString() === contentId
+    );
+
     if (!populatedContentItem || !populatedContentItem.selectedQuestions) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No questions found for this content' 
+      return res.status(400).json({
+        success: false,
+        message: 'No questions found for this content',
       });
     }
 
@@ -1727,17 +1967,19 @@ const submitContentQuiz = async (req, res) => {
       const userAnswer = answers[question._id.toString()];
       let isCorrect = false;
       let points = 0;
-      
+
       if (question.questionType === 'Written') {
         // Handle written questions with multiple correct answers using helper method
         isCorrect = question.isCorrectWrittenAnswer(userAnswer);
       } else {
         // Handle MCQ and True/False questions
         const correctAnswer = question.correctAnswer;
-        const correctAnswerStr = Array.isArray(correctAnswer) ? correctAnswer[0] : correctAnswer;
+        const correctAnswerStr = Array.isArray(correctAnswer)
+          ? correctAnswer[0]
+          : correctAnswer;
         isCorrect = userAnswer === correctAnswerStr;
       }
-      
+
       if (isCorrect) {
         correctAnswers++;
         totalPoints += selectedQ.points || 1;
@@ -1747,23 +1989,30 @@ const submitContentQuiz = async (req, res) => {
       detailedAnswers.push({
         questionId: question._id,
         selectedAnswer: userAnswer || '',
-        correctAnswer: question.questionType === 'Written' 
-          ? question.getAllCorrectAnswers()
-          : (Array.isArray(question.correctAnswer) ? question.correctAnswer[0] : question.correctAnswer),
+        correctAnswer:
+          question.questionType === 'Written'
+            ? question.getAllCorrectAnswers()
+            : Array.isArray(question.correctAnswer)
+            ? question.correctAnswer[0]
+            : question.correctAnswer,
         isCorrect,
         points,
         questionType: question.questionType,
-        timeSpent: 0 // Could be calculated per question if needed
+        timeSpent: 0, // Could be calculated per question if needed
       });
     });
 
-    const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-    
+    const score =
+      totalQuestions > 0
+        ? Math.round((correctAnswers / totalQuestions) * 100)
+        : 0;
+
     // Get passing score
-    const passingScore = contentType === 'quiz' ? 
-      (contentItem.quizSettings?.passingScore || 60) : 
-      (contentItem.homeworkSettings?.passingScore || 60);
-    
+    const passingScore =
+      contentType === 'quiz'
+        ? contentItem.quizSettings?.passingScore || 60
+        : contentItem.homeworkSettings?.passingScore || 60;
+
     const passed = score >= passingScore;
 
     // Prepare attempt data
@@ -1777,20 +2026,34 @@ const submitContentQuiz = async (req, res) => {
       status: 'completed',
       answers: detailedAnswers,
       passed,
-      passingScore
+      passingScore,
     };
 
     // Save quiz attempt
-    await student.addQuizAttempt(courseId, topicId, contentId, contentType, attemptData);
+    await student.addQuizAttempt(
+      courseId,
+      topicId,
+      contentId,
+      contentType,
+      attemptData
+    );
 
     // Get next content for navigation
-    const allContent = course.topics.flatMap(t => t.content.map(c => ({ ...c.toObject(), topicId: t._id })));
-    const currentIndex = allContent.findIndex(c => c._id.toString() === contentId);
+    const allContent = course.topics.flatMap((t) =>
+      t.content.map((c) => ({ ...c.toObject(), topicId: t._id }))
+    );
+    const currentIndex = allContent.findIndex(
+      (c) => c._id.toString() === contentId
+    );
     let nextContentId = null;
-    
+
     if (currentIndex < allContent.length - 1) {
       const nextContent = allContent[currentIndex + 1];
-      const nextUnlockStatus = student.isContentUnlocked(courseId, nextContent._id, nextContent);
+      const nextUnlockStatus = student.isContentUnlocked(
+        courseId,
+        nextContent._id,
+        nextContent
+      );
       if (nextUnlockStatus.unlocked) {
         nextContentId = nextContent._id;
       }
@@ -1805,15 +2068,16 @@ const submitContentQuiz = async (req, res) => {
       passingScore,
       points: totalPoints,
       nextContentId,
-      message: passed ? 'Congratulations! You passed!' : 'Keep trying! You can do better next time.',
-      clearLocalCache: true
+      message: passed
+        ? 'Congratulations! You passed!'
+        : 'Keep trying! You can do better next time.',
+      clearLocalCache: true,
     });
-
   } catch (error) {
     console.error('Submit content quiz error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error submitting quiz' 
+    res.status(500).json({
+      success: false,
+      message: 'Error submitting quiz',
     });
   }
 };
@@ -1825,25 +2089,26 @@ const quizResults = async (req, res) => {
     const contentId = req.params.id;
 
     const student = await User.findById(studentId);
-    
+
     // Find the content across all enrolled courses
     let contentItem = null;
     let course = null;
     let topic = null;
-    
+
     for (const enrollment of student.enrolledCourses) {
-      const courseData = await Course.findById(enrollment.course)
-        .populate({
-          path: 'topics',
-          populate: {
-            path: 'content',
-            model: 'ContentItem'
-          }
-        });
-      
+      const courseData = await Course.findById(enrollment.course).populate({
+        path: 'topics',
+        populate: {
+          path: 'content',
+          model: 'ContentItem',
+        },
+      });
+
       if (courseData) {
         for (const topicData of courseData.topics) {
-          const foundContent = topicData.content.find(c => c._id.toString() === contentId);
+          const foundContent = topicData.content.find(
+            (c) => c._id.toString() === contentId
+          );
           if (foundContent) {
             contentItem = foundContent;
             course = courseData;
@@ -1856,7 +2121,10 @@ const quizResults = async (req, res) => {
     }
 
     if (!contentItem) {
-      req.flash('error_msg', 'Content not found or you are not enrolled in this course');
+      req.flash(
+        'error_msg',
+        'Content not found or you are not enrolled in this course'
+      );
       return res.redirect('/student/enrolled-courses');
     }
 
@@ -1867,33 +2135,39 @@ const quizResults = async (req, res) => {
     }
 
     // Get content progress
-    const contentProgress = student.getContentProgressDetails(course._id, contentId);
-    
+    const contentProgress = student.getContentProgressDetails(
+      course._id,
+      contentId
+    );
+
     if (!contentProgress || contentProgress.quizAttempts.length === 0) {
       req.flash('error_msg', 'No quiz attempts found');
       return res.redirect(`/student/content/${contentId}`);
     }
 
     // Get the latest attempt
-    const latestAttempt = contentProgress.quizAttempts[contentProgress.quizAttempts.length - 1];
-    
-    // Get questions with populated data for answer review
-    const populatedContent = await Topic.findById(topic._id)
-      .populate({
-        path: 'content',
-        match: { _id: contentId },
-        populate: {
-          path: 'selectedQuestions.question',
-          model: 'Question'
-        }
-      });
+    const latestAttempt =
+      contentProgress.quizAttempts[contentProgress.quizAttempts.length - 1];
 
-    const populatedContentItem = populatedContent.content.find(c => c._id.toString() === contentId);
+    // Get questions with populated data for answer review
+    const populatedContent = await Topic.findById(topic._id).populate({
+      path: 'content',
+      match: { _id: contentId },
+      populate: {
+        path: 'selectedQuestions.question',
+        model: 'Question',
+      },
+    });
+
+    const populatedContentItem = populatedContent.content.find(
+      (c) => c._id.toString() === contentId
+    );
 
     // Check if answers can be shown; also require last attempt to be passed
-    let canShowAnswers = contentItem.type === 'quiz' ? 
-      (contentItem.quizSettings?.showCorrectAnswers !== false) : 
-      (contentItem.homeworkSettings?.showCorrectAnswers !== false);
+    let canShowAnswers =
+      contentItem.type === 'quiz'
+        ? contentItem.quizSettings?.showCorrectAnswers !== false
+        : contentItem.homeworkSettings?.showCorrectAnswers !== false;
     const lastPassed = !!latestAttempt?.passed;
     if (!lastPassed) {
       canShowAnswers = false;
@@ -1909,9 +2183,8 @@ const quizResults = async (req, res) => {
       latestAttempt,
       canShowAnswers,
       lastPassed,
-      theme: req.cookies.theme || student.preferences?.theme || 'light'
+      theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
-
   } catch (error) {
     console.error('Quiz results error:', error);
     req.flash('error_msg', 'Error loading quiz results');
@@ -1927,13 +2200,13 @@ const debugProgress = async (req, res) => {
 
     const student = await User.findById(studentId);
     const enrollment = student.enrolledCourses.find(
-      e => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId
     );
 
     if (!enrollment) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Course enrollment not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Course enrollment not found',
       });
     }
 
@@ -1943,7 +2216,7 @@ const debugProgress = async (req, res) => {
 
     // Get course structure for comparison
     const course = await Course.findById(courseId).populate('topics');
-    
+
     res.json({
       success: true,
       studentId: studentId,
@@ -1954,33 +2227,36 @@ const debugProgress = async (req, res) => {
         lastAccessed: enrollment.lastAccessed,
         completedTopics: enrollment.completedTopics,
         contentProgress: enrollment.contentProgress,
-        contentProgressCount: enrollment.contentProgress.length
+        contentProgressCount: enrollment.contentProgress.length,
       },
       course: {
         title: course.title,
-        topics: course.topics.map(topic => ({
+        topics: course.topics.map((topic) => ({
           id: topic._id,
           title: topic.title,
           contentCount: topic.content.length,
-          content: topic.content.map(content => ({
+          content: topic.content.map((content) => ({
             id: content._id,
             title: content.title,
-            type: content.type
-          }))
-        }))
+            type: content.type,
+          })),
+        })),
       },
-      allEnrollments: student.enrolledCourses.map(e => ({
-        course: e.course,
-        progress: e.progress,
-        contentProgressCount: e.contentProgress ? e.contentProgress.length : 0
-      }))
+      allEnrollments: student.enrolledCourses
+        .filter((e) => e.course)
+        .map((e) => ({
+          course: e.course,
+          progress: e.progress,
+          contentProgressCount: e.contentProgress
+            ? e.contentProgress.length
+            : 0,
+        })),
     });
-
   } catch (error) {
     console.error('Debug progress error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching progress data' 
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching progress data',
     });
   }
 };
@@ -1989,443 +2265,482 @@ const debugProgress = async (req, res) => {
 
 // Get quiz details for student
 const getQuizDetails = async (req, res) => {
-    try {
-        const { id: quizId } = req.params;
-        console.log('Quiz ID:', quizId);
-        // Check if user is authenticated
-        if (!req.session.user || !req.session.user.id) {
-            req.flash('error_msg', 'Authentication required');
-            return res.redirect('/auth/login');
-        }
-        
-        const student = await User.findById(req.session.user.id);
-
-        if (!student) {
-            req.flash('error_msg', 'Student not found');
-            return res.redirect('/auth/login');
-        }
-
-        const quiz = await Quiz.findById(quizId)
-            .populate('selectedQuestions.question')
-            .populate('createdBy', 'name');
-
-        if (!quiz) {
-            req.flash('error_msg', 'Quiz not found');
-            return res.redirect('/student/quizzes');
-        }
-
-        if (quiz.status !== 'active') {
-            req.flash('error_msg', 'This quiz is not currently available');
-            return res.redirect('/student/quizzes');
-        }
-
-        // Check if user can attempt the quiz
-        const canAttempt = quiz.canUserAttempt(student.quizAttempts);
-        const bestScore = quiz.getUserBestScore(student.quizAttempts);
-        const attemptHistory = quiz.getUserAttemptHistory(student.quizAttempts);
-        const activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
-
-        // Calculate timing information if there's an active attempt
-        let timing = null;
-        if (activeAttempt) {
-            const now = new Date();
-            const expectedEnd = new Date(activeAttempt.expectedEnd);
-            const remainingSeconds = Math.max(0, Math.floor((expectedEnd - now) / 1000));
-            const isExpired = remainingSeconds <= 0;
-
-            timing = {
-                durationMinutes: quiz.duration,
-                remainingSeconds,
-                isExpired,
-                startedAt: activeAttempt.startedAt,
-                expectedEnd: activeAttempt.expectedEnd
-            };
-        }
-
-        res.render('student/quiz-details', {
-            title: `${quiz.title} - Quiz Details`,
-            quiz,
-            student,
-            canAttempt,
-            bestScore,
-            attemptHistory,
-            activeAttempt,
-            timing,
-            theme: student.preferences?.theme || 'light'
-        });
-    } catch (error) {
-        console.error('Get quiz details error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error loading quiz details' 
-        });
+  try {
+    const { id: quizId } = req.params;
+    console.log('Quiz ID:', quizId);
+    // Check if user is authenticated
+    if (!req.session.user || !req.session.user.id) {
+      req.flash('error_msg', 'Authentication required');
+      return res.redirect('/auth/login');
     }
+
+    const student = await User.findById(req.session.user.id);
+
+    if (!student) {
+      req.flash('error_msg', 'Student not found');
+      return res.redirect('/auth/login');
+    }
+
+    const quiz = await Quiz.findById(quizId)
+      .populate('selectedQuestions.question')
+      .populate('createdBy', 'name');
+
+    if (!quiz) {
+      req.flash('error_msg', 'Quiz not found');
+      return res.redirect('/student/quizzes');
+    }
+
+    if (quiz.status !== 'active') {
+      req.flash('error_msg', 'This quiz is not currently available');
+      return res.redirect('/student/quizzes');
+    }
+
+    // Check if user can attempt the quiz
+    const canAttempt = quiz.canUserAttempt(student.quizAttempts);
+    const bestScore = quiz.getUserBestScore(student.quizAttempts);
+    const attemptHistory = quiz.getUserAttemptHistory(student.quizAttempts);
+    const activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
+
+    // Calculate timing information if there's an active attempt
+    let timing = null;
+    if (activeAttempt) {
+      const now = new Date();
+      const expectedEnd = new Date(activeAttempt.expectedEnd);
+      const remainingSeconds = Math.max(
+        0,
+        Math.floor((expectedEnd - now) / 1000)
+      );
+      const isExpired = remainingSeconds <= 0;
+
+      timing = {
+        durationMinutes: quiz.duration,
+        remainingSeconds,
+        isExpired,
+        startedAt: activeAttempt.startedAt,
+        expectedEnd: activeAttempt.expectedEnd,
+      };
+    }
+
+    res.render('student/quiz-details', {
+      title: `${quiz.title} - Quiz Details`,
+      quiz,
+      student,
+      canAttempt,
+      bestScore,
+      attemptHistory,
+      activeAttempt,
+      timing,
+      theme: student.preferences?.theme || 'light',
+    });
+  } catch (error) {
+    console.error('Get quiz details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error loading quiz details',
+    });
+  }
 };
 
 // Start quiz attempt - Simplified to just redirect to take page
 const startQuizAttempt = async (req, res) => {
-    try {
-        const { id: quizId } = req.params;
-        
-        // Check if user is authenticated
-        if (!req.session.user || !req.session.user.id) {
-            req.flash('error_msg', 'Authentication required');
-            return res.redirect('/auth/login');
-        }
-        
-        const student = await User.findById(req.session.user.id);
+  try {
+    const { id: quizId } = req.params;
 
-        if (!student) {
-            req.flash('error_msg', 'Student not found');
-            return res.redirect('/auth/login');
-        }
-
-        const quiz = await Quiz.findById(quizId);
-
-        if (!quiz) {
-            req.flash('error_msg', 'Quiz not found');
-            return res.redirect('/student/quizzes');
-        }
-
-        if (quiz.status !== 'active') {
-            req.flash('error_msg', 'This quiz is not currently available');
-            return res.redirect('/student/quizzes');
-        }
-
-        // Check if user can attempt the quiz
-        const canAttempt = quiz.canUserAttempt(student.quizAttempts);
-        if (!canAttempt.canAttempt) {
-            req.flash('error_msg', canAttempt.reason);
-            return res.redirect(`/student/quiz/${quizId}/details`);
-        }
-
-        // Check for active attempt
-        const activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
-        if (activeAttempt) {
-            // Redirect to existing attempt
-            return res.redirect(`/student/quiz/${quizId}/take`);
-        }
-
-        // Start new attempt and redirect to take page
-        await student.startQuizAttempt(quizId, quiz.duration);
-        
-        // Redirect to take quiz page
-        return res.redirect(`/student/quiz/${quizId}/take`);
-        
-    } catch (error) {
-        console.error('Start quiz error:', error);
-        req.flash('error_msg', 'Error starting quiz');
-        res.redirect(`/student/quiz/${req.params.id}/details`);
+    // Check if user is authenticated
+    if (!req.session.user || !req.session.user.id) {
+      req.flash('error_msg', 'Authentication required');
+      return res.redirect('/auth/login');
     }
+
+    const student = await User.findById(req.session.user.id);
+
+    if (!student) {
+      req.flash('error_msg', 'Student not found');
+      return res.redirect('/auth/login');
+    }
+
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) {
+      req.flash('error_msg', 'Quiz not found');
+      return res.redirect('/student/quizzes');
+    }
+
+    if (quiz.status !== 'active') {
+      req.flash('error_msg', 'This quiz is not currently available');
+      return res.redirect('/student/quizzes');
+    }
+
+    // Check if user can attempt the quiz
+    const canAttempt = quiz.canUserAttempt(student.quizAttempts);
+    if (!canAttempt.canAttempt) {
+      req.flash('error_msg', canAttempt.reason);
+      return res.redirect(`/student/quiz/${quizId}/details`);
+    }
+
+    // Check for active attempt
+    const activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
+    if (activeAttempt) {
+      // Redirect to existing attempt
+      return res.redirect(`/student/quiz/${quizId}/take`);
+    }
+
+    // Start new attempt and redirect to take page
+    await student.startQuizAttempt(quizId, quiz.duration);
+
+    // Redirect to take quiz page
+    return res.redirect(`/student/quiz/${quizId}/take`);
+  } catch (error) {
+    console.error('Start quiz error:', error);
+    req.flash('error_msg', 'Error starting quiz');
+    res.redirect(`/student/quiz/${req.params.id}/details`);
+  }
 };
 
 // Take quiz page (resume existing attempt or create new one)
 const takeQuizPage = async (req, res) => {
-    try {
-        const { id: quizId } = req.params;
-        
-        // Check if user is authenticated
-        if (!req.session.user || !req.session.user.id) {
-            req.flash('error_msg', 'Authentication required');
-            return res.redirect('/auth/login');
-        }
-        
-        let student = await User.findById(req.session.user.id);
+  try {
+    const { id: quizId } = req.params;
 
-        if (!student) {
-            req.flash('error_msg', 'Student not found');
-            return res.redirect('/auth/login');
-        }
-
-        const quiz = await Quiz.findById(quizId)
-            .populate('selectedQuestions.question');
-
-        if (!quiz) {
-            req.flash('error_msg', 'Quiz not found');
-            return res.redirect('/student/quizzes');
-        }
-
-        if (quiz.status !== 'active') {
-            req.flash('error_msg', 'This quiz is not currently available');
-            return res.redirect('/student/quizzes');
-        }
-
-        // Check if user can attempt the quiz
-        const canAttempt = quiz.canUserAttempt(student.quizAttempts);
-        if (!canAttempt.canAttempt) {
-            req.flash('error_msg', canAttempt.reason);
-            return res.redirect(`/student/quiz/${quizId}/details`);
-        }
-
-        // Check for active attempt
-        let activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
-        
-        // If no active attempt, create one
-        if (!activeAttempt) {
-            const attemptResult = await student.startQuizAttempt(quizId, quiz.duration);
-            // Use the returned attempt data directly
-            activeAttempt = attemptResult.newAttempt;
-            // Refresh student data to get the updated quiz attempts
-            student = await User.findById(req.session.user.id);
-        }
-
-        if (!activeAttempt) {
-            req.flash('error_msg', 'Failed to start quiz attempt');
-            return res.redirect(`/student/quiz/${quizId}/details`);
-        }
-
-        // Shuffle questions if enabled
-        let questions = quiz.selectedQuestions;
-        if (quiz.shuffleQuestions) {
-            questions = questions.sort(() => Math.random() - 0.5);
-        }
-
-        // Shuffle options if enabled
-        if (quiz.shuffleOptions) {
-            questions.forEach(q => {
-                if (q.question.options && Array.isArray(q.question.options)) {
-                    q.question.options = q.question.options.sort(() => Math.random() - 0.5);
-                }
-            });
-        }
-
-        // Calculate timing
-        const now = new Date();
-        const expectedEnd = new Date(activeAttempt.expectedEnd);
-        const remainingSeconds = Math.max(0, Math.floor((expectedEnd - now) / 1000));
-        const isExpired = remainingSeconds <= 0;
-
-        const timing = {
-            durationMinutes: quiz.duration,
-            remainingSeconds,
-            isExpired,
-            startedAt: activeAttempt.startedAt,
-            expectedEnd: activeAttempt.expectedEnd,
-            passingScore: quiz.passingScore
-        };
-
-        res.render('student/take-quiz', {
-            title: `Taking ${quiz.title}`,
-            quiz: {
-                ...quiz.toObject(),
-                selectedQuestions: questions
-            },
-            student,
-            attemptNumber: activeAttempt.attemptNumber,
-            timing,
-            theme: student.preferences?.theme || 'light'
-        });
-    } catch (error) {
-        console.error('Take quiz error:', error);
-        req.flash('error_msg', 'Error loading quiz');
-        res.redirect(`/student/quiz/${req.params.id}/details`);
+    // Check if user is authenticated
+    if (!req.session.user || !req.session.user.id) {
+      req.flash('error_msg', 'Authentication required');
+      return res.redirect('/auth/login');
     }
+
+    let student = await User.findById(req.session.user.id);
+
+    if (!student) {
+      req.flash('error_msg', 'Student not found');
+      return res.redirect('/auth/login');
+    }
+
+    const quiz = await Quiz.findById(quizId).populate(
+      'selectedQuestions.question'
+    );
+
+    if (!quiz) {
+      req.flash('error_msg', 'Quiz not found');
+      return res.redirect('/student/quizzes');
+    }
+
+    if (quiz.status !== 'active') {
+      req.flash('error_msg', 'This quiz is not currently available');
+      return res.redirect('/student/quizzes');
+    }
+
+    // Check if user can attempt the quiz
+    const canAttempt = quiz.canUserAttempt(student.quizAttempts);
+    if (!canAttempt.canAttempt) {
+      req.flash('error_msg', canAttempt.reason);
+      return res.redirect(`/student/quiz/${quizId}/details`);
+    }
+
+    // Check for active attempt
+    let activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
+
+    // If no active attempt, create one
+    if (!activeAttempt) {
+      const attemptResult = await student.startQuizAttempt(
+        quizId,
+        quiz.duration
+      );
+      // Use the returned attempt data directly
+      activeAttempt = attemptResult.newAttempt;
+      // Refresh student data to get the updated quiz attempts
+      student = await User.findById(req.session.user.id);
+    }
+
+    if (!activeAttempt) {
+      req.flash('error_msg', 'Failed to start quiz attempt');
+      return res.redirect(`/student/quiz/${quizId}/details`);
+    }
+
+    // Shuffle questions if enabled
+    let questions = quiz.selectedQuestions;
+    if (quiz.shuffleQuestions) {
+      questions = questions.sort(() => Math.random() - 0.5);
+    }
+
+    // Shuffle options if enabled
+    if (quiz.shuffleOptions) {
+      questions.forEach((q) => {
+        if (q.question.options && Array.isArray(q.question.options)) {
+          q.question.options = q.question.options.sort(
+            () => Math.random() - 0.5
+          );
+        }
+      });
+    }
+
+    // Calculate timing
+    const now = new Date();
+    const expectedEnd = new Date(activeAttempt.expectedEnd);
+    const remainingSeconds = Math.max(
+      0,
+      Math.floor((expectedEnd - now) / 1000)
+    );
+    const isExpired = remainingSeconds <= 0;
+
+    const timing = {
+      durationMinutes: quiz.duration,
+      remainingSeconds,
+      isExpired,
+      startedAt: activeAttempt.startedAt,
+      expectedEnd: activeAttempt.expectedEnd,
+      passingScore: quiz.passingScore,
+    };
+
+    res.render('student/take-quiz', {
+      title: `Taking ${quiz.title}`,
+      quiz: {
+        ...quiz.toObject(),
+        selectedQuestions: questions,
+      },
+      student,
+      attemptNumber: activeAttempt.attemptNumber,
+      timing,
+      theme: student.preferences?.theme || 'light',
+    });
+  } catch (error) {
+    console.error('Take quiz error:', error);
+    req.flash('error_msg', 'Error loading quiz');
+    res.redirect(`/student/quiz/${req.params.id}/details`);
+  }
 };
 
 // Submit standalone quiz
 const submitStandaloneQuiz = async (req, res) => {
-    try {
-        const { id: quizId } = req.params;
-        const { answers, timeSpent } = req.body;
-        
-        // Check if user is authenticated
-        if (!req.session.user || !req.session.user.id) {
-            return res.status(401).json({ success: false, message: 'Authentication required' });
-        }
-        
-        const student = await User.findById(req.session.user.id);
+  try {
+    const { id: quizId } = req.params;
+    const { answers, timeSpent } = req.body;
 
-        if (!student) {
-            return res.status(404).json({ success: false, message: 'Student not found' });
-        }
-
-        const quiz = await Quiz.findById(quizId)
-            .populate('selectedQuestions.question');
-
-        if (!quiz) {
-            return res.status(404).json({ success: false, message: 'Quiz not found' });
-        }
-
-        // Check for active attempt
-        const activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
-        if (!activeAttempt) {
-            return res.status(400).json({ success: false, message: 'No active attempt found' });
-        }
-
-        // Calculate score
-        let correctAnswers = 0;
-        let totalPoints = 0;
-        const detailedAnswers = [];
-
-        quiz.selectedQuestions.forEach((selectedQ, index) => {
-            const question = selectedQ.question;
-            const userAnswer = answers[question._id.toString()];
-            let isCorrect = false;
-            let points = 0;
-            
-            if (question.questionType === 'Written') {
-                // Handle written questions with multiple correct answers
-                if (question.correctAnswers && question.correctAnswers.length > 0) {
-                    // Normalize user answer for comparison
-                    const normalizedUserAnswer = userAnswer ? userAnswer.trim().toLowerCase() : '';
-                    
-                    // Check against all correct answers
-                    for (const correctAnswerObj of question.correctAnswers) {
-                        const correctAnswer = correctAnswerObj.text ? correctAnswerObj.text.trim().toLowerCase() : '';
-                        
-                        // Check for exact match or if user answer contains any of the comma-separated answers
-                        if (correctAnswer.includes(',')) {
-                            // Handle multiple answers separated by commas (e.g., "x+2,x+1")
-                            const correctAnswers = correctAnswer.split(',').map(a => a.trim().toLowerCase());
-                            if (correctAnswers.some(answer => answer === normalizedUserAnswer || normalizedUserAnswer.includes(answer))) {
-                                isCorrect = true;
-                                break;
-                            }
-                        } else {
-                            // Single correct answer
-                            if (normalizedUserAnswer === correctAnswer || normalizedUserAnswer.includes(correctAnswer)) {
-                                isCorrect = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Handle MCQ and True/False questions
-                isCorrect = userAnswer === question.correctAnswer;
-            }
-            
-            points = isCorrect ? (selectedQ.points || 1) : 0;
-
-            if (isCorrect) {
-                correctAnswers++;
-            }
-            totalPoints += points;
-
-            detailedAnswers.push({
-                questionId: question._id,
-                selectedAnswer: userAnswer || '',
-                correctAnswer: question.questionType === 'Written' 
-                    ? (question.correctAnswers ? question.correctAnswers.map(a => a.text).join(', ') : '')
-                    : question.correctAnswer,
-                isCorrect,
-                points,
-                questionType: question.questionType
-            });
-        });
-
-        const score = Math.round((correctAnswers / quiz.selectedQuestions.length) * 100);
-        const passed = score >= quiz.passingScore;
-
-        // Complete the attempt
-        await student.completeQuizAttempt(quizId, activeAttempt.attemptNumber, {
-            score,
-            totalQuestions: quiz.selectedQuestions.length,
-            correctAnswers,
-            timeSpent: timeSpent || 0,
-            answers: detailedAnswers,
-            passed,
-            passingScore: quiz.passingScore
-        });
-
-        res.json({
-            success: true,
-            data: {
-                score,
-                correctAnswers,
-                totalQuestions: quiz.selectedQuestions.length,
-                passed,
-                passingScore: quiz.passingScore,
-                timeSpent: timeSpent || 0
-            }
-        });
-    } catch (error) {
-        console.error('Submit quiz error:', error);
-        res.status(500).json({ success: false, message: 'Error submitting quiz' });
+    // Check if user is authenticated
+    if (!req.session.user || !req.session.user.id) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Authentication required' });
     }
+
+    const student = await User.findById(req.session.user.id);
+
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+    }
+
+    const quiz = await Quiz.findById(quizId).populate(
+      'selectedQuestions.question'
+    );
+
+    if (!quiz) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Quiz not found' });
+    }
+
+    // Check for active attempt
+    const activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
+    if (!activeAttempt) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'No active attempt found' });
+    }
+
+    // Calculate score
+    let correctAnswers = 0;
+    let totalPoints = 0;
+    const detailedAnswers = [];
+
+    quiz.selectedQuestions.forEach((selectedQ, index) => {
+      const question = selectedQ.question;
+      const userAnswer = answers[question._id.toString()];
+      let isCorrect = false;
+      let points = 0;
+
+      if (question.questionType === 'Written') {
+        // Handle written questions with multiple correct answers
+        if (question.correctAnswers && question.correctAnswers.length > 0) {
+          // Normalize user answer for comparison
+          const normalizedUserAnswer = userAnswer
+            ? userAnswer.trim().toLowerCase()
+            : '';
+
+          // Check against all correct answers
+          for (const correctAnswerObj of question.correctAnswers) {
+            const correctAnswer = correctAnswerObj.text
+              ? correctAnswerObj.text.trim().toLowerCase()
+              : '';
+
+            // Check for exact match or if user answer contains any of the comma-separated answers
+            if (correctAnswer.includes(',')) {
+              // Handle multiple answers separated by commas (e.g., "x+2,x+1")
+              const correctAnswers = correctAnswer
+                .split(',')
+                .map((a) => a.trim().toLowerCase());
+              if (
+                correctAnswers.some(
+                  (answer) =>
+                    answer === normalizedUserAnswer ||
+                    normalizedUserAnswer.includes(answer)
+                )
+              ) {
+                isCorrect = true;
+                break;
+              }
+            } else {
+              // Single correct answer
+              if (
+                normalizedUserAnswer === correctAnswer ||
+                normalizedUserAnswer.includes(correctAnswer)
+              ) {
+                isCorrect = true;
+                break;
+              }
+            }
+          }
+        }
+      } else {
+        // Handle MCQ and True/False questions
+        isCorrect = userAnswer === question.correctAnswer;
+      }
+
+      points = isCorrect ? selectedQ.points || 1 : 0;
+
+      if (isCorrect) {
+        correctAnswers++;
+      }
+      totalPoints += points;
+
+      detailedAnswers.push({
+        questionId: question._id,
+        selectedAnswer: userAnswer || '',
+        correctAnswer:
+          question.questionType === 'Written'
+            ? question.correctAnswers
+              ? question.correctAnswers.map((a) => a.text).join(', ')
+              : ''
+            : question.correctAnswer,
+        isCorrect,
+        points,
+        questionType: question.questionType,
+      });
+    });
+
+    const score = Math.round(
+      (correctAnswers / quiz.selectedQuestions.length) * 100
+    );
+    const passed = score >= quiz.passingScore;
+
+    // Complete the attempt
+    await student.completeQuizAttempt(quizId, activeAttempt.attemptNumber, {
+      score,
+      totalQuestions: quiz.selectedQuestions.length,
+      correctAnswers,
+      timeSpent: timeSpent || 0,
+      answers: detailedAnswers,
+      passed,
+      passingScore: quiz.passingScore,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        score,
+        correctAnswers,
+        totalQuestions: quiz.selectedQuestions.length,
+        passed,
+        passingScore: quiz.passingScore,
+        timeSpent: timeSpent || 0,
+      },
+    });
+  } catch (error) {
+    console.error('Submit quiz error:', error);
+    res.status(500).json({ success: false, message: 'Error submitting quiz' });
+  }
 };
 
 // Get standalone quiz results
 const getStandaloneQuizResults = async (req, res) => {
-    try {
-        const { id: quizId } = req.params;
-        
-        // Check if user is authenticated
-        if (!req.session.user || !req.session.user.id) {
-            req.flash('error_msg', 'Authentication required');
-            return res.redirect('/auth/login');
-        }
-        
-        const student = await User.findById(req.session.user.id);
+  try {
+    const { id: quizId } = req.params;
 
-        if (!student) {
-            req.flash('error_msg', 'Student not found');
-            return res.redirect('/auth/login');
-        }
-
-        const quiz = await Quiz.findById(quizId)
-            .populate('selectedQuestions.question')
-            .populate('createdBy', 'name');
-
-        if (!quiz) {
-            req.flash('error_msg', 'Quiz not found');
-            return res.redirect('/student/quizzes');
-        }
-
-        const attemptHistory = quiz.getUserAttemptHistory(student.quizAttempts);
-        const bestScore = quiz.getUserBestScore(student.quizAttempts);
-
-        res.render('student/standalone-quiz-results', {
-            title: `${quiz.title} - Results`,
-            quiz,
-            student,
-            attemptHistory,
-            bestScore,
-            theme: student.preferences?.theme || 'light'
-        });
-    } catch (error) {
-        console.error('Get quiz results error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error loading quiz results' 
-        });
+    // Check if user is authenticated
+    if (!req.session.user || !req.session.user.id) {
+      req.flash('error_msg', 'Authentication required');
+      return res.redirect('/auth/login');
     }
+
+    const student = await User.findById(req.session.user.id);
+
+    if (!student) {
+      req.flash('error_msg', 'Student not found');
+      return res.redirect('/auth/login');
+    }
+
+    const quiz = await Quiz.findById(quizId)
+      .populate('selectedQuestions.question')
+      .populate('createdBy', 'name');
+
+    if (!quiz) {
+      req.flash('error_msg', 'Quiz not found');
+      return res.redirect('/student/quizzes');
+    }
+
+    const attemptHistory = quiz.getUserAttemptHistory(student.quizAttempts);
+    const bestScore = quiz.getUserBestScore(student.quizAttempts);
+
+    res.render('student/standalone-quiz-results', {
+      title: `${quiz.title} - Results`,
+      quiz,
+      student,
+      attemptHistory,
+      bestScore,
+      theme: student.preferences?.theme || 'light',
+    });
+  } catch (error) {
+    console.error('Get quiz results error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error loading quiz results',
+    });
+  }
 };
 
-
 module.exports = {
-    dashboard,
-    enrolledCourses,
-    courseDetails,
-    courseContent,
-    contentDetails,
-    updateContentProgress,
-    takeContentQuiz,
-    submitContentQuiz,
-    quizResults,
-    debugProgress,
-    quizzes,
-    takeQuiz,
-    submitQuiz,
-    wishlist,
-    addToWishlist,
-    removeFromWishlist,
-    orderHistory,
-    orderDetails,
-    homeworkAttempts,
-    profile,
-    updateProfile,
-    settings,
-    updateSettings,
-    // New profile and settings functions
-    updateProfilePicture,
-    changePassword,
-    exportData,
-    deleteAccount,
-    // New standalone quiz functions
-    getQuizDetails,
-    startQuizAttempt,
-    takeQuizPage,
-    submitStandaloneQuiz,
-    getStandaloneQuizResults,
+  dashboard,
+  enrolledCourses,
+  courseDetails,
+  courseContent,
+  contentDetails,
+  updateContentProgress,
+  takeContentQuiz,
+  submitContentQuiz,
+  quizResults,
+  debugProgress,
+  quizzes,
+  takeQuiz,
+  submitQuiz,
+  wishlist,
+  addToWishlist,
+  removeFromWishlist,
+  orderHistory,
+  orderDetails,
+  homeworkAttempts,
+  profile,
+  updateProfile,
+  settings,
+  updateSettings,
+  // New profile and settings functions
+  updateProfilePicture,
+  changePassword,
+  exportData,
+  deleteAccount,
+  // New standalone quiz functions
+  getQuizDetails,
+  startQuizAttempt,
+  takeQuizPage,
+  submitStandaloneQuiz,
+  getStandaloneQuizResults,
 };

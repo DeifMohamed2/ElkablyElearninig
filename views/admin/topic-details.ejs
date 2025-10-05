@@ -2,24 +2,24 @@
 
 <!-- Admin Layout -->
 <div class="admin-layout">
-  
+
   <!-- Sidebar -->
   <%- include('./partials/admin-sidebar', { currentPage: 'courses' }) %>
-  
+
   <!-- Main Content -->
   <main class="admin-main">
-    
+
     <!-- Top Bar -->
     <%- include('./partials/admin-topbar', { 
         breadcrumb: `Courses / ${course.title} / ${topic.title}`,
         breadcrumbSubtitle: 'Topic Analytics and Student Progress',
         showSearch: false
     }) %>
-    
+
     <!-- Content Area -->
     <div class="admin-content">
       <div class="admin-dashboard admin-fade-in">
-        
+
         <!-- Topic Header -->
         <div class="topic-details-header">
           <div class="topic-header-content">
@@ -41,13 +41,13 @@
                   <i class="fas fa-arrow-left"></i>
                   Back to Course
                 </a>
-                <button class="btn btn-outline-secondary btn-sm" onclick="exportTopicData('<%= topic._id %>')">
+                <button class="btn btn-primary btn-sm" onclick="exportTopicToExcel()" id="exportTopicBtn">
                   <i class="fas fa-download"></i>
-                  Export Data
+                  Export to Excel
                 </button>
               </div>
             </div>
-            
+
             <div class="topic-info-section">
               <div class="topic-number-large"><%= topic.order %></div>
               <div class="topic-details">
@@ -83,7 +83,7 @@
               <div class="analytics-label">Total Students</div>
             </div>
           </div>
-          
+
           <div class="analytics-card">
             <div class="analytics-icon">
               <i class="fas fa-eye"></i>
@@ -93,7 +93,7 @@
               <div class="analytics-label">Viewed Topic</div>
             </div>
           </div>
-          
+
           <div class="analytics-card">
             <div class="analytics-icon">
               <i class="fas fa-check-circle"></i>
@@ -103,7 +103,7 @@
               <div class="analytics-label">Completed</div>
             </div>
           </div>
-          
+
           <div class="analytics-card">
             <div class="analytics-icon">
               <i class="fas fa-percentage"></i>
@@ -113,7 +113,7 @@
               <div class="analytics-label">Completion Rate</div>
             </div>
           </div>
-          
+
           <div class="analytics-card">
             <div class="analytics-icon">
               <i class="fas fa-clock"></i>
@@ -123,7 +123,7 @@
               <div class="analytics-label">Avg Time Spent</div>
             </div>
           </div>
-          
+
           <div class="analytics-card">
             <div class="analytics-icon">
               <i class="fas fa-file-alt"></i>
@@ -133,41 +133,41 @@
               <div class="analytics-label">Content Items</div>
             </div>
           </div>
-          
+
           <% if (analytics.averageQuizScore !== null) { %>
-            <div class="analytics-card">
-              <div class="analytics-icon">
-                <i class="fas fa-chart-line"></i>
-              </div>
-              <div class="analytics-content">
-                <div class="analytics-number"><%= analytics.averageQuizScore %>%</div>
-                <div class="analytics-label">Avg Quiz Score</div>
-              </div>
+          <div class="analytics-card">
+            <div class="analytics-icon">
+              <i class="fas fa-chart-line"></i>
             </div>
+            <div class="analytics-content">
+              <div class="analytics-number"><%= analytics.averageQuizScore %>%</div>
+              <div class="analytics-label">Avg Quiz Score</div>
+            </div>
+          </div>
           <% } %>
-          
+
           <% if (analytics.passRate !== null) { %>
-            <div class="analytics-card">
-              <div class="analytics-icon">
-                <i class="fas fa-trophy"></i>
-              </div>
-              <div class="analytics-content">
-                <div class="analytics-number"><%= analytics.passRate %>%</div>
-                <div class="analytics-label">Pass Rate</div>
-              </div>
+          <div class="analytics-card">
+            <div class="analytics-icon">
+              <i class="fas fa-trophy"></i>
             </div>
+            <div class="analytics-content">
+              <div class="analytics-number"><%= analytics.passRate %>%</div>
+              <div class="analytics-label">Pass Rate</div>
+            </div>
+          </div>
           <% } %>
-          
+
           <% if (analytics.totalQuizAttempts > 0) { %>
-            <div class="analytics-card">
-              <div class="analytics-icon">
-                <i class="fas fa-redo"></i>
-              </div>
-              <div class="analytics-content">
-                <div class="analytics-number"><%= analytics.totalQuizAttempts %></div>
-                <div class="analytics-label">Total Attempts</div>
-              </div>
+          <div class="analytics-card">
+            <div class="analytics-icon">
+              <i class="fas fa-redo"></i>
             </div>
+            <div class="analytics-content">
+              <div class="analytics-number"><%= analytics.totalQuizAttempts %></div>
+              <div class="analytics-label">Total Attempts</div>
+            </div>
+          </div>
           <% } %>
         </div>
 
@@ -176,65 +176,65 @@
           <div class="section-header">
             <h3><i class="fas fa-chart-bar"></i> Content Performance</h3>
           </div>
-          
+
           <div class="content-analytics-grid">
             <% if (contentStats && contentStats.length > 0) { %>
-              <% contentStats.forEach(contentItem => { %>
-                <div class="content-analytics-card" onclick="showContentDetails('<%= contentItem._id %>', '<%= contentItem.title.replace(/'/g, "&#39;") %>', '<%= contentItem.type %>')" style="cursor:pointer;">
-                  <div class="content-analytics-header">
-                    <div class="content-icon <%= contentItem.type %>">
-                      <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
-                    </div>
-                    <div class="content-info">
-                      <h5 class="content-title"><%= contentItem.title %></h5>
-                      <span class="content-type-badge"><%= contentItem.type.charAt(0).toUpperCase() + contentItem.type.slice(1) %></span>
-                    </div>
-                  </div>
-                  
-                  <div class="content-stats">
-                    <div class="stat-row">
-                      <span class="stat-label">Views:</span>
-                      <span class="stat-value"><%= contentItem.viewers || 0 %></span>
-                    </div>
-                    <div class="stat-row">
-                      <span class="stat-label">Completions:</span>
-                      <span class="stat-value"><%= contentItem.completions || 0 %></span>
-                    </div>
-                    <div class="stat-row">
-                      <span class="stat-label">Completion Rate:</span>
-                      <span class="stat-value"><%= contentItem.viewers > 0 ? Math.round((contentItem.completions / contentItem.viewers) * 100) : 0 %>%</span>
-                    </div>
-                    <div class="stat-row">
-                      <span class="stat-label">Avg Time:</span>
-                      <span class="stat-value"><%= contentItem.averageTimeSpent || 0 %>m</span>
-                    </div>
-                    <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
-                      <div class="stat-row">
-                        <span class="stat-label">Attempts:</span>
-                        <span class="stat-value"><%= contentItem.attempts || 0 %></span>
-                      </div>
-                      <div class="stat-row">
-                        <span class="stat-label">Avg Score:</span>
-                        <span class="stat-value"><%= (contentItem.averageScore !== null && contentItem.averageScore !== undefined) ? (contentItem.averageScore + '%') : 'N/A' %></span>
-                      </div>
-                      <% if (contentItem.bestPerformer) { %>
-                        <div class="stat-row">
-                          <span class="stat-label">Top Performer:</span>
-                          <span class="stat-value"><%= contentItem.bestPerformer.name %> — <%= contentItem.bestPerformer.score %>%</span>
-                        </div>
-                      <% } %>
-                    <% } %>
-                  </div>
+            <% contentStats.forEach(contentItem => { %>
+            <div class="content-analytics-card" onclick="showContentDetails('<%= contentItem._id %>', '<%= contentItem.title.replace(/'/g, "&#39;") %>', '<%= contentItem.type %>')" style="cursor:pointer;">
+              <div class="content-analytics-header">
+                <div class="content-icon <%= contentItem.type %>">
+                  <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
                 </div>
-              <% }); %>
-            <% } else { %>
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-chart-bar"></i>
+                <div class="content-info">
+                  <h5 class="content-title"><%= contentItem.title %></h5>
+                  <span class="content-type-badge"><%= contentItem.type.charAt(0).toUpperCase() + contentItem.type.slice(1) %></span>
                 </div>
-                <h4>No content available</h4>
-                <p>This topic doesn't have any content yet</p>
               </div>
+
+              <div class="content-stats">
+                <div class="stat-row">
+                  <span class="stat-label">Views:</span>
+                  <span class="stat-value"><%= contentItem.viewers || 0 %></span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Completions:</span>
+                  <span class="stat-value"><%= contentItem.completions || 0 %></span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Completion Rate:</span>
+                  <span class="stat-value"><%= contentItem.viewers > 0 ? Math.round((contentItem.completions / contentItem.viewers) * 100) : 0 %>%</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Avg Time:</span>
+                  <span class="stat-value"><%= contentItem.averageTimeSpent || 0 %>m</span>
+                </div>
+                <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                <div class="stat-row">
+                  <span class="stat-label">Attempts:</span>
+                  <span class="stat-value"><%= contentItem.attempts || 0 %></span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Avg Score:</span>
+                  <span class="stat-value"><%= (contentItem.averageScore !== null && contentItem.averageScore !== undefined) ? (contentItem.averageScore + '%') : 'N/A' %></span>
+                </div>
+                <% if (contentItem.bestPerformer) { %>
+                <div class="stat-row">
+                  <span class="stat-label">Top Performer:</span>
+                  <span class="stat-value"><%= contentItem.bestPerformer.name %> — <%= contentItem.bestPerformer.score %>%</span>
+                </div>
+                <% } %>
+                <% } %>
+              </div>
+            </div>
+            <% }); %>
+            <% } else { %>
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-chart-bar"></i>
+              </div>
+              <h4>No content available</h4>
+              <p>This topic doesn't have any content yet</p>
+            </div>
             <% } %>
           </div>
         </div>
@@ -281,7 +281,7 @@
               </button>
             </div>
           </div>
-          
+
           <div class="students-table-container">
             <table class="students-table">
               <thead>
@@ -350,7 +350,7 @@
               </tbody>
             </table>
           </div>
-          
+
           <!-- Pagination -->
           <div class="table-pagination">
             <div class="pagination-info">
@@ -369,10 +369,10 @@
             </div>
           </div>
         </div>
-        
+
       </div>
     </div>
-    
+
   </main>
 </div>
 
@@ -396,12 +396,14 @@ function getContentIcon(type) {
 <script>
   window.initialStudents = <%- JSON.stringify(students || []) %>;
   window.initialContentStats = <%- JSON.stringify(contentStats || []) %>;
+
   function formatMinutesToHM(minutes) {
     const m = parseInt(minutes || 0, 10);
     const h = Math.floor(m / 60);
     const rem = m % 60;
     return h > 0 ? `${h}h ${rem}m` : `${rem}m`;
   }
+
   function formatDateTime(dt) {
     if (!dt) return 'Never';
     const d = new Date(dt);
@@ -412,47 +414,50 @@ function getContentIcon(type) {
 
 
 <script>
-// Topic details functionality
-let allStudentsData = [];
-let filteredStudentsData = [];
-let currentPage = 1;
-let studentsPerPage = 10;
-let currentSort = { column: null, direction: 'asc' };
+  // Topic details functionality
+  let allStudentsData = [];
+  let filteredStudentsData = [];
+  let currentPage = 1;
+  let studentsPerPage = 10;
+  let currentSort = {
+    column: null,
+    direction: 'asc'
+  };
 
-document.addEventListener('DOMContentLoaded', function() {
-  loadStudentProgress();
-  setupProgressFilter();
-  setupSearch();
-  setupSorting();
-  setupPagination();
-});
+  document.addEventListener('DOMContentLoaded', function() {
+    loadStudentProgress();
+    setupProgressFilter();
+    setupSearch();
+    setupSorting();
+    setupPagination();
+  });
 
-function loadStudentProgress() {
-  allStudentsData = (window.initialStudents || []).map(s => ({
-    id: s.id || s._id || s.email,
-    name: s.name,
-    email: s.email,
-    studentCode: s.studentCode,
-    parentPhone: s.parentPhone,
-    studentPhone: s.studentPhone,
-    progress: s.progress || 0,
-    lastActivity: formatDateTime(s.lastActivity),
-    timeSpent: formatMinutesToHM(s.timeSpentMinutes || 0),
-    timeSpentMinutes: s.timeSpentMinutes || 0,
-    status: s.status
-  }));
-  filteredStudentsData = [...allStudentsData];
-  renderStudentsTable();
-  updatePagination();
-}
+  function loadStudentProgress() {
+    allStudentsData = (window.initialStudents || []).map(s => ({
+      id: s.id || s._id || s.email,
+      name: s.name,
+      email: s.email,
+      studentCode: s.studentCode,
+      parentPhone: s.parentPhone,
+      studentPhone: s.studentPhone,
+      progress: s.progress || 0,
+      lastActivity: formatDateTime(s.lastActivity),
+      timeSpent: formatMinutesToHM(s.timeSpentMinutes || 0),
+      timeSpentMinutes: s.timeSpentMinutes || 0,
+      status: s.status
+    }));
+    filteredStudentsData = [...allStudentsData];
+    renderStudentsTable();
+    updatePagination();
+  }
 
-function renderStudentsTable() {
-  const tbody = document.getElementById('studentsTableBody');
-  const startIndex = (currentPage - 1) * studentsPerPage;
-  const endIndex = startIndex + studentsPerPage;
-  const pageData = filteredStudentsData.slice(startIndex, endIndex);
-  
-  tbody.innerHTML = pageData.map(student => `
+  function renderStudentsTable() {
+    const tbody = document.getElementById('studentsTableBody');
+    const startIndex = (currentPage - 1) * studentsPerPage;
+    const endIndex = startIndex + studentsPerPage;
+    const pageData = filteredStudentsData.slice(startIndex, endIndex);
+
+    tbody.innerHTML = pageData.map(student => `
     <tr>
       <td>
         <div class="student-info">
@@ -489,257 +494,334 @@ function renderStudentsTable() {
       </td>
     </tr>
   `).join('');
-}
+  }
 
-function setupProgressFilter() {
-  const filter = document.getElementById('progressFilter');
-  filter.addEventListener('change', function() {
-    const filterValue = this.value;
-    
-    if (filterValue === 'all') {
-      filteredStudentsData = [...allStudentsData];
-    } else {
-      filteredStudentsData = allStudentsData.filter(student => student.status === filterValue);
-    }
-    
-    currentPage = 1;
-    renderStudentsTable();
-    updatePagination();
-  });
-}
+  function setupProgressFilter() {
+    const filter = document.getElementById('progressFilter');
+    filter.addEventListener('change', function() {
+      const filterValue = this.value;
 
-function setupSearch() {
-  const searchInput = document.getElementById('studentSearch');
-  searchInput.addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
-    
-    filteredStudentsData = allStudentsData.filter(student => 
-      student.name.toLowerCase().includes(searchTerm) ||
-      student.email.toLowerCase().includes(searchTerm) ||
-      student.studentCode.toLowerCase().includes(searchTerm) ||
-      student.parentPhone.includes(searchTerm) ||
-      student.studentPhone.includes(searchTerm)
-    );
-    
-    currentPage = 1;
-    renderStudentsTable();
-    updatePagination();
-  });
-}
-
-function setupSorting() {
-  const sortButtons = document.querySelectorAll('.sort-btn');
-  sortButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const column = this.dataset.sort;
-      
-      // Update sort direction
-      if (currentSort.column === column) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      if (filterValue === 'all') {
+        filteredStudentsData = [...allStudentsData];
       } else {
-        currentSort.column = column;
-        currentSort.direction = 'asc';
+        filteredStudentsData = allStudentsData.filter(student => student.status === filterValue);
       }
-      
-      // Update button states
-      sortButtons.forEach(btn => btn.classList.remove('active'));
-      this.classList.add('active');
-      
-      // Update sort icon
-      const icon = this.querySelector('i');
-      icon.className = currentSort.direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-      
-      // Sort data
-      sortStudents(column, currentSort.direction);
-      renderStudentsTable();
-    });
-  });
-}
 
-function sortStudents(column, direction) {
-  filteredStudentsData.sort((a, b) => {
-    let aValue = a[column];
-    let bValue = b[column];
-    
-    // Handle different data types
-    if (column === 'progress' || column === 'id' || column === 'timeSpentMinutes') {
-      aValue = parseInt(aValue);
-      bValue = parseInt(bValue);
-    } else if (typeof aValue === 'string') {
-      aValue = aValue.toLowerCase();
-      bValue = bValue.toLowerCase();
-    }
-    
-    if (direction === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
-    }
-  });
-}
-
-function setupPagination() {
-  const prevBtn = document.getElementById('prevPage');
-  const nextBtn = document.getElementById('nextPage');
-  
-  prevBtn.addEventListener('click', () => {
-    if (currentPage > 1) {
-      currentPage--;
-      renderStudentsTable();
-      updatePagination();
-    }
-  });
-  
-  nextBtn.addEventListener('click', () => {
-    const totalPages = Math.ceil(filteredStudentsData.length / studentsPerPage);
-    if (currentPage < totalPages) {
-      currentPage++;
-      renderStudentsTable();
-      updatePagination();
-    }
-  });
-}
-
-function updatePagination() {
-  const totalStudents = filteredStudentsData.length;
-  const totalPages = Math.ceil(totalStudents / studentsPerPage);
-  const startIndex = (currentPage - 1) * studentsPerPage + 1;
-  const endIndex = Math.min(currentPage * studentsPerPage, totalStudents);
-  
-  // Update pagination info
-  document.getElementById('paginationInfo').textContent = 
-    `Showing ${startIndex}-${endIndex} of ${totalStudents} students`;
-  
-  // Update button states
-  document.getElementById('prevPage').disabled = currentPage === 1;
-  document.getElementById('nextPage').disabled = currentPage === totalPages;
-  
-  // Update page numbers
-  const pageNumbers = document.getElementById('pageNumbers');
-  pageNumbers.innerHTML = '';
-  
-  const maxVisiblePages = 5;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-  
-  if (endPage - startPage + 1 < maxVisiblePages) {
-    startPage = Math.max(1, endPage - maxVisiblePages + 1);
-  }
-  
-  for (let i = startPage; i <= endPage; i++) {
-    const pageBtn = document.createElement('span');
-    pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
-    pageBtn.textContent = i;
-    pageBtn.addEventListener('click', () => {
-      currentPage = i;
+      currentPage = 1;
       renderStudentsTable();
       updatePagination();
     });
-    pageNumbers.appendChild(pageBtn);
   }
-}
 
-function viewStudentDetails(email) {
-  // Open student details modal or page
-  console.log('View student details for:', email);
-  alert(`View details for student: ${email}`);
-}
+  function setupSearch() {
+    const searchInput = document.getElementById('studentSearch');
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
 
-function contactStudent(email) {
-  // Open contact modal or redirect to messaging
-  console.log('Contact student:', email);
-  alert(`Contact student: ${email}`);
-}
+      filteredStudentsData = allStudentsData.filter(student =>
+        student.name.toLowerCase().includes(searchTerm) ||
+        student.email.toLowerCase().includes(searchTerm) ||
+        student.studentCode.toLowerCase().includes(searchTerm) ||
+        student.parentPhone.includes(searchTerm) ||
+        student.studentPhone.includes(searchTerm)
+      );
 
-function exportStudentData() {
-  // Export student data to CSV
-  const csvContent = generateCSV(filteredStudentsData);
-  downloadCSV(csvContent, 'student-progress.csv');
-}
-
-function generateCSV(data) {
-  const headers = ['Name', 'Email', 'Student Code', 'Parent Phone', 'Student Phone', 'Progress', 'Last Activity', 'Time Spent'];
-  const csvRows = [headers.join(',')];
-  
-  data.forEach(student => {
-    const row = [
-      student.name,
-      student.email,
-      student.studentCode,
-      student.parentPhone,
-      student.studentPhone,
-      student.progress + '%',
-      student.lastActivity,
-      student.timeSpent
-    ];
-    csvRows.push(row.join(','));
-  });
-  
-  return csvRows.join('\n');
-}
-
-function downloadCSV(content, filename) {
-  const blob = new Blob([content], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  window.URL.revokeObjectURL(url);
-}
-
-function exportTopicData(topicId) {
-  // Export topic analytics data
-  console.log('Export data for topic:', topicId);
-  alert('Export functionality will be implemented');
-}
-
-// Content details interactions
-async function showContentDetails(contentId, title, type) {
-  const panel = document.getElementById('contentDetailsPanel');
-  const titleEl = document.getElementById('contentDetailsTitle');
-  titleEl.innerHTML = `<i class="fas fa-info-circle"></i> ${title} — ${type.charAt(0).toUpperCase()+type.slice(1)}`;
-  panel.style.display = '';
-  // Toggle graded columns visibility based on type
-  const graded = (type === 'quiz' || type === 'homework');
-  renderContentHeader(graded);
-
-  const url = `/admin/courses/<%= course.courseCode %>/topics/<%= topic._id %>/content/${contentId}/students`;
-  try {
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Failed to load');
-    renderContentSummary(data.content, data.stats);
-    renderContentStudents(data.students, contentId, type);
-  } catch (e) {
-    console.error(e);
-    document.getElementById('contentSummary').innerHTML = `<div class="empty-state"><h4>Error</h4><p>${e.message}</p></div>`;
-    document.getElementById('contentStudentsBody').innerHTML = '';
+      currentPage = 1;
+      renderStudentsTable();
+      updatePagination();
+    });
   }
-}
 
-function hideContentDetails() {
-  document.getElementById('contentDetailsPanel').style.display = 'none';
-}
+  function setupSorting() {
+    const sortButtons = document.querySelectorAll('.sort-btn');
+    sortButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const column = this.dataset.sort;
 
-function renderContentSummary(content, stats) {
-  const wrap = document.getElementById('contentSummary');
-  const parts = [];
-  parts.push(`<strong>Total Students:</strong> ${stats.totalStudents}`);
-  if (stats.averageScore !== null && stats.averageScore !== undefined) {
-    parts.push(`<strong>Average Score:</strong> ${stats.averageScore}%`);
+        // Update sort direction
+        if (currentSort.column === column) {
+          currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          currentSort.column = column;
+          currentSort.direction = 'asc';
+        }
+
+        // Update button states
+        sortButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+
+        // Update sort icon
+        const icon = this.querySelector('i');
+        icon.className = currentSort.direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+
+        // Sort data
+        sortStudents(column, currentSort.direction);
+        renderStudentsTable();
+      });
+    });
   }
-  if (stats.passRate !== null && stats.passRate !== undefined) {
-    parts.push(`<strong>Pass Rate:</strong> ${stats.passRate}%`);
-  }
-  parts.push(`<strong>Total Attempts:</strong> ${stats.totalAttempts}`);
-  wrap.innerHTML = `<div class="analytics-card"><div class="analytics-content">${parts.join(' &nbsp; | &nbsp; ')}</div></div>`;
-}
 
-function renderContentHeader(graded) {
-  const head = document.getElementById('contentStudentsHead');
-  if (graded) {
-    head.innerHTML = `
+  function sortStudents(column, direction) {
+    filteredStudentsData.sort((a, b) => {
+      let aValue = a[column];
+      let bValue = b[column];
+
+      // Handle different data types
+      if (column === 'progress' || column === 'id' || column === 'timeSpentMinutes') {
+        aValue = parseInt(aValue);
+        bValue = parseInt(bValue);
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }
+
+  function setupPagination() {
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderStudentsTable();
+        updatePagination();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredStudentsData.length / studentsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderStudentsTable();
+        updatePagination();
+      }
+    });
+  }
+
+  function updatePagination() {
+    const totalStudents = filteredStudentsData.length;
+    const totalPages = Math.ceil(totalStudents / studentsPerPage);
+    const startIndex = (currentPage - 1) * studentsPerPage + 1;
+    const endIndex = Math.min(currentPage * studentsPerPage, totalStudents);
+
+    // Update pagination info
+    document.getElementById('paginationInfo').textContent =
+      `Showing ${startIndex}-${endIndex} of ${totalStudents} students`;
+
+    // Update button states
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
+
+    // Update page numbers
+    const pageNumbers = document.getElementById('pageNumbers');
+    pageNumbers.innerHTML = '';
+
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      const pageBtn = document.createElement('span');
+      pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
+      pageBtn.textContent = i;
+      pageBtn.addEventListener('click', () => {
+        currentPage = i;
+        renderStudentsTable();
+        updatePagination();
+      });
+      pageNumbers.appendChild(pageBtn);
+    }
+  }
+
+  function viewStudentDetails(email) {
+    // Open student details modal or page
+    console.log('View student details for:', email);
+    alert(`View details for student: ${email}`);
+  }
+
+  function contactStudent(email) {
+    // Open contact modal or redirect to messaging
+    console.log('Contact student:', email);
+    alert(`Contact student: ${email}`);
+  }
+
+  function exportStudentData() {
+    // Export student data to CSV
+    const csvContent = generateCSV(filteredStudentsData);
+    downloadCSV(csvContent, 'student-progress.csv');
+  }
+
+  function generateCSV(data) {
+    const headers = ['Name', 'Email', 'Student Code', 'Parent Phone', 'Student Phone', 'Progress', 'Last Activity', 'Time Spent'];
+    const csvRows = [headers.join(',')];
+
+    data.forEach(student => {
+      const row = [
+        student.name,
+        student.email,
+        student.studentCode,
+        student.parentPhone,
+        student.studentPhone,
+        student.progress + '%',
+        student.lastActivity,
+        student.timeSpent
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    return csvRows.join('\n');
+  }
+
+  function downloadCSV(content, filename) {
+    const blob = new Blob([content], {
+      type: 'text/csv'
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  function exportTopicData(topicId) {
+    // Export topic analytics data
+    console.log('Export data for topic:', topicId);
+    alert('Export functionality will be implemented');
+  }
+
+  // Excel Export functionality
+  async function exportTopicToExcel() {
+    const btn = document.getElementById('exportTopicBtn');
+    const originalText = btn.innerHTML;
+
+    try {
+      // Show loading state
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+      btn.disabled = true;
+
+      // Make request to export endpoint
+      const response = await fetch('/admin/courses/<%= course.courseCode %>/topics/<%= topic._id %>/export', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed: ' + response.statusText);
+      }
+
+      // Get the blob from response
+      const blob = await response.blob();
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'topic-<%= topic.order %>-<%= topic.title.replace(/[^a-zA-Z0-9]/g, "-") %>-details.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      // Show success notification
+      showNotification('Excel file downloaded successfully!', 'success');
+
+    } catch (error) {
+      console.error('Export error:', error);
+      showNotification('Failed to export Excel file: ' + error.message, 'error');
+    } finally {
+      // Reset button state
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  // Simple notification function
+  function showNotification(message, type) {
+    type = type || 'info';
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-' + (type === 'error' ? 'danger' : 'success') + ' notification-toast';
+    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; padding: 12px 20px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease-out;';
+    notification.innerHTML = '<i class="fas fa-' + (type === 'error' ? 'exclamation-triangle' : 'check-circle') + '"></i> ' + message;
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Remove after 4 seconds
+    setTimeout(function() {
+      notification.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(function() {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 4000);
+  }
+
+  // Content details interactions
+  async function showContentDetails(contentId, title, type) {
+    const panel = document.getElementById('contentDetailsPanel');
+    const titleEl = document.getElementById('contentDetailsTitle');
+    titleEl.innerHTML = `<i class="fas fa-info-circle"></i> ${title} — ${type.charAt(0).toUpperCase()+type.slice(1)}`;
+    panel.style.display = '';
+    // Toggle graded columns visibility based on type
+    const graded = (type === 'quiz' || type === 'homework');
+    renderContentHeader(graded);
+
+    const url = `/admin/courses/<%= course.courseCode %>/topics/<%= topic._id %>/content/${contentId}/students`;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Failed to load');
+      renderContentSummary(data.content, data.stats);
+      renderContentStudents(data.students, contentId, type);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('contentSummary').innerHTML = `<div class="empty-state"><h4>Error</h4><p>${e.message}</p></div>`;
+      document.getElementById('contentStudentsBody').innerHTML = '';
+    }
+  }
+
+  function hideContentDetails() {
+    document.getElementById('contentDetailsPanel').style.display = 'none';
+  }
+
+  function renderContentSummary(content, stats) {
+    const wrap = document.getElementById('contentSummary');
+    const parts = [];
+    parts.push(`<strong>Total Students:</strong> ${stats.totalStudents}`);
+    if (stats.averageScore !== null && stats.averageScore !== undefined) {
+      parts.push(`<strong>Average Score:</strong> ${stats.averageScore}%`);
+    }
+    if (stats.passRate !== null && stats.passRate !== undefined) {
+      parts.push(`<strong>Pass Rate:</strong> ${stats.passRate}%`);
+    }
+    parts.push(`<strong>Total Attempts:</strong> ${stats.totalAttempts}`);
+    wrap.innerHTML = `<div class="analytics-card"><div class="analytics-content">${parts.join(' &nbsp; | &nbsp; ')}</div></div>`;
+  }
+
+  function renderContentHeader(graded) {
+    const head = document.getElementById('contentStudentsHead');
+    if (graded) {
+      head.innerHTML = `
       <th>Student</th>
       <th>Code</th>
       <th>Status</th>
@@ -749,31 +831,31 @@ function renderContentHeader(graded) {
       <th>Last Access</th>
       <th class="col-actions">Actions</th>
     `;
-  } else {
-    // Last Access as second column for non-graded content
-    head.innerHTML = `
+    } else {
+      // Last Access as second column for non-graded content
+      head.innerHTML = `
       <th>Student</th>
       <th>Last Access</th>
       <th>Code</th>
       <th>Status</th>
       <th>Progress</th>
     `;
+    }
   }
-}
 
-function renderContentStudents(students, contentId, type) {
-  const tbody = document.getElementById('contentStudentsBody');
-  tbody.innerHTML = students.map(s => {
-    const attempts = s.attempts || [];
-    const isGraded = (type === 'quiz' || type === 'homework');
-    const attemptsInfo = isGraded
-      ? (attempts.length > 0
-          ? attempts.map(a => `#${a.attemptNumber}: ${a.score}%`).join(', ')
-          : '—')
-      : '';
-    const best = isGraded && (s.bestScore !== undefined && s.bestScore !== null) ? `${s.bestScore}%` : '';
-    if (isGraded) {
-      return `
+  function renderContentStudents(students, contentId, type) {
+    const tbody = document.getElementById('contentStudentsBody');
+    tbody.innerHTML = students.map(s => {
+      const attempts = s.attempts || [];
+      const isGraded = (type === 'quiz' || type === 'homework');
+      const attemptsInfo = isGraded ?
+        (attempts.length > 0 ?
+          attempts.map(a => `#${a.attemptNumber}: ${a.score}%`).join(', ') :
+          '—') :
+        '';
+      const best = isGraded && (s.bestScore !== undefined && s.bestScore !== null) ? `${s.bestScore}%` : '';
+      if (isGraded) {
+        return `
         <tr>
           <td><div class="student-info"><strong>${s.name}</strong><small>${s.email}</small></div></td>
           <td><span class="student-code">${s.studentCode}</span></td>
@@ -785,9 +867,9 @@ function renderContentStudents(students, contentId, type) {
           <td class="col-actions"><button class=\"btn btn-sm btn-outline-danger\" onclick=\"resetAttempts('${contentId}','${s.studentId}')\"><i class='fas fa-undo'></i> Reset</button></td>
         </tr>
       `;
-    } else {
-      // Non-graded: Last Access second
-      return `
+      } else {
+        // Non-graded: Last Access second
+        return `
         <tr>
           <td><div class="student-info"><strong>${s.name}</strong><small>${s.email}</small></div></td>
           <td>${formatDateTime(s.lastAccessed)}</td>
@@ -796,23 +878,28 @@ function renderContentStudents(students, contentId, type) {
           <td>${s.progressPercentage}%</td>
         </tr>
       `;
-    }
-  }).join('');
-}
-
-async function resetAttempts(contentId, studentId) {
-  const url = `/admin/courses/<%= course.courseCode %>/topics/<%= topic._id %>/content/${contentId}/students/${studentId}/reset`;
-  try {
-    const res = await fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' } });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Failed to reset');
-    // Refresh current content details
-    const titleText = document.getElementById('contentDetailsTitle').textContent || '';
-    const match = titleText.split(' — ');
-    const type = match[1] ? match[1].trim().toLowerCase() : 'quiz';
-    await showContentDetails(contentId, match[0].replace('ℹ️','').trim(), type);
-  } catch (e) {
-    alert('Reset failed: ' + e.message);
+      }
+    }).join('');
   }
-}
+
+  async function resetAttempts(contentId, studentId) {
+    const url = `/admin/courses/<%= course.courseCode %>/topics/<%= topic._id %>/content/${contentId}/students/${studentId}/reset`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Failed to reset');
+      // Refresh current content details
+      const titleText = document.getElementById('contentDetailsTitle').textContent || '';
+      const match = titleText.split(' — ');
+      const type = match[1] ? match[1].trim().toLowerCase() : 'quiz';
+      await showContentDetails(contentId, match[0].replace('ℹ️', '').trim(), type);
+    } catch (e) {
+      alert('Reset failed: ' + e.message);
+    }
+  }
 </script>

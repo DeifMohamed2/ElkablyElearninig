@@ -26,7 +26,7 @@ const getCreateAdminPage = (req, res) => {
     req.flash('error_msg', 'Unauthorized access');
     return res.redirect('/auth/login');
   }
-  return res.render('admin/create', {
+  return res.render('admin/create-admin', {
     title: 'Create Admin',
     theme: req.cookies.theme || 'light',
     token: token,
@@ -54,7 +54,7 @@ const createAdmin = async (req, res) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).render('admin/create', {
+    return res.status(400).render('admin/create-admin', {
       title: 'Create Admin',
       theme: req.cookies.theme || 'light',
       errors,
@@ -68,7 +68,7 @@ const createAdmin = async (req, res) => {
     const existing = await Admin.findOne({ phoneNumber: phoneNumber.trim() });
     if (existing) {
       errors.push({ msg: 'Phone number already used' });
-      return res.status(400).render('admin/create', {
+      return res.status(400).render('admin/create-admin', {
         title: 'Create Admin',
         theme: req.cookies.theme || 'light',
         errors,
@@ -98,7 +98,7 @@ const createAdmin = async (req, res) => {
   } catch (err) {
     console.error('Create admin error:', err);
     errors.push({ msg: 'An error occurred. Please try again.' });
-    return res.status(500).render('admin/create', {
+    return res.status(500).render('admin/create-admin', {
       title: 'Create Admin',
       theme: req.cookies.theme || 'light',
       errors,

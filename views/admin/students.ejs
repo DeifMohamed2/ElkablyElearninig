@@ -1,44 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/css/adminCSS/admin-main.css">
-  <link rel="stylesheet" href="/css/adminCSS/students.css">
-  <link rel="stylesheet" href="/css/theme-toggle.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
-
-  <!-- Theme Script -->
-  <script>
-    (function() {
-      try {
-        var saved = localStorage.getItem('theme');
-        var htmlElement = document.documentElement;
-        var bodyElement = document.body;
-        
-        if (htmlElement && bodyElement) {
-        if (saved) {
-            htmlElement.classList.remove('light-theme', 'dark-theme');
-            bodyElement.classList.remove('light-theme', 'dark-theme');
-            htmlElement.classList.add(saved + '-theme');
-            bodyElement.classList.add(saved + '-theme');
-        } else {
-            htmlElement.classList.add('light-theme');
-            bodyElement.classList.add('light-theme');
-          }
-        }
-      } catch (e) {
-        console.warn('Theme loading error:', e);
-      }
-    })();
-  </script>
+<%- include('partials/admin-header') %>
 
   <style>
     /* CSS Variables for Admin Theme */
-    :root {
+    .light-theme {
       --admin-primary: #b80101;
       --admin-secondary: #f8f9fa;
       --admin-success: #10b981;
@@ -56,23 +20,50 @@
       --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
+    .dark-theme {
+      --admin-primary: #d40000;
+      --admin-secondary: #2d3748;
+      --admin-success: #10b981;
+      --admin-warning: #f59e0b;
+      --admin-danger: #ef4444;
+      --admin-info: #3b82f6;
+      --admin-bg-light: #1e293b;
+      --admin-bg-dark: #0f172a;
+      --admin-card-light: #2d3748;
+      --admin-card-dark: #1e293b;
+      --admin-text-light: #f7fafc;
+      --admin-text-dark: #e2e8f0;
+      --admin-border-light: #4a5568;
+      --admin-border-dark: #2d3748;
+      --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    }
+
     /* Professional Student Management Styles */
-    .admin-students-container {
-      padding: 20px;
-      background: var(--admin-bg-light);
-      min-height: 100vh;
+    .admin-main-content {
       margin-left: 280px;
+      min-height: 100vh;
+      background: var(--admin-bg-light);
       transition: margin-left 0.3s ease;
     }
 
-    .dark-theme .admin-students-container {
-      background: var(--admin-bg-dark);
+    /* Sidebar hidden state */
+    .admin-sidebar.sidebar-hidden {
+      transform: translateX(-100%);
     }
 
-    /* Responsive margin adjustments for smaller screens */
+    .admin-students-container {
+      padding: 20px;
+      background: var(--admin-bg-light);
+      min-height: calc(100vh - 80px);
+    }
+
+    /* Responsive adjustments for smaller screens */
     @media (max-width: 1024px) {
-      .admin-students-container {
+      .admin-main-content {
         margin-left: 0;
+      }
+      
+      .admin-students-container {
         padding: 15px;
       }
     }
@@ -87,10 +78,6 @@
       box-shadow: var(--admin-shadow);
     }
 
-    .dark-theme .students-page-header {
-      background: var(--admin-card-dark);
-      border-color: var(--admin-border-dark);
-    }
 
     .page-header-top {
       display: flex;
@@ -124,9 +111,6 @@
       margin: 0;
     }
 
-    .dark-theme .page-title {
-      color: var(--admin-text-dark);
-    }
 
     .page-subtitle {
       color: var(--admin-text-light);
@@ -135,9 +119,6 @@
       font-size: 1rem;
     }
 
-    .dark-theme .page-subtitle {
-      color: var(--admin-text-dark);
-    }
 
     .page-actions {
       display: flex;
@@ -198,11 +179,6 @@
       backdrop-filter: blur(10px);
     }
 
-    .dark-theme .btn-secondary {
-      color: var(--admin-text-dark);
-      border-color: var(--admin-border-dark);
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-    }
 
     .btn-secondary:hover {
       background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
@@ -240,6 +216,89 @@
       box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
     }
 
+    /* Button Group Styles */
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-group .btn {
+      margin: 0;
+    }
+
+    .btn-group .btn:first-child {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .btn-group .btn:last-child {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    /* Button styles matching student-details.ejs */
+    .btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      min-width: 140px;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+      color: white;
+      border: 1px solid #b80101;
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #8b0000 0%, #660000 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      color: #1e293b;
+      border: 2px solid #e2e8f0;
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-secondary:hover {
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+      color: white;
+      transform: translateY(-2px);
+      border-color: #b80101;
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
+    }
+
     /* Enhanced Apply Filters Button */
     .btn-apply {
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -271,10 +330,6 @@
       transition: all 0.3s ease;
     }
 
-    .dark-theme .admin-analytics-card {
-      background: var(--admin-card-dark);
-      border-color: var(--admin-border-dark);
-    }
 
     .admin-analytics-card:hover {
       transform: translateY(-2px);
@@ -341,18 +396,10 @@
       margin: 8px 0;
     }
 
-    .dark-theme .analytics-number {
-      color: var(--admin-text-dark);
-    }
-
     .analytics-label {
       color: var(--admin-text-light);
       opacity: 0.7;
       font-weight: 500;
-    }
-
-    .dark-theme .analytics-label {
-      color: var(--admin-text-dark);
     }
 
     /* Filters Section */
@@ -365,11 +412,6 @@
       box-shadow: var(--admin-shadow);
     }
 
-    .dark-theme .filters-section {
-      background: var(--admin-card-dark);
-      border-color: var(--admin-border-dark);
-    }
-
     .filters-header {
       display: flex;
       justify-content: space-between;
@@ -377,10 +419,6 @@
       margin-bottom: 20px;
       padding-bottom: 16px;
       border-bottom: 1px solid var(--admin-border-light);
-    }
-
-    .dark-theme .filters-header {
-      border-bottom-color: var(--admin-border-dark);
     }
 
     .filters-title {
@@ -393,21 +431,19 @@
       gap: 8px;
     }
 
-    .dark-theme .filters-title {
-      color: var(--admin-text-dark);
-    }
 
     .filters-toggle {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
-      border: 2px solid #3b82f6;
-      color: #3b82f6;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      border: 2px solid #e2e8f0;
+      color: #1e293b;
       padding: 10px 20px;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.3s ease;
       font-weight: 600;
       position: relative;
       overflow: hidden;
+      backdrop-filter: blur(10px);
     }
 
     .filters-toggle::before {
@@ -432,10 +468,11 @@
     }
 
     .filters-toggle:hover {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
       color: white;
+      border-color: #b80101;
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
     }
 
     .filters-grid {
@@ -472,11 +509,6 @@
       transition: all 0.3s ease;
     }
 
-    .dark-theme .filter-control {
-      border-color: var(--admin-border-dark);
-      background: var(--admin-card-dark);
-      color: var(--admin-text-dark);
-    }
 
     .filter-control:focus {
       outline: none;
@@ -498,11 +530,6 @@
       font-size: 0.9rem;
     }
 
-    .dark-theme .search-input {
-      border-color: var(--admin-border-dark);
-      background: var(--admin-card-dark);
-      color: var(--admin-text-dark);
-    }
 
     .search-icon {
       position: absolute;
@@ -513,9 +540,6 @@
       opacity: 0.5;
     }
 
-    .dark-theme .search-icon {
-      color: var(--admin-text-dark);
-    }
 
     .filters-actions {
       display: flex;
@@ -532,10 +556,6 @@
       overflow: hidden;
     }
 
-    .dark-theme .students-table-container {
-      background: var(--admin-card-dark);
-      border-color: var(--admin-border-dark);
-    }
 
     .table-header {
       padding: 20px 24px;
@@ -546,10 +566,6 @@
       background: linear-gradient(135deg, rgba(184, 1, 1, 0.02) 0%, rgba(184, 1, 1, 0.05) 100%);
     }
 
-    .dark-theme .table-header {
-      border-bottom-color: var(--admin-border-dark);
-      background: linear-gradient(135deg, rgba(184, 1, 1, 0.05) 0%, rgba(184, 1, 1, 0.08) 100%);
-    }
 
     .table-title {
       font-size: 1.3rem;
@@ -561,9 +577,6 @@
       gap: 12px;
     }
 
-    .dark-theme .table-title {
-      color: var(--admin-text-dark);
-    }
 
     .table-title::before {
       content: '👥';
@@ -589,6 +602,14 @@
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
+      table-layout: auto;
+    }
+
+    /* Adjust column widths for better name display */
+    .students-table th:nth-child(1),
+    .students-table td:nth-child(1) {
+      width: 25%;
+      min-width: 200px;
     }
 
     .students-table th {
@@ -602,30 +623,25 @@
       font-size: 0.9rem;
     }
 
-    .dark-theme .students-table th {
-      background: rgba(184, 1, 1, 0.1);
-      color: var(--admin-text-dark);
-      border-bottom-color: var(--admin-border-dark);
-    }
 
     .students-table td {
       padding: 16px;
       border-bottom: 1px solid var(--admin-border-light);
-      vertical-align: middle;
+      vertical-align: top;
       font-size: 0.9rem;
     }
 
-    .dark-theme .students-table td {
-      border-bottom-color: var(--admin-border-dark);
+    /* Special styling for student info cells */
+    .students-table td:first-child {
+      padding: 20px 16px;
+      vertical-align: middle;
     }
+
 
     .students-table tr:hover {
       background: rgba(184, 1, 1, 0.02);
     }
 
-    .dark-theme .students-table tr:hover {
-      background: rgba(184, 1, 1, 0.05);
-    }
 
     /* Student Profile Cell */
     .student-profile {
@@ -657,26 +673,18 @@
       font-weight: 600;
       color: var(--admin-text-light);
       margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .dark-theme .student-name {
-      color: var(--admin-text-dark);
+      white-space: normal;
+      word-wrap: break-word;
+      line-height: 1.4;
     }
 
     .student-email {
       font-size: 0.85rem;
       color: var(--admin-text-light);
       opacity: 0.6;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .dark-theme .student-email {
-      color: var(--admin-text-dark);
+      white-space: normal;
+      word-wrap: break-word;
+      line-height: 1.3;
     }
 
     /* Status Badge */
@@ -720,20 +728,12 @@
       margin-bottom: 4px;
     }
 
-    .dark-theme .progress-percentage {
-      color: var(--admin-text-dark);
-    }
-
     .progress-bar {
       width: 100%;
       height: 6px;
       background: var(--admin-border-light);
       border-radius: 3px;
       overflow: hidden;
-    }
-
-    .dark-theme .progress-bar {
-      background: var(--admin-border-dark);
     }
 
     .progress-fill {
@@ -765,10 +765,6 @@
       text-decoration: none;
     }
 
-    .dark-theme .action-btn-sm {
-      border-color: var(--admin-border-dark);
-      color: var(--admin-text-dark);
-    }
 
     .action-btn-sm:hover {
       background: var(--admin-primary);
@@ -797,9 +793,6 @@
       align-items: center;
     }
 
-    .dark-theme .pagination-container {
-      border-top-color: var(--admin-border-dark);
-    }
 
     .pagination-info {
       color: var(--admin-text-light);
@@ -807,9 +800,6 @@
       font-size: 0.9rem;
     }
 
-    .dark-theme .pagination-info {
-      color: var(--admin-text-dark);
-    }
 
     .pagination {
       display: flex;
@@ -846,11 +836,6 @@
       left: 100%;
     }
 
-    .dark-theme .pagination-btn {
-      border-color: var(--admin-border-dark);
-      background: var(--admin-card-dark);
-      color: var(--admin-text-dark);
-    }
 
     .pagination-btn:hover {
       background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
@@ -886,9 +871,6 @@
       opacity: 0.6;
     }
 
-    .dark-theme .empty-state {
-      color: var(--admin-text-dark);
-    }
 
     .empty-state i {
       font-size: 4rem;
@@ -975,6 +957,14 @@
         gap: 8px;
       }
 
+      .student-info {
+        width: 100%;
+      }
+
+      .student-name {
+        font-size: 0.9rem;
+      }
+
       .student-actions {
         flex-direction: column;
         gap: 4px;
@@ -1015,9 +1005,6 @@
       border-bottom: 2px solid var(--admin-border-light);
     }
 
-    .dark-theme .status-filter-section {
-      border-bottom-color: var(--admin-border-dark);
-    }
 
     .status-filter-buttons {
       display: flex;
@@ -1028,11 +1015,11 @@
     .status-filter-btn {
       flex: 1;
       min-width: 200px;
-      padding: 16px 20px;
-      border: 2px solid var(--admin-border-light);
-      background: var(--admin-card-light);
-      color: var(--admin-text-light);
-      border-radius: 12px;
+      padding: 14px 20px;
+      border: 2px solid #e2e8f0;
+      background: rgba(255, 255, 255, 0.1);
+      color: #1e293b;
+      border-radius: 10px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -1042,13 +1029,9 @@
       gap: 12px;
       position: relative;
       overflow: hidden;
+      backdrop-filter: blur(10px);
     }
 
-    .dark-theme .status-filter-btn {
-      border-color: var(--admin-border-dark);
-      background: var(--admin-card-dark);
-      color: var(--admin-text-dark);
-    }
 
     .status-filter-btn::before {
       content: '';
@@ -1066,15 +1049,17 @@
     }
 
     .status-filter-btn:hover {
-      border-color: var(--admin-primary);
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+      color: white;
+      border-color: #b80101;
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.2);
+      box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
     }
 
     .status-filter-btn.active {
-      background: linear-gradient(135deg, var(--admin-primary) 0%, #a00000 100%);
+      background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
       color: white;
-      border-color: var(--admin-primary);
+      border-color: #b80101;
       box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
     }
 
@@ -1107,9 +1092,6 @@
       border-top: 1px solid var(--admin-border-light);
     }
 
-    .dark-theme .advanced-filters {
-      border-top-color: var(--admin-border-dark);
-    }
 
     .advanced-filters.show {
       display: grid;
@@ -1132,11 +1114,6 @@
       font-size: 0.85rem;
     }
 
-    .dark-theme .date-range input {
-      border-color: var(--admin-border-dark);
-      background: var(--admin-card-dark);
-      color: var(--admin-text-dark);
-    }
 
     /* Toast Notification Styles */
     .toast-container {
@@ -1167,11 +1144,6 @@
       transform: translateX(0);
     }
 
-    .dark-theme .toast {
-      background: var(--admin-card-dark);
-      border-color: var(--admin-border-dark);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
 
     .toast-header {
       display: flex;
@@ -1210,19 +1182,11 @@
       margin: 0;
     }
 
-    .dark-theme .toast-title {
-      color: var(--admin-text-dark);
-    }
-
     .toast-message {
       color: var(--admin-text-light);
       opacity: 0.8;
       margin-bottom: 20px;
       line-height: 1.5;
-    }
-
-    .dark-theme .toast-message {
-      color: var(--admin-text-dark);
     }
 
     .toast-actions {
@@ -1264,11 +1228,6 @@
       border: 1px solid var(--admin-border-light);
     }
 
-    .dark-theme .toast-btn.cancel {
-      background: var(--admin-border-dark);
-      color: var(--admin-text-dark);
-      border-color: var(--admin-border-dark);
-    }
 
     .toast-btn.cancel:hover {
       background: rgba(107, 114, 128, 0.1);
@@ -1348,10 +1307,11 @@
   </style>
 </head>
 
-<body class="<%= theme === 'dark' ? 'dark-theme' : 'light-theme' %>">
+<body class="<%= theme %>">
   <%- include('partials/admin-sidebar') %>
 
   <div class="admin-main-content">
+    <%- include('partials/admin-topbar') %>
     <div class="admin-students-container">
       <!-- Page Header -->
       <div class="students-page-header">
@@ -1371,9 +1331,9 @@
             </div>
           </div>
           <div class="page-actions">
-            <button class="action-btn btn-export" onclick="exportStudents()">
-              <i class="fas fa-download"></i>
-              Export All Data
+            <button class="btn btn-primary" onclick="exportStudents()">
+              <i class="fas fa-file-excel"></i>
+              Export All Students 
             </button>
           </div>
         </div>
@@ -1558,11 +1518,11 @@
           </div>
 
           <div class="filters-actions">
-            <button type="button" class="action-btn btn-clear" onclick="clearFilters()">
+            <button type="button" class="btn btn-secondary" onclick="clearFilters()">
               <i class="fas fa-times"></i>
               Clear
             </button>
-            <button type="submit" class="action-btn btn-apply">
+            <button type="submit" class="btn btn-primary">
               <i class="fas fa-search"></i>
               Apply Filters
             </button>
@@ -1580,9 +1540,9 @@
             <% } %>
           </h3>
           <div class="table-actions">
-            <button class="action-btn btn-export" onclick="exportVisible()">
-              <i class="fas fa-file-export"></i>
-              Export Visible
+            <button class="btn btn-primary" onclick="exportVisible()">
+              <i class="fas fa-file-excel"></i>
+              Export Visible Students
             </button>
           </div>
         </div>
@@ -1611,7 +1571,7 @@
                       <%= (student.firstName?.[0] || '').toUpperCase() %><%= (student.lastName?.[0] || '').toUpperCase() %>
                     </div>
                     <div class="student-info">
-                      <div class="student-name">
+                      <div class="student-name" title="<%= student.firstName %> <%= student.lastName %>">
                         <%= student.firstName %> <%= student.lastName %>
                       </div>
                       <div class="student-email">
@@ -1762,6 +1722,9 @@
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
       try {
+        // Initialize sidebar toggle
+        initializeSidebarToggle();
+
         // Animate progress bars
         animateProgressBars();
 
@@ -1838,7 +1801,7 @@
       try {
         const currentUrl = new URL(window.location);
         currentUrl.pathname = '/admin/students/export';
-        currentUrl.searchParams.set('format', 'csv');
+        currentUrl.searchParams.set('format', 'excel');
         currentUrl.searchParams.set('comprehensive', 'true');
         currentUrl.searchParams.set('includeAnalytics', 'true');
 
@@ -1853,34 +1816,67 @@
           setTimeout(() => {
             exportBtn.innerHTML = originalText;
             exportBtn.disabled = false;
-          }, 2000);
+          }, 3000);
         }
 
         // Create a temporary link to trigger download
         const link = document.createElement('a');
         link.href = currentUrl.toString();
-        link.download = `students_export_${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `students_comprehensive_report_${new Date().toISOString().split('T')[0]}.xlsx`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       } catch (error) {
         console.error('Error exporting students:', error);
+        // Reset button on error
+        const exportBtn = document.querySelector('.btn-export');
+        if (exportBtn) {
+          exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> Export Excel Report';
+          exportBtn.disabled = false;
+        }
       }
     }
 
     // Export visible students
     function exportVisible() {
       try {
+        // Show loading state
+        const exportBtn = document.querySelector('.table-actions .btn');
+        if (exportBtn) {
+          const originalText = exportBtn.innerHTML;
+          exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+          exportBtn.disabled = true;
+
+          // Reset button after a delay
+          setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+          }, 3000);
+        }
+
         const currentUrl = new URL(window.location);
         const filters = Object.fromEntries(currentUrl.searchParams);
 
         const exportUrl = new URL('/admin/students/export', window.location.origin);
-        exportUrl.searchParams.set('format', 'csv');
+        exportUrl.searchParams.set('format', 'excel');
         exportUrl.searchParams.set('filters', JSON.stringify(filters));
 
-        window.location.href = exportUrl.toString();
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = exportUrl.toString();
+        link.download = `students_filtered_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       } catch (error) {
         console.error('Error exporting visible students:', error);
+        
+        // Reset button on error
+        const exportBtn = document.querySelector('.table-actions .btn');
+        if (exportBtn) {
+          exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> Export Excel Report';
+          exportBtn.disabled = false;
+        }
       }
     }
 
@@ -2166,6 +2162,80 @@
       });
 
       return params.toString() ? '&' + params.toString() : '';
+    }
+
+    // Initialize sidebar toggle functionality
+    function initializeSidebarToggle() {
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const mainContent = document.querySelector('.admin-main-content');
+      const sidebar = document.querySelector('.admin-sidebar');
+      
+      if (sidebarToggle && mainContent && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+          // Toggle sidebar visibility
+          sidebar.classList.toggle('sidebar-hidden');
+          
+          // Adjust main content margin
+          if (sidebar.classList.contains('sidebar-hidden')) {
+            mainContent.style.marginLeft = '0';
+          } else {
+            mainContent.style.marginLeft = '280px';
+          }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+          if (window.innerWidth <= 1024) {
+            sidebar.classList.add('sidebar-hidden');
+            mainContent.style.marginLeft = '0';
+          } else {
+            sidebar.classList.remove('sidebar-hidden');
+            mainContent.style.marginLeft = '280px';
+          }
+        });
+        
+        // Initialize based on screen size
+        if (window.innerWidth <= 1024) {
+          sidebar.classList.add('sidebar-hidden');
+          mainContent.style.marginLeft = '0';
+        }
+      }
+    }
+
+    // Theme toggle functionality
+    function toggleTheme() {
+      try {
+        const htmlElement = document.documentElement;
+        const bodyElement = document.body;
+        const themeIcon = document.getElementById('theme-icon');
+        
+        if (!htmlElement || !bodyElement) return;
+        
+        const currentTheme = htmlElement.classList.contains('dark-theme') ? 'dark' : 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        // Remove current theme classes
+        htmlElement.classList.remove('light-theme', 'dark-theme');
+        bodyElement.classList.remove('light-theme', 'dark-theme');
+        
+        // Add new theme classes
+        htmlElement.classList.add(newTheme + '-theme');
+        bodyElement.classList.add(newTheme + '-theme');
+        
+        // Update theme icon
+        if (themeIcon) {
+          themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('theme', newTheme);
+        
+        // Update theme variable for server-side rendering consistency
+        document.body.setAttribute('data-theme', newTheme);
+        
+      } catch (error) {
+        console.error('Error toggling theme:', error);
+      }
     }
   </script>
 

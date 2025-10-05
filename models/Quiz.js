@@ -65,6 +65,14 @@ const quizSchema = new mongoose.Schema({
     min: [0, 'Duration must be 0 or greater (0 = no time limit)'],
     max: [480, 'Duration cannot exceed 480 minutes']
   },
+  testType: {
+    type: String,
+    required: [true, 'Test type is required'],
+    enum: {
+      values: ['EST', 'SAT', 'ACT'],
+      message: 'Test type must be EST, SAT, or ACT'
+    }
+  },
   difficulty: {
     type: String,
     required: [true, 'Difficulty level is required'],

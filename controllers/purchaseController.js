@@ -112,6 +112,43 @@ const addToCart = async (req, res) => {
       });
     }
 
+    // Check for bundle/course conflicts
+    if (itemType === 'course') {
+      // Check if this course is already in a bundle that's in the cart
+      for (const cartItem of req.session.cart) {
+        if (cartItem.type === 'bundle') {
+          const bundle = await BundleCourse.findById(cartItem.id).populate('courses');
+          if (bundle && bundle.courses.some(course => course._id.toString() === itemId)) {
+            return res.status(400).json({ 
+              success: false, 
+              message: `This course is already included in the "${bundle.title}" bundle in your cart. Please remove the bundle first if you want to purchase this course individually.` 
+            });
+          }
+        }
+      }
+    } else if (itemType === 'bundle') {
+      // Check if any courses from this bundle are already in the cart individually
+      const bundle = await BundleCourse.findById(itemId).populate('courses');
+      if (bundle && bundle.courses) {
+        const conflictingCourses = [];
+        for (const course of bundle.courses) {
+          const existingCourse = req.session.cart.find(cartItem => 
+            cartItem.type === 'course' && cartItem.id === course._id.toString()
+          );
+          if (existingCourse) {
+            conflictingCourses.push(course.title);
+          }
+        }
+        
+        if (conflictingCourses.length > 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `This bundle contains courses that are already in your cart: ${conflictingCourses.join(', ')}. Please remove those individual courses first if you want to purchase the bundle.` 
+          });
+        }
+      }
+    }
+
     // Add item to cart
     const cartItem = {
       id: itemId,

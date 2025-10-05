@@ -15,7 +15,7 @@ const {
 } = require('../controllers/purchaseController');
 
 // Cart routes
-router.post('/cart', ensureAuthenticated, getCart);
+router.post('/cart', getCart);
 router.post('/cart/add', ensureAuthenticated, addToCart);
 router.post('/cart/remove', ensureAuthenticated, removeFromCart);
 

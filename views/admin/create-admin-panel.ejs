@@ -1,0 +1,173 @@
+<%- include('./partials/admin-header', { title, user, theme, currentPage: 'create-admin', pageCSS: 'create-admin' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'create-admin' }) %>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Admin Management',
+        breadcrumbSubtitle: 'Create new administrator account',
+        showSearch: false
+    }) %>
+
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="admin-container">
+
+        <!-- Header -->
+        <div class="admin-header">
+          <div class="admin-header-content">
+            <h1 class="admin-title">
+              <i class="fas fa-user-plus"></i>
+              Create New Admin
+            </h1>
+            <p class="admin-subtitle">Add a new administrator to the system</p>
+          </div>
+        </div>
+
+        <!-- Create Admin Card -->
+        <div class="card shadow-sm admin-card">
+          <div class="card-header" style="background: linear-gradient(135deg, var(--admin-primary), #dc2626); border-bottom: none;">
+            <h5 class="mb-0" style="color: #ffffff; font-weight: 700; display: flex; align-items: center; gap: 12px;">
+              <i class="fas fa-user-shield"></i> Admin Account Setup
+            </h5>
+          </div>
+          <div class="card-body" style="padding: 32px;">
+
+            <!-- Display Success Messages -->
+            <% if (typeof success !== 'undefined' && success.length > 0) { %>
+            <div class="alert alert-success" role="alert">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Success!</strong>
+              </div>
+              <hr class="my-2">
+              <%= success %>
+            </div>
+            <% } %>
+
+            <!-- Display Errors -->
+            <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+            <div class="alert alert-danger" role="alert">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Setup Failed!</strong>
+              </div>
+              <hr class="my-2">
+              <ul class="mb-0">
+                <% errors.forEach(function(error) { %>
+                <li><%= error.msg || error %></li>
+                <% }); %>
+              </ul>
+            </div>
+            <% } %>
+
+            <!-- Setup Form -->
+            <form method="POST" action="/admin/create-admin" class="needs-validation" novalidate>
+
+              <div class="row g-4">
+                <div class="col-md-6">
+                  <label for="userName" class="form-label" style="color: var(--admin-text-light); font-weight: 600; font-size: 14px;">
+                    <i class="fas fa-user me-2"></i>
+                    User Name *
+                  </label>
+                  <input type="text" id="userName" name="userName" class="form-control" placeholder="Enter admin username" value="<%= typeof userName !== 'undefined' ? userName : '' %>" required style="border: 2px solid var(--admin-border-light); border-radius: 12px; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; background: var(--admin-card-light); color: var(--admin-text-light);">
+                  <div class="invalid-feedback">Please enter a valid username.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="phoneNumber" class="form-label" style="color: var(--admin-text-light); font-weight: 600; font-size: 14px;">
+                    <i class="fas fa-phone me-2"></i>
+                    Phone Number *
+                  </label>
+                  <input type="tel" id="phoneNumber" name="phoneNumber" class="form-control" placeholder="Enter phone number" value="<%= typeof phoneNumber !== 'undefined' ? phoneNumber : '' %>" required style="border: 2px solid var(--admin-border-light); border-radius: 12px; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; background: var(--admin-card-light); color: var(--admin-text-light);">
+                  <div class="invalid-feedback">Please enter a valid phone number.</div>
+                </div>
+
+                <div class="col-12">
+                  <label for="email" class="form-label" style="color: var(--admin-text-light); font-weight: 600; font-size: 14px;">
+                    <i class="fas fa-envelope me-2"></i>
+                    Email Address (Optional)
+                  </label>
+                  <input type="email" id="email" name="email" class="form-control" placeholder="Enter email address" value="<%= typeof email !== 'undefined' ? email : '' %>" style="border: 2px solid var(--admin-border-light); border-radius: 12px; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; background: var(--admin-card-light); color: var(--admin-text-light);">
+                  <div class="form-text" style="color: #64748b; font-size: 12px;">Email is optional but recommended for account recovery.</div>
+                </div>
+
+                <div class="col-12">
+                  <label for="password" class="form-label" style="color: var(--admin-text-light); font-weight: 600; font-size: 14px;">
+                    <i class="fas fa-lock me-2"></i>
+                    Password *
+                  </label>
+                  <div class="input-group">
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Create a secure password" required minlength="6" style="border: 2px solid var(--admin-border-light); border-radius: 12px 0 0 12px; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; background: var(--admin-card-light); color: var(--admin-text-light);">
+                    <button class="btn btn-outline-secondary" type="button" id="togglePassword" style="border: 2px solid var(--admin-border-light); border-left: none; border-radius: 0 12px 12px 0; background: var(--admin-card-light); color: var(--admin-text-light);">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                  <div class="form-text" style="color: #64748b; font-size: 12px;">Password must be at least 6 characters long.</div>
+                  <div class="invalid-feedback">Password must be at least 6 characters.</div>
+                </div>
+              </div>
+
+              <div class="d-flex gap-3 justify-content-end mt-4">
+                <a href="/admin/dashboard" class="btn btn-outline-secondary" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; border: 2px solid var(--admin-border-light); color: var(--admin-text-light);">
+                  <i class="fas fa-times me-2"></i>
+                  Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 14px; background: var(--admin-primary); border-color: var(--admin-primary);">
+                  <i class="fas fa-user-plus me-2"></i>
+                  Create Admin Account
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Toggle password visibility
+  document.getElementById('togglePassword').addEventListener('click', function() {
+    const password = document.getElementById('password');
+    const icon = this.querySelector('i');
+
+    if (password.type === 'password') {
+      password.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      password.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  });
+
+  // Form validation
+  (function() {
+    'use strict';
+
+    const forms = document.querySelectorAll('.needs-validation');
+
+    Array.prototype.slice.call(forms).forEach(function(form) {
+      form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
+</script>
+
+<%- include('partials/admin-footer') %>

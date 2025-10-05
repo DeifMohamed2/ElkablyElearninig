@@ -8,16 +8,23 @@ const { isAdmin } = require('../middlewares/auth');
 const thumbnailUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for thumbnails
+    fileSize: 5 * 1024 * 1024, // 5MB limit for thumbnails
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+    ];
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPEG, PNG, and GIF images are allowed for thumbnails'));
+      cb(
+        new Error('Only JPEG, PNG, and GIF images are allowed for thumbnails')
+      );
     }
-  }
+  },
 });
 const {
   getAllQuizzes,
@@ -38,8 +45,11 @@ const {
   uploadQuizThumbnail,
   getQuizThumbnail,
   updateQuizThumbnail,
-  getQuizStudentReview
+  getQuizStudentReview,
 } = require('../controllers/quizController');
+
+// Import admin controller for export
+const { exportQuizDetails } = require('../controllers/adminController');
 
 // Validation rules
 const quizValidation = [
@@ -55,13 +65,17 @@ const quizValidation = [
     .trim()
     .isLength({ min: 3, max: 20 })
     .matches(/^[A-Z0-9-]+$/)
-    .withMessage('Code must be 3-20 characters, uppercase letters, numbers, and hyphens only'),
+    .withMessage(
+      'Code must be 3-20 characters, uppercase letters, numbers, and hyphens only'
+    ),
   body('questionBank')
     .isMongoId()
     .withMessage('Valid question bank is required'),
   body('duration')
     .isInt({ min: 0, max: 480 })
-    .withMessage('Duration must be between 0 and 480 minutes (0 = no time limit)'),
+    .withMessage(
+      'Duration must be between 0 and 480 minutes (0 = no time limit)'
+    ),
   body('difficulty')
     .isIn(['easy', 'medium', 'hard'])
     .withMessage('Difficulty must be easy, medium, or hard'),
@@ -76,13 +90,13 @@ const quizValidation = [
   body('instructions')
     .optional()
     .isLength({ max: 2000 })
-    .withMessage('Instructions cannot exceed 2000 characters')
+    .withMessage('Instructions cannot exceed 2000 characters'),
 ];
 
 const idValidation = [
   param('id').isMongoId().withMessage('Invalid quiz ID'),
   param('bankId').isMongoId().withMessage('Invalid question bank ID'),
-  param('questionId').isMongoId().withMessage('Invalid question ID')
+  param('questionId').isMongoId().withMessage('Invalid question ID'),
 ];
 
 // Apply authentication middleware to all routes
@@ -110,7 +124,11 @@ router.get('/:id/review/:studentId', getQuizStudentReview);
 
 // Quiz CRUD operations
 router.post('/create', quizValidation, createQuiz);
-router.put('/:id', [...idValidation.slice(0, 1), ...quizValidation], updateQuiz);
+router.put(
+  '/:id',
+  [...idValidation.slice(0, 1), ...quizValidation],
+  updateQuiz
+);
 router.delete('/:id', idValidation.slice(0, 1), deleteQuiz);
 router.post('/:id/restore', idValidation.slice(0, 1), restoreQuiz);
 
@@ -118,10 +136,21 @@ router.post('/:id/restore', idValidation.slice(0, 1), restoreQuiz);
 router.patch('/:id/status', idValidation.slice(0, 1), updateQuizStatus);
 
 // Student quiz attempts management
-router.post('/:id/reset-student/:studentId', idValidation.slice(0, 1), resetStudentQuizAttempts);
+router.post(
+  '/:id/reset-student/:studentId',
+  idValidation.slice(0, 1),
+  resetStudentQuizAttempts
+);
+
+// Export quiz details
+router.get('/:id/export', isAdmin, exportQuizDetails);
 
 // Thumbnail management routes
-router.post('/upload-thumbnail', thumbnailUpload.single('thumbnail'), uploadQuizThumbnail);
+router.post(
+  '/upload-thumbnail',
+  thumbnailUpload.single('thumbnail'),
+  uploadQuizThumbnail
+);
 router.get('/:id/thumbnail', idValidation.slice(0, 1), getQuizThumbnail);
 router.put('/:id/thumbnail', idValidation.slice(0, 1), updateQuizThumbnail);
 

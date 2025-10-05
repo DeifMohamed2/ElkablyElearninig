@@ -5,7 +5,10 @@ const {
   getLandingPage,
   getOnlineCourses,
   getOngroundCourses,
-  getBundleContent
+  getBundleContent,
+  getESTTests,
+  getSATTests,
+  getACTTests
 } = require('../controllers/landingController');
 
 // Landing page route
@@ -30,6 +33,11 @@ router.get('/bundle/:id', getBundleContent);
 
 // Bundle course content route
 router.get('/bundle/:id/content', getBundleContent);
+
+// Test type routes
+router.get('/tests/est', getESTTests);
+router.get('/tests/sat', getSATTests);
+router.get('/tests/act', getACTTests);
 
 // Dashboard route (protected) - Redirect based on user role
 router.get('/dashboard', isAuthenticated, (req, res) => {

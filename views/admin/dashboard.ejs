@@ -130,8 +130,8 @@
               
               <div class="dashboard-actions">
                 <button class="dashboard-action-btn secondary" onclick="exportDashboardData()">
-                  <i class="fas fa-download"></i>
-                  Export Data
+                  <i class="fas fa-file-excel"></i>
+                  Export Excel Report
                 </button>
               </div>
             </div>
@@ -298,10 +298,6 @@
                     <div class="course-stat-item">
                       <div class="course-stat-value"><%= course.completionRate %>%</div>
                       <div class="course-stat-label">Completion</div>
-                    </div>
-                    <div class="course-stat-item">
-                      <div class="course-stat-value">$<%= course.revenue %></div>
-                      <div class="course-stat-label">Revenue</div>
                     </div>
                   </div>
                 </div>
@@ -544,23 +540,53 @@ function initializeCharts() {
                             '#dc2626',
                             '#f59e0b'
                         ],
-                        borderWidth: 0,
-                        hoverOffset: 4
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        hoverOffset: 8,
+                        hoverBorderWidth: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '60%',
                     plugins: {
                         legend: {
                             position: 'bottom',
                             labels: {
                                 padding: 20,
                                 usePointStyle: true,
+                                pointStyle: 'circle',
                                 font: {
-                                    size: 12
+                                    size: 14,
+                                    weight: '600'
+                                },
+                                color: '#1e293b'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#B80101',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
                                 }
                             }
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 10,
+                            left: 10,
+                            right: 10
                         }
                     }
                 }
@@ -753,43 +779,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Export dashboard data
 function exportDashboardData() {
-    console.log('Exporting dashboard data...');
-    // Show loading state
-    const exportBtn = document.querySelector('.dashboard-action-btn.secondary');
-    if (exportBtn) {
-        const originalText = exportBtn.innerHTML;
-        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
-        exportBtn.disabled = true;
+    try {
+        console.log('Exporting comprehensive dashboard data...');
         
-        // Simulate export
-        setTimeout(() => {
-            // Create CSV data
-            const dashboardData = <%- JSON.stringify(dashboardData) %>;
-            const csvData = [
-                ['Metric', 'Value'],
-                ['Total Students', dashboardData.students.total || 0],
-                ['Active Students', dashboardData.students.active || 0],
-                ['New Students (This Month)', dashboardData.students.newThisMonth || 0],
-                ['Total Courses', dashboardData.courses.total || 0],
-                ['Published Courses', dashboardData.courses.published || 0],
-                ['Total Revenue', dashboardData.revenue.total || 0],
-                ['Monthly Revenue', dashboardData.revenue.monthly || 0],
-                ['Average Order Value', dashboardData.revenue.averageOrderValue || 0]
-            ];
-            
-            const csvContent = csvData.map(row => row.join(',')).join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `elkably-dashboard-${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            // Reset button
-            exportBtn.innerHTML = originalText;
+        // Show loading state
+        const exportBtn = document.querySelector('.dashboard-action-btn.secondary');
+        if (exportBtn) {
+            const originalText = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+            exportBtn.disabled = true;
+
+            // Reset button after a delay
+            setTimeout(() => {
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+            }, 5000);
+        }
+
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = '/admin/export/comprehensive';
+        link.download = `comprehensive-admin-report-${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Error exporting dashboard data:', error);
+        // Reset button on error
+        const exportBtn = document.querySelector('.dashboard-action-btn.secondary');
+        if (exportBtn) {
+            exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> Export Excel Report';
             exportBtn.disabled = false;
-        }, 1500);
+        }
     }
 }
 

@@ -238,20 +238,25 @@ exports.getEditGameRoom = async (req, res) => {
     // Identify which question bank the existing questions belong to
     let selectedBank = null;
     let allQuestionsFromBank = [];
-    
+
     if (gameRoom.questions && gameRoom.questions.length > 0) {
       // Get the bank ID from the first question (assuming all questions are from the same bank)
       const firstQuestion = gameRoom.questions[0];
       if (firstQuestion && firstQuestion.bank) {
         selectedBank = firstQuestion.bank;
-        
+
         // Load all questions from this bank
-        const bankQuestions = await Question.find({ bank: selectedBank, isActive: true })
-          .select('questionText questionType difficulty options tags points createdAt')
+        const bankQuestions = await Question.find({
+          bank: selectedBank,
+          isActive: true,
+        })
+          .select(
+            'questionText questionType difficulty options tags points createdAt'
+          )
           .sort({ createdAt: -1 });
-        
+
         // Map to the format expected by the edit page
-        allQuestionsFromBank = bankQuestions.map(q => ({
+        allQuestionsFromBank = bankQuestions.map((q) => ({
           _id: q._id,
           question: q.questionText,
           questionText: q.questionText,
@@ -259,7 +264,7 @@ exports.getEditGameRoom = async (req, res) => {
           category: Array.isArray(q.tags) && q.tags.length > 0 ? q.tags[0] : '',
           difficulty: q.difficulty || '',
           options: Array.isArray(q.options)
-            ? q.options.map(opt => (opt && opt.text ? opt.text : ''))
+            ? q.options.map((opt) => (opt && opt.text ? opt.text : ''))
             : [],
           points: q.points || 1,
         }));
@@ -267,7 +272,7 @@ exports.getEditGameRoom = async (req, res) => {
     }
 
     // Map existing questions to the format expected by the edit page
-    const questions = gameRoom.questions.map(q => ({
+    const questions = gameRoom.questions.map((q) => ({
       _id: q._id,
       question: q.questionText || q.question,
       questionText: q.questionText || q.question,
@@ -275,7 +280,7 @@ exports.getEditGameRoom = async (req, res) => {
       category: Array.isArray(q.tags) && q.tags.length > 0 ? q.tags[0] : '',
       difficulty: q.difficulty || '',
       options: Array.isArray(q.options)
-        ? q.options.map(opt => (opt && opt.text ? opt.text : ''))
+        ? q.options.map((opt) => (opt && opt.text ? opt.text : ''))
         : [],
       points: q.points || 1,
     }));
@@ -286,9 +291,10 @@ exports.getEditGameRoom = async (req, res) => {
       theme: req.cookies.theme || 'light',
       gameRoom: {
         ...gameRoom.toObject(),
-        selectedBank: selectedBank
+        selectedBank: selectedBank,
       },
-      questions: allQuestionsFromBank.length > 0 ? allQuestionsFromBank : questions,
+      questions:
+        allQuestionsFromBank.length > 0 ? allQuestionsFromBank : questions,
       banks,
       existingQuestions: questions, // Keep reference to original questions for pre-selection
     });
@@ -415,27 +421,37 @@ exports.updateGameRoom = async (req, res) => {
 
 exports.deleteGameRoom = async (req, res) => {
   try {
+    console.log('Attempting to delete/reset game room with ID:', req.params.id);
+
     const gameRoom = await GameRoom.findById(req.params.id);
     if (!gameRoom) {
+      console.log('Game room not found:', req.params.id);
       req.flash('error', 'Game room not found');
       return res.redirect('/admin/game-rooms');
     }
 
+    console.log('Game room found, current state:', gameRoom.gameState);
+
     // Don't allow deleting if game is in progress
     if (gameRoom.gameState === 'playing' || gameRoom.gameState === 'starting') {
+      console.log('Cannot delete game room in state:', gameRoom.gameState);
       req.flash('error', 'Cannot delete game room while game is in progress');
       return res.redirect('/admin/game-rooms');
     }
 
     // Only delete completed sessions, keep the room active
-    await GameSession.deleteMany({
+    const deletedSessions = await GameSession.deleteMany({
       gameRoom: gameRoom._id,
       status: 'completed',
     });
 
+    console.log('Deleted sessions count:', deletedSessions.deletedCount);
+
     // Reset room for new sessions instead of deleting
-    gameRoom.resetForNewSession();
+    const resetResult = gameRoom.resetForNewSession();
     await gameRoom.save();
+
+    console.log('Room reset successfully:', resetResult);
 
     req.flash(
       'success',
@@ -444,7 +460,58 @@ exports.deleteGameRoom = async (req, res) => {
     res.redirect('/admin/game-rooms');
   } catch (error) {
     console.error('Error resetting game room:', error);
-    req.flash('error', 'Failed to reset game room');
+    req.flash('error', 'Failed to reset game room: ' + error.message);
+    res.redirect('/admin/game-rooms');
+  }
+};
+
+// Permanent Delete Game Room
+exports.permanentDeleteGameRoom = async (req, res) => {
+  try {
+    console.log(
+      'Attempting to permanently delete game room with ID:',
+      req.params.id
+    );
+
+    const gameRoom = await GameRoom.findById(req.params.id);
+    if (!gameRoom) {
+      console.log('Game room not found:', req.params.id);
+      req.flash('error', 'Game room not found');
+      return res.redirect('/admin/game-rooms');
+    }
+
+    console.log('Game room found, current state:', gameRoom.gameState);
+
+    // Don't allow deleting if game is in progress
+    if (gameRoom.gameState === 'playing' || gameRoom.gameState === 'starting') {
+      console.log('Cannot delete game room in state:', gameRoom.gameState);
+      req.flash('error', 'Cannot delete game room while game is in progress');
+      return res.redirect('/admin/game-rooms');
+    }
+
+    // Delete all associated game sessions
+    const deletedSessions = await GameSession.deleteMany({
+      gameRoom: gameRoom._id,
+    });
+
+    console.log('Deleted sessions count:', deletedSessions.deletedCount);
+
+    // Permanently delete the game room
+    await GameRoom.findByIdAndDelete(req.params.id);
+
+    console.log('Game room permanently deleted successfully');
+
+    req.flash(
+      'success',
+      `Game room "${gameRoom.title}" has been permanently deleted along with all associated data`
+    );
+    res.redirect('/admin/game-rooms');
+  } catch (error) {
+    console.error('Error permanently deleting game room:', error);
+    req.flash(
+      'error',
+      'Failed to permanently delete game room: ' + error.message
+    );
     res.redirect('/admin/game-rooms');
   }
 };
