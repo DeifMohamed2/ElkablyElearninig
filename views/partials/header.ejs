@@ -171,156 +171,144 @@
         <!-- Auth Actions -->
         <div class="header-auth-actions">
           <% if (locals.user) { %>
-            <!-- Professional User Dropdown -->
-            <div class="professional-user-dropdown" id="professionalUserDropdown">
-              <button class="professional-dropdown-trigger" 
-                      type="button" 
-                      id="professionalDropdownTrigger" 
-                      aria-expanded="false"
-                      aria-haspopup="true"
-                      aria-label="User account menu">
-                <div class="trigger-content">
-                  <div class="user-avatar-container">
-                    <i class="fas fa-user-circle user-avatar-icon"></i>
-                    <div class="avatar-status-indicator"></div>
-                  </div>
-                  <div class="user-info-container">
-                    <span class="user-display-name"><%= user.name %></span>
-                    <span class="user-role-badge">Student</span>
-                  </div>
-                  <div class="dropdown-chevron">
-                    <i class="fas fa-chevron-down"></i>
-                  </div>
+            <!-- Professional Modal-Style User Dropdown -->
+            <div class="modal-dropdown-container">
+              <!-- Trigger Button -->
+              <button class="modal-dropdown-trigger" type="button" id="modalDropdownTrigger" aria-expanded="false">
+                <div class="trigger-avatar">
+                  <i class="fas fa-user-circle"></i>
+                  <div class="avatar-glow"></div>
+                </div>
+                <div class="trigger-info">
+                  <span class="trigger-name"><%= user.name %></span>
+                  <span class="trigger-role">Student</span>
+                </div>
+                <div class="trigger-arrow">
+                  <i class="fas fa-chevron-down"></i>
                 </div>
               </button>
               
-              <!-- Professional Dropdown Menu -->
-              <div class="professional-dropdown-menu" 
-                   id="professionalDropdownMenu" 
-                   role="menu" 
-                   aria-labelledby="professionalDropdownTrigger">
+              <!-- Modal Backdrop -->
+              <div class="modal-dropdown-backdrop" id="modalDropdownBackdrop"></div>
+              
+              <!-- Modal Content -->
+              <div class="modal-dropdown-content" id="modalDropdownContent">
+                <div class="modal-header">
+                  <div class="modal-close-btn" id="modalCloseBtn">
+                    <i class="fas fa-times"></i>
+                  </div>
+                  <div class="modal-title">Account Menu</div>
+                </div>
                 
-                <!-- Mobile Backdrop -->
-                <div class="professional-dropdown-backdrop" id="professionalDropdownBackdrop"></div>
-                
-                <!-- Menu Container -->
-                <div class="dropdown-menu-container">
-                  
-                  <!-- User Header Section -->
-                  <div class="dropdown-user-header">
-                    <div class="user-header-avatar">
+                <div class="modal-body">
+                  <!-- User Info Section -->
+                  <div class="user-profile-section">
+                    <div class="profile-avatar">
                       <i class="fas fa-user-circle"></i>
+                      <div class="profile-status"></div>
                     </div>
-                    <div class="user-header-info">
-                      <div class="user-header-name"><%= user.name %></div>
-                      <div class="user-header-email"><%= user.email %></div>
-                      <div class="user-header-status">
-                        <span class="status-indicator active"></span>
-                        <span class="status-text">Online</span>
+                    <div class="profile-info">
+                      <div class="profile-name"><%= user.name %></div>
+                      <div class="profile-email"><%= user.email %></div>
+                      <div class="profile-badge">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Student Account</span>
                       </div>
                     </div>
                   </div>
                   
-                  <!-- Menu Divider -->
-                  <div class="dropdown-menu-divider"></div>
-                  
-                  <!-- Navigation Items -->
-                  <div class="dropdown-navigation-items">
-                    <a class="dropdown-nav-item" href="/dashboard" role="menuitem">
-                      <div class="nav-item-icon">
+                  <!-- Navigation Menu -->
+                  <div class="modal-navigation">
+                    <a href="/dashboard" class="modal-nav-item">
+                      <div class="nav-icon">
                         <i class="fas fa-tachometer-alt"></i>
                       </div>
-                      <div class="nav-item-content">
-                        <span class="nav-item-title">Dashboard</span>
-                        <span class="nav-item-subtitle">View your progress</span>
+                      <div class="nav-content">
+                        <span class="nav-title">Dashboard</span>
+                        <span class="nav-subtitle">View your progress</span>
                       </div>
-                      <div class="nav-item-arrow">
+                      <div class="nav-arrow">
                         <i class="fas fa-chevron-right"></i>
                       </div>
                     </a>
                     
-                    <a class="dropdown-nav-item" href="/profile" role="menuitem">
-                      <div class="nav-item-icon">
+                    <a href="/profile" class="modal-nav-item">
+                      <div class="nav-icon">
                         <i class="fas fa-user-edit"></i>
                       </div>
-                      <div class="nav-item-content">
-                        <span class="nav-item-title">Profile</span>
-                        <span class="nav-item-subtitle">Manage your account</span>
+                      <div class="nav-content">
+                        <span class="nav-title">Profile</span>
+                        <span class="nav-subtitle">Manage your account</span>
                       </div>
-                      <div class="nav-item-arrow">
+                      <div class="nav-arrow">
                         <i class="fas fa-chevron-right"></i>
                       </div>
                     </a>
                     
-                    <a class="dropdown-nav-item" href="/enrolled-courses" role="menuitem">
-                      <div class="nav-item-icon">
+                    <a href="/enrolled-courses" class="modal-nav-item">
+                      <div class="nav-icon">
                         <i class="fas fa-graduation-cap"></i>
                       </div>
-                      <div class="nav-item-content">
-                        <span class="nav-item-title">My Courses</span>
-                        <span class="nav-item-subtitle">Continue learning</span>
+                      <div class="nav-content">
+                        <span class="nav-title">My Courses</span>
+                        <span class="nav-subtitle">Continue learning</span>
                       </div>
-                      <div class="nav-item-arrow">
+                      <div class="nav-arrow">
                         <i class="fas fa-chevron-right"></i>
                       </div>
                     </a>
                     
-                    <a class="dropdown-nav-item" href="/quizzes" role="menuitem">
-                      <div class="nav-item-icon">
+                    <a href="/quizzes" class="modal-nav-item">
+                      <div class="nav-icon">
                         <i class="fas fa-clipboard-check"></i>
                       </div>
-                      <div class="nav-item-content">
-                        <span class="nav-item-title">Quizzes</span>
-                        <span class="nav-item-subtitle">Test your knowledge</span>
+                      <div class="nav-content">
+                        <span class="nav-title">Quizzes</span>
+                        <span class="nav-subtitle">Test your knowledge</span>
                       </div>
-                      <div class="nav-item-arrow">
+                      <div class="nav-arrow">
                         <i class="fas fa-chevron-right"></i>
                       </div>
                     </a>
                     
-                    <a class="dropdown-nav-item" href="/wishlist" role="menuitem">
-                      <div class="nav-item-icon">
+                    <a href="/wishlist" class="modal-nav-item">
+                      <div class="nav-icon">
                         <i class="fas fa-heart"></i>
                       </div>
-                      <div class="nav-item-content">
-                        <span class="nav-item-title">Wishlist</span>
-                        <span class="nav-item-subtitle">Saved courses</span>
+                      <div class="nav-content">
+                        <span class="nav-title">Wishlist</span>
+                        <span class="nav-subtitle">Saved courses</span>
                       </div>
-                      <div class="nav-item-arrow">
+                      <div class="nav-arrow">
                         <i class="fas fa-chevron-right"></i>
                       </div>
                     </a>
                     
-                    <a class="dropdown-nav-item" href="/settings" role="menuitem">
-                      <div class="nav-item-icon">
+                    <a href="/settings" class="modal-nav-item">
+                      <div class="nav-icon">
                         <i class="fas fa-cog"></i>
                       </div>
-                      <div class="nav-item-content">
-                        <span class="nav-item-title">Settings</span>
-                        <span class="nav-item-subtitle">Preferences</span>
+                      <div class="nav-content">
+                        <span class="nav-title">Settings</span>
+                        <span class="nav-subtitle">Preferences & privacy</span>
                       </div>
-                      <div class="nav-item-arrow">
+                      <div class="nav-arrow">
                         <i class="fas fa-chevron-right"></i>
                       </div>
                     </a>
                   </div>
-                  
-                  <!-- Menu Divider -->
-                  <div class="dropdown-menu-divider"></div>
-                  
-                  <!-- Logout Section -->
-                  <div class="dropdown-logout-section">
-                    <a class="dropdown-logout-item" href="/auth/logout" role="menuitem">
-                      <div class="logout-item-icon">
-                        <i class="fas fa-sign-out-alt"></i>
-                      </div>
-                      <div class="logout-item-content">
-                        <span class="logout-item-title">Sign Out</span>
-                        <span class="logout-item-subtitle">Log out of your account</span>
-                      </div>
-                    </a>
-                  </div>
-                  
+                </div>
+                
+                <div class="modal-footer">
+                  <a href="/auth/logout" class="modal-logout-btn">
+                    <div class="logout-icon">
+                      <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <span>Logout</span>
+                    <div class="logout-indicator">
+                      <i class="fas fa-external-link-alt"></i>
+                    </div>
+                  </a>
                 </div>
               </div>
             </div>
@@ -462,246 +450,178 @@
   <!-- Advanced Header JavaScript -->
   <script src="/js/advanced-header.js" defer></script>
   
-  <!-- PROFESSIONAL DROPDOWN - BULLETPROOF SOLUTION -->
-  <script>
-    // Professional dropdown with guaranteed z-index fix
-    class ProfessionalDropdown {
-      constructor() {
-        this.trigger = document.getElementById('professionalDropdownTrigger');
-        this.menu = document.getElementById('professionalDropdownMenu');
-        this.backdrop = document.getElementById('professionalDropdownBackdrop');
-        this.isOpen = false;
-        this.init();
+    <!-- Professional Modal Dropdown System -->
+    <script>
+      class ModalDropdown {
+        constructor() {
+          this.trigger = document.getElementById('modalDropdownTrigger');
+          this.backdrop = document.getElementById('modalDropdownBackdrop');
+          this.modal = document.getElementById('modalDropdownContent');
+          this.closeBtn = document.getElementById('modalCloseBtn');
+          this.isOpen = false;
+          
+          this.init();
+        }
+        
+        init() {
+          if (!this.trigger || !this.modal) {
+            console.warn('Modal dropdown elements not found');
+            return;
+          }
+          
+          this.bindEvents();
+          console.log('Modal dropdown initialized successfully');
+        }
+        
+        bindEvents() {
+          // Trigger click
+          this.trigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggle();
+          });
+          
+          // Close button
+          if (this.closeBtn) {
+            this.closeBtn.addEventListener('click', () => {
+              this.close();
+            });
+          }
+          
+          // Backdrop click
+          if (this.backdrop) {
+            this.backdrop.addEventListener('click', () => {
+              this.close();
+            });
+          }
+          
+          // Escape key
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) {
+              this.close();
+            }
+          });
+          
+          // Prevent modal clicks from closing
+          if (this.modal) {
+            this.modal.addEventListener('click', (e) => {
+              e.stopPropagation();
+            });
+          }
+        }
+        
+        toggle() {
+          if (this.isOpen) {
+            this.close();
+          } else {
+            this.open();
+          }
+        }
+        
+        open() {
+          if (this.isOpen) return;
+          
+          this.isOpen = true;
+          
+          // Add active class to trigger
+          this.trigger.classList.add('active');
+          this.trigger.setAttribute('aria-expanded', 'true');
+          
+          // Show backdrop
+          if (this.backdrop) {
+            this.backdrop.style.display = 'block';
+            this.backdrop.style.opacity = '0';
+            requestAnimationFrame(() => {
+              this.backdrop.style.opacity = '1';
+            });
+          }
+          
+          // Show modal
+          this.modal.style.display = 'flex';
+          this.modal.style.opacity = '0';
+          this.modal.style.transform = 'translateY(50px) scale(0.9)';
+          
+          // Force reflow
+          this.modal.offsetHeight;
+          
+          // Animate in
+          requestAnimationFrame(() => {
+            this.modal.style.opacity = '1';
+            this.modal.style.transform = 'translateY(0) scale(1)';
+          });
+          
+          // Prevent body scroll
+          document.body.style.overflow = 'hidden';
+          document.body.classList.add('modal-open');
+          
+          console.log('Modal dropdown opened successfully');
+        }
+        
+        close() {
+          if (!this.isOpen) return;
+          
+          this.isOpen = false;
+          
+          // Remove active class
+          this.trigger.classList.remove('active');
+          this.trigger.setAttribute('aria-expanded', 'false');
+          
+          // Animate out
+          this.modal.style.opacity = '0';
+          this.modal.style.transform = 'translateY(50px) scale(0.9)';
+          
+          // Hide backdrop
+          if (this.backdrop) {
+            this.backdrop.style.opacity = '0';
+          }
+          
+          // Hide elements after animation
+          setTimeout(() => {
+            this.modal.style.display = 'none';
+            if (this.backdrop) {
+              this.backdrop.style.display = 'none';
+            }
+          }, 300);
+          
+          // Restore body scroll
+          document.body.style.overflow = '';
+          document.body.classList.remove('modal-open');
+          
+          console.log('Modal dropdown closed successfully');
+        }
       }
       
-      init() {
-        if (!this.trigger || !this.menu) {
-          console.warn('Professional dropdown elements not found');
+      // Initialize modal dropdown when DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+          new ModalDropdown();
+        }, 100);
+      });
+      
+      // Test function to verify elements exist
+      function testModalElements() {
+        console.log('Testing modal dropdown elements...');
+        const trigger = document.getElementById('modalDropdownTrigger');
+        const modal = document.getElementById('modalDropdownContent');
+        const backdrop = document.getElementById('modalDropdownBackdrop');
+        
+        console.log('Trigger element:', trigger);
+        console.log('Modal element:', modal);
+        console.log('Backdrop element:', backdrop);
+        
+        if (!trigger || !modal) {
+          console.log('Modal dropdown elements not found - user may not be authenticated');
           return;
         }
         
-        this.bindEvents();
-        this.forceMaximumZIndex();
-        console.log('Professional dropdown initialized successfully');
+        console.log('Modal dropdown elements found and ready');
       }
       
-      bindEvents() {
-        // Trigger click
-        this.trigger.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.toggle();
-        });
-        
-        // Backdrop click
-        if (this.backdrop) {
-          this.backdrop.addEventListener('click', () => {
-            this.close();
-          });
-        }
-        
-        // Escape key
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && this.isOpen) {
-            this.close();
-          }
-        });
-        
-        // Click outside
-        document.addEventListener('click', (e) => {
-          if (this.isOpen && !this.menu.contains(e.target) && !this.trigger.contains(e.target)) {
-            this.close();
-          }
-        });
-        
-        // Window resize
-        window.addEventListener('resize', () => {
-          if (this.isOpen) {
-            this.adjustPosition();
-          }
-        });
-      }
-      
-      toggle() {
-        if (this.isOpen) {
-          this.close();
-        } else {
-          this.open();
-        }
-      }
-      
-      open() {
-        if (this.isOpen) return;
-        
-        this.isOpen = true;
-        
-        // Force maximum z-index immediately
-        this.forceMaximumZIndex();
-        
-        // Add active class to trigger
-        this.trigger.classList.add('active');
-        this.trigger.setAttribute('aria-expanded', 'true');
-        
-        // Show backdrop
-        if (this.backdrop) {
-          this.backdrop.style.display = 'block';
-          this.backdrop.style.opacity = '0';
-          requestAnimationFrame(() => {
-            this.backdrop.classList.add('show');
-          });
-        }
-        
-        // Show menu with animation
-        this.menu.style.display = 'block';
-        this.menu.style.opacity = '0';
-        this.menu.style.transform = 'translateX(-50%) translateY(-20px) scale(0.95)';
-        this.menu.style.visibility = 'visible';
-        this.menu.style.pointerEvents = 'none';
-        
-        // Force reflow
-        this.menu.offsetHeight;
-        
-        // Animate in
-        requestAnimationFrame(() => {
-          this.menu.classList.add('show');
-          this.menu.style.opacity = '1';
-          this.menu.style.transform = 'translateX(-50%) translateY(0) scale(1)';
-          this.menu.style.pointerEvents = 'auto';
-          
-          // Force z-index again after animation
-          this.forceMaximumZIndex();
-        });
-        
-        // Prevent body scroll on mobile
-        if (window.innerWidth <= 768) {
-          document.body.style.overflow = 'hidden';
-        }
-        
-        // Adjust position
-        this.adjustPosition();
-        
-        console.log('Professional dropdown opened with maximum z-index');
-      }
-      
-      close() {
-        if (!this.isOpen) return;
-        
-        this.isOpen = false;
-        
-        // Remove active class
-        this.trigger.classList.remove('active');
-        this.trigger.setAttribute('aria-expanded', 'false');
-        
-        // Hide backdrop
-        if (this.backdrop) {
-          this.backdrop.classList.remove('show');
-          setTimeout(() => {
-            this.backdrop.style.display = 'none';
-          }, 300);
-        }
-        
-        // Hide menu with animation
-        this.menu.classList.remove('show');
-        this.menu.style.opacity = '0';
-        this.menu.style.transform = 'translateX(-50%) translateY(-20px) scale(0.95)';
-        this.menu.style.pointerEvents = 'none';
-        
-        // Remove from DOM after animation
-        setTimeout(() => {
-          this.menu.style.display = 'none';
-          this.menu.style.visibility = 'hidden';
-        }, 400);
-        
-        // Restore body scroll
-        document.body.style.overflow = '';
-        
-        console.log('Professional dropdown closed successfully');
-      }
-      
-      adjustPosition() {
-        // Adjust position based on screen size
-        if (window.innerWidth <= 768) {
-          this.menu.style.left = '10px';
-          this.menu.style.right = '10px';
-          this.menu.style.transform = 'translateX(0) translateY(-20px) scale(0.95)';
-          
-          if (this.isOpen) {
-            this.menu.style.transform = 'translateX(0) translateY(0) scale(1)';
-          }
-        } else {
-          this.menu.style.left = '50%';
-          this.menu.style.right = 'auto';
-          this.menu.style.transform = 'translateX(-50%) translateY(-20px) scale(0.95)';
-          
-          if (this.isOpen) {
-            this.menu.style.transform = 'translateX(-50%) translateY(0) scale(1)';
-          }
-        }
-      }
-      
-      forceMaximumZIndex() {
-        // Nuclear option - force maximum possible z-index
-        const maxZIndex = 2147483647;
-        
-        // Force z-index on all elements
-        [this.menu, this.backdrop, this.trigger].forEach(element => {
-          if (element) {
-            element.style.setProperty('z-index', maxZIndex.toString(), 'important');
-            element.style.setProperty('position', 'fixed', 'important');
-          }
-        });
-        
-        // Force on parent container
-        const container = this.trigger.closest('.professional-user-dropdown');
-        if (container) {
-          container.style.setProperty('z-index', maxZIndex.toString(), 'important');
-        }
-        
-        // Override any content sections
-        const contentSections = document.querySelectorAll([
-          '.hero-section',
-          '.content-card',
-          '.main-content',
-          '.section',
-          '[class*="hero"]',
-          '[class*="content"]',
-          '[class*="card"]',
-          '[class*="section"]'
-        ].join(', '));
-        
-        contentSections.forEach(section => {
-          section.style.setProperty('z-index', 'auto', 'important');
-        });
-        
-        // Multiple attempts to ensure z-index is applied
-        setTimeout(() => this.applyZIndexForce(), 10);
-        setTimeout(() => this.applyZIndexForce(), 50);
-        setTimeout(() => this.applyZIndexForce(), 100);
-      }
-      
-      applyZIndexForce() {
-        const maxZIndex = 2147483647;
-        
-        if (this.menu) {
-          this.menu.style.setProperty('z-index', maxZIndex.toString(), 'important');
-          this.menu.style.setProperty('position', 'fixed', 'important');
-        }
-        
-        if (this.backdrop) {
-          this.backdrop.style.setProperty('z-index', (maxZIndex - 1).toString(), 'important');
-          this.backdrop.style.setProperty('position', 'fixed', 'important');
-        }
-      }
-    }
-    
-    // Initialize professional dropdown when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      // Wait a bit to ensure all elements are rendered
-      setTimeout(() => {
-        new ProfessionalDropdown();
-      }, 100);
-    });
-  </script>
+      // Run test when DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(testModalElements, 1000);
+      });
+    </script>
 
   <!-- Cart Data -->
   <script>
@@ -1458,617 +1378,6 @@ function removeFromCartSidebar(itemId, itemType) {
     .btn-cart-checkout:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-    }
-
-    /* Professional User Dropdown Styles */
-    .professional-user-dropdown {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .professional-dropdown-trigger {
-      display: flex;
-      align-items: center;
-      background: transparent;
-      border: none;
-      padding: 0.75rem 1rem;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      outline: none;
-      min-height: 48px;
-    }
-
-    .professional-dropdown-trigger:hover {
-      background: rgba(255, 255, 255, 0.1);
-      transform: translateY(-1px);
-    }
-
-    .professional-dropdown-trigger:focus {
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-    }
-
-    .trigger-content {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .user-avatar-container {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .user-avatar-icon {
-      font-size: 2rem;
-      color: #3b82f6;
-      transition: all 0.3s ease;
-    }
-
-    .avatar-status-indicator {
-      position: absolute;
-      bottom: 2px;
-      right: 2px;
-      width: 8px;
-      height: 8px;
-      background: #10b981;
-      border: 2px solid white;
-      border-radius: 50%;
-      animation: statusPulse 2s infinite;
-    }
-
-    @keyframes statusPulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-
-    .user-info-container {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      min-width: 0;
-    }
-
-    .user-display-name {
-      font-weight: 600;
-      color: #1f2937;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 120px;
-    }
-
-    .user-role-badge {
-      font-size: 0.75rem;
-      color: #6b7280;
-      font-weight: 500;
-      background: rgba(59, 130, 246, 0.1);
-      padding: 0.125rem 0.5rem;
-      border-radius: 6px;
-      margin-top: 0.125rem;
-    }
-
-    .dropdown-chevron {
-      display: flex;
-      align-items: center;
-      transition: transform 0.3s ease;
-    }
-
-    .dropdown-chevron i {
-      font-size: 0.8rem;
-      color: #6b7280;
-    }
-
-    .dropdown-open .dropdown-chevron {
-      transform: rotate(180deg);
-    }
-
-    /* Professional Dropdown Menu */
-    .professional-dropdown-menu {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 320px;
-      max-height: 90vh;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      z-index: 999999;
-      display: none;
-      opacity: 0;
-      transform: translateY(-20px) scale(0.95);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(20px);
-      overflow: hidden;
-    }
-
-    .professional-dropdown-menu.menu-visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .professional-dropdown-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      z-index: 999998;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(4px);
-    }
-
-    .professional-dropdown-backdrop.backdrop-visible {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .dropdown-menu-container {
-      padding: 1rem;
-      max-height: 90vh;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: #e5e7eb #f9fafb;
-    }
-
-    .dropdown-menu-container::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .dropdown-menu-container::-webkit-scrollbar-track {
-      background: #f9fafb;
-      border-radius: 3px;
-    }
-
-    .dropdown-menu-container::-webkit-scrollbar-thumb {
-      background: #e5e7eb;
-      border-radius: 3px;
-    }
-
-    .dropdown-menu-container::-webkit-scrollbar-thumb:hover {
-      background: #d1d5db;
-    }
-
-    /* User Header */
-    .dropdown-user-header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      border-radius: 12px;
-      margin-bottom: 1rem;
-    }
-
-    .user-header-avatar {
-      font-size: 3rem;
-      color: #3b82f6;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .user-header-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .user-header-name {
-      font-weight: 700;
-      color: #1f2937;
-      font-size: 1.1rem;
-      margin-bottom: 0.25rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .user-header-email {
-      color: #6b7280;
-      font-size: 0.85rem;
-      margin-bottom: 0.5rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .user-header-status {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .status-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10b981;
-      animation: statusPulse 2s infinite;
-    }
-
-    .status-text {
-      font-size: 0.75rem;
-      color: #10b981;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* Menu Divider */
-    .dropdown-menu-divider {
-      height: 1px;
-      background: linear-gradient(to right, transparent, #e5e7eb, transparent);
-      margin: 1rem 0;
-    }
-
-    /* Navigation Items */
-    .dropdown-navigation-items {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-
-    .dropdown-nav-item {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      border-radius: 10px;
-      color: #374151;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .dropdown-nav-item:hover {
-      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-      color: #1f2937;
-      transform: translateX(4px);
-      text-decoration: none;
-    }
-
-    .dropdown-nav-item:focus {
-      outline: none;
-      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-      color: #1e40af;
-    }
-
-    .nav-item-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      border-radius: 10px;
-      color: #3b82f6;
-      font-size: 1rem;
-      flex-shrink: 0;
-      transition: all 0.2s ease;
-    }
-
-    .dropdown-nav-item:hover .nav-item-icon {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-      transform: scale(1.05);
-    }
-
-    .nav-item-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .nav-item-title {
-      font-weight: 600;
-      font-size: 0.9rem;
-      display: block;
-      margin-bottom: 0.125rem;
-    }
-
-    .nav-item-subtitle {
-      font-size: 0.75rem;
-      color: #6b7280;
-      display: block;
-    }
-
-    .nav-item-arrow {
-      color: #9ca3af;
-      font-size: 0.8rem;
-      transition: all 0.2s ease;
-      opacity: 0;
-      transform: translateX(-10px);
-    }
-
-    .dropdown-nav-item:hover .nav-item-arrow {
-      opacity: 1;
-      transform: translateX(0);
-      color: #3b82f6;
-    }
-
-    /* Logout Section */
-    .dropdown-logout-section {
-      margin-top: 0.5rem;
-    }
-
-    .dropdown-logout-item {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      border-radius: 10px;
-      color: #dc2626;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-      border: 1px solid #fecaca;
-    }
-
-    .dropdown-logout-item:hover {
-      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-      color: white;
-      text-decoration: none;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
-    }
-
-    .logout-item-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      background: rgba(220, 38, 38, 0.1);
-      border-radius: 10px;
-      color: #dc2626;
-      font-size: 1rem;
-      flex-shrink: 0;
-      transition: all 0.2s ease;
-    }
-
-    .dropdown-logout-item:hover .logout-item-icon {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-    }
-
-    .logout-item-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .logout-item-title {
-      font-weight: 600;
-      font-size: 0.9rem;
-      display: block;
-      margin-bottom: 0.125rem;
-    }
-
-    .logout-item-subtitle {
-      font-size: 0.75rem;
-      opacity: 0.8;
-      display: block;
-    }
-
-    /* Dark Theme Support */
-    .dark-theme .professional-dropdown-trigger:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .dark-theme .user-display-name {
-      color: #f9fafb;
-    }
-
-    .dark-theme .user-role-badge {
-      background: rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
-    }
-
-    .dark-theme .professional-dropdown-menu {
-      background: #1f2937;
-      border-color: #374151;
-    }
-
-    .dark-theme .dropdown-user-header {
-      background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-    }
-
-    .dark-theme .user-header-name {
-      color: #f9fafb;
-    }
-
-    .dark-theme .user-header-email {
-      color: #9ca3af;
-    }
-
-    .dark-theme .dropdown-menu-divider {
-      background: linear-gradient(to right, transparent, #4b5563, transparent);
-    }
-
-    .dark-theme .dropdown-nav-item {
-      color: #d1d5db;
-    }
-
-    .dark-theme .dropdown-nav-item:hover {
-      background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-      color: #f9fafb;
-    }
-
-    .dark-theme .dropdown-nav-item:focus {
-      background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
-      color: #dbeafe;
-    }
-
-    .dark-theme .nav-item-icon {
-      background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-      color: #60a5fa;
-    }
-
-    .dark-theme .dropdown-nav-item:hover .nav-item-icon {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-    }
-
-    .dark-theme .nav-item-subtitle {
-      color: #9ca3af;
-    }
-
-    .dark-theme .dropdown-logout-item {
-      background: linear-gradient(135deg, #431c1c 0%, #5b2121 100%);
-      border-color: #7c2d2d;
-      color: #fca5a5;
-    }
-
-    .dark-theme .dropdown-logout-item:hover {
-      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-      color: white;
-    }
-
-    .dark-theme .logout-item-icon {
-      background: rgba(220, 38, 38, 0.2);
-      color: #fca5a5;
-    }
-
-    /* Mobile Responsive Styles */
-    @media (max-width: 768px) {
-      .professional-dropdown-trigger {
-        padding: 0.5rem 0.75rem;
-        min-height: 44px;
-      }
-
-      .trigger-content {
-        gap: 0.5rem;
-      }
-
-      .user-info-container {
-        display: none;
-      }
-
-      .professional-dropdown-menu {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        max-height: 100vh !important;
-        border-radius: 0 !important;
-        transform: translateY(100%) !important;
-      }
-
-      .professional-dropdown-menu.menu-visible {
-        transform: translateY(0) !important;
-      }
-
-      .dropdown-menu-container {
-        padding: 1.5rem 1rem;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .dropdown-user-header {
-        margin-bottom: 1.5rem;
-        padding: 1.5rem;
-      }
-
-      .dropdown-navigation-items {
-        flex: 1;
-        gap: 0.5rem;
-      }
-
-      .dropdown-nav-item {
-        padding: 1.25rem;
-        font-size: 1rem;
-      }
-
-      .nav-item-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 1.2rem;
-      }
-
-      .nav-item-title {
-        font-size: 1rem;
-      }
-
-      .nav-item-subtitle {
-        font-size: 0.85rem;
-      }
-
-      .dropdown-logout-item {
-        padding: 1.25rem;
-        margin-top: 1rem;
-      }
-
-      .logout-item-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 1.2rem;
-      }
-
-      /* Prevent body scroll when dropdown is open */
-      body.professional-dropdown-active {
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-      }
-    }
-
-    /* Extra small devices */
-    @media (max-width: 480px) {
-      .user-avatar-icon {
-        font-size: 1.75rem;
-      }
-
-      .dropdown-menu-container {
-        padding: 1rem 0.75rem;
-      }
-
-      .dropdown-user-header {
-        padding: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .user-header-avatar {
-        font-size: 2.5rem;
-      }
-
-      .dropdown-nav-item,
-      .dropdown-logout-item {
-        padding: 1rem;
-      }
-    }
-
-    /* High contrast mode support */
-    @media (prefers-contrast: high) {
-      .professional-dropdown-menu {
-        border: 2px solid;
-      }
-
-      .dropdown-nav-item:focus {
-        outline: 2px solid;
-      }
-    }
-
-    /* Reduced motion support */
-    @media (prefers-reduced-motion: reduce) {
-      .professional-dropdown-menu,
-      .dropdown-chevron,
-      .nav-item-icon,
-      .nav-item-arrow,
-      .avatar-status-indicator,
-      .status-indicator {
-        transition: none;
-        animation: none;
-      }
     }
   </style>
 
