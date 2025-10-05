@@ -5,7 +5,7 @@
 
 class ThemeManager {
   constructor() {
-    this.currentTheme = this.getStoredTheme() || 'dark';
+    this.currentTheme = this.getStoredTheme() || 'light';
     this.init();
   }
 
@@ -19,7 +19,7 @@ class ThemeManager {
     // Listen for storage changes (for cross-tab sync)
     window.addEventListener('storage', (e) => {
       if (e.key === 'theme') {
-        this.currentTheme = e.newValue || 'dark';
+        this.currentTheme = e.newValue || 'light';
         this.applyTheme(this.currentTheme);
       }
     });
