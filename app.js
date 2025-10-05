@@ -202,7 +202,7 @@ console.log('Socket.IO initialized', io.engine.clientsCount);
 
 
 // Start server
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4091;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Socket.IO enabled for real-time game functionality`);
