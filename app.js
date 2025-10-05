@@ -96,11 +96,11 @@ app.use(cookieParser());
 app.use(methodOverride('_method'));
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'mr-mohrr7am-secret',
+    secret: process.env.SESSION_SECRET || 'elkably-secret',
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/Elkably-Elearning',
+      mongoUrl: 'mongodb+srv://deif:1qaz2wsx@3devway.aa4i6ga.mongodb.net/Elkably-Elearning?retryWrites=true&w=majority&appName=Cluster0',
       touchAfter: 24 * 3600, // lazy session update - only touch the session if it's been more than 24 hours
       ttl: 7 * 24 * 60 * 60, // 7 days session expiration
     }),
