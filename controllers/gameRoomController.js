@@ -439,13 +439,15 @@ exports.deleteGameRoom = async (req, res) => {
       return res.redirect('/admin/game-rooms');
     }
 
-    // Only delete completed sessions, keep the room active
+    // Delete ALL sessions associated with this room to ensure clean start
     const deletedSessions = await GameSession.deleteMany({
       gameRoom: gameRoom._id,
-      status: 'completed',
     });
 
-    console.log('Deleted sessions count:', deletedSessions.deletedCount);
+    console.log('Deleted all sessions count:', deletedSessions.deletedCount);
+
+    // Also clean up the activeSessions array in the room
+    gameRoom.activeSessions = [];
 
     // Reset room for new sessions instead of deleting
     const resetResult = gameRoom.resetForNewSession();
