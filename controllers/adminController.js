@@ -383,7 +383,6 @@ const getCourses = async (req, res) => {
   try {
     const {
       status,
-      year,
       level,
       bundle,
       search,
@@ -400,9 +399,7 @@ const getCourses = async (req, res) => {
       filter.status = status;
     }
 
-    if (year) {
-      filter.year = year;
-    }
+    
 
     if (level) {
       filter.level = level;
@@ -452,15 +449,7 @@ const getCourses = async (req, res) => {
       courses,
       stats,
       filterOptions,
-      currentFilters: {
-        status,
-        year,
-        level,
-        bundle,
-        search,
-        sortBy,
-        sortOrder,
-      },
+      currentFilters: { status, level, bundle, search, sortBy, sortOrder },
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -513,7 +502,7 @@ const createCourse = async (req, res) => {
       description: description.trim(),
       shortDescription: shortDescription.trim(),
       level,
-      year: bundle.year, // Use bundle's year
+      year, // Use provided year when creating course
       category: category.trim(),
       duration: parseInt(duration),
       price: parseFloat(price),
@@ -866,7 +855,6 @@ const getCourseData = async (req, res) => {
               _id: course.bundle._id,
               title: course.bundle.title,
               bundleCode: course.bundle.bundleCode,
-              year: course.bundle.year,
             }
           : null,
       },
@@ -3314,11 +3302,10 @@ const addHomeworkContent = async (req, res) => {
 // Bundle Course Management
 const getBundles = async (req, res) => {
   try {
-    const { status, year, subject, search, page = 1, limit = 12 } = req.query;
+    const { status, subject, search, page = 1, limit = 12 } = req.query;
 
     const filter = {};
     if (status && status !== 'all') filter.status = status;
-    if (year) filter.year = year;
     if (subject) filter.subject = subject;
     if (search) {
       filter.$or = [
@@ -3349,7 +3336,7 @@ const getBundles = async (req, res) => {
       bundles,
       stats,
       filterOptions,
-      currentFilters: { status, year, subject, search },
+      currentFilters: { status, subject, search },
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -3372,7 +3359,6 @@ const createBundle = async (req, res) => {
       title,
       description,
       shortDescription,
-      year,
       subject,
       testType,
       price,
@@ -3384,7 +3370,6 @@ const createBundle = async (req, res) => {
     console.log('Creating bundle with data:', {
       title,
       thumbnail,
-      year,
       subject,
     });
 
@@ -3392,7 +3377,6 @@ const createBundle = async (req, res) => {
       title: title.trim(),
       description: description.trim(),
       shortDescription: shortDescription.trim(),
-      year,
       subject,
       testType,
       price: parseFloat(price),
@@ -3406,7 +3390,6 @@ const createBundle = async (req, res) => {
     console.log('Bundle object before save:', {
       title: bundle.title,
       thumbnail: bundle.thumbnail,
-      year: bundle.year,
     });
 
     await bundle.save();
@@ -3452,9 +3435,8 @@ const getBundleManage = async (req, res) => {
       return res.redirect('/admin/bundles');
     }
 
-    // Get available courses for this year
+    // Get available courses (no year filter)
     const availableCourses = await Course.find({
-      year: bundle.year,
       status: 'published',
     }).sort({ title: 1 });
 
@@ -3555,7 +3537,7 @@ const createCourseForBundle = async (req, res) => {
       return res.redirect('/admin/bundles');
     }
 
-    // Create new course with bundle's year
+    // Create new course without year coupling
     const course = new Course({
       title: title.trim(),
       description: description.trim(),
@@ -3563,12 +3545,12 @@ const createCourseForBundle = async (req, res) => {
       level,
       courseType,
       subject,
-      year: bundle.year, // Use bundle's year
       category: category.trim(),
       duration: parseInt(duration),
       price: parseFloat(price),
       status,
       createdBy: req.session.user.id,
+      bundle: bundle._id,
     });
 
     await course.save();
@@ -3593,7 +3575,7 @@ const createCourseForBundle = async (req, res) => {
 const getBundlesAPI = async (req, res) => {
   try {
     const bundles = await BundleCourse.find({ status: { $ne: 'archived' } })
-      .select('_id title bundleCode year')
+      .select('_id title bundleCode')
       .sort({ title: 1 });
 
     res.json(bundles);
@@ -3643,10 +3625,10 @@ const getBundleStats = async () => {
 };
 
 const getFilterOptions = async () => {
-  const years = await Course.distinct('year');
+  const years = []; // year removed from Course
   const levels = await Course.distinct('level');
   const bundles = await BundleCourse.find({ status: { $ne: 'archived' } })
-    .select('_id title bundleCode year')
+    .select('_id title bundleCode')
     .sort({ title: 1 });
 
   return { years, levels, bundles };
@@ -3660,7 +3642,6 @@ const updateBundle = async (req, res) => {
       title,
       description,
       shortDescription,
-      year,
       testType,
       subject,
       price,
@@ -3689,7 +3670,6 @@ const updateBundle = async (req, res) => {
     bundle.title = title.trim();
     bundle.description = description.trim();
     bundle.shortDescription = shortDescription.trim();
-    bundle.year = year;
     bundle.testType = testType;
     bundle.subject = subject.trim();
     bundle.price = parseFloat(price);

@@ -34,11 +34,6 @@ const CourseSchema = new mongoose.Schema(
       enum: ['Beginner', 'Intermediate', 'Advanced'],
       required: true,
     },
-    year: {
-      type: String,
-      required: true,
-      enum: ['Grade 10', 'Grade 11', 'Grade 12'],
-    },
     category: {
       type: String,
       required: true,

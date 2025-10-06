@@ -124,7 +124,7 @@
             <!-- Enhanced Call to Action Buttons -->
             <div class="hero-cta-enhanced mt-4" data-aos="fade-up" data-aos-delay="800">
               <a href="/auth/login" class="btn-primary-mathematical">
-                <span class="btn-text">Start Learning</span>
+                <span class="btn-text">Login</span>
                 <div class="btn-mathematical-accent">∑</div>
                 <div class="btn-glow-wave"></div>
               </a>
@@ -1921,29 +1921,29 @@ document.addEventListener('DOMContentLoaded', function() {
     government: {
       name: 'Government University',
       arabicName: 'جامعة حكومية',
-      est1Min: 1050,
-      est2Min: 1100,
-      bonusThreshold: 1090,
-      bonusPercentage: 9,
-      rules: 'EST1: ≥ 1050, EST2: ≥ 1100, Bonus: 9% if EST1 ≥ 1090'
+      est1Min: 0,
+      est2Min: 0,
+      bonusThreshold: null,
+      bonusPercentage: 0,
+      rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ × (69/1600). EST2 (optional): × (15/1600). GPA is added as is.'
     },
     private: {
       name: 'Private University',
       arabicName: 'جامعة خاصة',
-      est1Min: 800,
-      est2Min: 900,
-      bonusThreshold: 1090,
-      bonusPercentage: 15,
-      rules: 'EST1: ≥ 800, EST2: ≥ 900, Bonus: 15% if EST1 ≥ 1090'
+      est1Min: 0,
+      est2Min: 0,
+      bonusThreshold: null,
+      bonusPercentage: 0,
+      rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ × (75/1600). EST2 (optional): × (15/1600). GPA is added as is.'
     },
     ahlia: {
       name: 'Ahlia University',
       arabicName: 'جامعة أهلية',
-      est1Min: 800,
-      est2Min: 900,
-      bonusThreshold: 1090,
-      bonusPercentage: 15,
-      rules: 'EST1: ≥ 800, EST2: ≥ 900, Bonus: 15% if EST1 ≥ 1090'
+      est1Min: 0,
+      est2Min: 0,
+      bonusThreshold: null,
+      bonusPercentage: 0,
+      rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ × (75/1600). EST2 (optional): × (15/1600). GPA is added as is.'
     }
   };
 
@@ -2043,8 +2043,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!selectedUniversityType) return;
     
     const config = universityTypes[selectedUniversityType];
-    est1MinReq.textContent = `Min: ${config.est1Min}`;
-    est2MinReq.textContent = `Min: ${config.est2Min}`;
+    // Display helpful hints reflecting the current calculation rules
+    est1MinReq.textContent = `Threshold: 1090 affects multiplier`;
+    est2MinReq.textContent = `If provided: multiplied by 15/1600`;
   }
 
   // Setup score inputs
@@ -2154,7 +2155,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!selectedUniversityType) return false;
     
-    const config = universityTypes[selectedUniversityType];
     let hasErrors = false;
     
     // Remove previous error states
@@ -2162,20 +2162,16 @@ document.addEventListener('DOMContentLoaded', function() {
       input.classList.remove('error');
     });
     
-    // Validate EST1
-    if (est1 > 0 && est1 < config.est1Min) {
+    // Validate ranges only
+    if (est1 < 0 || est1 > 1600) {
       est1Input.classList.add('error');
       hasErrors = true;
     }
-    
-    // Validate EST2 (if provided)
-    if (est2 > 0 && est2 < config.est2Min) {
+    if (est2 < 0 || est2 > 1600) {
       est2Input.classList.add('error');
       hasErrors = true;
     }
-    
-    // Validate GPA
-    if (gpa > 4) {
+    if (gpa < 0 || gpa > 4) {
       gpaInput.classList.add('error');
       hasErrors = true;
     }
@@ -2202,45 +2198,45 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!selectedUniversityType || est1 === 0 || gpa === 0) {
       calculationData.finalScore = 0;
+      calculationData.breakdown = { est1Score: 0, est2Score: 0, gpaScore: 0, bonus: 0 };
+      if (calculatedValue) calculatedValue.textContent = '0.00';
       return;
     }
     
-    const config = universityTypes[selectedUniversityType];
     let finalScore = 0;
-    let bonus = 0;
-
-    // EST1 Score (40% weight)
-    const est1Score = (est1 / 1600) * 40;
-    finalScore += est1Score;
-    calculationData.breakdown.est1Score = est1Score;
-
-    // EST2 Score (30% weight) - only if provided and meets minimum
+    let est1Score = 0;
     let est2Score = 0;
-    if (est2 > 0 && est2 >= config.est2Min) {
-      est2Score = (est2 / 1600) * 30;
+    const uniType = selectedUniversityType;
+    
+    // EST1 contribution based on rules
+    if (uniType === 'government') {
+      est1Score = est1 < 1090 ? est1 * (60 / 1600) : est1 * (69 / 1600);
+    } else {
+      // private and ahlia
+      est1Score = est1 < 1090 ? est1 * (60 / 1600) : est1 * (75 / 1600);
+    }
+    finalScore += est1Score;
+    
+    // EST2 contribution if provided
+    if (est2 > 0) {
+      est2Score = est2 * (15 / 1600);
       finalScore += est2Score;
     }
-    calculationData.breakdown.est2Score = est2Score;
-
-    // GPA Score (30% weight)
-    const gpaScore = (gpa / 4) * 30;
+    
+    // GPA added as is
+    const gpaScore = gpa;
     finalScore += gpaScore;
-    calculationData.breakdown.gpaScore = gpaScore;
-
-    // Bonus calculation
-    if (est1 >= config.bonusThreshold) {
-      bonus = (est1 * config.bonusPercentage) / 100;
-      finalScore += bonus;
-    }
-    calculationData.breakdown.bonus = bonus;
-
+    
     // Update calculation data
     calculationData.est1 = est1;
     calculationData.est2 = est2;
     calculationData.gpa = gpa;
+    calculationData.breakdown.est1Score = est1Score;
+    calculationData.breakdown.est2Score = est2Score;
+    calculationData.breakdown.gpaScore = gpaScore;
+    calculationData.breakdown.bonus = 0;
     calculationData.finalScore = finalScore;
     
-    // Update the calculated value display in real-time
     if (calculatedValue) {
       calculatedValue.textContent = finalScore.toFixed(2);
     }
@@ -2292,15 +2288,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show/hide bonus breakdown
     if (bonusBreakdown) {
-      if (calculationData.breakdown.bonus > 0) {
-        bonusBreakdown.style.display = 'flex';
-        const bonusValue = bonusBreakdown.querySelector('.breakdown-value');
-        if (bonusValue) {
-          bonusValue.textContent = `+${calculationData.breakdown.bonus.toFixed(2)}`;
-        }
-      } else {
-        bonusBreakdown.style.display = 'none';
-      }
+      bonusBreakdown.style.display = 'none';
     }
     
     // Update rules text

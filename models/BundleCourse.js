@@ -29,17 +29,6 @@ const BundleCourseSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
     },
-    year: {
-      type: String,
-      required: true,
-      enum: [
-        'Year 7', 'Year 8', 'Year 9', 'Year 10', 
-        'Year 11', 'Year 12', 'Year 13',
-        'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 
-        'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 
-        'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
-      ],
-    },
     subject: {
       type: String,
       enum: ['Basics', 'Advanced'],
@@ -166,13 +155,12 @@ BundleCourseSchema.pre('save', async function (next) {
     let bundleCode;
     let isUnique = false;
     
-    // Generate bundle code based on subject and year
+    // Generate bundle code based on subject only (year removed)
     const subjectPrefix = this.subject.substring(0, 3).toUpperCase();
-    const yearSuffix = this.year.split(' ')[1] || this.year.split(' ')[0].substring(1);
     
     while (!isUnique) {
       const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      bundleCode = `BND${subjectPrefix}${yearSuffix}${randomNum}`;
+      bundleCode = `BND${subjectPrefix}${randomNum}`;
       
       const existingBundle = await this.constructor.findOne({ bundleCode });
       if (!existingBundle) {
@@ -198,7 +186,7 @@ BundleCourseSchema.pre('save', async function (next) {
 });
 
 // Index for better query performance
-BundleCourseSchema.index({ year: 1, subject: 1 });
+// year removed
 BundleCourseSchema.index({ status: 1 });
 BundleCourseSchema.index({ createdBy: 1 });
 BundleCourseSchema.index({ testType: 1 });

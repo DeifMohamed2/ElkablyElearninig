@@ -99,26 +99,14 @@
             <div class="admin-filters-header">
               <h5><i class="fas fa-filter me-2"></i>Course Filters</h5>
               <div class="admin-active-filters">
-                <% if (currentFilters.year || currentFilters.level || currentFilters.bundle || currentFilters.status !== 'all' || currentFilters.search) { %>
+                <% if (currentFilters.level || currentFilters.bundle || currentFilters.status !== 'all' || currentFilters.search) { %>
                 <span class="badge bg-primary me-1">Active Filters</span>
                 <% } %>
               </div>
             </div>
             <form method="GET" action="/admin/courses" class="admin-filters-form">
               <div class="row g-3">
-                <div class="col-md-3">
-                  <label class="form-label">
-                    <i class="fas fa-graduation-cap me-1"></i>Year/Grade
-                  </label>
-                  <select name="year" class="form-select">
-                    <option value="">All Years</option>
-                    <% if (filterOptions && filterOptions.years) { %>
-                    <% filterOptions.years.forEach(year => { %>
-                    <option value="<%= year %>" <%= currentFilters.year === year ? 'selected' : '' %>><%= year %></option>
-                    <% }); %>
-                    <% } %>
-                  </select>
-                </div>
+                
                 <div class="col-md-3">
                   <label class="form-label">
                     <i class="fas fa-box me-1"></i>Bundle
@@ -180,7 +168,7 @@
                     <select name="sortBy" class="form-select d-inline-block w-auto">
                       <option value="createdAt" <%= currentFilters.sortBy === 'createdAt' ? 'selected' : '' %>>Date Created</option>
                       <option value="title" <%= currentFilters.sortBy === 'title' ? 'selected' : '' %>>Title</option>
-                      <option value="year" <%= currentFilters.sortBy === 'year' ? 'selected' : '' %>>Year</option>
+                      
                       <option value="duration" <%= currentFilters.sortBy === 'duration' ? 'selected' : '' %>>Duration</option>
                     </select>
                     <select name="sortOrder" class="form-select d-inline-block w-auto ms-2">
@@ -226,10 +214,7 @@
                 <p class="admin-course-description"><%= course.shortDescription %></p>
 
                 <div class="admin-course-meta">
-                  <div class="admin-course-meta-item">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span><%= course.year %></span>
-                  </div>
+                  
                   <div class="admin-course-meta-item">
                     <i class="fas fa-layer-group"></i>
                     <span><%= course.level %></span>
@@ -537,7 +522,7 @@
         bundles.forEach(bundle => {
           const option = document.createElement('option');
           option.value = bundle._id;
-          option.textContent = `${bundle.title} (${bundle.bundleCode}) - ${bundle.year}`;
+          option.textContent = `${bundle.title} (${bundle.bundleCode})`;
           bundleSelect.appendChild(option);
         });
       })

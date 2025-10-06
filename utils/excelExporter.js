@@ -1531,7 +1531,7 @@ class ExcelExporter {
     const courseInfo = [
       ['Course Code', course.courseCode || 'N/A'],
       ['Course Title', course.title || 'N/A'],
-      ['Year', course.year || 'N/A'],
+      
       ['Level', course.level || 'N/A'],
       ['Subject', course.subject || 'N/A'],
       ['Status', course.status || 'N/A'],
