@@ -104,10 +104,11 @@ brilliantStudentSchema.virtual('formattedScore').get(function() {
 
 // Virtual for test type display name
 brilliantStudentSchema.virtual('testTypeDisplayName').get(function() {
+  // Return shortened test type names for display
   const displayNames = {
-    'EST': 'Egyptian Scholastic Test',
-    'DSAT': 'Digital SAT',
-    'ACT': 'American College Test'
+    'EST': 'EST',
+    'DSAT': 'D-SAT',
+    'ACT': 'ACT'
   };
   return displayNames[this.testType] || this.testType;
 });

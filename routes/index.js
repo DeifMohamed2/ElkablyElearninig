@@ -5,6 +5,7 @@ const {
   getLandingPage,
   getOnlineCourses,
   getOngroundCourses,
+  getRecordedCourses,
   getBundleContent,
   getESTTests,
   getSATTests,
@@ -27,6 +28,9 @@ router.get('/courses/online', getOnlineCourses);
 
 // On-ground courses page route
 router.get('/courses/onground', getOngroundCourses);
+
+// Recorded courses page route
+router.get('/courses/recorded', getRecordedCourses);
 
 // Bundle course details route
 router.get('/bundle/:id', getBundleContent);

@@ -56,7 +56,7 @@
 
       <!-- Display Errors -->
       <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
-      <div class="alert alert-danger auth-alert" role="alert">
+      <div class="alert alert-danger auth-alert" role="alert" id="errorAlert">
         <div class="d-flex align-items-center">
           <i class="fas fa-exclamation-triangle me-2"></i>
           <strong>Login Failed!</strong>
@@ -64,10 +64,39 @@
         <hr class="my-2">
         <ul class="mb-0">
           <% errors.forEach(function(error) { %>
-          <li><%= error.msg %></li>
+          <li data-field="<%= error.field || '' %>"><%= error.msg %></li>
           <% }); %>
         </ul>
       </div>
+      <script>
+        // Highlight fields with errors when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+          const errorItems = document.querySelectorAll('#errorAlert li[data-field]');
+          errorItems.forEach(item => {
+            const fieldName = item.getAttribute('data-field');
+            if (fieldName) {
+              const field = document.getElementById(fieldName);
+              if (field) {
+                field.classList.add('is-invalid');
+                field.classList.add('field-with-error');
+                
+                // Focus on first field with error
+                if (field === document.querySelector('.field-with-error')) {
+                  setTimeout(() => {
+                    field.focus();
+                  }, 500);
+                }
+              }
+            }
+          });
+          
+          // Add animation to error alert
+          const errorAlert = document.getElementById('errorAlert');
+          if (errorAlert) {
+            errorAlert.style.animation = 'shake 0.5s ease-in-out';
+          }
+        });
+      </script>
       <% } %>
 
       <!-- Login Form -->
@@ -144,6 +173,30 @@
 
 <!-- Login Checkbox Styling -->
 <style>
+/* Error animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* Field error highlighting */
+.field-with-error {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+  animation: shake 0.5s ease-in-out;
+}
+
+.field-with-error + .input-focus-line {
+  background-color: #dc3545 !important;
+}
+
+/* Error alert enhancements */
+#errorAlert {
+  border-left: 4px solid #dc3545;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.15);
+}
+
 /* Remember Me Checkbox Styling */
 .form-options {
   display: flex;
@@ -284,8 +337,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return false;
       }
 
-      // Show loading state but don't prevent form submission
+      // Show loading state
       setLoadingState(true);
+      
+      // Add a hidden field to track submission attempts
+      const submissionIdField = document.createElement('input');
+      submissionIdField.type = 'hidden';
+      submissionIdField.name = 'submissionId';
+      submissionIdField.value = Date.now().toString();
+      loginForm.appendChild(submissionIdField);
       
       // Allow form to submit naturally
       return true;

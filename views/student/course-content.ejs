@@ -1,607 +1,922 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= course.title %> - Course Content - Elkably E-Learning</title>
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="/css/studentCSS/student-main.css">
-    <link rel="stylesheet" href="/css/studentCSS/courses.css">
-    <link rel="stylesheet" href="/css/theme-toggle.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Enhanced Styles -->
-    <style>
-        /* Content Item Enhancements */
-        .content-actions-completed {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= course.title %> - Course Content - Elkably E-Learning</title>
 
-        .content-completed {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: #10b981;
-            font-weight: 500;
-            font-size: 14px;
-        }
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/studentCSS/student-main.css">
+  <link rel="stylesheet" href="/css/studentCSS/courses.css">
+  <link rel="stylesheet" href="/css/theme-toggle.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-        /* Prerequisites Styling */
-        .prerequisites-info {
-            margin-top: 12px;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #fef3c7, #fde68a);
-            border: 1px solid #f59e0b;
-            border-radius: 8px;
-            border-left: 4px solid #f59e0b;
-        }
+  <!-- Enhanced Styles -->
+  <style>
+    /* Content Item Enhancements */
+    .content-actions-completed {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
 
-        .prerequisites-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #92400e;
-        }
+    .content-completed {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #10b981;
+      font-weight: 500;
+      font-size: 14px;
+    }
 
-        .prerequisites-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
+    /* Prerequisites Styling */
+    .prerequisites-info {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      border-left: 4px solid #f59e0b;
+    }
 
-        .prerequisite-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #92400e;
-        }
+    .prerequisites-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #92400e;
+    }
 
-        .prerequisite-item i {
-            font-size: 10px;
-            color: #f59e0b;
-        }
+    .prerequisites-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
 
-        /* Content Item States */
-        .content-item.completed {
-            border-left: 4px solid #10b981;
-            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-        }
+    .prerequisite-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #92400e;
+    }
 
-        .content-item.locked {
-            border-left: 4px solid #ef4444;
-            background: linear-gradient(135deg, #fef2f2, #fee2e2);
-            opacity: 0.8;
-        }
+    .prerequisite-item i {
+      font-size: 10px;
+      color: #f59e0b;
+    }
 
-        .content-item.completed .content-type-icon {
-            background: #10b981;
-            color: white;
-        }
+    /* Content Item States */
+    .content-item.completed {
+      border-left: 4px solid #10b981;
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    }
 
-        .content-item.locked .content-type-icon {
-            background: #ef4444;
-            color: white;
-        }
+    .content-item.locked {
+      border-left: 4px solid #ef4444;
+      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      opacity: 0.8;
+    }
 
-        /* Enhanced Content Item Design */
-        .content-item {
-            transition: all 0.3s ease;
-            border-radius: 8px;
-            overflow: hidden;
-        }
+    .content-item.completed .content-type-icon {
+      background: #10b981;
+      color: white;
+    }
 
-        .content-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        }
+    .content-item.locked .content-type-icon {
+      background: #ef4444;
+      color: white;
+    }
 
-        .content-item-header {
-            padding: 16px 20px;
-        }
+    /* Enhanced Content Item Design */
+    .content-item {
+      transition: all 0.3s ease;
+      border-radius: 8px;
+      overflow: hidden;
+    }
 
-        .content-type-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            background: var(--primary-color);
-            color: white;
-            transition: all 0.3s ease;
-        }
+    .content-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
 
-        .content-item-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: var(--text-color);
-        }
+    .content-item-header {
+      padding: 16px 20px;
+    }
 
-        .content-item-description {
-            font-size: 14px;
-            color: var(--muted-text);
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }
+    .content-type-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      background: var(--primary-color);
+      color: white;
+      transition: all 0.3s ease;
+    }
 
-        .content-item-meta {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
+    .content-item-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-color);
+    }
 
-        .content-item-meta span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            color: var(--muted-text);
-            background: var(--muted-bg);
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
+    .content-item-description {
+      font-size: 14px;
+      color: var(--muted-text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
 
-        /* Dark theme adjustments */
-        .dark-theme .prerequisites-info {
-            background: linear-gradient(135deg, #451a03, #78350f);
-            border-color: #f59e0b;
-        }
+    .content-item-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-        .dark-theme .prerequisites-header,
-        .dark-theme .prerequisite-item {
-            color: #fbbf24;
-        }
+    .content-item-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted-text);
+      background: var(--muted-bg);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
 
-        .dark-theme .content-item.completed {
-            background: linear-gradient(135deg, #064e3b, #065f46);
-        }
+    /* Dark theme adjustments */
+    .dark-theme .prerequisites-info {
+      background: linear-gradient(135deg, #451a03, #78350f);
+      border-color: #f59e0b;
+    }
 
-        .dark-theme .content-item.locked {
-            background: linear-gradient(135deg, #7f1d1d, #991b1b);
-        }
-    </style>
-    
-    <!-- Meta Tags -->
-    <meta name="description" content="<%= course.title %> - Continue your learning journey">
-    <meta name="theme-color" content="#dc2626">
+    .dark-theme .prerequisites-header,
+    .dark-theme .prerequisite-item {
+      color: #fbbf24;
+    }
+
+    .dark-theme .content-item.completed {
+      background: linear-gradient(135deg, #064e3b, #065f46);
+    }
+
+    .dark-theme .content-item.locked {
+      background: linear-gradient(135deg, #7f1d1d, #991b1b);
+    }
+  </style>
+
+  <!-- Meta Tags -->
+  <meta name="description" content="<%= course.title %> - Continue your learning journey">
+  <meta name="theme-color" content="#dc2626">
 </head>
+
 <body class="<%= theme %>-theme">
-    <!-- Student Layout -->
-    <div class="student-layout">
-        <!-- Include Sidebar -->
-        <%- include('partials/student-sidebar', { currentPage: 'courses', student: student }) %>
-        
-        <!-- Main Content -->
-        <main class="student-main">
-            <!-- Include Header -->
-            <%- include('partials/student-header', { title: 'Course Content', student: student, theme: theme, currentPage: 'course-content' }) %>
-            
-            <!-- Course Content -->
-            <div class="student-content">
-                <!-- Back Button -->
-                <div class="back-button-container">
-                    <a href="/student/enrolled-courses" class="btn btn-outline btn-sm">
-                        <i class="fas fa-arrow-left"></i>
-                        Back to Courses
-                    </a>
-                </div>
+  <!-- Student Layout -->
+  <div class="student-layout">
+    <!-- Include Sidebar -->
+    <%- include('partials/student-sidebar', { currentPage: 'courses', student: student }) %>
 
-                <!-- Course Header -->
-                <div class="course-header-section">
-                    <div class="course-header-content">
-                        <div class="course-header-info">
-                            <h1 class="course-title-main"><%= course.title %></h1>
-                            <p class="course-description-main"><%= course.description %></p>
-                            
-                            <div class="course-meta-info">
-                                <div class="meta-item">
-                                    <i class="fas fa-layer-group"></i>
-                                    <span><%= course.level %></span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-clock"></i>
-                                    <span><%= course.duration %>h</span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-book"></i>
-                                    <span><%= course.topics.length %> topics</span>
-                                </div>
-                                <div class="meta-item">
-                                    <i class="fas fa-graduation-cap"></i>
-                                    
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="course-progress-section">
-                            <div class="progress-circle-large">
-                                <svg viewBox="0 0 120 120" class="progress-ring-large">
-                                    <circle class="circle-bg-large" cx="60" cy="60" r="50"></circle>
-                                    <circle class="circle-large" cx="60" cy="60" r="50" 
-                                            stroke-dasharray="<%= enrollment.progress * 3.14 %>, 314"></circle>
-                                </svg>
-                                <div class="progress-text">
-                                    <span class="progress-percentage"><%= enrollment.progress %>%</span>
-                                    <span class="progress-label">Complete</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Main Content -->
+    <main class="student-main">
+      <!-- Include Header -->
+      <%- include('partials/student-header', { title: 'Course Content', student: student, theme: theme, currentPage: 'course-content' }) %>
 
-                <!-- Course Progress Bar -->
-                <div class="course-progress-overview">
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: <%= enrollment.progress %>%"></div>
-                    </div>
-                    <div class="progress-stats">
-                        <span class="progress-text">Overall Progress: <%= enrollment.progress %>%</span>
-                        <span class="last-accessed">Last accessed: <%= new Date(enrollment.lastAccessed).toLocaleDateString() %></span>
-                    </div>
-                </div>
+      <!-- Course Content -->
+      <div class="student-content">
+        <!-- Back Button -->
+        <div class="back-button-container">
+          <a href="/student/enrolled-courses" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-left"></i>
+            Back to Courses
+          </a>
+        </div>
 
-                <!-- Topics Section -->
-                <div class="topics-section">
-                    <h2 class="section-title">Course Topics</h2>
-                    
-                    <% if (topicsWithProgress && topicsWithProgress.length > 0) { %>
-                        <div class="topics-container">
-                            <% topicsWithProgress.forEach((topic, topicIndex) => { %>
-                                <div class="topic-card" data-topic-id="<%= topic._id %>">
-                                    <div class="topic-header" onclick="toggleTopic('<%= topic._id %>')">
-                                        <div class="topic-header-left">
-                                            <div class="topic-number"><%= topicIndex + 1 %></div>
-                                            <div class="topic-info">
-                                                <h3 class="topic-title"><%= topic.title %></h3>
-                                                <p class="topic-description"><%= topic.description %></p>
-                                                <div class="topic-meta">
-                                                    <span class="topic-duration">
-                                                        <i class="fas fa-clock"></i>
-                                                        <%= topic.estimatedTime || 0 %>m
-                                                    </span>
-                                                    <span class="topic-difficulty <%= topic.difficulty %>">
-                                                        <i class="fas fa-signal"></i>
-                                                        <%= topic.difficulty.charAt(0).toUpperCase() + topic.difficulty.slice(1) %>
-                                                    </span>
-                                                    <span class="topic-content-count">
-                                                        <i class="fas fa-list"></i>
-                                                        <%= topic.content ? topic.content.length : 0 %> items
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="topic-header-right">
-                                            <div class="topic-progress">
-                                                <div class="topic-progress-circle">
-                                                    <svg viewBox="0 0 36 36" class="progress-ring-small">
-                                                        <path class="circle-bg-small" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                                                        <path class="circle-small" stroke-dasharray="<%= topic.progress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                                                    </svg>
-                                                    <span class="topic-progress-text"><%= topic.progress %>%</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="topic-toggle">
-                                                <i class="fas fa-chevron-down topic-chevron" id="chevron-<%= topic._id %>"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Topic Content (Initially Hidden) -->
-                                    <div class="topic-content" id="content-<%= topic._id %>" style="display: none;">
-                                        <% if (topic.content && topic.content.length > 0) { %>
-                                            <div class="content-items">
-                                                <% topic.content.forEach((contentItem, contentIndex) => { %>
-                                                    <div class="content-item <%= !contentItem.canAccess ? 'locked' : '' %> <%= contentItem.isCompleted ? 'completed' : '' %>" 
-                                                         data-content-id="<%= contentItem._id %>">
-                                                        
-                                                        <div class="content-item-header">
-                                                            <div class="content-item-left">
-                                                                <div class="content-type-icon <%= contentItem.type %>">
-                                                                    <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
-                                                                </div>
-                                                                
-                                                                <div class="content-item-info">
-                                                                    <h4 class="content-item-title"><%= contentItem.title %></h4>
-                                                                    <% if (contentItem.description) { %>
-                                                                        <p class="content-item-description"><%= contentItem.description %></p>
-                                                                    <% } %>
-                                                                    
-                                                                    <div class="content-item-meta">
-                                                                        <span class="content-duration">
-                                                                            <i class="fas fa-clock"></i>
-                                                                            <% if (contentItem.type === 'quiz' && contentItem.quizSettings && contentItem.quizSettings.timeLimit) { %>
-                                                                                <%= contentItem.quizSettings.timeLimit %>m
-                                                                            <% } else if (contentItem.type === 'homework' && contentItem.homeworkSettings && contentItem.homeworkSettings.timeLimit) { %>
-                                                                                <%= contentItem.homeworkSettings.timeLimit %>m
-                                                                            <% } else { %>
-                                                                                <%= contentItem.duration || 0 %>m
-                                                                            <% } %>
-                                                                        </span>
-                                                                        <span class="content-difficulty <%= contentItem.difficulty %>">
-                                                                            <i class="fas fa-signal"></i>
-                                                                            <%= contentItem.difficulty.charAt(0).toUpperCase() + contentItem.difficulty.slice(1) %>
-                                                                        </span>
-                                                                        <span class="content-criteria">
-                                                                            <i class="fas fa-target"></i>
-                                                                            <%= contentItem.completionCriteria.replace('_', ' ') %>
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="content-item-right">
-                                                                <% if (!contentItem.canAccess) { %>
-                                                                    <div class="content-locked">
-                                                                        <i class="fas fa-lock"></i>
-                                                                        <span>Locked</span>
-                                                                    </div>
-                                                                <% } else if (contentItem.actualProgress > 0) { %>
-                                                                    <div class="content-actions-in-progress">
-                                                                        <div class="content-progress-info">
-                                                                            <div class="content-progress-circle">
-                                                                                <svg viewBox="0 0 36 36" class="progress-ring-tiny">
-                                                                                    <path class="circle-bg-tiny" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                                                                                    <path class="circle-tiny" stroke-dasharray="<%= contentItem.actualProgress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                                                                                </svg>
-                                                                                <span class="progress-text-tiny"><%= contentItem.actualProgress %>%</span>
-                                                                            </div>
-                                                                            <span class="progress-label">
-                                                                                <% if (contentItem.actualProgress === 100) { %>
-                                                                                    Completed
-                                                                                <% } else { %>
-                                                                                    In Progress
-                                                                                <% } %>
-                                                                            </span>
-                                                                        </div>
-                                                                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
-                                                                            <i class="fas fa-<%= contentItem.actualProgress === 100 ? 'redo' : 'play' %>"></i>
-                                                                            <%= contentItem.actualProgress === 100 ? 'Review' : 'Continue' %>
-                                                                        </a>
-                                                                    </div>
-                                                                <% } else { %>
-                                                                    <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
-                                                                        <i class="fas fa-play"></i>
-                                                                        Start
-                                                                    </a>
-                                                                <% } %>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <!-- Prerequisites Info -->
-                                                        <% if (!contentItem.canAccess && contentItem.prerequisiteNames && contentItem.prerequisiteNames.length > 0) { %>
-                                                            <div class="prerequisites-info">
-                                                                <div class="prerequisites-header">
-                                                                    <i class="fas fa-info-circle"></i>
-                                                                    <span>Complete these prerequisites first:</span>
-                                                                </div>
-                                                                <div class="prerequisites-list">
-                                                                    <% contentItem.prerequisiteNames.forEach(prereqName => { %>
-                                                                        <div class="prerequisite-item">
-                                                                            <i class="fas fa-arrow-right"></i>
-                                                                            <span><%= prereqName %></span>
-                                                                        </div>
-                                                                    <% }); %>
-                                                                </div>
-                                                            </div>
-                                                        <% } else if (!contentItem.canAccess && contentItem.unlockReason) { %>
-                                                            <div class="prerequisites-info">
-                                                                <i class="fas fa-info-circle"></i>
-                                                                <span><%= contentItem.unlockReason %></span>
-                                                            </div>
-                                                        <% } %>
-                                                    </div>
-                                                <% }); %>
-                                            </div>
-                                        <% } else { %>
-                                            <div class="empty-content">
-                                                <i class="fas fa-folder-open"></i>
-                                                <p>No content available for this topic yet.</p>
-                                            </div>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            <% }); %>
-                        </div>
-                    <% } else { %>
-                        <div class="empty-topics">
-                            <div class="empty-icon">
-                                <i class="fas fa-book-open"></i>
-                            </div>
-                            <h3>No Topics Available</h3>
-                            <p>This course doesn't have any topics yet. Check back later!</p>
-                        </div>
-                    <% } %>
+        <!-- Course Header -->
+        <div class="course-header-section">
+          <div class="course-header-content">
+            <div class="course-header-info">
+              <h1 class="course-title-main"><%= course.title %></h1>
+              <p class="course-description-main"><%= course.description %></p>
+
+              <div class="course-meta-info">
+                <div class="meta-item">
+                  <i class="fas fa-layer-group"></i>
+                  <span><%= course.level %></span>
                 </div>
+                <div class="meta-item">
+                  <i class="fas fa-clock"></i>
+                  <span><%= course.duration %>h</span>
+                </div>
+                <div class="meta-item">
+                  <i class="fas fa-book"></i>
+                  <span><%= course.topics.length %> topics</span>
+                </div>
+                <div class="meta-item">
+                  <i class="fas fa-graduation-cap"></i>
+
+                </div>
+              </div>
             </div>
-        </main>
-    </div>
 
-    <!-- JavaScript -->
-    <script>
+            <div class="course-progress-section">
+              <div class="progress-circle-large">
+                <svg viewBox="0 0 120 120" class="progress-ring-large">
+                  <circle class="circle-bg-large" cx="60" cy="60" r="50"></circle>
+                  <circle class="circle-large" cx="60" cy="60" r="50" stroke-dasharray="<%= enrollment.progress * 3.14 %>, 314"></circle>
+                </svg>
+                <div class="progress-text">
+                  <span class="progress-percentage"><%= enrollment.progress %>%</span>
+                  <span class="progress-label">Complete</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        // Toggle topic content visibility
-        function toggleTopic(topicId) {
-            const content = document.getElementById('content-' + topicId);
-            const chevron = document.getElementById('chevron-' + topicId);
-            
-            if (content.style.display === 'none') {
-                content.style.display = 'block';
-                chevron.style.transform = 'rotate(180deg)';
-            } else {
-                content.style.display = 'none';
-                chevron.style.transform = 'rotate(0deg)';
-            }
+        <!-- Course Progress Bar -->
+        <div class="course-progress-overview">
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: <%= enrollment.progress %>%"></div>
+          </div>
+          <div class="progress-stats">
+            <span class="progress-text">Overall Progress: <%= enrollment.progress %>%</span>
+            <span class="last-accessed">Last accessed: <%= new Date(enrollment.lastAccessed).toLocaleDateString() %></span>
+          </div>
+        </div>
+
+        <!-- Topics Section -->
+        <div class="topics-section">
+          <h2 class="section-title">Course Topics</h2>
+
+          <% if (topicsWithProgress && topicsWithProgress.length > 0) { %>
+          <div class="topics-container">
+            <% topicsWithProgress.forEach((topic, topicIndex) => { %>
+            <div class="topic-card" data-topic-id="<%= topic._id %>">
+              <div class="topic-header" onclick="toggleTopic('<%= topic._id %>')">
+                <div class="topic-header-left">
+                  <div class="topic-number"><%= topicIndex + 1 %></div>
+                  <div class="topic-info">
+                    <h3 class="topic-title"><%= topic.title %></h3>
+                    <p class="topic-description"><%= topic.description %></p>
+                    <div class="topic-meta">
+                      <span class="topic-duration">
+                        <i class="fas fa-clock"></i>
+                        <%= topic.estimatedTime || 0 %>m
+                      </span>
+                      <span class="topic-difficulty <%= topic.difficulty %>">
+                        <i class="fas fa-signal"></i>
+                        <%= topic.difficulty.charAt(0).toUpperCase() + topic.difficulty.slice(1) %>
+                      </span>
+                      <span class="topic-content-count">
+                        <i class="fas fa-list"></i>
+                        <%= topic.content ? topic.content.length : 0 %> items
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="topic-header-right">
+                  <div class="topic-progress">
+                    <div class="topic-progress-circle">
+                      <svg viewBox="0 0 36 36" class="progress-ring-small">
+                        <path class="circle-bg-small" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                        <path class="circle-small" stroke-dasharray="<%= topic.progress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                      </svg>
+                      <span class="topic-progress-text"><%= topic.progress %>%</span>
+                    </div>
+                  </div>
+
+                  <div class="topic-toggle">
+                    <i class="fas fa-chevron-down topic-chevron" id="chevron-<%= topic._id %>"></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Topic Content (Initially Hidden) -->
+              <div class="topic-content" id="content-<%= topic._id %>" style="display: none;">
+                <% if (topic.content && topic.content.length > 0) { %>
+                <div class="content-items">
+                  <% topic.content.forEach((contentItem, contentIndex) => { %>
+                  <div class="content-item <%= !contentItem.canAccess ? 'locked' : '' %> <%= contentItem.isCompleted ? 'completed' : '' %>" data-content-id="<%= contentItem._id %>">
+
+                    <div class="content-item-header">
+                      <div class="content-item-left">
+                        <div class="content-type-icon <%= contentItem.type %>">
+                          <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
+                        </div>
+
+                        <div class="content-item-info">
+                          <h4 class="content-item-title"><%= contentItem.title %></h4>
+                          <% if (contentItem.description) { %>
+                          <p class="content-item-description"><%= contentItem.description %></p>
+                          <% } %>
+
+                          <div class="content-item-meta">
+                            <% if (contentItem.type === 'zoom') { %>
+                            <!-- Zoom Meeting Status -->
+                            <span class="content-zoom-status">
+                              <i class="fas fa-video"></i>
+                              <% if (contentItem.zoomMeeting) { %>
+                              <% if (contentItem.zoomMeeting.status === 'active') { %>
+                              <span class="badge bg-success">Live Now</span>
+                              <% } else if (contentItem.zoomMeeting.status === 'ended') { %>
+                              <span class="badge bg-secondary">Ended</span>
+                              <% } else { %>
+                              <span class="badge bg-warning">Scheduled</span>
+                              <% } %>
+                              <% } else { %>
+                              <span class="badge bg-info">Zoom Meeting</span>
+                              <% } %>
+                            </span>
+                            <% if (contentItem.zoomMeeting && contentItem.zoomMeeting.scheduledStartTime) { %>
+                            <span class="content-scheduled-time">
+                              <i class="fas fa-calendar-alt"></i>
+                              <%= new Date(contentItem.zoomMeeting.scheduledStartTime).toLocaleString() %>
+                            </span>
+                            <% } %>
+                            <% } else { %>
+                            <!-- Regular Content Duration -->
+                            <span class="content-duration">
+                              <i class="fas fa-clock"></i>
+                              <% if (contentItem.type === 'quiz' && contentItem.quizSettings && contentItem.quizSettings.timeLimit) { %>
+                              <%= contentItem.quizSettings.timeLimit %>m
+                              <% } else if (contentItem.type === 'homework' && contentItem.homeworkSettings && contentItem.homeworkSettings.timeLimit) { %>
+                              <%= contentItem.homeworkSettings.timeLimit %>m
+                              <% } else { %>
+                              <%= contentItem.duration || 0 %>m
+                              <% } %>
+                            </span>
+                            <% } %>
+                            <span class="content-difficulty <%= contentItem.difficulty %>">
+                              <i class="fas fa-signal"></i>
+                              <%= contentItem.difficulty.charAt(0).toUpperCase() + contentItem.difficulty.slice(1) %>
+                            </span>
+                            <span class="content-criteria">
+                              <i class="fas fa-target"></i>
+                              <%= contentItem.completionCriteria.replace('_', ' ') %>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="content-item-right">
+                        <% if (!contentItem.canAccess) { %>
+                        <div class="content-locked">
+                          <i class="fas fa-lock"></i>
+                          <% if (contentItem.type === 'zoom' && contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'scheduled') { %>
+                          <span>Meeting Locked</span>
+                          <% } else { %>
+                          <span>Locked</span>
+                          <% } %>
+                        </div>
+
+                        <!-- Admin controls for Zoom meetings -->
+                        <% if (contentItem.type === 'zoom' && contentItem.zoomMeeting && user && user.role === 'admin') { %>
+                        <div class="zoom-admin-controls">
+                          <% if (contentItem.zoomMeeting.status === 'scheduled') { %>
+                          <button class="btn btn-success btn-sm" onclick="startZoomMeeting('<%= contentItem.zoomMeeting._id %>')">
+                            <i class="fas fa-play"></i>
+                            Start Now
+                          </button>
+                          <% } else if (contentItem.zoomMeeting.status === 'active') { %>
+                          <button class="btn btn-danger btn-sm" onclick="endZoomMeeting('<%= contentItem.zoomMeeting._id %>')">
+                            <i class="fas fa-stop"></i>
+                            End Meeting
+                          </button>
+                          <% } %>
+                        </div>
+                        <% } %>
+                        <% } else if (contentItem.actualProgress > 0) { %>
+                        <div class="content-actions-in-progress">
+                          <div class="content-progress-info">
+                            <div class="content-progress-circle">
+                              <svg viewBox="0 0 36 36" class="progress-ring-tiny">
+                                <path class="circle-bg-tiny" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                <path class="circle-tiny" stroke-dasharray="<%= contentItem.actualProgress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                              </svg>
+                              <span class="progress-text-tiny"><%= contentItem.actualProgress %>%</span>
+                            </div>
+                            <span class="progress-label">
+                              <% if (contentItem.actualProgress === 100) { %>
+                              Completed
+                              <% } else { %>
+                              In Progress
+                              <% } %>
+                            </span>
+                          </div>
+                          <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
+                            <i class="fas fa-<%= contentItem.actualProgress === 100 ? 'redo' : 'play' %>"></i>
+                            <%= contentItem.actualProgress === 100 ? 'Review' : 'Continue' %>
+                          </a>
+                        </div>
+                        <% } else { %>
+                        <!-- Content Start Button -->
+                        <% if (contentItem.type === 'zoom') { %>
+                        <% if (contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'active') { %>
+                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-success btn-sm">
+                          <i class="fas fa-video"></i>
+                          Join Meeting
+                        </a>
+                        <% } else if (contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'scheduled') { %>
+                        <button class="btn btn-secondary btn-sm" disabled>
+                          <i class="fas fa-clock"></i>
+                          Scheduled
+                        </button>
+                        <% } else if (contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'ended') { %>
+                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-outline-primary btn-sm">
+                          <i class="fas fa-history"></i>
+                          View Details
+                        </a>
+                        <% } else { %>
+                        <button class="btn btn-secondary btn-sm" disabled>
+                          <i class="fas fa-video"></i>
+                          Unavailable
+                        </button>
+                        <% } %>
+                        <% } else { %>
+                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
+                          <i class="fas fa-play"></i>
+                          Start
+                        </a>
+                        <% } %>
+                        <% } %>
+                      </div>
+                    </div>
+
+                    <!-- Prerequisites Info -->
+                    <% if (!contentItem.canAccess && contentItem.prerequisiteNames && contentItem.prerequisiteNames.length > 0) { %>
+                    <div class="prerequisites-info">
+                      <div class="prerequisites-header">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Complete these prerequisites first:</span>
+                      </div>
+                      <div class="prerequisites-list">
+                        <% contentItem.prerequisiteNames.forEach(prereqName => { %>
+                        <div class="prerequisite-item">
+                          <i class="fas fa-arrow-right"></i>
+                          <span><%= prereqName %></span>
+                        </div>
+                        <% }); %>
+                      </div>
+                    </div>
+                    <% } else if (!contentItem.canAccess && contentItem.unlockReason) { %>
+                    <div class="prerequisites-info">
+                      <i class="fas fa-info-circle"></i>
+                      <span><%= contentItem.unlockReason %></span>
+                    </div>
+                    <% } %>
+                  </div>
+                  <% }); %>
+                </div>
+                <% } else { %>
+                <div class="empty-content">
+                  <i class="fas fa-folder-open"></i>
+                  <p>No content available for this topic yet.</p>
+                </div>
+                <% } %>
+              </div>
+            </div>
+            <% }); %>
+          </div>
+          <% } else { %>
+          <div class="empty-topics">
+            <div class="empty-icon">
+              <i class="fas fa-book-open"></i>
+            </div>
+            <h3>No Topics Available</h3>
+            <p>This course doesn't have any topics yet. Check back later!</p>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // Toggle topic content visibility
+    function toggleTopic(topicId) {
+      const content = document.getElementById('content-' + topicId);
+      const chevron = document.getElementById('chevron-' + topicId);
+
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.style.transform = 'rotate(180deg)';
+      } else {
+        content.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Auto-expand first topic
+    document.addEventListener('DOMContentLoaded', function() {
+      const firstTopic = document.querySelector('.topic-card');
+      if (firstTopic) {
+        const topicId = firstTopic.getAttribute('data-topic-id');
+        toggleTopic(topicId);
+      }
+    });
+
+    // Add smooth animations
+    document.addEventListener('DOMContentLoaded', function() {
+      const topicCards = document.querySelectorAll('.topic-card');
+
+      topicCards.forEach((card, index) => {
+        card.style.animationDelay = (index * 0.1) + 's';
+        card.classList.add('fade-in');
+      });
+    });
+
+    // Progress bar animation
+    function animateProgressBars() {
+      const progressBars = document.querySelectorAll('.progress-bar-fill, .circle-large');
+
+      progressBars.forEach(bar => {
+        const width = bar.style.width || bar.getAttribute('stroke-dasharray');
+        if (bar.classList.contains('progress-bar-fill')) {
+          bar.style.width = '0%';
+          setTimeout(() => {
+            bar.style.width = width;
+          }, 100);
+        } else {
+          bar.setAttribute('stroke-dasharray', '0, 314');
+          setTimeout(() => {
+            bar.setAttribute('stroke-dasharray', width);
+          }, 100);
         }
+      });
+    }
 
-        // Auto-expand first topic
-        document.addEventListener('DOMContentLoaded', function() {
-            const firstTopic = document.querySelector('.topic-card');
-            if (firstTopic) {
-                const topicId = firstTopic.getAttribute('data-topic-id');
-                toggleTopic(topicId);
-            }
+    // Animate progress bars when page loads
+    window.addEventListener('load', animateProgressBars);
+
+    // ==================== ZOOM MEETING CONTROLS ====================
+
+    // Start Zoom meeting (Admin only)
+    async function startZoomMeeting(meetingId) {
+      try {
+        const response = await fetch(`/zoom/admin/zoom/${meetingId}/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
         });
 
-        // Add smooth animations
-        document.addEventListener('DOMContentLoaded', function() {
-            const topicCards = document.querySelectorAll('.topic-card');
-            
-            topicCards.forEach((card, index) => {
-                card.style.animationDelay = (index * 0.1) + 's';
-                card.classList.add('fade-in');
-            });
+        const result = await response.json();
+
+        if (result.success) {
+          // Show success notification
+          showNotification('Zoom meeting started successfully! Students can now join.', 'success');
+
+          // Reload the page to update the UI
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showNotification(result.message || 'Failed to start meeting', 'error');
+        }
+      } catch (error) {
+        console.error('Error starting Zoom meeting:', error);
+        showNotification('Failed to start meeting. Please try again.', 'error');
+      }
+    }
+
+    // End Zoom meeting (Admin only)
+    async function endZoomMeeting(meetingId) {
+      if (!confirm('Are you sure you want to end this meeting? Students will no longer be able to join.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/zoom/admin/zoom/${meetingId}/end`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
         });
 
-        // Progress bar animation
-        function animateProgressBars() {
-            const progressBars = document.querySelectorAll('.progress-bar-fill, .circle-large');
-            
-            progressBars.forEach(bar => {
-                const width = bar.style.width || bar.getAttribute('stroke-dasharray');
-                if (bar.classList.contains('progress-bar-fill')) {
-                    bar.style.width = '0%';
-                    setTimeout(() => {
-                        bar.style.width = width;
-                    }, 100);
-                } else {
-                    bar.setAttribute('stroke-dasharray', '0, 314');
-                    setTimeout(() => {
-                        bar.setAttribute('stroke-dasharray', width);
-                    }, 100);
-                }
-            });
+        const result = await response.json();
+
+        if (result.success) {
+          // Show success notification
+          showNotification('Zoom meeting ended successfully.', 'success');
+
+          // Reload the page to update the UI
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showNotification(result.message || 'Failed to end meeting', 'error');
         }
+      } catch (error) {
+        console.error('Error ending Zoom meeting:', error);
+        showNotification('Failed to end meeting. Please try again.', 'error');
+      }
+    }
 
-        // Animate progress bars when page loads
-        window.addEventListener('load', animateProgressBars);
-    </script>
+    // Show notification
+    function showNotification(message, type = 'info') {
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.className = `notification notification-${type}`;
+      notification.innerHTML = `
+        <div class="notification-content">
+          <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+          <span>${message}</span>
+        </div>
+      `;
 
-<style>
-/* Content Progress Styles */
-.content-actions-in-progress {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-}
+      // Add to body
+      document.body.appendChild(notification);
 
-.content-progress-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+      // Show notification
+      setTimeout(() => {
+        notification.classList.add('show');
+      }, 100);
 
-.content-progress-circle {
-    position: relative;
-    width: 24px;
-    height: 24px;
-}
+      // Hide and remove notification
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 300);
+      }, 4000);
+    }
+  </script>
 
-.progress-ring-tiny {
-    width: 24px;
-    height: 24px;
-    transform: rotate(-90deg);
-}
+  <style>
+    /* Content Progress Styles */
+    .content-actions-in-progress {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
 
-.circle-bg-tiny {
-    fill: none;
-    stroke: #e5e7eb;
-    stroke-width: 2;
-}
+    .content-progress-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-.circle-tiny {
-    fill: none;
-    stroke: #10b981;
-    stroke-width: 2;
-    stroke-linecap: round;
-    transition: stroke-dasharray 0.3s ease;
-}
+    .content-progress-circle {
+      position: relative;
+      width: 24px;
+      height: 24px;
+    }
 
-.progress-text-tiny {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 8px;
-    font-weight: 600;
-    color: #374151;
-}
+    .progress-ring-tiny {
+      width: 24px;
+      height: 24px;
+      transform: rotate(-90deg);
+    }
 
-.progress-label {
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 500;
-}
+    .circle-bg-tiny {
+      fill: none;
+      stroke: #e5e7eb;
+      stroke-width: 2;
+    }
 
-/* Topic Progress Styles */
-.topic-progress-circle {
-    position: relative;
-    width: 36px;
-    height: 36px;
-}
+    .circle-tiny {
+      fill: none;
+      stroke: #10b981;
+      stroke-width: 2;
+      stroke-linecap: round;
+      transition: stroke-dasharray 0.3s ease;
+    }
 
-.progress-ring-small {
-    width: 36px;
-    height: 36px;
-    transform: rotate(-90deg);
-}
+    .progress-text-tiny {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 8px;
+      font-weight: 600;
+      color: #374151;
+    }
 
-.circle-bg-small {
-    fill: none;
-    stroke: #e5e7eb;
-    stroke-width: 3;
-}
+    .progress-label {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
 
-.circle-small {
-    fill: none;
-    stroke: #3b82f6;
-    stroke-width: 3;
-    stroke-linecap: round;
-    transition: stroke-dasharray 0.3s ease;
-}
+    /* Topic Progress Styles */
+    .topic-progress-circle {
+      position: relative;
+      width: 36px;
+      height: 36px;
+    }
 
-.topic-progress-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 10px;
-    font-weight: 600;
-    color: #374151;
-}
+    .progress-ring-small {
+      width: 36px;
+      height: 36px;
+      transform: rotate(-90deg);
+    }
 
-/* Course Progress Styles */
-.progress-ring-large {
-    width: 120px;
-    height: 120px;
-    transform: rotate(-90deg);
-}
+    .circle-bg-small {
+      fill: none;
+      stroke: #e5e7eb;
+      stroke-width: 3;
+    }
 
-.circle-bg-large {
-    fill: none;
-    stroke: #e5e7eb;
-    stroke-width: 8;
-}
+    .circle-small {
+      fill: none;
+      stroke: #3b82f6;
+      stroke-width: 3;
+      stroke-linecap: round;
+      transition: stroke-dasharray 0.3s ease;
+    }
 
-.circle-large {
-    fill: none;
-    stroke: #dc2626;
-    stroke-width: 8;
-    stroke-linecap: round;
-    transition: stroke-dasharray 0.3s ease;
-}
-</style>
+    .topic-progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 10px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    /* Course Progress Styles */
+    .progress-ring-large {
+      width: 120px;
+      height: 120px;
+      transform: rotate(-90deg);
+    }
+
+    .circle-bg-large {
+      fill: none;
+      stroke: #e5e7eb;
+      stroke-width: 8;
+    }
+
+    .circle-large {
+      fill: none;
+      stroke: #dc2626;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dasharray 0.3s ease;
+    }
+
+    /* Zoom Meeting Styles */
+    .content-zoom-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .content-zoom-status .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      font-weight: 600;
+      border-radius: 12px;
+    }
+
+    .content-zoom-status .badge.bg-success {
+      background-color: #10b981 !important;
+      color: white;
+      animation: pulse-badge 2s infinite;
+    }
+
+    .content-zoom-status .badge.bg-warning {
+      background-color: #f59e0b !important;
+      color: white;
+    }
+
+    .content-zoom-status .badge.bg-secondary {
+      background-color: #6b7280 !important;
+      color: white;
+    }
+
+    .content-zoom-status .badge.bg-info {
+      background-color: #3b82f6 !important;
+      color: white;
+    }
+
+    .content-scheduled-time {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .content-scheduled-time i {
+      font-size: 11px;
+    }
+
+    @keyframes pulse-badge {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    /* Zoom content type icon color */
+    .content-type-icon.zoom {
+      background: #8b5cf6;
+      color: white;
+    }
+
+    /* Zoom Admin Controls */
+    .zoom-admin-controls {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .zoom-admin-controls .btn {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    /* Notification Styles */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      border-left: 4px solid #3b82f6;
+      padding: 16px 20px;
+      z-index: 10000;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      max-width: 350px;
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .notification-success {
+      border-left-color: #10b981;
+    }
+
+    .notification-error {
+      border-left-color: #ef4444;
+    }
+
+    .notification-info {
+      border-left-color: #3b82f6;
+    }
+
+    .notification-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .notification-content i {
+      font-size: 16px;
+    }
+
+    .notification-success .notification-content i {
+      color: #10b981;
+    }
+
+    .notification-error .notification-content i {
+      color: #ef4444;
+    }
+
+    .notification-info .notification-content i {
+      color: #3b82f6;
+    }
+
+    .notification-content span {
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    /* Dark theme notifications */
+    .dark-theme .notification {
+      background: #1f2937;
+      color: white;
+    }
+
+    .dark-theme .notification-content span {
+      color: #f9fafb;
+    }
+  </style>
 </body>
+
 </html>

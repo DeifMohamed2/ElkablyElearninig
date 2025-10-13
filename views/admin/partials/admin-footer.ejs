@@ -5,24 +5,47 @@
 <script>
 // Theme Toggle Function
 function toggleTheme() {
-  const html = document.documentElement;
-  const body = document.body;
-  const themeIcon = document.getElementById('theme-icon');
-  
-  if (body.classList.contains('light-theme')) {
-    body.classList.remove('light-theme');
-    html.classList.remove('light-theme');
-    body.classList.add('dark-theme');
-    html.classList.add('dark-theme');
-    themeIcon.className = 'fas fa-sun';
-    localStorage.setItem('theme', 'dark');
-  } else {
-    body.classList.remove('dark-theme');
-    html.classList.remove('dark-theme');
-    body.classList.add('light-theme');
-    html.classList.add('light-theme');
-    themeIcon.className = 'fas fa-moon';
-    localStorage.setItem('theme', 'light');
+  try {
+    const html = document.documentElement;
+    const body = document.body;
+    const themeIcon = document.getElementById('theme-icon');
+    
+    // Determine current theme more reliably
+    let currentTheme = 'light'; // default
+    if (html.classList.contains('dark-theme') || body.classList.contains('dark-theme')) {
+      currentTheme = 'dark';
+    } else if (html.classList.contains('light-theme') || body.classList.contains('light-theme')) {
+      currentTheme = 'light';
+    } else {
+      // If no theme classes are present, check localStorage
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        currentTheme = savedTheme;
+      }
+    }
+    
+    // Toggle to the opposite theme
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    // Remove all theme classes first
+    html.classList.remove('light-theme', 'dark-theme');
+    body.classList.remove('light-theme', 'dark-theme');
+    
+    // Add the new theme classes
+    html.classList.add(newTheme + '-theme');
+    body.classList.add(newTheme + '-theme');
+    
+    // Update the theme icon
+    if (themeIcon) {
+      themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('theme', newTheme);
+    
+    console.log('Theme toggled from', currentTheme, 'to', newTheme);
+  } catch (error) {
+    console.error('Error toggling theme:', error);
   }
 }
 
@@ -34,14 +57,37 @@ function toggleSidebar() {
 
 // Initialize Admin Functions
 document.addEventListener('DOMContentLoaded', function() {
-  // Set initial theme icon
+  // Set initial theme icon - Enhanced version
+  const html = document.documentElement;
   const body = document.body;
   const themeIcon = document.getElementById('theme-icon');
   
-  if (body.classList.contains('light-theme')) {
-    themeIcon.className = 'fas fa-moon';
-  } else {
-    themeIcon.className = 'fas fa-sun';
+  if (themeIcon) {
+    // Determine current theme more reliably
+    let currentTheme = 'light'; // default
+    if (html.classList.contains('dark-theme') || body.classList.contains('dark-theme')) {
+      currentTheme = 'dark';
+    } else if (html.classList.contains('light-theme') || body.classList.contains('light-theme')) {
+      currentTheme = 'light';
+    } else {
+      // Check localStorage as fallback
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        currentTheme = savedTheme;
+      }
+    }
+    
+    // Set the appropriate icon
+    themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    console.log('Theme icon initialized for:', currentTheme);
+    
+    // Ensure theme toggle is ready by adding a small delay
+    setTimeout(() => {
+      if (themeIcon) {
+        const currentThemeCheck = html.classList.contains('dark-theme') || body.classList.contains('dark-theme') ? 'dark' : 'light';
+        themeIcon.className = currentThemeCheck === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+      }
+    }, 100);
   }
   
   // Mobile sidebar toggle

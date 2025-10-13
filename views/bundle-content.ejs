@@ -102,7 +102,7 @@
               </span>
               <span class="badge-year">
                 <i class="fas fa-calendar"></i>
-                
+
               </span>
               <span class="badge-subject">
                 <i class="fas fa-book"></i>
@@ -113,14 +113,14 @@
               <h1 class="bundle-title"><%= bundle.title %></h1>
               <div class="bundle-wishlist-btn" onclick="toggleWishlist('<%= bundle._id %>', 'bundle')" title="Add to Wishlist">
                 <% if (user && user.isBundleInWishlist(bundle._id.toString())) { %>
-                  <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+                <i class="fas fa-heart" style="color: #ff6b6b;"></i>
                 <% } else { %>
-                  <i class="far fa-heart"></i>
+                <i class="far fa-heart"></i>
                 <% } %>
               </div>
             </div>
             <p class="bundle-description"><%= bundle.description %></p>
-            
+
             <div class="bundle-stats">
               <div class="stat-item">
                 <i class="fas fa-book"></i>
@@ -130,7 +130,7 @@
                 <i class="fas fa-clock"></i>
                 <span><%= bundle.duration || 0 %> Hour<%= (bundle.duration || 0) !== 1 ? 's' : '' %></span>
               </div>
-         
+
               <div class="stat-item">
                 <i class="fas fa-star"></i>
                 <span>4.8 Rating</span>
@@ -143,40 +143,40 @@
             <div class="purchase-header">
               <div class="price-container">
                 <% if (bundle.discountPrice) { %>
-                  <span class="price-original">$<%= bundle.price %></span>
-                  <span class="price-current">$<%= bundle.finalPrice.toFixed(2) %></span>
-                  <span class="price-savings">Save $<%= bundle.savings.toFixed(2) %> (<%= bundle.savingsPercentage %>% off)</span>
+                <span class="price-original">$<%= bundle.price %></span>
+                <span class="price-current">$<%= bundle.finalPrice.toFixed(2) %></span>
+                <span class="price-savings">Save $<%= bundle.savings.toFixed(2) %> (<%= bundle.savingsPercentage %>% off)</span>
                 <% } else { %>
-                  <span class="price-current">$<%= bundle.price %></span>
+                <span class="price-current">$<%= bundle.price %></span>
                 <% } %>
               </div>
             </div>
 
             <div class="purchase-actions">
               <% if (user && user.hasPurchasedBundle(bundle._id.toString())) { %>
-                <button class="btn-purchased" disabled>
-                  <i class="fas fa-check-circle"></i>
-                  <span>Already Purchased</span>
-                </button>
-                <a href="/student/enrolled-courses" class="btn-access-courses">
-                  <i class="fas fa-graduation-cap"></i>
-                  <span>Access Courses</span>
-                </a>
+              <button class="btn-purchased" disabled>
+                <i class="fas fa-check-circle"></i>
+                <span>Already Purchased</span>
+              </button>
+              <a href="/student/enrolled-courses" class="btn-access-courses">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Access Courses</span>
+              </a>
               <% } else { %>
-                <button class="btn-add-to-cart" onclick="addBundleToCart('<%= bundle._id %>')">
-                  <i class="fas fa-shopping-cart"></i>
-                  <span>Add Bundle to Cart</span>
-                </button>
-                <a href="/purchase/checkout?bundle=<%= bundle._id %>" class="btn-buy-now">
-                  <i class="fas fa-credit-card"></i>
-                  <span>Buy Now</span>
-                </a>
+              <button class="btn-add-to-cart" onclick="addBundleToCart('<%= bundle._id %>')">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Add Bundle to Cart</span>
+              </button>
+              <a href="/purchase/checkout?bundle=<%= bundle._id %>" class="btn-buy-now">
+                <i class="fas fa-credit-card"></i>
+                <span>Buy Now</span>
+              </a>
               <% } %>
             </div>
 
-   
+
             <div class="bundle-info mt-auto">
-        
+
               <div class="info-item">
                 <i class="fas fa-download"></i>
                 <span>Downloadable Resources</span>
@@ -197,48 +197,47 @@
       <div class="courses-grid" id="coursesGrid">
         <% bundle.courses.forEach((course, index) => { %>
         <% const isEnrolled = user && (user.hasAccessToCourse(course._id.toString()) || user.hasAccessToCourseThroughBundle(course._id.toString(), bundle._id.toString())); %>
-        <article class="course-card-enhanced <%= isEnrolled ? 'course-enrolled' : '' %>" data-aos="fade-up" data-aos-delay="<%= (index + 1) * 100 %>" 
-                 data-level="<%= course.level %>" data-category="<%= course.category %>" data-title="<%= course.title.toLowerCase() %>">
+        <article class="course-card-enhanced <%= isEnrolled ? 'course-enrolled' : '' %>" data-aos="fade-up" data-aos-delay="<%= (index + 1) * 100 %>" data-level="<%= course.level %>" data-category="<%= course.category %>" data-title="<%= course.title.toLowerCase() %>">
           <div class="course-card-header">
             <div class="course-favorite-btn-enhanced" onclick="toggleWishlist('<%= course._id %>', 'course')" title="Add to Wishlist">
               <% if (user && user.isCourseInWishlist(course._id.toString())) { %>
-                <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+              <i class="fas fa-heart" style="color: #ff6b6b;"></i>
               <% } else { %>
-                <i class="far fa-heart"></i>
+              <i class="far fa-heart"></i>
               <% } %>
             </div>
             <div class="course-badge-container">
               <% if (isEnrolled) { %>
-                <div class="course-offer-badge-enhanced enrolled">
-                  <i class="fas fa-check-circle"></i>
-                  <span>Enrolled</span>
-                </div>
+              <div class="course-offer-badge-enhanced enrolled">
+                <i class="fas fa-check-circle"></i>
+                <span>Enrolled</span>
+              </div>
               <% } else if (course.discountPrice) { %>
-                <div class="course-offer-badge-enhanced discount">
-                  <i class="fas fa-percentage"></i>
-                  <span>Save <%= course.savingsPercentage %>%</span>
-                </div>
+              <div class="course-offer-badge-enhanced discount">
+                <i class="fas fa-percentage"></i>
+                <span>Save <%= course.savingsPercentage %>%</span>
+              </div>
               <% } else { %>
-                <div class="course-offer-badge-enhanced level">
-                  <i class="fas fa-graduation-cap"></i>
-                  <span><%= course.level %></span>
-                </div>
+              <div class="course-offer-badge-enhanced level">
+                <i class="fas fa-graduation-cap"></i>
+                <span><%= course.level %></span>
+              </div>
               <% } %>
             </div>
           </div>
-          
+
           <div class="course-card-media-enhanced">
             <img src="<%= course.thumbnail || '/images/adad.png' %>" alt="<%= course.title %>" loading="lazy">
             <div class="course-overlay-enhanced">
               <div class="course-quick-actions">
                 <% if (isEnrolled) { %>
-                  <button class="quick-action-btn enrolled" title="Access Course" onclick="accessCourse('<%= course._id %>')">
-                    <i class="fas fa-graduation-cap"></i>
-                  </button>
+                <button class="quick-action-btn enrolled" title="Access Course" onclick="accessCourse('<%= course._id %>')">
+                  <i class="fas fa-graduation-cap"></i>
+                </button>
                 <% } else { %>
-                  <button class="quick-action-btn" onclick="addCourseToCart('<%= course._id %>')" title="Add to Cart">
-                    <i class="fas fa-shopping-cart"></i>
-                  </button>
+                <button class="quick-action-btn" onclick="addCourseToCart('<%= course._id %>')" title="Add to Cart">
+                  <i class="fas fa-shopping-cart"></i>
+                </button>
                 <% } %>
                 <button class="quick-action-btn" title="Preview Course">
                   <i class="fas fa-play"></i>
@@ -246,18 +245,18 @@
               </div>
             </div>
           </div>
-          
+
           <div class="course-card-body-enhanced">
             <div class="course-meta">
               <!-- <span class="course-year"><%= course.year %></span> -->
               <span class="course-subject"><%= course.subject %></span>
             </div>
-            
+
             <h3 class="course-card-title-enhanced"><%= course.title %></h3>
             <p class="course-card-description-enhanced">
               <%= course.shortDescription || 'Comprehensive course covering essential concepts and practical applications. Perfect for students looking to master the fundamentals and advance their understanding.' %>
             </p>
-            
+
             <div class="course-stats-enhanced">
               <div class="stat-item">
                 <i class="fas fa-clock"></i>
@@ -267,50 +266,50 @@
                 <i class="fas fa-book"></i>
                 <span><%= course.category %></span>
               </div>
-        
+
             </div>
-            
+
             <div class="course-price-container-enhanced">
               <% if (isEnrolled) { %>
-                <div class="price-wrapper">
-                  <span class="course-price-enrolled">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Included in Bundle</span>
-                  </span>
-                </div>
+              <div class="price-wrapper">
+                <span class="course-price-enrolled">
+                  <i class="fas fa-check-circle"></i>
+                  <span>Included in Bundle</span>
+                </span>
+              </div>
               <% } else if (course.discountPrice) { %>
-                <div class="price-wrapper">
-                  <span class="course-price-original-enhanced">$<%= course.price %></span>
-                  <span class="course-price-current-enhanced">$<%= course.finalPrice.toFixed(2) %></span>
-                </div>
-                <div class="savings-info">
-                  <span class="savings-amount">Save $<%= course.savings.toFixed(2) %></span>
-                </div>
+              <div class="price-wrapper">
+                <span class="course-price-original-enhanced">$<%= course.price %></span>
+                <span class="course-price-current-enhanced">$<%= course.finalPrice.toFixed(2) %></span>
+              </div>
+              <div class="savings-info">
+                <span class="savings-amount">Save $<%= course.savings.toFixed(2) %></span>
+              </div>
               <% } else { %>
-                <div class="price-wrapper">
-                  <span class="course-price-current-enhanced">$<%= course.price %></span>
-                </div>
+              <div class="price-wrapper">
+                <span class="course-price-current-enhanced">$<%= course.price %></span>
+              </div>
               <% } %>
             </div>
-            
+
             <div class="course-actions-enhanced">
               <% if (isEnrolled) { %>
-                <button class="btn-access-course-enhanced" onclick="accessCourse('<%= course._id %>')">
-                  <i class="fas fa-graduation-cap"></i>
-                  <span>Access Course</span>
-                </button>
+              <button class="btn-access-course-enhanced" onclick="accessCourse('<%= course._id %>')">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Access Course</span>
+              </button>
               <% } else { %>
-                <button class="btn-add-to-cart-enhanced" onclick="addCourseToCart('<%= course._id %>')">
-                  <i class="fas fa-shopping-cart"></i>
-                  <span>Add to Cart</span>
-                </button>
+              <button class="btn-add-to-cart-enhanced" onclick="addCourseToCart('<%= course._id %>')">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Add to Cart</span>
+              </button>
               <% } %>
             </div>
           </div>
         </article>
         <% }); %>
       </div>
-      
+
       <!-- No Courses Found Message -->
       <div class="no-courses-found-enhanced" id="noCoursesFound" style="display: none;">
         <div class="no-courses-content">
@@ -321,7 +320,7 @@
           </div>
           <h3 class="no-courses-title">No Courses Found</h3>
           <p class="no-courses-description">
-            We couldn't find any courses matching your search criteria. 
+            We couldn't find any courses matching your search criteria.
             Try adjusting your filters or search terms.
           </p>
           <div class="no-courses-actions">
@@ -339,341 +338,341 @@
 </section>
 
 <script>
-// Add course to cart functionality
-function addCourseToCart(courseId) {
-  // Check if user is logged in
-  <% if (!user) { %>
+  // Add course to cart functionality
+  function addCourseToCart(courseId) {
+    // Check if user is logged in
+    <% if (!user) { %>
     showCartNotification('Please login to add items to cart', 'error');
     setTimeout(() => {
       window.location.href = '/auth/login';
     }, 3500); // Increased delay
     return;
-  <% } %>
-  
-  // Find the course data from the page
-  const courseCard = document.querySelector(`[onclick="addCourseToCart('${courseId}')"]`).closest('.course-card-enhanced');
-  const courseTitle = courseCard.querySelector('.course-card-title-enhanced').textContent;
-  const courseImage = courseCard.querySelector('.course-card-media-enhanced img').src;
-  
-  // Get the individual course price (final price after discount if any)
-  const priceElement = courseCard.querySelector('.course-price-current-enhanced');
-  const coursePrice = parseFloat(priceElement.textContent.replace('$', ''));
-  
-  // Show loading state
-  const btn = courseCard.querySelector('.btn-add-to-cart-enhanced');
-  const originalText = btn.querySelector('span').textContent;
-  const icon = btn.querySelector('i');
-  
-  btn.disabled = true;
-  btn.querySelector('span').textContent = 'Adding...';
-  icon.classList.remove('fa-shopping-cart');
-  icon.classList.add('fa-spinner', 'fa-spin');
-  
-  // Add to cart via API
-  fetch('/purchase/cart/add', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      itemId: courseId,
-      itemType: 'course',
-      title: courseTitle,
-      price: coursePrice,
-      image: courseImage
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Visual feedback
-      btn.style.background = '#27ae60';
-      btn.querySelector('span').textContent = 'Added!';
-      icon.classList.remove('fa-spinner', 'fa-spin');
-      icon.classList.add('fa-check');
-      
-      showCartNotification(data.message, 'success');
-      
-      // Update global cart count and refresh cart data
-      if (window.globalCart) {
-        window.globalCart.refreshCartData();
-      }
-      
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.style.background = '';
-        btn.querySelector('span').textContent = originalText;
-        icon.classList.remove('fa-check');
-        icon.classList.add('fa-shopping-cart');
-      }, 2000);
-    } else {
-      btn.disabled = false;
-      btn.querySelector('span').textContent = originalText;
-      icon.classList.remove('fa-spinner', 'fa-spin');
-      icon.classList.add('fa-shopping-cart');
-      
-      showCartNotification(data.message || 'Failed to add item to cart', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    btn.disabled = false;
-    btn.querySelector('span').textContent = originalText;
-    icon.classList.remove('fa-spinner', 'fa-spin');
-    icon.classList.add('fa-shopping-cart');
-    
-    showCartNotification('Network error. Please try again.', 'error');
-  });
-}
+    <% } %>
 
-// Add bundle to cart functionality
-function addBundleToCart(bundleId) {
-  // Check if user is logged in
-  <% if (!user) { %>
+    // Find the course data from the page
+    const courseCard = document.querySelector(`[onclick="addCourseToCart('${courseId}')"]`).closest('.course-card-enhanced');
+    const courseTitle = courseCard.querySelector('.course-card-title-enhanced').textContent;
+    const courseImage = courseCard.querySelector('.course-card-media-enhanced img').src;
+
+    // Get the individual course price (final price after discount if any)
+    const priceElement = courseCard.querySelector('.course-price-current-enhanced');
+    const coursePrice = parseFloat(priceElement.textContent.replace('$', ''));
+
+    // Show loading state
+    const btn = courseCard.querySelector('.btn-add-to-cart-enhanced');
+    const originalText = btn.querySelector('span').textContent;
+    const icon = btn.querySelector('i');
+
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Adding...';
+    icon.classList.remove('fa-shopping-cart');
+    icon.classList.add('fa-spinner', 'fa-spin');
+
+    // Add to cart via API
+    fetch('/purchase/cart/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: courseId,
+          itemType: 'course',
+          title: courseTitle,
+          price: coursePrice,
+          image: courseImage
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Visual feedback
+          btn.style.background = '#27ae60';
+          btn.querySelector('span').textContent = 'Added!';
+          icon.classList.remove('fa-spinner', 'fa-spin');
+          icon.classList.add('fa-check');
+
+          showCartNotification(data.message, 'success');
+
+          // Update global cart count and refresh cart data
+          if (window.globalCart) {
+            window.globalCart.refreshCartData();
+          }
+
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.style.background = '';
+            btn.querySelector('span').textContent = originalText;
+            icon.classList.remove('fa-check');
+            icon.classList.add('fa-shopping-cart');
+          }, 2000);
+        } else {
+          btn.disabled = false;
+          btn.querySelector('span').textContent = originalText;
+          icon.classList.remove('fa-spinner', 'fa-spin');
+          icon.classList.add('fa-shopping-cart');
+
+          showCartNotification(data.message || 'Failed to add item to cart', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        btn.querySelector('span').textContent = originalText;
+        icon.classList.remove('fa-spinner', 'fa-spin');
+        icon.classList.add('fa-shopping-cart');
+
+        showCartNotification('Network error. Please try again.', 'error');
+      });
+  }
+
+  // Add bundle to cart functionality
+  function addBundleToCart(bundleId) {
+    // Check if user is logged in
+    <% if (!user) { %>
     showCartNotification('Please login to add items to cart', 'error');
     setTimeout(() => {
       window.location.href = '/auth/login';
     }, 3500); // Increased delay
     return;
-  <% } %>
-  
-  // Get bundle data from the page
-  const bundleTitle = document.querySelector('.bundle-title').textContent;
-  const priceElement = document.querySelector('.price-current');
-  const price = parseFloat(priceElement.textContent.replace('$', ''));
-  const image = '/images/adad.png'; // Default bundle image
-  
-  // Show loading state
-  const btn = document.querySelector('.btn-add-to-cart');
-  const originalText = btn.querySelector('span').textContent;
-  const icon = btn.querySelector('i');
-  
-  btn.disabled = true;
-  btn.querySelector('span').textContent = 'Adding...';
-  icon.classList.remove('fa-shopping-cart');
-  icon.classList.add('fa-spinner', 'fa-spin');
-  
-  // Add to cart via API
-  fetch('/purchase/cart/add', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      itemId: bundleId,
-      itemType: 'bundle',
-      title: bundleTitle,
-      price: price,
-      image: image
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Visual feedback
-      btn.style.background = '#27ae60';
-      btn.querySelector('span').textContent = 'Added!';
-      icon.classList.remove('fa-spinner', 'fa-spin');
-      icon.classList.add('fa-check');
-      
-      showCartNotification(data.message, 'success');
-      
-      // Update global cart count and refresh cart data
-      if (window.globalCart) {
-        window.globalCart.refreshCartData();
-      }
-      
-      setTimeout(() => {
+    <% } %>
+
+    // Get bundle data from the page
+    const bundleTitle = document.querySelector('.bundle-title').textContent;
+    const priceElement = document.querySelector('.price-current');
+    const price = parseFloat(priceElement.textContent.replace('$', ''));
+    const image = '/images/adad.png'; // Default bundle image
+
+    // Show loading state
+    const btn = document.querySelector('.btn-add-to-cart');
+    const originalText = btn.querySelector('span').textContent;
+    const icon = btn.querySelector('i');
+
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Adding...';
+    icon.classList.remove('fa-shopping-cart');
+    icon.classList.add('fa-spinner', 'fa-spin');
+
+    // Add to cart via API
+    fetch('/purchase/cart/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: bundleId,
+          itemType: 'bundle',
+          title: bundleTitle,
+          price: price,
+          image: image
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Visual feedback
+          btn.style.background = '#27ae60';
+          btn.querySelector('span').textContent = 'Added!';
+          icon.classList.remove('fa-spinner', 'fa-spin');
+          icon.classList.add('fa-check');
+
+          showCartNotification(data.message, 'success');
+
+          // Update global cart count and refresh cart data
+          if (window.globalCart) {
+            window.globalCart.refreshCartData();
+          }
+
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.style.background = '';
+            btn.querySelector('span').textContent = originalText;
+            icon.classList.remove('fa-check');
+            icon.classList.add('fa-shopping-cart');
+          }, 2000);
+        } else {
+          btn.disabled = false;
+          btn.querySelector('span').textContent = originalText;
+          icon.classList.remove('fa-spinner', 'fa-spin');
+          icon.classList.add('fa-shopping-cart');
+
+          showCartNotification(data.message || 'Failed to add item to cart', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
         btn.disabled = false;
-        btn.style.background = '';
         btn.querySelector('span').textContent = originalText;
-        icon.classList.remove('fa-check');
+        icon.classList.remove('fa-spinner', 'fa-spin');
         icon.classList.add('fa-shopping-cart');
-      }, 2000);
-    } else {
-      btn.disabled = false;
-      btn.querySelector('span').textContent = originalText;
-      icon.classList.remove('fa-spinner', 'fa-spin');
-      icon.classList.add('fa-shopping-cart');
-      
-      showCartNotification(data.message || 'Failed to add item to cart', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    btn.disabled = false;
-    btn.querySelector('span').textContent = originalText;
-    icon.classList.remove('fa-spinner', 'fa-spin');
-    icon.classList.add('fa-shopping-cart');
-    
-    showCartNotification('Network error. Please try again.', 'error');
-  });
-}
 
-// Course Filtering Functionality
-function filterCourses() {
-  const searchInput = document.querySelector('.search-input-enhanced');
-  const levelFilter = document.querySelector('select[name="level"]');
-  const categoryFilter = document.querySelector('select[name="category"]');
-  const coursesGrid = document.getElementById('coursesGrid');
-  const noCoursesFound = document.getElementById('noCoursesFound');
-  const filteredCount = document.getElementById('filteredCount');
-  
-  const searchTerm = searchInput.value.toLowerCase();
-  const selectedLevel = levelFilter.value;
-  const selectedCategory = categoryFilter.value;
-  
-  const courseCards = document.querySelectorAll('.course-card-enhanced');
-  let visibleCount = 0;
-  
-  courseCards.forEach(card => {
-    const title = card.getAttribute('data-title');
-    const level = card.getAttribute('data-level');
-    const category = card.getAttribute('data-category');
-    
-    const matchesSearch = title.includes(searchTerm);
-    const matchesLevel = !selectedLevel || level === selectedLevel;
-    const matchesCategory = !selectedCategory || category === selectedCategory;
-    
-    if (matchesSearch && matchesLevel && matchesCategory) {
-      card.style.display = 'block';
-      visibleCount++;
-    } else {
-      card.style.display = 'none';
-    }
-  });
-  
-  // Update filtered count
-  filteredCount.textContent = visibleCount;
-  
-  // Show/hide no courses found message
-  if (visibleCount === 0) {
-    noCoursesFound.style.display = 'flex';
-    coursesGrid.style.display = 'none';
-  } else {
-    noCoursesFound.style.display = 'none';
-    coursesGrid.style.display = 'grid';
+        showCartNotification('Network error. Please try again.', 'error');
+      });
   }
-}
 
-// Clear filters function
-function clearFilters() {
-  document.querySelector('.search-input-enhanced').value = '';
-  document.querySelector('select[name="level"]').value = '';
-  document.querySelector('select[name="category"]').value = '';
-  filterCourses();
-}
+  // Course Filtering Functionality
+  function filterCourses() {
+    const searchInput = document.querySelector('.search-input-enhanced');
+    const levelFilter = document.querySelector('select[name="level"]');
+    const categoryFilter = document.querySelector('select[name="category"]');
+    const coursesGrid = document.getElementById('coursesGrid');
+    const noCoursesFound = document.getElementById('noCoursesFound');
+    const filteredCount = document.getElementById('filteredCount');
 
-// Enhanced animations and interactions
-document.addEventListener('DOMContentLoaded', function() {
-  // Add scroll animations
-  const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-  };
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedLevel = levelFilter.value;
+    const selectedCategory = categoryFilter.value;
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.style.opacity = '1';
-        entry.target.style.transform = 'translateY(0)';
+    const courseCards = document.querySelectorAll('.course-card-enhanced');
+    let visibleCount = 0;
+
+    courseCards.forEach(card => {
+      const title = card.getAttribute('data-title');
+      const level = card.getAttribute('data-level');
+      const category = card.getAttribute('data-category');
+
+      const matchesSearch = title.includes(searchTerm);
+      const matchesLevel = !selectedLevel || level === selectedLevel;
+      const matchesCategory = !selectedCategory || category === selectedCategory;
+
+      if (matchesSearch && matchesLevel && matchesCategory) {
+        card.style.display = 'block';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
       }
     });
-  }, observerOptions);
 
-  // Observe all fade-in-up elements
-  document.querySelectorAll('.fade-in-up').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(30px)';
-    el.style.transition = 'all 0.6s ease-out';
-    observer.observe(el);
-  });
+    // Update filtered count
+    filteredCount.textContent = visibleCount;
 
-  // Add hover effects to course cards
-  document.querySelectorAll('.course-card-enhanced').forEach(card => {
-    card.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-10px) scale(1.02)';
-    });
-    
-    card.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0) scale(1)';
-    });
-  });
-
-  // Add click effects to buttons
-  document.querySelectorAll('.btn-add-to-cart, .btn-buy-now, .btn-add-to-cart-enhanced').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      // Create ripple effect
-      const ripple = document.createElement('span');
-      const rect = this.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height);
-      const x = e.clientX - rect.left - size / 2;
-      const y = e.clientY - rect.top - size / 2;
-      
-      ripple.style.width = ripple.style.height = size + 'px';
-      ripple.style.left = x + 'px';
-      ripple.style.top = y + 'px';
-      ripple.classList.add('ripple');
-      
-      this.appendChild(ripple);
-      
-      setTimeout(() => {
-        ripple.remove();
-      }, 600);
-    });
-  });
-
-  // Add search functionality
-  const searchInput = document.querySelector('.search-input-enhanced');
-  if (searchInput) {
-    searchInput.addEventListener('input', filterCourses);
+    // Show/hide no courses found message
+    if (visibleCount === 0) {
+      noCoursesFound.style.display = 'flex';
+      coursesGrid.style.display = 'none';
+    } else {
+      noCoursesFound.style.display = 'none';
+      coursesGrid.style.display = 'grid';
+    }
   }
-});
 
-// Access course function for enrolled courses
-function accessCourse(courseId) {
-  // Redirect to the course content or student dashboard
-  window.location.href = `/student/enrolled-courses`;
-}
+  // Clear filters function
+  function clearFilters() {
+    document.querySelector('.search-input-enhanced').value = '';
+    document.querySelector('select[name="level"]').value = '';
+    document.querySelector('select[name="category"]').value = '';
+    filterCourses();
+  }
 
-// Show cart notification (consistent across all pages)
-function showCartNotification(message, type = 'success') {
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.className = `cart-notification cart-notification-${type}`;
-  
-  // Choose icon based on type
-  const iconClass = type === 'success' ? 'fas fa-check-circle' : 
-                   type === 'error' ? 'fas fa-exclamation-circle' : 
-                   'fas fa-info-circle';
-  
-  notification.innerHTML = `
+  // Enhanced animations and interactions
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add scroll animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    // Observe all fade-in-up elements
+    document.querySelectorAll('.fade-in-up').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(30px)';
+      el.style.transition = 'all 0.6s ease-out';
+      observer.observe(el);
+    });
+
+    // Add hover effects to course cards
+    document.querySelectorAll('.course-card-enhanced').forEach(card => {
+      card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-10px) scale(1.02)';
+      });
+
+      card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+      });
+    });
+
+    // Add click effects to buttons
+    document.querySelectorAll('.btn-add-to-cart, .btn-buy-now, .btn-add-to-cart-enhanced').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        // Create ripple effect
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        ripple.classList.add('ripple');
+
+        this.appendChild(ripple);
+
+        setTimeout(() => {
+          ripple.remove();
+        }, 600);
+      });
+    });
+
+    // Add search functionality
+    const searchInput = document.querySelector('.search-input-enhanced');
+    if (searchInput) {
+      searchInput.addEventListener('input', filterCourses);
+    }
+  });
+
+  // Access course function for enrolled courses
+  function accessCourse(courseId) {
+    // Redirect to the course content or student dashboard
+    window.location.href = `/student/enrolled-courses`;
+  }
+
+  // Show cart notification (consistent across all pages)
+  function showCartNotification(message, type = 'success') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `cart-notification cart-notification-${type}`;
+
+    // Choose icon based on type
+    const iconClass = type === 'success' ? 'fas fa-check-circle' :
+      type === 'error' ? 'fas fa-exclamation-circle' :
+      'fas fa-info-circle';
+
+    notification.innerHTML = `
     <div class="cart-notification-content">
       <i class="${iconClass}"></i>
       <span>${message}</span>
     </div>
   `;
-  
-  document.body.appendChild(notification);
-  
-  // Show notification
-  setTimeout(() => notification.classList.add('show'), 100);
-  
-  // Hide notification
-  setTimeout(() => {
-    notification.classList.remove('show');
-    setTimeout(() => notification.remove(), 300);
-  }, 4000); // Increased duration
-}
 
-// Alias for backward compatibility
-function showNotification(message, type = 'info') {
-  showCartNotification(message, type);
-}
+    document.body.appendChild(notification);
 
-// Add ripple effect CSS for enhanced interactions
-const style = document.createElement('style');
-style.textContent = `
+    // Show notification
+    setTimeout(() => notification.classList.add('show'), 100);
+
+    // Hide notification
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => notification.remove(), 300);
+    }, 4000); // Increased duration
+  }
+
+  // Alias for backward compatibility
+  function showNotification(message, type = 'info') {
+    showCartNotification(message, type);
+  }
+
+  // Add ripple effect CSS for enhanced interactions
+  const style = document.createElement('style');
+  style.textContent = `
   .btn-add-to-cart, .btn-buy-now, .btn-add-to-cart-enhanced {
     position: relative;
     overflow: hidden;
@@ -824,165 +823,165 @@ style.textContent = `
     color: #2ecc71;
   }
 `;
-document.head.appendChild(style);
+  document.head.appendChild(style);
 
-// Cart Management System
-let cart = [];
-let cartTotal = 0;
+  // Cart Management System
+  let cart = [];
+  let cartTotal = 0;
 
-// Initialize cart from server
-function initCart() {
-  // Initialize cart data from server
-  window.sessionCart = window.cartData || [];
-  console.log('Initializing cart with data:', window.sessionCart);
-  
-  // Update global cart count and refresh cart data
-  if (window.globalCart) {
-    window.globalCart.setSessionCart(window.sessionCart);
-    window.globalCart.refreshCartData();
+  // Initialize cart from server
+  function initCart() {
+    // Initialize cart data from server
+    window.sessionCart = window.cartData || [];
+    console.log('Initializing cart with data:', window.sessionCart);
+
+    // Update global cart count and refresh cart data
+    if (window.globalCart) {
+      window.globalCart.setSessionCart(window.sessionCart);
+      window.globalCart.refreshCartData();
+    }
   }
-}
 
-// Add item to cart
-function addToCart(item) {
-  // Check if user is logged in
-  <% if (!user) { %>
+  // Add item to cart
+  function addToCart(item) {
+    // Check if user is logged in
+    <% if (!user) { %>
     showCartNotification('Please login to add items to cart', 'error');
     setTimeout(() => {
       window.location.href = '/auth/login';
     }, 2000);
     return;
-  <% } %>
-  
-  // Add to cart via API
-  fetch('/purchase/cart/add', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      itemId: item.id,
-      itemType: item.type || 'course',
-      title: item.title,
-      price: item.price,
-      image: item.image
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      showCartNotification(data.message, 'success');
-      
-      // Update global cart count and refresh cart data
-      if (window.globalCart) {
-        window.globalCart.refreshCartData();
+    <% } %>
+
+    // Add to cart via API
+    fetch('/purchase/cart/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: item.id,
+          itemType: item.type || 'course',
+          title: item.title,
+          price: item.price,
+          image: item.image
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showCartNotification(data.message, 'success');
+
+          // Update global cart count and refresh cart data
+          if (window.globalCart) {
+            window.globalCart.refreshCartData();
+          }
+
+          // Show cart sidebar
+          showCartSidebar();
+        } else {
+          showCartNotification(data.message || 'Failed to add item to cart', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showCartNotification('Network error. Please try again.', 'error');
+      });
+  }
+
+  // Remove item from cart
+  function removeFromCart(itemId) {
+    // Ensure sessionCart is initialized
+    if (!window.sessionCart) {
+      window.sessionCart = [];
+      showCartNotification('Cart is empty', 'error');
+      return;
+    }
+
+    // Find the item in the session cart to get its type
+    const item = window.sessionCart.find(cartItem => cartItem.id === itemId);
+    if (!item) {
+      showCartNotification('Item not found in cart', 'error');
+      return;
+    }
+
+    console.log('Removing item from cart:', item);
+
+    fetch('/purchase/cart/remove', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: itemId,
+          itemType: item.type
+        })
+      })
+      .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Remove cart response:', data);
+        if (data.success) {
+          // Update session cart data
+          window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+          showCartNotification('Item removed from cart');
+          // Update global cart count and refresh cart data
+          if (window.globalCart) {
+            window.globalCart.updateCartSidebar();
+          }
+        } else {
+          showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error removing from cart:', error);
+        showCartNotification('Error removing item from cart', 'error');
+      });
+  }
+
+  // Update item quantity
+  function updateQuantity(itemId, newQuantity) {
+    const item = cart.find(item => item.id === itemId);
+    if (item) {
+      if (newQuantity <= 0) {
+        removeFromCart(itemId);
+      } else {
+        item.quantity = newQuantity;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartDisplay();
       }
-      
-      // Show cart sidebar
-      showCartSidebar();
-    } else {
-      showCartNotification(data.message || 'Failed to add item to cart', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showCartNotification('Network error. Please try again.', 'error');
-  });
-}
-
-// Remove item from cart
-function removeFromCart(itemId) {
-  // Ensure sessionCart is initialized
-  if (!window.sessionCart) {
-    window.sessionCart = [];
-    showCartNotification('Cart is empty', 'error');
-    return;
-  }
-  
-  // Find the item in the session cart to get its type
-  const item = window.sessionCart.find(cartItem => cartItem.id === itemId);
-  if (!item) {
-    showCartNotification('Item not found in cart', 'error');
-    return;
-  }
-  
-  console.log('Removing item from cart:', item);
-  
-  fetch('/purchase/cart/remove', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      itemId: itemId,
-      itemType: item.type
-    })
-  })
-  .then(response => {
-    console.log('Response status:', response.status);
-    return response.json();
-  })
-  .then(data => {
-    console.log('Remove cart response:', data);
-    if (data.success) {
-      // Update session cart data
-      window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
-      showCartNotification('Item removed from cart');
-      // Update global cart count and refresh cart data
-      if (window.globalCart) {
-        window.globalCart.updateCartSidebar();
-      }
-    } else {
-      showCartNotification(data.message || 'Failed to remove item from cart', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error removing from cart:', error);
-    showCartNotification('Error removing item from cart', 'error');
-  });
-}
-
-// Update item quantity
-function updateQuantity(itemId, newQuantity) {
-  const item = cart.find(item => item.id === itemId);
-  if (item) {
-    if (newQuantity <= 0) {
-      removeFromCart(itemId);
-    } else {
-      item.quantity = newQuantity;
-      localStorage.setItem('cart', JSON.stringify(cart));
-      updateCartDisplay();
     }
   }
-}
 
-// Update cart display
-function updateCartDisplay() {
-  updateCartCount();
-  updateCartItems();
-  updateCartTotal();
-}
-
-// Update cart count in header
-function updateCartCount() {
-  const cartCount = document.getElementById('cartCount');
-  if (cartCount) {
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    cartCount.textContent = totalItems;
-    
-    // Add animation class
-    cartCount.classList.add('cart-count-updated');
-    setTimeout(() => cartCount.classList.remove('cart-count-updated'), 300);
+  // Update cart display
+  function updateCartDisplay() {
+    updateCartCount();
+    updateCartItems();
+    updateCartTotal();
   }
-}
 
-// Update cart items in sidebar
-function updateCartItems() {
-  const cartItems = document.getElementById('cartItems');
-  if (!cartItems) return;
-  
-  if (cart.length === 0) {
-    cartItems.innerHTML = `
+  // Update cart count in header
+  function updateCartCount() {
+    const cartCount = document.getElementById('cartCount');
+    if (cartCount) {
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+      cartCount.textContent = totalItems;
+
+      // Add animation class
+      cartCount.classList.add('cart-count-updated');
+      setTimeout(() => cartCount.classList.remove('cart-count-updated'), 300);
+    }
+  }
+
+  // Update cart items in sidebar
+  function updateCartItems() {
+    const cartItems = document.getElementById('cartItems');
+    if (!cartItems) return;
+
+    if (cart.length === 0) {
+      cartItems.innerHTML = `
       <div class="cart-empty">
         <div class="cart-empty-icon">
           <i class="fas fa-shopping-cart"></i>
@@ -991,10 +990,10 @@ function updateCartItems() {
         <p>Add some courses to get started!</p>
       </div>
     `;
-    return;
-  }
-  
-  cartItems.innerHTML = cart.map(item => `
+      return;
+    }
+
+    cartItems.innerHTML = cart.map(item => `
     <div class="cart-item" data-id="${item.id}">
       <div class="cart-item-image">
         <img src="${item.image}" alt="${item.title}">
@@ -1015,210 +1014,210 @@ function updateCartItems() {
       </div>
     </div>
   `).join('');
-}
-
-// Update cart total
-function updateCartTotal() {
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = subtotal * 0.1; // 10% tax
-  const total = subtotal + tax;
-  
-  const subtotalEl = document.querySelector('.cart-subtotal');
-  const taxEl = document.querySelector('.cart-tax');
-  const totalEl = document.querySelector('.cart-total-amount');
-  
-  if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-  if (taxEl) taxEl.textContent = `$${tax.toFixed(2)}`;
-  if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
-  
-  // Enable/disable checkout button
-  const checkoutBtn = document.getElementById('cartCheckout');
-  if (checkoutBtn) {
-    checkoutBtn.disabled = cart.length === 0;
   }
-}
 
-// Show cart sidebar
-function showCartSidebar() {
-  const cartSidebar = document.getElementById('cartSidebar');
-  if (cartSidebar) {
-    cartSidebar.classList.add('cart-sidebar-open');
-    document.body.classList.add('cart-sidebar-active');
-  }
-}
+  // Update cart total
+  function updateCartTotal() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const tax = 0; // No tax
+    const total = subtotal + tax;
 
-// Hide cart sidebar
-function hideCartSidebar() {
-  const cartSidebar = document.getElementById('cartSidebar');
-  if (cartSidebar) {
-    cartSidebar.classList.remove('cart-sidebar-open');
-    document.body.classList.remove('cart-sidebar-active');
-  }
-}
+    const subtotalEl = document.querySelector('.cart-subtotal');
+    const taxEl = document.querySelector('.cart-tax');
+    const totalEl = document.querySelector('.cart-total-amount');
 
-// Proceed to checkout page
-function proceedToCheckout() {
-  // Check if cart is empty
-  if (!window.sessionCart || window.sessionCart.length === 0) {
-    showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
-    return;
-  }
-  
-  // Double-check with server cart data
-  const cartCount = document.getElementById('cartCount');
-  if (cartCount && parseInt(cartCount.textContent) === 0) {
-    showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
-    return;
-  }
-  
-  // Redirect to checkout page
-  window.location.href = '/purchase/checkout';
-}
+    if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+    if (taxEl) taxEl.textContent = `$${tax.toFixed(2)}`;
+    if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
 
-// Show cart notification
-function showCartNotification(message, type = 'success') {
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.className = `cart-notification cart-notification-${type}`;
-  notification.innerHTML = `
+    // Enable/disable checkout button
+    const checkoutBtn = document.getElementById('cartCheckout');
+    if (checkoutBtn) {
+      checkoutBtn.disabled = cart.length === 0;
+    }
+  }
+
+  // Show cart sidebar
+  function showCartSidebar() {
+    const cartSidebar = document.getElementById('cartSidebar');
+    if (cartSidebar) {
+      cartSidebar.classList.add('cart-sidebar-open');
+      document.body.classList.add('cart-sidebar-active');
+    }
+  }
+
+  // Hide cart sidebar
+  function hideCartSidebar() {
+    const cartSidebar = document.getElementById('cartSidebar');
+    if (cartSidebar) {
+      cartSidebar.classList.remove('cart-sidebar-open');
+      document.body.classList.remove('cart-sidebar-active');
+    }
+  }
+
+  // Proceed to checkout page
+  function proceedToCheckout() {
+    // Check if cart is empty
+    if (!window.sessionCart || window.sessionCart.length === 0) {
+      showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
+      return;
+    }
+
+    // Double-check with server cart data
+    const cartCount = document.getElementById('cartCount');
+    if (cartCount && parseInt(cartCount.textContent) === 0) {
+      showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
+      return;
+    }
+
+    // Redirect to checkout page
+    window.location.href = '/purchase/checkout';
+  }
+
+  // Show cart notification
+  function showCartNotification(message, type = 'success') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `cart-notification cart-notification-${type}`;
+    notification.innerHTML = `
     <div class="cart-notification-content">
       <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
       <span>${message}</span>
     </div>
   `;
-  
-  document.body.appendChild(notification);
-  
-  // Show notification
-  setTimeout(() => notification.classList.add('show'), 100);
-  
-  // Hide notification
-  setTimeout(() => {
-    notification.classList.remove('show');
-    setTimeout(() => notification.remove(), 300);
-  }, 3000);
-}
 
-// Initialize cart on page load
-document.addEventListener('DOMContentLoaded', function() {
-  initCart();
-  
-  // Cart toggle button
-  const cartToggle = document.getElementById('cartToggle');
-  const cartSidebar = document.getElementById('cartSidebar');
-  const cartSidebarClose = document.getElementById('cartSidebarClose');
-  const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
-  const cartContinue = document.getElementById('cartContinue');
-  const cartCheckout = document.getElementById('cartCheckout');
-  
-  // Open cart sidebar
-  if (cartToggle) {
-    cartToggle.addEventListener('click', showCartSidebar);
+    document.body.appendChild(notification);
+
+    // Show notification
+    setTimeout(() => notification.classList.add('show'), 100);
+
+    // Hide notification
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
   }
-  
-  // Close cart sidebar
-  if (cartSidebarClose) {
-    cartSidebarClose.addEventListener('click', hideCartSidebar);
-  }
-  if (cartSidebarOverlay) {
-    cartSidebarOverlay.addEventListener('click', hideCartSidebar);
-  }
-  if (cartContinue) {
-    cartContinue.addEventListener('click', hideCartSidebar);
-  }
-  
-  // Checkout button
-  if (cartCheckout) {
-    cartCheckout.addEventListener('click', function() {
-      proceedToCheckout();
-    });
-  }
-  
-  // Close cart on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && cartSidebar && cartSidebar.classList.contains('cart-sidebar-open')) {
-      hideCartSidebar();
+
+  // Initialize cart on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    initCart();
+
+    // Cart toggle button
+    const cartToggle = document.getElementById('cartToggle');
+    const cartSidebar = document.getElementById('cartSidebar');
+    const cartSidebarClose = document.getElementById('cartSidebarClose');
+    const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
+    const cartContinue = document.getElementById('cartContinue');
+    const cartCheckout = document.getElementById('cartCheckout');
+
+    // Open cart sidebar
+    if (cartToggle) {
+      cartToggle.addEventListener('click', showCartSidebar);
     }
-  });
-});
 
-// Toggle wishlist function
-function toggleWishlist(itemId, itemType) {
-  // Check if user is logged in
-  <% if (!user) { %>
+    // Close cart sidebar
+    if (cartSidebarClose) {
+      cartSidebarClose.addEventListener('click', hideCartSidebar);
+    }
+    if (cartSidebarOverlay) {
+      cartSidebarOverlay.addEventListener('click', hideCartSidebar);
+    }
+    if (cartContinue) {
+      cartContinue.addEventListener('click', hideCartSidebar);
+    }
+
+    // Checkout button
+    if (cartCheckout) {
+      cartCheckout.addEventListener('click', function() {
+        proceedToCheckout();
+      });
+    }
+
+    // Close cart on escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && cartSidebar && cartSidebar.classList.contains('cart-sidebar-open')) {
+        hideCartSidebar();
+      }
+    });
+  });
+
+  // Toggle wishlist function
+  function toggleWishlist(itemId, itemType) {
+    // Check if user is logged in
+    <% if (!user) { %>
     showCartNotification('Please login to manage your wishlist', 'error');
     setTimeout(() => {
       window.location.href = '/auth/login';
     }, 3500); // Increased delay
     return;
-  <% } %>
-  
-  // Find the heart icon - use event target for more reliable selection
-  const heartIcon = event.target.closest('.course-favorite-btn-enhanced, .bundle-wishlist-btn').querySelector('i');
-  const isCurrentlyInWishlist = heartIcon.classList.contains('fas');
-  
-  console.log('Toggling wishlist for:', itemId, itemType, 'Currently in wishlist:', isCurrentlyInWishlist);
-  
-  // Show loading state
-  heartIcon.classList.add('fa-spinner', 'fa-spin');
-  heartIcon.classList.remove('fas', 'far');
-  
-  // Toggle wishlist via API
-  fetch('/purchase/wishlist/toggle', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      itemId: itemId,
-      itemType: itemType
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Wishlist toggle response:', data);
-    
-    if (data.success) {
-      // Update heart icon based on new status
-      heartIcon.classList.remove('fa-spinner', 'fa-spin');
-      if (data.isInWishlist) {
-        heartIcon.classList.add('fas');
-        heartIcon.style.color = '#ff6b6b';
-      } else {
-        heartIcon.classList.add('far');
-        heartIcon.style.color = '';
-      }
-      
-      showCartNotification(data.message, 'success');
-    } else {
-      // Revert to original state
-      heartIcon.classList.remove('fa-spinner', 'fa-spin');
-      if (isCurrentlyInWishlist) {
-        heartIcon.classList.add('fas');
-        heartIcon.style.color = '#ff6b6b';
-      } else {
-        heartIcon.classList.add('far');
-        heartIcon.style.color = '';
-      }
-      
-      showCartNotification(data.message || 'Failed to add item to cart', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    // Revert to original state
-    heartIcon.classList.remove('fa-spinner', 'fa-spin');
-    if (isCurrentlyInWishlist) {
-      heartIcon.classList.add('fas');
-      heartIcon.style.color = '#ff6b6b';
-    } else {
-      heartIcon.classList.add('far');
-      heartIcon.style.color = '';
-    }
-    
-    showCartNotification('Error updating wishlist', 'error');
-  });
-}
+    <% } %>
+
+    // Find the heart icon - use event target for more reliable selection
+    const heartIcon = event.target.closest('.course-favorite-btn-enhanced, .bundle-wishlist-btn').querySelector('i');
+    const isCurrentlyInWishlist = heartIcon.classList.contains('fas');
+
+    console.log('Toggling wishlist for:', itemId, itemType, 'Currently in wishlist:', isCurrentlyInWishlist);
+
+    // Show loading state
+    heartIcon.classList.add('fa-spinner', 'fa-spin');
+    heartIcon.classList.remove('fas', 'far');
+
+    // Toggle wishlist via API
+    fetch('/purchase/wishlist/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: itemId,
+          itemType: itemType
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Wishlist toggle response:', data);
+
+        if (data.success) {
+          // Update heart icon based on new status
+          heartIcon.classList.remove('fa-spinner', 'fa-spin');
+          if (data.isInWishlist) {
+            heartIcon.classList.add('fas');
+            heartIcon.style.color = '#ff6b6b';
+          } else {
+            heartIcon.classList.add('far');
+            heartIcon.style.color = '';
+          }
+
+          showCartNotification(data.message, 'success');
+        } else {
+          // Revert to original state
+          heartIcon.classList.remove('fa-spinner', 'fa-spin');
+          if (isCurrentlyInWishlist) {
+            heartIcon.classList.add('fas');
+            heartIcon.style.color = '#ff6b6b';
+          } else {
+            heartIcon.classList.add('far');
+            heartIcon.style.color = '';
+          }
+
+          showCartNotification(data.message || 'Failed to add item to cart', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        // Revert to original state
+        heartIcon.classList.remove('fa-spinner', 'fa-spin');
+        if (isCurrentlyInWishlist) {
+          heartIcon.classList.add('fas');
+          heartIcon.style.color = '#ff6b6b';
+        } else {
+          heartIcon.classList.add('far');
+          heartIcon.style.color = '';
+        }
+
+        showCartNotification('Error updating wishlist', 'error');
+      });
+  }
 </script>
 
 <!-- Shopping Cart Sidebar -->
@@ -1234,7 +1233,7 @@ function toggleWishlist(itemId, itemType) {
         <i class="fas fa-times"></i>
       </button>
     </div>
-    
+
     <div class="cart-sidebar-body">
       <div class="cart-items" id="cartItems">
         <div class="cart-empty">
@@ -1246,7 +1245,7 @@ function toggleWishlist(itemId, itemType) {
         </div>
       </div>
     </div>
-    
+
     <div class="cart-sidebar-footer">
       <div class="cart-total" id="cartTotal">
         <div class="cart-total-row">
@@ -1262,7 +1261,7 @@ function toggleWishlist(itemId, itemType) {
           <span class="cart-total-amount">$0.00</span>
         </div>
       </div>
-      
+
       <div class="cart-actions">
         <button class="btn-cart-checkout" id="cartCheckout" disabled>
           <i class="fas fa-credit-card"></i>
@@ -1281,169 +1280,170 @@ function toggleWishlist(itemId, itemType) {
 
 
 <style>
-.btn-purchased-enhanced, .btn-purchased {
-  background: #27ae60 !important;
-  color: white !important;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: not-allowed;
-  opacity: 0.8;
-  text-decoration: none;
-}
+  .btn-purchased-enhanced,
+  .btn-purchased {
+    background: #27ae60 !important;
+    color: white !important;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: not-allowed;
+    opacity: 0.8;
+    text-decoration: none;
+  }
 
-.btn-access-courses {
-  background: #3498db !important;
-  color: white !important;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
+  .btn-access-courses {
+    background: #3498db !important;
+    color: white !important;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
 
-.btn-access-courses:hover {
-  background: #2980b9 !important;
-  color: white !important;
-  text-decoration: none;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
-}
+  .btn-access-courses:hover {
+    background: #2980b9 !important;
+    color: white !important;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+  }
 
-.quick-action-btn.purchased {
-  background: #27ae60 !important;
-  color: white !important;
-  cursor: not-allowed;
-  opacity: 0.8;
-}
+  .quick-action-btn.purchased {
+    background: #27ae60 !important;
+    color: white !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
 
-.notification {
-  position: fixed;
-  top: 2rem;
-  right: 2rem;
-  background: white;
-  border-radius: 10px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  transform: translateX(100%);
-  opacity: 0;
-  transition: all 0.3s ease;
-}
+  .notification {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
 
-.notification.show {
-  transform: translateX(0);
-  opacity: 1;
-}
+  .notification.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
 
-.notification-success {
-  border-left: 4px solid #27ae60;
-}
+  .notification-success {
+    border-left: 4px solid #27ae60;
+  }
 
-.notification-error {
-  border-left: 4px solid #e74c3c;
-}
+  .notification-error {
+    border-left: 4px solid #e74c3c;
+  }
 
-.notification-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+  .notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
-.notification-success .notification-content i {
-  color: #27ae60;
-}
+  .notification-success .notification-content i {
+    color: #27ae60;
+  }
 
-.notification-error .notification-content i {
-  color: #e74c3c;
-}
+  .notification-error .notification-content i {
+    color: #e74c3c;
+  }
 
-/* Cart notification styles */
-.cart-notification {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  border-radius: 10px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  z-index: 9999;
-  opacity: 0;
-  transition: all 0.3s ease;
-}
+  /* Cart notification styles */
+  .cart-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
 
-.cart-notification.show {
-  transform: translate(-50%, -50%);
-  opacity: 1;
-}
+  .cart-notification.show {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
 
-.cart-notification-success {
-  border-left: 4px solid #27ae60;
-}
+  .cart-notification-success {
+    border-left: 4px solid #27ae60;
+  }
 
-.cart-notification-error {
-  border-left: 4px solid #e74c3c;
-}
+  .cart-notification-error {
+    border-left: 4px solid #e74c3c;
+  }
 
-.cart-notification-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+  .cart-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
-.cart-notification-success .cart-notification-content i {
-  color: #27ae60;
-}
+  .cart-notification-success .cart-notification-content i {
+    color: #27ae60;
+  }
 
-.cart-notification-error .cart-notification-content i {
-  color: #e74c3c;
-}
+  .cart-notification-error .cart-notification-content i {
+    color: #e74c3c;
+  }
 
-/* Bundle wishlist button styles */
-.bundle-title-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
+  /* Bundle wishlist button styles */
+  .bundle-title-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
 
-.bundle-wishlist-btn {
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-}
+  .bundle-wishlist-btn {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
 
-.bundle-wishlist-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: scale(1.1);
-}
+  .bundle-wishlist-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+  }
 
-.bundle-wishlist-btn i {
-  font-size: 1.2rem;
-  transition: all 0.3s ease;
-}
+  .bundle-wishlist-btn i {
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+  }
 
-.bundle-wishlist-btn:hover i {
-  transform: scale(1.1);
-}
+  .bundle-wishlist-btn:hover i {
+    transform: scale(1.1);
+  }
 </style>
 
 <!-- Import JavaScript -->

@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { isAdmin } = require('../middlewares/auth');
+const { upload } = require('../utils/s3Service');
 const {
+  testS3,
+  uploadDocument,
   getAdminDashboard,
   getCourses,
   createCourse,
@@ -20,7 +23,8 @@ const {
   addTopicContent,
   updateTopicContent,
   deleteTopicContent,
-  getContentDetails,
+  getContentDetailsPage,
+  getContentDetailsForEdit,
   getBundles,
   createBundle,
   updateBundle,
@@ -90,6 +94,16 @@ const {
   getQuestionsByBank,
 } = require('../controllers/gameRoomController');
 
+// Import Team and Site Settings Controllers
+const {
+  getTeamManagementPage,
+  getTeamMember,
+  createTeamMember,
+  updateTeamMember,
+  deleteTeamMember,
+  exportTeamMembers,
+} = require('../controllers/authController');
+
 // Admin Dashboard
 router.get('/dashboard', isAdmin, getAdminDashboard);
 
@@ -126,7 +140,12 @@ router.post(
 router.get(
   '/courses/:courseCode/topics/:topicId/content/:contentId/details',
   isAdmin,
-  getContentDetails
+  getContentDetailsPage
+);
+router.get(
+  '/courses/:courseCode/topics/:topicId/content/:contentId/edit-details',
+  isAdmin,
+  getContentDetailsForEdit
 );
 router.get(
   '/courses/:courseCode/topics/:topicId/content/:contentId/students',
@@ -175,6 +194,10 @@ router.post(
   isAdmin,
   addHomeworkContent
 );
+
+// Document Upload Routes (S3)
+router.get('/test-s3', isAdmin, testS3);
+router.post('/upload/document', isAdmin, upload.single('file'), uploadDocument);
 
 // Bundle Course Routes
 router.get('/bundles', isAdmin, getBundles);
@@ -268,5 +291,14 @@ router.get(
 router.get('/export/orders', isAdmin, exportOrders);
 router.get('/export/quizzes', isAdmin, exportQuizzes);
 router.get('/export/comprehensive', isAdmin, exportComprehensiveReport);
+
+// Team Management Routes
+router.get('/team-management', isAdmin, getTeamManagementPage);
+router.post('/team-management', isAdmin, createTeamMember);
+router.get('/team-management/export', isAdmin, exportTeamMembers);
+router.get('/team-management/:id', isAdmin, getTeamMember);
+router.put('/team-management/:id', isAdmin, updateTeamMember);
+router.delete('/team-management/:id', isAdmin, deleteTeamMember);
+
 
 module.exports = router;

@@ -6,7 +6,9 @@ const BundleCourse = require('../models/BundleCourse');
 const Topic = require('../models/Topic');
 const Question = require('../models/Question');
 const QuestionBank = require('../models/QuestionBank');
+const ZoomMeeting = require('../models/ZoomMeeting');
 const mongoose = require('mongoose');
+const zoomService = require('../utils/zoomService');
 
 // Dashboard - Main student dashboard
 const dashboard = async (req, res) => {
@@ -241,6 +243,7 @@ const getContentIcon = (type) => {
     assignment: 'clipboard-list',
     reading: 'book-open',
     link: 'external-link-alt',
+    zoom: 'video', // Add Zoom meeting icon
   };
   return icons[type] || 'file';
 };
@@ -264,10 +267,16 @@ const courseContent = async (req, res) => {
     const course = await Course.findById(courseId)
       .populate({
         path: 'topics',
-        populate: {
-          path: 'content',
-          model: 'ContentItem',
-        },
+        populate: [
+          {
+            path: 'content',
+            model: 'ContentItem',
+          },
+          {
+            path: 'content.zoomMeeting',
+            model: 'ZoomMeeting',
+          },
+        ],
       })
       .populate('bundle', 'name')
       .populate('createdBy', 'name');
@@ -355,6 +364,7 @@ const courseContent = async (req, res) => {
       course,
       enrollment,
       topicsWithProgress,
+      user: req.session.user, // Pass user session for admin checks
       getContentIcon, // Pass the helper function to the template
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
@@ -381,10 +391,16 @@ const contentDetails = async (req, res) => {
     for (const enrollment of student.enrolledCourses) {
       const courseData = await Course.findById(enrollment.course).populate({
         path: 'topics',
-        populate: {
-          path: 'content',
-          model: 'ContentItem',
-        },
+        populate: [
+          {
+            path: 'content',
+            model: 'ContentItem',
+          },
+          {
+            path: 'content.zoomMeeting',
+            model: 'ZoomMeeting',
+          },
+        ],
       });
 
       if (courseData) {
@@ -2743,4 +2759,309 @@ module.exports = {
   takeQuizPage,
   submitStandaloneQuiz,
   getStandaloneQuizResults,
+};
+
+// ==================== ZOOM MEETING FUNCTIONALITY ====================
+
+/**
+ * Join Zoom meeting - Redirect to external Zoom client with tracking
+ */
+const joinZoomMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const studentId = req.session.user.id;
+
+    console.log('Student requesting to join Zoom meeting:', meetingId);
+
+    // Find the Zoom meeting
+    const zoomMeeting = await ZoomMeeting.findById(meetingId)
+      .populate('topic', 'title')
+      .populate('course', 'title');
+
+    if (!zoomMeeting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Zoom meeting not found',
+      });
+    }
+
+    console.log('🔍 Found meeting in database:', {
+      dbMeetingId: zoomMeeting.meetingId,
+      meetingName: zoomMeeting.meetingName,
+      status: zoomMeeting.status,
+      joinUrl: zoomMeeting.joinUrl ? 'Present' : 'Missing',
+    });
+
+    // Validate meeting exists in Zoom (optional but recommended)
+    try {
+      const zoomMeetingDetails = await zoomService.getMeetingDetails(
+        zoomMeeting.meetingId
+      );
+      console.log('✅ Meeting exists in Zoom:', zoomMeetingDetails.id);
+    } catch (zoomError) {
+      console.warn('⚠️ Could not verify meeting in Zoom:', zoomError.message);
+      // Continue anyway - might be a permissions issue
+    }
+
+    // Check if meeting is available (started)
+    if (zoomMeeting.status === 'scheduled') {
+      return res.status(403).json({
+        success: false,
+        message:
+          'This meeting has not started yet. Please wait for the instructor to start the meeting.',
+        scheduledTime: zoomMeeting.scheduledStartTime,
+      });
+    }
+
+    if (zoomMeeting.status === 'ended') {
+      return res.status(403).json({
+        success: false,
+        message: 'This meeting has ended.',
+        recordingUrl: zoomMeeting.recordingUrl,
+      });
+    }
+
+    // Get student information with populated enrolled courses
+    const student = await User.findById(studentId).populate(
+      'enrolledCourses.course'
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    // Check if student is enrolled in the course (with debug mode)
+    const isEnrolled = student.enrolledCourses.some(
+      (enrollment) =>
+        enrollment.course &&
+        enrollment.course._id.toString() === zoomMeeting.course._id.toString()
+    );
+
+    console.log('🔍 Enrollment check:', {
+      studentId: studentId,
+      meetingCourseId: zoomMeeting.course._id.toString(),
+      studentCourses: student.enrolledCourses.map((e) =>
+        e.course ? e.course._id.toString() : 'null'
+      ),
+      isEnrolled: isEnrolled,
+    });
+
+    // For development/testing, you can temporarily disable this check
+    const skipEnrollmentCheck =
+      process.env.NODE_ENV === 'development' &&
+      process.env.SKIP_ENROLLMENT_CHECK === 'true';
+
+    if (!isEnrolled && !skipEnrollmentCheck) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not enrolled in this course.',
+        debug: {
+          meetingCourse: zoomMeeting.course._id.toString(),
+          studentCourses: student.enrolledCourses.map((e) =>
+            e.course ? e.course._id.toString() : 'null'
+          ),
+          suggestion: 'Add SKIP_ENROLLMENT_CHECK=true to .env for testing',
+        },
+      });
+    }
+
+    // Record join attempt in our database (webhook will handle actual join/leave events)
+    await zoomService.recordAttendance(
+      zoomMeeting.meetingId,
+      studentId,
+      'join_attempt'
+    );
+
+    // Generate tracking join URL for external Zoom client
+    const studentInfo = {
+      name: student.name || `${student.firstName} ${student.lastName}`.trim(),
+      email: student.studentEmail || student.email,
+      id: studentId,
+    };
+
+    const trackingJoinUrl = zoomService.generateTrackingJoinUrl(
+      zoomMeeting.meetingId,
+      studentInfo,
+      zoomMeeting.password
+    );
+
+    console.log('✅ Student authorized to join meeting');
+    console.log('📊 Meeting details:', {
+      meetingId: zoomMeeting.meetingId,
+      studentName: studentInfo.name,
+      studentEmail: studentInfo.email,
+      joinMethod: 'external_client',
+    });
+
+    // Return join URL for external redirect
+    res.json({
+      success: true,
+      meeting: {
+        meetingId: zoomMeeting.meetingId,
+        meetingName: zoomMeeting.meetingName,
+        meetingTopic: zoomMeeting.meetingTopic,
+        joinUrl: trackingJoinUrl, // Direct Zoom join URL
+        originalJoinUrl: zoomMeeting.joinUrl, // Fallback URL
+        password: zoomMeeting.password,
+        startTime: zoomMeeting.scheduledStartTime,
+        course: zoomMeeting.course,
+        topic: zoomMeeting.topic,
+      },
+      student: {
+        name: studentInfo.name,
+        email: studentInfo.email,
+      },
+      joinMethod: 'external_redirect',
+    });
+  } catch (error) {
+    console.error('❌ Error joining Zoom meeting:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to join Zoom meeting',
+    });
+  }
+};
+
+/**
+ * Leave Zoom meeting - Update attendance record
+ */
+const leaveZoomMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const studentId = req.session.user.id;
+
+    console.log('Student leaving Zoom meeting:', meetingId);
+
+    const zoomMeeting = await ZoomMeeting.findById(meetingId);
+
+    if (!zoomMeeting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Zoom meeting not found',
+      });
+    }
+
+    // Record leave event (manual tracking as backup)
+    await zoomService.recordAttendance(
+      zoomMeeting.meetingId,
+      studentId,
+      'leave'
+    );
+
+    console.log('✅ Student leave recorded');
+
+    res.json({
+      success: true,
+      message: 'Successfully recorded your participation',
+    });
+  } catch (error) {
+    console.error('❌ Error leaving Zoom meeting:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to record meeting leave',
+    });
+  }
+};
+
+/**
+ * Get student's Zoom meeting attendance history
+ */
+const getZoomMeetingHistory = async (req, res) => {
+  try {
+    const studentId = req.session.user.id;
+
+    console.log('Getting Zoom meeting history for student:', studentId);
+
+    // Find all meetings where student attended
+    const meetings = await ZoomMeeting.find({
+      'studentsAttended.student': studentId,
+    })
+      .populate('course', 'title thumbnail')
+      .populate('topic', 'title')
+      .sort({ scheduledStartTime: -1 });
+
+    // Extract student's attendance data from each meeting
+    const attendanceHistory = meetings.map((meeting) => {
+      const studentAttendance = meeting.studentsAttended.find(
+        (att) => att.student.toString() === studentId
+      );
+
+      return {
+        meeting: {
+          id: meeting._id,
+          name: meeting.meetingName,
+          topic: meeting.topic,
+          course: meeting.course,
+          scheduledStart: meeting.scheduledStartTime,
+          actualStart: meeting.actualStartTime,
+          actualEnd: meeting.actualEndTime,
+          duration: meeting.actualDuration || meeting.duration,
+          status: meeting.status,
+          recordingUrl: meeting.recordingUrl,
+        },
+        attendance: {
+          totalTimeSpent: studentAttendance?.totalTimeSpent || 0,
+          attendancePercentage: studentAttendance?.attendancePercentage || 0,
+          firstJoin: studentAttendance?.firstJoinTime,
+          lastLeave: studentAttendance?.lastLeaveTime,
+          joinCount: studentAttendance?.joinEvents.length || 0,
+        },
+      };
+    });
+
+    res.json({
+      success: true,
+      history: attendanceHistory,
+    });
+  } catch (error) {
+    console.error('❌ Error getting meeting history:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get meeting history',
+    });
+  }
+};
+
+module.exports = {
+  dashboard,
+  enrolledCourses,
+  courseDetails,
+  courseContent,
+  contentDetails,
+  updateContentProgress,
+  takeContentQuiz,
+  submitContentQuiz,
+  quizResults,
+  debugProgress,
+  quizzes,
+  takeQuiz,
+  submitQuiz,
+  wishlist,
+  addToWishlist,
+  removeFromWishlist,
+  orderHistory,
+  orderDetails,
+  homeworkAttempts,
+  profile,
+  updateProfile,
+  settings,
+  updateSettings,
+  // New profile and settings functions
+  updateProfilePicture,
+  changePassword,
+  exportData,
+  deleteAccount,
+  // New standalone quiz functions
+  getQuizDetails,
+  startQuizAttempt,
+  takeQuizPage,
+  submitStandaloneQuiz,
+  getStandaloneQuizResults,
+  // Zoom Meeting functions
+  joinZoomMeeting,
+  leaveZoomMeeting,
+  getZoomMeetingHistory,
 };

@@ -281,7 +281,7 @@ class ExcelExporter {
         if (column.type === 'date') {
           cell.numFmt = 'dd/mm/yyyy hh:mm';
         } else if (column.type === 'currency') {
-          cell.numFmt = '$#,##0.00';
+          cell.numFmt = '"EGP "#,##0.00';
         } else if (column.type === 'percentage') {
           cell.numFmt = '0.00%';
         }
@@ -1531,7 +1531,7 @@ class ExcelExporter {
     const courseInfo = [
       ['Course Code', course.courseCode || 'N/A'],
       ['Course Title', course.title || 'N/A'],
-      
+
       ['Level', course.level || 'N/A'],
       ['Subject', course.subject || 'N/A'],
       ['Status', course.status || 'N/A'],

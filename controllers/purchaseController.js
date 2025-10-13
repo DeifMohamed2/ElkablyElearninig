@@ -2,38 +2,193 @@ const Purchase = require('../models/Purchase');
 const User = require('../models/User');
 const BundleCourse = require('../models/BundleCourse');
 const Course = require('../models/Course');
+const crypto = require('crypto');
+const paymobService = require('../utils/paymobService');
+
+// Simple UUID v4 generator
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+// Helper function to recalculate cart totals from database
+async function recalculateCartFromDB(cart) {
+  if (!cart || cart.length === 0) {
+    return {
+      items: [],
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      validItems: [],
+    };
+  }
+
+  const validItems = [];
+  let subtotal = 0;
+
+  for (const cartItem of cart) {
+    try {
+      let dbItem;
+      if (cartItem.type === 'bundle') {
+        dbItem = await BundleCourse.findById(cartItem.id).select(
+          'title price discountPrice thumbnail status isActive'
+        );
+      } else {
+        dbItem = await Course.findById(cartItem.id).select(
+          'title price discountPrice thumbnail status isActive'
+        );
+      }
+
+      // Only include valid, active items
+      if (
+        dbItem &&
+        dbItem.isActive &&
+        ((cartItem.type === 'bundle' && dbItem.status === 'published') ||
+          (cartItem.type === 'course' && dbItem.status === 'published'))
+      ) {
+        // Calculate final price considering discount
+        const originalPrice = dbItem.price || 0;
+        const discountPercentage = dbItem.discountPrice || 0;
+        let finalPrice = originalPrice;
+
+        if (discountPercentage > 0) {
+          finalPrice =
+            originalPrice - originalPrice * (discountPercentage / 100);
+        }
+
+        const validItem = {
+          id: cartItem.id,
+          type: cartItem.type,
+          title: dbItem.title,
+          originalPrice: originalPrice,
+          discountPrice: discountPercentage,
+          price: finalPrice, // Final price after discount
+          image: dbItem.thumbnail || '/images/adad.png',
+          addedAt: cartItem.addedAt,
+        };
+
+        validItems.push(validItem);
+        subtotal += finalPrice;
+      } else {
+        console.log(
+          `Removing invalid item from cart: ${cartItem.id} (${cartItem.type})`
+        );
+      }
+    } catch (error) {
+      console.error(`Error validating cart item ${cartItem.id}:`, error);
+    }
+  }
+
+  const tax = 0; // No tax
+  const total = subtotal + tax;
+
+  return {
+    items: validItems,
+    subtotal,
+    tax,
+    total,
+    validItems,
+  };
+}
+
+// Helper function to clear cart after successful payment
+function clearCart(req, reason = 'successful payment') {
+  const cartCount = req.session.cart ? req.session.cart.length : 0;
+
+  // Only clear if there are items in the cart
+  if (cartCount > 0) {
+    req.session.cart = [];
+    console.log(`Cart cleared after ${reason}. ${cartCount} items removed.`);
+  } else {
+    console.log(
+      `Cart was already empty when attempting to clear after ${reason}.`
+    );
+  }
+
+  return cartCount;
+}
+
+// Middleware to validate and recalculate cart items from database
+const validateCartMiddleware = async (req, res, next) => {
+  try {
+    if (req.session.cart && req.session.cart.length > 0) {
+      console.log('Validating cart items from database...');
+      const recalculatedCart = await recalculateCartFromDB(req.session.cart);
+
+      // Update session cart with validated items
+      req.session.cart = recalculatedCart.validItems;
+
+      // Attach validated cart data to request for use in controllers
+      req.validatedCart = {
+        items: recalculatedCart.items,
+        subtotal: recalculatedCart.subtotal,
+        tax: recalculatedCart.tax,
+        total: recalculatedCart.total,
+        cartCount: recalculatedCart.items.length,
+      };
+
+      console.log(
+        `Cart validation complete. ${recalculatedCart.items.length} valid items, total: EGP${recalculatedCart.total}`
+      );
+    } else {
+      req.validatedCart = {
+        items: [],
+        subtotal: 0,
+        tax: 0,
+        total: 0,
+        cartCount: 0,
+      };
+    }
+
+    next();
+  } catch (error) {
+    console.error('Error validating cart:', error);
+    // Clear invalid cart and continue
+    req.session.cart = [];
+    req.validatedCart = {
+      items: [],
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      cartCount: 0,
+    };
+    next();
+  }
+};
 
 // Get cart data (for API calls)
 const getCart = async (req, res) => {
   try {
     if (!req.session.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Please login to view your cart' 
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to view your cart',
       });
     }
 
-    // Get cart from session or create empty cart
+    // Get cart from session and recalculate from database
     const cart = req.session.cart || [];
-    
-    // Calculate totals
-    const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-    const tax = subtotal * 0.1; // 10% tax
-    const total = subtotal + tax;
+    const recalculatedCart = await recalculateCartFromDB(cart);
+
+    // Update session cart with validated items
+    req.session.cart = recalculatedCart.validItems;
 
     res.json({
       success: true,
-      cart,
-      subtotal,
-      tax,
-      total,
-      cartCount: cart.length
+      cart: recalculatedCart.items,
+      subtotal: recalculatedCart.subtotal,
+      tax: recalculatedCart.tax,
+      total: recalculatedCart.total,
+      cartCount: recalculatedCart.items.length,
     });
   } catch (error) {
     console.error('Error fetching cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error loading cart' 
+    res.status(500).json({
+      success: false,
+      message: 'Error loading cart',
     });
   }
 };
@@ -41,31 +196,59 @@ const getCart = async (req, res) => {
 // Add item to cart
 const addToCart = async (req, res) => {
   try {
-    const { itemId, itemType, title, price, image } = req.body;
-    
-    console.log('Add to cart request:', { itemId, itemType, title, price, image });
+    const { itemId, itemType } = req.body;
+
+    console.log('Add to cart request:', {
+      itemId,
+      itemType,
+    });
     console.log('Session user:', req.session.user);
 
     if (!req.session.user) {
       console.log('No user in session, returning 401');
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Please login to add items to cart' 
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to add items to cart',
       });
     }
 
-    // Validate item exists
+    // Validate item exists and get price from database
     let item;
     if (itemType === 'bundle') {
-      item = await BundleCourse.findById(itemId);
+      item = await BundleCourse.findById(itemId).select(
+        'title price discountPrice thumbnail status isActive'
+      );
     } else {
-      item = await Course.findById(itemId);
+      item = await Course.findById(itemId).select(
+        'title price discountPrice thumbnail status isActive'
+      );
     }
 
     if (!item) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Item not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found',
+      });
+    }
+
+    // Validate item is available for purchase
+    if (
+      itemType === 'bundle' &&
+      (!item.isActive || item.status !== 'published')
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'This bundle is not available for purchase',
+      });
+    }
+
+    if (
+      itemType === 'course' &&
+      (!item.isActive || item.status !== 'published')
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'This course is not available for purchase',
       });
     }
 
@@ -75,23 +258,24 @@ const addToCart = async (req, res) => {
       .populate('purchasedCourses.course')
       .populate('enrolledCourses.course');
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
       });
     }
 
     if (itemType === 'bundle' && user.hasPurchasedBundle(itemId)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'You have already purchased this bundle' 
+      return res.status(400).json({
+        success: false,
+        message: 'You have already purchased this bundle',
       });
     }
 
     if (itemType === 'course' && user.hasAccessToCourse(itemId)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'You already have access to this course through a previous purchase or bundle' 
+      return res.status(400).json({
+        success: false,
+        message:
+          'You already have access to this course through a previous purchase or bundle',
       });
     }
 
@@ -101,14 +285,14 @@ const addToCart = async (req, res) => {
     }
 
     // Check if item already in cart
-    const existingItem = req.session.cart.find(cartItem => 
-      cartItem.id === itemId && cartItem.type === itemType
+    const existingItem = req.session.cart.find(
+      (cartItem) => cartItem.id === itemId && cartItem.type === itemType
     );
 
     if (existingItem) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Item already in cart' 
+      return res.status(400).json({
+        success: false,
+        message: 'Item already in cart',
       });
     }
 
@@ -117,11 +301,16 @@ const addToCart = async (req, res) => {
       // Check if this course is already in a bundle that's in the cart
       for (const cartItem of req.session.cart) {
         if (cartItem.type === 'bundle') {
-          const bundle = await BundleCourse.findById(cartItem.id).populate('courses');
-          if (bundle && bundle.courses.some(course => course._id.toString() === itemId)) {
-            return res.status(400).json({ 
-              success: false, 
-              message: `This course is already included in the "${bundle.title}" bundle in your cart. Please remove the bundle first if you want to purchase this course individually.` 
+          const bundle = await BundleCourse.findById(cartItem.id).populate(
+            'courses'
+          );
+          if (
+            bundle &&
+            bundle.courses.some((course) => course._id.toString() === itemId)
+          ) {
+            return res.status(400).json({
+              success: false,
+              message: `This course is already included in the "${bundle.title}" bundle in your cart. Please remove the bundle first if you want to purchase this course individually.`,
             });
           }
         }
@@ -132,45 +321,59 @@ const addToCart = async (req, res) => {
       if (bundle && bundle.courses) {
         const conflictingCourses = [];
         for (const course of bundle.courses) {
-          const existingCourse = req.session.cart.find(cartItem => 
-            cartItem.type === 'course' && cartItem.id === course._id.toString()
+          const existingCourse = req.session.cart.find(
+            (cartItem) =>
+              cartItem.type === 'course' &&
+              cartItem.id === course._id.toString()
           );
           if (existingCourse) {
             conflictingCourses.push(course.title);
           }
         }
-        
+
         if (conflictingCourses.length > 0) {
-          return res.status(400).json({ 
-            success: false, 
-            message: `This bundle contains courses that are already in your cart: ${conflictingCourses.join(', ')}. Please remove those individual courses first if you want to purchase the bundle.` 
+          return res.status(400).json({
+            success: false,
+            message: `This bundle contains courses that are already in your cart: ${conflictingCourses.join(
+              ', '
+            )}. Please remove those individual courses first if you want to purchase the bundle.`,
           });
         }
       }
     }
 
-    // Add item to cart
+    // Add item to cart (using database values only)
+    const originalPrice = item.price || 0;
+    const discountPercentage = item.discountPrice || 0;
+    let finalPrice = originalPrice;
+
+    if (discountPercentage > 0) {
+      finalPrice = originalPrice - originalPrice * (discountPercentage / 100);
+    }
+
     const cartItem = {
       id: itemId,
       type: itemType,
-      title: title || item.title,
-      price: price || item.price,
-      image: image || item.thumbnail || '/images/adad.png',
-      addedAt: new Date()
+      title: item.title,
+      originalPrice: originalPrice,
+      discountPrice: discountPercentage,
+      price: finalPrice, // Final price after discount
+      image: item.thumbnail || '/images/adad.png',
+      addedAt: new Date(),
     };
 
     req.session.cart.push(cartItem);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Item added to cart successfully',
-      cartCount: req.session.cart.length
+      cartCount: req.session.cart.length,
     });
   } catch (error) {
     console.error('Error adding to cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error adding item to cart' 
+    res.status(500).json({
+      success: false,
+      message: 'Error adding item to cart',
     });
   }
 };
@@ -181,26 +384,26 @@ const removeFromCart = async (req, res) => {
     const { itemId, itemType } = req.body;
 
     if (!req.session.cart) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cart is empty' 
+      return res.status(400).json({
+        success: false,
+        message: 'Cart is empty',
       });
     }
 
-    req.session.cart = req.session.cart.filter(item => 
-      !(item.id === itemId && item.type === itemType)
+    req.session.cart = req.session.cart.filter(
+      (item) => !(item.id === itemId && item.type === itemType)
     );
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Item removed from cart',
-      cartCount: req.session.cart.length
+      cartCount: req.session.cart.length,
     });
   } catch (error) {
     console.error('Error removing from cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error removing item from cart' 
+    res.status(500).json({
+      success: false,
+      message: 'Error removing item from cart',
     });
   }
 };
@@ -211,49 +414,52 @@ const updateCartQuantity = async (req, res) => {
     const { itemId, itemType, quantity } = req.body;
 
     if (!req.session.cart) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cart is empty' 
+      return res.status(400).json({
+        success: false,
+        message: 'Cart is empty',
       });
     }
 
-    const item = req.session.cart.find(cartItem => 
-      cartItem.id === itemId && cartItem.type === itemType
+    const item = req.session.cart.find(
+      (cartItem) => cartItem.id === itemId && cartItem.type === itemType
     );
 
     if (!item) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Item not found in cart' 
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found in cart',
       });
     }
 
     if (quantity <= 0) {
-      req.session.cart = req.session.cart.filter(cartItem => 
-        !(cartItem.id === itemId && cartItem.type === itemType)
+      req.session.cart = req.session.cart.filter(
+        (cartItem) => !(cartItem.id === itemId && cartItem.type === itemType)
       );
     } else {
       item.quantity = Math.min(quantity, 1); // Max quantity is 1
     }
 
     // Calculate totals
-    const subtotal = req.session.cart.reduce((sum, item) => sum + item.price, 0);
-    const tax = subtotal * 0.1;
+    const subtotal = req.session.cart.reduce(
+      (sum, item) => sum + item.price,
+      0
+    );
+    const tax = 0; // No tax
     const total = subtotal + tax;
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Cart updated successfully',
       cartCount: req.session.cart.length,
       subtotal,
       tax,
-      total
+      total,
     });
   } catch (error) {
     console.error('Error updating cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error updating cart' 
+    res.status(500).json({
+      success: false,
+      message: 'Error updating cart',
     });
   }
 };
@@ -266,26 +472,22 @@ const getCheckout = async (req, res) => {
       return res.redirect('/auth/login');
     }
 
-    const cart = req.session.cart || [];
-    
-    if (cart.length === 0) {
-      req.flash('error_msg', 'Your cart is empty');
+    // Use validated cart data from middleware
+    const validatedCart = req.validatedCart;
+
+    if (validatedCart.cartCount === 0) {
+      req.flash('error_msg', 'Your cart is empty or contains invalid items');
       return res.redirect('/');
     }
-
-    // Calculate totals
-    const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-    const tax = subtotal * 0.1;
-    const total = subtotal + tax;
 
     res.render('checkout', {
       title: 'Checkout - Mr Kably',
       theme: req.cookies.theme || 'light',
-      cart,
-      subtotal,
-      tax,
-      total,
-      user: req.session.user
+      cart: validatedCart.items,
+      subtotal: validatedCart.subtotal,
+      tax: validatedCart.tax,
+      total: validatedCart.total,
+      user: req.session.user,
     });
   } catch (error) {
     console.error('Error fetching checkout:', error);
@@ -298,45 +500,40 @@ const getCheckout = async (req, res) => {
 const directCheckout = async (req, res) => {
   try {
     if (!req.session.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Please login to complete purchase' 
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to complete purchase',
       });
     }
 
-    const cart = req.session.cart || [];
-    
-    if (cart.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cart is empty' 
+    // Use validated cart data from middleware
+    const validatedCart = req.validatedCart;
+
+    if (validatedCart.cartCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cart is empty or contains invalid items',
       });
     }
 
-    const { 
-      paymentMethod = 'credit_card',
-      billingAddress 
-    } = req.body;
+    const { paymentMethod = 'credit_card', billingAddress } = req.body;
 
     // Use default billing address if not provided
     const defaultBillingAddress = {
       firstName: req.session.user.firstName || 'Default',
       lastName: req.session.user.lastName || 'User',
       email: req.session.user.studentEmail || req.session.user.email,
-      phone: `${req.session.user.parentCountryCode || '+966'}${req.session.user.parentNumber || '123456789'}`,
+      phone: `${req.session.user.parentCountryCode || '+966'}${
+        req.session.user.parentNumber || '123456789'
+      }`,
       address: 'Default Address',
       city: 'Riyadh',
       state: 'Riyadh',
       zipCode: '12345',
-      country: 'Saudi Arabia'
+      country: 'Saudi Arabia',
     };
 
     const finalBillingAddress = billingAddress || defaultBillingAddress;
-
-    // Calculate totals
-    const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-    const tax = subtotal * 0.1;
-    const total = subtotal + tax;
 
     // Get user from database
     const user = await User.findById(req.session.user.id)
@@ -344,57 +541,68 @@ const directCheckout = async (req, res) => {
       .populate('purchasedCourses.course')
       .populate('enrolledCourses.course');
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
       });
     }
 
-    // Create purchase record
+    // Create purchase record using validated cart data
     const purchase = new Purchase({
       user: user._id,
-      items: cart.map(item => ({
+      items: validatedCart.items.map((item) => ({
         itemType: item.type,
         itemTypeModel: item.type === 'bundle' ? 'BundleCourse' : 'Course',
         item: item.id,
         title: item.title,
-        price: item.price,
-        quantity: 1
+        price: item.price, // Database-validated price
+        quantity: 1,
       })),
-      subtotal,
-      tax,
-      total,
+      subtotal: validatedCart.subtotal,
+      tax: validatedCart.tax,
+      total: validatedCart.total,
       paymentMethod,
       billingAddress: finalBillingAddress,
       status: 'completed',
       paymentStatus: 'completed',
-      paymentIntentId: `pi_${Date.now()}`
+      paymentIntentId: `pi_${Date.now()}`,
     });
 
     console.log('Creating purchase record:', purchase);
-    
+
     try {
       await purchase.save();
-      console.log('Purchase saved successfully with order number:', purchase.orderNumber);
+      console.log(
+        'Purchase saved successfully with order number:',
+        purchase.orderNumber
+      );
     } catch (saveError) {
       console.error('Error saving purchase:', saveError);
       throw saveError;
     }
-    
+
     // Refresh the purchase to get the generated orderNumber
     await purchase.populate('items.item');
 
     // Update user's purchased items and enrollments
-    for (const item of cart) {
+    for (const item of validatedCart.items) {
       if (item.type === 'bundle') {
-        await user.addPurchasedBundle(item.id, item.price, purchase.orderNumber);
-        
+        await user.addPurchasedBundle(
+          item.id,
+          item.price, // Database-validated price
+          purchase.orderNumber
+        );
+
         // Enroll user in all courses in the bundle
         const bundle = await BundleCourse.findById(item.id).populate('courses');
         await user.enrollInBundleCourses(bundle);
       } else {
-        await user.addPurchasedCourse(item.id, item.price, purchase.orderNumber);
-        
+        await user.addPurchasedCourse(
+          item.id,
+          item.price, // Database-validated price
+          purchase.orderNumber
+        );
+
         // Enroll user in the course
         if (!user.isEnrolled(item.id)) {
           user.enrolledCourses.push({
@@ -403,7 +611,7 @@ const directCheckout = async (req, res) => {
             progress: 0,
             lastAccessed: new Date(),
             completedTopics: [],
-            status: 'active'
+            status: 'active',
           });
           await user.save();
         }
@@ -411,27 +619,29 @@ const directCheckout = async (req, res) => {
     }
 
     // Clear cart
-    req.session.cart = [];
+    const clearedCount = clearCart(req, 'direct checkout');
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Payment processed successfully',
       purchase: {
         orderNumber: purchase.orderNumber,
-        items: cart.map(item => ({
+        items: validatedCart.items.map((item) => ({
           ...item,
-          type: item.type
+          type: item.type,
         })),
-        subtotal,
-        tax,
-        total
-      }
+        subtotal: validatedCart.subtotal,
+        tax: validatedCart.tax,
+        total: validatedCart.total,
+      },
+      cartCleared: true,
+      itemsRemoved: clearedCount,
     });
   } catch (error) {
     console.error('Error processing direct checkout:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error processing payment' 
+    res.status(500).json({
+      success: false,
+      message: 'Error processing payment',
     });
   }
 };
@@ -440,146 +650,134 @@ const directCheckout = async (req, res) => {
 const processPayment = async (req, res) => {
   try {
     if (!req.session.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Please login to complete purchase' 
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to complete purchase',
       });
     }
 
-    const cart = req.session.cart || [];
-    
-    if (cart.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cart is empty' 
+    // Use validated cart data from middleware
+    const validatedCart = req.validatedCart;
+
+    if (validatedCart.cartCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cart is empty or contains invalid items',
       });
     }
 
-    const { 
-      paymentMethod,
-      billingAddress 
-    } = req.body;
+    const { paymentMethod = 'paymob', billingAddress } = req.body;
 
     // Validate billing address
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode', 'country'];
+    const requiredFields = [
+      'firstName',
+      'lastName',
+      'email',
+      'phone',
+      'address',
+      'city',
+      'state',
+      'zipCode',
+      'country',
+    ];
     for (const field of requiredFields) {
       if (!billingAddress[field]) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `${field} is required` 
+        return res.status(400).json({
+          success: false,
+          message: `${field} is required`,
         });
       }
     }
 
-    // Calculate totals
-    const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-    const tax = subtotal * 0.1;
-    const total = subtotal + tax;
+    // Generate unique merchant order ID
+    const merchantOrderId = generateUUID();
 
-    // Create purchase record
+    // Create purchase record with pending status using validated cart data
     const purchase = new Purchase({
       user: req.session.user.id,
-      items: cart.map(item => ({
+      items: validatedCart.items.map((item) => ({
         itemType: item.type,
         itemTypeModel: item.type === 'bundle' ? 'BundleCourse' : 'Course',
         item: item.id,
         title: item.title,
-        price: item.price,
-        quantity: 1
+        price: item.price, // Database-validated price
+        quantity: 1,
       })),
-      subtotal,
-      tax,
-      total,
-      paymentMethod,
+      subtotal: validatedCart.subtotal,
+      tax: validatedCart.tax,
+      total: validatedCart.total,
+      currency: 'EGP',
+      paymentMethod: 'paymob',
       billingAddress,
       status: 'pending',
-      paymentStatus: 'pending'
+      paymentStatus: 'pending',
+      paymentIntentId: merchantOrderId,
     });
 
-    console.log('Creating purchase record:', purchase);
-    
-    try {
-      await purchase.save();
-      console.log('Purchase saved successfully with order number:', purchase.orderNumber);
-    } catch (saveError) {
-      console.error('Error saving purchase:', saveError);
-      throw saveError;
-    }
-
-    // For now, simulate successful payment
-    // In real implementation, integrate with payment gateway here
-    // For Egypt: Credit Cards (Visa, Mastercard, Amex) or Mobile Wallets (Vodafone Cash, Orange Money, Etisalat Cash)
-    if (paymentMethod === 'mobile_wallet') {
-      console.log('Processing mobile wallet payment (Vodafone Cash, Orange Money, Etisalat Cash)');
-    } else {
-      console.log('Processing credit card payment (Visa, Mastercard, American Express)');
-    }
-    
-    purchase.status = 'completed';
-    purchase.paymentStatus = 'completed';
-    purchase.paymentIntentId = `pi_${Date.now()}`;
     await purchase.save();
 
-    // Get user from database
-    const user = await User.findById(req.session.user.id)
-      .populate('purchasedBundles.bundle')
-      .populate('purchasedCourses.course')
-      .populate('enrolledCourses.course');
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+    // Create Paymob payment session using validated data
+    const orderData = {
+      total: validatedCart.total, // Database-validated total
+      merchantOrderId,
+      items: validatedCart.items.map((item) => ({
+        title: item.title,
+        price: item.price, // Database-validated price
+        quantity: 1,
+        description: `${item.type === 'bundle' ? 'Bundle' : 'Course'}: ${
+          item.title
+        }`,
+      })),
+    };
+
+    // Add redirect URL to billing address for Paymob iframe
+    const enhancedBillingAddress = {
+      ...billingAddress,
+      redirectUrl: `${req.protocol}://${req.get(
+        'host'
+      )}/purchase/payment/success?merchantOrderId=${merchantOrderId}`,
+    };
+
+    const paymentSession = await paymobService.createPaymentSession(
+      orderData,
+      enhancedBillingAddress,
+      req.body.selectedPaymentMethod || 'card' // 'card' or 'wallet'
+    );
+
+    if (!paymentSession.success) {
+      // Update purchase status to failed
+      purchase.status = 'failed';
+      purchase.paymentStatus = 'failed';
+      await purchase.save();
+
+      return res.status(500).json({
+        success: false,
+        message: paymentSession.error || 'Failed to create payment session',
       });
     }
 
-    // Update user's purchased items and enrollments
-    for (const item of cart) {
-      if (item.type === 'bundle') {
-        await user.addPurchasedBundle(item.id, item.price, purchase.orderNumber);
-        
-        // Enroll user in all courses in the bundle
-        const bundle = await BundleCourse.findById(item.id).populate('courses');
-        await user.enrollInBundleCourses(bundle);
-      } else {
-        await user.addPurchasedCourse(item.id, item.price, purchase.orderNumber);
-        
-        // Enroll user in the course
-        if (!user.isEnrolled(item.id)) {
-          user.enrolledCourses.push({
-            course: item.id,
-            enrolledAt: new Date(),
-            progress: 0,
-            lastAccessed: new Date(),
-            completedTopics: [],
-            status: 'active'
-          });
-          await user.save();
-        }
-      }
-    }
+    // Store purchase order number for webhook verification
+    req.session.pendingPayment = {
+      purchaseId: purchase._id.toString(),
+      orderNumber: purchase.orderNumber,
+      merchantOrderId,
+    };
 
-    // Clear cart
-    req.session.cart = [];
-
-    res.json({ 
-      success: true, 
-      message: 'Payment processed successfully',
-      purchase: {
+    res.json({
+      success: true,
+      message: 'Payment session created successfully',
+      paymentData: {
+        iframeUrl: paymentSession.iframeUrl,
         orderNumber: purchase.orderNumber,
-        items: cart.map(item => ({
-          ...item,
-          type: item.type
-        })),
-        subtotal,
-        tax,
-        total
-      }
+        total: validatedCart.total,
+        currency: 'EGP',
+      },
     });
   } catch (error) {
     console.error('Error processing payment:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error processing payment' 
+    res.status(500).json({
+      success: false,
+      message: 'Error processing payment',
     });
   }
 };
@@ -603,7 +801,9 @@ const getPurchaseHistory = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    const totalPurchases = await Purchase.countDocuments({ user: req.session.user.id });
+    const totalPurchases = await Purchase.countDocuments({
+      user: req.session.user.id,
+    });
     const totalPages = Math.ceil(totalPurchases / parseInt(limit));
 
     res.render('purchase-history', {
@@ -615,9 +815,9 @@ const getPurchaseHistory = async (req, res) => {
         totalPages,
         totalPurchases,
         hasNext: parseInt(page) < totalPages,
-        hasPrev: parseInt(page) > 1
+        hasPrev: parseInt(page) > 1,
       },
-      user: req.session.user
+      user: req.session.user,
     });
   } catch (error) {
     console.error('Error fetching purchase history:', error);
@@ -630,11 +830,11 @@ const getPurchaseHistory = async (req, res) => {
 const addToWishlist = async (req, res) => {
   try {
     const { itemId, itemType } = req.body;
-    
+
     if (!req.session.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Please login to add items to wishlist' 
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to add items to wishlist',
       });
     }
 
@@ -647,49 +847,51 @@ const addToWishlist = async (req, res) => {
     }
 
     if (!item) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Item not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found',
       });
     }
 
     // Get user from database
     const user = await User.findById(req.session.user.id);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
       });
     }
 
     // Add to wishlist
     if (itemType === 'bundle') {
       if (user.isBundleInWishlist(itemId)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Bundle already in wishlist' 
+        return res.status(400).json({
+          success: false,
+          message: 'Bundle already in wishlist',
         });
       }
       await user.addBundleToWishlist(itemId);
     } else {
       if (user.isCourseInWishlist(itemId)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Course already in wishlist' 
+        return res.status(400).json({
+          success: false,
+          message: 'Course already in wishlist',
         });
       }
       await user.addCourseToWishlist(itemId);
     }
 
-    res.json({ 
-      success: true, 
-      message: `${itemType === 'bundle' ? 'Bundle' : 'Course'} added to wishlist successfully`
+    res.json({
+      success: true,
+      message: `${
+        itemType === 'bundle' ? 'Bundle' : 'Course'
+      } added to wishlist successfully`,
     });
   } catch (error) {
     console.error('Error adding to wishlist:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error adding item to wishlist' 
+    res.status(500).json({
+      success: false,
+      message: 'Error adding item to wishlist',
     });
   }
 };
@@ -698,51 +900,53 @@ const addToWishlist = async (req, res) => {
 const removeFromWishlist = async (req, res) => {
   try {
     const { itemId, itemType } = req.body;
-    
+
     if (!req.session.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Please login to remove items from wishlist' 
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to remove items from wishlist',
       });
     }
 
     // Get user from database
     const user = await User.findById(req.session.user.id);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
       });
     }
 
     // Remove from wishlist
     if (itemType === 'bundle') {
       if (!user.isBundleInWishlist(itemId)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Bundle not in wishlist' 
+        return res.status(400).json({
+          success: false,
+          message: 'Bundle not in wishlist',
         });
       }
       await user.removeBundleFromWishlist(itemId);
     } else {
       if (!user.isCourseInWishlist(itemId)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Course not in wishlist' 
+        return res.status(400).json({
+          success: false,
+          message: 'Course not in wishlist',
         });
       }
       await user.removeCourseFromWishlist(itemId);
     }
 
-    res.json({ 
-      success: true, 
-      message: `${itemType === 'bundle' ? 'Bundle' : 'Course'} removed from wishlist successfully`
+    res.json({
+      success: true,
+      message: `${
+        itemType === 'bundle' ? 'Bundle' : 'Course'
+      } removed from wishlist successfully`,
     });
   } catch (error) {
     console.error('Error removing from wishlist:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error removing item from wishlist' 
+    res.status(500).json({
+      success: false,
+      message: 'Error removing item from wishlist',
     });
   }
 };
@@ -751,20 +955,20 @@ const removeFromWishlist = async (req, res) => {
 const toggleWishlist = async (req, res) => {
   try {
     const { itemId, itemType } = req.body;
-    
+
     if (!req.session.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Please login to manage wishlist' 
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to manage wishlist',
       });
     }
 
     // Get user from database
     const user = await User.findById(req.session.user.id);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
       });
     }
 
@@ -794,17 +998,537 @@ const toggleWishlist = async (req, res) => {
       }
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message,
-      isInWishlist
+      isInWishlist,
     });
   } catch (error) {
     console.error('Error toggling wishlist:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error updating wishlist' 
+    res.status(500).json({
+      success: false,
+      message: 'Error updating wishlist',
     });
+  }
+};
+
+// Handle payment success
+const handlePaymentSuccess = async (req, res) => {
+  try {
+    // Handle both direct merchant order ID and Paymob redirect parameters
+    let merchantOrderId =
+      req.query.merchantOrderId || req.query.merchant_order_id;
+
+    // Log all query parameters for debugging
+    console.log('Payment success callback received with params:', req.query);
+
+    // If no merchant order ID in query, check if this is a Paymob redirect
+    // Check for explicit failure indicators in URL parameters
+    if (
+      req.query.success === 'false' ||
+      req.query.failure === 'true' ||
+      req.query.status === 'failed' ||
+      req.query.status === 'declined'
+    ) {
+      console.log('Payment failure detected in URL parameters:', req.query);
+      return res.render('payment-fail', {
+        title: 'Payment Failed - Mr Kably',
+        theme: req.cookies.theme || 'light',
+        message:
+          'Payment was not successful. Please try again or contact support.',
+      });
+    }
+
+    if (!merchantOrderId && req.query.success === 'true') {
+      // This is a Paymob redirect, extract merchant order ID from the transaction
+      merchantOrderId = req.query.merchant_order_id;
+      console.log(
+        'Paymob redirect detected, merchant_order_id:',
+        merchantOrderId
+      );
+    }
+
+    if (!merchantOrderId) {
+      console.error(
+        'Payment success: No merchant order ID provided in any parameter'
+      );
+      console.error('Available parameters:', Object.keys(req.query));
+      return res.render('payment-fail', {
+        title: 'Payment Error - Mr Kably',
+        theme: req.cookies.theme || 'light',
+        message: 'Invalid payment reference',
+      });
+    }
+
+    // Find purchase by merchant order ID
+    const purchase = await Purchase.findOne({
+      paymentIntentId: merchantOrderId,
+    })
+      .populate('items.item')
+      .populate('user');
+
+    if (!purchase) {
+      console.error(
+        'Payment success: Purchase not found for merchant order ID:',
+        merchantOrderId
+      );
+      return res.render('payment-fail', {
+        title: 'Payment Error - Mr Kably',
+        theme: req.cookies.theme || 'light',
+        message: 'Payment record not found',
+      });
+    }
+
+    // Verify payment status with Paymob (optional additional verification)
+    let paymentVerified = false;
+    try {
+      const transactionStatus = await paymobService.queryTransactionStatus(
+        merchantOrderId
+      );
+      console.log('Transaction status from Paymob:', transactionStatus);
+
+      // Process the transaction status to determine if payment is truly successful
+      if (transactionStatus) {
+        const webhookData =
+          paymobService.processWebhookPayload(transactionStatus);
+        console.log('Processed webhook data:', webhookData);
+
+        if (webhookData.isFailed) {
+          console.log(
+            'Payment verification failed - transaction was not successful'
+          );
+          return res.render('payment-fail', {
+            title: 'Payment Failed - Mr Kably',
+            theme: req.cookies.theme || 'light',
+            message:
+              'Payment was not successful. Please try again or contact support.',
+          });
+        }
+
+        if (webhookData.isSuccess) {
+          paymentVerified = true;
+        }
+      }
+    } catch (verifyError) {
+      console.warn('Could not verify transaction status:', verifyError.message);
+    }
+
+    // If purchase is marked as failed, show failure page
+    if (purchase.status === 'failed' || purchase.paymentStatus === 'failed') {
+      console.log('Purchase is marked as failed, redirecting to failure page');
+      return res.render('payment-fail', {
+        title: 'Payment Failed - Mr Kably',
+        theme: req.cookies.theme || 'light',
+        message:
+          'Payment was not successful. Please try again or contact support.',
+      });
+    }
+
+    // If already processed, just show success (no need to clear cart)
+    if (
+      purchase.status === 'completed' &&
+      purchase.paymentStatus === 'completed'
+    ) {
+      console.log(
+        'Purchase already completed, showing success page without clearing cart'
+      );
+
+      return res.render('payment-success', {
+        title: 'Payment Successful - Mr Kably',
+        theme: req.cookies.theme || 'light',
+        purchase: purchase.toObject(),
+        user: purchase.user,
+      });
+    }
+
+    // Update purchase status to completed
+    purchase.status = 'completed';
+    purchase.paymentStatus = 'completed';
+    await purchase.save();
+
+    // Get user and update enrollments
+    const user = await User.findById(purchase.user._id)
+      .populate('purchasedBundles.bundle')
+      .populate('purchasedCourses.course')
+      .populate('enrolledCourses.course');
+
+    if (user) {
+      // Process each purchased item
+      for (const purchaseItem of purchase.items) {
+        if (purchaseItem.itemType === 'bundle') {
+          await user.addPurchasedBundle(
+            purchaseItem.item._id,
+            purchaseItem.price,
+            purchase.orderNumber
+          );
+
+          // Enroll user in all courses in the bundle
+          const bundle = await BundleCourse.findById(
+            purchaseItem.item._id
+          ).populate('courses');
+          if (bundle) {
+            await user.enrollInBundleCourses(bundle);
+          }
+        } else {
+          await user.addPurchasedCourse(
+            purchaseItem.item._id,
+            purchaseItem.price,
+            purchase.orderNumber
+          );
+
+          // Enroll user in the course
+          if (!user.isEnrolled(purchaseItem.item._id)) {
+            user.enrolledCourses.push({
+              course: purchaseItem.item._id,
+              enrolledAt: new Date(),
+              progress: 0,
+              lastAccessed: new Date(),
+              completedTopics: [],
+              status: 'active',
+            });
+            await user.save();
+          }
+        }
+      }
+    }
+
+    console.log(
+      'Payment completed successfully for order:',
+      purchase.orderNumber
+    );
+
+    // Clear the cart after successful payment
+    clearCart(req, 'payment success page');
+
+    res.render('payment-success', {
+      title: 'Payment Successful - Mr Kably',
+      theme: req.cookies.theme || 'light',
+      purchase: purchase.toObject(),
+      user: purchase.user,
+    });
+  } catch (error) {
+    console.error('Error handling payment success:', error);
+    res.render('payment-fail', {
+      title: 'Payment Error - Mr Kably',
+      theme: req.cookies.theme || 'light',
+      message: 'An error occurred while processing your payment',
+    });
+  }
+};
+
+// Handle payment failure
+const handlePaymentFailure = async (req, res) => {
+  try {
+    const { merchantOrderId } = req.query;
+
+    if (merchantOrderId) {
+      // Update purchase status to failed
+      const purchase = await Purchase.findOne({
+        paymentIntentId: merchantOrderId,
+      });
+      if (purchase && purchase.status === 'pending') {
+        purchase.status = 'failed';
+        purchase.paymentStatus = 'failed';
+        await purchase.save();
+        console.log('Payment failed for order:', purchase.orderNumber);
+      }
+    }
+
+    res.render('payment-fail', {
+      title: 'Payment Failed - Mr Kably',
+      theme: req.cookies.theme || 'light',
+      message:
+        'Your payment could not be processed. Please try again or contact support.',
+    });
+  } catch (error) {
+    console.error('Error handling payment failure:', error);
+    res.render('payment-fail', {
+      title: 'Payment Error - Mr Kably',
+      theme: req.cookies.theme || 'light',
+      message: 'An error occurred while processing your payment',
+    });
+  }
+};
+
+// Handle Paymob webhook
+const handlePaymobWebhook = async (req, res) => {
+  try {
+    const rawBody = req.body;
+    const signature =
+      req.headers['x-paymob-signature'] ||
+      req.headers['x-signature'] ||
+      req.headers['x-hook-signature'] ||
+      req.headers['x-paymob-hmac'];
+
+    // Verify webhook signature in production
+    if (process.env.NODE_ENV === 'production') {
+      const isValid = paymobService.verifyWebhookSignature(rawBody, signature);
+      if (!isValid) {
+        console.warn('Webhook signature verification failed');
+        return res.status(401).send('Unauthorized');
+      }
+    }
+
+    const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
+    console.log('Paymob webhook received:', JSON.stringify(payload, null, 2));
+    console.log('Webhook query parameters:', req.query);
+
+    // Process webhook payload with query parameters (for comprehensive detection like standalone app)
+    const webhookData = paymobService.processWebhookPayload(payload, req.query);
+
+    if (!webhookData.merchantOrderId) {
+      console.warn('Webhook: No merchant order ID found in payload');
+      return res.status(400).send('Bad Request');
+    }
+
+    // Find purchase by merchant order ID
+    const purchase = await Purchase.findOne({
+      paymentIntentId: webhookData.merchantOrderId,
+    }).populate('user');
+
+    if (!purchase) {
+      console.warn(
+        'Webhook: Purchase not found for merchant order ID:',
+        webhookData.merchantOrderId
+      );
+      return res.status(404).send('Purchase not found');
+    }
+
+    // Only process if current status is pending
+    if (purchase.status !== 'pending') {
+      console.log(
+        'Webhook: Purchase already processed, skipping:',
+        purchase.orderNumber
+      );
+      return res.status(200).send('OK');
+    }
+
+    if (webhookData.isSuccess) {
+      console.log(
+        'Webhook: Payment successful for order:',
+        purchase.orderNumber
+      );
+
+      // Update purchase status
+      purchase.status = 'completed';
+      purchase.paymentStatus = 'completed';
+      purchase.paymentGatewayResponse = webhookData.rawPayload;
+      await purchase.save();
+
+      // Process user enrollments
+      const user = await User.findById(purchase.user._id)
+        .populate('purchasedBundles.bundle')
+        .populate('purchasedCourses.course')
+        .populate('enrolledCourses.course');
+
+      if (user) {
+        for (const purchaseItem of purchase.items) {
+          if (purchaseItem.itemType === 'bundle') {
+            await user.addPurchasedBundle(
+              purchaseItem.item,
+              purchaseItem.price,
+              purchase.orderNumber
+            );
+
+            const bundle = await BundleCourse.findById(
+              purchaseItem.item
+            ).populate('courses');
+            if (bundle) {
+              await user.enrollInBundleCourses(bundle);
+            }
+          } else {
+            await user.addPurchasedCourse(
+              purchaseItem.item,
+              purchaseItem.price,
+              purchase.orderNumber
+            );
+
+            if (!user.isEnrolled(purchaseItem.item)) {
+              user.enrolledCourses.push({
+                course: purchaseItem.item,
+                enrolledAt: new Date(),
+                progress: 0,
+                lastAccessed: new Date(),
+                completedTopics: [],
+                status: 'active',
+              });
+              await user.save();
+            }
+          }
+        }
+      }
+    } else if (webhookData.isFailed) {
+      console.log('Webhook: Payment failed for order:', purchase.orderNumber);
+
+      purchase.status = 'failed';
+      purchase.paymentStatus = 'failed';
+      purchase.paymentGatewayResponse = webhookData.rawPayload;
+      await purchase.save();
+    } else {
+      console.log(
+        'Webhook: Payment status pending/unknown for order:',
+        purchase.orderNumber
+      );
+      // Keep as pending for now
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Error processing Paymob webhook:', error);
+    res.status(500).send('Internal Server Error');
+  }
+};
+
+// Handle Paymob webhook GET redirects (browser callbacks)
+const handlePaymobWebhookRedirect = async (req, res) => {
+  try {
+    console.log('Paymob webhook redirect received with query:', req.query);
+
+    const merchantOrderId =
+      req.query.merchant_order_id ||
+      req.query.merchantOrder ||
+      req.query.merchantOrderId;
+
+    if (!merchantOrderId) {
+      console.warn('Webhook redirect: No merchant order ID found in query');
+      return res.redirect('/purchase/payment/fail?reason=missing_order_id');
+    }
+
+    // Find purchase by merchant order ID
+    const purchase = await Purchase.findOne({
+      paymentIntentId: merchantOrderId,
+    }).populate('user');
+
+    if (!purchase) {
+      console.warn(
+        'Webhook redirect: Purchase not found for merchant order ID:',
+        merchantOrderId
+      );
+      return res.redirect('/purchase/payment/fail?reason=order_not_found');
+    }
+
+    // Process query parameters using enhanced detection logic
+    const webhookData = paymobService.processWebhookPayload({}, req.query);
+
+    console.log('Webhook redirect analysis:', {
+      merchantOrderId,
+      isSuccess: webhookData.isSuccess,
+      isFailed: webhookData.isFailed,
+      isPending: webhookData.isPending,
+      query: req.query,
+    });
+
+    // Only process if current status is pending
+    if (purchase.status !== 'pending') {
+      console.log(
+        'Webhook redirect: Purchase already processed, redirecting to appropriate page:',
+        purchase.orderNumber,
+        'Status:',
+        purchase.status
+      );
+
+      if (purchase.status === 'completed') {
+        return res.redirect(
+          `/purchase/payment/success?merchantOrderId=${merchantOrderId}`
+        );
+      } else {
+        return res.redirect('/purchase/payment/fail?reason=payment_failed');
+      }
+    }
+
+    if (webhookData.isSuccess) {
+      console.log(
+        'Webhook redirect: Payment successful for order:',
+        purchase.orderNumber
+      );
+
+      // Update purchase status
+      purchase.status = 'completed';
+      purchase.paymentStatus = 'completed';
+      purchase.paymentGatewayResponse = { queryParams: req.query };
+      await purchase.save();
+
+      // Process user enrollments (same logic as webhook)
+      const user = await User.findById(purchase.user._id)
+        .populate('purchasedBundles.bundle')
+        .populate('purchasedCourses.course')
+        .populate('enrolledCourses.course');
+
+      if (user) {
+        for (const purchaseItem of purchase.items) {
+          if (purchaseItem.itemType === 'bundle') {
+            await user.addPurchasedBundle(
+              purchaseItem.item,
+              purchaseItem.price,
+              purchase.orderNumber
+            );
+
+            const bundle = await BundleCourse.findById(
+              purchaseItem.item
+            ).populate('courses');
+            if (bundle) {
+              await user.enrollInBundleCourses(bundle);
+            }
+          } else {
+            await user.addPurchasedCourse(
+              purchaseItem.item,
+              purchaseItem.price,
+              purchase.orderNumber
+            );
+
+            if (!user.isEnrolled(purchaseItem.item)) {
+              user.enrolledCourses.push({
+                course: purchaseItem.item,
+                enrolledAt: new Date(),
+                progress: 0,
+                lastAccessed: new Date(),
+                completedTopics: [],
+                status: 'active',
+              });
+              await user.save();
+            }
+          }
+        }
+      }
+
+      // Clear the cart after successful payment (webhook redirect)
+      clearCart(req, 'webhook redirect success');
+
+      return res.redirect(
+        `/purchase/payment/success?merchantOrderId=${merchantOrderId}`
+      );
+    } else if (webhookData.isFailed) {
+      console.log(
+        'Webhook redirect: Payment failed for order:',
+        purchase.orderNumber
+      );
+
+      purchase.status = 'failed';
+      purchase.paymentStatus = 'failed';
+      purchase.paymentGatewayResponse = { queryParams: req.query };
+      await purchase.save();
+
+      const reason =
+        req.query['data.message'] ||
+        req.query.message ||
+        req.query.reason ||
+        req.query.error ||
+        req.query.acq_response_code ||
+        'payment_failed';
+      return res.redirect(
+        `/purchase/payment/fail?reason=${encodeURIComponent(reason)}`
+      );
+    } else {
+      console.log(
+        'Webhook redirect: Payment status pending/unknown for order:',
+        purchase.orderNumber
+      );
+      // Keep as pending and redirect to a pending page or retry
+      return res.redirect('/purchase/payment/fail?reason=payment_pending');
+    }
+  } catch (error) {
+    console.error('Error processing Paymob webhook redirect:', error);
+    return res.redirect('/purchase/payment/fail?reason=processing_error');
   }
 };
 
@@ -815,8 +1539,14 @@ module.exports = {
   getCheckout,
   directCheckout,
   processPayment,
+  handlePaymentSuccess,
+  handlePaymentFailure,
+  handlePaymobWebhook,
+  handlePaymobWebhookRedirect,
   getPurchaseHistory,
   addToWishlist,
   removeFromWishlist,
-  toggleWishlist
+  toggleWishlist,
+  validateCartMiddleware,
+  recalculateCartFromDB,
 };

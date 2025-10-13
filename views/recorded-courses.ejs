@@ -1,4 +1,4 @@
-<%- include('partials/header', { title: 'On-Ground Courses' }) %>
+<%- include('partials/header', { title: 'Recorded Courses' }) %>
 
 <!-- Floating Math Elements -->
 <div class="floating-math-elements-professor" id="floatingMath">
@@ -15,12 +15,12 @@
 </div>
 
 
-<!-- On-Ground Courses Section -->
-<section class="online-courses-section" id="onground-courses" data-aos="fade-up" style="padding: 120px 0 80px 0; margin-top: 80px;">
+<!-- Recorded Courses Section -->
+<section class="online-courses-section scroll-reveal" id="recorded-courses" data-aos="fade-up" style="padding: 120px 0 80px 0; margin-top: 80px;">
   <div class="container">
     <div class="section-header-new text-center">
-      <h2 class="section-title-new">Our <span class="highlight-red">On-Ground Courses</span></h2>
-      <p class="section-subtitle-new">Experience in-person learning with our expert instructors</p>
+      <h2 class="section-title-new">Our <span class="highlight-red">Recorded Courses</span></h2>
+      <p class="section-subtitle-new">Learn at your own pace with our comprehensive recorded course collection</p>
     </div>
 
     <!-- Enhanced Search and Filter Section -->
@@ -34,7 +34,7 @@
                   <div class="search-icon">
                     <i class="fas fa-search"></i>
                   </div>
-                  <input type="text" name="search" class="search-input-enhanced" placeholder="Search onground courses..." value="<%= currentFilters.search || '' %>">
+                  <input type="text" name="search" class="search-input-enhanced" placeholder="Search recorded courses..." value="<%= currentFilters.search || '' %>">
                   <button type="submit" class="search-btn-enhanced">
                     <span class="search-text">Search</span>
                     <i class="fas fa-arrow-right search-icon-btn"></i>
@@ -88,8 +88,8 @@
           <span class="results-label">of <%= pagination.totalBundles %> bundles</span>
         </div>
         <div class="results-type">
-          <i class="fas fa-chalkboard-teacher"></i>
-          <span>On-Ground Courses</span>
+          <i class="fas fa-video"></i>
+          <span>Recorded Courses</span>
         </div>
       </div>
     </div>
@@ -113,9 +113,9 @@
               <span>Save <%= bundle.savingsPercentage %>%</span>
             </div>
             <% } else { %>
-            <div class="course-offer-badge-enhanced onground">
-              <i class="fas fa-chalkboard-teacher"></i>
-              <span>On-Ground</span>
+            <div class="course-offer-badge-enhanced recorded">
+              <i class="fas fa-video"></i>
+              <span>Recorded</span>
             </div>
             <% } %>
           </div>
@@ -160,6 +160,7 @@
               <i class="fas fa-clock"></i>
               <span><%= bundle.duration || 0 %> Hours</span>
             </div>
+
           </div>
 
           <div class="course-price-container-enhanced">
@@ -206,15 +207,15 @@
               <i class="fas fa-search"></i>
             </div>
           </div>
-          <h3 class="no-courses-title">No On-Ground Courses Found</h3>
+          <h3 class="no-courses-title">No Recorded Courses Found</h3>
           <p class="no-courses-description">
-            We couldn't find any onground courses matching your criteria.
+            We couldn't find any recorded courses matching your criteria.
             Try adjusting your search filters or browse our complete collection.
           </p>
           <div class="no-courses-actions">
-            <a href="/courses/onground" class="btn-primary-enhanced">
-              <i class="fas fa-chalkboard-teacher"></i>
-              <span>Browse All On-Ground Courses</span>
+            <a href="/courses/recorded" class="btn-primary-enhanced">
+              <i class="fas fa-video"></i>
+              <span>Browse All Recorded Courses</span>
             </a>
             <button class="btn-secondary-enhanced" onclick="clearFilters()">
               <i class="fas fa-refresh"></i>
@@ -228,7 +229,7 @@
 
     <!-- Show More/Less Button -->
     <div class="courses-show-more-container text-center mt-5">
-      <button class="btn-show-more" id="showMoreOnGroundCourses">
+      <button class="btn-show-more" id="showMoreRecordedCourses">
         <span class="show-more-text">Show More Courses</span>
         <i class="fas fa-chevron-down show-more-icon"></i>
       </button>
@@ -285,7 +286,7 @@
       showLoadingState(searchBtn, true);
       showLoadingState(applyBtn);
 
-      fetch(`/courses/onground?${params.toString()}`, {
+      fetch(`/courses/recorded?${params.toString()}`, {
           method: 'GET',
           headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -351,9 +352,9 @@
     });
   });
 
-  // On-Ground Courses Show More/Less Functionality
+  // Recorded Courses Show More/Less Functionality
   document.addEventListener('DOMContentLoaded', function() {
-    const showMoreBtn = document.getElementById('showMoreOnGroundCourses');
+    const showMoreBtn = document.getElementById('showMoreRecordedCourses');
     const hiddenCards = document.querySelectorAll('.course-card-hidden');
     const showMoreText = showMoreBtn.querySelector('.show-more-text');
     const showMoreIcon = showMoreBtn.querySelector('.show-more-icon');
@@ -397,12 +398,12 @@
     });
   });
 
-  // On-Ground Course Card Interactions
+  // Recorded Course Card Interactions
   document.addEventListener('DOMContentLoaded', function() {
-    // Favorite button functionality for on-ground courses
-    const onGroundFavoriteBtns = document.querySelectorAll('.course-favorite-btn');
+    // Favorite button functionality for recorded courses
+    const recordedFavoriteBtns = document.querySelectorAll('.course-favorite-btn');
 
-    onGroundFavoriteBtns.forEach(btn => {
+    recordedFavoriteBtns.forEach(btn => {
       btn.addEventListener('click', function(e) {
         e.preventDefault();
         const icon = this.querySelector('i');
@@ -419,10 +420,10 @@
       });
     });
 
-    // Add to cart functionality for on-ground courses
-    const onGroundAddToCartBtns = document.querySelectorAll('.btn-add-to-cart');
+    // Add to cart functionality for recorded courses
+    const recordedAddToCartBtns = document.querySelectorAll('.btn-add-to-cart');
 
-    onGroundAddToCartBtns.forEach(btn => {
+    recordedAddToCartBtns.forEach(btn => {
       btn.addEventListener('click', function(e) {
         e.preventDefault();
         const originalText = this.querySelector('span').textContent;
@@ -921,7 +922,7 @@
 
   // Clear filters function
   function clearFilters() {
-    window.location.href = '/courses/onground';
+    window.location.href = '/courses/recorded';
   }
 
   // Toggle wishlist function
@@ -1159,6 +1160,24 @@
 
   .filter-group:last-child {
     margin-top: auto;
+  }
+
+  /* Recorded course badge styling */
+  .course-offer-badge-enhanced.recorded {
+    background: linear-gradient(135deg, #8e44ad, #9b59b6);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+  }
+
+  .course-offer-badge-enhanced.recorded i {
+    font-size: 0.875rem;
   }
 </style>
 

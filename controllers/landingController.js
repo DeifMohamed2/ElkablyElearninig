@@ -4,6 +4,7 @@ const Quiz = require('../models/Quiz');
 const User = require('../models/User');
 const BrilliantStudent = require('../models/BrilliantStudent');
 const GameRoom = require('../models/GameRoom');
+const TeamMember = require('../models/TeamMember');
 
 // Get landing page data
 const getLandingPage = async (req, res) => {
@@ -33,6 +34,21 @@ const getLandingPage = async (req, res) => {
     console.log(
       'Landing page - Found onground bundles:',
       ongroundBundles.length
+    );
+
+    // Get featured recorded bundles
+    const recordedBundles = await BundleCourse.find({
+      courseType: 'recorded',
+      status: 'published',
+      isActive: true,
+    })
+      .populate('courses')
+      .sort({ createdAt: -1 })
+      .limit(6);
+
+    console.log(
+      'Landing page - Found recorded bundles:',
+      recordedBundles.length
     );
 
     // Get featured quizzes for free tests section
@@ -88,6 +104,12 @@ const getLandingPage = async (req, res) => {
       isActive: true,
     });
 
+    const totalRecordedBundles = await BundleCourse.countDocuments({
+      courseType: 'recorded',
+      status: 'published',
+      isActive: true,
+    });
+
     const totalQuizzes = await Quiz.countDocuments({ status: 'active' });
     const totalGameRooms = await GameRoom.countDocuments({
       isActive: true,
@@ -96,6 +118,7 @@ const getLandingPage = async (req, res) => {
 
     console.log('Landing page - Total online bundles:', totalOnlineBundles);
     console.log('Landing page - Total onground bundles:', totalOngroundBundles);
+    console.log('Landing page - Total recorded bundles:', totalRecordedBundles);
     console.log('Landing page - Total quizzes:', totalQuizzes);
     console.log('Landing page - Total game rooms:', totalGameRooms);
 
@@ -136,11 +159,17 @@ const getLandingPage = async (req, res) => {
       // .populate('enrolledCourses.course');
     }
 
+    // Get team members for the homepage
+    const teamMembers = await TeamMember.getActiveMembers();
+    console.log('Landing page - Found team members:', teamMembers.length);
+
+
     res.render('index', {
       title: 'Mr Kably - Mathematics Learning Platform',
       theme: req.cookies.theme || 'light',
       onlineBundles,
       ongroundBundles,
+      recordedBundles,
       featuredQuizzes,
       featuredGameRooms,
       user,
@@ -151,9 +180,11 @@ const getLandingPage = async (req, res) => {
         dsat: dsatStudents,
         act: actStudents,
       },
+      teamMembers,
       stats: {
         onlineBundles: totalOnlineBundles,
         ongroundBundles: totalOngroundBundles,
+        recordedBundles: totalRecordedBundles,
         totalQuizzes: totalQuizzes,
         totalGameRooms: totalGameRooms,
         totalStudents: totalStudents[0]?.total || 0,
@@ -166,6 +197,7 @@ const getLandingPage = async (req, res) => {
       theme: req.cookies.theme || 'light',
       onlineBundles: [],
       ongroundBundles: [],
+      recordedBundles: [],
       featuredQuizzes: [],
       featuredGameRooms: [],
       cart: req.session.cart || [],
@@ -175,9 +207,11 @@ const getLandingPage = async (req, res) => {
         dsat: [],
         act: [],
       },
+      teamMembers: [],
       stats: {
         onlineBundles: 0,
         ongroundBundles: 0,
+        recordedBundles: 0,
         totalQuizzes: 0,
         totalGameRooms: 0,
         totalStudents: 0,
@@ -364,6 +398,98 @@ const getOngroundCourses = async (req, res) => {
     req.flash('error_msg', 'Error loading onground courses');
     res.render('onground-courses', {
       title: 'On-Ground Courses - Mr Kably',
+      theme: req.cookies.theme || 'light',
+      bundles: [],
+      cart: req.session.cart || [],
+      filterOptions: { subjects: [], testTypes: [] },
+      currentFilters: {},
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalBundles: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    });
+  }
+};
+
+// Get recorded courses page
+const getRecordedCourses = async (req, res) => {
+  try {
+    const { page = 1, limit = 12, search, subject, testType } = req.query;
+
+    const filter = {
+      courseType: 'recorded',
+      status: 'published',
+      isActive: true,
+    };
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { shortDescription: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (subject) filter.subject = subject;
+    if (testType) filter.testType = testType;
+
+    console.log('Recorded courses filter:', filter);
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const bundles = await BundleCourse.find(filter)
+      .populate('courses')
+      .populate('createdBy', 'userName')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    console.log('Found recorded bundles:', bundles.length);
+
+    const totalBundles = await BundleCourse.countDocuments(filter);
+    const totalPages = Math.ceil(totalBundles / parseInt(limit));
+
+    // Get filter options
+    const subjects = await BundleCourse.distinct('subject', {
+      courseType: 'recorded',
+      status: 'published',
+      isActive: true,
+    });
+    const testTypes = await BundleCourse.distinct('testType', {
+      courseType: 'recorded',
+      status: 'published',
+      isActive: true,
+    });
+
+    // Get user with purchase information if logged in
+    let user = null;
+    if (req.session.user) {
+      user = await User.findById(req.session.user.id);
+    }
+
+    res.render('recorded-courses', {
+      title: 'Recorded Courses - Mr Kably',
+      theme: req.cookies.theme || 'light',
+      bundles,
+      user,
+      cart: req.session.cart || [],
+      filterOptions: { subjects, testTypes },
+      currentFilters: { search, subject, testType },
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalBundles,
+        hasNext: parseInt(page) < totalPages,
+        hasPrev: parseInt(page) > 1,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching recorded courses:', error);
+    req.flash('error_msg', 'Error loading recorded courses');
+    res.render('recorded-courses', {
+      title: 'Recorded Courses - Mr Kably',
       theme: req.cookies.theme || 'light',
       bundles: [],
       cart: req.session.cart || [],
@@ -647,6 +773,7 @@ module.exports = {
   getLandingPage,
   getOnlineCourses,
   getOngroundCourses,
+  getRecordedCourses,
   getBundleContent,
   getESTTests,
   getSATTests,

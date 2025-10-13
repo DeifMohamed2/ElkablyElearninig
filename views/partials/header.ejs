@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Professor Mathematics - Advanced Mathematical Education & Excellence">
   <meta name="keywords" content="mathematics, advanced calculus, differential equations, linear algebra, mathematical analysis">
-  <title><%= title %> | Mr Elkably</title>
+  <title><%= title %> | Professor Mathematics</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="/images/K.png">
+  <link rel="icon" type="image/png" href="/images/favicon.png">
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -61,7 +61,7 @@
   <div class="scroll-progress-container">
     <div id="scroll-progress" class="scroll-progress-bar"></div>
   </div>
-  
+
   <!-- Advanced Professional Header -->
   <header class="advanced-header">
     <!-- Backdrop Effects -->
@@ -76,21 +76,21 @@
         <span class="math-pattern">∏</span>
       </div>
     </div>
-    
+
     <div class="header-container">
       <!-- Logo Section -->
       <div class="header-logo-section">
         <a href="/" class="header-logo-link">
-            <div class="header-logo-wrapper">
-              <div class="logo-frame">
-                <img src="/images/K.png" alt="Professor Mathematics" class="logo-image">
-                <div class="logo-glow"></div>
-              </div>
+          <div class="header-logo-wrapper">
+            <div class="logo-frame">
+              <img src="/images/K.png" alt="Professor Mathematics" class="logo-image">
+              <div class="logo-glow"></div>
             </div>
+          </div>
         </a>
       </div>
-      
-      
+
+
       <!-- Navigation Section -->
       <div class="header-nav-section">
         <nav class="header-nav">
@@ -105,11 +105,29 @@
               </a>
             </li>
             <li class="nav-item">
-              <a href="#free-tests" class="nav-link smooth-scroll">
+              <a href="#games" class="nav-link smooth-scroll">
+                <div class="nav-icon-wrapper">
+                  <i class="fas fa-gamepad"></i>
+                </div>
+                <span class="nav-text">Games</span>
+                <span class="nav-indicator"></span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#test-types" class="nav-link smooth-scroll">
                 <div class="nav-icon-wrapper">
                   <i class="fas fa-clipboard-check"></i>
                 </div>
                 <span class="nav-text">Free Tests</span>
+                <span class="nav-indicator"></span>
+              </a>
+            </li>
+               <li class="nav-item">
+              <a href="#courses" class="nav-link">
+                <div class="nav-icon-wrapper">
+                  <i class="fas fa-graduation-cap"></i>
+                </div>
+                <span class="nav-text">Courses</span>
                 <span class="nav-indicator"></span>
               </a>
             </li>
@@ -122,15 +140,7 @@
                 <span class="nav-indicator"></span>
               </a>
             </li>
-            <li class="nav-item">
-              <a href="#courses" class="nav-link">
-                <div class="nav-icon-wrapper">
-                  <i class="fas fa-graduation-cap"></i>
-                </div>
-                <span class="nav-text">Courses</span>
-                <span class="nav-indicator"></span>
-              </a>
-            </li>
+         
             <li class="nav-item">
               <a href="#elkably-team" class="nav-link smooth-scroll">
                 <div class="nav-icon-wrapper">
@@ -152,7 +162,7 @@
           </ul>
         </nav>
       </div>
-      
+
       <!-- Actions Section -->
       <div class="header-actions-section">
         <!-- Theme Toggle -->
@@ -167,79 +177,85 @@
             <span class="visually-hidden">Toggle Theme</span>
           </button>
         </div>
-        
+
         <!-- Auth Actions -->
         <div class="header-auth-actions">
           <% if (locals.user) { %>
-            <div class="user-account-dropdown">
-              <button class="user-account-btn" type="button" id="userDropdown" aria-expanded="false" onclick="toggleUserDropdown(event)">
-                <div class="user-avatar">
-                  <i class="fas fa-user-circle"></i>
-                </div>
-                <span class="user-name"><%= user.name %></span>
-                <i class="fas fa-chevron-down dropdown-arrow"></i>
-              </button>
-              <div class="user-dropdown-menu" aria-labelledby="userDropdown">
-                <div class="dropdown-content">
-                  <div class="dropdown-header">
-                    <div class="user-info">
-                      <div class="user-avatar-large">
-                        <i class="fas fa-user-circle"></i>
-                      </div>
-                      <div class="user-details">
-                        <div class="user-name-large"><%= user.name %></div>
-                        <div class="user-email"><%= user.email %></div>
-                      </div>
+          <!-- Mobile-Friendly User Dropdown -->
+          <div class="user-account-dropdown mobile-optimized">
+            <button class="user-account-btn mobile-btn" type="button" id="userDropdown" aria-expanded="false">
+              <div class="user-avatar">
+                <i class="fas fa-user-circle"></i>
+              </div>
+              <span class="user-name"><%= user.name %></span>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </button>
+
+            <!-- Mobile Overlay -->
+            <div class="mobile-dropdown-overlay" id="mobileDropdownOverlay"></div>
+
+            <!-- Dropdown Menu -->
+            <div class="user-dropdown-menu mobile-dropdown" id="userDropdownMenu">
+              <div class="dropdown-content">
+                <div class="dropdown-header">
+                  <div class="user-info">
+                    <div class="user-avatar-large">
+                      <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="user-details">
+                      <div class="user-name-large"><%= user.name %></div>
+                      <div class="user-email"><%= user.email %></div>
                     </div>
                   </div>
-                  <div class="dropdown-divider"></div>
-                  <div class="dropdown-items">
-                    <a class="dropdown-item" href="/dashboard">
-                      <i class="fas fa-tachometer-alt"></i>
-                      <span>Dashboard</span>
-                    </a>
-                    <a class="dropdown-item" href="/profile">
-                      <i class="fas fa-user-edit"></i>
-                      <span>Profile</span>
-                    </a>
-                    <a class="dropdown-item" href="/enrolled-courses">
-                      <i class="fas fa-graduation-cap"></i>
-                      <span>My Courses</span>
-                    </a>
-                    <a class="dropdown-item" href="/quizzes">
-                      <i class="fas fa-clipboard-check"></i>
-                      <span>Quizzes</span>
-                    </a>
-                    <a class="dropdown-item" href="/wishlist">
-                      <i class="fas fa-heart"></i>
-                      <span>Wishlist</span>
-                    </a>
-                    <a class="dropdown-item" href="/settings">
-                      <i class="fas fa-cog"></i>
-                      <span>Settings</span>
-                    </a>
-                  </div>
-                  <div class="dropdown-divider"></div>
-                  <div class="dropdown-footer">
-                    <a class="dropdown-item logout-item" href="/auth/logout">
-                      <i class="fas fa-sign-out-alt"></i>
-                      <span>Logout</span>
-                    </a>
-                  </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-items">
+                  <a class="dropdown-item" href="/student/dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                  </a>
+                  <a class="dropdown-item" href="/student/profile">
+                    <i class="fas fa-user-edit"></i>
+                    <span>Profile</span>
+                  </a>
+                  <a class="dropdown-item" href="/student/enrolled-courses">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>My Courses</span>
+                  </a>
+                  <a class="dropdown-item" href="/student/quizzes">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Quizzes</span>
+                  </a>
+                  <a class="dropdown-item" href="/student/wishlist">
+                    <i class="fas fa-heart"></i>
+                    <span>Wishlist</span>
+                  </a>
+                  <a class="dropdown-item" href="/student/settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                  </a>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-footer">
+                  <a class="dropdown-item logout-item" href="/auth/logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                  </a>
                 </div>
               </div>
             </div>
+          </div>
           <% } else { %>
-            <div class="auth-buttons">
-              <a href="/auth/login" class="login-btn">
-                <i class="fas fa-user"></i>
-                <span>Student Login</span>
-              </a>
-              <a href="/auth/register" class="register-btn">
-                <span>Register</span>
-                <i class="fas fa-arrow-right"></i>
-              </a>
-            </div>
+          <div class="auth-buttons">
+            <a href="/auth/login" class="login-btn">
+              <i class="fas fa-user"></i>
+              <span>Login</span>
+            </a>
+            <a href="/auth/register" class="register-btn">
+              <span>Register Now</span>
+              <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
           <% } %>
         </div>
 
@@ -270,41 +286,41 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <div class="cart-sidebar-body">
         <div class="cart-items" id="cartItems">
           <% if (cart.length > 0) { %>
-            <% cart.forEach((item, index) => { %>
-            <div class="cart-item" data-id="<%= item.id %>" data-item-id="<%= item.id %>" data-item-type="<%= item.type %>">
-              <div class="cart-item-image">
-                <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy">
-              </div>
-              <div class="cart-item-details">
-                <h5 class="cart-item-title"><%= item.title %></h5>
-                <div class="cart-item-price">$<%= item.price.toFixed(2) %></div>
-                <div class="cart-item-info">
-                  <span class="cart-item-type"><%= item.type === 'bundle' ? 'Course Bundle' : 'Individual Course' %></span>
-                </div>
-              </div>
-              <div class="cart-item-actions">
-                <button class="cart-remove-btn" onclick="removeFromCart('<%= item.id %>')" title="Remove item">
-                  <i class="fas fa-trash"></i>
-                </button>
+          <% cart.forEach((item, index) => { %>
+          <div class="cart-item" data-id="<%= item.id %>" data-item-id="<%= item.id %>" data-item-type="<%= item.type %>">
+            <div class="cart-item-image">
+              <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy">
+            </div>
+            <div class="cart-item-details">
+              <h5 class="cart-item-title"><%= item.title %></h5>
+              <div class="cart-item-price">$<%= item.price.toFixed(2) %></div>
+              <div class="cart-item-info">
+                <span class="cart-item-type"><%= item.type === 'bundle' ? 'Course Bundle' : 'Individual Course' %></span>
               </div>
             </div>
-            <% }); %>
+            <div class="cart-item-actions">
+              <button class="cart-remove-btn" onclick="removeFromCart('<%= item.id %>')" title="Remove item">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <% }); %>
           <% } else { %>
-            <div class="cart-empty">
-              <div class="cart-empty-icon">
-                <i class="fas fa-shopping-cart"></i>
-              </div>
-              <h4>Your cart is empty</h4>
-              <p>Add some courses to get started!</p>
+          <div class="cart-empty">
+            <div class="cart-empty-icon">
+              <i class="fas fa-shopping-cart"></i>
             </div>
+            <h4>Your cart is empty</h4>
+            <p>Add some courses to get started!</p>
+          </div>
           <% } %>
         </div>
       </div>
-      
+
       <div class="cart-sidebar-footer">
         <div class="cart-total" id="cartTotal">
           <div class="cart-total-row">
@@ -313,14 +329,14 @@
           </div>
           <div class="cart-total-row">
             <span>Tax:</span>
-            <span class="cart-tax">$<%= (cart.reduce((sum, item) => sum + item.price, 0) * 0.1).toFixed(2) %></span>
+            <span class="cart-tax">$<%= (cart.reduce((sum, item) => sum + item.price, 0) * 0).toFixed(2) %></span>
           </div>
           <div class="cart-total-row cart-total-final">
             <span>Total:</span>
             <span class="cart-total-amount">$<%= (cart.reduce((sum, item) => sum + item.price, 0) * 1.1).toFixed(2) %></span>
           </div>
         </div>
-        
+
         <div class="cart-actions">
           <button class="btn-cart-checkout" id="cartCheckout" onclick="proceedToCheckout()" <%= cart.length === 0 ? 'disabled' : '' %>>
             <i class="fas fa-credit-card"></i>
@@ -366,75 +382,146 @@
 
   <!-- Advanced Header JavaScript -->
   <script src="/js/advanced-header.js" defer></script>
-  
-  <!-- Inline Dropdown Toggle Function -->
+
+  <!-- Enhanced Mobile-Friendly Dropdown Toggle -->
   <script>
+    // Enhanced dropdown toggle with better mobile support
     function toggleUserDropdown(event) {
-      event.preventDefault();
-      event.stopPropagation();
-      
-      console.log('toggleUserDropdown called');
-      
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
       const dropdown = document.querySelector('.user-account-dropdown');
-      const menu = document.querySelector('.user-dropdown-menu');
+      const menu = document.getElementById('userDropdownMenu');
       const button = document.getElementById('userDropdown');
-      
-      console.log('Elements found:', { 
-        dropdown: !!dropdown, 
-        menu: !!menu, 
-        button: !!button,
-        dropdownClass: dropdown ? dropdown.className : 'not found',
-        menuStyle: menu ? menu.style.display : 'not found'
-      });
-      
+      const overlay = document.getElementById('mobileDropdownOverlay');
+
       if (!dropdown || !menu || !button) {
-        console.log('Required elements not found');
+        console.warn('Dropdown elements not found');
         return;
       }
-      
+
       const isOpen = dropdown.classList.contains('show');
-      console.log('Current state - isOpen:', isOpen);
-      
+
       if (isOpen) {
-        // Close dropdown
-        dropdown.classList.remove('show');
-        button.setAttribute('aria-expanded', 'false');
-        menu.style.opacity = '0';
-        menu.style.visibility = 'hidden';
-        menu.style.transform = 'translateY(-20px) scale(0.95)';
-        menu.style.pointerEvents = 'none';
-        document.body.classList.remove('dropdown-open');
-        console.log('Dropdown closed');
+        closeDropdown();
       } else {
-        // Open dropdown
+        openDropdown();
+      }
+
+      function openDropdown() {
+        // Add show class
         dropdown.classList.add('show');
         button.setAttribute('aria-expanded', 'true');
-        menu.style.opacity = '1';
+
+        // Show menu with animation
+        menu.style.display = 'block';
+        menu.style.opacity = '0';
+        menu.style.transform = 'translateY(-20px) scale(0.95)';
         menu.style.visibility = 'visible';
-        menu.style.transform = 'translateY(0) scale(1)';
-        menu.style.pointerEvents = 'auto';
-        document.body.classList.add('dropdown-open');
-        console.log('Dropdown opened - classes:', dropdown.className);
+
+        // Force reflow
+        menu.offsetHeight;
+
+        // Animate in
+        requestAnimationFrame(() => {
+          menu.style.opacity = '1';
+          menu.style.transform = 'translateY(0) scale(1)';
+          menu.style.pointerEvents = 'auto';
+          menu.style.zIndex = '999999'; // Force maximum z-index
+          menu.style.position = 'fixed'; // Ensure fixed positioning
+        });
+
+        // Show overlay on mobile
+        if (overlay && window.innerWidth <= 768) {
+          overlay.style.display = 'block';
+          overlay.style.opacity = '0';
+          requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+          });
+        }
+
+        // Prevent body scroll on mobile
+        if (window.innerWidth <= 768) {
+          document.body.style.overflow = 'hidden';
+        }
+
+        console.log('Dropdown opened successfully');
+      }
+
+      function closeDropdown() {
+        // Animate out
+        menu.style.opacity = '0';
+        menu.style.transform = 'translateY(-20px) scale(0.95)';
+        menu.style.pointerEvents = 'none';
+
+        // Hide overlay
+        if (overlay) {
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            overlay.style.display = 'none';
+          }, 300);
+        }
+
+        // Remove classes after animation
+        setTimeout(() => {
+          dropdown.classList.remove('show');
+          button.setAttribute('aria-expanded', 'false');
+          menu.style.display = 'none';
+          menu.style.visibility = 'hidden';
+        }, 300);
+
+        // Restore body scroll
+        document.body.style.overflow = '';
+
+        console.log('Dropdown closed successfully');
       }
     }
-    
+
+    // Add click event listener with proper event handling
+    document.addEventListener('DOMContentLoaded', function() {
+      const button = document.getElementById('userDropdown');
+      if (button) {
+        // Remove any existing onclick handlers
+        button.removeAttribute('onclick');
+
+        // Add proper event listener
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleUserDropdown(e);
+        });
+
+        console.log('Dropdown button event listener attached');
+      }
+
+      // Overlay click handler
+      const overlay = document.getElementById('mobileDropdownOverlay');
+      if (overlay) {
+        overlay.addEventListener('click', function() {
+          toggleUserDropdown();
+        });
+      }
+    });
+
     // Test function to check if elements exist
     function testDropdownElements() {
       console.log('Testing dropdown elements...');
       const dropdown = document.querySelector('.user-account-dropdown');
       const menu = document.querySelector('.user-dropdown-menu');
       const button = document.getElementById('userDropdown');
-      
+
       console.log('Dropdown element:', dropdown);
       console.log('Menu element:', menu);
       console.log('Button element:', button);
-      
+
       // Only proceed if user is authenticated and elements exist
       if (!dropdown || !menu || !button) {
         console.log('User dropdown elements not found - user may not be authenticated');
         return;
       }
-      
+
       if (menu) {
         console.log('Menu styles:', {
           position: getComputedStyle(menu).position,
@@ -445,12 +532,12 @@
         });
       }
     }
-    
+
     // Run test when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
       setTimeout(testDropdownElements, 1000);
     });
-    
+
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
       const dropdown = document.querySelector('.user-account-dropdown');
@@ -468,7 +555,7 @@
         document.body.classList.remove('dropdown-open');
       }
     });
-    
+
     // Close dropdown on escape key
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
@@ -507,73 +594,73 @@
           const sessionCart = this.getSessionCart();
           const totalItems = sessionCart.length;
           cartCount.textContent = totalItems;
-          
+
           // Add animation class
           cartCount.classList.add('cart-count-updated');
           setTimeout(() => cartCount.classList.remove('cart-count-updated'), 300);
         }
       },
-      
+
       // Get cart from session (this would be populated by server-side rendering)
       getSessionCart: function() {
         // This would be populated by the server with actual cart data
         return window.sessionCart || [];
       },
-      
+
       // Set session cart (called by server-side rendering)
       setSessionCart: function(cart) {
         window.sessionCart = cart;
         this.updateCartCount();
       },
-      
+
       // Refresh cart data from server
       refreshCartData: function() {
         fetch('/purchase/cart', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.success) {
-            window.sessionCart = data.cart || [];
-            console.log('Cart data refreshed:', window.sessionCart);
-            this.updateCartSidebar();
-          } else {
-            console.error('Failed to refresh cart data:', data.message);
-          }
-        })
-        .catch(error => {
-          console.error('Error refreshing cart data:', error);
-          // Don't update cart on error, keep existing data
-        });
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success) {
+              window.sessionCart = data.cart || [];
+              console.log('Cart data refreshed:', window.sessionCart);
+              this.updateCartSidebar();
+            } else {
+              console.error('Failed to refresh cart data:', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error refreshing cart data:', error);
+            // Don't update cart on error, keep existing data
+          });
       },
-      
+
       // Update cart sidebar content
       updateCartSidebar: function() {
         // Update cart count
         this.updateCartCount();
-        
+
         // Update cart items display
         this.updateCartItems();
-        
+
         // Update cart totals
         this.updateCartTotals();
       },
-      
+
       // Update cart items display
       updateCartItems: function() {
         const cartItems = document.getElementById('cartItems');
         if (!cartItems) return;
-        
+
         const sessionCart = this.getSessionCart();
-        
+
         if (sessionCart.length === 0) {
           cartItems.innerHTML = `
             <div class="cart-empty">
@@ -586,7 +673,7 @@
           `;
           return;
         }
-        
+
         cartItems.innerHTML = sessionCart.map(item => `
           <div class="cart-item" data-id="${item.id}" data-item-id="${item.id}" data-item-type="${item.type}">
             <div class="cart-item-image">
@@ -607,19 +694,19 @@
           </div>
         `).join('');
       },
-      
+
       // Update cart totals
       updateCartTotals: function() {
         const sessionCart = this.getSessionCart();
         const subtotal = sessionCart.reduce((sum, item) => sum + item.price, 0);
-        const tax = subtotal * 0.1;
+        const tax = 0; // No tax
         const total = subtotal + tax;
-        
+
         const subtotalEl = document.querySelector('.cart-subtotal');
         const taxEl = document.querySelector('.cart-tax');
         const totalEl = document.querySelector('.cart-total-amount');
         const checkoutBtn = document.getElementById('cartCheckout');
-        
+
         if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
         if (taxEl) taxEl.textContent = `$${tax.toFixed(2)}`;
         if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
@@ -627,112 +714,112 @@
       }
     };
 
-// Remove item from cart sidebar
-function removeFromCartSidebar(itemId, itemType) {
-  console.log('Removing item from cart sidebar:', itemId, itemType);
-  
-  fetch('/purchase/cart/remove', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      itemId: itemId,
-      itemType: itemType
-    })
-  })
-  .then(response => {
-    console.log('Response status:', response.status);
-    // Check if response is not ok (e.g., 401 Unauthorized)
-    if (!response.ok) {
-      if (response.status === 401) {
-        showCartNotification('Please login to manage cart items', 'error');
-        setTimeout(() => {
-          window.location.href = '/auth/login';
-        }, 3500);
-        return;
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // Remove item from cart sidebar
+    function removeFromCartSidebar(itemId, itemType) {
+      console.log('Removing item from cart sidebar:', itemId, itemType);
+
+      fetch('/purchase/cart/remove', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            itemId: itemId,
+            itemType: itemType
+          })
+        })
+        .then(response => {
+          console.log('Response status:', response.status);
+          // Check if response is not ok (e.g., 401 Unauthorized)
+          if (!response.ok) {
+            if (response.status === 401) {
+              showCartNotification('Please login to manage cart items', 'error');
+              setTimeout(() => {
+                window.location.href = '/auth/login';
+              }, 3500);
+              return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Remove cart response:', data);
+          if (data.success) {
+            // Update session cart data
+            if (window.sessionCart) {
+              window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+            }
+            showCartNotification('Item removed from cart', 'success');
+            window.globalCart.updateCartSidebar();
+          } else {
+            showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error removing from cart:', error);
+          showCartNotification('Error removing item from cart', 'error');
+        });
     }
-    return response.json();
-  })
-  .then(data => {
-    console.log('Remove cart response:', data);
-    if (data.success) {
-      // Update session cart data
-      if (window.sessionCart) {
-        window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
-      }
-      showCartNotification('Item removed from cart', 'success');
-      window.globalCart.updateCartSidebar();
-    } else {
-      showCartNotification(data.message || 'Failed to remove item from cart', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error removing from cart:', error);
-    showCartNotification('Error removing item from cart', 'error');
-  });
-}
 
     // Global addToCart function for use across all pages
     function addToCart(item) {
       // Check if user is logged in (server-side check)
       <% if (!user) { %>
-        showCartNotification('Please login to add items to cart', 'error');
-        setTimeout(() => {
-          window.location.href = '/auth/login';
-        }, 3500);
-        return;
+      showCartNotification('Please login to add items to cart', 'error');
+      setTimeout(() => {
+        window.location.href = '/auth/login';
+      }, 3500);
+      return;
       <% } %>
-      
+
       // Add to cart via API
       fetch('/purchase/cart/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          itemId: item.id,
-          itemType: item.type || 'course',
-          title: item.title,
-          price: item.price,
-          image: item.image
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            itemId: item.id,
+            itemType: item.type || 'course',
+            title: item.title,
+            price: item.price,
+            image: item.image
+          })
         })
-      })
-      .then(response => {
-        // Check if response is not ok (e.g., 401 Unauthorized)
-        if (!response.ok) {
-          if (response.status === 401) {
-            showCartNotification('Please login to add items to cart', 'error');
-            setTimeout(() => {
-              window.location.href = '/auth/login';
-            }, 3500);
-            return;
+        .then(response => {
+          // Check if response is not ok (e.g., 401 Unauthorized)
+          if (!response.ok) {
+            if (response.status === 401) {
+              showCartNotification('Please login to add items to cart', 'error');
+              setTimeout(() => {
+                window.location.href = '/auth/login';
+              }, 3500);
+              return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.success) {
-          showCartNotification(data.message || 'Item added to cart successfully', 'success');
-          
-          // Update global cart count and refresh cart data
-          if (window.globalCart) {
-            window.globalCart.refreshCartData();
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
+            showCartNotification(data.message || 'Item added to cart successfully', 'success');
+
+            // Update global cart count and refresh cart data
+            if (window.globalCart) {
+              window.globalCart.refreshCartData();
+            }
+
+            // Show cart sidebar
+            showCartSidebar();
+          } else {
+            showCartNotification(data.message || 'Failed to add item to cart', 'error');
           }
-          
-          // Show cart sidebar
-          showCartSidebar();
-        } else {
-          showCartNotification(data.message || 'Failed to add item to cart', 'error');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showCartNotification('Error adding item to cart', 'error');
-      });
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showCartNotification('Error adding item to cart', 'error');
+        });
     }
 
     // Note: Quantity controls removed for better UX - each item is unique in cart
@@ -745,56 +832,56 @@ function removeFromCartSidebar(itemId, itemType) {
         showCartNotification('Cart is empty', 'error');
         return;
       }
-      
+
       // Find the item in the session cart to get its type
       const item = window.sessionCart.find(cartItem => cartItem.id === itemId);
       if (!item) {
         showCartNotification('Item not found in cart', 'error');
         return;
       }
-      
+
       console.log('Removing item from cart:', item);
-      
+
       fetch('/purchase/cart/remove', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          itemId: itemId,
-          itemType: item.type
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            itemId: itemId,
+            itemType: item.type
+          })
         })
-      })
-      .then(response => {
-        console.log('Response status:', response.status);
-        // Check if response is not ok (e.g., 401 Unauthorized)
-        if (!response.ok) {
-          if (response.status === 401) {
-            showCartNotification('Please login to manage cart items', 'error');
-            setTimeout(() => {
-              window.location.href = '/auth/login';
-            }, 3500);
-            return;
+        .then(response => {
+          console.log('Response status:', response.status);
+          // Check if response is not ok (e.g., 401 Unauthorized)
+          if (!response.ok) {
+            if (response.status === 401) {
+              showCartNotification('Please login to manage cart items', 'error');
+              setTimeout(() => {
+                window.location.href = '/auth/login';
+              }, 3500);
+              return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('Remove cart response:', data);
-        if (data.success) {
-          // Update session cart data
-          window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
-          showCartNotification('Item removed from cart', 'success');
-          window.globalCart.updateCartSidebar();
-        } else {
-          showCartNotification(data.message || 'Failed to remove item from cart', 'error');
-        }
-      })
-      .catch(error => {
-        console.error('Error removing from cart:', error);
-        showCartNotification('Error removing item from cart', 'error');
-      });
+          return response.json();
+        })
+        .then(data => {
+          console.log('Remove cart response:', data);
+          if (data.success) {
+            // Update session cart data
+            window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+            showCartNotification('Item removed from cart', 'success');
+            window.globalCart.updateCartSidebar();
+          } else {
+            showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error removing from cart:', error);
+          showCartNotification('Error removing item from cart', 'error');
+        });
     }
 
     // Proceed to checkout page
@@ -804,14 +891,14 @@ function removeFromCartSidebar(itemId, itemType) {
         showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
         return;
       }
-      
+
       // Double-check with server cart data
       const cartCount = document.getElementById('cartCount');
       if (cartCount && parseInt(cartCount.textContent) === 0) {
         showCartNotification('Your cart is empty. Please add items before checkout.', 'error');
         return;
       }
-      
+
       // Redirect to checkout page
       window.location.href = '/purchase/checkout';
     }
@@ -841,24 +928,24 @@ function removeFromCartSidebar(itemId, itemType) {
       // Create notification element
       const notification = document.createElement('div');
       notification.className = `cart-notification cart-notification-${type}`;
-      
+
       // Choose icon based on type
-      const iconClass = type === 'success' ? 'fas fa-check-circle' : 
-                       type === 'error' ? 'fas fa-exclamation-circle' : 
-                       'fas fa-info-circle';
-      
+      const iconClass = type === 'success' ? 'fas fa-check-circle' :
+        type === 'error' ? 'fas fa-exclamation-circle' :
+        'fas fa-info-circle';
+
       notification.innerHTML = `
         <div class="cart-notification-content">
           <i class="${iconClass}"></i>
           <span>${message}</span>
         </div>
       `;
-      
+
       document.body.appendChild(notification);
-      
+
       // Show notification
       setTimeout(() => notification.classList.add('show'), 100);
-      
+
       // Hide notification
       setTimeout(() => {
         notification.classList.remove('show');
@@ -872,25 +959,25 @@ function removeFromCartSidebar(itemId, itemType) {
       window.sessionCart = window.cartData || [];
       console.log('Initializing cart with data:', window.sessionCart);
       window.globalCart.setSessionCart(window.sessionCart);
-      
+
       // Refresh cart data from server to ensure accuracy
       window.globalCart.refreshCartData();
-      
-    // Cart toggle button
-    const cartToggle = document.getElementById('cartToggle');
-    const cartSidebar = document.getElementById('cartSidebar');
-    const cartSidebarClose = document.getElementById('cartSidebarClose');
-    const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
 
-    if (cartToggle) {
-      cartToggle.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        // Refresh cart data when opening sidebar
-        window.globalCart.refreshCartData();
-        showCartSidebar();
-      });
-    }
+      // Cart toggle button
+      const cartToggle = document.getElementById('cartToggle');
+      const cartSidebar = document.getElementById('cartSidebar');
+      const cartSidebarClose = document.getElementById('cartSidebarClose');
+      const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
+
+      if (cartToggle) {
+        cartToggle.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Refresh cart data when opening sidebar
+          window.globalCart.refreshCartData();
+          showCartSidebar();
+        });
+      }
 
       if (cartSidebarClose) {
         cartSidebarClose.addEventListener('click', hideCartSidebar);
@@ -993,6 +1080,7 @@ function removeFromCartSidebar(itemId, itemType) {
         transform: translateX(100%);
         opacity: 0;
       }
+
       to {
         transform: translateX(0);
         opacity: 1;
@@ -1004,6 +1092,7 @@ function removeFromCartSidebar(itemId, itemType) {
         transform: translateX(0);
         opacity: 1;
       }
+
       to {
         transform: translateX(100%);
         opacity: 0;
@@ -1214,9 +1303,17 @@ function removeFromCartSidebar(itemId, itemType) {
     }
 
     @keyframes notificationIconPulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.2);
+      }
+
+      100% {
+        transform: scale(1);
+      }
     }
 
     /* Dark theme support */

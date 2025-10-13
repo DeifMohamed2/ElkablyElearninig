@@ -9,9 +9,69 @@ const Progress = require('../models/Progress');
 const Purchase = require('../models/Purchase');
 const Quiz = require('../models/Quiz');
 const BrilliantStudent = require('../models/BrilliantStudent');
+const ZoomMeeting = require('../models/ZoomMeeting');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
+const zoomService = require('../utils/zoomService');
+const { upload, uploadToS3, testS3Connection } = require('../utils/s3Service');
+
+// Test S3 connection
+const testS3 = async (req, res) => {
+  try {
+    const result = await testS3Connection();
+    res.json(result);
+  } catch (error) {
+    console.error('S3 test error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'S3 test failed',
+      error: error.message,
+    });
+  }
+};
+
+// Upload document to S3
+const uploadDocument = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file provided',
+      });
+    }
+
+    // Upload file to S3
+    const uploadResult = await uploadToS3(req.file, 'course-documents');
+
+    if (!uploadResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload file to S3',
+        error: uploadResult.error,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'File uploaded successfully',
+      data: {
+        url: uploadResult.url,
+        fileName: uploadResult.fileName,
+        originalName: uploadResult.originalName,
+        size: uploadResult.size,
+        mimetype: uploadResult.mimetype,
+      },
+    });
+  } catch (error) {
+    console.error('Document upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Upload failed',
+      error: error.message,
+    });
+  }
+};
 
 // Admin Dashboard with Real Data
 const getAdminDashboard = async (req, res) => {
@@ -399,8 +459,6 @@ const getCourses = async (req, res) => {
       filter.status = status;
     }
 
-    
-
     if (level) {
       filter.level = level;
     }
@@ -499,8 +557,8 @@ const createCourse = async (req, res) => {
     // Create new course
     const course = new Course({
       title: title.trim(),
-      description: description.trim(),
-      shortDescription: shortDescription.trim(),
+      description: description ? description.trim() : '',
+      shortDescription: shortDescription ? shortDescription.trim() : '',
       level,
       year, // Use provided year when creating course
       category: category.trim(),
@@ -874,10 +932,25 @@ const updateCourse = async (req, res) => {
     const { courseCode } = req.params;
     const updateData = req.body;
 
-    // Remove empty fields
+    // Handle optional description fields
+    if (updateData.description !== undefined) {
+      updateData.description = updateData.description
+        ? updateData.description.trim()
+        : '';
+    }
+    if (updateData.shortDescription !== undefined) {
+      updateData.shortDescription = updateData.shortDescription
+        ? updateData.shortDescription.trim()
+        : '';
+    }
+
+    // Remove empty fields (but keep description fields as they can be empty strings)
     Object.keys(updateData).forEach((key) => {
       if (updateData[key] === '' || updateData[key] === null) {
-        delete updateData[key];
+        // Don't delete description fields as they can be intentionally empty
+        if (key !== 'description' && key !== 'shortDescription') {
+          delete updateData[key];
+        }
       }
     });
 
@@ -1081,6 +1154,10 @@ const getCourseContent = async (req, res) => {
       .populate({
         path: 'topics',
         options: { sort: { order: 1 } },
+        populate: {
+          path: 'content.zoomMeeting',
+          model: 'ZoomMeeting',
+        },
       })
       .populate('bundle', 'title bundleCode year');
 
@@ -1426,7 +1503,7 @@ const getTopicDetails = async (req, res) => {
       return res.redirect('/admin/courses');
     }
 
-    const topic = await Topic.findById(topicId);
+    const topic = await Topic.findById(topicId).populate('content.zoomMeeting');
     if (!topic) {
       req.flash('error_msg', 'Topic not found');
       return res.redirect(`/admin/courses/${courseCode}/content`);
@@ -1576,6 +1653,7 @@ const getTopicDetails = async (req, res) => {
         averageScore,
         bestPerformer,
         order: ci.order || 0,
+        zoomMeeting: ci.zoomMeeting || null, // Include Zoom meeting data
       };
     });
 
@@ -1810,8 +1888,8 @@ const resetContentAttempts = async (req, res) => {
   }
 };
 
-// Get content details
-const getContentDetails = async (req, res) => {
+// Get content details page
+const getContentDetailsPage = async (req, res) => {
   try {
     const { courseCode, topicId, contentId } = req.params;
 
@@ -2041,6 +2119,92 @@ const getContentDetails = async (req, res) => {
       totalPoints: studentProgress.reduce((sum, s) => sum + s.totalPoints, 0),
     };
 
+    // Get Zoom meeting data if this is a Zoom meeting content
+    let zoomMeetingData = null;
+    if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
+      try {
+        zoomMeetingData = await ZoomMeeting.findById(
+          contentItem.zoomMeeting
+        ).populate(
+          'studentsAttended.student',
+          'firstName lastName studentEmail studentCode'
+        );
+
+        if (zoomMeetingData) {
+          console.log(
+            '📊 Found Zoom meeting data for content:',
+            zoomMeetingData.meetingName
+          );
+
+          // Calculate additional meeting statistics
+          const meetingStats = {
+            totalJoinEvents: 0,
+            averageSessionDuration: 0,
+            cameraOnPercentage: 0,
+            micOnPercentage: 0,
+            attendanceDistribution: {
+              excellent: 0, // >80%
+              good: 0, // 60-80%
+              fair: 0, // 40-60%
+              poor: 0, // <40%
+            },
+          };
+
+          let totalStatusChanges = 0;
+          let cameraOnCount = 0;
+          let micOnCount = 0;
+
+          zoomMeetingData.studentsAttended.forEach((student) => {
+            meetingStats.totalJoinEvents += student.joinEvents.length;
+
+            // Analyze attendance percentage
+            if (student.attendancePercentage >= 80) {
+              meetingStats.attendanceDistribution.excellent++;
+            } else if (student.attendancePercentage >= 60) {
+              meetingStats.attendanceDistribution.good++;
+            } else if (student.attendancePercentage >= 40) {
+              meetingStats.attendanceDistribution.fair++;
+            } else {
+              meetingStats.attendanceDistribution.poor++;
+            }
+
+            // Analyze camera/mic usage
+            student.joinEvents.forEach((joinEvent) => {
+              if (joinEvent.statusTimeline) {
+                totalStatusChanges += joinEvent.statusTimeline.length;
+                joinEvent.statusTimeline.forEach((status) => {
+                  if (status.cameraStatus === 'on') cameraOnCount++;
+                  if (status.micStatus === 'on') micOnCount++;
+                });
+              }
+            });
+          });
+
+          if (totalStatusChanges > 0) {
+            meetingStats.cameraOnPercentage = Math.round(
+              (cameraOnCount / totalStatusChanges) * 100
+            );
+            meetingStats.micOnPercentage = Math.round(
+              (micOnCount / totalStatusChanges) * 100
+            );
+          }
+
+          if (zoomMeetingData.studentsAttended.length > 0) {
+            meetingStats.averageSessionDuration = Math.round(
+              zoomMeetingData.studentsAttended.reduce(
+                (sum, student) => sum + (student.totalTimeSpent || 0),
+                0
+              ) / zoomMeetingData.studentsAttended.length
+            );
+          }
+
+          zoomMeetingData.meetingStats = meetingStats;
+        }
+      } catch (zoomError) {
+        console.error('Error fetching Zoom meeting data:', zoomError);
+      }
+    }
+
     return res.render('admin/content-details', {
       title: `Content Details: ${contentItem.title}`,
       courseCode,
@@ -2052,6 +2216,8 @@ const getContentDetails = async (req, res) => {
       prerequisiteContent,
       studentProgress,
       analytics,
+      zoomMeetingData,
+      additionalCSS: ['/css/zoom-analytics.css'],
     });
   } catch (error) {
     console.error('Error fetching content details:', error);
@@ -2151,6 +2317,8 @@ const addTopicContent = async (req, res) => {
       homeworkShuffleOptions,
       homeworkShowCorrectAnswers,
       homeworkInstructions,
+      // Zoom specific fields
+      zoomMeeting,
     } = req.body;
 
     const topic = await Topic.findById(topicId);
@@ -2306,6 +2474,26 @@ const addTopicContent = async (req, res) => {
       contentItem.completionCriteria = 'pass_quiz';
     }
 
+    // Handle Zoom content
+    if (type === 'zoom') {
+      if (!zoomMeeting) {
+        req.flash('error_msg', 'Zoom meeting ID is required for zoom content');
+        return res.redirect(`/admin/courses/${courseCode}/content`);
+      }
+
+      // Verify the zoom meeting exists
+      const zoomMeetingDoc = await ZoomMeeting.findById(zoomMeeting);
+      if (!zoomMeetingDoc) {
+        req.flash('error_msg', 'Zoom meeting not found');
+        return res.redirect(`/admin/courses/${courseCode}/content`);
+      }
+
+      // Add zoom-specific fields to contentItem
+      contentItem.zoomMeeting = zoomMeeting;
+      contentItem.content = ''; // No content URL for zoom
+      contentItem.completionCriteria = 'attendance';
+    }
+
     if (!topic.content) {
       topic.content = [];
     }
@@ -2338,37 +2526,268 @@ const addTopicContent = async (req, res) => {
 const updateTopicContent = async (req, res) => {
   try {
     const { courseCode, topicId, contentId } = req.params;
-    const { type, title, description, content, duration, isRequired, order } =
-      req.body;
+    const {
+      type,
+      title,
+      description,
+      content,
+      duration,
+      isRequired,
+      order,
+      difficulty,
+      tags,
+      prerequisites,
+      quizData,
+      homeworkData,
+      zoomMeetingName,
+      zoomMeetingTopic,
+      scheduledStartTime,
+      timezone,
+      password,
+      joinBeforeHost,
+      waitingRoom,
+      hostVideo,
+      participantVideo,
+      muteUponEntry,
+      enableRecording,
+    } = req.body;
 
     const topic = await Topic.findById(topicId);
     if (!topic) {
-      req.flash('error_msg', 'Topic not found');
-      return res.redirect(`/admin/courses/${courseCode}/content`);
+      return res.status(404).json({
+        success: false,
+        message: 'Topic not found',
+      });
     }
 
     const contentItem = topic.content.id(contentId);
     if (!contentItem) {
-      req.flash('error_msg', 'Content item not found');
-      return res.redirect(`/admin/courses/${courseCode}/content`);
+      return res.status(404).json({
+        success: false,
+        message: 'Content item not found',
+      });
     }
 
+    // Update basic content properties
     contentItem.type = type;
     contentItem.title = title.trim();
     contentItem.description = description ? description.trim() : '';
     contentItem.content = content.trim();
     contentItem.duration = duration ? parseInt(duration) : 0;
-    contentItem.isRequired = isRequired === 'on';
-    if (order) contentItem.order = parseInt(order);
+    contentItem.isRequired = isRequired === 'on' || isRequired === true;
+    contentItem.difficulty = difficulty || 'beginner';
+    contentItem.order = order ? parseInt(order) : contentItem.order;
+    contentItem.tags = tags ? tags.split(',').map((tag) => tag.trim()) : [];
+    contentItem.prerequisites = prerequisites || [];
+
+    // Handle content type specific updates
+    if (type === 'quiz' && quizData) {
+      contentItem.quizSettings = {
+        questionBankId: quizData.questionBankId,
+        selectedQuestions: quizData.selectedQuestions || [],
+        duration: parseInt(quizData.duration) || 30,
+        passingScore: parseInt(quizData.passingScore) || 60,
+        maxAttempts: parseInt(quizData.maxAttempts) || 3,
+        shuffleQuestions: quizData.shuffleQuestions || false,
+        shuffleOptions: quizData.shuffleOptions || false,
+        showCorrectAnswers: quizData.showCorrectAnswers !== false,
+        showResults: quizData.showResults !== false,
+        instructions: quizData.instructions || '',
+      };
+    }
+
+    if (type === 'homework' && homeworkData) {
+      contentItem.homeworkSettings = {
+        questionBankId: homeworkData.questionBankId,
+        selectedQuestions: homeworkData.selectedQuestions || [],
+        passingScore: parseInt(homeworkData.passingScore) || 60,
+        maxAttempts: parseInt(homeworkData.maxAttempts) || 1,
+        shuffleQuestions: homeworkData.shuffleQuestions || false,
+        shuffleOptions: homeworkData.shuffleOptions || false,
+        showCorrectAnswers: homeworkData.showCorrectAnswers || false,
+        instructions: homeworkData.instructions || '',
+      };
+    }
+
+    if (type === 'zoom') {
+      // Update zoom meeting settings
+      if (contentItem.zoomMeeting) {
+        contentItem.zoomMeeting.meetingName =
+          zoomMeetingName || contentItem.zoomMeeting.meetingName;
+        contentItem.zoomMeeting.meetingTopic =
+          zoomMeetingTopic || contentItem.zoomMeeting.meetingTopic;
+        contentItem.zoomMeeting.scheduledStartTime = scheduledStartTime
+          ? new Date(scheduledStartTime)
+          : contentItem.zoomMeeting.scheduledStartTime;
+        contentItem.zoomMeeting.timezone =
+          timezone || contentItem.zoomMeeting.timezone;
+        contentItem.zoomMeeting.password = password || '';
+        contentItem.zoomMeeting.joinBeforeHost = joinBeforeHost !== false;
+        contentItem.zoomMeeting.waitingRoom = waitingRoom || false;
+        contentItem.zoomMeeting.hostVideo = hostVideo !== false;
+        contentItem.zoomMeeting.participantVideo = participantVideo !== false;
+        contentItem.zoomMeeting.muteUponEntry = muteUponEntry || false;
+        contentItem.zoomMeeting.enableRecording = enableRecording || false;
+      }
+    }
 
     await topic.save();
 
-    req.flash('success_msg', 'Content updated successfully!');
-    res.redirect(`/admin/courses/${courseCode}/content`);
+    return res.json({
+      success: true,
+      message: 'Content updated successfully!',
+      content: contentItem,
+    });
   } catch (error) {
     console.error('Error updating content:', error);
-    req.flash('error_msg', 'Error updating content');
-    res.redirect(`/admin/courses/${req.params.courseCode}/content`);
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating content: ' + error.message,
+    });
+  }
+};
+
+// Get content item details for editing
+const getContentDetailsForEdit = async (req, res) => {
+  try {
+    const { courseCode, topicId, contentId } = req.params;
+
+    const topic = await Topic.findById(topicId)
+      .populate({
+        path: 'content.questionBank',
+        select: 'name bankCode description tags totalQuestions',
+      })
+      .populate({
+        path: 'content.selectedQuestions.question',
+        select: 'questionText difficulty type correctAnswer points',
+      })
+      .populate({
+        path: 'content.zoomMeeting',
+        select:
+          'meetingName meetingTopic meetingId scheduledStartTime duration timezone password joinUrl startUrl status settings',
+      });
+
+    if (!topic) {
+      return res.status(404).json({
+        success: false,
+        message: 'Topic not found',
+      });
+    }
+
+    const contentItem = topic.content.id(contentId);
+    if (!contentItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Content item not found',
+      });
+    }
+
+    // Prepare content data for editing
+    const contentData = {
+      title: contentItem.title,
+      type: contentItem.type,
+      description: contentItem.description || '',
+      content: contentItem.content || '',
+      duration: contentItem.duration || 0,
+      order: contentItem.order || 1,
+      difficulty: contentItem.difficulty || 'beginner',
+      isRequired: contentItem.isRequired !== false,
+      tags: contentItem.tags ? contentItem.tags.join(', ') : '',
+      prerequisites: contentItem.prerequisites || [],
+    };
+
+    // Add Quiz/Homework specific data with populated question bank and questions
+    if (contentItem.type === 'quiz' || contentItem.type === 'homework') {
+      const settingsKey =
+        contentItem.type === 'quiz' ? 'quizSettings' : 'homeworkSettings';
+      const settings = contentItem[settingsKey];
+
+      contentData.questionBank = contentItem.questionBank
+        ? {
+            _id: contentItem.questionBank._id,
+            name: contentItem.questionBank.name,
+            bankCode: contentItem.questionBank.bankCode,
+            description: contentItem.questionBank.description,
+            totalQuestions: contentItem.questionBank.totalQuestions,
+          }
+        : null;
+
+      contentData.selectedQuestions = contentItem.selectedQuestions
+        ? contentItem.selectedQuestions.map((sq) => ({
+            question: sq.question
+              ? {
+                  _id: sq.question._id,
+                  questionText: sq.question.questionText,
+                  difficulty: sq.question.difficulty,
+                  type: sq.question.type,
+                  correctAnswer: sq.question.correctAnswer,
+                  points: sq.question.points || 1,
+                }
+              : null,
+            points: sq.points || 1,
+            order: sq.order || 0,
+          }))
+        : [];
+
+      if (contentItem.type === 'quiz') {
+        contentData.quizSettings = {
+          duration: settings?.duration || 30,
+          passingScore: settings?.passingScore || 60,
+          maxAttempts: settings?.maxAttempts || 3,
+          shuffleQuestions: settings?.shuffleQuestions || false,
+          shuffleOptions: settings?.shuffleOptions || false,
+          showCorrectAnswers: settings?.showCorrectAnswers !== false,
+          showResults: settings?.showResults !== false,
+          instructions: settings?.instructions || '',
+        };
+      } else {
+        contentData.homeworkSettings = {
+          passingScore: settings?.passingScore || 60,
+          maxAttempts: settings?.maxAttempts || 1,
+          shuffleQuestions: settings?.shuffleQuestions || false,
+          shuffleOptions: settings?.shuffleOptions || false,
+          showCorrectAnswers: settings?.showCorrectAnswers || false,
+          instructions: settings?.instructions || '',
+        };
+      }
+    }
+
+    // Add Zoom specific data with populated meeting details
+    if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
+      const meeting = contentItem.zoomMeeting;
+      contentData.zoomMeeting = {
+        _id: meeting._id,
+        meetingName: meeting.meetingName || '',
+        meetingTopic: meeting.meetingTopic || '',
+        meetingId: meeting.meetingId || '',
+        scheduledStartTime: meeting.scheduledStartTime || '',
+        duration: meeting.duration || 60,
+        timezone: meeting.timezone || 'Africa/Cairo',
+        password: meeting.password || '',
+        joinUrl: meeting.joinUrl || '',
+        startUrl: meeting.startUrl || '',
+        status: meeting.status || 'scheduled',
+        settings: {
+          joinBeforeHost: meeting.settings?.joinBeforeHost !== false,
+          waitingRoom: meeting.settings?.waitingRoom || false,
+          hostVideo: meeting.settings?.hostVideo !== false,
+          participantVideo: meeting.settings?.participantVideo !== false,
+          muteUponEntry: meeting.settings?.muteUponEntry || false,
+          recording: meeting.settings?.recording || false,
+        },
+      };
+    }
+
+    return res.json({
+      success: true,
+      content: contentData,
+    });
+  } catch (error) {
+    console.error('Error fetching content details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching content details: ' + error.message,
+    });
   }
 };
 
@@ -2627,7 +3046,7 @@ const getOrderDetails = async (req, res) => {
       subtotal: order.subtotal,
       tax: order.tax,
       total: order.total,
-      currency: order.currency || 'USD',
+      currency: order.currency || 'EGP',
       itemCount: order.items.length,
       customerStats: {
         orderCount: customerPurchaseCount,
@@ -2729,7 +3148,7 @@ const generateInvoice = async (req, res) => {
       subtotal: order.subtotal,
       tax: order.tax,
       total: order.total,
-      currency: order.currency || 'USD',
+      currency: order.currency || 'EGP',
       itemCount: order.items.length,
     };
 
@@ -3375,8 +3794,8 @@ const createBundle = async (req, res) => {
 
     const bundle = new BundleCourse({
       title: title.trim(),
-      description: description.trim(),
-      shortDescription: shortDescription.trim(),
+      description: description ? description.trim() : '',
+      shortDescription: shortDescription ? shortDescription.trim() : '',
       subject,
       testType,
       price: parseFloat(price),
@@ -3540,8 +3959,8 @@ const createCourseForBundle = async (req, res) => {
     // Create new course without year coupling
     const course = new Course({
       title: title.trim(),
-      description: description.trim(),
-      shortDescription: shortDescription.trim(),
+      description: description ? description.trim() : '',
+      shortDescription: shortDescription ? shortDescription.trim() : '',
       level,
       courseType,
       subject,
@@ -3612,6 +4031,20 @@ const getBundleStats = async () => {
   });
   const draftBundles = await BundleCourse.countDocuments({ status: 'draft' });
 
+  // Course type statistics
+  const onlineBundles = await BundleCourse.countDocuments({
+    courseType: 'online',
+    status: 'published',
+  });
+  const ongroundBundles = await BundleCourse.countDocuments({
+    courseType: 'onground',
+    status: 'published',
+  });
+  const recordedBundles = await BundleCourse.countDocuments({
+    courseType: 'recorded',
+    status: 'published',
+  });
+
   const totalEnrollments = await BundleCourse.aggregate([
     { $group: { _id: null, total: { $sum: '$enrolledStudents' } } },
   ]);
@@ -3620,6 +4053,9 @@ const getBundleStats = async () => {
     totalBundles,
     publishedBundles,
     draftBundles,
+    onlineBundles,
+    ongroundBundles,
+    recordedBundles,
     totalEnrollments: totalEnrollments[0]?.total || 0,
   };
 };
@@ -3642,6 +4078,7 @@ const updateBundle = async (req, res) => {
       title,
       description,
       shortDescription,
+      courseType,
       testType,
       subject,
       price,
@@ -3668,8 +4105,9 @@ const updateBundle = async (req, res) => {
     }
 
     bundle.title = title.trim();
-    bundle.description = description.trim();
-    bundle.shortDescription = shortDescription.trim();
+    bundle.description = description ? description.trim() : '';
+    bundle.shortDescription = shortDescription ? shortDescription.trim() : '';
+    bundle.courseType = courseType;
     bundle.testType = testType;
     bundle.subject = subject.trim();
     bundle.price = parseFloat(price);
@@ -8156,7 +8594,330 @@ const createNewAdmin = async (req, res) => {
   }
 };
 
+// ==================== ZOOM MEETING MANAGEMENT ====================
+
+/**
+ * Create Zoom meeting content for a topic
+ */
+const createZoomMeeting = async (req, res) => {
+  try {
+    const { courseCode } = req.params;
+    const { topicId } = req.params;
+    const {
+      meetingName,
+      meetingTopic,
+      scheduledStartTime,
+      duration,
+      timezone,
+      password,
+      joinBeforeHost,
+      waitingRoom,
+      muteUponEntry,
+      hostVideo,
+      participantVideo,
+      enableRecording,
+      autoRecording,
+    } = req.body;
+
+    console.log('Creating Zoom meeting for topic:', topicId);
+
+    // Find course and topic
+    const course = await Course.findOne({ courseCode });
+    const topic = await Topic.findById(topicId);
+
+    if (!course || !topic) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course or topic not found',
+      });
+    }
+
+    // Create meeting on Zoom
+    const zoomMeetingData = await zoomService.createMeeting({
+      topic: meetingTopic || meetingName,
+      scheduledStartTime: new Date(scheduledStartTime),
+      duration: parseInt(duration) || 60,
+      timezone: timezone || 'UTC',
+      password: password,
+      settings: {
+        joinBeforeHost: joinBeforeHost === 'true' || joinBeforeHost === true,
+        waitingRoom: waitingRoom === 'true' || waitingRoom === true,
+        muteUponEntry: muteUponEntry === 'true' || muteUponEntry === true,
+        hostVideo: hostVideo === 'true' || hostVideo === true,
+        participantVideo:
+          participantVideo === 'true' || participantVideo === true,
+        recording: enableRecording === 'true' || enableRecording === true,
+        autoRecording: autoRecording || 'none',
+      },
+    });
+
+    // Save Zoom meeting to database
+    const zoomMeeting = new ZoomMeeting({
+      meetingName: meetingName,
+      meetingTopic: zoomMeetingData.meetingTopic,
+      meetingId: zoomMeetingData.meetingId,
+      topic: topicId,
+      course: course._id,
+      hostId: zoomMeetingData.hostId,
+      createdBy: req.session.user.id,
+      scheduledStartTime: new Date(scheduledStartTime),
+      duration: parseInt(duration) || 60,
+      timezone: timezone || 'UTC',
+      joinUrl: zoomMeetingData.joinUrl,
+      startUrl: zoomMeetingData.startUrl,
+      password: zoomMeetingData.password,
+      settings: {
+        joinBeforeHost: joinBeforeHost === 'true' || joinBeforeHost === true,
+        waitingRoom: waitingRoom === 'true' || waitingRoom === true,
+        muteUponEntry: muteUponEntry === 'true' || muteUponEntry === true,
+        hostVideo: hostVideo === 'true' || hostVideo === true,
+        participantVideo:
+          participantVideo === 'true' || participantVideo === true,
+        recording: enableRecording === 'true' || enableRecording === true,
+        autoRecording: autoRecording || 'none',
+      },
+    });
+
+    await zoomMeeting.save();
+
+    // Add content item to topic
+    const contentItem = {
+      type: 'zoom',
+      title: meetingName,
+      description: `Live Zoom session scheduled for ${new Date(
+        scheduledStartTime
+      ).toLocaleString()}`,
+      zoomMeeting: zoomMeeting._id,
+      duration: parseInt(duration) || 60,
+      order: topic.content.length + 1,
+    };
+
+    topic.content.push(contentItem);
+    await topic.save();
+
+    console.log('✅ Zoom meeting created successfully');
+
+    res.json({
+      success: true,
+      message: 'Zoom meeting created successfully',
+      zoomMeeting: zoomMeeting,
+      contentItem: contentItem,
+    });
+  } catch (error) {
+    console.error('❌ Error creating Zoom meeting:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create Zoom meeting',
+    });
+  }
+};
+
+/**
+ * Start a Zoom meeting (unlock it for students)
+ * Only accessible by admin users via protected routes
+ */
+const startZoomMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+
+    // Double-check admin permissions (additional safety)
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required to start meetings.',
+      });
+    }
+
+    console.log(
+      `Admin ${req.session.user.id} starting Zoom meeting:`,
+      meetingId
+    );
+
+    const zoomMeeting = await ZoomMeeting.findById(meetingId);
+
+    if (!zoomMeeting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Zoom meeting not found',
+      });
+    }
+
+    // Update meeting status to active
+    await zoomMeeting.startMeeting();
+
+    console.log('✅ Zoom meeting started successfully by admin');
+
+    res.json({
+      success: true,
+      message: 'Zoom meeting started and unlocked for students',
+      startUrl: zoomMeeting.startUrl,
+      zoomMeeting: zoomMeeting,
+    });
+  } catch (error) {
+    console.error('❌ Error starting Zoom meeting:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to start Zoom meeting',
+    });
+  }
+};
+
+/**
+ * End a Zoom meeting
+ * Only accessible by admin users via protected routes
+ */
+const endZoomMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+
+    // Double-check admin permissions (additional safety)
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required to end meetings.',
+      });
+    }
+
+    console.log(`Admin ${req.session.user.id} ending Zoom meeting:`, meetingId);
+
+    const zoomMeeting = await ZoomMeeting.findById(meetingId);
+
+    if (!zoomMeeting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Zoom meeting not found',
+      });
+    }
+
+    // Only try to end meeting on Zoom if it's currently active
+    if (zoomMeeting.status === 'active') {
+      try {
+        console.log(
+          '🔚 Ending meeting on Zoom servers:',
+          zoomMeeting.meetingId
+        );
+
+        // Actually end the meeting on Zoom's servers
+        await zoomService.endMeetingOnZoom(zoomMeeting.meetingId);
+
+        console.log('✅ Meeting ended on Zoom servers');
+      } catch (zoomError) {
+        console.warn(
+          '⚠️ Could not end meeting on Zoom (may already be ended):',
+          zoomError.message
+        );
+        // Continue with database update even if Zoom API fails
+      }
+    }
+
+    // Update meeting status to ended in our database
+    await zoomMeeting.endMeeting();
+
+    console.log('✅ Zoom meeting ended successfully by admin');
+
+    res.json({
+      success: true,
+      message: 'Zoom meeting ended',
+      zoomMeeting: zoomMeeting,
+    });
+  } catch (error) {
+    console.error('❌ Error ending Zoom meeting:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to end Zoom meeting',
+    });
+  }
+};
+
+/**
+ * Get Zoom meeting statistics and attendance
+ */
+const getZoomMeetingStats = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+
+    console.log('Getting Zoom meeting statistics:', meetingId);
+
+    const statistics = await zoomService.getMeetingStatistics(meetingId);
+
+    res.json({
+      success: true,
+      statistics: statistics,
+    });
+  } catch (error) {
+    console.error('❌ Error getting Zoom meeting statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get meeting statistics',
+    });
+  }
+};
+
+/**
+ * Delete Zoom meeting
+ */
+const deleteZoomMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const { contentId, topicId } = req.body;
+
+    console.log('Deleting Zoom meeting:', meetingId);
+
+    const zoomMeeting = await ZoomMeeting.findById(meetingId);
+
+    if (!zoomMeeting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Zoom meeting not found',
+      });
+    }
+
+    // Delete from Zoom if meeting hasn't ended
+    if (zoomMeeting.status !== 'ended') {
+      try {
+        await zoomService.deleteMeeting(zoomMeeting.meetingId);
+      } catch (error) {
+        console.log(
+          '⚠️ Could not delete from Zoom (may already be deleted):',
+          error.message
+        );
+      }
+    }
+
+    // Remove from topic content
+    if (topicId && contentId) {
+      const topic = await Topic.findById(topicId);
+      if (topic) {
+        topic.content = topic.content.filter(
+          (item) => item._id.toString() !== contentId
+        );
+        await topic.save();
+      }
+    }
+
+    // Delete from database
+    await ZoomMeeting.findByIdAndDelete(meetingId);
+
+    console.log('✅ Zoom meeting deleted successfully');
+
+    res.json({
+      success: true,
+      message: 'Zoom meeting deleted successfully',
+    });
+  } catch (error) {
+    console.error('❌ Error deleting Zoom meeting:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete Zoom meeting',
+    });
+  }
+};
+
+// ==================== MODULE EXPORTS ====================
+
 module.exports = {
+  testS3,
+  uploadDocument,
   getAdminDashboard,
   getCourses,
   createCourse,
@@ -8170,7 +8931,8 @@ module.exports = {
   updateTopic,
   updateTopicVisibility,
   getTopicDetails,
-  getContentDetails,
+  getContentDetailsPage,
+  getContentDetailsForEdit,
   reorderTopics,
   deleteTopic,
   addTopicContent,
@@ -8229,4 +8991,10 @@ module.exports = {
   exportTopicDetails,
   exportQuestionBankDetails,
   exportQuizDetails,
+  // Zoom Meeting Management
+  createZoomMeeting,
+  startZoomMeeting,
+  endZoomMeeting,
+  getZoomMeetingStats,
+  deleteZoomMeeting,
 };

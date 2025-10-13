@@ -13,48 +13,68 @@
     <div class="admin-content">
       <div class="admin-dashboard admin-fade-in">
         <style>
+          /* ============================================
+             PROFESSIONAL COURSE DETAIL TABLE STYLES
+             ============================================ */
+
           /* Professional table styling */
           .table-pro {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
+            font-size: 0.95rem;
           }
 
           .table-pro thead th {
             position: sticky;
             top: 0;
-            z-index: 2;
-            background: linear-gradient(135deg, rgba(184, 1, 1, 0.06) 0%, rgba(184, 1, 1, 0.12) 100%);
-            color: var(--admin-text-light);
-            padding: 14px 16px;
+            z-index: 10;
+            background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+            color: #495057;
+            padding: 18px 16px;
             font-weight: 700;
-            font-size: 0.9rem;
-            border-bottom: 1px solid var(--admin-border-light);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dee2e6;
             white-space: nowrap;
           }
 
           .dark-theme .table-pro thead th {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.08) 100%);
             color: var(--admin-text-dark);
             border-bottom-color: var(--admin-border-dark);
           }
 
           .table-pro tbody td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--admin-border-light);
+            padding: 16px;
+            border-bottom: 1px solid #f1f3f5;
             vertical-align: middle;
-            font-size: 0.92rem;
+            color: var(--admin-text-light, #1e293b);
           }
 
           .dark-theme .table-pro tbody td {
             border-bottom-color: var(--admin-border-dark);
+            color: var(--admin-text-dark);
+          }
+
+          .table-pro tbody tr {
+            background: var(--admin-card-light, #ffffff);
+            transition: all 0.3s ease;
           }
 
           .table-pro tbody tr:hover {
-            background: rgba(184, 1, 1, 0.03);
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.02) 0%, rgba(184, 1, 1, 0.01) 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+          }
+
+          .dark-theme .table-pro tbody tr {
+            background: var(--admin-card-dark);
           }
 
           .dark-theme .table-pro tbody tr:hover {
-            background: rgba(184, 1, 1, 0.06);
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.06) 0%, rgba(184, 1, 1, 0.03) 100%);
           }
 
           .table-pro .col-min {
@@ -62,11 +82,156 @@
             white-space: nowrap;
           }
 
+          /* Student Profile Cell */
+          .student-profile {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 220px;
+          }
+
+          .student-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 600;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(184, 1, 1, 0.3);
+          }
+
+          .student-info {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .student-name {
+            font-weight: 600;
+            color: var(--admin-text-light, #1e293b);
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .dark-theme .student-name {
+            color: var(--admin-text-dark);
+          }
+
+          .student-email {
+            font-size: 0.8rem;
+            color: #6c757d;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          /* Progress Bar */
+          .progress-bar-container {
+            min-width: 120px;
+          }
+
+          .progress-percentage {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+
+          .dark-theme .progress-percentage {
+            color: var(--admin-text-dark);
+          }
+
+          .progress-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+          }
+
+          .dark-theme .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+          }
+
+          .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #b80101 0%, #d40000 100%);
+            border-radius: 10px;
+            transition: width 1s ease-in-out;
+            box-shadow: 0 2px 4px rgba(184, 1, 1, 0.3);
+          }
+
+          /* Status Badge */
+          .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            text-transform: capitalize;
+          }
+
+          .status-badge .status-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+          }
+
+          .status-badge.status-active,
+          .status-badge.status-completed {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+          }
+
+          .status-badge.status-active .status-icon,
+          .status-badge.status-completed .status-icon {
+            background: #059669;
+          }
+
+          .status-badge.status-inactive,
+          .status-badge.status-in_progress {
+            background: rgba(59, 130, 246, 0.15);
+            color: #2563eb;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+          }
+
+          .status-badge.status-inactive .status-icon,
+          .status-badge.status-in_progress .status-icon {
+            background: #2563eb;
+          }
+
+          .status-badge.status-not_started {
+            background: rgba(107, 114, 128, 0.15);
+            color: #4b5563;
+            border: 1px solid rgba(107, 114, 128, 0.3);
+          }
+
+          .status-badge.status-not_started .status-icon {
+            background: #4b5563;
+          }
+
+          /* Card Styling */
           .card-soft {
-            background: var(--admin-card-light);
-            border: 1px solid var(--admin-border-light);
+            background: var(--admin-card-light, #ffffff);
+            border: 1px solid var(--admin-border-light, #e2e8f0);
             border-radius: 12px;
-            box-shadow: var(--admin-shadow);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
           }
 
           .dark-theme .card-soft {
@@ -74,25 +239,200 @@
             border-color: var(--admin-border-dark);
           }
 
+          .students-table-container {
+            background: var(--admin-card-light, #ffffff);
+            border: 1px solid var(--admin-border-light, #e2e8f0);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+          }
+
+          .dark-theme .students-table-container {
+            background: var(--admin-card-dark);
+            border-color: var(--admin-border-dark);
+          }
+
+          .table-overflow {
+            overflow-x: auto;
+            background: var(--admin-card-light, #ffffff);
+          }
+
+          .dark-theme .table-overflow {
+            background: var(--admin-card-dark);
+          }
+
+          /* Search Box */
+          .search-filters {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+          }
+
+          .search-box-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
+          }
+
+          .search-box-wrapper input {
+            width: 100%;
+            padding: 12px 16px 12px 45px;
+            border: 2px solid var(--admin-border-light, #e2e8f0);
+            border-radius: 10px;
+            background: var(--admin-card-light, #ffffff);
+            color: var(--admin-text-light, #1e293b);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+          }
+
+          .dark-theme .search-box-wrapper input {
+            background: var(--admin-card-dark);
+            border-color: var(--admin-border-dark);
+            color: var(--admin-text-dark);
+          }
+
+          .search-box-wrapper input:focus {
+            outline: none;
+            border-color: #b80101;
+            box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.1);
+          }
+
+          .search-box-wrapper i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 1rem;
+          }
+
+          /* Filter Select */
+          .filter-select {
+            padding: 12px 16px;
+            border: 2px solid var(--admin-border-light, #e2e8f0);
+            border-radius: 10px;
+            background: var(--admin-card-light, #ffffff);
+            color: var(--admin-text-light, #1e293b);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+          }
+
+          .dark-theme .filter-select {
+            background: var(--admin-card-dark);
+            border-color: var(--admin-border-dark);
+            color: var(--admin-text-dark);
+          }
+
+          .filter-select:focus {
+            outline: none;
+            border-color: #b80101;
+            box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.1);
+          }
+
+          .filter-select:hover {
+            border-color: #b80101;
+          }
+
+          /* Action Buttons */
+          .action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-start;
+          }
+
+          .btn-sm {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid;
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            height: 38px;
+          }
+
+          .btn-outline-primary {
+            color: #b80101;
+            border-color: #b80101;
+          }
+
+          .btn-outline-primary:hover {
+            background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+          }
+
+          .btn-outline-success {
+            color: #10b981;
+            border-color: #10b981;
+          }
+
+          .btn-outline-success:hover {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          }
+
+          /* Sort Button */
+          .sort-btn {
+            background: none;
+            border: none;
+            color: #495057;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+          }
+
+          .sort-btn:hover {
+            color: #b80101;
+          }
+
+          /* Accordion Styling */
           .accordion-pro .accordion-item {
             border: none;
             margin-bottom: 12px;
           }
 
           .accordion-pro .accordion-button {
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.0) 0%, rgba(0, 0, 0, 0.02) 100%);
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.02) 0%, rgba(184, 1, 1, 0.01) 100%);
             font-weight: 600;
             padding: 14px 18px;
             border-radius: 10px !important;
-            border: 1px solid var(--admin-border-light);
+            border: 1px solid var(--admin-border-light, #e2e8f0);
+            transition: all 0.3s ease;
           }
 
           .dark-theme .accordion-pro .accordion-button {
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.06) 0%, rgba(184, 1, 1, 0.03) 100%);
             border-color: var(--admin-border-dark);
+          }
+
+          .accordion-pro .accordion-button:not(.collapsed) {
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.08) 0%, rgba(184, 1, 1, 0.04) 100%);
+            color: #b80101;
           }
 
           .accordion-pro .accordion-button:focus {
             box-shadow: none;
+          }
+
+          .accordion-pro .accordion-button:hover {
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.05) 0%, rgba(184, 1, 1, 0.02) 100%);
           }
 
           .accordion-pro .accordion-body {
@@ -112,10 +452,121 @@
             color: inherit;
             border-radius: 6px;
             padding: 6px 10px;
+            transition: all 0.3s ease;
           }
 
           .dark-theme .badge-soft {
             background: rgba(255, 255, 255, 0.06);
+          }
+
+          /* Content Type Badges */
+          .content-type-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: capitalize;
+          }
+
+          .content-type-video {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+          }
+
+          .content-type-pdf {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+          }
+
+          .content-type-quiz {
+            background: rgba(59, 130, 246, 0.15);
+            color: #2563eb;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+          }
+
+          .content-type-homework {
+            background: rgba(245, 158, 11, 0.15);
+            color: #d97706;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+          }
+
+          .content-type-zoom {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+          }
+
+          /* Empty State */
+          .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+          }
+
+          .empty-state i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 20px;
+          }
+
+          .empty-state h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+          }
+
+          /* Responsive Design */
+          @media (max-width: 768px) {
+            .search-filters {
+              flex-direction: column;
+              align-items: stretch;
+            }
+
+            .search-box-wrapper {
+              max-width: 100%;
+            }
+
+            .filter-select {
+              width: 100%;
+            }
+
+            .table-pro {
+              font-size: 0.85rem;
+            }
+
+            .table-pro thead th,
+            .table-pro tbody td {
+              padding: 12px 8px;
+            }
+
+            .student-profile {
+              min-width: 180px;
+            }
+
+            .student-avatar {
+              width: 36px;
+              height: 36px;
+              font-size: 0.9rem;
+            }
+
+            .action-buttons {
+              flex-direction: column;
+              gap: 6px;
+            }
+
+            .btn-sm {
+              width: 100%;
+            }
+          }
+
+          /* Utility Classes */
+          .text-muted {
+            color: #6c757d !important;
           }
         </style>
         <!-- Header Card -->
@@ -183,68 +634,114 @@
             <!-- Students Tab -->
             <div class="tab-pane fade show active" id="students" role="tabpanel">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Enrolled Students</h5>
-                <div class="d-flex gap-2">
-                  <input type="text" id="studentSearch" class="form-control form-control-sm" placeholder="Search name or email..." style="width: 240px;">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Enrolled Students (<span id="studentCount"><%= students ? students.length : 0 %></span>)</h5>
+                <div class="search-filters">
+                  <div class="search-box-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="studentSearch" class="form-control" placeholder="Search by name, email, or code..." autocomplete="off">
+                  </div>
+                  <select id="statusFilter" class="filter-select">
+                    <option value="">All Status</option>
+                    <option value="completed">✓ Completed</option>
+                    <option value="in_progress">⏳ In Progress</option>
+                    <option value="not_started">○ Not Started</option>
+                  </select>
+                  <select id="progressFilter" class="filter-select">
+                    <option value="">All Progress</option>
+                    <option value="90-100">90-100%</option>
+                    <option value="70-89">70-89%</option>
+                    <option value="50-69">50-69%</option>
+                    <option value="0-49">Below 50%</option>
+                  </select>
                 </div>
               </div>
-              <div class="students-table-container card-soft">
+              <div class="students-table-container">
                 <% if (students && students.length) { %>
                 <div class="table-overflow">
                   <table class="table-pro" id="studentsTable">
                     <thead>
                       <tr>
                         <th class="col-min">#</th>
-                        <th>Student</th>
+                        <th>
+                          Student
+                          <button class="sort-btn" onclick="sortStudents('name')">
+                            <i class="fas fa-sort"></i>
+                          </button>
+                        </th>
                         <th>Student Code</th>
                         <th>Grade</th>
                         <th>School</th>
-                        <th>Progress</th>
+                        <th>
+                          Progress
+                          <button class="sort-btn" onclick="sortStudents('progress')">
+                            <i class="fas fa-sort"></i>
+                          </button>
+                        </th>
                         <th>Status</th>
-                        <th>Enrolled</th>
+                        <th>
+                          Enrolled
+                          <button class="sort-btn" onclick="sortStudents('enrolled')">
+                            <i class="fas fa-sort"></i>
+                          </button>
+                        </th>
                         <th>Last Accessed</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       <% students.forEach((s, idx) => { %>
-                      <tr>
+                      <tr data-status="<%= s.status %>" data-progress="<%= s.progress %>" data-name="<%= s.name %>" data-email="<%= s.email %>" data-code="<%= s.studentCode %>">
                         <td class="col-min" style="opacity: .7; font-weight: 600;"><%= idx+1 %></td>
                         <td>
                           <div class="student-profile">
-                            <div class="student-avatar"><%= (s.name?.split(' ')[0]?.[0] || '').toUpperCase() %><%= (s.name?.split(' ')[1]?.[0] || '').toUpperCase() %></div>
+                            <div class="student-avatar">
+                              <%= (s.name?.split(' ')[0]?.[0] || '').toUpperCase() %><%= (s.name?.split(' ')[1]?.[0] || '').toUpperCase() %>
+                            </div>
                             <div class="student-info">
                               <div class="student-name"><%= s.name %></div>
                               <div class="student-email"><%= s.email %></div>
                             </div>
                           </div>
                         </td>
-                        <td><%= s.studentCode %></td>
+                        <td><span style="font-family: 'Courier New', monospace; background: #f8f9fa; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;"><%= s.studentCode %></span></td>
                         <td><%= s.grade || '-' %></td>
                         <td><%= s.schoolName || '-' %></td>
                         <td>
                           <div class="progress-bar-container">
                             <div class="progress-percentage"><%= s.progress %>%</div>
                             <div class="progress-bar">
-                              <div class="progress-fill" style="width:<%= s.progress %>%"></div>
+                              <div class="progress-fill" style="width: <%= s.progress %>%" data-progress="<%= s.progress %>"></div>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <span class="status-badge <%= s.status === 'completed' ? 'status-active' : 'status-inactive' %>">
+                          <span class="status-badge status-<%= s.status %>">
                             <span class="status-icon"></span>
-                            <%= s.status %>
+                            <%= s.status.replace('_', ' ') %>
                           </span>
                         </td>
                         <td><%= s.enrolledAt ? new Date(s.enrolledAt).toLocaleDateString() : '-' %></td>
-                        <td><%= s.lastAccessed ? new Date(s.lastAccessed).toLocaleDateString() : '-' %></td>
+                        <td><%= s.lastAccessed ? new Date(s.lastAccessed).toLocaleDateString() : 'Never' %></td>
+                        <td>
+                          <div class="action-buttons">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetails('<%= s.email %>')" title="View Student Details">
+                              <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="contactStudent('<%= s.email %>', '<%= s.name %>')" title="Contact Student">
+                              <i class="fas fa-envelope"></i>
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                       <% }) %>
                     </tbody>
                   </table>
                 </div>
                 <% } else { %>
-                <div class="empty-state"><i class="fas fa-users"></i>
+                <div class="empty-state">
+                  <i class="fas fa-users"></i>
                   <h3>No enrolled students</h3>
+                  <p>Students will appear here once they enroll in this course.</p>
                 </div>
                 <% } %>
               </div>
@@ -261,7 +758,7 @@
                 <div class="accordion-item">
                   <h2 class="accordion-header" id="heading-<%= topic._id %>">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= topic._id %>" aria-expanded="false" aria-controls="collapse-<%= topic._id %>">
-                      <span class="badge bg-secondary me-2">#<%= topic.order %></span>
+                      <span class="badge bg-secondary me-2" style="min-width: 32px;">#<%= topic.order %></span>
                       <strong class="me-2"><%= topic.title %></strong>
                       <span class="topic-meta">
                         <span class="badge-soft"><i class="fas fa-file-alt me-1"></i><%= topic.contentCount %> items</span>
@@ -272,33 +769,82 @@
                   </h2>
                   <div id="collapse-<%= topic._id %>" class="accordion-collapse collapse" aria-labelledby="heading-<%= topic._id %>" data-bs-parent="#topicsAccordion">
                     <div class="accordion-body">
-                      <div class="table-overflow card-soft">
+                      <div class="table-overflow">
                         <table class="table-pro">
                           <thead>
                             <tr>
                               <th class="col-min">#</th>
-                              <th>Content</th>
+                              <th>Content Title</th>
                               <th>Type</th>
-                              <th>Views</th>
-                              <th>Completions</th>
-                              <th>Avg Time (m)</th>
-                              <th>Attempts</th>
-                              <th>Avg Score</th>
-                              <th>Pass Rate</th>
+                              <th>
+                                <i class="fas fa-eye me-1"></i>Views
+                              </th>
+                              <th>
+                                <i class="fas fa-check-circle me-1"></i>Completions
+                              </th>
+                              <th>
+                                <i class="fas fa-clock me-1"></i>Avg Time
+                              </th>
+                              <th>
+                                <i class="fas fa-redo me-1"></i>Attempts
+                              </th>
+                              <th>
+                                <i class="fas fa-chart-line me-1"></i>Avg Score
+                              </th>
+                              <th>
+                                <i class="fas fa-percentage me-1"></i>Pass Rate
+                              </th>
+                              <th>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             <% topic.contents.sort((a,b)=>a.order-b.order).forEach((ci, cIdx) => { %>
                             <tr>
                               <td class="col-min" style="opacity:.7;font-weight:600"><%= cIdx+1 %></td>
-                              <td><%= ci.title %></td>
-                              <td><span class="content-type-badge content-type-<%= ci.type %>"><%= ci.type %></span></td>
-                              <td><%= ci.viewers %></td>
-                              <td><%= ci.completions %></td>
-                              <td><%= ci.averageTimeSpent %></td>
-                              <td><%= ci.attempts %></td>
-                              <td><%= ci.averageScore !== null ? ci.averageScore + '%' : '-' %></td>
-                              <td><%= ci.passRate !== null ? ci.passRate + '%' : '-' %></td>
+                              <td style="font-weight: 500;"><%= ci.title %></td>
+                              <td><span class="content-type-badge content-type-<%= ci.type %>"><i class="fas fa-<%= ci.type === 'video' ? 'play-circle' : ci.type === 'pdf' ? 'file-pdf' : ci.type === 'quiz' ? 'question-circle' : ci.type === 'homework' ? 'tasks' : ci.type === 'zoom' ? 'video' : 'file' %> me-1"></i><%= ci.type %></span></td>
+                              <td><span class="badge-soft"><%= ci.viewers %></span></td>
+                              <td>
+                                <span class="badge-soft" style="<%= ci.completions > 0 ? 'background: rgba(16, 185, 129, 0.1); color: #059669;' : '' %>">
+                                  <%= ci.completions %>
+                                </span>
+                              </td>
+                              <td><%= ci.averageTimeSpent %> min</td>
+                              <td>
+                                <% if (ci.attempts > 0) { %>
+                                <span class="badge-soft"><%= ci.attempts %></span>
+                                <% } else { %>
+                                <span class="text-muted">-</span>
+                                <% } %>
+                              </td>
+                              <td>
+                                <% if (ci.averageScore !== null) { %>
+                                <span style="font-weight: 600; color: <%= ci.averageScore >= 70 ? '#059669' : ci.averageScore >= 60 ? '#d97706' : '#dc2626' %>">
+                                  <%= ci.averageScore %>%
+                                </span>
+                                <% } else { %>
+                                <span class="text-muted">-</span>
+                                <% } %>
+                              </td>
+                              <td>
+                                <% if (ci.passRate !== null) { %>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                  <div style="width: 60px; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
+                                    <div style="width: <%= ci.passRate %>%; height: 100%; background: <%= ci.passRate >= 70 ? '#059669' : ci.passRate >= 50 ? '#d97706' : '#dc2626' %>; transition: width 0.5s ease;"></div>
+                                  </div>
+                                  <span style="font-weight: 600; font-size: 0.85rem; color: <%= ci.passRate >= 70 ? '#059669' : ci.passRate >= 50 ? '#d97706' : '#dc2626' %>">
+                                    <%= ci.passRate %>%
+                                  </span>
+                                </div>
+                                <% } else { %>
+                                <span class="text-muted">-</span>
+                                <% } %>
+                              </td>
+                              <td>
+                                <a href="/admin/courses/<%= course.courseCode %>/topics/<%= topic._id %>/content/<%= ci._id %>" class="btn btn-sm btn-outline-primary" title="View Content Details">
+                                  <i class="fas fa-chart-bar"></i>
+                                </a>
+                              </td>
                             </tr>
                             <% }) %>
                           </tbody>
@@ -310,8 +856,10 @@
                 <% }) %>
               </div>
               <% } else { %>
-              <div class="empty-state"><i class="fas fa-list"></i>
+              <div class="empty-state">
+                <i class="fas fa-list"></i>
                 <h3>No topics yet</h3>
+                <p>Add topics and content to this course to see analytics here.</p>
               </div>
               <% } %>
             </div>
@@ -325,18 +873,183 @@
 <%- include('./partials/admin-footer') %>
 
 <script>
-  // Simple client-side search in students table
+  // Enhanced search and filtering functionality
   document.addEventListener('DOMContentLoaded', function() {
-    const input = document.getElementById('studentSearch');
-    if (!input) return;
-    input.addEventListener('input', function() {
-      const term = this.value.toLowerCase();
-      document.querySelectorAll('#studentsTable tbody tr').forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(term) ? '' : 'none';
-      });
-    });
+    initializeTableFeatures();
+    animateProgressBars();
   });
+
+  let allStudents = [];
+  let filteredStudents = [];
+  let currentSort = {
+    column: null,
+    direction: 'asc'
+  };
+
+  function initializeTableFeatures() {
+    // Store all student rows
+    const rows = document.querySelectorAll('#studentsTable tbody tr');
+    allStudents = Array.from(rows);
+    filteredStudents = [...allStudents];
+
+    // Setup search
+    const searchInput = document.getElementById('studentSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', applyFilters);
+    }
+
+    // Setup filters
+    const statusFilter = document.getElementById('statusFilter');
+    const progressFilter = document.getElementById('progressFilter');
+
+    if (statusFilter) {
+      statusFilter.addEventListener('change', applyFilters);
+    }
+
+    if (progressFilter) {
+      progressFilter.addEventListener('change', applyFilters);
+    }
+  }
+
+  function applyFilters() {
+    const searchTerm = document.getElementById('studentSearch')?.value.toLowerCase() || '';
+    const selectedStatus = document.getElementById('statusFilter')?.value || '';
+    const selectedProgress = document.getElementById('progressFilter')?.value || '';
+
+    filteredStudents = allStudents.filter(row => {
+      const name = row.getAttribute('data-name')?.toLowerCase() || '';
+      const email = row.getAttribute('data-email')?.toLowerCase() || '';
+      const code = row.getAttribute('data-code')?.toLowerCase() || '';
+      const status = row.getAttribute('data-status') || '';
+      const progress = parseInt(row.getAttribute('data-progress')) || 0;
+
+      // Search filter
+      const matchesSearch = !searchTerm ||
+        name.includes(searchTerm) ||
+        email.includes(searchTerm) ||
+        code.includes(searchTerm);
+
+      // Status filter
+      const matchesStatus = !selectedStatus || status === selectedStatus;
+
+      // Progress filter
+      let matchesProgress = true;
+      if (selectedProgress) {
+        const [min, max] = selectedProgress.split('-').map(Number);
+        matchesProgress = progress >= min && progress <= max;
+      }
+
+      return matchesSearch && matchesStatus && matchesProgress;
+    });
+
+    renderFilteredStudents();
+  }
+
+  function renderFilteredStudents() {
+    const tbody = document.querySelector('#studentsTable tbody');
+    if (!tbody) return;
+
+    // Hide all rows first
+    allStudents.forEach(row => row.style.display = 'none');
+
+    // Show filtered rows and update numbering
+    filteredStudents.forEach((row, index) => {
+      row.style.display = '';
+      const numberCell = row.querySelector('td:first-child');
+      if (numberCell) {
+        numberCell.textContent = index + 1;
+      }
+    });
+
+    // Update count
+    updateStudentCount();
+
+    // Animate progress bars for visible rows
+    setTimeout(() => {
+      animateProgressBars();
+    }, 50);
+  }
+
+  function updateStudentCount() {
+    const countElement = document.getElementById('studentCount');
+    if (countElement) {
+      countElement.textContent = filteredStudents.length;
+    }
+  }
+
+  function animateProgressBars() {
+    const visibleFills = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .progress-fill');
+    visibleFills.forEach(fill => {
+      const progress = fill.getAttribute('data-progress');
+      fill.style.width = '0%';
+      setTimeout(() => {
+        fill.style.width = progress + '%';
+      }, 100);
+    });
+  }
+
+  function sortStudents(column) {
+    // Toggle sort direction
+    if (currentSort.column === column) {
+      currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSort.column = column;
+      currentSort.direction = 'asc';
+    }
+
+    // Sort filtered students
+    filteredStudents.sort((a, b) => {
+      let aVal, bVal;
+
+      if (column === 'name') {
+        aVal = a.getAttribute('data-name')?.toLowerCase() || '';
+        bVal = b.getAttribute('data-name')?.toLowerCase() || '';
+      } else if (column === 'progress') {
+        aVal = parseInt(a.getAttribute('data-progress')) || 0;
+        bVal = parseInt(b.getAttribute('data-progress')) || 0;
+      } else if (column === 'enrolled') {
+        const aDate = a.querySelector('td:nth-child(8)')?.textContent || '';
+        const bDate = b.querySelector('td:nth-child(8)')?.textContent || '';
+        aVal = aDate === '-' ? 0 : new Date(aDate).getTime();
+        bVal = bDate === '-' ? 0 : new Date(bDate).getTime();
+      }
+
+      if (currentSort.direction === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+
+    renderFilteredStudents();
+    updateSortIndicators();
+  }
+
+  function updateSortIndicators() {
+    // Reset all sort icons
+    document.querySelectorAll('.sort-btn i').forEach(icon => {
+      icon.className = 'fas fa-sort';
+    });
+
+    // Update active sort icon
+    if (currentSort.column) {
+      const sortBtn = document.querySelector(`[onclick="sortStudents('${currentSort.column}')"] i`);
+      if (sortBtn) {
+        sortBtn.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'}`;
+      }
+    }
+  }
+
+  // View student details
+  function viewStudentDetails(email) {
+    window.location.href = `/admin/students?search=${encodeURIComponent(email)}`;
+  }
+
+  // Contact student
+  function contactStudent(email, name) {
+    const subject = `Regarding <%= course.title %> Course`;
+    window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}`);
+  }
 
   // Export course details to Excel
   async function exportCourseToExcel() {

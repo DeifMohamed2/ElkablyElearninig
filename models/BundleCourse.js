@@ -11,17 +11,17 @@ const BundleCourseSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
       trim: true,
       minlength: 5,
       maxlength: 1000,
+      default: '',
     },
     shortDescription: {
       type: String,
-      required: true,
       trim: true,
       minlength: 3,
       maxlength: 200,
+      default: '',
     },
     bundleCode: {
       type: String,

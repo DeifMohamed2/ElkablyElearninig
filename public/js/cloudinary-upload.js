@@ -1,67 +1,15 @@
-// Cloudinary Upload Handler with Progress Bar
+// Cloudinary Upload Handler with Progress Bar (Images Only)
 class CloudinaryUploader {
   constructor() {
     this.CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dusod9wxt/upload';
     this.CLOUDINARY_UPLOAD_PRESET = 'order_project';
-    this.maxFileSize = 50 * 1024 * 1024; // 50MB for documents
+    this.maxFileSize = 10 * 1024 * 1024; // 10MB for images
     this.allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-    this.allowedDocumentTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'text/csv',
-      'application/zip',
-      'application/x-zip-compressed'
-    ];
-    this.allowedTypes = [...this.allowedImageTypes, ...this.allowedDocumentTypes];
+    this.allowedTypes = this.allowedImageTypes; // Only images allowed
   }
 
-  // Initialize upload functionality for content files (PDF, documents, etc.)
-  initContentUpload(inputSelector, previewSelector, progressSelector, urlInputSelector) {
-    const input = document.querySelector(inputSelector);
-    const preview = document.querySelector(previewSelector);
-    const progress = document.querySelector(progressSelector);
-    const urlInput = document.querySelector(urlInputSelector);
-
-    if (!input || !preview || !progress || !urlInput) {
-      console.error('Content upload elements not found');
-      return;
-    }
-
-    // Handle file selection
-    input.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        this.handleContentFileSelection(file, preview, progress, urlInput);
-      }
-    });
-
-    // Handle drag and drop
-    preview.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      preview.classList.add('drag-over');
-    });
-
-    preview.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      preview.classList.remove('drag-over');
-    });
-
-    preview.addEventListener('drop', (e) => {
-      e.preventDefault();
-      preview.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file) {
-        input.files = e.dataTransfer.files;
-        this.handleContentFileSelection(file, preview, progress, urlInput);
-      }
-    });
-  }
+  // Note: Content upload (PDFs/documents) is now handled by S3 uploader
+  // This Cloudinary uploader is only for images/photos
 
   // Initialize upload functionality for a specific form
   init(formSelector, inputSelector, previewSelector, progressSelector) {
@@ -227,34 +175,14 @@ class CloudinaryUploader {
 
     // Check file type
     if (!this.allowedTypes.includes(file.type)) {
-      this.showError('Only images (JPEG, PNG, JPG, WebP) and documents (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, ZIP) are allowed');
+      this.showError('Only images (JPEG, PNG, JPG, WebP) are allowed for thumbnails');
       return false;
     }
 
     return true;
   }
 
-  // Show content file preview (for documents)
-  showContentPreview(file, preview) {
-    const fileIcon = this.getFileIcon(file.type);
-    preview.innerHTML = `
-      <div class="content-preview">
-        <div class="file-icon">
-          <i class="${fileIcon}"></i>
-        </div>
-        <div class="file-info">
-          <h6>${file.name}</h6>
-          <small>${this.formatFileSize(file.size)}</small>
-          <small class="file-type">${file.type}</small>
-        </div>
-      </div>
-      <div class="preview-overlay">
-        <i class="fas fa-cloud-upload-alt"></i>
-        <p>Click or drag to upload</p>
-        <small>${file.name}</small>
-      </div>
-    `;
-  }
+  // Note: Content preview removed - now handled by S3 uploader
 
   // Show file preview
   showPreview(file, preview) {
@@ -285,8 +213,8 @@ class CloudinaryUploader {
     `;
   }
 
-  // Upload file to Cloudinary
-  uploadFile(file, preview, progress, callback, isContentFile = false) {
+  // Upload file to Cloudinary (images only)
+  uploadFile(file, preview, progress, callback) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', this.CLOUDINARY_UPLOAD_PRESET);
@@ -305,7 +233,7 @@ class CloudinaryUploader {
     xhr.addEventListener('load', () => {
       if (xhr.status === 200) {
         const response = JSON.parse(xhr.responseText);
-        this.showSuccess(preview, progress, response.secure_url, isContentFile);
+        this.showSuccess(preview, progress, response.secure_url);
         if (callback) callback(response.secure_url);
       } else {
         this.showError('Upload failed. Please try again.');
@@ -322,37 +250,17 @@ class CloudinaryUploader {
     xhr.send(formData);
   }
 
-  // Show success state
-  showSuccess(preview, progress, url, isContentFile = false) {
-    if (isContentFile) {
-      // For content files, show success message without image
-      preview.innerHTML = `
-        <div class="content-preview success">
-          <div class="file-icon">
-            <i class="fas fa-check-circle text-success"></i>
-          </div>
-          <div class="file-info">
-            <h6 class="text-success">Upload Successful!</h6>
-            <small>File uploaded to Cloudinary</small>
-          </div>
-        </div>
-        <div class="preview-overlay" style="opacity: 1; background: rgba(40, 167, 69, 0.9);">
-          <i class="fas fa-check-circle" style="color: white;"></i>
-          <p>Upload Successful!</p>
-          <small>File uploaded to Cloudinary</small>
-        </div>
-      `;
-    } else {
-      // For images, show image with success overlay
-      preview.innerHTML = `
-        <img src="${url}" alt="Uploaded Image" class="preview-image">
-        <div class="preview-overlay" style="opacity: 1; background: rgba(40, 167, 69, 0.9);">
-          <i class="fas fa-check-circle" style="color: white;"></i>
-          <p>Upload Successful!</p>
-          <small>Image uploaded to Cloudinary</small>
-        </div>
-      `;
-    }
+  // Show success state (images only)
+  showSuccess(preview, progress, url) {
+    // For images, show image with success overlay
+    preview.innerHTML = `
+      <img src="${url}" alt="Uploaded Image" class="preview-image">
+      <div class="preview-overlay" style="opacity: 1; background: rgba(40, 167, 69, 0.9);">
+        <i class="fas fa-check-circle" style="color: white;"></i>
+        <p>Upload Successful!</p>
+        <small>Image uploaded to Cloudinary</small>
+      </div>
+    `;
     progress.style.display = 'none';
   }
 
@@ -378,26 +286,7 @@ class CloudinaryUploader {
     }, 5000);
   }
 
-  // Get file icon based on file type
-  getFileIcon(fileType) {
-    if (this.allowedImageTypes.includes(fileType)) {
-      return 'fas fa-image';
-    } else if (fileType === 'application/pdf') {
-      return 'fas fa-file-pdf';
-    } else if (fileType.includes('word')) {
-      return 'fas fa-file-word';
-    } else if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
-      return 'fas fa-file-excel';
-    } else if (fileType.includes('powerpoint') || fileType.includes('presentation')) {
-      return 'fas fa-file-powerpoint';
-    } else if (fileType.includes('zip')) {
-      return 'fas fa-file-archive';
-    } else if (fileType.includes('text')) {
-      return 'fas fa-file-alt';
-    } else {
-      return 'fas fa-file';
-    }
-  }
+  // Note: File icon functions removed - now handled by S3 uploader for documents
 
   // Format file size
   formatFileSize(bytes) {

@@ -1,0 +1,143 @@
+<%- include('partials/header', { title: title }) %>
+
+<!-- Import Payment Results CSS -->
+<link rel="stylesheet" href="/css/payment-results.css">
+
+<!-- Floating Math Elements -->
+<div class="floating-math-elements-professor" id="floatingMath">
+  <div class="math-element-professor" data-equation="∂">∂</div>
+  <div class="math-element-professor" data-equation="∇">∇</div>
+  <div class="math-element-professor" data-equation="∫">∫</div>
+  <div class="math-element-professor" data-equation="∑">∑</div>
+  <div class="math-element-professor" data-equation="∏">∏</div>
+  <div class="math-element-professor" data-equation="∞">∞</div>
+  <div class="math-element-professor" data-equation="∃">∃</div>
+  <div class="math-element-professor" data-equation="∀">∀</div>
+  <div class="math-element-professor" data-equation="ℝ">ℝ</div>
+  <div class="math-element-professor" data-equation="ℂ">ℂ</div>
+</div>
+
+<!-- Payment Success Page -->
+<div class="payment-result-page payment-success-page">
+  <div class="container">
+    <div class="payment-result-container">
+      <!-- Success Header -->
+      <div class="payment-success-header">
+        <div class="success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h1 class="success-title">Payment Successful!</h1>
+        <p class="success-message">
+          Thank you for your purchase. Your payment has been processed successfully.
+        </p>
+      </div>
+
+      <!-- Order Details -->
+      <div class="order-details">
+        <div class="order-info-card">
+          <div class="card-header">
+            <h3><i class="fas fa-receipt"></i> Order Information</h3>
+          </div>
+          <div class="card-body">
+            <div class="info-row">
+              <span class="label">Order Number:</span>
+              <span class="value"><strong><%= purchase.orderNumber %></strong></span>
+            </div>
+            <div class="info-row">
+              <span class="label">Transaction Date:</span>
+              <span class="value"><%= new Date(purchase.createdAt).toLocaleDateString('en-EG', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }) %></span>
+            </div>
+            <div class="info-row">
+              <span class="label">Payment Method:</span>
+              <span class="value">
+                <i class="fas fa-credit-card"></i>
+                Paymob Gateway
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="label">Status:</span>
+              <span class="value">
+                <span class="status-badge status-completed">
+                  <i class="fas fa-check"></i>
+                  Completed
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Purchased Items -->
+        <div class="purchased-items-card">
+          <div class="card-header">
+            <h3><i class="fas fa-shopping-bag"></i> Purchased Items</h3>
+          </div>
+          <div class="card-body">
+            <% purchase.items.forEach(item => { %>
+            <div class="purchased-item">
+              <div class="item-icon">
+                <% if (item.itemType === 'bundle') { %>
+                <i class="fas fa-layer-group text-primary"></i>
+                <% } else { %>
+                <i class="fas fa-book text-success"></i>
+                <% } %>
+              </div>
+              <div class="item-details">
+                <h4 class="item-title"><%= item.title %></h4>
+                <p class="item-type">
+                  <%= item.itemType === 'bundle' ? 'Course Bundle' : 'Individual Course' %>
+                </p>
+              </div>
+              <div class="item-price">
+                <span class="price">EGP <%= item.price.toFixed(2) %></span>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+        </div>
+
+        <!-- Order Total -->
+        <div class="order-total-card">
+          <div class="card-body">
+            <div class="total-row">
+              <span class="label">Subtotal:</span>
+              <span class="value">EGP <%= purchase.subtotal.toFixed(2) %></span>
+            </div>
+            <div class="total-row">
+              <span class="label">Tax:</span>
+              <span class="value">EGP <%= purchase.tax.toFixed(2) %></span>
+            </div>
+            <div class="total-row final-total">
+              <span class="label">Total:</span>
+              <span class="value">EGP <%= purchase.total.toFixed(2) %></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <a href="/student/enrolled-courses" class="btn btn-primary btn-lg">
+          <i class="fas fa-graduation-cap"></i>
+          View My Courses
+        </a>
+        <a href="/student/dashboard" class="btn btn-secondary btn-lg">
+          <i class="fas fa-tachometer-alt"></i>
+          Go to Dashboard
+        </a>
+        <a href="/" class="btn btn-outline btn-lg">
+          <i class="fas fa-home"></i>
+          Return Home
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

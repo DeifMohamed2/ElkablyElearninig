@@ -125,4 +125,87 @@ document.addEventListener('DOMContentLoaded', function () {
       false
     );
   });
+
+  // Initialize floating formula word rotation
+  initFloatingFormulaRotation();
 });
+
+// Floating Formula Word Rotation
+function initFloatingFormulaRotation() {
+  // Define word arrays for each formula card using the provided Arabic words
+  const allWords = [
+    'Tab3an ghlat',
+    'Okeeshan',
+    'Ya Doctor',
+    '5alek re5m',
+    'A3adi',
+    'Y5rbt kda',
+    'Za2 za2a',
+    'Zay el gardal',
+    'Shdyd el so2al da',
+    'Howa ana bta3 kebda',
+    'Assalam alikom',
+    'Bravo',
+    'Ezayko ya shbab',
+    'Sha2leb w 2el2eb',
+    'Da3s',
+    'Dy 7aga teet',
+    'Salam moz2kt',
+    'Gebna Nesto'
+  ];
+
+  // Distribute words across formula cards
+  const wordArrays = {
+    'formula-1': allWords.slice(0, 4),
+    'formula-2': allWords.slice(4, 8),
+    'formula-3': allWords.slice(8, 12),
+    'formula-4': allWords.slice(12, 16),
+    'formula-5': allWords.slice(16, 18)
+  };
+
+  // Get all formula cards
+  const formulaCards = document.querySelectorAll('.formula-card');
+  
+  // Initialize word rotation for each card
+  formulaCards.forEach((card, index) => {
+    const cardClass = card.classList[1]; // Get the second class (formula-1, formula-2, etc.)
+    const words = wordArrays[cardClass] || ['Default Word'];
+    
+    // Start rotation immediately without fade
+    rotateWords(card, words);
+    
+    // Continue rotation every 8 seconds
+    setInterval(() => {
+      rotateWords(card, words);
+    }, 7000);
+  });
+}
+
+function rotateWords(card, words) {
+  const textElement = card.querySelector('.formula-text');
+  if (!textElement) return;
+  
+  // Get current word index
+  let currentIndex = parseInt(textElement.getAttribute('data-word-index')) || 0;
+  
+  // Move to next word (cycle back to 0 if at end)
+  currentIndex = (currentIndex + 1) % words.length;
+  
+  // Add fade-out class
+  textElement.classList.add('fade-out');
+  
+  // After fade-out animation completes, change text and fade in
+  setTimeout(() => {
+    textElement.textContent = words[currentIndex];
+    textElement.setAttribute('data-word-index', currentIndex);
+    
+    // Remove fade-out and add fade-in
+    textElement.classList.remove('fade-out');
+    textElement.classList.add('fade-in');
+    
+    // Remove fade-in class after animation completes
+    setTimeout(() => {
+      textElement.classList.remove('fade-in');
+    }, 800);
+  }, 800); // Wait for fade-out to complete
+}
