@@ -386,6 +386,7 @@ const registerUser = async (req, res) => {
       password,
       howDidYouKnow: howDidYouKnow.trim(),
       isActive: true, // Students are active by default
+      isCompleteData: true, // Normal registration provides all required data
     });
 
     const savedUser = await newUser.save();
