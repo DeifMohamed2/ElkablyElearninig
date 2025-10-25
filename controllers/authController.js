@@ -132,14 +132,17 @@ const registerUser = async (req, res) => {
   } = req.body;
 
   // Check if this is a duplicate submission (browser refresh or back button)
-  if (req.session.lastSubmissionId === submissionId) {
+  // Only check if submissionId is provided
+  if (submissionId && req.session.lastSubmissionId === submissionId) {
     console.log('Duplicate form submission detected:', submissionId);
     req.flash('error_msg', 'Your registration is already being processed. Please do not refresh or resubmit the form.');
     return res.redirect('/auth/register');
   }
 
-  // Store current submission ID in session
-  req.session.lastSubmissionId = submissionId;
+  // Store current submission ID in session only if provided
+  if (submissionId) {
+    req.session.lastSubmissionId = submissionId;
+  }
 
   let errors = [];
 
@@ -288,8 +291,11 @@ const registerUser = async (req, res) => {
   }
 
   // Validate how did you know response
-  if (howDidYouKnow && howDidYouKnow.length > 5) {
-    errors.push({ msg: 'Response must be less than 5 characters' });
+  if (howDidYouKnow && howDidYouKnow.length > 500) {
+    errors.push({ msg: 'Response must be less than 500 characters' });
+  }
+  if (howDidYouKnow && howDidYouKnow.trim().length < 3) {
+    errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 3 characters)' });
   }
 
   if (errors.length > 0) {
@@ -1018,7 +1024,21 @@ const completeStudentData = async (req, res) => {
       password,
       password2,
       howDidYouKnow,
+      submissionId, // Track submission attempts
     } = req.body;
+
+    // Check if this is a duplicate submission (browser refresh or back button)
+    // Only check if submissionId is provided
+    if (submissionId && req.session.lastCompleteDataSubmissionId === submissionId) {
+      console.log('Duplicate complete data submission detected:', submissionId);
+      req.flash('error_msg', 'Your profile completion is already being processed. Please do not refresh or resubmit the form.');
+      return res.redirect('/auth/complete-data');
+    }
+
+    // Store current submission ID in session only if provided
+    if (submissionId) {
+      req.session.lastCompleteDataSubmissionId = submissionId;
+    }
 
     let errors = [];
 
@@ -1091,6 +1111,9 @@ const completeStudentData = async (req, res) => {
     }
 
     if (errors.length > 0) {
+      // Reset submission ID to allow retrying
+      req.session.lastCompleteDataSubmissionId = null;
+      
       return res.render('auth/complete-data', {
         title: 'Complete Your Profile | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -1142,6 +1165,10 @@ const completeStudentData = async (req, res) => {
     res.redirect('/student/dashboard');
   } catch (error) {
     console.error('Error completing student data:', error);
+    
+    // Reset submission ID to allow retrying
+    req.session.lastCompleteDataSubmissionId = null;
+    
     req.flash('error_msg', 'An error occurred. Please try again.');
     res.redirect('/auth/complete-data');
   }

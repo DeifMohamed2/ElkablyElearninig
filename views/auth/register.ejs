@@ -100,6 +100,9 @@
 
       <!-- Registration Form -->
       <form action="/auth/register" method="POST" class="auth-form needs-validation" novalidate>
+        <!-- Hidden submission ID to prevent duplicate submissions -->
+        <input type="hidden" name="submissionId" id="submissionId" value="">
+        
         <!-- Step 1: Personal Information -->
         <div class="form-step active" data-step="1">
           <h3 class="step-title">Personal Information</h3>
@@ -795,6 +798,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
+  // Generate unique submission ID to prevent duplicate submissions
+  const submissionIdInput = document.getElementById('submissionId');
+  if (submissionIdInput) {
+    const generateSubmissionId = () => {
+      return 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    };
+    submissionIdInput.value = generateSubmissionId();
+  }
+
   // Form submission validation
   form.addEventListener('submit', function(event) {
     if (!validateAllPhoneFields()) {
