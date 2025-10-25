@@ -126,8 +126,32 @@ app.use((req, res, next) => {
 });
 app.use(flash());
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Explicit favicon route
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'images', 'KImage.jpg'));
+});
+
+// Static files with proper caching and security headers
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0, // Cache for 1 day in production
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    // Set security headers for static files
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    } else if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    } else if (path.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
+      res.setHeader('Content-Type', 'image/' + path.split('.').pop());
+    }
+    
+    // Add CORS headers for images
+    if (path.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)$/)) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }
+}));
 
 // Use multer error handler
 app.use(handleMulterError);
