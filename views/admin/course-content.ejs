@@ -486,7 +486,7 @@
                     Content URL/File
                   </label>
                   <input type="text" class="admin-form-control" id="contentUrl" name="content" required>
-                  <small class="admin-form-text">Enter URL or upload file using the upload section below (PDFs and documents will be uploaded to AWS S3)</small>
+                  <small class="admin-form-text">Enter URL or upload file using the upload section below</small>
                   <div class="invalid-feedback" id="contentUrlError"></div>
                 </div>
 
@@ -1269,7 +1269,7 @@
                     Content URL/File
                   </label>
                   <input type="text" class="admin-form-control" id="editContentUrl" name="content" required>
-                  <small class="admin-form-text">Enter URL or upload file using the upload section below (PDFs and documents will be uploaded to AWS S3)</small>
+                  <small class="admin-form-text">Enter URL or upload file using the upload section below</small>
                   <div class="invalid-feedback" id="editContentUrlError"></div>
                 </div>
 
@@ -1863,7 +1863,7 @@
 
                 <div class="admin-form-group">
                   <label for="editCoursePrice" class="admin-form-label">
-                    <i class="fas fa-dollar-sign me-2"></i>
+                    <i class="fas fa-coins me-2"></i>
                     Price (EGP)
                   </label>
                   <input type="number" class="admin-form-control" id="editCoursePrice" name="price" min="0" step="0.01" required>
@@ -1980,8 +1980,6 @@ function getContentIcon(type) {
 
 <!-- Cloudinary Upload Script (for images only) -->
 <script src="/js/cloudinary-upload.js"></script>
-<!-- S3 Upload Script (for documents/PDFs) -->
-<script src="/js/s3-upload.js"></script>
 
 <script>
   // Course content management functions
@@ -2794,8 +2792,8 @@ function getContentIcon(type) {
             </div>
           `;
 
-          // Upload file using S3 service
-          uploadEditFile(file, progressContainer, uploadedUrlInput);
+          // File upload functionality removed
+          console.log('File upload functionality has been removed');
         }
       });
     }
@@ -2809,35 +2807,8 @@ function getContentIcon(type) {
     progressContainer.style.display = 'block';
     progressContainer.innerHTML = '<div class="progress"><div class="progress-bar" style="width: 0%"></div></div>';
 
-    fetch('/admin/upload/s3', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Update the content URL field
-          const contentUrlInput = document.getElementById('editContentUrl');
-          if (contentUrlInput) {
-            contentUrlInput.value = data.url;
-          }
-          if (uploadedUrlInput) {
-            uploadedUrlInput.value = data.url;
-          }
-
-          // Show success
-          progressContainer.innerHTML = '<div class="alert alert-success"><i class="fas fa-check"></i> File uploaded successfully!</div>';
-          setTimeout(() => {
-            progressContainer.style.display = 'none';
-          }, 3000);
-        } else {
-          throw new Error(data.message || 'Upload failed');
-        }
-      })
-      .catch(error => {
-        console.error('Upload error:', error);
-        progressContainer.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Upload failed: ' + error.message + '</div>';
-      });
+    // S3 upload functionality removed
+    console.log('S3 upload functionality has been removed');
   }
 
   function handleEditContentSubmission(topicId, contentId, modal) {
@@ -3730,45 +3701,22 @@ function getContentIcon(type) {
     });
   });
 
-  // Upload content file function (S3)
+  // Upload content file function (removed)
   function uploadContentFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    // Show progress
+    // File upload functionality has been removed
+    console.log('File upload functionality has been removed');
+    
+    // Show message to user
     const progressContainer = document.getElementById('contentFileProgress');
-    progressContainer.style.display = 'block';
-
-    fetch('/admin/upload/document', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById('uploadedFileUrl').value = data.data.url;
-          document.getElementById('contentUrl').value = data.data.url;
-          progressContainer.style.display = 'none';
-
-          // Show success message
-          const preview = document.getElementById('contentFilePreview');
-          preview.innerHTML = `
-        <div class="preview-success">
-          <i class="fas fa-check-circle text-success"></i>
-          <p>File uploaded successfully to AWS S3!</p>
-          <small>${data.data.originalName}</small>
+    if (progressContainer) {
+      progressContainer.style.display = 'block';
+      progressContainer.innerHTML = `
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          File upload functionality has been removed. Please use external file hosting services and paste the URL in the content field.
         </div>
       `;
-        } else {
-          progressContainer.style.display = 'none';
-          alert('Upload failed: ' + data.message);
-        }
-      })
-      .catch(error => {
-        console.error('Upload error:', error);
-        progressContainer.style.display = 'none';
-        alert('Error uploading file');
-      });
+    }
   }
 
   // Update topic card in UI

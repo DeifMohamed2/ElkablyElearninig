@@ -1,0 +1,1223 @@
+<%- include('./partials/admin-header', { pageCSS: 'whatsapp-dashboard' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'whatsapp' }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'WhatsApp Management',
+        breadcrumbSubtitle: 'Messaging & Templates',
+        showSearch: false
+    }) %>
+    
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="whatsapp-dashboard admin-fade-in">
+                <!-- Flash Messages -->
+                <% if (typeof error_msg !== 'undefined' && error_msg.length > 0) { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <%= error_msg %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <% } %>
+                <% if (typeof success_msg !== 'undefined' && success_msg.length > 0) { %>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <%= success_msg %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <% } %>
+
+        <!-- Enhanced WhatsApp Dashboard Header -->
+        <div class="admin-dashboard-header">
+          <div class="dashboard-header-content">
+            <div class="dashboard-header-left">
+              <div class="dashboard-title-section">
+                <h1 class="admin-dashboard-title">
+                  <span class="title-icon">📱</span>
+                  WhatsApp Management Dashboard
+                </h1>
+                <p class="admin-dashboard-subtitle">
+                  Manage your WhatsApp sessions, templates, and bulk messaging campaigns.
+                </p>
+                        </div>
+                    </div>
+            
+            <div class="dashboard-header-right">
+              <div class="dashboard-meta-cards">
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fab fa-whatsapp"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">API Status</span>
+                    <span class="meta-card-value">WasenderAPI</span>
+                        </div>
+                    </div>
+                
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Session Status</span>
+                    <span class="meta-card-value" id="sessionStatusValue">Checking...</span>
+                  </div>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- WhatsApp Session Status Overview -->
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon">
+                <i class="fab fa-whatsapp"></i>
+              </div>
+              <div class="admin-stat-trend" id="sessionTrend">
+                <i class="fas fa-circle" id="sessionIndicator"></i>
+                <span id="sessionStatusText">Checking...</span>
+              </div>
+            </div>
+            <h3 class="admin-stat-number" id="sessionStatusNumber">-</h3>
+            <p class="admin-stat-label">WhatsApp Session</p>
+            <div class="admin-stat-details">
+              <small id="sessionDetails">Loading session information...</small>
+            </div>
+                            </div>
+
+                    </div>
+                    
+        <!-- WhatsApp Session Management -->
+        <div class="admin-section-header">
+            <h3 class="admin-section-title">
+                <i class="fab fa-whatsapp"></i> WhatsApp Session Management
+            </h3>
+            <button class="admin-action-btn secondary" onclick="refreshSessionStatus()">
+                <i class="fas fa-sync-alt"></i> Refresh Status
+            </button>
+        </div>
+
+        <!-- Session Status Card -->
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <div id="sessionStatusContainer">
+                    <div class="admin-loading" id="sessionLoading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Loading session status...</span>
+                            </div>
+                                </div>
+            </div>
+        </div>
+
+        <!-- Session Details -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="fas fa-cogs"></i> Session Details
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <div id="sessionDetailsContainer">
+                    <div class="admin-loading" id="sessionDetailsLoading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Loading session details...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Modal -->
+                <div class="modal fade" id="qrCodeModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Scan QR Code</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="qr-code-container">
+                                    <div id="qrCodeDisplay">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+        <!-- Bulk Messaging -->
+        <div class="admin-section-header">
+            <h3 class="admin-section-title">
+                <i class="fas fa-broadcast-tower"></i> Bulk Messaging
+            </h3>
+                </div>
+
+        <div class="bulk-message-form whatsapp-hover-lift">
+            <div class="bulk-message-header">
+                <h5 class="bulk-message-title">
+                    <i class="fas fa-broadcast-tower"></i> Send Bulk Messages
+                </h5>
+                            </div>
+            <form id="bulkMessageForm">
+                <div class="bulk-form-row">
+                    <div class="bulk-form-group">
+                        <label class="bulk-form-label">Target Audience</label>
+                        <select class="bulk-form-control" id="targetType" name="targetType" required>
+                                                <option value="">Select Target</option>
+                                                <option value="all_students">All Students</option>
+                                                <option value="course">Specific Course</option>
+                                                <option value="bundle">Specific Bundle</option>
+                                            </select>
+                                        </div>
+                    <div class="bulk-form-group" id="targetSelectContainer" style="display: none;">
+                        <label class="bulk-form-label">Select Target</label>
+                        <select class="bulk-form-control" id="targetId" name="targetId">
+                                                <!-- Options will be loaded dynamically -->
+                                            </select>
+                                        </div>
+                    <div class="bulk-form-group">
+                        <label class="bulk-form-label">Custom Message</label>
+                        <textarea class="bulk-form-control" id="customMessage" name="customMessage" rows="4" placeholder="Enter your custom message here..." required></textarea>
+                        <small class="form-text text-muted">Use emojis and formatting to make your message professional and engaging!</small>
+                                        </div>
+                                    </div>
+                <div class="text-center mt-4">
+                    <button type="submit" class="bulk-form-submit">
+                                                <i class="fas fa-paper-plane"></i> Send Bulk Message
+                                            </button>
+                                    </div>
+                                </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+    </div>
+
+
+
+<!-- QR Code Modal -->
+<div class="modal fade whatsapp-modal" id="qrCodeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-qrcode"></i> Scan QR Code
+                </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                <div class="qr-code-container">
+                    <div id="qrCodeDisplay">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load session status and details on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSessionStatus();
+            loadSessionDetails();
+            updateSessionOverview();
+            
+            // Test the session API key
+            testSessionConnection();
+        });
+
+        // Test session connection
+        function testSessionConnection() {
+            fetch('/admin/whatsapp/session-status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Session Status:', data);
+                    if (data.success && data.session) {
+                        console.log('✅ WhatsApp session is connected:', data.session);
+                    } else {
+                        console.log('❌ No active WhatsApp session found');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error testing session connection:', error);
+                });
+        }
+
+        // Load session status from WasenderAPI
+        function loadSessionStatus() {
+            fetch('/admin/whatsapp/session-status')
+                .then(response => response.json())
+                .then(data => {
+                    displaySessionStatus(data);
+                })
+                .catch(error => {
+                    console.error('Error loading session status:', error);
+                    displaySessionStatus({ success: false, message: 'Failed to load session status' });
+                });
+        }
+
+        // Load session details from WasenderAPI
+        function loadSessionDetails() {
+            fetch('/admin/whatsapp/session-details')
+                .then(response => response.json())
+                .then(data => {
+                    displaySessionDetails(data);
+                })
+                .catch(error => {
+                    console.error('Error loading session details:', error);
+                    displaySessionDetails({ success: false, message: 'Failed to load session details' });
+                });
+        }
+
+        // Display session status
+        function displaySessionStatus(data) {
+            const container = document.getElementById('sessionStatusContainer');
+            const statusValue = document.getElementById('sessionStatusValue');
+            
+            if (data.success && data.session) {
+                const session = data.session;
+                const statusClass = session.status === 'CONNECTED' ? 'status-connected' : 
+                                  session.status === 'NEED_SCAN' ? 'status-pending' : 'status-disconnected';
+                const statusText = session.status === 'CONNECTED' ? 'Connected' : 
+                                 session.status === 'NEED_SCAN' ? 'Needs QR Scan' : 'Disconnected';
+
+                container.innerHTML = `
+                    <div class="session-alert ${session.status === 'CONNECTED' ? 'session-alert-success' : 
+                                          session.status === 'NEED_SCAN' ? 'session-alert-warning' : 'session-alert-danger'}">
+                        <span class="status-indicator ${statusClass}"></span>
+                        <div>
+                            <strong>${statusText}</strong>
+                            <br>
+                            <small>Session: ${session.name || 'Unknown'} | Phone: ${session.phone_number || 'N/A'}</small>
+                        </div>
+                    </div>
+                    <div class="session-actions">
+                        ${session.status === 'NEED_SCAN' ? 
+                            `<button class="admin-action-btn primary" onclick="showQRCode('${session.id}')">
+                                <i class="fas fa-qrcode"></i> Show QR Code
+                            </button>` : ''
+                        }
+                        ${session.status === 'DISCONNECTED' ? 
+                            `<button class="admin-action-btn success" onclick="connectSession('${session.id}')">
+                                <i class="fas fa-link"></i> Connect Session
+                            </button>` : ''
+                        }
+                        ${session.status === 'CONNECTED' ? 
+                            `<button class="admin-action-btn warning" onclick="disconnectSession('${session.id}')">
+                                <i class="fas fa-unlink"></i> Disconnect
+                            </button>` : ''
+                        }
+                        <button class="admin-action-btn danger" onclick="deleteSession('${session.id}')">
+                            <i class="fas fa-trash"></i> Delete Session
+                        </button>
+                    </div>
+                `;
+                
+                if (statusValue) {
+                    statusValue.textContent = statusText;
+                }
+            } else {
+                container.innerHTML = `
+                    <div class="session-alert session-alert-warning">
+                        <span class="status-indicator status-disconnected"></span>
+                        <div>
+                            <strong>No Active Session</strong>
+                            <p class="mb-0">Create a new session to start sending messages.</p>
+                        </div>
+                    </div>
+                `;
+                
+                if (statusValue) {
+                    statusValue.textContent = 'No Session';
+                }
+            }
+        }
+
+        // Display session details
+        function displaySessionDetails(data) {
+            const container = document.getElementById('sessionDetailsContainer');
+            
+            if (data.success && data.session) {
+                const session = data.session;
+                container.innerHTML = `
+                    <div class="admin-grid admin-grid-2">
+                        <div class="admin-stat-item">
+                            <div class="admin-stat-icon">
+                                <i class="fab fa-whatsapp"></i>
+                            </div>
+                            <div class="admin-stat-number">${session.name || 'Unknown'}</div>
+                            <div class="admin-stat-label">Session Name</div>
+                        </div>
+                        <div class="admin-stat-item">
+                            <div class="admin-stat-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div class="admin-stat-number">${session.phone_number || 'N/A'}</div>
+                            <div class="admin-stat-label">Phone Number</div>
+                        </div>
+                        <div class="admin-stat-item">
+                            <div class="admin-stat-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="admin-stat-number">${session.status || 'Unknown'}</div>
+                            <div class="admin-stat-label">Status</div>
+                        </div>
+                        <div class="admin-stat-item">
+                            <div class="admin-stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="admin-stat-number">${session.lastSeen ? new Date(session.lastSeen).toLocaleDateString() : 'Never'}</div>
+                            <div class="admin-stat-label">Last Seen</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="admin-empty-state">
+                        <i class="fas fa-info-circle"></i>
+                        <h4>No Session Details</h4>
+                        <p>Create a session to view details here.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display sessions
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessionList');
+            if (sessions.length === 0) {
+                container.innerHTML = '<p class="text-muted">No sessions found</p>';
+                return;
+            }
+
+            let html = '';
+            sessions.forEach(session => {
+                const statusClass = session.status === 'CONNECTED' ? 'status-connected' : 
+                                  session.status === 'NEED_SCAN' ? 'status-pending' : 'status-disconnected';
+                const statusText = session.status === 'CONNECTED' ? 'Connected' : 
+                                 session.status === 'NEED_SCAN' ? 'Needs QR Scan' : 'Disconnected';
+
+                html += `
+                    <div class="template-card whatsapp-hover-lift">
+                        <div class="template-header">
+                        <div>
+                            <span class="status-indicator ${statusClass}"></span>
+                            <strong>${session.name}</strong>
+                            <br>
+                            <small class="text-muted">${session.phone_number} - ${statusText}</small>
+                        </div>
+                            <div class="template-actions">
+                            ${session.status === 'NEED_SCAN' ? 
+                                    `<button class="template-action-btn" onclick="showQRCode('${session.id}')">
+                                    <i class="fas fa-qrcode"></i> QR Code
+                                </button>` : ''
+                            }
+                            ${session.status === 'DISCONNECTED' ? 
+                                    `<button class="template-action-btn success" onclick="connectSession('${session.id}')">
+                                    <i class="fas fa-link"></i> Connect
+                                </button>` : ''
+                            }
+                            ${session.status === 'CONNECTED' ? 
+                                    `<button class="template-action-btn warning" onclick="disconnectSession('${session.id}')">
+                                    <i class="fas fa-unlink"></i> Disconnect
+                                </button>` : ''
+                            }
+                                <button class="template-action-btn danger" onclick="deleteSession('${session.id}')">
+                                    <i class="fas fa-trash"></i> Delete
+                            </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // Create session using WasenderAPI
+        function createSession() {
+            const form = document.getElementById('createSessionForm');
+            const formData = new FormData(form);
+            
+            fetch('/admin/whatsapp/sessions', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload session status and details
+                    loadSessionStatus();
+                    loadSessionDetails();
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createSessionModal'));
+                    modal.hide();
+                    // Show success message
+                    showNotification('Session created successfully!', 'success');
+                } else {
+                    showNotification('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while creating session', 'error');
+            });
+        }
+
+        // Connect session using WasenderAPI
+        function connectSession(sessionId) {
+            fetch(`/admin/whatsapp/sessions/${sessionId}/connect`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Session connection initiated!', 'success');
+                    // Reload session status
+                    setTimeout(() => {
+                        loadSessionStatus();
+                        loadSessionDetails();
+                    }, 2000);
+                } else {
+                    showNotification('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while connecting session', 'error');
+            });
+        }
+
+        // Show QR code using WasenderAPI
+        function showQRCode(sessionId) {
+            const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+            modal.show();
+            
+            // Show loading state
+            document.getElementById('qrCodeDisplay').innerHTML = `
+                <div class="admin-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading QR code...</span>
+                </div>
+            `;
+            
+            fetch(`/admin/whatsapp/sessions/${sessionId}/qrcode`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.qrcode) {
+                        // Check if it's a data URL (image) or raw data
+                        if (data.qrcode.startsWith('data:image/')) {
+                            // It's a proper image
+                            document.getElementById('qrCodeDisplay').innerHTML = 
+                                `<div class="qr-container">
+                                    <img src="${data.qrcode}" alt="QR Code" class="img-fluid">
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-mobile-alt me-1"></i>
+                                            Scan this QR code with WhatsApp to connect your session
+                                        </small>
+                                    </div>
+                                </div>`;
+                            showNotification('QR code loaded successfully! Scan with WhatsApp to connect.', 'success');
+                        } else {
+                            // It's raw QR data, show instructions
+                            document.getElementById('qrCodeDisplay').innerHTML = 
+                                `<div class="alert alert-info">
+                                    <h6 class="alert-heading">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        QR Code Data Received
+                                    </h6>
+                                    <p class="mb-2">The QR code data has been received but needs to be converted to an image.</p>
+                                    <div class="bg-dark p-3 rounded">
+                                        <code class="text-light">${data.qrcode.substring(0, 100)}...</code>
+                                    </div>
+                                    <p class="mt-2 mb-0">
+                                        <strong>Instructions:</strong> Please use a QR code generator to convert this data into a scannable QR code.
+                                    </p>
+                                </div>`;
+                            showNotification('QR code data loaded! Copy the data to use with WhatsApp.', 'info');
+                        }
+                    } else {
+                        // Handle different error cases
+                        let errorMessage = 'Failed to load QR code';
+                        let errorDetails = 'Please try again later.';
+                        
+                        if (data.message && data.message.includes('Session is')) {
+                            errorMessage = 'QR Code Not Available';
+                            errorDetails = data.message;
+                        } else if (data.message) {
+                            errorDetails = data.message;
+                        }
+                        
+                        document.getElementById('qrCodeDisplay').innerHTML = 
+                            `<div class="admin-empty-state">
+                                <i class="fas fa-info-circle"></i>
+                                <h4>${errorMessage}</h4>
+                                <p>${errorDetails}</p>
+                            </div>`;
+                        showNotification(errorMessage, 'info');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('qrCodeDisplay').innerHTML = 
+                        '<div class="admin-empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading QR code</h4><p>Please try again later.</p></div>';
+                    showNotification('Error loading QR code', 'error');
+                });
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} alert-dismissible fade show`;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '9999';
+            notification.style.minWidth = '300px';
+            
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Disconnect session using WasenderAPI
+        function disconnectSession(sessionId) {
+            if (confirm('Are you sure you want to disconnect this session?')) {
+                fetch(`/admin/whatsapp/sessions/${sessionId}/disconnect`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Session disconnected successfully!', 'success');
+                        // Reload session status and details
+                        setTimeout(() => {
+                            loadSessionStatus();
+                            loadSessionDetails();
+                        }, 1000);
+                    } else {
+                        showNotification('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred while disconnecting session', 'error');
+                });
+            }
+        }
+
+        // Delete session using WasenderAPI
+        function deleteSession(sessionId) {
+            if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+                fetch(`/admin/whatsapp/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Session deleted successfully!', 'success');
+                        // Reload session status and details
+                        setTimeout(() => {
+                            loadSessionStatus();
+                            loadSessionDetails();
+                        }, 1000);
+                    } else {
+                        showNotification('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred while deleting session', 'error');
+                });
+            }
+        }
+
+
+        // Handle target type change
+        document.getElementById('targetType').addEventListener('change', function() {
+            const targetSelectContainer = document.getElementById('targetSelectContainer');
+            const targetId = document.getElementById('targetId');
+            
+            if (this.value === 'course' || this.value === 'bundle') {
+                targetSelectContainer.style.display = 'block';
+                loadTargetOptions(this.value);
+            } else {
+                targetSelectContainer.style.display = 'none';
+            }
+        });
+
+        // Load target options
+        function loadTargetOptions(type) {
+            const targetId = document.getElementById('targetId');
+            const endpoint = type === 'course' ? '/admin/whatsapp/courses' : '/admin/whatsapp/bundles';
+            
+            fetch(endpoint)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        targetId.innerHTML = '<option value="">Select ' + type + '</option>';
+                        data[type + 's'].forEach(item => {
+                            targetId.innerHTML += `<option value="${item._id}">${item.title}</option>`;
+                        });
+                    }
+                })
+                .catch(error => console.error('Error loading options:', error));
+        }
+
+        // Handle bulk message form
+        document.getElementById('bulkMessageForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/admin/whatsapp/bulk-message', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Bulk message sent successfully!', 'success');
+                } else {
+                    showNotification('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred', 'error');
+            });
+        });
+
+        // Theme toggle function
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            if (newTheme === 'dark') {
+                body.classList.add('dark-theme');
+            } else {
+                body.classList.remove('dark-theme');
+            }
+            
+            // Save theme preference
+            document.cookie = `theme=${newTheme}; path=/; max-age=31536000`;
+            
+            // Update theme button icon
+            const themeIcon = document.querySelector('.theme-toggle i');
+            if (themeIcon) {
+                themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        // Edit template function
+        function editTemplate(templateId) {
+            setCurrentEditingTemplateId(templateId);
+            const modal = new bootstrap.Modal(document.getElementById('editTemplateModal'));
+            modal.show();
+            
+            // Show loading state
+            document.getElementById('editTemplateContent').innerHTML = `
+                <div class="admin-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading template for editing...</span>
+                </div>
+            `;
+            
+            fetch(`/admin/whatsapp/templates/${templateId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.template) {
+                        const template = data.template;
+                        document.getElementById('editTemplateContent').innerHTML = `
+                            <div class="template-edit-form">
+                                <div class="edit-form-header">
+                                    <h6><i class="fas fa-info-circle"></i> Template Editing Guidelines</h6>
+                                    <div class="edit-guidelines">
+                                        <div class="guideline-item">
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            <span>Use {{variableName}} format for dynamic content</span>
+                                        </div>
+                                        <div class="guideline-item">
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            <span>Keep messages concise and professional</span>
+                                        </div>
+                                        <div class="guideline-item">
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            <span>Test your template before saving</span>
+                                        </div>
+                                        <div class="guideline-item">
+                                            <i class="fas fa-exclamation-triangle text-warning"></i>
+                                            <span>Changes will affect all future messages using this template</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <form id="editTemplateForm">
+                                    <div class="edit-form-row">
+                                        <div class="edit-form-group">
+                                            <label class="edit-form-label">
+                                                <i class="fas fa-tag"></i> Template Name
+                                                <span class="required">*</span>
+                                            </label>
+                                            <input type="text" class="edit-form-control" name="name" value="${template.name}" required maxlength="100">
+                                            <div class="form-help">Choose a descriptive name for this template</div>
+                                        </div>
+                                        <div class="edit-form-group">
+                                            <label class="edit-form-label">
+                                                <i class="fas fa-folder"></i> Category
+                                                <span class="required">*</span>
+                                            </label>
+                                            <select class="edit-form-control" name="category" required>
+                                                <option value="">Select Category</option>
+                                                <option value="quiz_completion" ${template.category === 'quiz_completion' ? 'selected' : ''}>Quiz Completion</option>
+                                                <option value="content_completion" ${template.category === 'content_completion' ? 'selected' : ''}>Content Completion</option>
+                                                <option value="topic_completion" ${template.category === 'topic_completion' ? 'selected' : ''}>Topic Completion</option>
+                                                <option value="course_completion" ${template.category === 'course_completion' ? 'selected' : ''}>Course Completion</option>
+                                                <option value="purchase_invoice" ${template.category === 'purchase_invoice' ? 'selected' : ''}>Purchase Invoice</option>
+                                                <option value="welcome_message" ${template.category === 'welcome_message' ? 'selected' : ''}>Welcome Message</option>
+                                                <option value="general_notification" ${template.category === 'general_notification' ? 'selected' : ''}>General Notification</option>
+                                                <option value="bulk_message" ${template.category === 'bulk_message' ? 'selected' : ''}>Bulk Message</option>
+                                                <option value="course_enrollment" ${template.category === 'course_enrollment' ? 'selected' : ''}>Course Enrollment</option>
+                                                <option value="bundle_enrollment" ${template.category === 'bundle_enrollment' ? 'selected' : ''}>Bundle Enrollment</option>
+                                            </select>
+                                            <div class="form-help">Select the appropriate category for this template</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="edit-form-group">
+                                        <label class="edit-form-label">
+                                            <i class="fas fa-heading"></i> Subject Line
+                                            <span class="required">*</span>
+                                        </label>
+                                        <input type="text" class="edit-form-control" name="subject" value="${template.subject}" required maxlength="200">
+                                        <div class="form-help">Brief subject line for the message</div>
+                                    </div>
+                                    
+                                    <div class="edit-form-group">
+                                        <label class="edit-form-label">
+                                            <i class="fas fa-comment"></i> Message Content
+                                            <span class="required">*</span>
+                                        </label>
+                                        <textarea class="edit-form-control" name="message" rows="8" required maxlength="2000">${template.message}</textarea>
+                                        <div class="form-help">
+                                            <div class="help-section">
+                                                <strong>Variable Usage:</strong> Use {{variableName}} format for dynamic content
+                                            </div>
+                                            <div class="help-section">
+                                                <strong>Common Variables:</strong>
+                                                <span class="variable-example">{{studentName}}</span>
+                                                <span class="variable-example">{{courseName}}</span>
+                                                <span class="variable-example">{{score}}</span>
+                                                <span class="variable-example">{{totalQuestions}}</span>
+                                                <span class="variable-example">{{completionDate}}</span>
+                                            </div>
+                                            <div class="help-section">
+                                                <strong>Character Count:</strong> <span id="messageCharCount">0</span>/2000
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="edit-form-group">
+                                        <label class="edit-form-label">
+                                            <i class="fas fa-toggle-on"></i> Template Status
+                                        </label>
+                                        <div class="status-toggle">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" name="isActive" ${template.isActive ? 'checked' : ''}>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                            <span class="toggle-label">Active Template</span>
+                                        </div>
+                                        <div class="form-help">Active templates can be used for sending messages</div>
+                                    </div>
+                                    
+                                    <div class="edit-form-group">
+                                        <label class="edit-form-label">
+                                            <i class="fas fa-sticky-note"></i> Notes (Optional)
+                                        </label>
+                                        <textarea class="edit-form-control" name="notes" rows="3" maxlength="500" placeholder="Add any notes about this template...">${template.notes || ''}</textarea>
+                                        <div class="form-help">Internal notes for this template (not visible to students)</div>
+                                    </div>
+                                </form>
+                                
+                                <div class="edit-preview-section">
+                                    <h6><i class="fas fa-eye"></i> Live Preview</h6>
+                                    <div class="preview-container">
+                                        <div class="preview-header">
+                                            <strong>Subject:</strong> <span id="previewSubject">${template.subject}</span>
+                                        </div>
+                                        <div class="preview-message" id="previewMessage">
+                                            ${template.message.replace(/\n/g, '<br>')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Add event listeners for live preview
+                        setupEditFormListeners();
+                        
+                    } else {
+                        document.getElementById('editTemplateContent').innerHTML = 
+                            '<div class="admin-empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Failed to load template</h4><p>Please try again later.</p></div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('editTemplateContent').innerHTML = 
+                        '<div class="admin-empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading template</h4><p>Please try again later.</p></div>';
+                });
+        }
+
+        // Setup edit form listeners
+        function setupEditFormListeners() {
+            const form = document.getElementById('editTemplateForm');
+            const messageTextarea = form.querySelector('textarea[name="message"]');
+            const subjectInput = form.querySelector('input[name="subject"]');
+            const charCount = document.getElementById('messageCharCount');
+            const previewSubject = document.getElementById('previewSubject');
+            const previewMessage = document.getElementById('previewMessage');
+            
+            // Character count for message
+            if (messageTextarea && charCount) {
+                messageTextarea.addEventListener('input', function() {
+                    const count = this.value.length;
+                    charCount.textContent = count;
+                    
+                    if (count > 1800) {
+                        charCount.style.color = '#ef4444';
+                    } else if (count > 1500) {
+                        charCount.style.color = '#f59e0b';
+                    } else {
+                        charCount.style.color = '#22c55e';
+                    }
+                    
+                    // Update preview
+                    if (previewMessage) {
+                        previewMessage.innerHTML = this.value.replace(/\n/g, '<br>');
+                    }
+                });
+                
+                // Initial count
+                charCount.textContent = messageTextarea.value.length;
+            }
+            
+            // Live preview for subject
+            if (subjectInput && previewSubject) {
+                subjectInput.addEventListener('input', function() {
+                    previewSubject.textContent = this.value;
+                });
+            }
+            
+            // Form validation
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                validateEditForm();
+            });
+        }
+        
+        // Validate edit form
+        function validateEditForm() {
+            const form = document.getElementById('editTemplateForm');
+            const formData = new FormData(form);
+            const errors = [];
+            
+            // Validate name
+            const name = formData.get('name').trim();
+            if (!name) {
+                errors.push('Template name is required');
+            } else if (name.length < 3) {
+                errors.push('Template name must be at least 3 characters');
+            }
+            
+            // Validate category
+            const category = formData.get('category');
+            if (!category) {
+                errors.push('Category is required');
+            }
+            
+            // Validate subject
+            const subject = formData.get('subject').trim();
+            if (!subject) {
+                errors.push('Subject is required');
+            } else if (subject.length < 5) {
+                errors.push('Subject must be at least 5 characters');
+            }
+            
+            // Validate message
+            const message = formData.get('message').trim();
+            if (!message) {
+                errors.push('Message content is required');
+            } else if (message.length < 10) {
+                errors.push('Message must be at least 10 characters');
+            } else if (message.length > 2000) {
+                errors.push('Message cannot exceed 2000 characters');
+            }
+            
+            // Check for valid variables
+            const variableRegex = /\{\{([^}]+)\}\}/g;
+            const variables = message.match(variableRegex);
+            if (variables) {
+                const invalidVars = variables.filter(variable => {
+                    const varName = variable.replace(/\{\{|\}\}/g, '');
+                    return !/^[a-zA-Z][a-zA-Z0-9_]*$/.test(varName);
+                });
+                if (invalidVars.length > 0) {
+                    errors.push('Invalid variable format: ' + invalidVars.join(', ') + '. Use {{variableName}} format');
+                }
+            }
+            
+            if (errors.length > 0) {
+                showValidationErrors(errors);
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Show validation errors
+        function showValidationErrors(errors) {
+            const errorHtml = errors.map(error => `<li>${error}</li>`).join('');
+            showNotification(`
+                <div class="validation-errors">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h6>
+                    <ul>${errorHtml}</ul>
+                </div>
+            `, 'error');
+        }
+        
+        // Save template changes
+        function saveTemplateChanges() {
+            if (!validateEditForm()) {
+                return;
+            }
+            
+            const form = document.getElementById('editTemplateForm');
+            const formData = new FormData(form);
+            const templateId = getCurrentEditingTemplateId();
+            
+            if (!templateId) {
+                showNotification('Template ID not found', 'error');
+                return;
+            }
+            
+            // Show loading state
+            const saveBtn = document.querySelector('#editTemplateModal .admin-action-btn.primary');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveBtn.disabled = true;
+            
+                fetch(`/admin/whatsapp/templates/${templateId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: formData.get('name'),
+                    category: formData.get('category'),
+                    subject: formData.get('subject'),
+                    message: formData.get('message'),
+                    isActive: formData.get('isActive') === 'on',
+                    notes: formData.get('notes')
+                })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                    showNotification('Template updated successfully!', 'success');
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editTemplateModal'));
+                    modal.hide();
+                    // Reload page to show changes
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showNotification('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                showNotification('An error occurred while saving', 'error');
+            })
+            .finally(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            });
+        }
+        
+        // Get current editing template ID (you'll need to store this when opening the modal)
+        let currentEditingTemplateId = null;
+        
+        function getCurrentEditingTemplateId() {
+            return currentEditingTemplateId;
+        }
+        
+        function setCurrentEditingTemplateId(templateId) {
+            currentEditingTemplateId = templateId;
+        }
+
+        // Update session overview in the stats card
+        function updateSessionOverview() {
+            fetch('/admin/whatsapp/session-status')
+                .then(response => response.json())
+                .then(data => {
+                    const indicator = document.getElementById('sessionIndicator');
+                    const statusText = document.getElementById('sessionStatusText');
+                    const statusNumber = document.getElementById('sessionStatusNumber');
+                    const sessionDetails = document.getElementById('sessionDetails');
+                    
+                    if (data.success && data.session) {
+                        const session = data.session;
+                        const status = session.status || 'DISCONNECTED';
+                        
+                        // Update indicator
+                        if (status === 'CONNECTED') {
+                            indicator.className = 'fas fa-circle text-success';
+                            statusText.textContent = 'Connected';
+                            statusNumber.textContent = '✓';
+                            sessionDetails.textContent = `Phone: ${session.phone_number || 'N/A'} | Last Active: ${session.last_active_at ? new Date(session.last_active_at).toLocaleDateString() : 'Never'}`;
+                        } else if (status === 'NEED_SCAN') {
+                            indicator.className = 'fas fa-circle text-warning';
+                            statusText.textContent = 'QR Required';
+                            statusNumber.textContent = '⚠';
+                            sessionDetails.textContent = `Session: ${session.name || 'Unknown'} | Status: Needs QR Code Scan`;
+                        } else {
+                            indicator.className = 'fas fa-circle text-danger';
+                            statusText.textContent = 'Disconnected';
+                            statusNumber.textContent = '✗';
+                            sessionDetails.textContent = `Session: ${session.name || 'Unknown'} | Status: ${status}`;
+                        }
+                    } else {
+                        indicator.className = 'fas fa-circle text-danger';
+                        statusText.textContent = 'No Session';
+                        statusNumber.textContent = '✗';
+                        sessionDetails.textContent = 'No active WhatsApp session found';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating session overview:', error);
+                    const indicator = document.getElementById('sessionIndicator');
+                    const statusText = document.getElementById('sessionStatusText');
+                    const statusNumber = document.getElementById('sessionStatusNumber');
+                    const sessionDetails = document.getElementById('sessionDetails');
+                    
+                    indicator.className = 'fas fa-circle text-danger';
+                    statusText.textContent = 'Error';
+                    statusNumber.textContent = '✗';
+                    sessionDetails.textContent = 'Failed to load session status';
+                });
+        }
+
+        // Refresh session status
+        function refreshSessionStatus() {
+            showNotification('Refreshing session status...', 'info');
+            loadSessionStatus();
+            loadSessionDetails();
+            updateSessionOverview();
+        }
+
+        // Preview template function
+        function previewTemplate(templateId) {
+            const modal = new bootstrap.Modal(document.getElementById('templatePreviewModal'));
+            modal.show();
+            
+            // Show loading state
+            document.getElementById('templatePreviewContent').innerHTML = `
+                <div class="admin-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading template preview...</span>
+                </div>
+            `;
+            
+            fetch(`/admin/whatsapp/templates/${templateId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.template) {
+                        const template = data.template;
+                        document.getElementById('templatePreviewContent').innerHTML = `
+                            <div class="template-preview">
+                                <div class="template-preview-header">
+                                    <h5>${template.name}</h5>
+                                    <span class="badge bg-primary">${template.category}</span>
+                                </div>
+                                <div class="template-preview-subject">
+                                    <strong>Subject:</strong> ${template.subject}
+                                </div>
+                                <div class="template-preview-message">
+                                    <strong>Message:</strong>
+                                    <div class="message-preview">
+                                        ${template.message.replace(/\n/g, '<br>')}
+                                    </div>
+                                </div>
+                                <div class="template-preview-variables">
+                                    <strong>Variables:</strong>
+                                    <div class="variables-list">
+                                        ${extractVariables(template.message).map(variable => 
+                                            `<span class="badge bg-secondary">${variable}</span>`
+                                        ).join(' ')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('templatePreviewContent').innerHTML = 
+                            '<div class="admin-empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Failed to load template</h4><p>Please try again later.</p></div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('templatePreviewContent').innerHTML = 
+                        '<div class="admin-empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Error loading template</h4><p>Please try again later.</p></div>';
+                });
+        }
+
+        // Extract variables from message template
+        function extractVariables(message) {
+            const variableRegex = /\{\{([^}]+)\}\}/g;
+            const variables = [];
+            let match;
+            
+            while ((match = variableRegex.exec(message)) !== null) {
+                if (!variables.includes(match[1])) {
+                    variables.push(match[1]);
+                }
+            }
+            
+            return variables;
+        }
+
+        // Send test message function
+        function sendTestMessage() {
+            showNotification('Test message functionality coming soon!', 'info');
+        }
+    </script>
+</body>
+</html>

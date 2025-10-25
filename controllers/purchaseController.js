@@ -5,6 +5,7 @@ const Course = require('../models/Course');
 const PromoCode = require('../models/PromoCode');
 const crypto = require('crypto');
 const paymobService = require('../utils/paymobService');
+const whatsappNotificationService = require('../utils/whatsappNotificationService');
 
 // Simple UUID v4 generator
 function generateUUID() {
@@ -838,6 +839,23 @@ const directCheckout = async (req, res) => {
     // Clear cart
     const clearedCount = clearCart(req, 'direct checkout');
 
+    // Send WhatsApp notification for direct checkout
+    try {
+      console.log('📱 Sending WhatsApp notification for direct checkout:', purchase.orderNumber);
+      await whatsappNotificationService.sendPurchaseInvoiceNotification(
+        user._id,
+        purchase
+      );
+      
+      // Mark WhatsApp notification as sent
+      purchase.whatsappNotificationSent = true;
+      await purchase.save();
+      console.log('✅ WhatsApp notification sent for direct checkout');
+    } catch (whatsappError) {
+      console.error('❌ WhatsApp notification error for direct checkout:', whatsappError);
+      // Don't fail the direct checkout if WhatsApp fails
+    }
+
     res.json({
       success: true,
       message: 'Payment processed successfully',
@@ -1322,8 +1340,6 @@ const handlePaymentSuccess = async (req, res) => {
     let merchantOrderId =
       req.query.merchantOrderId || req.query.merchant_order_id;
 
-    // Log all query parameters for debugging
-    console.log('Payment success callback received with params:', req.query);
 
     // If no merchant order ID in query, check if this is a Paymob redirect
     // Check for explicit failure indicators in URL parameters
@@ -1345,17 +1361,10 @@ const handlePaymentSuccess = async (req, res) => {
     if (!merchantOrderId && req.query.success === 'true') {
       // This is a Paymob redirect, extract merchant order ID from the transaction
       merchantOrderId = req.query.merchant_order_id;
-      console.log(
-        'Paymob redirect detected, merchant_order_id:',
-        merchantOrderId
-      );
     }
 
     if (!merchantOrderId) {
-      console.error(
-        'Payment success: No merchant order ID provided in any parameter'
-      );
-      console.error('Available parameters:', Object.keys(req.query));
+      console.error('Payment success: No merchant order ID provided');
       return res.render('payment-fail', {
         title: 'Payment Error | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -1371,10 +1380,7 @@ const handlePaymentSuccess = async (req, res) => {
       .populate('user');
 
     if (!purchase) {
-      console.error(
-        'Payment success: Purchase not found for merchant order ID:',
-        merchantOrderId
-      );
+      console.error('Payment success: Purchase not found');
       return res.render('payment-fail', {
         title: 'Payment Error | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -1388,18 +1394,13 @@ const handlePaymentSuccess = async (req, res) => {
       const transactionStatus = await paymobService.queryTransactionStatus(
         merchantOrderId
       );
-      console.log('Transaction status from Paymob:', transactionStatus);
 
       // Process the transaction status to determine if payment is truly successful
       if (transactionStatus) {
         const webhookData =
           paymobService.processWebhookPayload(transactionStatus);
-        console.log('Processed webhook data:', webhookData);
 
         if (webhookData.isFailed) {
-          console.log(
-            'Payment verification failed - transaction was not successful'
-          );
           return res.render('payment-fail', {
             title: 'Payment Failed | ELKABLY',
             theme: req.cookies.theme || 'light',
@@ -1418,7 +1419,6 @@ const handlePaymentSuccess = async (req, res) => {
 
     // If purchase is marked as failed, show failure page
     if (purchase.status === 'failed' || purchase.paymentStatus === 'failed') {
-      console.log('Purchase is marked as failed, redirecting to failure page');
       return res.render('payment-fail', {
         title: 'Payment Failed | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -1432,9 +1432,25 @@ const handlePaymentSuccess = async (req, res) => {
       purchase.status === 'completed' &&
       purchase.paymentStatus === 'completed'
     ) {
-      console.log(
-        'Purchase already completed, showing success page without clearing cart'
-      );
+
+      // Only send WhatsApp notification if not already sent
+      if (!purchase.whatsappNotificationSent) {
+        try {
+          console.log('📱 Sending WhatsApp notification for completed purchase:', purchase.orderNumber);
+          await whatsappNotificationService.sendPurchaseInvoiceNotification(
+            purchase.user._id,
+            purchase
+          );
+          
+          // Mark WhatsApp notification as sent
+          purchase.whatsappNotificationSent = true;
+          await purchase.save();
+          console.log('✅ WhatsApp notification sent and marked as sent');
+        } catch (whatsappError) {
+          console.error('❌ WhatsApp notification error:', whatsappError);
+          // Don't fail the payment success if WhatsApp fails
+        }
+      }
 
       return res.render('payment-success', {
         title: 'Payment Successful - Mr Kably',
@@ -1479,18 +1495,8 @@ const handlePaymentSuccess = async (req, res) => {
             purchase.orderNumber
           );
 
-          // Enroll user in the course
-          if (!user.isEnrolled(purchaseItem.item._id)) {
-            user.enrolledCourses.push({
-              course: purchaseItem.item._id,
-              enrolledAt: new Date(),
-              progress: 0,
-              lastAccessed: new Date(),
-              completedTopics: [],
-              status: 'active',
-            });
-            await user.save();
-          }
+          // Enroll user in the course using safe enrollment
+          await user.safeEnrollInCourse(purchaseItem.item._id);
         }
       }
 
@@ -1523,12 +1529,6 @@ const handlePaymentSuccess = async (req, res) => {
             promoCode.currentUses += 1;
             await promoCode.save();
             
-            console.log('Promo code usage tracked:', {
-              code: promoCode.code,
-              user: purchase.user._id,
-              purchase: purchase._id,
-              discountAmount: purchase.discountAmount
-            });
           }
         } catch (error) {
           console.error('Error tracking promo code usage:', error);
@@ -1536,13 +1536,26 @@ const handlePaymentSuccess = async (req, res) => {
       }
     }
 
-    console.log(
-      'Payment completed successfully for order:',
-      purchase.orderNumber
-    );
 
     // Clear the cart after successful payment
     clearCart(req, 'payment success page');
+
+    // Send WhatsApp notification to parent with invoice
+    try {
+      console.log('📱 Sending WhatsApp notification for new purchase:', purchase.orderNumber);
+      await whatsappNotificationService.sendPurchaseInvoiceNotification(
+        purchase.user._id,
+        purchase
+      );
+      
+      // Mark WhatsApp notification as sent
+      purchase.whatsappNotificationSent = true;
+      await purchase.save();
+      console.log('✅ WhatsApp notification sent and marked as sent');
+    } catch (whatsappError) {
+      console.error('❌ WhatsApp notification error:', whatsappError);
+      // Don't fail the payment success if WhatsApp fails
+    }
 
     res.render('payment-success', {
       title: 'Payment Successful - Mr Kably',
@@ -1625,14 +1638,11 @@ const handlePaymobWebhook = async (req, res) => {
     }
 
     const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
-    console.log('Paymob webhook received:', JSON.stringify(payload, null, 2));
-    console.log('Webhook query parameters:', req.query);
 
     // Process webhook payload with query parameters (for comprehensive detection like standalone app)
     const webhookData = paymobService.processWebhookPayload(payload, req.query);
 
     if (!webhookData.merchantOrderId) {
-      console.warn('Webhook: No merchant order ID found in payload');
       return res.status(400).send('Bad Request');
     }
 
@@ -1642,27 +1652,15 @@ const handlePaymobWebhook = async (req, res) => {
     }).populate('user');
 
     if (!purchase) {
-      console.warn(
-        'Webhook: Purchase not found for merchant order ID:',
-        webhookData.merchantOrderId
-      );
       return res.status(404).send('Purchase not found');
     }
 
     // Only process if current status is pending
     if (purchase.status !== 'pending') {
-      console.log(
-        'Webhook: Purchase already processed, skipping:',
-        purchase.orderNumber
-      );
       return res.status(200).send('OK');
     }
 
     if (webhookData.isSuccess) {
-      console.log(
-        'Webhook: Payment successful for order:',
-        purchase.orderNumber
-      );
 
       // Update purchase status
       purchase.status = 'completed';
@@ -1753,18 +1751,38 @@ const handlePaymobWebhook = async (req, res) => {
           }
         }
       }
+
+      // Send WhatsApp notification for successful webhook payment
+      // try {
+      //   console.log(`[Webhook] Starting WhatsApp notification for webhook payment: ${purchase.orderNumber}`);
+      //   console.log(`[Webhook] User ID: ${purchase.user._id}`);
+        
+      //   const invoiceUrl = await whatsappNotificationService.generateAndUploadInvoice(purchase);
+      //   console.log(`[Webhook] Invoice URL generated: ${invoiceUrl}`);
+        
+      //   const whatsappResult = await whatsappNotificationService.sendPurchaseInvoiceNotification(
+      //     purchase.user._id,
+      //     purchase,
+      //     invoiceUrl
+      //   );
+        
+      //   if (whatsappResult.success) {
+      //     console.log(`[Webhook] ✅ WhatsApp notification sent successfully for webhook payment: ${purchase.orderNumber}`);
+      //   } else {
+      //     console.error(`[Webhook] ❌ WhatsApp notification failed for webhook payment: ${purchase.orderNumber}`);
+      //     console.error(`[Webhook] ❌ WhatsApp error:`, whatsappResult.message);
+      //   }
+      // } catch (whatsappError) {
+      //   console.error(`[Webhook] ❌ WhatsApp notification exception for webhook payment: ${purchase.orderNumber}`, whatsappError);
+      //   // Don't fail the webhook if WhatsApp fails
+      // }
     } else if (webhookData.isFailed) {
-      console.log('Webhook: Payment failed for order:', purchase.orderNumber);
 
       purchase.status = 'failed';
       purchase.paymentStatus = 'failed';
       purchase.paymentGatewayResponse = webhookData.rawPayload;
       await purchase.save();
     } else {
-      console.log(
-        'Webhook: Payment status pending/unknown for order:',
-        purchase.orderNumber
-      );
       // Keep as pending for now
     }
 

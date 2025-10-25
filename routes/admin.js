@@ -3,7 +3,6 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const { isAdmin } = require('../middlewares/auth');
-const { upload } = require('../utils/s3Service');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -31,9 +30,8 @@ const uploadFile = multer({
 });
 
 const {
-  testS3,
-  uploadDocument,
   getAdminDashboard,
+  getDashboardChartData,
   getCourses,
   createCourse,
   getCourse,
@@ -120,6 +118,8 @@ const {
   getStudentsForEnrollment,
   removeStudentFromCourse,
   removeStudentFromBundle,
+  // Duplicate Cleanup
+  cleanupUserDuplicates,
   // Promo Codes Management
   getPromoCodes,
   getPromoCode,
@@ -155,8 +155,28 @@ const {
   exportTeamMembers,
 } = require('../controllers/authController');
 
+// Import WhatsApp Controllers
+const {
+  getWhatsAppDashboard,
+  getSessionManagement,
+  createSession,
+  connectSession,
+  getQRCode,
+  disconnectSession,
+  deleteSession,
+  sendBulkMessage,
+  sendTestMessage,
+  getStudentsForMessaging,
+  getCoursesForMessaging,
+  getBundlesForMessaging,
+  getSessionStatus,
+  getSessionDetails,
+  testInvoiceGeneration
+} = require('../controllers/whatsappController');
+
 // Admin Dashboard
 router.get('/dashboard', isAdmin, getAdminDashboard);
+router.get('/dashboard/chart-data', isAdmin, getDashboardChartData);
 
 // Course Routes
 router.get('/courses', isAdmin, getCourses);
@@ -246,9 +266,6 @@ router.post(
   addHomeworkContent
 );
 
-// Document Upload Routes (S3)
-router.get('/test-s3', isAdmin, testS3);
-router.post('/upload/document', isAdmin, upload.single('file'), uploadDocument);
 
 // Bundle Course Routes
 router.get('/bundles', isAdmin, getBundles);
@@ -368,5 +385,24 @@ router.post('/promo-codes/create', isAdmin, createPromoCode);
 router.get('/promo-codes/:id/usage', isAdmin, getPromoCodeUsage);
 router.put('/promo-codes/:id/update', isAdmin, updatePromoCode);
 router.delete('/promo-codes/:id/delete', isAdmin, deletePromoCode);
+
+// WhatsApp Management Routes
+router.get('/whatsapp', isAdmin, getWhatsAppDashboard);
+router.get('/whatsapp/sessions', isAdmin, getSessionManagement);
+router.post('/whatsapp/sessions', isAdmin, createSession);
+router.post('/whatsapp/sessions/:sessionId/connect', isAdmin, connectSession);
+router.get('/whatsapp/sessions/:sessionId/qrcode', isAdmin, getQRCode);
+router.post('/whatsapp/sessions/:sessionId/disconnect', isAdmin, disconnectSession);
+router.delete('/whatsapp/sessions/:sessionId', isAdmin, deleteSession);
+router.post('/whatsapp/bulk-message', isAdmin, sendBulkMessage);
+router.post('/whatsapp/test-message', isAdmin, sendTestMessage);
+router.get('/whatsapp/students', isAdmin, getStudentsForMessaging);
+router.get('/whatsapp/courses', isAdmin, getCoursesForMessaging);
+router.get('/whatsapp/bundles', isAdmin, getBundlesForMessaging);
+router.get('/whatsapp/session-status', isAdmin, getSessionStatus);
+router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
+
+// Duplicate cleanup routes
+router.post('/cleanup-duplicates/:userId', isAdmin, cleanupUserDuplicates);
 
 module.exports = router;

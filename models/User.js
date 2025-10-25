@@ -524,6 +524,60 @@ UserSchema.pre('save', async function (next) {
   next();
 });
 
+// Pre-save middleware to prevent duplicate enrollments
+UserSchema.pre('save', async function (next) {
+  if (this.isModified('enrolledCourses')) {
+    // Remove duplicate course enrollments
+    const seenCourses = new Set();
+    this.enrolledCourses = this.enrolledCourses.filter(enrollment => {
+      if (!enrollment.course) return false;
+      const courseId = enrollment.course.toString();
+      if (seenCourses.has(courseId)) {
+        console.log(`Removing duplicate enrollment for course: ${courseId}`);
+        return false;
+      }
+      seenCourses.add(courseId);
+      return true;
+    });
+  }
+  next();
+});
+
+// Pre-save middleware to prevent duplicate purchases
+UserSchema.pre('save', async function (next) {
+  if (this.isModified('purchasedCourses')) {
+    // Remove duplicate course purchases
+    const seenCourses = new Set();
+    this.purchasedCourses = this.purchasedCourses.filter(purchase => {
+      if (!purchase.course) return false;
+      const courseId = purchase.course.toString();
+      if (seenCourses.has(courseId)) {
+        console.log(`Removing duplicate course purchase: ${courseId}`);
+        return false;
+      }
+      seenCourses.add(courseId);
+      return true;
+    });
+  }
+  
+  if (this.isModified('purchasedBundles')) {
+    // Remove duplicate bundle purchases
+    const seenBundles = new Set();
+    this.purchasedBundles = this.purchasedBundles.filter(purchase => {
+      if (!purchase.bundle) return false;
+      const bundleId = purchase.bundle.toString();
+      if (seenBundles.has(bundleId)) {
+        console.log(`Removing duplicate bundle purchase: ${bundleId}`);
+        return false;
+      }
+      seenBundles.add(bundleId);
+      return true;
+    });
+  }
+  
+  next();
+});
+
 // Compare password
 UserSchema.methods.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
@@ -1122,6 +1176,29 @@ UserSchema.methods.addPurchasedBundle = async function (
   return await this.save();
 };
 
+// Instance method to safely enroll in a course (prevents duplicates)
+UserSchema.methods.safeEnrollInCourse = async function (courseId) {
+  // Check if already enrolled
+  const isAlreadyEnrolled = this.isEnrolled(courseId);
+  
+  if (isAlreadyEnrolled) {
+    console.log('Course already enrolled, skipping duplicate:', courseId);
+    return this;
+  }
+
+  this.enrolledCourses.push({
+    course: courseId,
+    enrolledAt: new Date(),
+    progress: 0,
+    lastAccessed: new Date(),
+    completedTopics: [],
+    status: 'active',
+    contentProgress: []
+  });
+
+  return await this.save();
+};
+
 // Instance method to enroll in all courses from a bundle
 UserSchema.methods.enrollInBundleCourses = async function (bundle) {
   if (!bundle.courses || bundle.courses.length === 0) {
@@ -1129,24 +1206,10 @@ UserSchema.methods.enrollInBundleCourses = async function (bundle) {
   }
 
   for (const course of bundle.courses) {
-    // Check if already enrolled before adding
-    const isAlreadyEnrolled = this.isEnrolled(course._id || course);
-    
-    if (!isAlreadyEnrolled) {
-      this.enrolledCourses.push({
-        course: course._id || course,
-        enrolledAt: new Date(),
-        progress: 0,
-        lastAccessed: new Date(),
-        completedTopics: [],
-        status: 'active',
-      });
-    } else {
-      console.log('Course already enrolled, skipping duplicate:', course._id || course);
-    }
+    await this.safeEnrollInCourse(course._id || course);
   }
 
-  return await this.save();
+  return this;
 };
 
 // Instance method to get total spent
@@ -1265,27 +1328,51 @@ UserSchema.methods.updateContentProgress = async function (
   // Calculate overall course progress based on actual completion percentages
   await this.calculateCourseProgress(courseId);
 
-  // Update topic completion
-  const topicProgress = enrollment.contentProgress.filter(
-    (cp) => cp.topicId.toString() === topicId.toString()
-  );
-  const topicCompletedContent = topicProgress.filter(
-    (cp) => cp.completionStatus === 'completed'
-  ).length;
+  // Update topic completion - check against ALL content in the topic, not just tracked content
+  const Topic = require('./Topic');
+  const topic = await Topic.findById(topicId);
+  
+  if (topic && topic.content && topic.content.length > 0) {
+    const topicProgress = enrollment.contentProgress.filter(
+      (cp) => cp.topicId.toString() === topicId.toString()
+    );
+    const topicCompletedContent = topicProgress.filter(
+      (cp) => cp.completionStatus === 'completed'
+    ).length;
 
-  if (
-    topicCompletedContent === topicProgress.length &&
-    topicProgress.length > 0
-  ) {
-    if (!enrollment.completedTopics.includes(topicId)) {
+    // Only mark topic as completed if ALL content items in the topic are completed
+    if (
+      topicCompletedContent === topic.content.length &&
+      topic.content.length > 0
+    ) {
+      if (!enrollment.completedTopics.includes(topicId)) {
       enrollment.completedTopics.push(topicId);
+      
+      // Send WhatsApp notification for topic completion
+      try {
+        const whatsappNotificationService = require('../utils/whatsappNotificationService');
+        const Course = require('./Course');
+        const Topic = require('./Topic');
+        
+        const course = await Course.findById(courseId);
+        const topic = await Topic.findById(topicId);
+        
+        if (course && topic) {
+          await whatsappNotificationService.sendTopicCompletionNotification(
+            this._id,
+            topic,
+            course
+          );
+        }
+      } catch (whatsappError) {
+        console.error('WhatsApp topic completion notification error:', whatsappError);
+        // Don't fail the progress update if WhatsApp fails
+      }
+      }
     }
   }
 
-  // Mark course as completed if all content is completed
-  if (enrollment.progress === 100) {
-    enrollment.status = 'completed';
-  }
+  // Course completion is now handled in calculateCourseProgress method
 
   return await this.save();
 };
@@ -1594,6 +1681,7 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
   // Calculate progress based on actual completion percentages
   let totalProgress = 0;
   let contentCount = 0;
+  let completedContentCount = 0;
 
   allContentItems.forEach((contentItem) => {
     const contentProgress = enrollment.contentProgress.find(
@@ -1603,6 +1691,10 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
     if (contentProgress) {
       // Use actual progress percentage
       totalProgress += contentProgress.progressPercentage || 0;
+      // Count completed content
+      if (contentProgress.completionStatus === 'completed') {
+        completedContentCount++;
+      }
     } else {
       // If no progress recorded, it's 0%
       totalProgress += 0;
@@ -1617,9 +1709,27 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
   // Update enrollment progress
   enrollment.progress = averageProgress;
 
-  // Mark course as completed if progress is 100%
-  if (averageProgress === 100) {
+  // Mark course as completed if ALL content is completed OR if progress is 100%
+  if (completedContentCount === contentCount && contentCount > 0 || averageProgress >= 100) {
     enrollment.status = 'completed';
+    
+    // Send WhatsApp notification for course completion
+    try {
+      const whatsappNotificationService = require('../utils/whatsappNotificationService');
+      const Course = require('./Course');
+      
+      const course = await Course.findById(courseId);
+      
+      if (course) {
+        await whatsappNotificationService.sendCourseCompletionNotification(
+          this._id,
+          course
+        );
+      }
+    } catch (whatsappError) {
+      console.error('WhatsApp course completion notification error:', whatsappError);
+      // Don't fail the progress update if WhatsApp fails
+    }
   } else if (enrollment.status === 'completed' && averageProgress < 100) {
     enrollment.status = 'active';
   }
@@ -1759,6 +1869,69 @@ UserSchema.methods.resetQuizAttempts = async function (quizId) {
     console.error('Error resetting quiz attempts:', error);
     return { success: false, message: 'Failed to reset quiz attempts' };
   }
+};
+
+// Instance method to clean up duplicate enrollments and purchases
+UserSchema.methods.cleanupDuplicates = async function () {
+  let duplicatesRemoved = 0;
+  
+  // Clean up duplicate course enrollments
+  const seenEnrollments = new Set();
+  const originalEnrollmentsLength = this.enrolledCourses.length;
+  
+  this.enrolledCourses = this.enrolledCourses.filter(enrollment => {
+    if (!enrollment.course) return false;
+    const courseId = enrollment.course.toString();
+    if (seenEnrollments.has(courseId)) {
+      duplicatesRemoved++;
+      return false;
+    }
+    seenEnrollments.add(courseId);
+    return true;
+  });
+  
+  // Clean up duplicate course purchases
+  const seenCoursePurchases = new Set();
+  const originalCoursePurchasesLength = this.purchasedCourses.length;
+  
+  this.purchasedCourses = this.purchasedCourses.filter(purchase => {
+    if (!purchase.course) return false;
+    const courseId = purchase.course.toString();
+    if (seenCoursePurchases.has(courseId)) {
+      duplicatesRemoved++;
+      return false;
+    }
+    seenCoursePurchases.add(courseId);
+    return true;
+  });
+  
+  // Clean up duplicate bundle purchases
+  const seenBundlePurchases = new Set();
+  const originalBundlePurchasesLength = this.purchasedBundles.length;
+  
+  this.purchasedBundles = this.purchasedBundles.filter(purchase => {
+    if (!purchase.bundle) return false;
+    const bundleId = purchase.bundle.toString();
+    if (seenBundlePurchases.has(bundleId)) {
+      duplicatesRemoved++;
+      return false;
+    }
+    seenBundlePurchases.add(bundleId);
+    return true;
+  });
+  
+  if (duplicatesRemoved > 0) {
+    await this.save();
+    console.log(`Cleaned up ${duplicatesRemoved} duplicates for user ${this._id}`);
+  }
+  
+  return {
+    success: true,
+    duplicatesRemoved,
+    enrollmentsRemoved: originalEnrollmentsLength - this.enrolledCourses.length,
+    coursePurchasesRemoved: originalCoursePurchasesLength - this.purchasedCourses.length,
+    bundlePurchasesRemoved: originalBundlePurchasesLength - this.purchasedBundles.length
+  };
 };
 
 module.exports = mongoose.model('User', UserSchema);

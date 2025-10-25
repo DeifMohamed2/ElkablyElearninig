@@ -89,6 +89,21 @@
                   </div>
                 </div>
                 
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fab fa-whatsapp"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">WhatsApp</span>
+                    <span class="meta-card-value <%= dashboardData.whatsappStatus === 'connected' ? 'status-connected' : 'status-disconnected' %>" id="whatsappStatusValue">
+                      <%= dashboardData.whatsappStatus === 'connected' ? 'Connected' : 'Disconnected' %>
+                    </span>
+                    <button class="meta-card-refresh" onclick="updateWhatsAppStatusInHeader()" title="Refresh WhatsApp Status">
+                      <i class="fas fa-sync-alt"></i>
+                    </button>
+                  </div>
+                </div>
+                
               </div>
               
        
@@ -142,10 +157,10 @@
                 +<%= dashboardData.revenue.growth || 15 %>%
               </div>
             </div>
-            <h3 class="admin-stat-number">$<%= dashboardData.revenue.total || 0 %></h3>
+            <h3 class="admin-stat-number">EGP <%= dashboardData.revenue.total || 0 %></h3>
             <p class="admin-stat-label">Total Revenue</p>
             <div class="admin-stat-details">
-              <small>This month: $<%= dashboardData.revenue.thisMonth || 0 %> | Orders: <%= dashboardData.revenue.orders || 0 %></small>
+              <small>This month: EGP <%= dashboardData.revenue.thisMonth || 0 %> | Orders: <%= dashboardData.revenue.orders || 0 %></small>
             </div>
           </div>
           
@@ -182,7 +197,9 @@
               <small>EST: <%= dashboardData.brilliantStudents.est || 0 %> | DSAT: <%= dashboardData.brilliantStudents.dsat || 0 %> | ACT: <%= dashboardData.brilliantStudents.act || 0 %></small>
             </div>
           </div>
+
         </div>
+        
         
         <!-- Analytics Charts Grid -->
         <div class="admin-charts-grid">
@@ -212,7 +229,7 @@
               </div>
             </div>
             <div class="chart-loading" id="revenueChartLoading">
-              <i class="fas fa-dollar-sign"></i>
+              <i class="fas fa-coins"></i>
               <span>Loading revenue data...</span>
             </div>
             <canvas id="revenueChart" class="chart-canvas" style="display: none;"></canvas>
@@ -292,29 +309,31 @@
               <h3 class="admin-chart-title">Recent Activity</h3>
             </div>
             
-            <% if (dashboardData.recentActivity && dashboardData.recentActivity.length > 0) { %>
-              <% dashboardData.recentActivity.forEach((activity, index) => { %>
+            <div class="admin-activity-content">
+              <% if (dashboardData.recentActivity && dashboardData.recentActivity.length > 0) { %>
+                <% dashboardData.recentActivity.forEach((activity, index) => { %>
+                  <div class="admin-activity-item">
+                    <div class="admin-activity-icon">
+                      <i class="fas fa-<%= activity.icon %>"></i>
+                    </div>
+                    <div class="admin-activity-content">
+                      <p class="admin-activity-text"><%= activity.message %></p>
+                      <p class="admin-activity-time"><%= activity.time %></p>
+                    </div>
+                  </div>
+                <% }); %>
+              <% } else { %>
                 <div class="admin-activity-item">
                   <div class="admin-activity-icon">
-                    <i class="fas fa-<%= activity.icon %>"></i>
+                    <i class="fas fa-info-circle"></i>
                   </div>
                   <div class="admin-activity-content">
-                    <p class="admin-activity-text"><%= activity.message %></p>
-                    <p class="admin-activity-time"><%= activity.time %></p>
+                    <p class="admin-activity-text">No recent activity to display</p>
+                    <p class="admin-activity-time">Check back later for updates</p>
                   </div>
                 </div>
-              <% }); %>
-            <% } else { %>
-              <div class="admin-activity-item">
-                <div class="admin-activity-icon">
-                  <i class="fas fa-info-circle"></i>
-                </div>
-                <div class="admin-activity-content">
-                  <p class="admin-activity-text">No recent activity to display</p>
-                  <p class="admin-activity-time">Check back later for updates</p>
-                </div>
-              </div>
-            <% } %>
+              <% } %>
+            </div>
           </div>
         </div>
         
@@ -339,218 +358,419 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeCourseFilters();
 });
 
+// Global chart instances
+let growthChartInstance = null;
+let revenueChartInstance = null;
+let engagementChartInstance = null;
+
 // Chart initialization with real data
 function initializeCharts() {
     // Get real data from the server
     const dashboardData = <%- JSON.stringify(dashboardData) %>;
     
-    // Growth Chart
-    setTimeout(() => {
-        const growthCtx = document.getElementById('growthChart');
-        if (growthCtx) {
-            document.getElementById('growthChartLoading').style.display = 'none';
-            growthCtx.style.display = 'block';
-            
-            // Prepare growth data
-            const growthData = dashboardData.charts.studentGrowth || [];
-            const labels = growthData.map(item => {
-                const date = new Date(item._id);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            const data = growthData.map(item => item.count);
-            
-            // If no data, use default
-            const chartLabels = labels.length > 0 ? labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const chartData = data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
-            
-            new Chart(growthCtx, {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: 'New Students',
-                        data: chartData,
-                        borderColor: '#B80101',
-                        backgroundColor: 'rgba(184, 1, 1, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#B80101',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            },
-                            ticks: {
-                                stepSize: 1
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
+    // Initialize with 30 days period by default
+    loadChartData(30, dashboardData);
+}
+
+// Load chart data from API
+async function loadChartData(days = 30, cachedData = null) {
+    try {
+        // Show loading states
+        document.getElementById('growthChartLoading').style.display = 'flex';
+        document.getElementById('revenueChartLoading').style.display = 'flex';
+        document.getElementById('growthChart').style.display = 'none';
+        document.getElementById('revenueChart').style.display = 'none';
+        
+        // Fetch data from API
+        const response = await fetch(`/admin/dashboard/chart-data?days=${days}`);
+        const data = await response.json();
+        
+        // Update charts with new data
+        updateGrowthChart(data.studentGrowth || []);
+        updateRevenueChart(data.revenueData || []);
+        updateEngagementChart(cachedData || data);
+        
+    } catch (error) {
+        console.error('Error loading chart data:', error);
+        // Fallback to cached data if available
+        if (cachedData) {
+            updateGrowthChart(cachedData.charts?.studentGrowth || []);
+            updateRevenueChart(cachedData.charts?.revenueData || []);
+            updateEngagementChart(cachedData);
         }
-    }, 1000);
+    }
+}
+
+// Update Growth Chart
+function updateGrowthChart(growthData) {
+    const growthCtx = document.getElementById('growthChart');
+    if (!growthCtx) return;
     
-    // Revenue Chart
-    setTimeout(() => {
-        const revenueCtx = document.getElementById('revenueChart');
-        if (revenueCtx) {
-            document.getElementById('revenueChartLoading').style.display = 'none';
-            revenueCtx.style.display = 'block';
-            
-            // Prepare revenue data
-            const revenueData = dashboardData.charts.revenueData || [];
-            const labels = revenueData.map(item => {
-                const date = new Date(item._id);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            const data = revenueData.map(item => item.total);
-            
-            // If no data, use default
-            const chartLabels = labels.length > 0 ? labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const chartData = data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
-            
-            new Chart(revenueCtx, {
-                type: 'bar',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: 'Revenue ($)',
-                        data: chartData,
-                        backgroundColor: 'rgba(184, 1, 1, 0.8)',
-                        borderColor: '#B80101',
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        borderSkipped: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value;
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    }, 1500);
+    document.getElementById('growthChartLoading').style.display = 'none';
+    growthCtx.style.display = 'block';
     
-    // Engagement Chart
-    setTimeout(() => {
-        const engagementCtx = document.getElementById('engagementChart');
-        if (engagementCtx) {
-            document.getElementById('engagementChartLoading').style.display = 'none';
-            engagementCtx.style.display = 'block';
-            
-            // Calculate engagement data from real stats
-            const totalStudents = dashboardData.students.total || 0;
-            const activeStudents = dashboardData.students.active || 0;
-            const newStudents = dashboardData.students.newThisMonth || 0;
-            const inactiveStudents = Math.max(0, totalStudents - activeStudents - newStudents);
-            
-            new Chart(engagementCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Active Students', 'Inactive Students', 'New Students'],
-                    datasets: [{
-                        data: [activeStudents, inactiveStudents, newStudents],
-                        backgroundColor: [
-                            '#B80101',
-                            '#dc2626',
-                            '#f59e0b'
-                        ],
-                        borderWidth: 3,
-                        borderColor: '#ffffff',
-                        hoverOffset: 8,
-                        hoverBorderWidth: 4
-                    }]
+    // Prepare data
+    const labels = growthData.map(item => {
+        const date = new Date(item._id);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    const data = growthData.map(item => item.count);
+    
+    // If no data, create placeholder
+    let chartLabels = labels.length > 0 ? labels : [];
+    let chartData = data.length > 0 ? data : [];
+    
+    if (chartLabels.length === 0) {
+        chartLabels = ['No Data'];
+        chartData = [0];
+    }
+    
+    // Destroy existing chart if it exists
+    if (growthChartInstance) {
+        growthChartInstance.destroy();
+    }
+    
+    // Create new chart
+    growthChartInstance = new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'New Students',
+                data: chartData,
+                borderColor: '#B80101',
+                backgroundColor: 'rgba(184, 1, 1, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#B80101',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointHoverBorderWidth: 3,
+                borderJoinStyle: 'round',
+                borderCapStyle: 'round'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: false
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '60%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                font: {
-                                    size: 14,
-                                    weight: '600'
-                                },
-                                color: '#1e293b'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleColor: '#ffffff',
-                            bodyColor: '#ffffff',
-                            borderColor: '#B80101',
-                            borderWidth: 1,
-                            cornerRadius: 8,
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
-                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
-                                }
-                            }
-                        }
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#B80101',
+                    borderWidth: 2,
+                    cornerRadius: 8,
+                    displayColors: true,
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
                     },
-                    layout: {
-                        padding: {
-                            top: 10,
-                            bottom: 10,
-                            left: 10,
-                            right: 10
+                    bodyFont: {
+                        size: 13
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return `New Students: ${context.parsed.y}`;
                         }
                     }
                 }
-            });
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        stepSize: 1,
+                        font: {
+                            size: 11
+                        },
+                        color: '#6b7280'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        color: '#6b7280'
+                    }
+                }
+            }
         }
-    }, 2000);
+    });
+}
+
+// Update Revenue Chart
+function updateRevenueChart(revenueData) {
+    const revenueCtx = document.getElementById('revenueChart');
+    if (!revenueCtx) return;
+    
+    document.getElementById('revenueChartLoading').style.display = 'none';
+    revenueCtx.style.display = 'block';
+    
+    // Prepare data
+    const labels = revenueData.map(item => {
+        const date = new Date(item._id);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    const data = revenueData.map(item => item.total);
+    
+    // If no data, create placeholder
+    let chartLabels = labels.length > 0 ? labels : [];
+    let chartData = data.length > 0 ? data : [];
+    
+    if (chartLabels.length === 0) {
+        chartLabels = ['No Data'];
+        chartData = [0];
+    }
+    
+    // Destroy existing chart if it exists
+    if (revenueChartInstance) {
+        revenueChartInstance.destroy();
+    }
+    
+    // Create new chart
+    revenueChartInstance = new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Revenue (EGP)',
+                data: chartData,
+                backgroundColor: 'rgba(184, 1, 1, 0.8)',
+                borderColor: '#B80101',
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+                hoverBackgroundColor: 'rgba(184, 1, 1, 1)',
+                hoverBorderColor: '#ffffff',
+                hoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#B80101',
+                    borderWidth: 2,
+                    cornerRadius: 8,
+                    displayColors: true,
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return `Revenue: EGP ${context.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return 'EGP ' + value.toFixed(0);
+                        },
+                        font: {
+                            size: 11
+                        },
+                        color: '#6b7280'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        color: '#6b7280'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update Engagement Chart
+function updateEngagementChart(dashboardData) {
+    const engagementCtx = document.getElementById('engagementChart');
+    if (!engagementCtx) return;
+    
+    document.getElementById('engagementChartLoading').style.display = 'none';
+    engagementCtx.style.display = 'block';
+    
+    // Calculate engagement data from real stats
+    const totalStudents = dashboardData.students.total || 0;
+    const activeStudents = dashboardData.students.active || 0;
+    const newStudents = dashboardData.students.newThisMonth || 0;
+    const inactiveStudents = Math.max(0, totalStudents - activeStudents - newStudents);
+    
+    // Destroy existing chart if it exists
+    if (engagementChartInstance) {
+        engagementChartInstance.destroy();
+    }
+    
+    // Create new chart with high DPI support
+    engagementChartInstance = new Chart(engagementCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active Students', 'Inactive Students', 'New Students'],
+            datasets: [{
+                data: [activeStudents, inactiveStudents, newStudents],
+                backgroundColor: [
+                    '#10b981',
+                    '#ef4444',
+                    '#f59e0b'
+                ],
+                borderWidth: 4,
+                borderColor: '#ffffff',
+                hoverOffset: 12,
+                hoverBorderWidth: 6,
+                hoverBackgroundColor: [
+                    '#059669',
+                    '#dc2626',
+                    '#d97706'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '50%',
+            devicePixelRatio: window.devicePixelRatio || 1,
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 1000,
+                easing: 'easeOutQuart'
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    align: 'center',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: {
+                            size: 12,
+                            weight: '600',
+                            family: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+                        },
+                        color: '#1e293b',
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const dataset = data.datasets[0];
+                                    const value = dataset.data[i];
+                                    const total = dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    
+                                    return {
+                                        text: `${label}: ${value} (${percentage}%)`,
+                                        fillStyle: dataset.backgroundColor[i],
+                                        strokeStyle: dataset.borderColor,
+                                        lineWidth: dataset.borderWidth,
+                                        pointStyle: 'circle',
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    enabled: true,
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#B80101',
+                    borderWidth: 2,
+                    cornerRadius: 12,
+                    displayColors: true,
+                    padding: 16,
+                    titleFont: {
+                        size: 16,
+                        weight: 'bold',
+                        family: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+                    },
+                    bodyFont: {
+                        size: 14,
+                        weight: '500',
+                        family: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+                    },
+                    callbacks: {
+                        title: function(context) {
+                            return context[0].label;
+                        },
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+                            return `${context.parsed} students (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 4,
+                    borderColor: '#ffffff'
+                }
+            }
+        }
+    });
 }
 
 // Chart period controls
@@ -572,14 +792,17 @@ function initializeChartControls() {
 
 // Update charts for different periods
 function updateChartsForPeriod(period) {
-    // This would typically make an API call to get new data
-    console.log('Updating charts for period:', period);
+    // Map period buttons to days
+    const periodDays = {
+        '7d': 7,
+        '30d': 30,
+        '90d': 90
+    };
     
-    // Simulate data update
-    setTimeout(() => {
-        // Update chart data here
-        console.log('Charts updated for period:', period);
-    }, 500);
+    const days = periodDays[period] || 30;
+    
+    // Load chart data for the selected period
+    loadChartData(days);
 }
 
 // Course filters
@@ -818,5 +1041,127 @@ function getChartColors() {
         background: isDark ? 'rgba(26, 31, 46, 0.5)' : 'rgba(255, 255, 255, 0.5)',
         grid: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
     };
+}
+
+// WhatsApp Status Functions
+function refreshWhatsAppStatus() {
+    showNotification('Refreshing WhatsApp status...', 'info');
+    loadWhatsAppSessionStatus();
+}
+
+function testWhatsAppConnection() {
+    showNotification('Testing WhatsApp connection...', 'info');
+    
+    fetch('/admin/whatsapp/session-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.session) {
+                showNotification('✅ WhatsApp connection is active!', 'success');
+                updateWhatsAppSessionDisplay(data.session);
+            } else {
+                showNotification('❌ WhatsApp connection failed or no active session', 'error');
+                updateWhatsAppSessionDisplay(null);
+            }
+        })
+        .catch(error => {
+            console.error('Error testing WhatsApp connection:', error);
+            showNotification('❌ Error testing WhatsApp connection', 'error');
+            updateWhatsAppSessionDisplay(null);
+        });
+}
+
+function loadWhatsAppSessionStatus() {
+    fetch('/admin/whatsapp/session-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.session) {
+                updateWhatsAppSessionDisplay(data.session);
+            } else {
+                updateWhatsAppSessionDisplay(null);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading WhatsApp session status:', error);
+            updateWhatsAppSessionDisplay(null);
+        });
+}
+
+function updateWhatsAppSessionDisplay(session) {
+    const statusElement = document.getElementById('whatsappSessionStatus');
+    const detailsElement = document.getElementById('whatsappSessionDetails');
+    
+    if (session) {
+        const status = session.status || 'DISCONNECTED';
+        let statusText = '';
+        let statusClass = '';
+        
+        switch (status) {
+            case 'CONNECTED':
+                statusText = '✓';
+                statusClass = 'text-success';
+                break;
+            case 'NEED_SCAN':
+                statusText = '⚠';
+                statusClass = 'text-warning';
+                break;
+            default:
+                statusText = '✗';
+                statusClass = 'text-danger';
+        }
+        
+        if (statusElement) {
+            statusElement.textContent = statusText;
+            statusElement.className = `whatsapp-status-number ${statusClass}`;
+        }
+        
+        if (detailsElement) {
+            detailsElement.textContent = `Phone: ${session.phone_number || 'N/A'} | Status: ${status}`;
+        }
+    } else {
+        if (statusElement) {
+            statusElement.textContent = '✗';
+            statusElement.className = 'whatsapp-status-number text-danger';
+        }
+        
+        if (detailsElement) {
+            detailsElement.textContent = 'No active WhatsApp session found';
+        }
+    }
+}
+
+// Load WhatsApp status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load WhatsApp session status after a short delay to ensure page is ready
+    setTimeout(() => {
+        loadWhatsAppSessionStatus();
+        updateWhatsAppStatusInHeader();
+    }, 1000);
+});
+
+// Update WhatsApp status in header
+function updateWhatsAppStatusInHeader() {
+    const statusElement = document.getElementById('whatsappStatusValue');
+    if (!statusElement) return;
+    
+    // Show loading state
+    statusElement.textContent = 'Loading...';
+    statusElement.className = 'meta-card-value status-neutral';
+    
+    fetch('/admin/whatsapp/session-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.session && data.session.status === 'CONNECTED') {
+                statusElement.textContent = 'Connected';
+                statusElement.className = 'meta-card-value status-connected';
+            } else {
+                statusElement.textContent = 'Disconnected';
+                statusElement.className = 'meta-card-value status-disconnected';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading WhatsApp status:', error);
+            statusElement.textContent = 'Disconnected';
+            statusElement.className = 'meta-card-value status-disconnected';
+        });
 }
 </script>

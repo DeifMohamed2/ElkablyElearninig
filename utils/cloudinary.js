@@ -1,11 +1,11 @@
 const cloudinary = require('cloudinary').v2;
 
-// Configure Cloudinary (this should already be done in app.js)
-// cloudinary.config({
-//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dusod9wxt',
-//   api_key: process.env.CLOUDINARY_API_KEY || '353635965973632',
-//   api_secret: process.env.CLOUDINARY_API_SECRET || 'rFWFSn4g-dHGj48o3Uu1YxUMZww'
-// });
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dusod9wxt',
+  api_key: process.env.CLOUDINARY_API_KEY || '353635965973632',
+  api_secret: process.env.CLOUDINARY_API_SECRET || 'rFWFSn4g-dHGj48o3Uu1YxUMZww'
+});
 
 // Upload image to Cloudinary
 const uploadImage = async (fileBuffer, options = {}) => {
@@ -55,5 +55,6 @@ const deleteImage = async (publicId) => {
 
 module.exports = {
   uploadImage,
-  deleteImage
+  deleteImage,
+  cloudinary
 };

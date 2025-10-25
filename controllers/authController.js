@@ -2,6 +2,7 @@ const Admin = require('../models/Admin');
 const User = require('../models/User');
 const TeamMember = require('../models/TeamMember');
 const axios = require('axios');
+const whatsappNotificationService = require('../utils/whatsappNotificationService');
 
 // Get login page
 const getLoginPage = (req, res) => {
@@ -397,6 +398,14 @@ const registerUser = async (req, res) => {
     } catch (apiError) {
       console.error('Failed to sync with online system:', apiError);
       // Continue with registration process even if API call fails
+    }
+
+    // Send WhatsApp welcome message to parent
+    try {
+      await whatsappNotificationService.sendWelcomeMessage(savedUser._id);
+    } catch (whatsappError) {
+      console.error('WhatsApp welcome message error:', whatsappError);
+      // Don't fail the registration if WhatsApp fails
     }
 
     // Show success page with student code

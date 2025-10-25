@@ -9,6 +9,7 @@ const QuestionBank = require('../models/QuestionBank');
 const ZoomMeeting = require('../models/ZoomMeeting');
 const mongoose = require('mongoose');
 const zoomService = require('../utils/zoomService');
+const whatsappNotificationService = require('../utils/whatsappNotificationService');
 
 // Dashboard - Main student dashboard
 const dashboard = async (req, res) => {
@@ -748,6 +749,34 @@ const updateContentProgress = async (req, res) => {
       contentId
     );
 
+    // Send WhatsApp notification to parent for content completion
+    try {
+      // Get course and topic data for notification
+      const course = await Course.findById(courseId);
+      const topic = await Topic.findById(topicId);
+      
+      // Find the actual content item to get its title
+      let contentTitle = 'Content';
+      if (topic && topic.content) {
+        const contentItem = topic.content.find(c => c._id.toString() === contentId);
+        if (contentItem) {
+          contentTitle = contentItem.title;
+        }
+      }
+      
+      // Check if content is completed (check for completionStatus: 'completed')
+      if (progressData && progressData.completionStatus === 'completed') {
+        await whatsappNotificationService.sendContentCompletionNotification(
+          studentId,
+          { title: contentTitle, type: contentType },
+          course
+        );
+      }
+    } catch (whatsappError) {
+      console.error('WhatsApp notification error:', whatsappError);
+      // Don't fail the progress update if WhatsApp fails
+    }
+
     res.json({
       success: true,
       contentProgress: updatedProgress,
@@ -982,6 +1011,19 @@ const submitQuiz = async (req, res) => {
       experience: totalPoints * 10, // Convert points to experience
     });
     await progress.save();
+
+    // Send WhatsApp notification to parent
+    try {
+      await whatsappNotificationService.sendQuizCompletionNotification(
+        studentId,
+        quiz,
+        correctAnswers,
+        quiz.selectedQuestions.length
+      );
+    } catch (whatsappError) {
+      console.error('WhatsApp notification error:', whatsappError);
+      // Don't fail the quiz submission if WhatsApp fails
+    }
 
     res.json({
       success: true,
@@ -2277,6 +2319,22 @@ const submitContentQuiz = async (req, res) => {
       attemptData
     );
 
+    // Send WhatsApp notification to parent for content quiz completion
+    try {
+      await whatsappNotificationService.sendQuizCompletionNotification(
+        studentId,
+        {
+          title: contentItem.title || 'Content Quiz',
+          type: contentType
+        },
+        correctAnswers,
+        totalQuestions
+      );
+    } catch (whatsappError) {
+      console.error('WhatsApp notification error:', whatsappError);
+      // Don't fail the quiz submission if WhatsApp fails
+    }
+
     // Get next content for navigation
     const allContent = course.topics.flatMap((t) =>
       t.content.map((c) => ({ ...c.toObject(), topicId: t._id }))
@@ -2885,6 +2943,19 @@ const submitStandaloneQuiz = async (req, res) => {
       passed,
       passingScore: quiz.passingScore,
     });
+
+    // Send WhatsApp notification to parent for standalone quiz completion
+    try {
+      await whatsappNotificationService.sendQuizCompletionNotification(
+        req.session.user.id,
+        quiz,
+        correctAnswers,
+        quiz.selectedQuestions.length
+      );
+    } catch (whatsappError) {
+      console.error('WhatsApp notification error:', whatsappError);
+      // Don't fail the quiz submission if WhatsApp fails
+    }
 
     res.json({
       success: true,

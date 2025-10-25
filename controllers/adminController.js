@@ -15,64 +15,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
 const zoomService = require('../utils/zoomService');
-const { upload, uploadToS3, testS3Connection } = require('../utils/s3Service');
+const whatsappNotificationService = require('../utils/whatsappNotificationService');
 
-// Test S3 connection
-const testS3 = async (req, res) => {
-  try {
-    const result = await testS3Connection();
-    res.json(result);
-  } catch (error) {
-    console.error('S3 test error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'S3 test failed',
-      error: error.message,
-    });
-  }
-};
 
-// Upload document to S3
-const uploadDocument = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file provided',
-      });
-    }
-
-    // Upload file to S3
-    const uploadResult = await uploadToS3(req.file, 'course-documents');
-
-    if (!uploadResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to upload file to S3',
-        error: uploadResult.error,
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'File uploaded successfully',
-      data: {
-        url: uploadResult.url,
-        fileName: uploadResult.fileName,
-        originalName: uploadResult.originalName,
-        size: uploadResult.size,
-        mimetype: uploadResult.mimetype,
-      },
-    });
-  } catch (error) {
-    console.error('Document upload error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Upload failed',
-      error: error.message,
-    });
-  }
-};
 
 // Admin Dashboard with Real Data
 const getAdminDashboard = async (req, res) => {
@@ -212,7 +157,10 @@ const getAdminDashboard = async (req, res) => {
       ]),
 
       // Brilliant students statistics
-      BrilliantStudent.getStatistics(),
+      BrilliantStudent.getStatistics().catch(err => {
+        console.error('Error fetching brilliant students statistics:', err);
+        return {};
+      }),
     ]);
 
     console.log('Data fetched successfully:', {
@@ -225,21 +173,37 @@ const getAdminDashboard = async (req, res) => {
     const progressData = progressStats[0] || { total: 0, completed: 0 };
 
     // Calculate engagement score based on multiple factors
-    const totalEnrolledStudents = await User.countDocuments({
-      role: 'student',
-      'enrolledCourses.0': { $exists: true },
-    });
+    let totalEnrolledStudents = 0;
+    let activeStudentsCount = 0;
+    let studentsWithProgress = 0;
 
-    const activeStudentsCount = await User.countDocuments({
-      role: 'student',
-      'enrolledCourses.status': 'active',
-      isActive: true,
-    });
+    try {
+      totalEnrolledStudents = await User.countDocuments({
+        role: 'student',
+        'enrolledCourses.0': { $exists: true },
+      });
+    } catch (error) {
+      console.error('Error counting enrolled students:', error);
+    }
 
-    const studentsWithProgress = await User.countDocuments({
-      role: 'student',
-      'enrolledCourses.contentProgress.0': { $exists: true },
-    });
+    try {
+      activeStudentsCount = await User.countDocuments({
+        role: 'student',
+        'enrolledCourses.status': 'active',
+        isActive: true,
+      });
+    } catch (error) {
+      console.error('Error counting active students:', error);
+    }
+
+    try {
+      studentsWithProgress = await User.countDocuments({
+        role: 'student',
+        'enrolledCourses.contentProgress.0': { $exists: true },
+      });
+    } catch (error) {
+      console.error('Error counting students with progress:', error);
+    }
 
     // Calculate engagement score based on active students and progress
     let engagementScore = 0;
@@ -262,6 +226,25 @@ const getAdminDashboard = async (req, res) => {
       (totalRevenue[0]?.total || 0) > 0
         ? Math.floor(Math.random() * 25) + 10
         : 0;
+
+    // Get WhatsApp status
+    let whatsappStatus = 'disconnected';
+    let whatsappMessages = 0;
+    let whatsappTemplates = 0;
+    
+    try {
+      const wasender = require('../utils/wasender');
+      const sessionStatus = await wasender.getGlobalStatus();
+      if (sessionStatus.success) {
+        whatsappStatus = 'connected';
+      }
+      
+      // WhatsAppTemplate model doesn't exist yet, so we'll set templates to 0
+      whatsappTemplates = 0;
+      // You can add message count logic here if you track sent messages
+    } catch (error) {
+      console.error('Error getting WhatsApp status:', error);
+    }
 
     // Prepare dashboard data
     const dashboardData = {
@@ -302,19 +285,21 @@ const getAdminDashboard = async (req, res) => {
         studentsWithProgress: studentsWithProgress,
       },
       brilliantStudents: {
-        total: Object.values(brilliantStudentsStats).reduce(
+        total: Object.values(brilliantStudentsStats || {}).reduce(
           (sum, stat) => sum + (stat.count || 0),
           0
         ),
-        est: brilliantStudentsStats.EST?.count || 0,
-        dsat: brilliantStudentsStats.DSAT?.count || 0,
-        act: brilliantStudentsStats.ACT?.count || 0,
+        est: (brilliantStudentsStats && brilliantStudentsStats.EST) ? brilliantStudentsStats.EST.count || 0 : 0,
+        dsat: (brilliantStudentsStats && brilliantStudentsStats.DSAT) ? brilliantStudentsStats.DSAT.count || 0 : 0,
+        act: (brilliantStudentsStats && brilliantStudentsStats.ACT) ? brilliantStudentsStats.ACT.count || 0 : 0,
         avgScore:
-          Object.values(brilliantStudentsStats).reduce(
-            (sum, stat) => sum + (stat.avgScore || 0),
-            0
-          ) / Object.keys(brilliantStudentsStats).length || 0,
-        stats: brilliantStudentsStats,
+          Object.keys(brilliantStudentsStats || {}).length > 0
+            ? Object.values(brilliantStudentsStats).reduce(
+                (sum, stat) => sum + (stat.avgScore || 0),
+                0
+              ) / Object.keys(brilliantStudentsStats).length
+            : 0,
+        stats: brilliantStudentsStats || {},
       },
       recentActivity: [
         // Recent students
@@ -327,7 +312,7 @@ const getAdminDashboard = async (req, res) => {
         // New orders
         ...newOrders.map((order, index) => ({
           icon: 'shopping-cart',
-          message: `New order: ${order.orderNumber} - $${order.total}`,
+          message: `New order: ${order.orderNumber} - EGP ${order.total}`,
           time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
           type: 'order',
           orderId: order._id,
@@ -340,58 +325,72 @@ const getAdminDashboard = async (req, res) => {
         .slice(0, 10),
       topCourses: await Promise.all(
         topCourses.map(async (course) => {
-          // Get actual enrollment data from User model
-          const enrolledStudents = await User.find({
-            role: 'student',
-            'enrolledCourses.course': course._id,
-          }).select('enrolledCourses');
+          try {
+            // Get actual enrollment data from User model
+            const enrolledStudents = await User.find({
+              role: 'student',
+              'enrolledCourses.course': course._id,
+            }).select('enrolledCourses');
 
-          // Calculate enrollments and completions
-          let enrollments = 0;
-          let completedStudents = 0;
-          let totalRevenue = 0;
+            // Calculate enrollments and completions
+            let enrollments = 0;
+            let completedStudents = 0;
+            let totalRevenue = 0;
 
-          if (enrolledStudents.length > 0) {
-            enrollments = enrolledStudents.length;
+            if (enrolledStudents.length > 0) {
+              enrollments = enrolledStudents.length;
 
-            // Count completed students
-            completedStudents = enrolledStudents.filter((student) => {
-              const enrollment = student.enrolledCourses.find(
-                (ec) =>
-                  ec.course && ec.course.toString() === course._id.toString()
-              );
-              return enrollment && enrollment.status === 'completed';
-            }).length;
+              // Count completed students
+              completedStudents = enrolledStudents.filter((student) => {
+                const enrollment = student.enrolledCourses.find(
+                  (ec) =>
+                    ec.course && ec.course.toString() === course._id.toString()
+                );
+                return enrollment && enrollment.status === 'completed';
+              }).length;
 
-            // Calculate revenue from individual course purchases
-            const coursePurchases = await User.find({
-              'purchasedCourses.course': course._id,
-              'purchasedCourses.status': 'active',
-            });
+              // Calculate revenue from individual course purchases
+              const coursePurchases = await User.find({
+                'purchasedCourses.course': course._id,
+                'purchasedCourses.status': 'active',
+              });
 
-            totalRevenue = coursePurchases.reduce((sum, user) => {
-              const purchase = user.purchasedCourses.find(
-                (pc) => pc.course.toString() === course._id.toString()
-              );
-              return sum + (purchase ? purchase.price : 0);
-            }, 0);
+              totalRevenue = coursePurchases.reduce((sum, user) => {
+                const purchase = user.purchasedCourses.find(
+                  (pc) => pc.course.toString() === course._id.toString()
+                );
+                return sum + (purchase ? purchase.price : 0);
+              }, 0);
+            }
+
+            const completionRate =
+              enrollments > 0
+                ? Math.round((completedStudents / enrollments) * 100)
+                : 0;
+
+            return {
+              title: course.title,
+              level: course.level || 'Beginner',
+              category: course.category || 'General',
+              status: course.status,
+              featured: course.featured || false,
+              enrollments: enrollments,
+              completionRate: completionRate,
+              revenue: totalRevenue,
+            };
+          } catch (error) {
+            console.error('Error processing course:', course.title, error);
+            return {
+              title: course.title,
+              level: course.level || 'Beginner',
+              category: course.category || 'General',
+              status: course.status,
+              featured: course.featured || false,
+              enrollments: 0,
+              completionRate: 0,
+              revenue: 0,
+            };
           }
-
-          const completionRate =
-            enrollments > 0
-              ? Math.round((completedStudents / enrollments) * 100)
-              : 0;
-
-          return {
-            title: course.title,
-            level: course.level || 'Beginner',
-            category: course.category || 'General',
-            status: course.status,
-            featured: course.featured || false,
-            enrollments: enrollments,
-            completionRate: completionRate,
-            revenue: totalRevenue,
-          };
         })
       ),
       charts: {
@@ -400,6 +399,9 @@ const getAdminDashboard = async (req, res) => {
       },
       newOrdersCount: newOrders.length,
       newOrders: newOrders.slice(0, 5), // Show latest 5 orders for notifications
+      whatsappStatus: whatsappStatus,
+      whatsappMessages: whatsappMessages,
+      whatsappTemplates: whatsappTemplates,
     };
 
     console.log('Dashboard data prepared:', dashboardData);
@@ -424,6 +426,14 @@ const getAdminDashboard = async (req, res) => {
         change: 0,
         avgSession: '0m',
         completion: 0,
+      },
+      brilliantStudents: {
+        total: 0,
+        est: 0,
+        dsat: 0,
+        act: 0,
+        avgScore: 0,
+        stats: {},
       },
       recentActivity: [],
       topCourses: [],
@@ -4572,7 +4582,7 @@ const getBundleInfo = async (req, res) => {
           financialAnalytics.totalRevenue
         )} total revenue generated`,
         timestamp: new Date(),
-        icon: 'dollar-sign',
+        icon: 'coins',
         color: 'warning',
       },
     ];
@@ -5163,7 +5173,7 @@ const getStudentDetails = async (req, res) => {
           if (progress.completionStatus === 'completed') {
             description = `Completed ${progress.contentType} "${
               progress.contentTitle
-            }" with score ${progress.score || 'N/A'}%`;
+            }" with score ${progress.score || 'N/A'}/10`;
           } else {
             description = `Accessed ${progress.contentType} "${progress.contentTitle}"`;
           }
@@ -5751,7 +5761,7 @@ const exportStudentData = async (req, res) => {
           }`,
           courseOrQuiz: progress.course?.title || 'Unknown Course',
           duration: progress.timeSpent || 0,
-          scoreOrProgress: `${progress.progress || 0}%`,
+          scoreOrProgress: `${progress.progress || 0}/10`,
           status: progress.status || 'Unknown',
           details: `Topic: ${progress.topic?.title || 'Unknown'}`,
         });
@@ -5769,7 +5779,7 @@ const exportStudentData = async (req, res) => {
               }`,
               courseOrQuiz: quizAttempt.quiz?.title || 'Quiz',
               duration: attempt.timeSpent || 0,
-              scoreOrProgress: `${attempt.score || 0}%`,
+              scoreOrProgress: `${attempt.score || 0}/10`,
               status: attempt.status || 'Unknown',
               details: `Score: ${attempt.score || 0}/${
                 attempt.maxScore || 100
@@ -8453,8 +8463,8 @@ const calculateWeeklyPattern = (activityTimeline) => {
       pattern[dayName].timeSpent += activity.duration || 0;
       pattern[dayName].activities++;
 
-      if (activity.scoreOrProgress && activity.scoreOrProgress.includes('%')) {
-        const score = parseInt(activity.scoreOrProgress.replace('%', ''));
+      if (activity.scoreOrProgress && activity.scoreOrProgress.includes('/')) {
+        const score = parseInt(activity.scoreOrProgress.split('/')[0]);
         if (!isNaN(score)) {
           pattern[dayName].avgScore = Math.round(
             (pattern[dayName].avgScore + score) / 2
@@ -9181,21 +9191,22 @@ const enrollStudentsToCourse = async (req, res) => {
       });
     }
 
-    // Enroll all students
+    // Enroll all students using safe enrollment
     const enrolledStudents = [];
     for (const student of students) {
-      // Add enrollment object with course reference
-      student.enrolledCourses.push({
-        course: courseId,
-        enrolledAt: new Date(),
-        progress: 0,
-        lastAccessed: new Date(),
-        completedTopics: [],
-        status: 'active',
-        contentProgress: []
-      });
-      await student.save();
+      await student.safeEnrollInCourse(courseId);
       enrolledStudents.push(student.name || `${student.firstName} ${student.lastName}`);
+      
+      // Send WhatsApp notification for course enrollment
+      try {
+        await whatsappNotificationService.sendCourseEnrollmentNotification(
+          student._id,
+          course
+        );
+      } catch (whatsappError) {
+        console.error('WhatsApp enrollment notification error:', whatsappError);
+        // Don't fail the enrollment if WhatsApp fails
+      }
     }
 
     res.json({
@@ -9267,27 +9278,23 @@ const enrollStudentsToBundle = async (req, res) => {
     for (const student of students) {
 
       
-      // Also enroll in all courses in the bundle
+      // Also enroll in all courses in the bundle using safe enrollment
       for (const courseId of bundle.courses) {
-        const isAlreadyEnrolled = student.enrolledCourses.some(enrollment => 
-          enrollment.course && enrollment.course.toString() === courseId.toString()
-        );
-        
-        if (!isAlreadyEnrolled) {
-          student.enrolledCourses.push({
-            course: courseId,
-            enrolledAt: new Date(),
-            progress: 0,
-            lastAccessed: new Date(),
-            completedTopics: [],
-            status: 'active',
-            contentProgress: []
-          });
-        }
+        await student.safeEnrollInCourse(courseId);
       }
-      
-      await student.save();
       enrolledStudents.push(student.name || `${student.firstName} ${student.lastName}`);
+      
+      // Send WhatsApp notification for bundle enrollment
+      try {
+        const whatsappNotificationService = require('../utils/whatsappNotificationService');
+        await whatsappNotificationService.sendBundleEnrollmentNotification(
+          student._id,
+          bundle
+        );
+      } catch (whatsappError) {
+        console.error('WhatsApp bundle enrollment notification error:', whatsappError);
+        // Don't fail the enrollment if WhatsApp fails
+      }
     }
 
     res.json({
@@ -9300,6 +9307,40 @@ const enrollStudentsToBundle = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to enroll students',
+    });
+  }
+};
+
+// Clean up duplicates for a specific user
+const cleanupUserDuplicates = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+    
+    const result = await user.cleanupDuplicates();
+    
+    res.json({
+      success: true,
+      message: `Cleaned up ${result.duplicatesRemoved} duplicates for user`,
+      result: {
+        duplicatesRemoved: result.duplicatesRemoved,
+        enrollmentsRemoved: result.enrollmentsRemoved,
+        coursePurchasesRemoved: result.coursePurchasesRemoved,
+        bundlePurchasesRemoved: result.bundlePurchasesRemoved,
+      },
+    });
+  } catch (error) {
+    console.error('Error cleaning up user duplicates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clean up duplicates',
     });
   }
 };
@@ -9406,17 +9447,8 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
           continue;
         }
 
-        // Enroll student
-        student.enrolledCourses.push({
-          course: courseId,
-          enrolledAt: new Date(),
-          progress: 0,
-          lastAccessed: new Date(),
-          completedTopics: [],
-          status: 'active',
-          contentProgress: []
-        });
-        await student.save();
+        // Enroll student using safe enrollment
+        await student.safeEnrollInCourse(courseId);
 
         results.success.push({
           row: rowNumber,
@@ -10141,12 +10173,72 @@ const updatePromoCode = async (req, res) => {
   }
 };
 
+// ==================== DASHBOARD CHART DATA API ====================
+
+// Get chart data for dashboard
+const getDashboardChartData = async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const daysInt = parseInt(days);
+    
+    // Calculate date range
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysInt);
+    
+    // Get student growth data
+    const studentGrowth = await User.aggregate([
+      {
+        $match: {
+          role: 'student',
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    // Get revenue data
+    const revenueData = await Purchase.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate },
+          status: { $in: ['completed', 'paid'] }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          total: { $sum: '$total' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    res.json({
+      success: true,
+      studentGrowth,
+      revenueData
+    });
+  } catch (error) {
+    console.error('Error fetching chart data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching chart data',
+      error: error.message
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
-  testS3,
-  uploadDocument,
   getAdminDashboard,
+  getDashboardChartData,
   getCourses,
   createCourse,
   getCourse,
@@ -10235,6 +10327,8 @@ module.exports = {
   getStudentsForEnrollment,
   removeStudentFromCourse,
   removeStudentFromBundle,
+  // Duplicate Cleanup
+  cleanupUserDuplicates,
   // Promo Codes Management
   getPromoCodes,
   getPromoCode,

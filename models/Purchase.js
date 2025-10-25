@@ -185,6 +185,10 @@ const PurchaseSchema = new mongoose.Schema(
     refundReason: {
       type: String,
     },
+    whatsappNotificationSent: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
