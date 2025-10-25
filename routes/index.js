@@ -15,14 +15,6 @@ const {
 // Landing page route
 router.get('/', getLandingPage);
 
-// Courses page route
-router.get('/courses', (req, res) => {
-  res.render('courses', {
-    title: 'Courses - Mr Kably',
-    theme: req.cookies.theme || 'light',
-  });
-});
-
 // Online courses page route
 router.get('/courses/online', getOnlineCourses);
 
@@ -42,6 +34,24 @@ router.get('/bundle/:id/content', getBundleContent);
 router.get('/tests/est', getESTTests);
 router.get('/tests/sat', getSATTests);
 router.get('/tests/act', getACTTests);
+
+// Terms of Service route
+router.get('/terms-of-service', (req, res) => {
+  res.render('terms-of-service', {
+    title: 'Terms of Service - Elkably',
+    theme: req.cookies.theme || 'light',
+    user: req.session.user || null
+  });
+});
+
+// Privacy Policy route
+router.get('/privacy-policy', (req, res) => {
+  res.render('privacy-policy', {
+    title: 'Privacy Policy - Elkably',
+    theme: req.cookies.theme || 'light',
+    user: req.session.user || null
+  });
+});
 
 // Dashboard route (protected) - Redirect based on user role
 router.get('/dashboard', isAuthenticated, (req, res) => {

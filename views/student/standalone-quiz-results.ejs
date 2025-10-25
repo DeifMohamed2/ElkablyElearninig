@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= quiz.title %> - Quiz Results - Elkably E-Learning</title>
+    <title><%= quiz.title %> - Quiz Results | ELKABLY</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="apple-touch-icon" href="/images/KImage.jpg">
     
     <!-- CSS -->
     <link rel="stylesheet" href="/css/studentCSS/student-main.css">
@@ -11,6 +16,9 @@
     <link rel="stylesheet" href="/css/theme-toggle.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- MathLive for professional math rendering -->
+    <script src="https://unpkg.com/mathlive"></script>
     
     <!-- Enhanced Styles -->
     <style>
@@ -24,7 +32,7 @@
 
         /* Results Header */
         .results-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            background: var(--primary-color);
             color: white;
             padding: 2rem;
             border-radius: 16px;
@@ -61,18 +69,23 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
-            font-weight: 700;
+            font-size: 2.5rem;
+            font-weight: 800;
             color: white;
             position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
         }
 
         .score-circle.passed {
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: #10b981;
         }
 
         .score-circle.failed {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+            background: #ef4444;
+        }
+
+        .score-circle.warning {
+            background: #f59e0b;
         }
 
         .score-details {
@@ -82,6 +95,7 @@
         .score-details h3 {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
+            font-weight: 600;
         }
 
         .score-details p {
@@ -90,30 +104,25 @@
         }
 
         .pass-status {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+            font-size: 1.2rem;
             font-weight: 600;
-            font-size: 0.9rem;
             margin-top: 0.5rem;
         }
 
         .pass-status.passed {
-            background: rgba(16, 185, 129, 0.2);
             color: #10b981;
         }
 
         .pass-status.failed {
-            background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
         }
 
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
         }
 
         .stat-card {
@@ -126,31 +135,9 @@
         }
 
         .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 1.5rem;
-            color: white;
-        }
-
-        .stat-icon.questions {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-        }
-
-        .stat-icon.correct {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .stat-icon.time {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
-        .stat-icon.attempts {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
         }
 
         .stat-value {
@@ -161,7 +148,7 @@
         }
 
         .stat-label {
-            color: var(--text-secondary);
+            color: var(--muted-text);
             font-weight: 500;
         }
 
@@ -171,106 +158,516 @@
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 2rem;
-            margin-bottom: 2rem;
+            margin: 2rem 0;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-color);
+        .attempt-history h3 {
             margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .section-title i {
-            color: var(--primary-color);
+            color: var(--text-color);
+            font-weight: 600;
         }
 
         .attempt-item {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-radius: 8px;
             margin-bottom: 1rem;
-            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
         }
 
         .attempt-item:last-child {
             margin-bottom: 0;
         }
 
-        .attempt-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        .attempt-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
-        .attempt-header {
+        .attempt-number {
+            background: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .attempt-details h4 {
+            margin: 0 0 0.25rem 0;
+            color: var(--text-color);
+        }
+
+        .attempt-details p {
+            margin: 0;
+            color: var(--muted-text);
+            font-size: 0.9rem;
+        }
+
+        .attempt-score {
+            text-align: right;
+        }
+
+        .attempt-score .score {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .attempt-score .status {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .attempt-score .score.passed {
+            color: #10b981;
+        }
+
+        .attempt-score .score.failed {
+            color: #ef4444;
+        }
+
+        /* Answer Review Section */
+        .answer-review {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .answer-review h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .question-review {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .question-review:last-child {
+            margin-bottom: 0;
+        }
+
+        .question-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
 
-        .attempt-number {
+        .question-number {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
             font-weight: 600;
-            color: var(--text-color);
-            font-size: 1.1rem;
-        }
-
-        .attempt-date {
-            color: var(--text-secondary);
             font-size: 0.9rem;
         }
 
-        .attempt-score {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .score-label {
-            color: var(--text-secondary);
-        }
-
-        .score-value {
+        .question-status {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
             font-weight: 600;
-            font-size: 1.2rem;
+            font-size: 0.9rem;
         }
 
-        .score-value.passed {
+        .question-status.correct {
+            background: rgba(16, 185, 129, 0.1);
             color: #10b981;
         }
 
-        .score-value.failed {
+        .question-status.incorrect {
+            background: rgba(239, 68, 68, 0.1);
             color: #ef4444;
         }
 
-        .attempt-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .detail-item {
-            text-align: center;
-        }
-
-        .detail-value {
-            font-weight: 600;
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
             color: var(--text-color);
-            margin-bottom: 0.25rem;
+            line-height: 1.6;
         }
 
-        .detail-label {
+        /* Question Image Container */
+        .question-image-container {
+            position: relative;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .question-image-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .question-image {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            color: white;
+            font-weight: 600;
+        }
+
+        .question-image-container:hover .image-overlay {
+            opacity: 1;
+        }
+
+        .image-overlay i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .image-overlay span {
             font-size: 0.9rem;
-            color: var(--text-secondary);
+        }
+
+        /* Image Preview Modal */
+        .image-preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 2rem;
+        }
+
+        .image-preview-modal.show {
+            display: flex;
+        }
+
+        .image-preview-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-preview-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .image-preview-close {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .image-preview-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* Option Image Styles */
+        .option-image-container {
+            position: relative;
+            margin-left: auto;
+            width: 80px;
+            height: 60px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .option-image-container:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .option-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .option-image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            color: white;
+        }
+
+        .option-image-container:hover .option-image-overlay {
+            opacity: 1;
+        }
+
+        .option-image-overlay i {
+            font-size: 1rem;
+        }
+
+        /* Math Field Styles */
+        .question-math-field {
+            width: 100%;
+            min-height: 40px;
+            font-size: 16px;
+            border: none;
+            background: transparent;
+            padding: 8px;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        .question-math-field.ML__focused {
+            border: none;
+            box-shadow: none;
+        }
+
+        /* Written Question Styles */
+        .written-question-container {
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .written-question-note {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .note-icon {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            margin-top: 0.1rem;
+            flex-shrink: 0;
+        }
+
+        .note-content {
+            flex: 1;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-color);
+        }
+
+        .note-content code {
+            background: rgba(var(--primary-color-rgb), 0.1);
+            color: var(--primary-color);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        /* Written Answer Display */
+        .written-answer-display {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-color);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .written-answer-display.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .written-answer-display.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .written-answer-display.empty {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.05);
+            font-style: italic;
+            color: var(--muted-text);
+        }
+
+        /* Correct Answer Display */
+        .correct-answer-display {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .correct-answer-label {
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .correct-answer-text {
+            color: var(--text-color);
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .options-review {
+            margin-bottom: 1rem;
+        }
+
+        .option-review {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .option-review.selected {
+            border-color: var(--primary-color);
+            background: rgba(var(--primary-color-rgb), 0.05);
+        }
+
+        .option-review.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .option-review.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .option-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .option-indicator.selected {
+            background: var(--primary-color);
+        }
+
+        .option-indicator.correct {
+            background: #10b981;
+        }
+
+        .option-indicator.incorrect {
+            background: #ef4444;
+        }
+
+        .option-indicator.neutral {
+            background: var(--muted-bg);
+            color: var(--muted-text);
+        }
+
+        .option-text {
+            flex: 1;
+            color: var(--text-color);
+        }
+
+        .answer-explanation {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.05);
+            border-left: 4px solid #3b82f6;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .answer-explanation h5 {
+            margin: 0 0 0.5rem 0;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .answer-explanation p {
+            margin: 0;
+            color: var(--text-color);
+            line-height: 1.5;
         }
 
         /* Action Buttons */
@@ -278,32 +675,32 @@
             display: flex;
             gap: 1rem;
             justify-content: center;
-            margin-top: 2rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
         }
 
         .btn {
             padding: 1rem 2rem;
+            border: none;
             border-radius: 12px;
             font-weight: 600;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
             transition: all 0.3s ease;
-            border: none;
             cursor: pointer;
-            font-size: 1rem;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            background: var(--primary-color);
             color: white;
-            box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
         }
 
         .btn-primary:hover {
+            background: var(--accent-color);
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(var(--primary-color-rgb), 0.4);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
         }
 
         .btn-secondary {
@@ -314,33 +711,105 @@
 
         .btn-secondary:hover {
             background: var(--border-color);
+            transform: translateY(-2px);
         }
 
-        /* Back Button */
-        .back-button-container {
-            margin-bottom: 2rem;
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
         }
 
         /* Dark theme adjustments */
         .dark-theme .stat-card,
-        .dark-theme .attempt-history {
+        .dark-theme .attempt-history,
+        .dark-theme .answer-review {
             background: var(--dark-card-bg);
             border-color: var(--dark-border-color);
         }
 
         .dark-theme .attempt-item {
-            background: var(--dark-bg-secondary);
+            background: var(--dark-bg-color);
             border-color: var(--dark-border-color);
         }
 
-        .dark-theme .btn-secondary {
+        .dark-theme .question-review {
+            background: var(--dark-bg-color);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .option-review {
+            background: var(--dark-card-bg);
+        }
+
+        .dark-theme .option-review.selected {
+            background: rgba(var(--primary-color-rgb), 0.1);
+        }
+
+        .dark-theme .option-review.correct {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .dark-theme .option-review.incorrect {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .dark-theme .answer-explanation {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .dark-theme .written-question-container {
+            background: var(--dark-bg-color);
+            border-color: var(--dark-border-color);
+        }
+
+        .dark-theme .written-question-note {
+            background: #1e293b;
+            border-color: #475569;
+        }
+
+        .dark-theme .note-content {
+            color: #d1d5db;
+        }
+
+        .dark-theme .note-content code {
+            background: rgba(var(--primary-color-rgb), 0.2);
+            color: var(--primary-color);
+        }
+
+        .dark-theme .written-answer-display {
             background: var(--dark-card-bg);
             border-color: var(--dark-border-color);
             color: var(--dark-text-color);
         }
 
-        .dark-theme .btn-secondary:hover {
-            background: var(--dark-border-color);
+        .dark-theme .written-answer-display.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .dark-theme .written-answer-display.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .dark-theme .written-answer-display.empty {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--dark-muted-text);
+        }
+
+        .dark-theme .correct-answer-display {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: #10b981;
+        }
+
+        .dark-theme .correct-answer-text {
+            color: var(--dark-text-color);
         }
 
         /* Responsive Design */
@@ -362,22 +831,38 @@
                 gap: 1rem;
             }
 
+            .score-circle {
+                width: 100px;
+                height: 100px;
+                font-size: 2rem;
+            }
+
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .attempt-header {
+            .attempt-item {
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .attempt-info {
+                justify-content: center;
+            }
+
+            .attempt-score {
+                text-align: center;
             }
 
             .action-buttons {
                 flex-direction: column;
+                align-items: center;
             }
 
             .btn {
                 width: 100%;
+                max-width: 300px;
                 justify-content: center;
             }
         }
@@ -417,15 +902,14 @@
                         </h1>
                         <p class="results-subtitle">Quiz Results & Performance Analysis</p>
                         
-                        <% if (attemptHistory && attemptHistory.length > 0) { %>
-                            <% const latestAttempt = attemptHistory[attemptHistory.length - 1]; %>
                             <!-- Score Display -->
+                        <% if (latestAttempt) { %>
                             <div class="score-display">
                                 <div class="score-circle <%= latestAttempt.passed ? 'passed' : 'failed' %>">
                                     <%= latestAttempt.score %>%
                                 </div>
                                 <div class="score-details">
-                                    <h3>Your Latest Score</h3>
+                            <h3>Your Score</h3>
                                     <p><%= latestAttempt.correctAnswers %> out of <%= latestAttempt.totalQuestions %> correct</p>
                                     <p>Time Spent: <%= Math.floor(latestAttempt.timeSpent / 60) %>m <%= latestAttempt.timeSpent % 60 %>s</p>
                                     <p>Completed: <%= new Date(latestAttempt.completedAt).toLocaleString() %></p>
@@ -434,140 +918,162 @@
                                     </div>
                                 </div>
                             </div>
+                        <% } else { %>
+                        <div class="score-display">
+                            <div class="score-circle no-attempt">
+                                No Attempts
+                            </div>
+                            <div class="score-details">
+                                <h3>No Quiz Attempts</h3>
+                                <p>You haven't taken this quiz yet.</p>
+                                </div>
+                            </div>
                         <% } %>
                     </div>
 
                     <!-- Stats Grid -->
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-icon questions">
-                                <i class="fas fa-question-circle"></i>
-                            </div>
-                            <div class="stat-value"><%= quiz.totalQuestions || 0 %></div>
-                            <div class="stat-label">Total Questions</div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon correct">
-                                <i class="fas fa-check-circle"></i>
+                            <div class="stat-icon">
+                                <i class="fas fa-chart-line"></i>
                             </div>
                             <div class="stat-value"><%= bestScore || 0 %>%</div>
                             <div class="stat-label">Best Score</div>
                         </div>
-                        
                         <div class="stat-card">
-                            <div class="stat-icon attempts">
+                            <div class="stat-icon">
                                 <i class="fas fa-redo"></i>
                             </div>
                             <div class="stat-value"><%= attemptHistory ? attemptHistory.length : 0 %></div>
                             <div class="stat-label">Total Attempts</div>
                         </div>
-                        
                         <div class="stat-card">
-                            <div class="stat-icon time">
+                            <div class="stat-icon">
                                 <i class="fas fa-clock"></i>
                             </div>
-                            <div class="stat-value">
-                                <% if (quiz.duration && quiz.duration > 0) { %>
-                                    <%= quiz.duration %>
-                                <% } else { %>
-                                    No Limit
-                                <% } %>
+                            <div class="stat-value"><%= latestAttempt ? Math.floor(latestAttempt.timeSpent / 60) : 0 %>m</div>
+                            <div class="stat-label">Time Spent</div>
                             </div>
-                            <div class="stat-label">
-                                <% if (quiz.duration && quiz.duration > 0) { %>
-                                    Duration (minutes)
-                                <% } else { %>
-                                    Time Limit
-                                <% } %>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-trophy"></i>
                             </div>
+                            <div class="stat-value"><%= quiz.passingScore %>%</div>
+                            <div class="stat-label">Passing Score</div>
                         </div>
                     </div>
 
                     <!-- Attempt History -->
-                    <% if (attemptHistory && attemptHistory.length > 0) { %>
                         <div class="attempt-history">
-                            <h2 class="section-title">
+                        <h3>
                                 <i class="fas fa-history"></i>
                                 Attempt History
-                            </h2>
-                            
+                        </h3>
                             <% attemptHistory.forEach((attempt, index) => { %>
                                 <div class="attempt-item">
-                                    <div class="attempt-header">
-                                        <div class="attempt-number">Attempt <%= attempt.attemptNumber %></div>
-                                        <div class="attempt-date">
-                                            <%= new Date(attempt.completedAt).toLocaleString() %>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="attempt-score">
-                                        <span class="score-label">Score:</span>
-                                        <span class="score-value <%= attempt.passed ? 'passed' : 'failed' %>">
-                                            <%= attempt.score %>%
-                                        </span>
-                                    </div>
-                                    
+                                <div class="attempt-info">
+                                    <div class="attempt-number"><%= attempt.attemptNumber %></div>
                                     <div class="attempt-details">
-                                        <div class="detail-item">
-                                            <div class="detail-value"><%= attempt.correctAnswers %></div>
-                                            <div class="detail-label">Correct</div>
+                                        <h4>Attempt <%= attempt.attemptNumber %></h4>
+                                        <p>Completed on <%= new Date(attempt.completedAt).toLocaleString() %></p>
                                         </div>
-                                        <div class="detail-item">
-                                            <div class="detail-value"><%= attempt.totalQuestions %></div>
-                                            <div class="detail-label">Total</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-value"><%= Math.floor(attempt.timeSpent / 60) %>m <%= attempt.timeSpent % 60 %>s</div>
-                                            <div class="detail-label">Time</div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-value <%= attempt.passed ? 'passed' : 'failed' %>">
-                                                <%= attempt.passed ? 'PASSED' : 'FAILED' %>
-                                            </div>
-                                            <div class="detail-label">Status</div>
+                                    </div>
+                                    <div class="attempt-score">
+                                    <div class="score <%= attempt.passed ? 'passed' : 'failed' %>">
+                                            <%= attempt.score %>%
+                                    </div>
+                                    <div class="status">
+                                        <%= attempt.passed ? 'Passed' : 'Failed' %>
                                         </div>
                                     </div>
                                 </div>
                             <% }); %>
                         </div>
 
-                        <!-- Answer Review Section -->
-                        <% if (attemptHistory && attemptHistory.length > 0 && quiz.showCorrectAnswers && attemptHistory[attemptHistory.length - 1].passed) { %>
-                            <% const latestAttempt = attemptHistory[attemptHistory.length - 1]; %>
-                            <div class="attempt-history">
-                                <h2 class="section-title">
+                    <!-- Answer Review -->
+                    <% if (canShowAnswers && quiz.selectedQuestions) { %>
+                        <div class="answer-review">
+                            <h3>
                                     <i class="fas fa-eye"></i>
                                     Answer Review
-                                </h2>
-                                
-                                <% if (quiz.selectedQuestions && latestAttempt.answers) { %>
+                            </h3>
                                     <% quiz.selectedQuestions.forEach((selectedQ, index) => { %>
                                         <% 
                                             const question = selectedQ.question;
                                             const userAnswer = latestAttempt.answers.find(a => a.questionId.toString() === question._id.toString());
                                             const isCorrect = userAnswer ? userAnswer.isCorrect : false;
                                         %>
-                                        <div class="attempt-item">
-                                            <div class="attempt-header">
-                                                <div class="attempt-number">Q<%= index + 1 %></div>
-                                                <div class="attempt-date <%= isCorrect ? 'passed' : 'failed' %>">
+                                <div class="question-review">
+                                    <div class="question-header">
+                                        <div class="question-number">Question <%= index + 1 %></div>
+                                        <div class="question-status <%= isCorrect ? 'correct' : 'incorrect' %>">
                                                     <%= isCorrect ? 'Correct' : 'Incorrect' %>
                                                 </div>
                                             </div>
                                             
-                                            <div style="margin: 1rem 0;">
-                                                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-color);">
+                                    <div class="question-text">
+                                        <% if (question.questionText.includes('\\') || question.questionText.includes('$')) { %>
+                                            <math-field readonly 
+                                                style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+                                                class="question-math-field">
                                                     <%= question.questionText %>
+                                            </math-field>
+                                        <% } else { %>
+                                            <%= question.questionText %>
+                                        <% } %>
                                                 </div>
                                                 
-                                                <div style="margin-top: 1rem;">
+                                    <!-- Question Image -->
+                                    <% if (question.questionImage && question.questionImage.trim() !== '') { %>
+                                        <div class="question-image-container" onclick="previewImage('<%= question.questionImage %>')">
+                                            <img class="question-image" src="<%= question.questionImage %>" alt="Question Image">
+                                            <div class="image-overlay">
+                                                <i class="fas fa-search-plus"></i>
+                                                <span>Click to preview</span>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                    
+                                    <% if (question.questionType === 'Written') { %>
+                                        <!-- Written Question Answer Review -->
+                                        <div class="written-question-container">
+                                            <div class="written-question-note">
+                                                <div class="note-icon">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </div>
+                                                <div class="note-content">
+                                                    <strong>Note:</strong> If you think there are two answers, type them like this: <code>10,-10</code>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- User's Answer -->
+                                            <div class="written-answer-display <%= isCorrect ? 'correct' : (userAnswer && userAnswer.selectedAnswer ? 'incorrect' : 'empty') %>">
+                                                <strong>Your Answer:</strong><br>
+                                                <%= userAnswer && userAnswer.selectedAnswer ? userAnswer.selectedAnswer : 'No answer provided' %>
+                                            </div>
+                                            
+                                            <!-- Correct Answer(s) -->
+                                            <div class="correct-answer-display">
+                                                <div class="correct-answer-label">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    Correct Answer<%= question.correctAnswers && question.correctAnswers.length > 1 ? 's' : '' %>:
+                                                </div>
+                                                <div class="correct-answer-text">
+                                                    <%= question.correctAnswers && question.correctAnswers.length > 0 ? 
+                                                        question.correctAnswers.map(ca => ca.text).join(', ') : 
+                                                        'No correct answers defined' %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% } else { %>
+                                        <!-- MCQ/True-False Options Review -->
+                                        <div class="options-review">
                                                     <% question.options.forEach((option, optionIndex) => { %>
                                                         <% 
                                                             const isSelected = userAnswer && userAnswer.selectedAnswer === optionIndex.toString();
                                                             const isCorrectOption = optionIndex.toString() === question.correctAnswer;
-                                                            let optionClass = '';
-                                                            let indicatorClass = '';
+                                                    let optionClass = 'neutral';
+                                                    let indicatorClass = 'neutral';
                                                             
                                                             if (isCorrectOption) {
                                                                 optionClass = 'correct';
@@ -580,106 +1086,116 @@
                                                                 indicatorClass = 'selected';
                                                             }
                                                         %>
-                                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.5rem; border-radius: 6px; background: var(--bg-secondary);">
-                                                            <% 
-                                                                let indicatorBg = '#6b7280';
-                                                                if (isCorrectOption) indicatorBg = '#10b981';
-                                                                else if (isSelected) indicatorBg = '#3b82f6';
-                                                            %>
-                                                            <div style="width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: white; background: <%= indicatorBg %>;">
+                                                <div class="option-review <%= optionClass %>">
+                                                    <div class="option-indicator <%= indicatorClass %>">
                                                                 <%= String.fromCharCode(65 + optionIndex) %>
                                                             </div>
-                                                            <span style="color: var(--text-color);"><%= option.text %></span>
-                                                            <% if (isSelected) { %>
-                                                                <span style="margin-left: auto; font-size: 0.8rem; color: #3b82f6; font-weight: 600;">Your Answer</span>
+                                                    <div class="option-text">
+                                                        <% if (option.text && (option.text.includes('\\') || option.text.includes('$'))) { %>
+                                                            <math-field readonly 
+                                                                style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+                                                                class="option-math-field">
+                                                                <%= option.text %>
+                                                            </math-field>
+                                                        <% } else { %>
+                                                            <%= option.text %>
                                                             <% } %>
-                                                            <% if (isCorrectOption) { %>
-                                                                <span style="margin-left: auto; font-size: 0.8rem; color: #10b981; font-weight: 600;">Correct</span>
+                                                    </div>
+                                                    <% if (option.image && option.image.trim() !== '') { %>
+                                                        <div class="option-image-container" onclick="previewImage('<%= option.image %>')">
+                                                            <img class="option-image" src="<%= option.image %>" alt="Option image">
+                                                            <div class="option-image-overlay">
+                                                                <i class="fas fa-search-plus"></i>
+                                                            </div>
+                                                        </div>
                                                             <% } %>
                                                         </div>
                                                     <% }); %>
                                                 </div>
+                                    <% } %>
                                                 
                                                 <% if (question.explanation && question.explanation.trim() !== '') { %>
-                                                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0;">
-                                                        <div style="font-weight: 600; color: #3b82f6; margin-bottom: 0.5rem;">Explanation:</div>
-                                                        <div style="color: var(--text-color); line-height: 1.5;"><%= question.explanation %></div>
+                                        <div class="answer-explanation">
+                                            <h5>Explanation:</h5>
+                                            <p><%= question.explanation %></p>
                                                     </div>
                                                 <% } %>
-                                            </div>
                                         </div>
                                     <% }); %>
-                                <% } else { %>
-                                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
-                                        Answer review not available for this quiz.
-                                    </p>
-                                <% } %>
                             </div>
-                        <% } else if (attemptHistory && attemptHistory.length > 0 && (!quiz.showCorrectAnswers || !attemptHistory[attemptHistory.length - 1].passed)) { %>
-                            <div class="attempt-history">
-                                <h2 class="section-title">
+                    <% } else if (!canShowAnswers) { %>
+                        <div class="answer-review">
+                            <h3>
                                     <i class="fas fa-lock"></i>
                                     Answer Review Not Available
-                                </h2>
-                                <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
-                                    <% if (!quiz.showCorrectAnswers) { %>
-                                        Answer review is not enabled for this quiz.
-                                    <% } else if (!attemptHistory[attemptHistory.length - 1].passed) { %>
-                                        Answer review is only available after passing the quiz.
-                                    <% } %>
-                                </p>
-                            </div>
-                        <% } %>
-                    <% } else { %>
-                        <div class="attempt-history">
-                            <h2 class="section-title">
-                                <i class="fas fa-history"></i>
-                                Attempt History
-                            </h2>
-                            <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
-                                No attempts found for this quiz.
-                            </p>
+                            </h3>
+                            <p>Answer review is not enabled for this quiz. Contact your instructor if you have questions about your answers.</p>
                         </div>
                     <% } %>
 
                     <!-- Action Buttons -->
                     <div class="action-buttons">
-                        <a href="/student/quiz/<%= quiz._id %>/details" class="btn btn-primary">
-                            <i class="fas fa-info-circle"></i>
-                            Quiz Details
+                        <a href="/student/quiz/<%= quiz._id %>/details" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to Quiz Details
                         </a>
-                        <a href="/student/quizzes" class="btn btn-secondary">
+                        <a href="/student/quizzes" class="btn btn-primary">
                             <i class="fas fa-list"></i>
                             All Quizzes
                         </a>
+                        <% if (latestAttempt && !latestAttempt.passed && attemptHistory && attemptHistory.length < (quiz.maxAttempts || 3)) { %>
+                            <a href="/student/quiz/<%= quiz._id %>/take" class="btn btn-success">
+                                <i class="fas fa-redo"></i>
+                                Try Again
+                            </a>
+                        <% } %>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- JavaScript -->
-    <script>
-        // Global error handler for unhandled JavaScript errors
-        window.addEventListener('error', function(e) {
-            console.error('Unhandled error:', e.error);
-            // Show a user-friendly error message
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 1rem; border-radius: 8px; z-index: 1000; max-width: 300px;';
-            errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> An error occurred. Please refresh the page.';
-            document.body.appendChild(errorDiv);
-            setTimeout(() => errorDiv.remove(), 5000);
-        });
+    <!-- Image Preview Modal -->
+    <div id="imagePreviewModal" class="image-preview-modal" onclick="closeImagePreview()">
+        <div class="image-preview-content" onclick="event.stopPropagation()">
+            <button class="image-preview-close" onclick="closeImagePreview()">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="previewImage" src="" alt="Preview">
+        </div>
+    </div>
 
-        // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('Unhandled promise rejection:', e.reason);
-            // Show a user-friendly error message
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 1rem; border-radius: 8px; z-index: 1000; max-width: 300px;';
-            errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> An error occurred. Please refresh the page.';
-            document.body.appendChild(errorDiv);
-            setTimeout(() => errorDiv.remove(), 5000);
+    <!-- JavaScript for Image Preview -->
+    <script>
+        // Image preview functions
+        function previewImage(imageSrc) {
+            const modal = document.getElementById('imagePreviewModal');
+            const previewImg = document.getElementById('previewImage');
+            
+            if (!modal || !previewImg) {
+                return;
+            }
+            
+            previewImg.src = imageSrc;
+            modal.classList.add('show');
+            
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImagePreview() {
+            const modal = document.getElementById('imagePreviewModal');
+            modal.classList.remove('show');
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+
+        // Close image preview on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImagePreview();
+            }
         });
     </script>
 </body>

@@ -4,7 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= contentItem.title %> - Content - Elkably E-Learning</title>
+  <title><%= contentItem.title %> - Content | ELKABLY</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/KImage.jpg">
+  <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+  <link rel="apple-touch-icon" href="/images/KImage.jpg">
 
   <!-- CSS -->
   <link rel="stylesheet" href="/css/studentCSS/student-main.css">
@@ -830,6 +835,83 @@
     .text-muted {
       color: var(--text-muted) !important;
     }
+
+    /* Attempt status badges */
+    .attempt-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .attempt-status.passed {
+      background: #10b981;
+    }
+
+    .attempt-status.failed {
+      background: #ef4444;
+    }
+
+    /* SweetAlert2 Custom Styles */
+    .swal2-popup-custom {
+      border-radius: 16px !important;
+      font-family: 'Inter', sans-serif !important;
+      border: 2px solid #dc2626 !important;
+    }
+
+    .swal2-title-custom {
+      color: #1f2937 !important;
+      font-weight: 700 !important;
+      font-size: 1.5rem !important;
+    }
+
+    .swal2-content-custom {
+      color: #6b7280 !important;
+    }
+
+    .swal2-confirm-custom {
+      background: #dc2626 !important;
+      border: none !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      padding: 12px 24px !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .swal2-confirm-custom:hover {
+      background: #b91c1c !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+    }
+
+    .swal2-cancel-custom {
+      background: #6b7280 !important;
+      border: none !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      padding: 12px 24px !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .swal2-cancel-custom:hover {
+      background: #4b5563 !important;
+      transform: translateY(-1px) !important;
+    }
+
+    /* Dark theme support for SweetAlert2 */
+    .dark-theme .swal2-popup-custom {
+      background: #1f2937 !important;
+      border-color: #dc2626 !important;
+    }
+
+    .dark-theme .swal2-title-custom {
+      color: #f9fafb !important;
+    }
+
+    .dark-theme .swal2-content-custom {
+      color: #d1d5db !important;
+    }
   </style>
 
   <!-- Meta Tags -->
@@ -854,7 +936,7 @@
         <div class="back-button-container">
           <a href="/student/course/<%= course._id %>/content" class="btn btn-outline btn-sm">
             <i class="fas fa-arrow-left"></i>
-            Back to Course Content
+            Back to Week Content
           </a>
         </div>
 
@@ -1029,7 +1111,7 @@
                 <div style="border:1px solid var(--border-color); border-radius:10px; padding:12px; background:var(--card-bg);">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                     <strong style="font-size:13px;">Attempt <%= i+1 %></strong>
-                    <span style="font-size:12px; padding:4px 8px; border-radius:999px; color:#fff; background:<%= a.passed ? '#10b981' : '#ef4444' %>;"><%= a.passed ? 'Passed' : 'Failed' %></span>
+                    <span class="attempt-status <%= a.passed ? 'passed' : 'failed' %>"><%= a.passed ? 'Passed' : 'Failed' %></span>
                   </div>
                   <div style="display:flex; justify-content:space-between; font-size:12px; opacity:.9;">
                     <span>Score</span>
@@ -1399,14 +1481,6 @@
             Zoom meeting data is not available.
           </div>
           <% } %>
-          <% } else { %>
-          <!-- Generic Content (fallback) -->
-          <div class="generic-content">
-            <div class="placeholder-content">
-              <i class="fas fa-file"></i>
-              <p>Content will be available here</p>
-            </div>
-          </div>
           <% } %>
         </div>
 
@@ -1505,6 +1579,9 @@
 
   <!-- PlayerJS Library -->
   <script src="https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js"></script>
+  
+  <!-- SweetAlert2 Library -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <!-- JavaScript -->
   <script>
@@ -1760,109 +1837,58 @@
       }
     }
 
-    // Start Quiz/Homework with confirmation
+    // Start Quiz/Homework with SweetAlert2 confirmation
     function startQuiz(contentId, contentType) {
       const quizType = contentType === 'quiz' ? 'Quiz' : 'Homework';
-
-      // Create confirmation modal
-      const modal = document.createElement('div');
-      modal.className = 'confirmation-modal';
-      modal.innerHTML = `
-                <div class="modal-overlay">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>Start ${quizType}</h3>
-                        </div>
-                        <div class="modal-body">
-                            <p>Are you sure you want to start this ${quizType.toLowerCase()}?</p>
-                            <p><strong>Note:</strong> Once you start, the timer will begin (if applicable) and you'll need to complete all questions.</p>
-                        </div>
-                        <div class="modal-actions">
-                            <button class="btn btn-secondary" onclick="closeConfirmationModal()">Cancel</button>
-                            <button class="btn btn-primary" onclick="confirmStartQuiz('${contentId}')">Start ${quizType}</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-      // Add modal styles
-      const style = document.createElement('style');
-      style.textContent = `
-                .confirmation-modal {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    z-index: 10000;
-                }
-                .modal-overlay {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.5);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 2rem;
-                }
-                .modal-content {
-                    background: white;
-                    border-radius: 12px;
-                    padding: 2rem;
-                    max-width: 400px;
-                    width: 100%;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-                }
-                .modal-header h3 {
-                    margin: 0 0 1rem 0;
-                    color: #1f2937;
-                }
-                .modal-body p {
-                    margin: 0.5rem 0;
-                    color: #6b7280;
-                }
-                .modal-actions {
-                    display: flex;
-                    gap: 1rem;
-                    justify-content: flex-end;
-                    margin-top: 2rem;
-                }
-                .btn {
-                    padding: 0.75rem 1.5rem;
-                    border: none;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    text-decoration: none;
-                    display: inline-block;
-                }
-                .btn-secondary {
-                    background: #6b7280;
-                    color: white;
-                }
-                .btn-primary {
-                    background: #3b82f6;
-                    color: white;
-                }
-            `;
-
-      document.head.appendChild(style);
-      document.body.appendChild(modal);
+      
+      Swal.fire({
+        title: `Start ${quizType}?`,
+        html: `
+          <div style="text-align: left; margin: 20px 0;">
+            <p style="margin-bottom: 15px; color: #6b7280; font-size: 16px;">
+              Are you sure you want to start this ${quizType.toLowerCase()}?
+            </p>
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin: 15px 0;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 18px;"></i>
+                <strong style="color: #92400e;">Important:</strong>
+              </div>
+              <p style="margin: 8px 0 0 0; color: #92400e; font-size: 14px;">
+                Once you start, the timer will begin (if applicable) and you'll need to complete all questions.
+              </p>
+            </div>
+          </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: `<i class="fas fa-play"></i> Start ${quizType}`,
+        cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+        reverseButtons: true,
+        focusCancel: false,
+        allowOutsideClick: true,
+        allowEscapeKey: true,
+        showCloseButton: true,
+        customClass: {
+          popup: 'swal2-popup-custom',
+          title: 'swal2-title-custom',
+          content: 'swal2-content-custom',
+          confirmButton: 'swal2-confirm-custom',
+          cancelButton: 'swal2-cancel-custom'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          confirmStartQuiz(contentId, quizType);
+        } else {
+          // User cancelled - no action needed
+          console.log(`${quizType} start cancelled by user`);
+        }
+      });
     }
 
-    function closeConfirmationModal() {
-      const modal = document.querySelector('.confirmation-modal');
-      if (modal) {
-        modal.remove();
-      }
-    }
-
-    function confirmStartQuiz(contentId) {
-      closeConfirmationModal();
-      showToast('Starting quiz...', 'success');
+    function confirmStartQuiz(contentId, quizType) {
+      showToast(`Starting ${quizType.toLowerCase()}...`, 'success');
       setTimeout(() => {
         window.location.href = '/student/content/' + contentId + '/take';
       }, 1000);
@@ -1946,6 +1972,7 @@
         setTimeout(() => toast.remove(), 300);
       }, 3000);
     }
+
 
     // Auto-completion handlers
     let readingCompleted = false;

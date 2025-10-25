@@ -17,6 +17,8 @@ const {
   removeFromWishlist,
   toggleWishlist,
   validateCartMiddleware,
+  validatePromoCode,
+  removePromoCode,
 } = require('../controllers/purchaseController');
 
 // Cart routes
@@ -63,5 +65,9 @@ router.get('/purchase-history', ensureAuthenticated, getPurchaseHistory);
 router.post('/wishlist/add', ensureAuthenticated, addToWishlist);
 router.post('/wishlist/remove', ensureAuthenticated, removeFromWishlist);
 router.post('/wishlist/toggle', ensureAuthenticated, toggleWishlist);
+
+// Promo Code routes
+router.post('/promo-code/validate', ensureAuthenticated, validateCartMiddleware, validatePromoCode);
+router.post('/promo-code/remove', ensureAuthenticated, validateCartMiddleware, removePromoCode);
 
 module.exports = router;

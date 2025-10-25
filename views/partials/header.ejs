@@ -6,10 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Professor Mathematics - Advanced Mathematical Education & Excellence">
   <meta name="keywords" content="mathematics, advanced calculus, differential equations, linear algebra, mathematical analysis">
-  <title><%= title %> | Professor Mathematics</title>
+  <title><%= title %></title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="/images/favicon.png">
+  <link rel="icon" type="image/png" href="/images/KImage.jpg">
+  <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+  <link rel="apple-touch-icon" href="/images/KImage.jpg">
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -41,17 +43,18 @@
   <script>
     (function() {
       try {
-        var saved = localStorage.getItem('theme');
-        if (saved) {
-          document.documentElement.classList.remove('light-theme', 'dark-theme');
-          document.body.classList.remove('light-theme', 'dark-theme');
-          document.documentElement.classList.add(saved + '-theme');
-          document.body.classList.add(saved + '-theme');
-        } else {
-          document.documentElement.classList.add('light-theme');
-          document.body.classList.add('light-theme');
-        }
-      } catch (e) {}
+        var saved = localStorage.getItem('theme') || 'light';
+        // Remove all theme classes first
+        document.documentElement.classList.remove('light-theme', 'dark-theme');
+        document.body.classList.remove('light-theme', 'dark-theme');
+        // Add the correct theme class
+        document.documentElement.classList.add(saved + '-theme');
+        document.body.classList.add(saved + '-theme');
+      } catch (e) {
+        // Fallback to light theme
+        document.documentElement.classList.add('light-theme');
+        document.body.classList.add('light-theme');
+      }
     })();
   </script>
 </head>
@@ -83,7 +86,7 @@
         <a href="/" class="header-logo-link">
           <div class="header-logo-wrapper">
             <div class="logo-frame">
-              <img src="/images/K.png" alt="Professor Mathematics" class="logo-image">
+              <img src="/images/K.png" alt="ELKABLY" class="logo-image">
               <div class="logo-glow"></div>
             </div>
           </div>
@@ -95,6 +98,8 @@
       <div class="header-nav-section">
         <nav class="header-nav">
           <ul class="nav-list">
+            <% if (typeof isIndexPage !== 'undefined' && isIndexPage) { %>
+            <!-- Full navigation for index page -->
             <li class="nav-item">
               <a href="#hero" class="nav-link active smooth-scroll">
                 <div class="nav-icon-wrapper">
@@ -122,7 +127,7 @@
                 <span class="nav-indicator"></span>
               </a>
             </li>
-               <li class="nav-item">
+            <li class="nav-item">
               <a href="#courses" class="nav-link">
                 <div class="nav-icon-wrapper">
                   <i class="fas fa-graduation-cap"></i>
@@ -140,7 +145,6 @@
                 <span class="nav-indicator"></span>
               </a>
             </li>
-         
             <li class="nav-item">
               <a href="#elkably-team" class="nav-link smooth-scroll">
                 <div class="nav-icon-wrapper">
@@ -159,6 +163,18 @@
                 <span class="nav-indicator"></span>
               </a>
             </li>
+            <% } else { %>
+            <!-- Simplified navigation for other pages -->
+            <li class="nav-item">
+              <a href="/" class="nav-link">
+                <div class="nav-icon-wrapper">
+                  <i class="fas fa-home"></i>
+                </div>
+                <span class="nav-text">Home</span>
+                <span class="nav-indicator"></span>
+              </a>
+            </li>
+            <% } %>
           </ul>
         </nav>
       </div>
@@ -297,9 +313,9 @@
             </div>
             <div class="cart-item-details">
               <h5 class="cart-item-title"><%= item.title %></h5>
-              <div class="cart-item-price">$<%= item.price.toFixed(2) %></div>
+              <div class="cart-item-price"><%= item.price.toFixed(2) %> EGP</div>
               <div class="cart-item-info">
-                <span class="cart-item-type"><%= item.type === 'bundle' ? 'Course Bundle' : 'Individual Course' %></span>
+                <span class="cart-item-type"><%= item.type === 'bundle' ? 'Course ' : 'Week' %></span>
               </div>
             </div>
             <div class="cart-item-actions">
@@ -325,15 +341,15 @@
         <div class="cart-total" id="cartTotal">
           <div class="cart-total-row">
             <span>Subtotal:</span>
-            <span class="cart-subtotal">$<%= cart.reduce((sum, item) => sum + item.price, 0).toFixed(2) %></span>
+            <span class="cart-subtotal"><%= cart.reduce((sum, item) => sum + item.price, 0).toFixed(2) %> EGP</span>
           </div>
           <div class="cart-total-row">
             <span>Tax:</span>
-            <span class="cart-tax">$<%= (cart.reduce((sum, item) => sum + item.price, 0) * 0).toFixed(2) %></span>
+            <span class="cart-tax"><%= (cart.reduce((sum, item) => sum + item.price, 0) * 0).toFixed(2) %> EGP</span>
           </div>
           <div class="cart-total-row cart-total-final">
             <span>Total:</span>
-            <span class="cart-total-amount">$<%= (cart.reduce((sum, item) => sum + item.price, 0) * 1.1).toFixed(2) %></span>
+            <span class="cart-total-amount"><%= (cart.reduce((sum, item) => sum + item.price, 0) * 1.1).toFixed(2) %> EGP</span>
           </div>
         </div>
 
@@ -383,199 +399,7 @@
   <!-- Advanced Header JavaScript -->
   <script src="/js/advanced-header.js" defer></script>
 
-  <!-- Enhanced Mobile-Friendly Dropdown Toggle -->
-  <script>
-    // Enhanced dropdown toggle with better mobile support
-    function toggleUserDropdown(event) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-
-      const dropdown = document.querySelector('.user-account-dropdown');
-      const menu = document.getElementById('userDropdownMenu');
-      const button = document.getElementById('userDropdown');
-      const overlay = document.getElementById('mobileDropdownOverlay');
-
-      if (!dropdown || !menu || !button) {
-        console.warn('Dropdown elements not found');
-        return;
-      }
-
-      const isOpen = dropdown.classList.contains('show');
-
-      if (isOpen) {
-        closeDropdown();
-      } else {
-        openDropdown();
-      }
-
-      function openDropdown() {
-        // Add show class
-        dropdown.classList.add('show');
-        button.setAttribute('aria-expanded', 'true');
-
-        // Show menu with animation
-        menu.style.display = 'block';
-        menu.style.opacity = '0';
-        menu.style.transform = 'translateY(-20px) scale(0.95)';
-        menu.style.visibility = 'visible';
-
-        // Force reflow
-        menu.offsetHeight;
-
-        // Animate in
-        requestAnimationFrame(() => {
-          menu.style.opacity = '1';
-          menu.style.transform = 'translateY(0) scale(1)';
-          menu.style.pointerEvents = 'auto';
-          menu.style.zIndex = '999999'; // Force maximum z-index
-          menu.style.position = 'fixed'; // Ensure fixed positioning
-        });
-
-        // Show overlay on mobile
-        if (overlay && window.innerWidth <= 768) {
-          overlay.style.display = 'block';
-          overlay.style.opacity = '0';
-          requestAnimationFrame(() => {
-            overlay.style.opacity = '1';
-          });
-        }
-
-        // Prevent body scroll on mobile
-        if (window.innerWidth <= 768) {
-          document.body.style.overflow = 'hidden';
-        }
-
-        console.log('Dropdown opened successfully');
-      }
-
-      function closeDropdown() {
-        // Animate out
-        menu.style.opacity = '0';
-        menu.style.transform = 'translateY(-20px) scale(0.95)';
-        menu.style.pointerEvents = 'none';
-
-        // Hide overlay
-        if (overlay) {
-          overlay.style.opacity = '0';
-          setTimeout(() => {
-            overlay.style.display = 'none';
-          }, 300);
-        }
-
-        // Remove classes after animation
-        setTimeout(() => {
-          dropdown.classList.remove('show');
-          button.setAttribute('aria-expanded', 'false');
-          menu.style.display = 'none';
-          menu.style.visibility = 'hidden';
-        }, 300);
-
-        // Restore body scroll
-        document.body.style.overflow = '';
-
-        console.log('Dropdown closed successfully');
-      }
-    }
-
-    // Add click event listener with proper event handling
-    document.addEventListener('DOMContentLoaded', function() {
-      const button = document.getElementById('userDropdown');
-      if (button) {
-        // Remove any existing onclick handlers
-        button.removeAttribute('onclick');
-
-        // Add proper event listener
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleUserDropdown(e);
-        });
-
-        console.log('Dropdown button event listener attached');
-      }
-
-      // Overlay click handler
-      const overlay = document.getElementById('mobileDropdownOverlay');
-      if (overlay) {
-        overlay.addEventListener('click', function() {
-          toggleUserDropdown();
-        });
-      }
-    });
-
-    // Test function to check if elements exist
-    function testDropdownElements() {
-      console.log('Testing dropdown elements...');
-      const dropdown = document.querySelector('.user-account-dropdown');
-      const menu = document.querySelector('.user-dropdown-menu');
-      const button = document.getElementById('userDropdown');
-
-      console.log('Dropdown element:', dropdown);
-      console.log('Menu element:', menu);
-      console.log('Button element:', button);
-
-      // Only proceed if user is authenticated and elements exist
-      if (!dropdown || !menu || !button) {
-        console.log('User dropdown elements not found - user may not be authenticated');
-        return;
-      }
-
-      if (menu) {
-        console.log('Menu styles:', {
-          position: getComputedStyle(menu).position,
-          display: getComputedStyle(menu).display,
-          opacity: getComputedStyle(menu).opacity,
-          visibility: getComputedStyle(menu).visibility,
-          zIndex: getComputedStyle(menu).zIndex
-        });
-      }
-    }
-
-    // Run test when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(testDropdownElements, 1000);
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      const dropdown = document.querySelector('.user-account-dropdown');
-      if (dropdown && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('show');
-        const button = document.getElementById('userDropdown');
-        const menu = document.querySelector('.user-dropdown-menu');
-        if (button) button.setAttribute('aria-expanded', 'false');
-        if (menu) {
-          menu.style.opacity = '0';
-          menu.style.visibility = 'hidden';
-          menu.style.transform = 'translateY(-20px) scale(0.95)';
-          menu.style.pointerEvents = 'none';
-        }
-        document.body.classList.remove('dropdown-open');
-      }
-    });
-
-    // Close dropdown on escape key
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        const dropdown = document.querySelector('.user-account-dropdown');
-        if (dropdown && dropdown.classList.contains('show')) {
-          dropdown.classList.remove('show');
-          const button = document.getElementById('userDropdown');
-          const menu = document.querySelector('.user-dropdown-menu');
-          if (button) button.setAttribute('aria-expanded', 'false');
-          if (menu) {
-            menu.style.opacity = '0';
-            menu.style.visibility = 'hidden';
-            menu.style.transform = 'translateY(-20px) scale(0.95)';
-            menu.style.pointerEvents = 'none';
-          }
-          document.body.classList.remove('dropdown-open');
-        }
-      }
-    });
-  </script>
+  <!-- Dropdown functionality handled by advanced-header.js -->
 
   <!-- Cart Data -->
   <script>
@@ -615,6 +439,11 @@
 
       // Refresh cart data from server
       refreshCartData: function() {
+        // Only refresh cart data if user is logged in
+        <% if (!user) { %>
+        return;
+        <% } %>
+        
         fetch('/purchase/cart', {
             method: 'POST',
             headers: {
@@ -630,14 +459,10 @@
           .then(data => {
             if (data.success) {
               window.sessionCart = data.cart || [];
-              console.log('Cart data refreshed:', window.sessionCart);
               this.updateCartSidebar();
-            } else {
-              console.error('Failed to refresh cart data:', data.message);
             }
           })
           .catch(error => {
-            console.error('Error refreshing cart data:', error);
             // Don't update cart on error, keep existing data
           });
       },
@@ -669,6 +494,7 @@
               </div>
               <h4>Your cart is empty</h4>
               <p>Add some courses to get started!</p>
+
             </div>
           `;
           return;
@@ -681,9 +507,9 @@
             </div>
             <div class="cart-item-details">
               <h5 class="cart-item-title">${item.title}</h5>
-              <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+              <div class="cart-item-price">${item.price.toFixed(2)} EGP</div>
               <div class="cart-item-info">
-                <span class="cart-item-type">${item.type === 'bundle' ? 'Course Bundle' : 'Individual Course'}</span>
+                <span class="cart-item-type">${item.type === 'bundle' ? 'Course' : 'Week'}</span>
               </div>
             </div>
             <div class="cart-item-actions">
@@ -707,16 +533,22 @@
         const totalEl = document.querySelector('.cart-total-amount');
         const checkoutBtn = document.getElementById('cartCheckout');
 
-        if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-        if (taxEl) taxEl.textContent = `$${tax.toFixed(2)}`;
-        if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+        if (subtotalEl) subtotalEl.textContent = `${subtotal.toFixed(2)} EGP`;
+        if (taxEl) taxEl.textContent = `${tax.toFixed(2)} EGP`;
+        if (totalEl) totalEl.textContent = `${total.toFixed(2)} EGP`;
         if (checkoutBtn) checkoutBtn.disabled = sessionCart.length === 0;
       }
     };
 
     // Remove item from cart sidebar
     function removeFromCartSidebar(itemId, itemType) {
-      console.log('Removing item from cart sidebar:', itemId, itemType);
+      // Add loading state to the remove button
+      const removeBtn = document.querySelector(`button[onclick="removeFromCart('${itemId}')"]`);
+      if (removeBtn) {
+        removeBtn.disabled = true;
+        removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        removeBtn.style.opacity = '0.7';
+      }
 
       fetch('/purchase/cart/remove', {
           method: 'POST',
@@ -729,7 +561,6 @@
           })
         })
         .then(response => {
-          console.log('Response status:', response.status);
           // Check if response is not ok (e.g., 401 Unauthorized)
           if (!response.ok) {
             if (response.status === 401) {
@@ -744,21 +575,39 @@
           return response.json();
         })
         .then(data => {
-          console.log('Remove cart response:', data);
           if (data.success) {
-            // Update session cart data
+            // Update session cart data immediately
             if (window.sessionCart) {
               window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
             }
+            
+            // Update cart count immediately
+            window.globalCart.updateCartCount();
+            
+            // Update cart items display without full reload
+            window.globalCart.updateCartItems();
+            
+            // Update cart totals
+            window.globalCart.updateCartTotals();
+            
             showCartNotification('Item removed from cart', 'success');
-            window.globalCart.updateCartSidebar();
           } else {
             showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+            // Restore button state on error
+            if (removeBtn) {
+              removeBtn.disabled = false;
+              removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+              removeBtn.style.opacity = '1';
+            }
           }
         })
         .catch(error => {
-          console.error('Error removing from cart:', error);
           showCartNotification('Error removing item from cart', 'error');
+          // Restore button state on error
+          if (removeBtn) {
+            removeBtn.disabled = false;
+            removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+          }
         });
     }
 
@@ -773,7 +622,29 @@
       return;
       <% } %>
 
-      // Add to cart via API
+      // Optimistically update UI first for better UX
+      if (window.globalCart) {
+        // Add item to session cart immediately
+        if (!window.sessionCart) window.sessionCart = [];
+        window.sessionCart.push({
+          id: item.id,
+          type: item.type || 'course',
+          title: item.title,
+          price: item.price,
+          image: item.image
+        });
+        
+        // Update cart count immediately
+        window.globalCart.updateCartCount();
+        
+        // Show success notification immediately
+        showCartNotification('Item added to cart successfully', 'success');
+        
+        // Show cart sidebar
+        showCartSidebar();
+      }
+
+      // Then sync with server in background
       fetch('/purchase/cart/add', {
           method: 'POST',
           headers: {
@@ -802,22 +673,21 @@
           return response.json();
         })
         .then(data => {
-          if (data.success) {
-            showCartNotification(data.message || 'Item added to cart successfully', 'success');
-
-            // Update global cart count and refresh cart data
-            if (window.globalCart) {
-              window.globalCart.refreshCartData();
+          if (!data.success) {
+            // If server says it failed, remove from local cart and show error
+            if (window.sessionCart) {
+              window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== item.id);
+              window.globalCart.updateCartCount();
             }
-
-            // Show cart sidebar
-            showCartSidebar();
-          } else {
             showCartNotification(data.message || 'Failed to add item to cart', 'error');
           }
         })
         .catch(error => {
-          console.error('Error:', error);
+          // If server error, remove from local cart and show error
+          if (window.sessionCart) {
+            window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== item.id);
+            window.globalCart.updateCartCount();
+          }
           showCartNotification('Error adding item to cart', 'error');
         });
     }
@@ -840,7 +710,13 @@
         return;
       }
 
-      console.log('Removing item from cart:', item);
+      // Add loading state to the remove button
+      const removeBtn = document.querySelector(`button[onclick="removeFromCart('${itemId}')"]`);
+      if (removeBtn) {
+        removeBtn.disabled = true;
+        removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        removeBtn.style.opacity = '0.7';
+      }
 
       fetch('/purchase/cart/remove', {
           method: 'POST',
@@ -853,7 +729,6 @@
           })
         })
         .then(response => {
-          console.log('Response status:', response.status);
           // Check if response is not ok (e.g., 401 Unauthorized)
           if (!response.ok) {
             if (response.status === 401) {
@@ -868,19 +743,37 @@
           return response.json();
         })
         .then(data => {
-          console.log('Remove cart response:', data);
           if (data.success) {
-            // Update session cart data
+            // Update session cart data immediately
             window.sessionCart = window.sessionCart.filter(cartItem => cartItem.id !== itemId);
+            
+            // Update cart count immediately
+            window.globalCart.updateCartCount();
+            
+            // Update cart items display without full reload
+            window.globalCart.updateCartItems();
+            
+            // Update cart totals
+            window.globalCart.updateCartTotals();
+            
             showCartNotification('Item removed from cart', 'success');
-            window.globalCart.updateCartSidebar();
           } else {
             showCartNotification(data.message || 'Failed to remove item from cart', 'error');
+            // Restore button state on error
+            if (removeBtn) {
+              removeBtn.disabled = false;
+              removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+              removeBtn.style.opacity = '1';
+            }
           }
         })
         .catch(error => {
-          console.error('Error removing from cart:', error);
           showCartNotification('Error removing item from cart', 'error');
+          // Restore button state on error
+          if (removeBtn) {
+            removeBtn.disabled = false;
+            removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+          }
         });
     }
 
@@ -957,11 +850,9 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Initialize cart data from server
       window.sessionCart = window.cartData || [];
-      console.log('Initializing cart with data:', window.sessionCart);
       window.globalCart.setSessionCart(window.sessionCart);
 
-      // Refresh cart data from server to ensure accuracy
-      window.globalCart.refreshCartData();
+      // Initialize cart data (no server refresh needed on page load)
 
       // Cart toggle button
       const cartToggle = document.getElementById('cartToggle');
@@ -973,8 +864,7 @@
         cartToggle.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          // Refresh cart data when opening sidebar
-          window.globalCart.refreshCartData();
+          // No need to refresh cart data when opening sidebar
           showCartSidebar();
         });
       }
@@ -1137,13 +1027,27 @@
     .cart-item {
       display: flex;
       align-items: center;
-      padding: 1.25rem;
-      border: 2px solid #e9ecef;
-      border-radius: 12px;
-      margin-bottom: 1rem;
-      background: #ffffff;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      border: 2px solid rgba(184, 1, 1, 0.1);
+      border-radius: 16px;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cart-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--red-primary), #ff6b6b, var(--red-primary));
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     .cart-item:last-child {
@@ -1151,60 +1055,75 @@
     }
 
     .cart-item:hover {
-      border-color: #3498db;
-      box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1);
-      transform: translateY(-2px);
+      border-color: rgba(184, 1, 1, 0.3);
+      box-shadow: 0 8px 30px rgba(184, 1, 1, 0.15);
+      transform: translateY(-3px);
+    }
+
+    .cart-item:hover::before {
+      opacity: 1;
     }
 
     .cart-item-image {
-      margin-right: 1rem;
+      margin-right: 1.25rem;
       position: relative;
     }
 
     .cart-item-image img {
-      width: 60px;
-      height: 60px;
+      width: 70px;
+      height: 70px;
       object-fit: cover;
-      border-radius: 10px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-      border: 2px solid #f8f9fa;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 3px solid #ffffff;
+      transition: all 0.3s ease;
+    }
+
+    .cart-item:hover .cart-item-image img {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     }
 
     .cart-item-details {
       flex: 1;
-      margin-right: 1rem;
+      margin-right: 1.25rem;
     }
 
     .cart-item-title {
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: 1.1rem;
+      font-weight: 700;
       color: #2c3e50;
-      margin-bottom: 0.5rem;
-      line-height: 1.3;
+      margin-bottom: 0.75rem;
+      line-height: 1.4;
+      font-family: 'Poppins', sans-serif;
     }
 
     .cart-item-price {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #27ae60;
-      margin-bottom: 0.5rem;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--red-primary);
+      margin-bottom: 0.75rem;
+      font-family: 'Poppins', sans-serif;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .cart-item-info {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
 
     .cart-item-type {
-      font-size: 0.8rem;
-      color: #3498db;
+      font-size: 0.85rem;
+      color: #ffffff;
       font-weight: 600;
-      background: #e3f2fd;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
+      background: linear-gradient(135deg, var(--red-primary), #ff6b6b);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
+      box-shadow: 0 2px 8px rgba(184, 1, 1, 0.3);
+      font-family: 'Poppins', sans-serif;
     }
 
     .cart-item-actions {
@@ -1216,22 +1135,198 @@
       background: linear-gradient(135deg, #e74c3c, #c0392b);
       color: white;
       border: none;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: 0.8rem;
-      box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+      transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cart-remove-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
     }
 
     .cart-remove-btn:hover {
       background: linear-gradient(135deg, #c0392b, #a93226);
-      transform: scale(1.05);
-      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+      transform: scale(1.1) translateY(-2px);
+      box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+    }
+
+    .cart-remove-btn:hover::before {
+      left: 100%;
+    }
+
+    .cart-remove-btn:active {
+      transform: scale(0.95);
+    }
+
+    .cart-remove-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Dark theme support */
+    .dark-theme .cart-item {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      border-color: rgba(184, 1, 1, 0.2);
+    }
+
+    .dark-theme .cart-item-title {
+      color: #ffffff;
+    }
+
+    .dark-theme .cart-item-image img {
+      border-color: #333;
+    }
+
+    /* Enhanced Empty State */
+    .cart-empty {
+      text-align: center;
+      padding: 3rem 2rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 16px;
+      border: 2px dashed rgba(184, 1, 1, 0.2);
+    }
+
+    .cart-empty-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      background: linear-gradient(135deg, var(--red-primary), #ff6b6b);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 25px rgba(184, 1, 1, 0.2);
+    }
+
+    .cart-empty-icon i {
+      font-size: 2rem;
+      color: white;
+    }
+
+    .cart-empty h4 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 0.75rem;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .cart-empty p {
+      font-size: 1rem;
+      color: #6c757d;
+      margin-bottom: 2rem;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .cart-empty-actions {
+      margin-top: 1.5rem;
+    }
+
+    .btn-browse-courses {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: linear-gradient(135deg, var(--red-primary), #ff6b6b);
+      color: white;
+      text-decoration: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+      box-shadow: 0 4px 15px rgba(184, 1, 1, 0.3);
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .btn-browse-courses:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(184, 1, 1, 0.4);
+      color: white;
+      text-decoration: none;
+    }
+
+    .btn-browse-courses i {
+      font-size: 1.1rem;
+    }
+
+    /* Dark theme support for empty state */
+    .dark-theme .cart-empty {
+      background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+      border-color: rgba(184, 1, 1, 0.3);
+    }
+
+    .dark-theme .cart-empty h4 {
+      color: #ffffff;
+    }
+
+    .dark-theme .cart-empty p {
+      color: #adb5bd;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .cart-item {
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+      }
+
+      .cart-item-image img {
+        width: 60px;
+        height: 60px;
+      }
+
+      .cart-item-title {
+        font-size: 1rem;
+      }
+
+      .cart-item-price {
+        font-size: 1.2rem;
+      }
+
+      .cart-remove-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+      }
+
+      .cart-empty {
+        padding: 2rem 1.5rem;
+      }
+
+      .cart-empty-icon {
+        width: 70px;
+        height: 70px;
+      }
+
+      .cart-empty-icon i {
+        font-size: 1.8rem;
+      }
+
+      .cart-empty h4 {
+        font-size: 1.2rem;
+      }
+
+      .btn-browse-courses {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
+      }
     }
 
     .cart-notification {

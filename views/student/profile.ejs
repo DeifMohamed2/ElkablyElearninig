@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - Elkably E-Learning</title>
+    <title><%= title %></title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="apple-touch-icon" href="/images/KImage.jpg">
     
     <!-- CSS -->
     <link rel="stylesheet" href="/css/studentCSS/student-main.css">
@@ -357,6 +362,112 @@
             100% { transform: scale(1); }
         }
         
+        /* Phone input group styling */
+        .phone-input-group {
+            display: flex;
+            align-items: stretch;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .phone-input-group:focus-within {
+            border-color: var(--primary-color);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .country-code-selector {
+            display: flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            min-width: 100px;
+        }
+
+        .country-select {
+            border: none;
+            background: transparent;
+            padding: var(--spacing-sm) var(--spacing-xs);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            outline: none;
+            width: 100%;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 8px center;
+            background-repeat: no-repeat;
+            background-size: 16px 16px;
+            padding-right: 32px;
+        }
+
+        .country-select:focus {
+            background-color: var(--bg-secondary);
+        }
+
+        .country-select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 8px;
+            font-size: 0.875rem;
+        }
+
+        .phone-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .phone-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Dark theme support for phone inputs */
+        .dark-theme .phone-input-group {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        .dark-theme .phone-input-group:focus-within {
+            background: var(--bg-card);
+            border-color: var(--primary-color);
+        }
+
+        .dark-theme .country-code-selector {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        .dark-theme .country-select {
+            color: var(--text-primary);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23d1d5db' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        }
+
+        .dark-theme .country-select:focus {
+            background-color: var(--bg-secondary);
+        }
+
+        .dark-theme .country-select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .dark-theme .phone-input {
+            color: var(--text-primary);
+        }
+
+        .dark-theme .phone-input::placeholder {
+            color: var(--text-muted);
+        }
+
         @media (max-width: 768px) {
             .profile-grid {
                 grid-template-columns: 1fr;
@@ -378,6 +489,22 @@
             
             .achievements-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .country-code-selector {
+                min-width: 85px;
+            }
+            
+            .country-select {
+                padding: 10px 6px;
+                font-size: 13px;
+                padding-right: 28px;
+                background-size: 14px 14px;
+            }
+            
+            .phone-input {
+                padding: 10px 12px;
+                font-size: 13px;
             }
         }
     </style>
@@ -419,7 +546,7 @@
                                 <div class="profile-stats">
                                     <div class="stat-item">
                                         <div class="stat-number"><%= student.totalEnrolledCourses || 0 %></div>
-                                        <div class="stat-label">Courses</div>
+                                        <div class="stat-label">Weeks</div>
                                     </div>
                                     <div class="stat-item">
                                         <div class="stat-number"><%= student.completedCourses || 0 %></div>
@@ -453,7 +580,7 @@
                                     <div class="achievement-number" style="color: var(--primary-color);">
                                         <%= student.totalEnrolledCourses || 0 %>
                                     </div>
-                                    <div class="achievement-label">Enrolled Courses</div>
+                                    <div class="achievement-label">Enrolled Weeks</div>
                                 </div>
                                 <div class="achievement-card">
                                     <div class="achievement-number" style="color: var(--success-color);">
@@ -516,7 +643,14 @@
                                     <div class="form-group">
                                         <label class="form-label">Grade</label>
                                         <select name="grade" class="form-control" readonly>
-                                            <option value="<%= student.grade %>" selected><%= student.grade %></option>
+                                            <option value="">Select your grade</option>
+                                            <option value="Year 7" <%= student.grade == 'Year 7' ? 'selected' : '' %>>Year 7</option>
+                                            <option value="Year 8" <%= student.grade == 'Year 8' ? 'selected' : '' %>>Year 8</option>
+                                            <option value="Year 9" <%= student.grade == 'Year 9' ? 'selected' : '' %>>Year 9</option>
+                                            <option value="Year 10" <%= student.grade == 'Year 10' ? 'selected' : '' %>>Year 10</option>
+                                            <option value="Year 11" <%= student.grade == 'Year 11' ? 'selected' : '' %>>Year 11</option>
+                                            <option value="Year 12" <%= student.grade == 'Year 12' ? 'selected' : '' %>>Year 12</option>
+                                            <option value="Year 13" <%= student.grade == 'Year 13' ? 'selected' : '' %>>Year 13</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -528,33 +662,34 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label">Student Phone</label>
-                                        <div style="display: flex; gap: var(--spacing-sm);">
-                                            <select name="studentCountryCode" class="form-control" style="width: 120px;" readonly>
-                                                <option value="<%= student.studentCountryCode %>" selected><%= student.studentCountryCode %></option>
-                                            </select>
-                                            <input type="tel" name="parentNumber" class="form-control" value="<%= student.parentNumber %>" readonly>
+                                        <div class="phone-input-group">
+                                            <div class="country-code-selector">
+                                                <select name="studentCountryCode" class="country-select" readonly>
+                                                <option value="+20" <%= student.studentCountryCode == '+20' ? 'selected' : '' %>>🇪🇬 +20</option>
+                                                <option value="+966" <%= student.studentCountryCode == '+966' ? 'selected' : '' %>>🇸🇦 +966</option>
+                                                <option value="+971" <%= student.studentCountryCode == '+971' ? 'selected' : '' %>>🇦🇪 +971</option>
+                                                <option value="+965" <%= student.studentCountryCode == '+965' ? 'selected' : '' %>>🇰🇼 +965</option>
+                                                </select>
+                                            </div>
+                                            <input type="tel" name="studentNumber" class="phone-input" value="<%= student.studentNumber %>" readonly>
                                         </div>
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Parent Phone</label>
-                                        <div style="display: flex; gap: var(--spacing-sm);">
-                                            <select name="parentCountryCode" class="form-control" style="width: 120px;" readonly>
-                                                <option value="<%= student.parentCountryCode %>" selected><%= student.parentCountryCode %></option>
-                                            </select>
-                                            <input type="tel" name="parentNumber" class="form-control" value="<%= student.parentNumber %>" readonly>
+                                        <div class="phone-input-group">
+                                            <div class="country-code-selector">
+                                                <select name="parentCountryCode" class="country-select" readonly>
+                                                <option value="+20" <%= student.parentCountryCode == '+20' ? 'selected' : '' %>>🇪🇬 +20</option>
+                                                <option value="+966" <%= student.parentCountryCode == '+966' ? 'selected' : '' %>>🇸🇦 +966</option>
+                                                <option value="+971" <%= student.parentCountryCode == '+971' ? 'selected' : '' %>>🇦🇪 +971</option>
+                                                <option value="+965" <%= student.parentCountryCode == '+965' ? 'selected' : '' %>>🇰🇼 +965</option>
+                                                </select>
+                                            </div>
+                                            <input type="tel" name="parentNumber" class="phone-input" value="<%= student.parentNumber %>" readonly>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label class="form-label">English Teacher</label>
-                                    <input type="text" name="englishTeacher" class="form-control" value="<%= student.englishTeacher %>" readonly>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">How did you know about us?</label>
-                                    <textarea name="howDidYouKnow" class="form-control" rows="3" readonly><%= student.howDidYouKnow %></textarea>
-                                </div>
                                 
                                 <div class="btn-group">
                                     <button type="submit" class="btn btn-primary" id="saveBtn" style="display: none;">
@@ -664,7 +799,7 @@
 
             if (isEditMode) {
                 // Enable editing for specific fields only
-                const editableFields = ['firstName', 'lastName', 'schoolName', 'englishTeacher', 'howDidYouKnow'];
+                const editableFields = ['firstName', 'lastName', 'schoolName', 'grade', 'studentNumber', 'parentNumber', 'studentCountryCode', 'parentCountryCode'];
                 
                 formInputs.forEach(input => {
                     if (editableFields.includes(input.name)) {
@@ -768,7 +903,7 @@
             const data = {};
             
             // Only include editable fields
-            const editableFields = ['firstName', 'lastName', 'schoolName', 'englishTeacher', 'howDidYouKnow'];
+            const editableFields = ['firstName', 'lastName', 'schoolName', 'grade', 'studentNumber', 'parentNumber', 'studentCountryCode', 'parentCountryCode'];
             editableFields.forEach(field => {
                 const input = this.querySelector(`[name="${field}"]`);
                 if (input) {
@@ -779,6 +914,49 @@
             // Validate required fields
             if (!data.firstName || !data.lastName) {
                 showNotification('First name and last name are required', 'error');
+                return;
+            }
+
+            // Validate phone numbers
+            if (data.studentNumber && data.studentCountryCode) {
+                const phoneLengthStandards = {
+                    '+966': 9,  // Saudi Arabia: 9 digits
+                    '+20': 11,  // Egypt: 11 digits (including leading 0)
+                    '+971': 9,  // UAE: 9 digits
+                    '+965': 8   // Kuwait: 8 digits
+                };
+                
+                const studentNumber = data.studentNumber.replace(/[^\d]/g, '');
+                const expectedLength = phoneLengthStandards[data.studentCountryCode];
+                
+                if (expectedLength && studentNumber.length !== expectedLength) {
+                    showNotification(`Student number must be ${expectedLength} digits for the selected country.`, 'error');
+                    return;
+                }
+            }
+
+            if (data.parentNumber && data.parentCountryCode) {
+                const phoneLengthStandards = {
+                    '+966': 9,  // Saudi Arabia: 9 digits
+                    '+20': 11,  // Egypt: 11 digits (including leading 0)
+                    '+971': 9,  // UAE: 9 digits
+                    '+965': 8   // Kuwait: 8 digits
+                };
+                
+                const parentNumber = data.parentNumber.replace(/[^\d]/g, '');
+                const expectedLength = phoneLengthStandards[data.parentCountryCode];
+                
+                if (expectedLength && parentNumber.length !== expectedLength) {
+                    showNotification(`Parent number must be ${expectedLength} digits for the selected country.`, 'error');
+                    return;
+                }
+            }
+
+            // Check if student and parent numbers are the same
+            if (data.studentNumber && data.parentNumber && 
+                data.studentNumber === data.parentNumber && 
+                data.studentCountryCode === data.parentCountryCode) {
+                showNotification('Student and parent phone numbers cannot be the same.', 'error');
                 return;
             }
 
@@ -980,6 +1158,15 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Add any initialization code here
             console.log('Profile page loaded');
+            
+            // Phone number formatting and validation
+            const phoneInputs = document.querySelectorAll('input[name="studentNumber"], input[name="parentNumber"]');
+            phoneInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    // Remove any non-numeric characters except spaces and hyphens
+                    this.value = this.value.replace(/[^\d\s\-]/g, '');
+                });
+            });
         });
     </script>
 </body>

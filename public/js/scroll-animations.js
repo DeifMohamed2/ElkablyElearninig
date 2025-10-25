@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function initializeAOS() {
   if (typeof AOS !== 'undefined') {
-    console.log("Initializing AOS animations");
     AOS.init({
       duration: 1200,
       easing: 'ease-out-cubic',
@@ -208,16 +207,14 @@ function initializeParallaxEffects() {
       
       element.style.transform = `translate3d(0, ${yPos}px, 0)`;
     });
-  });
+  }, { passive: true });
 }
 
 /**
  * Initialize floating animations for decorative elements
  */
 function initializeFloatingElements() {
-  console.log("Initializing floating elements");
   const floatingElements = document.querySelectorAll('.floating-element');
-  console.log(`Found ${floatingElements.length} floating elements`);
   
   floatingElements.forEach((element, index) => {
     // Get animation parameters from data attributes or use defaults
@@ -225,7 +222,6 @@ function initializeFloatingElements() {
     const period = element.dataset.floatPeriod || 3;
     const phase = index * 0.5; // Stagger phases for varied motion
     
-    console.log(`Animating element ${index} with amplitude ${amplitude} and period ${period}`);
     
     // Apply floating animation
     animateFloating(element, parseFloat(amplitude), parseFloat(period), phase);
@@ -233,7 +229,6 @@ function initializeFloatingElements() {
   
   // Also initialize floating equations and math elements
   const mathElements = document.querySelectorAll('.math-element, .equation-item');
-  console.log(`Found ${mathElements.length} math elements`);
   
   mathElements.forEach((element, index) => {
     if (!element.classList.contains('floating-element')) {
@@ -341,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const scrolled = (winScroll / height) * 100;
     
     progressBar.style.width = scrolled + '%';
-  });
+  }, { passive: true });
 });
 
 /**

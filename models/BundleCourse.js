@@ -12,14 +12,12 @@ const BundleCourseSchema = new mongoose.Schema(
     description: {
       type: String,
       trim: true,
-      minlength: 5,
       maxlength: 1000,
       default: '',
     },
     shortDescription: {
       type: String,
       trim: true,
-      minlength: 3,
       maxlength: 200,
       default: '',
     },
@@ -41,7 +39,7 @@ const BundleCourseSchema = new mongoose.Schema(
     },
     courseType: {
       type: String,
-      enum: ['online', 'onground'],
+      enum: ['online', 'onground', 'recorded'],
       required: true,
       default: 'online',
     },

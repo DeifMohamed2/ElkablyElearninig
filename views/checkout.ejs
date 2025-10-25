@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="/css/checkout.css">
 
 <!-- Checkout Page -->
-<div class="checkout-page" style="padding-top: 120px; margin-top: 80px;">
+<div class="checkout-page" style="padding-top: 20px; margin-top: 80px;">
   <div class="checkout-container">
     <!-- Breadcrumb -->
     <nav class="checkout-breadcrumb">
@@ -163,6 +163,36 @@
             </div>
           </div>
 
+          <!-- Promo Code Section -->
+          <div class="checkout-form-section">
+            <h3 class="checkout-section-title">
+              <i class="fas fa-tag"></i>
+              Promo Code
+            </h3>
+
+            <div class="promo-code-container">
+              <div class="promo-code-input-group">
+                <input type="text" id="promoCodeInput" class="checkout-form-control" placeholder="Enter promo code" maxlength="20">
+                <button type="button" id="applyPromoBtn" class="promo-apply-btn">
+                  <i class="fas fa-check"></i>
+                  Apply
+                </button>
+              </div>
+              <div id="promoCodeMessage" class="promo-code-message" style="display: none;"></div>
+            </div>
+
+            <div id="appliedPromoCode" class="applied-promo-code" style="display: none;">
+              <div class="applied-promo-info">
+                <i class="fas fa-tag"></i>
+                <span class="promo-code-text"></span>
+                <span class="promo-discount-amount"></span>
+                <button type="button" id="removePromoBtn" class="promo-remove-btn">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Order Summary -->
           <div class="checkout-form-section">
             <h3 class="checkout-section-title">
@@ -223,7 +253,11 @@
         <div class="checkout-summary-content">
           <div class="checkout-summary-row">
             <span class="checkout-summary-label">Subtotal:</span>
-            <span class="checkout-summary-value">EGP <%= subtotal.toFixed(2) %></span>
+            <span class="checkout-summary-value" id="subtotalValue">EGP <%= subtotal.toFixed(2) %></span>
+          </div>
+          <div id="promoCodeDiscountRow" class="checkout-summary-row" style="display: none;">
+            <span class="checkout-summary-label">Promo Code Discount:</span>
+            <span class="checkout-summary-value promo-discount" id="promoDiscountValue">-EGP 0.00</span>
           </div>
           <div class="checkout-summary-row">
             <span class="checkout-summary-label">Tax:</span>
@@ -231,7 +265,7 @@
           </div>
           <div class="checkout-summary-row checkout-summary-total">
             <span class="checkout-summary-label">Total:</span>
-            <span class="checkout-summary-value">EGP <%= total.toFixed(2) %></span>
+            <span class="checkout-summary-value" id="totalValue">EGP <%= total.toFixed(2) %></span>
           </div>
         </div>
 
@@ -258,9 +292,150 @@
   document.addEventListener('DOMContentLoaded', function() {
     const checkoutForm = document.getElementById('checkoutForm');
     const processPaymentBtn = document.getElementById('processPaymentBtn');
+    
+    // Promo code elements
+    const promoCodeInput = document.getElementById('promoCodeInput');
+    const applyPromoBtn = document.getElementById('applyPromoBtn');
+    const removePromoBtn = document.getElementById('removePromoBtn');
+    const promoCodeMessage = document.getElementById('promoCodeMessage');
+    const appliedPromoCode = document.getElementById('appliedPromoCode');
+    const promoCodeDiscountRow = document.getElementById('promoCodeDiscountRow');
+    const promoDiscountValue = document.getElementById('promoDiscountValue');
+    const totalValue = document.getElementById('totalValue');
+    
+    // Original totals
+    const originalSubtotal = <%= subtotal %>;
+    const originalTotal = <%= total %>;
+    
+    // Promo code functionality
+    applyPromoBtn.addEventListener('click', applyPromoCode);
+    removePromoBtn.addEventListener('click', removePromoCode);
+    
+    // Allow Enter key to apply promo code
+    promoCodeInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyPromoCode();
+      }
+    });
+    
+    async function applyPromoCode() {
+      const promoCode = promoCodeInput.value.trim().toUpperCase();
+      
+      if (!promoCode) {
+        showPromoMessage('Please enter a promo code', 'error');
+        return;
+      }
+      
+      applyPromoBtn.disabled = true;
+      applyPromoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+      
+      try {
+        const response = await fetch('/purchase/promo-code/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ promoCode })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showPromoMessage(`Promo code "${data.promoCode}" applied successfully!`, 'success');
+          updateOrderSummary(data.originalAmount, data.discountAmount, data.finalAmount, data.promoCode);
+          showAppliedPromoCode(data.promoCode, data.discountAmount);
+          promoCodeInput.value = '';
+        } else {
+          showPromoMessage(data.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error applying promo code:', error);
+        showPromoMessage('Error applying promo code. Please try again.', 'error');
+      } finally {
+        applyPromoBtn.disabled = false;
+        applyPromoBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+      }
+    }
+    
+    async function removePromoCode() {
+      try {
+        const response = await fetch('/purchase/promo-code/remove', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showPromoMessage('Promo code removed successfully', 'info');
+          resetOrderSummary();
+          hideAppliedPromoCode();
+        } else {
+          showPromoMessage(data.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error removing promo code:', error);
+        showPromoMessage('Error removing promo code. Please try again.', 'error');
+      }
+    }
+    
+    function showPromoMessage(message, type) {
+      promoCodeMessage.textContent = message;
+      promoCodeMessage.className = `promo-code-message ${type}`;
+      promoCodeMessage.style.display = 'block';
+      
+      setTimeout(() => {
+        promoCodeMessage.style.display = 'none';
+      }, 5000);
+    }
+    
+    function updateOrderSummary(originalAmount, discountAmount, finalAmount, promoCode) {
+      // SECURITY: Use server-calculated amounts only
+      promoDiscountValue.textContent = `-EGP ${discountAmount.toFixed(2)}`;
+      totalValue.textContent = `EGP ${finalAmount.toFixed(2)}`;
+      promoCodeDiscountRow.style.display = 'flex';
+      
+      // Update the subtotal display to show original amount
+      const subtotalValue = document.getElementById('subtotalValue');
+      if (subtotalValue) {
+        subtotalValue.textContent = `EGP ${originalAmount.toFixed(2)}`;
+      }
+    }
+    
+    function resetOrderSummary() {
+      totalValue.textContent = `EGP ${originalTotal.toFixed(2)}`;
+      promoCodeDiscountRow.style.display = 'none';
+    }
+    
+    function showAppliedPromoCode(promoCode, discountAmount) {
+      const promoCodeText = appliedPromoCode.querySelector('.promo-code-text');
+      const promoDiscountAmount = appliedPromoCode.querySelector('.promo-discount-amount');
+      
+      promoCodeText.textContent = promoCode;
+      promoDiscountAmount.textContent = `-EGP ${discountAmount.toFixed(2)}`;
+      appliedPromoCode.style.display = 'block';
+    }
+    
+    function hideAppliedPromoCode() {
+      appliedPromoCode.style.display = 'none';
+    }
 
     checkoutForm.addEventListener('submit', async function(e) {
       e.preventDefault();
+
+      // SECURITY: Validate that frontend amounts match server expectations
+      const currentTotal = parseFloat(totalValue.textContent.replace('EGP ', ''));
+      const originalTotalAmount = <%= total %>;
+      
+      // If promo code is applied, ensure the total is less than original
+      const hasAppliedPromo = document.getElementById('appliedPromoCode').style.display !== 'none';
+      if (hasAppliedPromo && currentTotal >= originalTotalAmount) {
+        showNotification('Invalid order total. Please refresh the page and try again.', 'error');
+        return;
+      }
 
       // Show loading state
       processPaymentBtn.disabled = true;
@@ -285,7 +460,7 @@
 
         const selectedPaymentMethod = formData.get('selectedPaymentMethod');
 
-        // Process payment
+        // Process payment - server will handle promo code validation and amounts
         const response = await fetch('/purchase/checkout/process', {
           method: 'POST',
           headers: {
@@ -295,6 +470,7 @@
             paymentMethod: 'paymob',
             selectedPaymentMethod,
             billingAddress
+            // Note: Promo code is handled server-side from session
           })
         });
 
@@ -302,6 +478,17 @@
 
         if (data.success && data.paymentData && data.paymentData.iframeUrl) {
           showNotification('Redirecting to payment gateway...', 'success');
+
+          // SECURITY: Verify that the payment total matches our expected total
+          const expectedTotal = hasAppliedPromo ? currentTotal : originalTotalAmount;
+          if (Math.abs(data.paymentData.total - expectedTotal) > 0.01) {
+            console.warn('Payment total mismatch:', {
+              expected: expectedTotal,
+              received: data.paymentData.total
+            });
+            showNotification('Payment amount mismatch detected. Please refresh and try again.', 'error');
+            return;
+          }
 
           // Show payment iframe
           showPaymentIframe(data.paymentData);
@@ -902,6 +1089,193 @@
     color: #27ae60;
     font-weight: bold;
     font-size: 1.1em;
+  }
+
+  /* Promo Code Styles */
+  .promo-code-container {
+    margin-bottom: 1rem;
+  }
+
+  .promo-code-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .promo-code-input-group .checkout-form-control {
+    flex: 1;
+    text-transform: uppercase;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .promo-apply-btn {
+    background: linear-gradient(135deg, #B80101, #dc2626);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .promo-apply-btn:hover {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(184, 1, 1, 0.3);
+  }
+
+  .promo-apply-btn:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .promo-code-message {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    margin-top: 0.5rem;
+  }
+
+  .promo-code-message.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  .promo-code-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .promo-code-message.info {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  .applied-promo-code {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border: 2px solid #22c55e;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .applied-promo-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #166534;
+  }
+
+  .applied-promo-info i {
+    font-size: 1.2rem;
+    color: #22c55e;
+  }
+
+  .promo-code-text {
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+  }
+
+  .promo-discount-amount {
+    font-weight: 700;
+    color: #059669;
+    margin-left: auto;
+  }
+
+  .promo-remove-btn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    color: #dc2626;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .promo-remove-btn:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .promo-discount {
+    color: #059669 !important;
+    font-weight: 700;
+  }
+
+  /* Dark theme support for promo codes */
+  .dark-theme .promo-code-message.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+
+  .dark-theme .promo-code-message.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  .dark-theme .promo-code-message.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .dark-theme .applied-promo-code {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+
+  .dark-theme .applied-promo-info {
+    color: #4ade80;
+  }
+
+  .dark-theme .applied-promo-info i {
+    color: #4ade80;
+  }
+
+  .dark-theme .promo-discount-amount {
+    color: #4ade80;
+  }
+
+  /* Responsive design for promo codes */
+  @media (max-width: 768px) {
+    .promo-code-input-group {
+      flex-direction: column;
+    }
+
+    .promo-apply-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .applied-promo-info {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .promo-discount-amount {
+      margin-left: 0;
+    }
   }
 </style>
 

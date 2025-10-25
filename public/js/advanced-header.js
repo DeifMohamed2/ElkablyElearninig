@@ -32,8 +32,6 @@ function initializeHeaderScrollEffects() {
   function updateHeader() {
     const scrollY = window.scrollY;
     const scrollDirection = scrollY > lastScrollY ? 'down' : 'up';
-    // const scrollProgress = scrollY / 200; // Define scrollProgress at function level
-    
     // Add scrolled class for basic scroll effects
     if (scrollY > 50) {
       header.classList.add('scrolled');
@@ -41,40 +39,7 @@ function initializeHeaderScrollEffects() {
       header.classList.remove('scrolled');
     }
 
-    // Enhanced glass effect based on scroll position
-    if (headerGlassEffect) {
-      const glassOpacity = 0.08 + (scrollProgress * 0.12); // 0.08 to 0.2
-      const blurAmount = 15 + (scrollProgress * 10); // 15px to 25px
-      
-      headerGlassEffect.style.background = `rgba(255, 255, 255, ${glassOpacity})`;
-      headerGlassEffect.style.backdropFilter = `blur(${blurAmount}px)`;
-      headerGlassEffect.style.webkitBackdropFilter = `blur(${blurAmount}px)`;
-    }
 
-    // Dynamic gradient overlay
-    if (headerGradientOverlay) {
-      const gradientOpacity = 0.7 + (scrollProgress * 0.3);
-      headerGradientOverlay.style.opacity = gradientOpacity;
-    }
-
-    // Animate math patterns based on scroll
-    if (headerMathPatterns) {
-      const patterns = headerMathPatterns.querySelectorAll('.math-pattern');
-      patterns.forEach((pattern, index) => {
-        const speed = 0.5 + (index * 0.1);
-        const yOffset = scrollY * speed;
-        const rotation = scrollY * 0.1;
-        pattern.style.transform = `translateY(${yOffset}px) rotate(${rotation}deg)`;
-      });
-    }
-
-    // Add subtle parallax effect to header backdrop
-    if (scrollY > 0) {
-      const parallaxOffset = scrollY * 0.3;
-      header.style.transform = `translateY(${parallaxOffset}px)`;
-    } else {
-      header.style.transform = 'translateY(0)';
-    }
 
     lastScrollY = scrollY;
     ticking = false;
@@ -99,7 +64,6 @@ function initializeHeaderScrollEffects() {
  */
 function initializeMobileNavigation() {
   // Mobile toggle functionality removed - navigation now uses dropdown in header
-  console.log('Mobile navigation initialized - no toggle button needed');
 }
 
 /**
@@ -107,52 +71,87 @@ function initializeMobileNavigation() {
  */
 function initializeThemeToggle() {
   const themeToggle = document.getElementById('themeToggle');
-  const lightIcon = document.querySelector('.light-icon');
-  const darkIcon = document.querySelector('.dark-icon');
-  const lightContainer = document.querySelector('.light-icon-container');
-  const darkContainer = document.querySelector('.dark-icon-container');
-
+  
   if (!themeToggle) return;
 
-  // Get current theme
-  const currentTheme = document.documentElement.classList.contains('light-theme') ? 'light' : 'dark';
+  // Get current theme from localStorage or default to light
+  const currentTheme = localStorage.getItem('theme') || 'light';
+  
+  // Apply initial theme
+  applyTheme(currentTheme);
 
-  // Set initial state
-  updateThemeToggle(currentTheme);
+  // Mark as initialized to prevent conflicts with theme-manager.js
+  themeToggle.setAttribute('data-advanced-header-initialized', 'true');
 
-  themeToggle.addEventListener('click', function() {
-    const isLight = document.documentElement.classList.contains('light-theme');
-    const newTheme = isLight ? 'dark' : 'light';
+  themeToggle.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
     
-    // Toggle theme classes
-    document.documentElement.classList.toggle('light-theme');
-    document.documentElement.classList.toggle('dark-theme');
-    document.body.classList.toggle('light-theme');
-    document.body.classList.toggle('dark-theme');
+    // Add loading state to prevent multiple clicks
+    themeToggle.disabled = true;
+    themeToggle.classList.add('theme-toggling');
+    
+    const currentTheme = document.documentElement.classList.contains('light-theme') ? 'light' : 'dark';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    
+    // Apply new theme
+    applyTheme(newTheme);
+    
+    // Remove loading state after animation
+    setTimeout(() => {
+      themeToggle.disabled = false;
+      themeToggle.classList.remove('theme-toggling');
+    }, 300);
+  });
+
+  function applyTheme(theme) {
+    // Remove existing theme classes from both html and body
+    document.documentElement.classList.remove('light-theme', 'dark-theme');
+    document.body.classList.remove('light-theme', 'dark-theme');
+    
+    // Add new theme class to both html and body
+    document.documentElement.classList.add(`${theme}-theme`);
+    document.body.classList.add(`${theme}-theme`);
     
     // Save to localStorage
-    localStorage.setItem('theme', newTheme);
+    localStorage.setItem('theme', theme);
     
     // Update toggle appearance
-    updateThemeToggle(newTheme);
+    updateThemeToggle(theme);
     
     // Trigger custom event for other components
     window.dispatchEvent(new CustomEvent('themeChanged', { 
-      detail: { theme: newTheme } 
+      detail: { theme: theme } 
     }));
-  });
+  }
 
   function updateThemeToggle(theme) {
+    const lightContainer = document.querySelector('.light-icon-container');
+    const darkContainer = document.querySelector('.dark-icon-container');
+    
+    if (!lightContainer || !darkContainer) return;
+    
+    // Use CSS classes instead of inline styles for better performance
     if (theme === 'light') {
-      lightContainer.style.opacity = '1';
-      lightContainer.style.transform = 'scale(1)';
-      darkContainer.style.opacity = '0';
-      darkContainer.style.transform = 'scale(0.8)';
-    } else {
+      lightContainer.style.display = 'none';
       lightContainer.style.opacity = '0';
-      lightContainer.style.transform = 'scale(0.8)';
+      lightContainer.style.transform = 'scale(0.5) rotate(-180deg)';
+      lightContainer.style.visibility = 'hidden';
+      
+      darkContainer.style.display = 'flex';
       darkContainer.style.opacity = '1';
-      darkContainer.style.transform = 'scale(1)';
+      darkContainer.style.transform = 'scale(1) rotate(0deg)';
+      darkContainer.style.visibility = 'visible';
+    } else {
+      lightContainer.style.display = 'flex';
+      lightContainer.style.opacity = '1';
+      lightContainer.style.transform = 'scale(1) rotate(0deg)';
+      lightContainer.style.visibility = 'visible';
+      
+      darkContainer.style.display = 'none';
+      darkContainer.style.opacity = '0';
+      darkContainer.style.transform = 'scale(0.5) rotate(180deg)';
+      darkContainer.style.visibility = 'hidden';
     }
   }
 }
@@ -162,21 +161,21 @@ function initializeThemeToggle() {
  */
 function initializeUserDropdown() {
   const userDropdown = document.getElementById('userDropdown');
-  const dropdownMenu = document.querySelector('.user-dropdown-menu');
+  const dropdownMenu = document.getElementById('userDropdownMenu');
   const dropdownContainer = document.querySelector('.user-account-dropdown');
+  const mobileOverlay = document.getElementById('mobileDropdownOverlay');
 
-  console.log('Initializing user dropdown:', { userDropdown, dropdownMenu, dropdownContainer });
-
-  if (!userDropdown || !dropdownMenu) {
-    console.log('User dropdown elements not found');
+  if (!userDropdown || !dropdownMenu || !dropdownContainer) {
+    console.warn('Dropdown elements not found');
     return;
   }
 
+  // Remove any existing event listeners
+  userDropdown.removeAttribute('onclick');
+  
   userDropdown.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('User dropdown clicked');
     
     const isExpanded = userDropdown.getAttribute('aria-expanded') === 'true';
     
@@ -186,6 +185,13 @@ function initializeUserDropdown() {
       openDropdown();
     }
   });
+
+  // Mobile overlay click handler
+  if (mobileOverlay) {
+    mobileOverlay.addEventListener('click', function() {
+      closeDropdown();
+    });
+  }
 
   // Close dropdown when clicking outside
   document.addEventListener('click', function(e) {
@@ -204,7 +210,7 @@ function initializeUserDropdown() {
   // Close dropdown when scrolling
   window.addEventListener('scroll', function() {
     closeDropdown();
-  });
+  }, { passive: true });
 
   // Close dropdown when window is resized
   window.addEventListener('resize', function() {
@@ -212,8 +218,6 @@ function initializeUserDropdown() {
   });
 
   function openDropdown() {
-    console.log('Opening dropdown');
-    
     // Calculate position based on button location
     const buttonRect = userDropdown.getBoundingClientRect();
     const headerHeight = document.querySelector('.advanced-header')?.offsetHeight || 90;
@@ -223,47 +227,82 @@ function initializeUserDropdown() {
     dropdownMenu.style.right = `${window.innerWidth - buttonRect.right}px`;
     
     // Ensure dropdown doesn't go off screen
-    const dropdownWidth = 320;
+    const dropdownWidth = 380; // Updated to match CSS width
     const rightPosition = window.innerWidth - buttonRect.right;
     
     if (rightPosition + dropdownWidth > window.innerWidth - 20) {
       dropdownMenu.style.right = '20px';
     }
     
-    // Show dropdown
+    // Show dropdown with animation
     dropdownContainer.classList.add('show');
     userDropdown.setAttribute('aria-expanded', 'true');
-    dropdownMenu.style.opacity = '1';
+    
+    // Set initial state for animation
+    dropdownMenu.style.display = 'block';
+    dropdownMenu.style.opacity = '0';
+    dropdownMenu.style.transform = 'translateY(-20px) scale(0.95)';
     dropdownMenu.style.visibility = 'visible';
-    dropdownMenu.style.transform = 'translateY(0) scale(1)';
+    dropdownMenu.style.pointerEvents = 'none';
+    dropdownMenu.style.zIndex = '999999';
     
-    // Add body class to prevent scrolling
+    // Force reflow
+    dropdownMenu.offsetHeight;
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      dropdownMenu.style.opacity = '1';
+      dropdownMenu.style.transform = 'translateY(0) scale(1)';
+      dropdownMenu.style.pointerEvents = 'auto';
+    });
+    
+    // Show mobile overlay
+    if (mobileOverlay && window.innerWidth <= 768) {
+      mobileOverlay.style.display = 'block';
+      mobileOverlay.style.opacity = '0';
+      requestAnimationFrame(() => {
+        mobileOverlay.style.opacity = '1';
+      });
+    }
+    
+    // Prevent body scroll on mobile
+    if (window.innerWidth <= 768) {
+      document.body.style.overflow = 'hidden';
+    }
+    
+    // Add body class
     document.body.classList.add('dropdown-open');
-    
-    console.log('Dropdown opened');
   }
 
   function closeDropdown() {
-    console.log('Closing dropdown');
+    if (!dropdownContainer.classList.contains('show')) {
+      return; // Already closed
+    }
     
-    if (dropdownContainer) {
+    // Animate out
+    dropdownMenu.style.opacity = '0';
+    dropdownMenu.style.transform = 'translateY(-20px) scale(0.95)';
+    dropdownMenu.style.pointerEvents = 'none';
+    
+    // Hide mobile overlay
+    if (mobileOverlay) {
+      mobileOverlay.style.opacity = '0';
+      setTimeout(() => {
+        mobileOverlay.style.display = 'none';
+      }, 300);
+    }
+    
+    // Remove classes after animation
+    setTimeout(() => {
       dropdownContainer.classList.remove('show');
-    }
-    
-    if (userDropdown) {
       userDropdown.setAttribute('aria-expanded', 'false');
-    }
-    
-    if (dropdownMenu) {
-      dropdownMenu.style.opacity = '0';
+      dropdownMenu.style.display = 'none';
       dropdownMenu.style.visibility = 'hidden';
-      dropdownMenu.style.transform = 'translateY(-20px) scale(0.95)';
-    }
+    }, 300);
     
-    // Remove body class
+    // Restore body scroll
+    document.body.style.overflow = '';
     document.body.classList.remove('dropdown-open');
-    
-    console.log('Dropdown closed');
   }
 }
 
@@ -277,17 +316,13 @@ function initializeCartToggle() {
   const cartSidebarOverlay = document.getElementById('cartSidebarOverlay');
 
   if (!cartToggle || !cartSidebar) {
-    console.log('Cart elements not found');
     return;
   }
-
-  console.log('Cart elements found, initializing...');
 
   // Open cart sidebar
   cartToggle.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Cart toggle clicked');
     
     cartSidebar.classList.add('cart-sidebar-open');
     document.body.classList.add('cart-sidebar-active');
@@ -313,7 +348,6 @@ function initializeCartToggle() {
   });
 
   function closeCartSidebar() {
-    console.log('Closing cart sidebar');
     cartSidebar.classList.remove('cart-sidebar-open');
     document.body.classList.remove('cart-sidebar-active');
     document.body.style.overflow = '';

@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - Elkably E-Learning</title>
+    <title><%= title %></title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="apple-touch-icon" href="/images/KImage.jpg">
     
     <!-- CSS -->
     <link rel="stylesheet" href="/css/studentCSS/student-main.css">
@@ -108,7 +113,16 @@
                                             </span>
                                             <% if (studentAttempt.bestScore > 0) { %>
                                                 <span class="best-score">
-                                                    Best: <%= studentAttempt.bestScore %>%
+                                                    Best: 
+                                                    <% 
+                                                        // Find the attempt with the best score to get correctAnswers and totalQuestions
+                                                        const bestAttempt = studentAttempt.attempts.find(attempt => attempt.score === studentAttempt.bestScore);
+                                                        if (bestAttempt && bestAttempt.correctAnswers !== undefined && bestAttempt.totalQuestions !== undefined) {
+                                                    %>
+                                                        <%= bestAttempt.correctAnswers %>/<%= bestAttempt.totalQuestions %>
+                                                    <% } else { %>
+                                                        <%= studentAttempt.bestScore %>%
+                                                    <% } %>
                                                 </span>
                                             <% } %>
                                         </div>
@@ -186,7 +200,7 @@
                             </a>
                             <a href="/student/enrolled-courses" class="btn btn-outline btn-lg">
                                 <i class="fas fa-book-open" style="margin-right: var(--spacing-sm);"></i>
-                                View Courses
+                                View Weeks
                             </a>
                         </div>
                     </div>

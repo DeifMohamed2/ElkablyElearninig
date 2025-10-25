@@ -551,36 +551,49 @@
     .students-table-container {
       background: var(--admin-card-light);
       border: 1px solid var(--admin-border-light);
-      border-radius: 12px;
-      box-shadow: var(--admin-shadow);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       overflow: hidden;
+      transition: all 0.3s ease;
     }
 
+    .students-table-container:hover {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
 
     .table-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--admin-border-light);
+      padding: 24px 28px;
+      border-bottom: 2px solid var(--admin-border-light);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: linear-gradient(135deg, rgba(184, 1, 1, 0.02) 0%, rgba(184, 1, 1, 0.05) 100%);
+      background: var(--admin-card-light);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .dark-theme .table-header {
+      background: var(--admin-card-light);
     }
 
 
     .table-title {
-      font-size: 1.3rem;
-      font-weight: 700;
+      font-size: 1.4rem;
+      font-weight: 800;
       color: var(--admin-text-light);
       margin: 0;
       display: flex;
       align-items: center;
       gap: 12px;
+      letter-spacing: -0.5px;
     }
-
 
     .table-title::before {
       content: '👥';
-      font-size: 1.5rem;
+      font-size: 1.8rem;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     }
 
     .table-actions {
@@ -590,12 +603,31 @@
     }
 
     .table-actions .action-btn {
-      padding: 10px 18px;
-      font-size: 0.85rem;
+      padding: 12px 20px;
+      font-size: 0.9rem;
     }
 
     .table-overflow {
       overflow-x: auto;
+      max-height: calc(100vh - 450px);
+    }
+
+    .table-overflow::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .table-overflow::-webkit-scrollbar-track {
+      background: var(--admin-bg-light);
+    }
+
+    .table-overflow::-webkit-scrollbar-thumb {
+      background: var(--admin-border-light);
+      border-radius: 4px;
+    }
+
+    .table-overflow::-webkit-scrollbar-thumb:hover {
+      background: var(--admin-primary);
     }
 
     .students-table {
@@ -613,22 +645,41 @@
     }
 
     .students-table th {
-      background: rgba(184, 1, 1, 0.05);
+      background: var(--admin-card-light);
       color: var(--admin-text-light);
-      font-weight: 600;
-      padding: 16px;
+      font-weight: 700;
+      padding: 18px 16px;
       text-align: left;
-      border-bottom: 1px solid var(--admin-border-light);
+      border-bottom: 2px solid var(--admin-primary);
       white-space: nowrap;
       font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .students-table th:first-child {
+      border-top-left-radius: 12px;
+    }
+
+    .students-table th:last-child {
+      border-top-right-radius: 12px;
+    }
+
+    .dark-theme .students-table th {
+      background: var(--admin-card-light);
     }
 
 
     .students-table td {
-      padding: 16px;
+      padding: 18px 16px;
       border-bottom: 1px solid var(--admin-border-light);
-      vertical-align: top;
+      vertical-align: middle;
       font-size: 0.9rem;
+      transition: all 0.2s ease;
     }
 
     /* Special styling for student info cells */
@@ -637,9 +688,25 @@
       vertical-align: middle;
     }
 
+    /* Alternating row colors */
+    .students-table tbody tr:nth-child(even) {
+      background: rgba(184, 1, 1, 0.01);
+    }
 
-    .students-table tr:hover {
-      background: rgba(184, 1, 1, 0.02);
+    .students-table tbody tr {
+      transition: all 0.3s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .students-table tbody tr:hover {
+      background: linear-gradient(90deg, rgba(184, 1, 1, 0.05) 0%, rgba(184, 1, 1, 0.02) 100%);
+      border-left-color: var(--admin-primary);
+      transform: scale(1.001);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .students-table tbody tr:last-child td {
+      border-bottom: none;
     }
 
 
@@ -651,17 +718,25 @@
     }
 
     .student-avatar {
-      width: 45px;
-      height: 45px;
-      background: var(--admin-primary);
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--admin-primary) 0%, #8b0000 100%);
       color: white;
-      border-radius: 8px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-size: 1.3rem;
+      font-weight: 800;
       flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+      transition: all 0.3s ease;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .student-avatar:hover {
+      transform: scale(1.08) rotate(2deg);
+      box-shadow: 0 6px 16px rgba(184, 1, 1, 0.4);
     }
 
     .student-info {
@@ -670,21 +745,173 @@
     }
 
     .student-name {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--admin-text-light);
       margin-bottom: 2px;
       white-space: normal;
       word-wrap: break-word;
       line-height: 1.4;
+      font-size: 0.95rem;
     }
 
     .student-email {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--admin-text-light);
-      opacity: 0.6;
+      opacity: 0.65;
       white-space: normal;
       word-wrap: break-word;
       line-height: 1.3;
+    }
+
+    /* Student Code Cell */
+    .student-code-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .code-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: transparent;
+      color: var(--admin-primary);
+      border: 2px solid var(--admin-primary);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+
+    .code-badge:hover {
+      background: var(--admin-primary);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    .code-badge i {
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    /* Grade Badge */
+    .grade-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      background: transparent;
+      color: var(--admin-primary);
+      border: 2px solid var(--admin-primary);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .grade-badge:hover {
+      background: var(--admin-primary);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    }
+
+    /* Courses Cell */
+    .courses-cell {
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .courses-count {
+      font-weight: 800;
+      font-size: 1.3rem;
+      color: var(--admin-primary);
+      margin-bottom: 4px;
+      text-shadow: 0 1px 2px rgba(184, 1, 1, 0.1);
+    }
+
+    .courses-active {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      color: var(--admin-text-light);
+      font-weight: 600;
+    }
+
+    /* Date Cell */
+    .date-cell {
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .date-main {
+      font-weight: 700;
+      color: var(--admin-text-light);
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+
+    .date-sub {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      color: var(--admin-text-light);
+      font-weight: 500;
+    }
+
+    /* Activity Cell */
+    .activity-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 0;
+    }
+
+    .activity-time {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--admin-text-light);
+    }
+
+    .activity-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.2);
+      animation: pulse 2s infinite;
+    }
+
+    .activity-indicator.active {
+      background: var(--admin-primary);
+      box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.3);
+    }
+
+    .activity-indicator.moderate {
+      background: #d97706;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.3);
+    }
+
+    .activity-indicator.inactive {
+      background: #6b7280;
+      box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.3);
+    }
+
+    .no-activity {
+      opacity: 0.5;
+      font-size: 0.85rem;
+      color: var(--admin-text-light);
+      font-style: italic;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
     }
 
     /* Status Badge */
@@ -717,44 +944,47 @@
 
     /* Progress Bar */
     .progress-bar-container {
-      width: 100px;
+      width: 120px;
       text-align: center;
     }
 
     .progress-percentage {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--admin-text-light);
-      margin-bottom: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--admin-primary);
+      margin-bottom: 6px;
     }
 
     .progress-bar {
       width: 100%;
-      height: 6px;
-      background: var(--admin-border-light);
-      border-radius: 3px;
+      height: 8px;
+      background: rgba(184, 1, 1, 0.1);
+      border-radius: 10px;
       overflow: hidden;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .progress-fill {
       height: 100%;
-      background: var(--admin-primary);
-      border-radius: 3px;
+      background: linear-gradient(90deg, var(--admin-primary) 0%, #8b0000 100%);
+      border-radius: 10px;
       transition: width 0.8s ease;
+      box-shadow: 0 2px 4px rgba(184, 1, 1, 0.3);
     }
 
     /* Action Buttons */
     .student-actions {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
+      justify-content: center;
     }
 
     .action-btn-sm {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      border: 1px solid var(--admin-border-light);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 2px solid transparent;
       background: transparent;
       color: var(--admin-text-light);
       display: flex;
@@ -763,25 +993,64 @@
       cursor: pointer;
       transition: all 0.3s ease;
       text-decoration: none;
+      position: relative;
+      overflow: hidden;
     }
 
+    .action-btn-sm::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.3s ease, height 0.3s ease;
+    }
+
+    .action-btn-sm:hover::before {
+      width: 100%;
+      height: 100%;
+    }
 
     .action-btn-sm:hover {
-      background: var(--admin-primary);
-      color: white;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .action-btn-sm.view {
-      color: #3b82f6;
+      color: var(--admin-primary);
+      border-color: rgba(184, 1, 1, 0.3);
+    }
+
+    .action-btn-sm.view:hover {
+      background: var(--admin-primary);
+      color: white;
+      border-color: var(--admin-primary);
     }
 
     .action-btn-sm.edit {
-      color: #f59e0b;
+      color: var(--admin-primary);
+      border-color: rgba(184, 1, 1, 0.3);
+    }
+
+    .action-btn-sm.edit:hover {
+      background: var(--admin-primary);
+      color: white;
+      border-color: var(--admin-primary);
     }
 
     .action-btn-sm.delete {
-      color: #ef4444;
+      color: var(--admin-primary);
+      border-color: rgba(184, 1, 1, 0.3);
+    }
+
+    .action-btn-sm.delete:hover {
+      background: var(--admin-primary);
+      color: white;
+      border-color: var(--admin-primary);
     }
 
     /* Pagination */
@@ -1331,6 +1600,10 @@
             </div>
           </div>
           <div class="page-actions">
+            <button class="btn btn-secondary" onclick="showBulkImportModal()">
+              <i class="fas fa-upload"></i>
+              Bulk Import Students
+            </button>
             <button class="btn btn-primary" onclick="exportStudents()">
               <i class="fas fa-file-excel"></i>
               Export All Students 
@@ -1553,8 +1826,8 @@
             <thead>
               <tr>
                 <th>Student</th>
+                <th>Student Code</th>
                 <th>Grade</th>
-                <th>School</th>
                 <th>Courses</th>
                 <th>Progress</th>
                 <th>Enrolled</th>
@@ -1581,21 +1854,24 @@
                   </div>
                 </td>
                 <td>
-                  <span style="font-weight: 500; color: var(--admin-primary);">
+                  <div class="student-code-cell">
+                    <span class="code-badge">
+                      <i class="fas fa-hashtag"></i>
+                      <%= student.studentCode || 'N/A' %>
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="grade-badge">
                     <%= student.grade %>
                   </span>
                 </td>
                 <td>
-                  <span style="font-size: 0.85rem; opacity: 0.8;">
-                    <%= student.schoolName %>
-                  </span>
-                </td>
-                <td>
-                  <div style="text-align: center;">
-                    <div style="font-weight: 600; color: var(--admin-text-light);">
+                  <div class="courses-cell">
+                    <div class="courses-count">
                       <%= student.analytics?.totalCourses || 0 %>
                     </div>
-                    <div style="font-size: 0.75rem; opacity: 0.6;">
+                    <div class="courses-active">
                       <%= student.analytics?.activeCourses || 0 %> active
                     </div>
                   </div>
@@ -1611,24 +1887,24 @@
                   </div>
                 </td>
                 <td>
-                  <div style="text-align: center;">
-                    <div style="font-weight: 500; color: var(--admin-text-light);">
+                  <div class="date-cell">
+                    <div class="date-main">
                       <%= new Date(student.createdAt).toLocaleDateString() %>
                     </div>
-                    <div style="font-size: 0.75rem; opacity: 0.6;">
+                    <div class="date-sub">
                       <%= student.analytics?.daysSinceEnrollment || 0 %> days ago
                     </div>
                   </div>
                 </td>
                 <td>
-                  <div style="text-align: center;">
+                  <div class="activity-cell">
                     <% if (student.analytics?.daysSinceLastActivity !== null) { %>
-                    <div style="font-weight: 500; color: var(--admin-text-light);">
-                      <%= student.analytics.daysSinceLastActivity %> days
+                    <div class="activity-time">
+                      <%= student.analytics.daysSinceLastActivity %> days ago
                     </div>
-                    <div style="font-size: 0.75rem; opacity: 0.6;">ago</div>
+                    <div class="activity-indicator <%= student.analytics.daysSinceLastActivity <= 7 ? 'active' : student.analytics.daysSinceLastActivity <= 30 ? 'moderate' : 'inactive' %>"></div>
                     <% } else { %>
-                    <span style="opacity: 0.5;">Never</span>
+                    <span class="no-activity">Never</span>
                     <% } %>
                   </div>
                 </td>
@@ -1637,6 +1913,9 @@
                     <a href="/admin/students/<%= student._id %>" class="action-btn-sm view" title="View Details">
                       <i class="fas fa-eye"></i>
                     </a>
+                    <button class="action-btn-sm edit" onclick="window.location.href='/admin/students/<%= student._id %>/edit'" title="Edit Student">
+                      <i class="fas fa-edit"></i>
+                    </button>
                     <button class="action-btn-sm delete" onclick="confirmDeleteStudent('<%= student._id %>', '<%= student.firstName %> <%= student.lastName %>')" title="Delete Student">
                       <i class="fas fa-trash"></i>
                     </button>
@@ -1714,8 +1993,47 @@
 
   <%- include('partials/admin-footer') %>
 
-  <!-- Toast Container -->
-  <div class="toast-container" id="toastContainer"></div>
+  <!-- Bulk Import Modal -->
+  <div id="bulkImportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #1e293b;">Bulk Import Students</h3>
+        <button onclick="closeBulkImportModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+      </div>
+      
+      <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
+        <h4 style="margin: 0 0 10px 0; color: #1e40af; font-size: 14px;">📋 Excel Format Requirements:</h4>
+        <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 13px;">
+          <li><strong>Student Name</strong> - Full name of the student</li>
+          <li><strong>Student Phone Number</strong> - Phone number with country code (e.g., +966XXXXXXXXX)</li>
+          <li><strong>Parent Phone Number</strong> - Parent's phone with country code</li>
+          <li><strong>Student Code</strong> - Unique student code</li>
+        </ul>
+      </div>
+
+      <form id="bulkImportForm" enctype="multipart/form-data">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Select Excel File:</label>
+          <input type="file" name="excelFile" id="excelFile" accept=".xlsx,.xls" required 
+                 style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+          <p style="margin: 8px 0 0 0; font-size: 12px; color: #6b7280;">Only .xlsx or .xls files are allowed</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeBulkImportModal()" 
+                  style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: #374151;">
+            Cancel
+          </button>
+          <button type="submit" id="importSubmitBtn"
+                  style="padding: 10px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: white;">
+            <i class="fas fa-upload"></i> Import Students
+          </button>
+        </div>
+      </form>
+
+      <div id="importResults" style="display: none; margin-top: 20px; padding: 15px; border-radius: 8px;"></div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script>
@@ -1880,196 +2198,36 @@
       }
     }
 
-    // Show delete confirmation toast
+    // Show delete confirmation dialog
     function confirmDeleteStudent(studentId, studentName) {
-      showDeleteConfirmationToast(studentId, studentName);
+      if (confirm(`Are you sure you want to delete "${studentName}"?\n\nThis action cannot be undone and will permanently remove all student data, progress, and enrollment records.`)) {
+        deleteStudent(studentId, studentName);
+      }
     }
 
-    // Show toast notification
-    function showToast(type, title, message, actions = null, customToastId = null) {
-      const toastContainer = document.getElementById('toastContainer');
-      if (!toastContainer) {
-        console.error('Toast container not found');
-        return null;
-      }
-      
-      const toastId = customToastId || 'toast-' + Date.now();
-      
-      const iconClass = {
-        'warning': 'fas fa-exclamation-triangle',
-        'success': 'fas fa-check-circle',
-        'error': 'fas fa-times-circle'
-      }[type] || 'fas fa-info-circle';
-
-      const toast = document.createElement('div');
-      if (toast) {
-        toast.className = 'toast';
-        toast.id = toastId;
-      }
-      
-      let actionsHtml = '';
-      if (actions) {
-        actionsHtml = `
-          <div class="toast-actions">
-            ${actions.map(action => 
-              `<button class="toast-btn ${action.class}" onclick="${action.onclick}" ${action.disabled ? 'disabled' : ''}>
-                ${action.loading ? '<span class="loading"></span>' : action.text}
-              </button>`
-            ).join('')}
-          </div>
-        `;
-      }
-
-      toast.innerHTML = `
-        <div class="toast-header">
-          <div class="toast-icon ${type}">
-            <i class="${iconClass}"></i>
-          </div>
-          <h4 class="toast-title">${title}</h4>
-        </div>
-        <div class="toast-message">${message}</div>
-        ${actionsHtml}
-      `;
-
-      toastContainer.appendChild(toast);
-
-      // Trigger animation
-      setTimeout(() => {
-        if (toast && toast.classList) {
-          toast.classList.add('show');
-        }
-      }, 100);
-
-      // Auto remove after 10 seconds if no actions
-      if (!actions) {
-        setTimeout(() => {
-          removeToast(toastId);
-        }, 10000);
-      }
-
-      return toastId;
-    }
-
-    // Remove toast
-    function removeToast(toastId) {
-      const toast = document.getElementById(toastId);
-      if (toast && toast.classList) {
-        toast.classList.remove('show');
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
+    // Delete student
+    async function deleteStudent(studentId, studentName) {
+      try {
+        const response = await fetch(`/admin/students/${studentId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
           }
-        }, 300);
-      }
-    }
-
-    // Show delete confirmation toast
-    function showDeleteConfirmationToast(studentId, studentName) {
-      const toastId = 'toast-' + Date.now();
-      
-      showToast('warning', 'Delete Student', 
-        `Are you sure you want to delete <strong>${studentName}</strong>? This action cannot be undone and will permanently remove all student data, progress, and enrollment records.`, 
-        [
-          {
-            text: 'Cancel',
-            class: 'cancel',
-            onclick: `removeToast('${toastId}')`
-          },
-          {
-            text: 'Delete Student',
-            class: 'confirm',
-            onclick: `deleteStudent('${studentId}', '${toastId}')`
-          }
-        ],
-        toastId
-      );
-      
-      return toastId;
-    }
-
-    // Delete student with loading state
-    function deleteStudent(studentId, toastId) {
-      const toast = document.getElementById(toastId);
-      if (!toast) return;
-
-      // Update buttons to show loading state
-      const confirmBtn = toast.querySelector('.toast-btn.confirm');
-      const cancelBtn = toast.querySelector('.toast-btn.cancel');
-      
-      if (confirmBtn) {
-        confirmBtn.classList.add('loading');
-        confirmBtn.disabled = true;
-        confirmBtn.onclick = null;
-      }
-      
-      if (cancelBtn) {
-        cancelBtn.disabled = true;
-        cancelBtn.onclick = null;
-      }
-
-      // Update toast content
-      const message = toast.querySelector('.toast-message');
-      if (message) {
-        message.innerHTML = 'Deleting student and all associated data...';
-      }
-
-      // Make delete request
-        fetch(`/admin/students/${studentId}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-            // Show success toast
-            removeToast(toastId);
-            showToast('success', 'Student Deleted', 
-              `Student has been successfully deleted from the system.`, 
-              [
-                {
-                  text: 'OK',
-                  class: 'cancel',
-                  onclick: `removeToast('${toastId}')`
-                }
-              ]
-            );
-            
-            // Reload page after a short delay
-            setTimeout(() => {
-              location.reload();
-            }, 2000);
-            } else {
-            // Show error toast
-            removeToast(toastId);
-            showToast('error', 'Delete Failed', 
-              `Error deleting student: ${data.message || 'Unknown error occurred'}`, 
-              [
-                {
-                  text: 'OK',
-                  class: 'cancel',
-                  onclick: `removeToast('${toastId}')`
-                }
-              ]
-            );
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-          // Show error toast
-          removeToast(toastId);
-          showToast('error', 'Delete Failed', 
-            'Network error occurred while deleting student. Please try again.', 
-            [
-              {
-                text: 'OK',
-                class: 'cancel',
-                onclick: `removeToast('${toastId}')`
-              }
-            ]
-          );
         });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert(`✓ ${studentName} has been successfully deleted from the system.`);
+          // Reload page to show updated student list
+          location.reload();
+        } else {
+          alert(`✗ Failed to delete student: ${data.message || 'Unknown error occurred'}`);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('✗ Network error occurred while deleting student. Please try again.');
+      }
     }
 
     // Animate progress bars
@@ -2203,6 +2361,104 @@
     }
 
     // Theme toggle functionality is handled by admin-footer.ejs
+
+    // Bulk Import Functions
+    function showBulkImportModal() {
+      const modal = document.getElementById('bulkImportModal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeBulkImportModal() {
+      const modal = document.getElementById('bulkImportModal');
+      if (modal) {
+        modal.style.display = 'none';
+        // Reset form
+        document.getElementById('bulkImportForm').reset();
+        document.getElementById('importResults').style.display = 'none';
+        document.getElementById('importResults').innerHTML = '';
+      }
+    }
+
+    // Handle bulk import form submission
+    document.getElementById('bulkImportForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const submitBtn = document.getElementById('importSubmitBtn');
+      const originalBtnText = submitBtn.innerHTML;
+      const resultsDiv = document.getElementById('importResults');
+      
+      // Show loading state
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+      submitBtn.disabled = true;
+      resultsDiv.style.display = 'none';
+      
+      try {
+        const response = await fetch('/admin/students/bulk-import', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        // Display results
+        resultsDiv.style.display = 'block';
+        
+        if (data.success) {
+          resultsDiv.style.background = '#d1fae5';
+          resultsDiv.style.border = '1px solid #10b981';
+          resultsDiv.innerHTML = `
+            <h4 style="margin: 0 0 10px 0; color: #065f46;">✓ Import Successful</h4>
+            <p style="margin: 0 0 10px 0; color: #065f46;">${data.message}</p>
+            <div style="margin-top: 15px;">
+              <p style="margin: 5px 0; color: #065f46;"><strong>Successful:</strong> ${data.results.success.length}</p>
+              <p style="margin: 5px 0; color: #991b1b;"><strong>Failed:</strong> ${data.results.failed.length}</p>
+              <p style="margin: 5px 0; color: #1e40af;"><strong>Total:</strong> ${data.results.total}</p>
+            </div>
+            ${data.results.failed.length > 0 ? `
+              <details style="margin-top: 10px;">
+                <summary style="cursor: pointer; color: #991b1b; font-weight: 600;">View Failed Imports</summary>
+                <ul style="margin: 10px 0 0 20px; color: #991b1b;">
+                  ${data.results.failed.map(f => `<li>Row ${f.row}: ${f.studentName} - ${f.reason}</li>`).join('')}
+                </ul>
+              </details>
+            ` : ''}
+            <button onclick="location.reload()" style="margin-top: 15px; padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+              Refresh Page
+            </button>
+          `;
+        } else {
+          resultsDiv.style.background = '#fee2e2';
+          resultsDiv.style.border = '1px solid #ef4444';
+          resultsDiv.innerHTML = `
+            <h4 style="margin: 0 0 10px 0; color: #991b1b;">✗ Import Failed</h4>
+            <p style="margin: 0; color: #991b1b;">${data.message}</p>
+          `;
+        }
+      } catch (error) {
+        console.error('Import error:', error);
+        resultsDiv.style.display = 'block';
+        resultsDiv.style.background = '#fee2e2';
+        resultsDiv.style.border = '1px solid #ef4444';
+        resultsDiv.innerHTML = `
+          <h4 style="margin: 0 0 10px 0; color: #991b1b;">✗ Import Failed</h4>
+          <p style="margin: 0; color: #991b1b;">An error occurred during import. Please try again.</p>
+        `;
+      } finally {
+        // Reset button
+        submitBtn.innerHTML = originalBtnText;
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('bulkImportModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeBulkImportModal();
+      }
+    });
   </script>
 
   <!-- Essential JavaScript Libraries -->

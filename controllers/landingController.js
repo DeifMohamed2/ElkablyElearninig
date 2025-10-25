@@ -9,163 +9,131 @@ const TeamMember = require('../models/TeamMember');
 // Get landing page data
 const getLandingPage = async (req, res) => {
   try {
-    // Get featured online bundles
-    const onlineBundles = await BundleCourse.find({
-      courseType: 'online',
-      status: 'published',
-      isActive: true,
-    })
-      .populate('courses')
-      .sort({ createdAt: -1 })
-      .limit(6);
+    // Execute all database queries in parallel for better performance
+    const [
+      onlineBundles,
+      ongroundBundles,
+      recordedBundles,
+      featuredQuizzes,
+      testCounts,
+      featuredGameRooms,
+      stats,
+      brilliantStudents,
+      teamMembers,
+      user
+    ] = await Promise.all([
+      // Get featured bundles with minimal data
+      BundleCourse.find({
+        courseType: 'online',
+        status: 'published',
+        isActive: true,
+      })
+        .select('title shortDescription price image courseType createdAt')
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean(),
 
-    console.log('Landing page - Found online bundles:', onlineBundles.length);
+      BundleCourse.find({
+        courseType: 'onground',
+        status: 'published',
+        isActive: true,
+      })
+        .select('title shortDescription price image courseType createdAt')
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean(),
 
-    // Get featured onground bundles
-    const ongroundBundles = await BundleCourse.find({
-      courseType: 'onground',
-      status: 'published',
-      isActive: true,
-    })
-      .populate('courses')
-      .sort({ createdAt: -1 })
-      .limit(6);
+      BundleCourse.find({
+        courseType: 'recorded',
+        status: 'published',
+        isActive: true,
+      })
+        .select('title shortDescription price image courseType createdAt')
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean(),
 
-    console.log(
-      'Landing page - Found onground bundles:',
-      ongroundBundles.length
-    );
+      // Get featured quizzes with minimal data
+      Quiz.find({
+        status: 'active',
+      })
+        .select('title description testType difficulty timeLimit totalQuestions createdAt')
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .lean(),
 
-    // Get featured recorded bundles
-    const recordedBundles = await BundleCourse.find({
-      courseType: 'recorded',
-      status: 'published',
-      isActive: true,
-    })
-      .populate('courses')
-      .sort({ createdAt: -1 })
-      .limit(6);
+      // Get test counts in parallel
+      Promise.all([
+        Quiz.countDocuments({ testType: 'EST', status: 'active' }),
+        Quiz.countDocuments({ testType: 'SAT', status: 'active' }),
+        Quiz.countDocuments({ testType: 'ACT', status: 'active' }),
+      ]).then(([EST, SAT, ACT]) => ({ EST, SAT, ACT })),
 
-    console.log(
-      'Landing page - Found recorded bundles:',
-      recordedBundles.length
-    );
+      // Get featured game rooms with minimal data
+      GameRoom.find({
+        isActive: true,
+        isPublic: true,
+        gameState: { $in: ['waiting', 'starting'] },
+      })
+        .select('title gameState currentPlayers maxPlayers totalTime questions category difficulty createdAt')
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean(),
 
-    // Get featured quizzes for free tests section
-    const featuredQuizzes = await Quiz.find({
-      status: 'active',
-    })
-      .populate('questionBank', 'name description')
-      .populate('createdBy', 'name')
-      .sort({ createdAt: -1 })
-      .limit(4)
-      .lean({ virtuals: true });
+      // Get stats in parallel
+      Promise.all([
+        BundleCourse.countDocuments({
+          courseType: 'online',
+          status: 'published',
+          isActive: true,
+        }),
+        BundleCourse.countDocuments({
+          courseType: 'onground',
+          status: 'published',
+          isActive: true,
+        }),
+        BundleCourse.countDocuments({
+          courseType: 'recorded',
+          status: 'published',
+          isActive: true,
+        }),
+        Quiz.countDocuments({ status: 'active' }),
+        GameRoom.countDocuments({
+          isActive: true,
+          isPublic: true,
+        }),
+        BundleCourse.aggregate([
+          { $match: { status: 'published', isActive: true } },
+          { $project: { enrolledCount: { $size: '$enrolledStudents' } } },
+          { $group: { _id: null, total: { $sum: '$enrolledCount' } } },
+        ])
+      ]).then(([onlineBundles, ongroundBundles, recordedBundles, totalQuizzes, totalGameRooms, totalStudents]) => ({
+        onlineBundles,
+        ongroundBundles,
+        recordedBundles,
+        totalQuizzes,
+        totalGameRooms,
+        totalStudents: totalStudents[0]?.total || 0,
+      })),
 
-    console.log(
-      'Landing page - Found featured quizzes:',
-      featuredQuizzes.length
-    );
+      // Get brilliant students for each test type in parallel
+      Promise.all([
+        BrilliantStudent.getByTestType('EST', 4),
+        BrilliantStudent.getByTestType('DSAT', 4),
+        BrilliantStudent.getByTestType('ACT', 4),
+      ]).then(([est, dsat, act]) => ({ est, dsat, act })),
 
-    // Get test counts for each test type
-    const testCounts = {
-      EST: await Quiz.countDocuments({ testType: 'EST', status: 'active' }),
-      SAT: await Quiz.countDocuments({ testType: 'SAT', status: 'active' }),
-      ACT: await Quiz.countDocuments({ testType: 'ACT', status: 'active' }),
-    };
+      // Get team members
+      TeamMember.getActiveMembers(),
 
-    console.log('Test counts:', testCounts);
-
-    // Get featured game rooms for the games section
-    const featuredGameRooms = await GameRoom.find({
-      isActive: true,
-      isPublic: true,
-      gameState: { $in: ['waiting', 'starting'] },
-    })
-      .populate('createdBy', 'username')
-      .populate('currentPlayers.user', 'username profilePicture')
-      .sort({ createdAt: -1 })
-      .limit(6);
-
-    console.log(
-      'Landing page - Found featured game rooms:',
-      featuredGameRooms.length
-    );
-
-    // Get stats
-    const totalOnlineBundles = await BundleCourse.countDocuments({
-      courseType: 'online',
-      status: 'published',
-      isActive: true,
-    });
-
-    const totalOngroundBundles = await BundleCourse.countDocuments({
-      courseType: 'onground',
-      status: 'published',
-      isActive: true,
-    });
-
-    const totalRecordedBundles = await BundleCourse.countDocuments({
-      courseType: 'recorded',
-      status: 'published',
-      isActive: true,
-    });
-
-    const totalQuizzes = await Quiz.countDocuments({ status: 'active' });
-    const totalGameRooms = await GameRoom.countDocuments({
-      isActive: true,
-      isPublic: true,
-    });
-
-    console.log('Landing page - Total online bundles:', totalOnlineBundles);
-    console.log('Landing page - Total onground bundles:', totalOngroundBundles);
-    console.log('Landing page - Total recorded bundles:', totalRecordedBundles);
-    console.log('Landing page - Total quizzes:', totalQuizzes);
-    console.log('Landing page - Total game rooms:', totalGameRooms);
-
-    // Debug: Check all bundles regardless of status
-    const allBundles = await BundleCourse.find({});
-    console.log('All bundles in database:', allBundles.length);
-    allBundles.forEach((bundle) => {
-      console.log(
-        `Bundle: ${bundle.title}, Type: ${bundle.courseType}, Status: ${bundle.status}, Active: ${bundle.isActive}`
-      );
-    });
-
-    const totalStudents = await BundleCourse.aggregate([
-      { $match: { status: 'published', isActive: true } },
-      { $project: { enrolledCount: { $size: '$enrolledStudents' } } },
-      { $group: { _id: null, total: { $sum: '$enrolledCount' } } },
+      // Get user data if logged in (minimal data)
+      req.session.user ? User.findById(req.session.user.id): null
     ]);
 
-    // Get brilliant students for each test type
-    const [estStudents, dsatStudents, actStudents] = await Promise.all([
-      BrilliantStudent.getByTestType('EST', 4),
-      BrilliantStudent.getByTestType('DSAT', 4),
-      BrilliantStudent.getByTestType('ACT', 4),
-    ]);
-
-    console.log('Landing page - Found EST students:', estStudents.length);
-    console.log('Landing page - Found DSAT students:', dsatStudents.length);
-    console.log('Landing page - Found ACT students:', actStudents.length);
-
-    // Get user with purchase information if logged in
-    let user = null;
-    if (req.session.user) {
-      user = await User.findById(req.session.user.id);
-      // .populate('wishlist.courses')
-      // .populate('wishlist.bundles');
-      // .populate('purchasedBundles.bundle')
-      // .populate('purchasedCourses.course')
-      // .populate('enrolledCourses.course');
-    }
-
-    // Get team members for the homepage
-    const teamMembers = await TeamMember.getActiveMembers();
-    console.log('Landing page - Found team members:', teamMembers.length);
 
 
     res.render('index', {
-      title: 'Mr Kably - Mathematics Learning Platform',
+      title: 'Home | ELKABLY',
       theme: req.cookies.theme || 'light',
       onlineBundles,
       ongroundBundles,
@@ -175,25 +143,14 @@ const getLandingPage = async (req, res) => {
       user,
       cart: req.session.cart || [],
       testCounts,
-      brilliantStudents: {
-        est: estStudents,
-        dsat: dsatStudents,
-        act: actStudents,
-      },
+      brilliantStudents,
       teamMembers,
-      stats: {
-        onlineBundles: totalOnlineBundles,
-        ongroundBundles: totalOngroundBundles,
-        recordedBundles: totalRecordedBundles,
-        totalQuizzes: totalQuizzes,
-        totalGameRooms: totalGameRooms,
-        totalStudents: totalStudents[0]?.total || 0,
-      },
+      stats,
     });
   } catch (error) {
     console.error('Error fetching landing page data:', error);
     res.render('index', {
-      title: 'Mr Kably - Mathematics Learning Platform',
+      title: 'Home | ELKABLY',
       theme: req.cookies.theme || 'light',
       onlineBundles: [],
       ongroundBundles: [],
@@ -281,7 +238,7 @@ const getOnlineCourses = async (req, res) => {
     }
 
     res.render('online-courses', {
-      title: 'Online Courses - Mr Kably',
+      title: 'Online Courses | ELKABLY',
       theme: req.cookies.theme || 'light',
       bundles,
       user,
@@ -300,7 +257,7 @@ const getOnlineCourses = async (req, res) => {
     console.error('Error fetching online courses:', error);
     req.flash('error_msg', 'Error loading online courses');
     res.render('online-courses', {
-      title: 'Online Courses - Mr Kably',
+      title: 'Online Courses | ELKABLY',
       theme: req.cookies.theme || 'light',
       bundles: [],
       cart: req.session.cart || [],
@@ -378,7 +335,7 @@ const getOngroundCourses = async (req, res) => {
     }
 
     res.render('onground-courses', {
-      title: 'On-Ground Courses - Mr Kably',
+      title: 'On-Ground Courses | ELKABLY',
       theme: req.cookies.theme || 'light',
       bundles,
       user,
@@ -397,7 +354,7 @@ const getOngroundCourses = async (req, res) => {
     console.error('Error fetching onground courses:', error);
     req.flash('error_msg', 'Error loading onground courses');
     res.render('onground-courses', {
-      title: 'On-Ground Courses - Mr Kably',
+      title: 'On-Ground Courses | ELKABLY',
       theme: req.cookies.theme || 'light',
       bundles: [],
       cart: req.session.cart || [],
@@ -470,7 +427,7 @@ const getRecordedCourses = async (req, res) => {
     }
 
     res.render('recorded-courses', {
-      title: 'Recorded Courses - Mr Kably',
+      title: 'Recorded Courses | ELKABLY',
       theme: req.cookies.theme || 'light',
       bundles,
       user,
@@ -489,7 +446,7 @@ const getRecordedCourses = async (req, res) => {
     console.error('Error fetching recorded courses:', error);
     req.flash('error_msg', 'Error loading recorded courses');
     res.render('recorded-courses', {
-      title: 'Recorded Courses - Mr Kably',
+      title: 'Recorded Courses | ELKABLY',
       theme: req.cookies.theme || 'light',
       bundles: [],
       cart: req.session.cart || [],
@@ -548,7 +505,7 @@ const getBundleContent = async (req, res) => {
     }
 
     res.render('bundle-content', {
-      title: `${bundle.title} - Mr Kably`,
+      title: `${bundle.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       bundle,
       relatedBundles,
@@ -601,7 +558,7 @@ const getESTTests = async (req, res) => {
     const user = req.session.user || null;
 
     res.render('test-type', {
-      title: 'EST Test Preparation - Mr Kably',
+      title: 'EST Test Preparation | ELKABLY',
       theme: req.cookies.theme || 'light',
       testType: 'EST',
       testTypeName: 'Egyptian Scholastic Test',
@@ -670,7 +627,7 @@ const getSATTests = async (req, res) => {
     const user = req.session.user || null;
 
     res.render('test-type', {
-      title: 'SAT Test Preparation - Mr Kably',
+      title: 'SAT Test Preparation | ELKABLY',
       theme: req.cookies.theme || 'light',
       testType: 'SAT',
       testTypeName: 'Scholastic Assessment Test',
@@ -739,7 +696,7 @@ const getACTTests = async (req, res) => {
     const user = req.session.user || null;
 
     res.render('test-type', {
-      title: 'ACT Test Preparation - Mr Kably',
+      title: 'ACT Test Preparation | ELKABLY',
       theme: req.cookies.theme || 'light',
       testType: 'ACT',
       testTypeName: 'American College Testing',

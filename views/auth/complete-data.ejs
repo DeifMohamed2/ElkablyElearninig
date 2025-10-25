@@ -1,13 +1,11 @@
 <%- include('../partials/header') %>
 
-<!-- Flash messages are now handled in the header partial -->
-
-<!-- Modern Split-Screen Registration Layout -->
+<!-- Modern Split-Screen Layout -->
 <div class="auth-container-modern register-layout">
   <!-- Left Side - Branding & Visual -->
   <div class="auth-visual-section">
     <div class="auth-visual-overlay"></div>
-    <div class="auth-particles" id="auth-particles-register"></div>
+    <div class="auth-particles" id="auth-particles-complete"></div>
     
     <!-- Floating Math Elements -->
     <div class="math-shape-auth auth-shape1 floating-element"></div>
@@ -22,52 +20,36 @@
           <i class="fas fa-square-root-alt"></i>
         </div>
         <h1 class="auth-brand-title">Elkably</h1>
-        <p class="auth-brand-subtitle">Mathematics Excellence</p>
+        <p class="auth-brand-subtitle">Complete Your Profile</p>
       </div>
       
       <div class="auth-features">
         <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="100">
-          <i class="fas fa-graduation-cap"></i>
-          <span>Expert Tutoring</span>
+          <i class="fas fa-user-check"></i>
+          <span>Almost There!</span>
         </div>
         <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="200">
-          <i class="fas fa-chart-line"></i>
-          <span>Progress Tracking</span>
+          <i class="fas fa-shield-alt"></i>
+          <span>Secure Account</span>
         </div>
         <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="300">
-          <i class="fas fa-users"></i>
-          <span>Community Learning</span>
+          <i class="fas fa-rocket"></i>
+          <span>Start Learning</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Right Side - Registration Form -->
+  <!-- Right Side - Form -->
   <div class="auth-form-section">
     <div class="auth-form-container">
       <!-- Header -->
       <div class="auth-form-header">
         <h2 class="auth-form-title">
-          <i class="fas fa-user-plus me-2"></i>
-          Join The Math Journey
+          <i class="fas fa-user-check me-2"></i>
+          Complete Your Profile
         </h2>
-        <p class="auth-form-subtitle">Create your account and start learning</p>
-        
-        <!-- Progress Steps -->
-        <div class="registration-steps">
-          <div class="step-item active" data-step="1">
-            <div class="step-number">1</div>
-            <span class="step-label">Personal Info</span>
-          </div>
-          <div class="step-item" data-step="2">
-            <div class="step-number">2</div>
-            <span class="step-label">Academic Details</span>
-          </div>
-          <div class="step-item" data-step="3">
-            <div class="step-number">3</div>
-            <span class="step-label">Account Setup</span>
-          </div>
-        </div>
+        <p class="auth-form-subtitle">Fill in the remaining details to get started</p>
       </div>
 
       <!-- Display Errors -->
@@ -75,7 +57,7 @@
       <div class="alert alert-danger auth-alert" role="alert">
         <div class="d-flex align-items-center">
           <i class="fas fa-exclamation-triangle me-2"></i>
-          <strong>Registration Failed!</strong>
+          <strong>Please fix the following errors:</strong>
         </div>
         <hr class="my-2">
         <ul class="mb-0">
@@ -86,20 +68,8 @@
       </div>
       <% } %>
 
-      <!-- Display Success Messages -->
-      <% if (typeof success_msg !== 'undefined' && success_msg.length > 0) { %>
-      <div class="alert alert-success auth-alert" role="alert">
-        <div class="d-flex align-items-center">
-          <i class="fas fa-check-circle me-2"></i>
-          <strong>Success!</strong>
-        </div>
-        <hr class="my-2">
-        <p class="mb-0"><%= success_msg %></p>
-      </div>
-      <% } %>
-
-      <!-- Registration Form -->
-      <form action="/auth/register" method="POST" class="auth-form needs-validation" novalidate>
+      <!-- Complete Data Form -->
+      <form action="/auth/complete-data" method="POST" class="auth-form needs-validation" novalidate>
         <!-- Step 1: Personal Information -->
         <div class="form-step active" data-step="1">
           <h3 class="step-title">Personal Information</h3>
@@ -113,7 +83,7 @@
               <div class="input-group-modern">
                 <input type="text" id="firstName" name="firstName" class="form-control-modern" 
                        placeholder="Enter your first name" 
-                       value="<%= typeof firstName != 'undefined' ? firstName : '' %>" required>
+                       value="<%= typeof user !== 'undefined' && user.firstName ? user.firstName : '' %>" required>
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter your first name.</div>
@@ -127,7 +97,7 @@
               <div class="input-group-modern">
                 <input type="text" id="lastName" name="lastName" class="form-control-modern" 
                        placeholder="Enter your last name" 
-                       value="<%= typeof lastName != 'undefined' ? lastName : '' %>" required>
+                       value="<%= typeof user !== 'undefined' && user.lastName ? user.lastName : '' %>" required>
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter your last name.</div>
@@ -142,24 +112,24 @@
               </label>
               <div class="input-group-modern phone-input-group">
                 <div class="country-code-selector">
-                  <select id="studentCountryCode" name="studentCountryCode" class="country-select" required>
-                    <option value="+20" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+20' ? 'selected' : (typeof studentCountryCode == 'undefined' ? 'selected' : '') %>>
-                      🇪🇬 +20
-                    </option>
-                    <option value="+966" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+966' ? 'selected' : '' %>>
+                  <select id="studentCountryCode" name="studentCountryCode" class="country-select" required readonly disabled>
+                    <option value="+966" <%= typeof user !== 'undefined' && user.studentCountryCode == '+966' ? 'selected' : '' %>>
                       🇸🇦 +966
                     </option>
-                    <option value="+971" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+971' ? 'selected' : '' %>>
+                    <option value="+20" <%= typeof user !== 'undefined' && user.studentCountryCode == '+20' ? 'selected' : '' %>>
+                      🇪🇬 +20
+                    </option>
+                    <option value="+971" <%= typeof user !== 'undefined' && user.studentCountryCode == '+971' ? 'selected' : '' %>>
                       🇦🇪 +971
                     </option>
-                    <option value="+965" <%= typeof studentCountryCode != 'undefined' && studentCountryCode == '+965' ? 'selected' : '' %>>
+                    <option value="+965" <%= typeof user !== 'undefined' && user.studentCountryCode == '+965' ? 'selected' : '' %>>
                       🇰🇼 +965
                     </option>
                   </select>
                 </div>
                 <input type="text" id="studentNumber" name="studentNumber" class="form-control-modern phone-input" 
                        placeholder="Enter your student number" 
-                       value="<%= typeof studentNumber != 'undefined' ? studentNumber : '' %>" required>
+                       value="<%= typeof user !== 'undefined' && user.studentNumber ? user.studentNumber : '' %>" required readonly>
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter your student number.</div>
@@ -172,24 +142,24 @@
               </label>
               <div class="input-group-modern phone-input-group">
                 <div class="country-code-selector">
-                  <select id="parentCountryCode" name="parentCountryCode" class="country-select" required>
-                    <option value="+20" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+20' ? 'selected' : (typeof parentCountryCode == 'undefined' ? 'selected' : '') %>>
-                      🇪🇬 +20
-                    </option>
-                    <option value="+966" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+966' ? 'selected' : '' %>>
+                  <select id="parentCountryCode" name="parentCountryCode" class="country-select" required readonly disabled>
+                    <option value="+966" <%= typeof user !== 'undefined' && user.parentCountryCode == '+966' ? 'selected' : '' %>>
                       🇸🇦 +966
                     </option>
-                    <option value="+971" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+971' ? 'selected' : '' %>>
+                    <option value="+20" <%= typeof user !== 'undefined' && user.parentCountryCode == '+20' ? 'selected' : '' %>>
+                      🇪🇬 +20
+                    </option>
+                    <option value="+971" <%= typeof user !== 'undefined' && user.parentCountryCode == '+971' ? 'selected' : '' %>>
                       🇦🇪 +971
                     </option>
-                    <option value="+965" <%= typeof parentCountryCode != 'undefined' && parentCountryCode == '+965' ? 'selected' : '' %>>
+                    <option value="+965" <%= typeof user !== 'undefined' && user.parentCountryCode == '+965' ? 'selected' : '' %>>
                       🇰🇼 +965
                     </option>
                   </select>
                 </div>
                 <input type="tel" id="parentNumber" name="parentNumber" class="form-control-modern phone-input" 
                        placeholder="Enter parent phone number" 
-                       value="<%= typeof parentNumber != 'undefined' ? parentNumber : '' %>" required>
+                       value="<%= typeof user !== 'undefined' && user.parentNumber ? user.parentNumber : '' %>" required readonly>
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter a valid parent phone number.</div>
@@ -200,31 +170,58 @@
             <div class="form-group-modern">
               <label for="studentEmail" class="form-label-modern">
                 <i class="fas fa-envelope form-label-icon"></i>
-                Student Email *
+                Student Email * <span style="color: #ef4444; font-size: 0.85rem;">(Must Change)</span>
               </label>
               <div class="input-group-modern">
                 <input type="email" id="studentEmail" name="studentEmail" class="form-control-modern" 
                        placeholder="Enter your student email" 
-                       value="<%= typeof studentEmail != 'undefined' ? studentEmail : '' %>" required>
+                       value="<%= typeof user !== 'undefined' && user.studentEmail ? user.studentEmail : '' %>" required>
                 <div class="input-focus-line"></div>
               </div>
+              <% if (typeof user !== 'undefined' && user.studentEmail && user.studentEmail.startsWith('temp_')) { %>
+              <div class="form-text-modern" style="color: #ef4444; font-weight: 600;">
+                <i class="fas fa-exclamation-circle"></i> You must change this temporary email address
+              </div>
+              <% } %>
               <div class="invalid-feedback-modern">Please enter a valid student email address.</div>
             </div>
 
             <div class="form-group-modern">
               <label for="username" class="form-label-modern">
                 <i class="fas fa-at form-label-icon"></i>
-                Username *
+                Username * <span style="color: #ef4444; font-size: 0.85rem;">(Must Change)</span>
               </label>
               <div class="input-group-modern">
                 <input type="text" id="username" name="username" class="form-control-modern" 
                        placeholder="Choose a username" 
-                       value="<%= typeof username != 'undefined' ? username : '' %>" required>
+                       value="<%= typeof user !== 'undefined' && user.username ? user.username : '' %>" required>
                 <div class="input-focus-line"></div>
               </div>
+              <% if (typeof user !== 'undefined' && user.username && user.username.startsWith('student_')) { %>
+              <div class="form-text-modern" style="color: #ef4444; font-weight: 600;">
+                <i class="fas fa-exclamation-circle"></i> You must change this temporary username
+              </div>
+              <% } else { %>
               <div class="form-text-modern">Only letters, numbers, and underscores allowed.</div>
+              <% } %>
               <div class="invalid-feedback-modern">Please choose a valid username.</div>
             </div>
+          </div>
+
+          <!-- Student Code (Read-only) -->
+          <div class="form-group-modern">
+            <label class="form-label-modern">
+              <i class="fas fa-key form-label-icon"></i>
+              Student Code (Read-only)
+            </label>
+            <div class="input-group-modern">
+              <input type="text" class="form-control-modern" 
+                     value="<%= typeof user !== 'undefined' && user.studentCode ? user.studentCode : '' %>" 
+                     readonly 
+                     style="background-color: #f3f4f6; cursor: not-allowed;">
+              <div class="input-focus-line"></div>
+            </div>
+            <div class="form-text-modern">Your unique student code</div>
           </div>
         </div>
 
@@ -241,7 +238,7 @@
               <div class="input-group-modern">
                 <input type="text" id="schoolName" name="schoolName" class="form-control-modern" 
                        placeholder="Enter your school name" 
-                       value="<%= typeof schoolName != 'undefined' ? schoolName : '' %>" required>
+                       value="" required>
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter your school name.</div>
@@ -255,9 +252,9 @@
               <div class="input-group-modern">
                 <select id="grade" name="grade" class="form-control-modern" required>
                   <option value="">Select your grade</option>
-                  <option value="Year 10" <%= typeof grade != 'undefined' && grade == 'Year 10' ? 'selected' : '' %>>Year 10</option>
-                  <option value="Year 11" <%= typeof grade != 'undefined' && grade == 'Year 11' ? 'selected' : '' %>>Year 11</option>
-                  <option value="Year 12" <%= typeof grade != 'undefined' && grade == 'Year 12' ? 'selected' : '' %>>Year 12</option>
+                  <option value="Year 10" <%= typeof user !== 'undefined' && user.grade == 'Year 10' ? 'selected' : '' %>>Year 10</option>
+                  <option value="Year 11" <%= typeof user !== 'undefined' && user.grade == 'Year 11' ? 'selected' : '' %>>Year 11</option>
+                  <option value="Year 12" <%= typeof user !== 'undefined' && user.grade == 'Year 12' ? 'selected' : '' %>>Year 12</option>
                 </select>
                 <div class="input-focus-line"></div>
               </div>
@@ -273,7 +270,7 @@
             <div class="input-group-modern">
               <input type="text" id="englishTeacher" name="englishTeacher" class="form-control-modern" 
                      placeholder="Enter your English teacher's name" 
-                     value="<%= typeof englishTeacher != 'undefined' ? englishTeacher : '' %>" required>
+                     value="" required>
               <div class="input-focus-line"></div>
             </div>
             <div class="invalid-feedback-modern">Please enter your English teacher's name.</div>
@@ -288,18 +285,24 @@
             <div class="form-group-modern">
               <label for="password" class="form-label-modern">
                 <i class="fas fa-lock form-label-icon"></i>
-                User Password *
+                User Password * <span style="color: #ef4444; font-size: 0.85rem;">(Must Change)</span>
               </label>
               <div class="input-group-modern">
                 <input type="password" id="password" name="password" class="form-control-modern" 
-                       placeholder="Create a password" required minlength="6">
+                       placeholder="Create a new password" required minlength="5">
                 <button class="btn-toggle-password" type="button" id="togglePassword">
                   <i class="fas fa-eye"></i>
                 </button>
                 <div class="input-focus-line"></div>
               </div>
-              <div class="form-text-modern">Password must be at least 6 characters long.</div>
-              <div class="invalid-feedback-modern">Password must be at least 6 characters.</div>
+              <% if (typeof user !== 'undefined' && user.studentCode) { %>
+              <div class="form-text-modern" style="color: #ef4444; font-weight: 600;">
+                <i class="fas fa-exclamation-circle"></i> You must create a new password (cannot use student code)
+              </div>
+              <% } else { %>
+              <div class="form-text-modern">Password must be at least 5 characters long.</div>
+              <% } %>
+              <div class="invalid-feedback-modern">Password must be at least 5 characters.</div>
             </div>
 
             <div class="form-group-modern">
@@ -327,7 +330,7 @@
             <div class="input-group-modern">
               <textarea id="howDidYouKnow" name="howDidYouKnow" class="form-control-modern" 
                         placeholder="Tell us how you heard about Mr Kably..." 
-                        rows="3" required><%= typeof howDidYouKnow != 'undefined' ? howDidYouKnow : '' %></textarea>
+                        rows="3" required><%= typeof user !== 'undefined' && user.howDidYouKnow ? user.howDidYouKnow : '' %></textarea>
               <div class="input-focus-line"></div>
             </div>
             <div class="invalid-feedback-modern">Please tell us how you heard about Mr Kably.</div>
@@ -336,7 +339,7 @@
           <div class="form-check-modern">
             <input type="checkbox" class="form-check-input-modern" id="termsCheck" required>
             <label class="form-check-label-modern" for="termsCheck">
-              I agree to the <a href="/terms-of-service" class="terms-link" target="_blank">Terms of Service</a> and <a href="/privacy-policy" class="terms-link" target="_blank">Privacy Policy</a>
+              I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
             </label>
             <div class="invalid-feedback-modern">You must agree before submitting.</div>
           </div>
@@ -355,22 +358,12 @@
           </button>
           
           <button type="submit" class="btn-auth-primary" id="submitBtn" style="display: none;">
-            <span class="btn-text">Create Account</span>
-            <i class="fas fa-rocket btn-icon"></i>
+            <span class="btn-text">Complete Profile</span>
+            <i class="fas fa-check-circle btn-icon"></i>
             <div class="btn-ripple"></div>
           </button>
         </div>
       </form>
-
-      <!-- Footer -->
-      <div class="auth-form-footer">
-        <p>Already have an account? 
-          <a href="/auth/login" class="auth-link-modern">
-            <span>Sign In</span>
-            <i class="fas fa-arrow-right"></i>
-          </a>
-        </p>
-      </div>
     </div>
   </div>
 </div>
@@ -649,111 +642,8 @@
 
 <!-- Country Code JavaScript -->
 <script>
-// Phone number length standards by country code
-const phoneLengthStandards = {
-  '+966': 9,  // Saudi Arabia: 9 digits
-  '+20': 11,  // Egypt: 11 digits (including leading 0)
-  '+971': 9,  // UAE: 9 digits
-  '+965': 8   // Kuwait: 8 digits
-};
-
-// Add some interactive functionality for country codes
 document.addEventListener('DOMContentLoaded', function() {
   const countrySelects = document.querySelectorAll('.country-select');
-  const studentPhoneInput = document.getElementById('studentNumber');
-  const parentPhoneInput = document.getElementById('parentNumber');
-  const studentCountrySelect = document.getElementById('studentCountryCode');
-  const parentCountrySelect = document.getElementById('parentCountryCode');
-  const form = document.querySelector('.auth-form');
-  
-  // Function to validate phone number length
-  function validatePhoneLength(phoneInput, countrySelect, fieldName) {
-    const phoneNumber = phoneInput.value.replace(/[^\d]/g, '');
-    const countryCode = countrySelect.value;
-    const expectedLength = phoneLengthStandards[countryCode];
-    
-    if (phoneNumber && expectedLength && phoneNumber.length !== expectedLength) {
-      return `${fieldName} must be ${expectedLength} digits for the selected country.`;
-    }
-    return null;
-  }
-  
-  // Function to check if student and parent numbers are the same
-  function checkSameNumbers() {
-    const studentNumber = studentPhoneInput.value.replace(/[^\d]/g, '');
-    const parentNumber = parentPhoneInput.value.replace(/[^\d]/g, '');
-    const studentCountry = studentCountrySelect.value;
-    const parentCountry = parentCountrySelect.value;
-    
-    // Check if both numbers and country codes are the same
-    if (studentNumber && parentNumber && 
-        studentNumber === parentNumber && 
-        studentCountry === parentCountry) {
-      return 'Student and parent phone numbers cannot be the same.';
-    }
-    return null;
-  }
-  
-  // Function to show validation errors
-  function showValidationError(message) {
-    // Remove existing validation error
-    const existingError = document.querySelector('.phone-validation-error');
-    if (existingError) {
-      existingError.remove();
-    }
-    
-    if (message) {
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'alert alert-danger auth-alert phone-validation-error';
-      errorDiv.innerHTML = `
-        <div class="d-flex align-items-center">
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          <strong>Validation Error!</strong>
-        </div>
-        <hr class="my-2">
-        <p class="mb-0">${message}</p>
-      `;
-      
-      // Insert after the form header
-      const formHeader = document.querySelector('.auth-form-header');
-      formHeader.insertAdjacentElement('afterend', errorDiv);
-    }
-  }
-  
-  // Function to validate all phone fields
-  function validateAllPhoneFields() {
-    const errors = [];
-    
-    // Check if numbers are the same
-    const sameNumberError = checkSameNumbers();
-    if (sameNumberError) {
-      errors.push(sameNumberError);
-    }
-    
-    // Check student number length
-    const studentLengthError = validatePhoneLength(studentPhoneInput, studentCountrySelect, 'Student number');
-    if (studentLengthError) {
-      errors.push(studentLengthError);
-    }
-    
-    // Check parent number length
-    const parentLengthError = validatePhoneLength(parentPhoneInput, parentCountrySelect, 'Parent number');
-    if (parentLengthError) {
-      errors.push(parentLengthError);
-    }
-    
-    if (errors.length > 0) {
-      showValidationError(errors.join(' '));
-      return false;
-    } else {
-      // Remove any existing validation error
-      const existingError = document.querySelector('.phone-validation-error');
-      if (existingError) {
-        existingError.remove();
-      }
-      return true;
-    }
-  }
   
   countrySelects.forEach(select => {
     select.addEventListener('change', function() {
@@ -762,9 +652,6 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => {
         this.style.transform = 'scale(1)';
       }, 150);
-      
-      // Validate phone numbers when country changes
-      validateAllPhoneFields();
     });
     
     // Add focus styling
@@ -779,37 +666,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Phone number formatting and validation
+  // Phone number formatting
   const phoneInputs = document.querySelectorAll('.phone-input');
   phoneInputs.forEach(input => {
     input.addEventListener('input', function() {
       // Remove any non-numeric characters except spaces and hyphens
       this.value = this.value.replace(/[^\d\s\-]/g, '');
-      
-      // Validate after input
-      setTimeout(validateAllPhoneFields, 100);
     });
-    
-    input.addEventListener('blur', function() {
-      validateAllPhoneFields();
-    });
-  });
-  
-  // Form submission validation
-  form.addEventListener('submit', function(event) {
-    if (!validateAllPhoneFields()) {
-      event.preventDefault();
-      return false;
-    }
-  });
-  
-  // Real-time validation on input
-  [studentPhoneInput, parentPhoneInput].forEach(input => {
-    if (input) {
-      input.addEventListener('input', function() {
-        setTimeout(validateAllPhoneFields, 100);
-      });
-    }
   });
 });
 </script>

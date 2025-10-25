@@ -109,7 +109,7 @@ function initTestimonialsSlider() {
         }
       });
     }
-  });
+  }, { passive: true });
   
   // Auto-advance testimonials every 5 seconds
   setInterval(() => {
@@ -175,7 +175,7 @@ function initScrollAnimations() {
       
       shape.style.transform = `translateY(${yPos}px) rotate(${rotation}deg)`;
     });
-  });
+  }, { passive: true });
 }
 
 // Demo Section Particles

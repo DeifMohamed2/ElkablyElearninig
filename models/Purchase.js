@@ -57,6 +57,25 @@ const PurchaseSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    // Promo Code fields
+    appliedPromoCode: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PromoCode',
+      default: null,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    originalAmount: {
+      type: Number,
+      default: null, // Original amount before discount
+    },
+    promoCodeUsed: {
+      type: String,
+      default: null, // The actual promo code string used
+    },
     currency: {
       type: String,
       default: 'EGP',

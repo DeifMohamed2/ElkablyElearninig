@@ -4,7 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> - Elkably E-Learning</title>
+    <title><%= title %></title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/KImage.jpg">
+  <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+  <link rel="apple-touch-icon" href="/images/KImage.jpg">
 
   <!-- CSS -->
   <link rel="stylesheet" href="/css/studentCSS/student-main.css">
@@ -13,7 +18,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
   <!-- Meta Tags -->
-  <meta name="description" content="My Enrolled Courses - Continue your learning journey">
+  <meta name="description" content="My Enrolled Weeks - Continue your learning journey">
   <meta name="theme-color" content="#dc2626">
 </head>
 
@@ -33,17 +38,149 @@
         <!-- Page Header -->
         <div class="page-header" style="margin-bottom: var(--spacing-xl);">
           <h2 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">
-            My Enrolled Courses
+            My Enrolled Weeks
           </h2>
           <p style="color: var(--text-secondary);">
             Continue your learning journey and track your progress across all enrolled courses.
           </p>
         </div>
 
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-bar" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: var(--spacing-lg); margin-bottom: var(--spacing-xl); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <form method="GET" action="/student/enrolled-courses" class="filter-form">
+            <div class="filter-row" style="display: flex; gap: var(--spacing-md); align-items: center; flex-wrap: wrap;">
+              <!-- Search Input -->
+              <div class="search-group" style="flex: 1; min-width: 200px;">
+                <div style="position: relative;">
+                  <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Search by week name..." 
+                    value="<%= filters.search %>"
+                    class="search-input"
+                    style="width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; transition: all 0.3s ease;"
+                  >
+                  <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px;"></i>
+                </div>
+              </div>
+
+              <!-- Progress Filter -->
+              <div class="filter-group">
+                <select name="progress" class="filter-select" style="padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; min-width: 140px;">
+                  <option value="all" <%= filters.progress === 'all' ? 'selected' : '' %>>All Progress</option>
+                  <option value="not-started" <%= filters.progress === 'not-started' ? 'selected' : '' %>>Not Started</option>
+                  <option value="in-progress" <%= filters.progress === 'in-progress' ? 'selected' : '' %>>In Progress</option>
+                  <option value="completed" <%= filters.progress === 'completed' ? 'selected' : '' %>>Completed</option>
+                  <option value="high-progress" <%= filters.progress === 'high-progress' ? 'selected' : '' %>>High Progress (75%+)</option>
+                  <option value="low-progress" <%= filters.progress === 'low-progress' ? 'selected' : '' %>>Low Progress (<25%)</option>
+                </select>
+              </div>
+
+              <!-- Bundle Filter -->
+              <div class="filter-group">
+                <select name="bundle" class="filter-select" style="padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; min-width: 180px;">
+                  <option value="all" <%= filters.bundle === 'all' ? 'selected' : '' %>>All Courses</option>
+                  <% if (availableBundles && availableBundles.length > 0) { %>
+                    <% availableBundles.forEach(bundle => { %>
+                      <option value="<%= bundle._id %>" <%= filters.bundle === bundle._id.toString() ? 'selected' : '' %>><%= bundle.title %></option>
+                    <% }); %>
+                  <% } %>
+                </select>
+              </div>
+
+              <!-- Sort Filter -->
+              <div class="filter-group">
+                <select name="sort" class="filter-select" style="padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; min-width: 140px;">
+                  <option value="lastAccessed" <%= filters.sort === 'lastAccessed' ? 'selected' : '' %>>Last Accessed</option>
+                  <option value="name" <%= filters.sort === 'name' ? 'selected' : '' %>>Name A-Z</option>
+                  <option value="progress" <%= filters.sort === 'progress' ? 'selected' : '' %>>Progress</option>
+                  <option value="enrolledAt" <%= filters.sort === 'enrolledAt' ? 'selected' : '' %>>Enrollment Date</option>
+                </select>
+              </div>
+
+              <!-- Filter Buttons -->
+              <div class="filter-actions" style="display: flex; gap: var(--spacing-sm);">
+                <button type="submit" class="btn btn-primary btn-sm" style="padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500;">
+                  <i class="fas fa-filter" style="margin-right: 6px;"></i>
+                  Apply
+                </button>
+                <a href="/student/enrolled-courses" class="btn btn-outline btn-sm" style="padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500;">
+                  <i class="fas fa-times" style="margin-right: 6px;"></i>
+                  Clear
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Results Counter -->
+        <div class="results-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--bg-secondary); border-radius: 8px;">
+          <div class="results-count" style="color: var(--text-primary); font-weight: 500;">
+            <i class="fas fa-list" style="margin-right: 8px; color: var(--primary-color);"></i>
+            Showing <%= enrolledCourses.length %> of <%= totalCourses || 0 %> weeks
+            <% if (filters.search || filters.progress !== 'all' || filters.bundle !== 'all') { %>
+              <span style="color: var(--text-muted); font-size: 0.9rem; margin-left: 8px;">
+                (filtered)
+              </span>
+            <% } %>
+          </div>
+          <% if (filters.search || filters.progress !== 'all' || filters.bundle !== 'all') { %>
+          <a href="/student/enrolled-courses" class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 0.85rem;">
+            <i class="fas fa-times" style="margin-right: 4px;"></i>
+            Clear Filters
+          </a>
+          <% } %>
+        </div>
+
         <!-- Courses Grid -->
         <% if (enrolledCourses && enrolledCourses.length > 0) { %>
-        <div class="courses-grid">
-          <% enrolledCourses.forEach(enrollment => { 
+        <%
+          // Group courses by bundle for better organization
+          const groupedCourses = {};
+          enrolledCourses.forEach(enrollment => {
+            const course = enrollment.course;
+            if (!course) return;
+            
+            const bundleId = course.bundle ? course.bundle._id || course.bundle : 'individual';
+            const bundleName = course.bundle ? course.bundle.title || 'Bundle Course' : 'Individual Weeks';
+            
+            // Debug: Log bundle information (server-side only)
+            // console.log('Debug - Course:', course.title, 'Bundle:', course.bundle, 'BundleName:', bundleName);
+            
+            if (!groupedCourses[bundleId]) {
+              groupedCourses[bundleId] = {
+                bundleName: bundleName,
+                bundleId: bundleId,
+                courses: []
+              };
+            }
+            
+            groupedCourses[bundleId].courses.push(enrollment);
+          });
+        %>
+        
+        <% Object.values(groupedCourses).forEach(bundleGroup => { %>
+          <!-- Small Bundle Name Display -->
+          <div class="bundle-name-display" style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; padding: var(--spacing-sm) var(--spacing-md); background: var(--bg-secondary); border-left: 4px solid var(--primary-color); border-radius: 0 8px 8px 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                <i class="fas fa-layer-group" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
+                  <%= bundleGroup.bundleName %>
+                </h4>
+                <span style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-primary); padding: 2px 8px; border-radius: 12px;">
+                  <%= bundleGroup.courses.length %> week<%= bundleGroup.courses.length !== 1 ? 's' : '' %>
+                </span>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">
+                Avg. Progress: <%= Math.round(bundleGroup.courses.reduce((sum, c) => sum + (c.progress || 0), 0) / bundleGroup.courses.length) %>%
+              </div>
+            </div>
+          </div>
+          
+          <!-- Courses in this Bundle -->
+          <div class="courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+            <% bundleGroup.courses.forEach(enrollment => { 
                             const course = enrollment.course;
                             const progress = enrollment.progress;
                             const status = enrollment.status;
@@ -51,14 +188,25 @@
                             // Skip if course is null or undefined
                             if (!course) return;
                         %>
-          <div class="course-card" onclick="window.location.href='/student/course/<%= course._id %>/content'">
+          <div class="course-card" onclick="window.location.href='/student/course/<%= course._id %>/content'" style="cursor: pointer; transition: all 0.3s ease; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <!-- Course Thumbnail -->
-            <div class="course-thumbnail">
+            <div class="course-thumbnail" style="position: relative; height: 160px; background: linear-gradient(135deg, var(--primary-color), #dc2626); display: flex; align-items: center; justify-content: center;">
               <% if (course.thumbnail) { %>
               <img src="<%= course.thumbnail %>" alt="<%= course.title %>" style="width: 100%; height: 100%; object-fit: cover;">
               <% } else { %>
-              <i class="fas fa-book-open"></i>
+              <i class="fas fa-book-open" style="font-size: 2.5rem; color: white; opacity: 0.8;"></i>
               <% } %>
+              
+              <!-- Progress Badge -->
+              <div style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.9); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: var(--text-primary);">
+                <%= progress %>%
+              </div>
+              
+              <!-- Week Badge -->
+              <div style="position: absolute; top: 12px; left: 12px; background: rgba(59, 130, 246, 0.9); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: white;">
+                <i class="fas fa-book" style="margin-right: 4px;"></i>
+                Week
+              </div>
             </div>
 
             <!-- Course Content -->
@@ -86,8 +234,20 @@
               </div>
 
               <!-- Progress Bar -->
-              <div class="course-progress">
-                <div class="progress-bar" style="width: <%= progress %>%"></div>
+              <div class="course-progress" style="background: var(--bg-secondary); border-radius: 8px; height: 8px; overflow: hidden; margin: var(--spacing-sm) 0;">
+                <% 
+                  let progressColor = 'linear-gradient(90deg, #ef4444, #dc2626)';
+                  if (progress === 100) {
+                    progressColor = 'linear-gradient(90deg, #10b981, #059669)';
+                  } else if (progress >= 75) {
+                    progressColor = 'linear-gradient(90deg, #3b82f6, #1d4ed8)';
+                  } else if (progress >= 50) {
+                    progressColor = 'linear-gradient(90deg, #f59e0b, #d97706)';
+                  }
+                %>
+                <div class="progress-bar" 
+                     style="width: <%= progress %>%; height: 100%; background: <%= progressColor %>; transition: all 0.3s ease; border-radius: 8px;">
+                </div>
               </div>
 
               <!-- Progress Info -->
@@ -120,28 +280,41 @@
               </div>
             </div>
           </div>
-          <% }); %>
+            <% }); %>
+          </div>
+        <% }); %>
         </div>
 
         <!-- Pagination -->
         <% if (pagination.totalPages > 1) { %>
-        <div class="pagination">
+        <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: var(--spacing-xl);">
+          <% 
+            // Build query string to preserve filters
+            let queryParams = [];
+            if (filters.search) queryParams.push('search=' + encodeURIComponent(filters.search));
+            if (filters.progress !== 'all') queryParams.push('progress=' + filters.progress);
+            if (filters.bundle !== 'all') queryParams.push('bundle=' + filters.bundle);
+            if (filters.sort !== 'lastAccessed') queryParams.push('sort=' + filters.sort);
+            const queryString = queryParams.join('&');
+            const baseUrl = queryString ? '?' + queryString + '&' : '?';
+          %>
+          
           <% if (pagination.hasPrev) { %>
-          <a href="?page=<%= pagination.prevPage %>" class="pagination-item">
+          <a href="<%= baseUrl %>page=<%= pagination.prevPage %>" class="pagination-item" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-decoration: none; transition: all 0.3s ease;">
             <i class="fas fa-chevron-left"></i>
           </a>
           <% } %>
 
           <% for (let i = 1; i <= pagination.totalPages; i++) { %>
           <% if (i === pagination.currentPage) { %>
-          <span class="pagination-item active"><%= i %></span>
+          <span class="pagination-item active" style="padding: 8px 12px; background: var(--primary-color); color: white; border-radius: 6px; font-weight: 500;"><%= i %></span>
           <% } else { %>
-          <a href="?page=<%= i %>" class="pagination-item"><%= i %></a>
+          <a href="<%= baseUrl %>page=<%= i %>" class="pagination-item" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-decoration: none; transition: all 0.3s ease;"><%= i %></a>
           <% } %>
           <% } %>
 
           <% if (pagination.hasNext) { %>
-          <a href="?page=<%= pagination.nextPage %>" class="pagination-item">
+          <a href="<%= baseUrl %>page=<%= pagination.nextPage %>" class="pagination-item" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-decoration: none; transition: all 0.3s ease;">
             <i class="fas fa-chevron-right"></i>
           </a>
           <% } %>
@@ -155,7 +328,7 @@
             <i class="fas fa-book-open" style="font-size: 4rem; color: var(--text-muted); opacity: 0.5;"></i>
           </div>
           <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); font-size: 1.5rem;">
-            No Enrolled Courses
+            No Enrolled Weeks
           </h3>
           <p style="color: var(--text-secondary); margin-bottom: var(--spacing-xl); max-width: 500px; margin-left: auto; margin-right: auto;">
             You haven't enrolled in any courses yet. Browse our course catalog to find interesting topics and start your learning journey.
@@ -163,7 +336,7 @@
           <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
             <a href="/#courses" class="btn btn-primary btn-lg">
               <i class="fas fa-search" style="margin-right: var(--spacing-sm);"></i>
-              Browse Courses
+              Browse Weeks
             </a>
             <a href="/student/wishlist" class="btn btn-outline btn-lg">
               <i class="fas fa-heart" style="margin-right: var(--spacing-sm);"></i>
@@ -175,6 +348,53 @@
       </div>
     </main>
   </div>
+
+  <!-- Additional Styles -->
+  <style>
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .course-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pagination-item:hover {
+      background: var(--bg-secondary);
+    }
+    
+    .filter-row {
+      gap: 12px;
+    }
+    
+    @media (max-width: 768px) {
+      .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-group {
+        min-width: 100%;
+      }
+      
+      .filter-group {
+        min-width: 100%;
+      }
+      
+      .filter-actions {
+        justify-content: center;
+      }
+    }
+  </style>
 
   <!-- JavaScript -->
   <script>
@@ -191,6 +411,27 @@
           this.style.transform = 'translateY(0)';
         });
       });
+
+      // Auto-submit form on filter change
+      const filterSelects = document.querySelectorAll('.filter-select');
+      filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+          this.form.submit();
+        });
+      });
+
+      // Search input with debounce
+      const searchInput = document.querySelector('.search-input');
+      let searchTimeout;
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            this.form.submit();
+          }, 500);
+        });
+      }
     });
 
     // Progress bar animation

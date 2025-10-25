@@ -294,7 +294,6 @@ function animateCounter(element, target, duration) {
  * Initialize scroll-triggered events
  */
 function initializeScrollEvents() {
-  console.log("Animation Initializer: Setting up scroll events");
   
   // Back to top button
   const backToTopButton = document.getElementById('backToTop');
@@ -305,7 +304,7 @@ function initializeScrollEvents() {
       } else {
         backToTopButton.classList.remove('active');
       }
-    });
+    }, { passive: true });
     
     backToTopButton.addEventListener('click', (e) => {
       e.preventDefault();
@@ -332,7 +331,7 @@ function initializeScrollEvents() {
         
         element.style.transform = `translate3d(0, ${yPos}px, 0)`;
       });
-    });
+    }, { passive: true });
   }
   
   // Scroll progress bar
@@ -344,6 +343,6 @@ function initializeScrollEvents() {
       const scrolled = (winScroll / height) * 100;
       
       scrollProgress.style.width = scrolled + '%';
-    });
+    }, { passive: true });
   }
 }

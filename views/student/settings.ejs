@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - Elkably E-Learning</title>
+    <title><%= title %></title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="apple-touch-icon" href="/images/KImage.jpg">
     
     <!-- CSS -->
     <link rel="stylesheet" href="/css/studentCSS/student-main.css">
@@ -570,7 +575,7 @@
 
                                 <div class="notification-item">
                                     <div class="notification-info">
-                                        <div class="notification-title">Course Updates</div>
+                                        <div class="notification-title">Week Updates</div>
                                         <div class="notification-description">Receive notifications when courses are updated</div>
                                     </div>
                                     <label class="toggle-switch">
@@ -586,31 +591,6 @@
                             </form>
                         </div>
 
-                        <!-- Language Settings -->
-                        <div class="settings-card">
-                            <div class="settings-card-header">
-                                <div class="settings-card-icon" style="background: var(--info-color);">
-                                    <i class="fas fa-language"></i>
-                                </div>
-                                <h3 class="settings-card-title">Language & Region</h3>
-                            </div>
-                            
-                            <form id="languageForm">
-                                <div class="form-group">
-                                    <label class="form-label">Language</label>
-                                    <select name="language" class="form-control form-select">
-                                        <option value="en" <%= (student.preferences?.language || 'en') === 'en' ? 'selected' : '' %>>English</option>
-                                        <option value="ar" <%= (student.preferences?.language || 'en') === 'ar' ? 'selected' : '' %>>العربية</option>
-                                        <option value="fr" <%= (student.preferences?.language || 'en') === 'fr' ? 'selected' : '' %>>Français</option>
-                                        <option value="es" <%= (student.preferences?.language || 'en') === 'es' ? 'selected' : '' %>>Español</option>
-                                    </select>
-                                </div>
-                                <button type="button" class="btn btn-primary" onclick="saveLanguageSettings()">
-                                    <i class="fas fa-save"></i>
-                                    Save Language Settings
-                                </button>
-                            </form>
-                        </div>
 
                         <!-- Privacy & Security Settings -->
                         <div class="settings-card">
@@ -636,19 +616,6 @@
                                     </button>
                                 </div>
 
-                                <div style="padding: var(--spacing-lg); background-color: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
-                                    <h4 style="color: var(--text-primary); margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
-                                        <i class="fas fa-download" style="color: var(--info-color);"></i>
-                                        Data Export
-                                    </h4>
-                                    <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md); font-size: 0.875rem; line-height: 1.4;">
-                                        Download a copy of your learning data and progress.
-                                    </p>
-                                    <button class="btn btn-outline" onclick="exportData()">
-                                        <i class="fas fa-file-export"></i>
-                                        Export Data
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -817,41 +784,6 @@
             }
         }
 
-        // Save language settings
-        async function saveLanguageSettings() {
-            const form = document.getElementById('languageForm');
-            const formData = new FormData(form);
-            const language = formData.get('language');
-
-            const saveBtn = event.target;
-            const originalContent = saveBtn.innerHTML;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Saving...';
-            saveBtn.disabled = true;
-
-            try {
-                const response = await fetch('/student/settings/update', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ language })
-                });
-
-                if (response.ok) {
-                    showNotification('Language settings saved successfully', 'success');
-                    document.querySelector('.settings-card').classList.add('success-animation');
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Failed to save language settings');
-                }
-            } catch (error) {
-                console.error('Error saving language settings:', error);
-                showNotification(error.message || 'Error saving language settings', 'error');
-            } finally {
-                saveBtn.innerHTML = originalContent;
-                saveBtn.disabled = false;
-            }
-        }
 
         // Show change password modal
         function showChangePasswordModal() {
@@ -942,38 +874,6 @@
             }
         });
 
-        // Export data
-        async function exportData() {
-            const exportBtn = event.target;
-            const originalContent = exportBtn.innerHTML;
-            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Exporting...';
-            exportBtn.disabled = true;
-
-            try {
-                const response = await fetch('/student/settings/export-data');
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `elkably-learning-data-${new Date().toISOString().split('T')[0]}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    showNotification('Data exported successfully', 'success');
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Failed to export data');
-                }
-            } catch (error) {
-                console.error('Error exporting data:', error);
-                showNotification(error.message || 'Error exporting data', 'error');
-            } finally {
-                exportBtn.innerHTML = originalContent;
-                exportBtn.disabled = false;
-            }
-        }
 
         // Show delete account modal
         function showDeleteAccountModal() {

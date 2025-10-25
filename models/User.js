@@ -89,7 +89,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: 5,
     },
     howDidYouKnow: {
       type: String,
@@ -114,6 +114,10 @@ const UserSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true, // New users need admin approval
+    },
+    isCompleteData: {
+      type: Boolean,
+      default: false, // Track if student has completed their profile data
     },
     enrolledCourses: [
       {
@@ -355,6 +359,34 @@ const UserSchema = new mongoose.Schema(
         },
       },
     ],
+    usedPromoCodes: [
+      {
+        promoCode: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'PromoCode',
+        },
+        usedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        purchase: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Purchase',
+        },
+        discountAmount: {
+          type: Number,
+          required: true,
+        },
+        originalAmount: {
+          type: Number,
+          required: true,
+        },
+        finalAmount: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
     wishlist: {
       type: mongoose.Schema.Types.Mixed,
       default: {
@@ -495,6 +527,20 @@ UserSchema.pre('save', async function (next) {
 // Compare password
 UserSchema.methods.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
+};
+
+// Method to authenticate by phone number and student code
+UserSchema.statics.findByPhoneAndCode = async function (phoneNumber, studentCode) {
+  const user = await this.findOne({
+    studentNumber: phoneNumber,
+    studentCode: studentCode,
+  });
+  return user;
+};
+
+// Method to check if user data is complete
+UserSchema.methods.isDataComplete = function () {
+  return this.isCompleteData === true;
 };
 
 // Generate unique student code before saving
@@ -1108,6 +1154,41 @@ UserSchema.methods.getPurchaseHistory = function () {
   );
 };
 
+// Instance method to check if user has used a promo code
+UserSchema.methods.hasUsedPromoCode = function (promoCodeId) {
+  return this.usedPromoCodes.some(
+    (usage) => usage.promoCode.toString() === promoCodeId.toString()
+  );
+};
+
+// Instance method to add promo code usage
+UserSchema.methods.addPromoCodeUsage = async function (
+  promoCodeId,
+  purchaseId,
+  discountAmount,
+  originalAmount,
+  finalAmount
+) {
+  this.usedPromoCodes.push({
+    promoCode: promoCodeId,
+    purchase: purchaseId,
+    discountAmount,
+    originalAmount,
+    finalAmount,
+    usedAt: new Date()
+  });
+  
+  await this.save();
+  return this;
+};
+
+// Instance method to get promo code usage history
+UserSchema.methods.getPromoCodeUsageHistory = function () {
+  return this.usedPromoCodes.sort(
+    (a, b) => new Date(b.usedAt) - new Date(a.usedAt)
+  );
+};
+
 // Instance method to get content progress for a specific course
 UserSchema.methods.getContentProgress = function (courseId) {
   const enrollment = this.enrolledCourses.find(
@@ -1608,6 +1689,15 @@ UserSchema.methods.canAttemptQuiz = function (
   );
 
   if (!contentProgress) return { canAttempt: true, reason: 'First attempt' };
+
+  // Check if user has already passed the quiz/homework
+  if (contentProgress.completionStatus === 'completed') {
+    return { 
+      canAttempt: false, 
+      reason: 'You have already passed this quiz', 
+      attemptsLeft: 0 
+    };
+  }
 
   if (contentProgress.attempts >= maxAttempts) {
     return { canAttempt: false, reason: 'Maximum attempts reached' };

@@ -58,6 +58,7 @@ const quizValidation = [
     .isLength({ min: 3, max: 200 })
     .withMessage('Title must be between 3 and 200 characters'),
   body('description')
+    .optional()
     .trim()
     .isLength({ min: 10, max: 1000 })
     .withMessage('Description must be between 10 and 1000 characters'),

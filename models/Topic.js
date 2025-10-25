@@ -247,10 +247,9 @@ const TopicSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
       trim: true,
-      minlength: 10,
       maxlength: 500,
+      default: '',
     },
     course: {
       type: mongoose.Schema.Types.ObjectId,

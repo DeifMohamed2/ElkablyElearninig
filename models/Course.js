@@ -12,14 +12,12 @@ const CourseSchema = new mongoose.Schema(
     description: {
       type: String,
       trim: true,
-      minlength: 10,
       maxlength: 500,
       default: '',
     },
     shortDescription: {
       type: String,
       trim: true,
-      minlength: 5,
       maxlength: 150,
       default: '',
     },

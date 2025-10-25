@@ -1,0 +1,1164 @@
+<%- include('partials/admin-header', { title: 'Promo Codes Management | ELKABLY Admin' }) %>
+
+<!-- Import Promo Codes CSS -->
+<link rel="stylesheet" href="/css/adminCSS/promo-codes.css">
+
+<style>
+  /* CSS Variables for Admin Theme */
+  .light-theme {
+    --admin-primary: #b80101;
+    --admin-secondary: #f8f9fa;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #f8fafc;
+    --admin-bg-dark: #1e293b;
+    --admin-card-light: #ffffff;
+    --admin-card-dark: #2d3748;
+    --admin-text-light: #1e293b;
+    --admin-text-dark: #f7fafc;
+    --admin-border-light: #e2e8f0;
+    --admin-border-dark: #4a5568;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark-theme {
+    --admin-primary: #d40000;
+    --admin-secondary: #2d3748;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #1e293b;
+    --admin-bg-dark: #0f172a;
+    --admin-card-light: #2d3748;
+    --admin-card-dark: #1e293b;
+    --admin-text-light: #f7fafc;
+    --admin-text-dark: #e2e8f0;
+    --admin-border-light: #4a5568;
+    --admin-border-dark: #2d3748;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Professional Admin Layout */
+  .admin-main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background: var(--admin-bg-light);
+    transition: margin-left 0.3s ease;
+  }
+
+  /* Sidebar hidden state */
+  .admin-sidebar.sidebar-hidden {
+    transform: translateX(-100%);
+  }
+
+  .admin-promo-codes-container {
+    padding: 20px;
+    background: var(--admin-bg-light);
+    min-height: calc(100vh - 80px);
+  }
+
+  /* Responsive adjustments for smaller screens */
+  @media (max-width: 1024px) {
+    .admin-main-content {
+      margin-left: 0;
+    }
+    
+    .admin-promo-codes-container {
+      padding: 15px;
+    }
+  }
+
+  /* Checkbox Group Styles */
+  .promo-form-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .promo-form-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+  }
+
+  .promo-form-checkbox-label:hover {
+    background-color: var(--admin-bg-light);
+  }
+
+  .promo-form-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--admin-primary);
+    cursor: pointer;
+  }
+
+  .promo-form-checkbox-text {
+    font-size: 0.95rem;
+    color: var(--admin-text-light);
+    font-weight: 500;
+  }
+
+  .dark-theme .promo-form-checkbox-label:hover {
+    background-color: var(--admin-bg-dark);
+  }
+
+  .dark-theme .promo-form-checkbox-text {
+    color: var(--admin-text-dark);
+  }
+
+  /* Policy Badge Styles */
+  .policy-display {
+    display: flex;
+    justify-content: center;
+  }
+
+  .policy-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .policy-badge.multiple {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+  }
+
+  .policy-badge.single {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fcd34d;
+  }
+
+  .dark-theme .policy-badge.multiple {
+    background-color: rgba(29, 78, 216, 0.2);
+    color: #60a5fa;
+    border-color: rgba(29, 78, 216, 0.3);
+  }
+
+  .dark-theme .policy-badge.single {
+    background-color: rgba(217, 119, 6, 0.2);
+    color: #fbbf24;
+    border-color: rgba(217, 119, 6, 0.3);
+  }
+</style>
+</head>
+
+<body class="<%= theme %>">
+  <%- include('partials/admin-sidebar') %>
+
+  <div class="admin-main-content">
+    <%- include('partials/admin-topbar') %>
+    <div class="admin-promo-codes-container">
+      <div class="promo-codes-container">
+  <!-- Page Header -->
+  <div class="promo-codes-header">
+    <div>
+      <h1 class="promo-codes-title">
+        <i class="fas fa-tags"></i>
+        Promo Codes Management
+      </h1>
+      <p class="promo-codes-subtitle">Create and manage discount codes for your customers</p>
+    </div>
+    <button class="create-promo-btn" onclick="openCreatePromoModal()">
+      <i class="fas fa-plus"></i>
+      Create Promo Code
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="promo-stats-grid">
+    <div class="promo-stat-card">
+      <div class="promo-stat-header">
+        <div class="promo-stat-icon active">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div>
+          <h3 class="promo-stat-title">Active Codes</h3>
+          <p class="promo-stat-value"><%= stats.activeCodes %></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="promo-stat-card">
+      <div class="promo-stat-header">
+        <div class="promo-stat-icon expired">
+          <i class="fas fa-times-circle"></i>
+        </div>
+        <div>
+          <h3 class="promo-stat-title">Expired Codes</h3>
+          <p class="promo-stat-value"><%= stats.expiredCodes %></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="promo-stat-card">
+      <div class="promo-stat-header">
+        <div class="promo-stat-icon used">
+          <i class="fas fa-users"></i>
+        </div>
+        <div>
+          <h3 class="promo-stat-title">Total Uses</h3>
+          <p class="promo-stat-value"><%= stats.totalUses %></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="promo-stat-card">
+      <div class="promo-stat-header">
+        <div class="promo-stat-icon total">
+          <i class="fas fa-tags"></i>
+        </div>
+        <div>
+          <h3 class="promo-stat-title">Total Codes</h3>
+          <p class="promo-stat-value"><%= stats.totalCodes %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Promo Codes Table -->
+  <div class="promo-codes-table-container">
+    <div class="promo-codes-table-header">
+      <h2 class="promo-codes-table-title">All Promo Codes</h2>
+      <div class="promo-codes-filters">
+        <select class="promo-filter-select" id="statusFilter" onchange="filterPromoCodes()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <input type="text" class="promo-search-input" id="searchInput" placeholder="Search promo codes..." onkeyup="searchPromoCodes()">
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="promo-codes-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Discount</th>
+            <th>Status</th>
+            <th>Usage</th>
+            <th>Policy</th>
+            <th>Valid Until</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="promoCodesTableBody">
+          <% if (promoCodes && promoCodes.length > 0) { %>
+            <% promoCodes.forEach(promoCode => { %>
+              <tr class="promo-code-row" data-status="<%= 
+                (() => {
+                  const now = new Date();
+                  const isExpired = new Date(promoCode.validUntil) < now;
+                  const isActive = promoCode.isActive;
+                  const isWithinValidPeriod = new Date(promoCode.validFrom) <= now && new Date(promoCode.validUntil) >= now;
+                  const hasUsesLeft = promoCode.maxUses === null || promoCode.currentUses < promoCode.maxUses;
+                  const isValid = isActive && isWithinValidPeriod && hasUsesLeft;
+                  
+                  if (isValid) return 'active';
+                  if (isExpired || !hasUsesLeft) return 'expired';
+                  if (!isActive) return 'inactive';
+                  return 'inactive';
+                })()
+              %>">
+                <td>
+                  <span class="promo-code-badge"><%= promoCode.code %></span>
+                </td>
+                <td>
+                  <div>
+                    <strong><%= promoCode.name %></strong>
+                    <% if (promoCode.description) { %>
+                      <br><small class="text-muted"><%= promoCode.description %></small>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <div class="discount-display <%= promoCode.discountType %>">
+                    <% if (promoCode.discountType === 'percentage') { %>
+                      <%= promoCode.discountValue %>% off
+                    <% } else { %>
+                      EGP <%= promoCode.discountValue %> off
+                    <% } %>
+                    <% if (promoCode.minOrderAmount > 0) { %>
+                      <br><small class="text-muted">Min: EGP <%= promoCode.minOrderAmount %></small>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <% 
+                    const now = new Date();
+                    const isExpired = new Date(promoCode.validUntil) < now;
+                    const isActive = promoCode.isActive;
+                    const isWithinValidPeriod = new Date(promoCode.validFrom) <= now && new Date(promoCode.validUntil) >= now;
+                    const hasUsesLeft = promoCode.maxUses === null || promoCode.currentUses < promoCode.maxUses;
+                    const isValid = isActive && isWithinValidPeriod && hasUsesLeft;
+                  %>
+                  <% if (isValid) { %>
+                    <span class="status-badge active mb-4">Active</span>
+                  <% } else if (isExpired) { %>
+                    <span class="status-badge expired mb-4">Expired</span>
+                  <% } else if (!isActive) { %>
+                    <span class="status-badge inactive mb-4">Inactive</span>
+                  <% } else if (!hasUsesLeft) { %>
+                    <span class="status-badge expired mb-4">Used Up</span>
+                  <% } else { %>
+                    <span class="status-badge inactive mb-4">Not Started</span>
+                  <% } %>
+                </td>
+                <td>
+                  <div class="usage-info">
+                    <%= promoCode.currentUses %> / <%= promoCode.maxUses || '∞' %>
+                    <% if (promoCode.maxUses) { %>
+                      <div class="usage-progress">
+                        <div class="usage-progress-bar" style="width: <%= (promoCode.currentUses / promoCode.maxUses) * 100 %>%"></div>
+                      </div>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <div class="policy-display">
+                    <% if (promoCode.allowMultipleUses) { %>
+                      <span class="policy-badge multiple">Multiple Uses</span>
+                    <% } else { %>
+                      <span class="policy-badge single">One Use</span>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <%= new Date(promoCode.validUntil).toLocaleDateString() %>
+                  <br><small class="text-muted"><%= new Date(promoCode.validUntil).toLocaleTimeString() %></small>
+                </td>
+                <td>
+                  <div class="promo-actions">
+                    <button class="promo-action-btn view" onclick="viewPromoUsage('<%= promoCode._id %>')" title="View Usage History">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="promo-action-btn edit" onclick="editPromoCode('<%= promoCode._id %>')" title="Edit Promo Code">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="promo-action-btn delete" onclick="deletePromoCode('<%= promoCode._id %>')" title="Delete Promo Code">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr>
+              <td colspan="8" class="empty-state">
+                <div class="empty-state-icon">
+                  <i class="fas fa-tags"></i>
+                </div>
+                <h3 class="empty-state-title">No Promo Codes Found</h3>
+                <button class="create-promo-btn" onclick="openCreatePromoModal()">
+                  <i class="fas fa-plus"></i>
+                  Create Your First Promo Code
+                </button>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Create Promo Code Modal -->
+<div class="create-promo-modal" id="createPromoModal">
+  <div class="create-promo-modal-content">
+    <div class="create-promo-modal-header">
+      <h2 class="create-promo-modal-title">
+        <i class="fas fa-plus"></i>
+        Create New Promo Code
+      </h2>
+      <button class="create-promo-modal-close" onclick="closeCreatePromoModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="create-promo-modal-body">
+      <form id="createPromoForm" onsubmit="createPromoCode(event)">
+        <!-- Basic Information -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="promoName">Promo Code Name *</label>
+          <input type="text" id="promoName" name="name" class="promo-form-control" required placeholder="e.g., Summer Sale 2024">
+          <div class="promo-form-help">A descriptive name for this promo code</div>
+        </div>
+
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="promoDescription">Description (Optional)</label>
+          <textarea id="promoDescription" name="description" class="promo-form-control" rows="3" placeholder="Optional description for this promo code"></textarea>
+          <div class="promo-form-help">Optional description to help identify this promo code</div>
+        </div>
+
+        <!-- Code Generation -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="promoCode">Promo Code *</label>
+          <div class="code-generation">
+            <input type="text" id="promoCode" name="code" class="promo-form-control" required placeholder="e.g., SUMMER2024" maxlength="20">
+            <button type="button" class="generate-code-btn" onclick="generateRandomCode()">
+              <i class="fas fa-random"></i>
+              Generate
+            </button>
+          </div>
+          <div class="promo-form-help">Enter a custom code or generate a random one</div>
+        </div>
+
+        <!-- Discount Type -->
+        <div class="promo-form-group">
+          <label class="promo-form-label">Discount Type *</label>
+          <div class="discount-type-toggle">
+            <div class="discount-type-option active" data-type="percentage" onclick="selectDiscountType('percentage')">
+              <i class="fas fa-percentage"></i>
+              Percentage
+            </div>
+            <div class="discount-type-option" data-type="fixed" onclick="selectDiscountType('fixed')">
+              <i class="fas fa-coins"></i>
+              Fixed Amount
+            </div>
+          </div>
+        </div>
+
+        <!-- Discount Value -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="discountValue">Discount Value *</label>
+          <div class="promo-form-row">
+            <input type="number" id="discountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01" placeholder="10">
+            <input type="number" id="maxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
+          </div>
+          <div class="promo-form-help" id="discountHelp">Enter the percentage discount (1-100)</div>
+        </div>
+
+        <!-- Minimum Order Amount -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="minOrderAmount">Minimum Order Amount</label>
+          <input type="number" id="minOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0" value="0">
+          <div class="promo-form-help">Minimum order amount required to use this promo code</div>
+        </div>
+
+        <!-- Usage Limits -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="maxUses">Maximum Uses</label>
+          <input type="number" id="maxUses" name="maxUses" class="promo-form-control" min="1" placeholder="Leave empty for unlimited">
+          <div class="promo-form-help">Maximum number of times this code can be used (leave empty for unlimited)</div>
+        </div>
+
+        <!-- Multiple Uses Per User -->
+        <div class="promo-form-group">
+          <label class="promo-form-label">Usage Policy</label>
+          <div class="promo-form-checkbox-group">
+            <label class="promo-form-checkbox-label">
+              <input type="checkbox" id="allowMultipleUses" name="allowMultipleUses" value="true">
+              <span class="promo-form-checkbox-text">Allow multiple uses per user</span>
+            </label>
+          </div>
+          <div class="promo-form-help">If checked, users can use this promo code multiple times. If unchecked, each user can only use it once.</div>
+        </div>
+
+        <!-- Validity Period -->
+        <div class="promo-form-group">
+          <label class="promo-form-label">Validity Period *</label>
+          <div class="promo-form-row">
+            <input type="date" id="validFrom" name="validFrom" class="promo-form-control" required>
+            <input type="date" id="validUntil" name="validUntil" class="promo-form-control" required>
+          </div>
+          <div class="promo-form-help">Select the start and end dates for this promo code</div>
+        </div>
+
+        <!-- Applicable To -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="applicableTo">Applicable To</label>
+          <select id="applicableTo" name="applicableTo" class="promo-form-control">
+            <option value="all">All Products</option>
+            <option value="bundles">Course Only</option>
+            <option value="courses">Weeks Only</option>
+          </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="promo-form-group">
+          <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center;">
+            <i class="fas fa-save"></i>
+            Create Promo Code
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Promo Code Modal -->
+<div class="edit-promo-modal" id="editPromoModal">
+  <div class="edit-promo-modal-content">
+    <div class="edit-promo-modal-header">
+      <h2 class="edit-promo-modal-title">
+        <i class="fas fa-edit"></i>
+        Edit Promo Code
+      </h2>
+      <button class="edit-promo-modal-close" onclick="closeEditPromoModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="edit-promo-modal-body">
+      <form id="editPromoForm" onsubmit="updatePromoCode(event)">
+        <input type="hidden" id="editPromoId" name="id">
+        
+        <!-- Basic Information -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="editPromoName">Promo Code Name *</label>
+          <input type="text" id="editPromoName" name="name" class="promo-form-control" required>
+          <div class="promo-form-help">A descriptive name for this promo code</div>
+        </div>
+
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="editPromoDescription">Description (Optional)</label>
+          <textarea id="editPromoDescription" name="description" class="promo-form-control" rows="3"></textarea>
+          <div class="promo-form-help">Optional description to help identify this promo code</div>
+        </div>
+
+        <!-- Code (Read-only if used) -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="editPromoCode">Promo Code *</label>
+          <input type="text" id="editPromoCode" name="code" class="promo-form-control" required readonly>
+          <div class="promo-form-help" id="editCodeHelp">Promo code cannot be changed if it has been used</div>
+        </div>
+
+        <!-- Status Toggle -->
+        <div class="promo-form-group">
+          <label class="promo-form-label">Status</label>
+          <div class="status-toggle-container">
+            <label class="status-toggle">
+              <input type="checkbox" id="editPromoIsActive" name="isActive">
+              <span class="status-toggle-slider"></span>
+              <span class="status-toggle-label">Active</span>
+            </label>
+          </div>
+          <div class="promo-form-help">Toggle to activate or deactivate this promo code</div>
+        </div>
+
+        <!-- Discount Type -->
+        <div class="promo-form-group">
+          <label class="promo-form-label">Discount Type *</label>
+          <div class="discount-type-toggle">
+            <div class="discount-type-option" data-type="percentage" onclick="selectEditDiscountType('percentage')">
+              <i class="fas fa-percentage"></i>
+              Percentage
+            </div>
+            <div class="discount-type-option" data-type="fixed" onclick="selectEditDiscountType('fixed')">
+              <i class="fas fa-coins"></i>
+              Fixed Amount
+            </div>
+          </div>
+        </div>
+
+        <!-- Discount Value -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="editDiscountValue">Discount Value *</label>
+          <div class="promo-form-row">
+            <input type="number" id="editDiscountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01">
+            <input type="number" id="editMaxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
+          </div>
+          <div class="promo-form-help" id="editDiscountHelp">Enter the percentage discount (1-100)</div>
+        </div>
+
+        <!-- Minimum Order Amount -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="editMinOrderAmount">Minimum Order Amount</label>
+          <input type="number" id="editMinOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0">
+          <div class="promo-form-help">Minimum order amount required to use this promo code</div>
+        </div>
+
+        <!-- Usage Limits -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="editMaxUses">Maximum Uses</label>
+          <input type="number" id="editMaxUses" name="maxUses" class="promo-form-control" min="1" placeholder="Leave empty for unlimited">
+          <div class="promo-form-help">Maximum number of times this code can be used (leave empty for unlimited)</div>
+        </div>
+
+        <!-- Multiple Uses Per User -->
+        <div class="promo-form-group">
+          <label class="promo-form-label">Usage Policy</label>
+          <div class="promo-form-checkbox-group">
+            <label class="promo-form-checkbox-label">
+              <input type="checkbox" id="editAllowMultipleUses" name="allowMultipleUses" value="true">
+              <span class="promo-form-checkbox-text">Allow multiple uses per user</span>
+            </label>
+          </div>
+          <div class="promo-form-help">If checked, users can use this promo code multiple times. If unchecked, each user can only use it once.</div>
+        </div>
+
+        <!-- Validity Period -->
+        <div class="promo-form-group">
+          <label class="promo-form-label">Validity Period *</label>
+          <div class="promo-form-row">
+            <input type="date" id="editValidFrom" name="validFrom" class="promo-form-control" required>
+            <input type="date" id="editValidUntil" name="validUntil" class="promo-form-control" required>
+          </div>
+          <div class="promo-form-help">Select the start and end dates for this promo code</div>
+        </div>
+
+        <!-- Applicable To -->
+        <div class="promo-form-group">
+          <label class="promo-form-label" for="editApplicableTo">Applicable To</label>
+          <select id="editApplicableTo" name="applicableTo" class="promo-form-control">
+            <option value="all">All Products</option>
+            <option value="bundles">Course Bundles Only</option>
+            <option value="courses">Individual Courses Only</option>
+          </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="promo-form-group">
+          <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center;">
+            <i class="fas fa-save"></i>
+            Update Promo Code
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Usage History Modal -->
+<div class="usage-history-modal" id="usageHistoryModal">
+  <div class="usage-history-modal-content">
+    <div class="usage-history-modal-header">
+      <h2 class="usage-history-modal-title">
+        <i class="fas fa-history"></i>
+        Usage History
+      </h2>
+      <button class="usage-history-modal-close" onclick="closeUsageHistoryModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="usage-history-modal-body" id="usageHistoryBody">
+      <!-- Usage history will be loaded here -->
+    </div>
+  </div>
+</div>
+
+<script>
+// Global variables
+let currentDiscountType = 'percentage';
+let currentEditDiscountType = 'percentage';
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    // Initialize sidebar toggle
+    initializeSidebarToggle();
+    
+    // Set default dates
+    const today = new Date();
+    const nextMonth = new Date(today);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    
+    document.getElementById('validFrom').value = today.toISOString().split('T')[0];
+    document.getElementById('validUntil').value = nextMonth.toISOString().split('T')[0];
+    
+    // Set default discount value based on type
+    updateDiscountInput();
+  } catch (error) {
+    console.error('Error initializing page:', error);
+  }
+});
+
+// Modal functions
+function openCreatePromoModal() {
+  document.getElementById('createPromoModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCreatePromoModal() {
+  document.getElementById('createPromoModal').classList.remove('show');
+  document.body.style.overflow = 'auto';
+  document.getElementById('createPromoForm').reset();
+  currentDiscountType = 'percentage';
+  selectDiscountType('percentage');
+}
+
+function openUsageHistoryModal() {
+  document.getElementById('usageHistoryModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeUsageHistoryModal() {
+  document.getElementById('usageHistoryModal').classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
+
+// Edit modal functions
+function openEditPromoModal() {
+  document.getElementById('editPromoModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditPromoModal() {
+  document.getElementById('editPromoModal').classList.remove('show');
+  document.body.style.overflow = 'auto';
+  document.getElementById('editPromoForm').reset();
+  currentEditDiscountType = 'percentage';
+  selectEditDiscountType('percentage');
+}
+
+// Discount type selection
+function selectDiscountType(type) {
+  currentDiscountType = type;
+  
+  // Update toggle buttons
+  document.querySelectorAll('.discount-type-option').forEach(option => {
+    option.classList.remove('active');
+  });
+  document.querySelector(`[data-type="${type}"]`).classList.add('active');
+  
+  // Update input and help text
+  updateDiscountInput();
+}
+
+function updateDiscountInput() {
+  const discountValueInput = document.getElementById('discountValue');
+  const discountHelp = document.getElementById('discountHelp');
+  const maxDiscountInput = document.getElementById('maxDiscountAmount');
+  
+  if (currentDiscountType === 'percentage') {
+    discountValueInput.placeholder = '10';
+    discountValueInput.max = '100';
+    discountValueInput.step = '1';
+    discountHelp.textContent = 'Enter the percentage discount (1-100)';
+    maxDiscountInput.style.display = 'block';
+  } else {
+    discountValueInput.placeholder = '50';
+    discountValueInput.max = '';
+    discountValueInput.step = '0.01';
+    discountHelp.textContent = 'Enter the fixed discount amount in EGP';
+    maxDiscountInput.style.display = 'none';
+  }
+}
+
+// Edit discount type selection
+function selectEditDiscountType(type) {
+  currentEditDiscountType = type;
+  
+  // Update toggle buttons
+  document.querySelectorAll('#editPromoModal .discount-type-option').forEach(option => {
+    option.classList.remove('active');
+  });
+  document.querySelector(`#editPromoModal [data-type="${type}"]`).classList.add('active');
+  
+  // Update input and help text
+  updateEditDiscountInput();
+}
+
+function updateEditDiscountInput() {
+  const discountValueInput = document.getElementById('editDiscountValue');
+  const discountHelp = document.getElementById('editDiscountHelp');
+  const maxDiscountInput = document.getElementById('editMaxDiscountAmount');
+  
+  if (currentEditDiscountType === 'percentage') {
+    discountValueInput.placeholder = '10';
+    discountValueInput.max = '100';
+    discountValueInput.step = '1';
+    discountHelp.textContent = 'Enter the percentage discount (1-100)';
+    maxDiscountInput.style.display = 'block';
+  } else {
+    discountValueInput.placeholder = '50';
+    discountValueInput.max = '';
+    discountValueInput.step = '0.01';
+    discountHelp.textContent = 'Enter the fixed discount amount in EGP';
+    maxDiscountInput.style.display = 'none';
+  }
+}
+
+// Generate random code
+function generateRandomCode() {
+  const length = 8;
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  document.getElementById('promoCode').value = result;
+}
+
+// Create promo code
+async function createPromoCode(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const data = {
+    name: formData.get('name'),
+    description: formData.get('description') || null, // Handle empty description
+    code: formData.get('code').toUpperCase(),
+    discountType: currentDiscountType,
+    discountValue: parseFloat(formData.get('discountValue')),
+    maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
+    minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
+    maxUses: formData.get('maxUses') ? parseInt(formData.get('maxUses')) : null,
+    validFrom: formData.get('validFrom'),
+    validUntil: formData.get('validUntil'),
+    applicableTo: formData.get('applicableTo')
+  };
+  
+  try {
+    const response = await fetch('/admin/promo-codes/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Promo code created successfully!', 'success');
+      closeCreatePromoModal();
+      location.reload(); // Refresh to show new promo code
+    } else {
+      showNotification(result.message || 'Failed to create promo code', 'error');
+    }
+  } catch (error) {
+    console.error('Error creating promo code:', error);
+    showNotification('Error creating promo code', 'error');
+  }
+}
+
+// View promo usage history
+async function viewPromoUsage(promoCodeId) {
+  try {
+    const response = await fetch(`/admin/promo-codes/${promoCodeId}/usage`);
+    const result = await response.json();
+    
+    if (result.success) {
+      displayUsageHistory(result.usageHistory, result.promoCode);
+      openUsageHistoryModal();
+    } else {
+      showNotification(result.message || 'Failed to load usage history', 'error');
+    }
+  } catch (error) {
+    console.error('Error loading usage history:', error);
+    showNotification('Error loading usage history', 'error');
+  }
+}
+
+function displayUsageHistory(usageHistory, promoCode) {
+  const modalBody = document.getElementById('usageHistoryBody');
+  
+  if (!usageHistory || usageHistory.length === 0) {
+    modalBody.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="fas fa-history"></i>
+        </div>
+        <h3 class="empty-state-title">No Usage History</h3>
+        <p class="empty-state-description">This promo code hasn't been used yet.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let html = `
+    <div style="margin-bottom: 1rem; padding: 1rem; background: #f8fafc; border-radius: 10px;">
+      <h3 style="margin: 0 0 0.5rem 0; color: #1f2937;">${promoCode.name}</h3>
+      <p style="margin: 0; color: #6b7280;">Code: <strong>${promoCode.code}</strong> | Total Uses: <strong>${usageHistory.length}</strong></p>
+    </div>
+  `;
+  
+  usageHistory.forEach(usage => {
+    const user = usage.user;
+    const purchase = usage.purchase;
+    
+    html += `
+      <div class="usage-history-item">
+        <div class="usage-history-user">
+          <div class="usage-history-avatar">
+            ${user.userName ? user.userName.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div class="usage-history-details">
+            <h4>${user.userName || user.studentEmail || 'Unknown User'}</h4>
+            <p>Order #${purchase.orderNumber} • ${new Date(usage.usedAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+        <div class="usage-history-amount">
+          <div class="original">EGP ${usage.originalAmount.toFixed(2)}</div>
+          <div class="discount">-EGP ${usage.discountAmount.toFixed(2)}</div>
+          <div class="final">EGP ${usage.finalAmount.toFixed(2)}</div>
+        </div>
+      </div>
+    `;
+  });
+  
+  modalBody.innerHTML = html;
+}
+
+// Edit promo code
+async function editPromoCode(promoCodeId) {
+  try {
+    const response = await fetch(`/admin/promo-codes/${promoCodeId}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      populateEditModal(result.promoCode);
+      openEditPromoModal();
+    } else {
+      showNotification(result.message || 'Failed to load promo code', 'error');
+    }
+  } catch (error) {
+    console.error('Error loading promo code:', error);
+    showNotification('Error loading promo code', 'error');
+  }
+}
+
+// Populate edit modal with promo code data
+function populateEditModal(promoCode) {
+  document.getElementById('editPromoId').value = promoCode._id;
+  document.getElementById('editPromoName').value = promoCode.name;
+  document.getElementById('editPromoDescription').value = promoCode.description || '';
+  document.getElementById('editPromoCode').value = promoCode.code;
+  document.getElementById('editPromoIsActive').checked = promoCode.isActive;
+  
+  // Set discount type
+  currentEditDiscountType = promoCode.discountType;
+  selectEditDiscountType(promoCode.discountType);
+  
+  document.getElementById('editDiscountValue').value = promoCode.discountValue;
+  document.getElementById('editMaxDiscountAmount').value = promoCode.maxDiscountAmount || '';
+  document.getElementById('editMinOrderAmount').value = promoCode.minOrderAmount || 0;
+  document.getElementById('editMaxUses').value = promoCode.maxUses || '';
+  document.getElementById('editAllowMultipleUses').checked = promoCode.allowMultipleUses || false;
+  document.getElementById('editValidFrom').value = new Date(promoCode.validFrom).toISOString().split('T')[0];
+  document.getElementById('editValidUntil').value = new Date(promoCode.validUntil).toISOString().split('T')[0];
+  document.getElementById('editApplicableTo').value = promoCode.applicableTo || 'all';
+  
+  // Make code field read-only if it has been used
+  const codeInput = document.getElementById('editPromoCode');
+  const codeHelp = document.getElementById('editCodeHelp');
+  if (promoCode.currentUses > 0) {
+    codeInput.readOnly = true;
+    codeInput.style.backgroundColor = '#f3f4f6';
+    codeHelp.textContent = 'Promo code cannot be changed because it has been used';
+    codeHelp.style.color = '#ef4444';
+  } else {
+    codeInput.readOnly = false;
+    codeInput.style.backgroundColor = '';
+    codeHelp.textContent = 'Promo code cannot be changed if it has been used';
+    codeHelp.style.color = '#6b7280';
+  }
+}
+
+// Update promo code
+async function updatePromoCode(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const promoCodeId = formData.get('id');
+  
+  const data = {
+    name: formData.get('name'),
+    description: formData.get('description') || null,
+    code: formData.get('code').toUpperCase(),
+    isActive: formData.get('isActive') === 'on',
+    discountType: currentEditDiscountType,
+    discountValue: parseFloat(formData.get('discountValue')),
+    maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
+    minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
+    maxUses: formData.get('maxUses') ? parseInt(formData.get('maxUses')) : null,
+    validFrom: formData.get('validFrom'),
+    validUntil: formData.get('validUntil'),
+    applicableTo: formData.get('applicableTo')
+  };
+  
+  try {
+    const response = await fetch(`/admin/promo-codes/${promoCodeId}/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Promo code updated successfully!', 'success');
+      closeEditPromoModal();
+      location.reload(); // Refresh to show updated promo code
+    } else {
+      showNotification(result.message || 'Failed to update promo code', 'error');
+    }
+  } catch (error) {
+    console.error('Error updating promo code:', error);
+    showNotification('Error updating promo code', 'error');
+  }
+}
+
+// Delete promo code
+async function deletePromoCode(promoCodeId) {
+  if (!confirm('Are you sure you want to delete this promo code? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/admin/promo-codes/${promoCodeId}/delete`, {
+      method: 'DELETE'
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Promo code deleted successfully!', 'success');
+      location.reload();
+    } else {
+      showNotification(result.message || 'Failed to delete promo code', 'error');
+    }
+  } catch (error) {
+    console.error('Error deleting promo code:', error);
+    showNotification('Error deleting promo code', 'error');
+  }
+}
+
+// Filter and search functions
+function filterPromoCodes() {
+  const statusFilter = document.getElementById('statusFilter').value;
+  const rows = document.querySelectorAll('.promo-code-row');
+  
+  rows.forEach(row => {
+    const status = row.getAttribute('data-status');
+    if (!statusFilter || status === statusFilter) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+function searchPromoCodes() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const rows = document.querySelectorAll('.promo-code-row');
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    if (text.includes(searchTerm)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    z-index: 10002;
+    max-width: 400px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  `;
+  
+  if (type === 'success') {
+    notification.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+  } else if (type === 'error') {
+    notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+  } else {
+    notification.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+  }
+  
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => notification.style.transform = 'translateX(0)', 100);
+  
+  setTimeout(() => {
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => notification.remove(), 300);
+  }, 5000);
+}
+
+// Initialize sidebar toggle functionality
+function initializeSidebarToggle() {
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const mainContent = document.querySelector('.admin-main-content');
+  const sidebar = document.querySelector('.admin-sidebar');
+  
+  if (sidebarToggle && mainContent && sidebar) {
+    sidebarToggle.addEventListener('click', function() {
+      // Toggle sidebar visibility
+      sidebar.classList.toggle('sidebar-hidden');
+      
+      // Adjust main content margin
+      if (sidebar.classList.contains('sidebar-hidden')) {
+        mainContent.style.marginLeft = '0';
+      } else {
+        mainContent.style.marginLeft = '280px';
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      if (window.innerWidth <= 1024) {
+        sidebar.classList.add('sidebar-hidden');
+        mainContent.style.marginLeft = '0';
+      } else {
+        sidebar.classList.remove('sidebar-hidden');
+        mainContent.style.marginLeft = '280px';
+      }
+    });
+    
+    // Initialize based on screen size
+    if (window.innerWidth <= 1024) {
+      sidebar.classList.add('sidebar-hidden');
+      mainContent.style.marginLeft = '0';
+    }
+  }
+}
+
+// Close modals when clicking outside
+document.addEventListener('click', function(event) {
+  if (event.target.classList.contains('create-promo-modal')) {
+    closeCreatePromoModal();
+  }
+  if (event.target.classList.contains('edit-promo-modal')) {
+    closeEditPromoModal();
+  }
+  if (event.target.classList.contains('usage-history-modal')) {
+    closeUsageHistoryModal();
+  }
+});
+</script>
+
+    </div>
+  </div>
+</div>
+
+<%- include('partials/admin-footer') %>

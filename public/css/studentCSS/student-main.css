@@ -854,6 +854,31 @@ body {
     box-shadow: 8px 0 30px rgba(0, 0, 0, 0.15);
     width: 100%;
     max-width: 320px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Fix sidebar content layout for mobile */
+  .enhanced-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 120px;
+    /* Space for footer */
+  }
+
+  /* Enhanced footer positioning for mobile */
+  .enhanced-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-sidebar);
+    border-top: 1px solid var(--border-color);
+    z-index: 10;
+    padding: var(--spacing-md);
   }
 
   .brand-text h2 {
@@ -864,6 +889,9 @@ body {
     width: 40px;
     height: 40px;
     font-size: 1.2rem;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   /* Sidebar Overlay for mobile interaction */
@@ -1083,19 +1111,72 @@ body {
     width: 36px;
     height: 36px;
     font-size: 1rem;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Mobile sidebar improvements */
+  .enhanced-sidebar {
+    max-width: 100%;
+    width: 100%;
   }
 
   .enhanced-nav-item {
-
-    padding: var(--spacing-sm) var(--spacing-md);
-    margin: 0 var(--spacing-sm) var(--spacing-xs);
+    padding: var(--spacing-lg) var(--spacing-xl);
+    margin: 0 var(--spacing-lg) var(--spacing-md);
+    border-radius: var(--radius-lg);
+    min-height: 52px;
+    display: flex;
+    align-items: center;
   }
 
   .nav-icon {
-    width: 18px;
-    height: 18px;
-    margin-right: var(--spacing-sm);
+    width: 22px;
+    height: 22px;
+    margin-right: var(--spacing-lg);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .nav-text {
     font-size: 1rem;
+    font-weight: 500;
+  }
+
+  /* Better spacing for nav sections */
+  .nav-section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .nav-section-title {
+    padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-md);
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  /* Enhanced footer for mobile */
+  .enhanced-footer {
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .logout-item {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+  }
+
+  .logout-item .nav-icon {
+    width: 22px;
+    height: 22px;
+    margin-right: var(--spacing-lg);
+    font-size: 1.2rem;
+  }
+
+  .logout-item .nav-text {
+    font-size: 1rem;
+    font-weight: 500;
   }
 }
 
@@ -1219,9 +1300,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-white);
-  font-size: 1.5rem;
-  box-shadow: var(--shadow-primary);
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -1229,8 +1310,8 @@ body {
 
 .dark-theme .logo-icon {
   background: #ffffff;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .brand-logo-image {
@@ -1238,24 +1319,17 @@ body {
   height: 100%;
   object-fit: contain;
   border-radius: var(--radius-xl);
+  filter: none;
+  transition: all 0.3s ease;
 }
 
+/* Remove the gradient background pseudo-element */
 .logo-icon::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-xl);
-  z-index: -1;
-  opacity: 0.3;
-  filter: blur(8px);
+  display: none;
 }
 
 .brand-text h2 {
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary-color);
   font-weight: 800;
   font-size: 1.75rem;
   margin: 0;
@@ -1411,6 +1485,19 @@ body {
   padding: var(--spacing-lg);
   border-top: 1px solid var(--border-color);
   background: linear-gradient(180deg, transparent 0%, var(--bg-sidebar) 100%);
+}
+
+/* Desktop footer positioning */
+@media (min-width: 1025px) {
+  .enhanced-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    background: linear-gradient(180deg, transparent 0%, var(--bg-sidebar) 100%);
+  }
 }
 
 .footer-decoration {
@@ -1617,12 +1704,18 @@ body {
   color: #fbbf24;
   opacity: 1;
   text-shadow: 0 1px 2px rgba(251, 191, 36, 0.3);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(1) rotate(0deg);
+  visibility: visible;
 }
 
 .dark-icon {
   color: #1f2937;
   opacity: 0;
   text-shadow: 0 1px 2px rgba(31, 41, 55, 0.3);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.5) rotate(90deg);
+  visibility: hidden;
 }
 
 .enhanced-theme-toggle.dark-mode .toggle-thumb {
@@ -1632,12 +1725,16 @@ body {
 
 .enhanced-theme-toggle.dark-mode .light-icon {
   opacity: 0;
+  transform: scale(0.5) rotate(-90deg);
+  visibility: hidden;
 }
 
 .enhanced-theme-toggle.dark-mode .dark-icon {
   opacity: 1;
   color: var(--text-white);
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+  transform: scale(1) rotate(0deg);
+  visibility: visible;
 }
 
 .toggle-label {
@@ -1651,6 +1748,26 @@ body {
 
 .enhanced-theme-toggle.animating .toggle-thumb {
   transform: scale(1.1);
+}
+
+/* Prevent icon lag and ensure smooth transitions */
+.enhanced-theme-toggle .light-icon,
+.enhanced-theme-toggle .dark-icon {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Disable button during transition to prevent multiple clicks */
+.enhanced-theme-toggle:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: scale(0.95);
+}
+
+.enhanced-theme-toggle:disabled:hover {
+  transform: scale(0.95);
+  background: var(--bg-tertiary);
 }
 
 .enhanced-theme-toggle:active .toggle-thumb {

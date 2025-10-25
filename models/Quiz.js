@@ -9,9 +9,9 @@ const quizSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: [true, 'Quiz description is required'],
     trim: true,
-    maxlength: [1000, 'Description cannot exceed 1000 characters']
+    maxlength: [1000, 'Description cannot exceed 1000 characters'],
+    default: ''
   },
   code: {
     type: String,
@@ -311,6 +311,19 @@ quizSchema.methods.canUserAttempt = function(userAttempts) {
   
   if (!userQuizAttempt) {
     return { canAttempt: true, reason: 'First attempt', attemptsLeft: this.maxAttempts };
+  }
+  
+  // Check if user has already passed the quiz
+  const passedAttempt = userQuizAttempt.attempts.find(attempt => 
+    attempt.status === 'completed' && attempt.passed === true
+  );
+  
+  if (passedAttempt) {
+    return { 
+      canAttempt: false, 
+      reason: 'You have already passed this quiz', 
+      attemptsLeft: 0 
+    };
   }
   
   // Count only completed attempts (not in-progress ones)

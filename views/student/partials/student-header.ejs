@@ -50,7 +50,7 @@
               <i class="fas fa-book"></i>
             </div>
             <div class="notification-content">
-              <p class="notification-title">New Course Available</p>
+              <p class="notification-title">New Week Available</p>
               <p class="notification-text">Advanced Mathematics course is now available</p>
               <span class="notification-time">2 hours ago</span>
             </div>
@@ -296,35 +296,46 @@
     }
   });
 
-  // Enhanced theme toggle with smooth animations
+  // Enhanced theme toggle with smooth animations - Unified with main header
   function toggleTheme() {
     const body = document.body;
     const toggle = document.querySelector('.enhanced-theme-toggle');
+    
+    // Add loading state to prevent multiple clicks
+    toggle.disabled = true;
+    toggle.classList.add('animating');
+    
     const currentTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
     // Add transition class for smooth theme change
     body.classList.add('theme-transitioning');
 
-    // Remove current theme
+    // Remove current theme from both html and body
+    document.documentElement.classList.remove('light-theme', 'dark-theme');
     body.classList.remove('light-theme', 'dark-theme');
 
-    // Add new theme
+    // Add new theme to both html and body
+    document.documentElement.classList.add(newTheme + '-theme');
     body.classList.add(newTheme + '-theme');
-
-    // Animate toggle
-    toggle.classList.add('animating');
-
-    setTimeout(() => {
-      body.classList.remove('theme-transitioning');
-      toggle.classList.remove('animating');
-    }, 300);
 
     // Save to localStorage for better persistence
     localStorage.setItem('theme', newTheme);
 
     // Update theme toggle button
     updateThemeToggleButton(newTheme);
+    
+    // Remove loading state after animation
+    setTimeout(() => {
+      body.classList.remove('theme-transitioning');
+      toggle.classList.remove('animating');
+      toggle.disabled = false;
+    }, 300);
+    
+    // Trigger custom event for other components
+    window.dispatchEvent(new CustomEvent('themeChanged', { 
+      detail: { theme: newTheme } 
+    }));
   }
 
   function updateThemeToggleButton(theme) {
@@ -335,11 +346,19 @@
     if (theme === 'dark') {
       toggle.classList.add('dark-mode');
       lightIcon.style.opacity = '0';
+      lightIcon.style.transform = 'scale(0.5) rotate(-90deg)';
+      lightIcon.style.visibility = 'hidden';
       darkIcon.style.opacity = '1';
+      darkIcon.style.transform = 'scale(1) rotate(0deg)';
+      darkIcon.style.visibility = 'visible';
     } else {
       toggle.classList.remove('dark-mode');
       lightIcon.style.opacity = '1';
+      lightIcon.style.transform = 'scale(1) rotate(0deg)';
+      lightIcon.style.visibility = 'visible';
       darkIcon.style.opacity = '0';
+      darkIcon.style.transform = 'scale(0.5) rotate(90deg)';
+      darkIcon.style.visibility = 'hidden';
     }
   }
 
@@ -350,10 +369,37 @@
     const savedTheme = localStorage.getItem('theme') || '<%= theme || "light" %>';
     const body = document.body;
 
+    // Remove existing theme classes from both html and body
+    document.documentElement.classList.remove('light-theme', 'dark-theme');
     body.classList.remove('light-theme', 'dark-theme');
+    
+    // Add the correct theme class to both html and body
+    document.documentElement.classList.add(savedTheme + '-theme');
     body.classList.add(savedTheme + '-theme');
 
     updateThemeToggleButton(savedTheme);
+    
+    // Listen for theme changes from other tabs/windows
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'theme') {
+        const newTheme = e.newValue || 'light';
+        document.documentElement.classList.remove('light-theme', 'dark-theme');
+        document.body.classList.remove('light-theme', 'dark-theme');
+        document.documentElement.classList.add(newTheme + '-theme');
+        document.body.classList.add(newTheme + '-theme');
+        updateThemeToggleButton(newTheme);
+      }
+    });
+    
+    // Listen for custom theme change events
+    window.addEventListener('themeChanged', function(e) {
+      const newTheme = e.detail.theme;
+      document.documentElement.classList.remove('light-theme', 'dark-theme');
+      document.body.classList.remove('light-theme', 'dark-theme');
+      document.documentElement.classList.add(newTheme + '-theme');
+      document.body.classList.add(newTheme + '-theme');
+      updateThemeToggleButton(newTheme);
+    });
 
     // Initialize smooth scrolling for sidebar
     const sidebar = document.querySelector('.enhanced-sidebar');
@@ -420,6 +466,11 @@
       }, 5000);
     });
   })();
+
+
+  if (process.env.NODE_ENV === 'production') {
+    window.console.log = window.console.warn = window.console.error = window.console.info = () => {};
+  }
 </script>
 
 <style>
@@ -492,8 +543,8 @@
 
   .enhanced-theme-toggle.dark-mode .dark-icon {
     opacity: 1;
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+    color: #1f2937 !important;
+    text-shadow: 0 1px 2px rgba(31, 41, 55, 0.4) !important;
   }
 
   /* Compact Notification Button */

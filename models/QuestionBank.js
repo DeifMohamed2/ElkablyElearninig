@@ -11,10 +11,9 @@ const QuestionBankSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
       trim: true,
-      minlength: 10,
       maxlength: 500,
+      default: '',
     },
     bankCode: {
       type: String,

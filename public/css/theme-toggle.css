@@ -39,32 +39,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  pointer-events: none; /* Prevent icon from interfering with clicks */
-  will-change: transform, opacity; /* Optimize for animations */
-  backface-visibility: hidden; /* Prevent flickering */
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  /* Prevent icon from interfering with clicks */
+  will-change: transform, opacity;
+  /* Optimize for animations */
+  backface-visibility: hidden;
+  /* Prevent flickering */
+  transform-origin: center center;
 }
 
 .light-icon,
 .dark-icon {
   font-size: 1.2rem;
-  transition: all 0.3s ease;
-  will-change: transform; /* Optimize for animations */
-  -webkit-backface-visibility: hidden; /* Prevent flickering on Safari */
-  backface-visibility: hidden; /* Prevent flickering */
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  /* Optimize for animations */
+  -webkit-backface-visibility: hidden;
+  /* Prevent flickering on Safari */
+  backface-visibility: hidden;
+  /* Prevent flickering */
+  transform-origin: center center;
 }
 
 /* Light theme shows moon icon (to switch to dark) */
 .light-theme .light-icon-container {
   opacity: 0;
-  transform: scale(0.5) rotate(-180deg);
-  visibility: hidden; /* Hide completely when not visible */
+  transform: scale(0.3) rotate(-90deg);
+  visibility: hidden;
+  display: none;
 }
 
 .light-theme .dark-icon-container {
   opacity: 1;
-  transform: scale(1) rotate(0);
+  transform: scale(1) rotate(0deg);
   visibility: visible;
+  display: flex;
 }
 
 .light-theme .dark-icon {
@@ -75,14 +85,16 @@
 /* Dark theme shows sun icon (to switch to light) */
 .dark-theme .dark-icon-container {
   opacity: 0;
-  transform: scale(0.5) rotate(180deg);
-  visibility: hidden; /* Hide completely when not visible */
+  transform: scale(0.3) rotate(90deg);
+  visibility: hidden;
+  display: none;
 }
 
 .dark-theme .light-icon-container {
   opacity: 1;
-  transform: scale(1) rotate(0);
+  transform: scale(1) rotate(0deg);
   visibility: visible;
+  display: flex;
 }
 
 .dark-theme .light-icon {
@@ -147,7 +159,7 @@
 /* Force visibility during transition state */
 .theme-toggling .toggle-icon-container {
   visibility: visible !important;
-  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Ensure proper z-index for visible icon during transition */
@@ -162,11 +174,62 @@
   z-index: 1;
 }
 
+/* Disable button during transition to prevent multiple clicks */
+.theme-toggle-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: scale(0.95);
+}
+
+.theme-toggle-btn:disabled:hover {
+  transform: scale(0.95);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure consistent theme application */
+html,
+body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Force hardware acceleration for smooth animations */
+.toggle-icon-container,
+.light-icon,
+.dark-icon {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Prevent flash of unstyled content */
+.theme-toggle-btn {
+  opacity: 0;
+  animation: fadeInThemeToggle 0.3s ease forwards;
+}
+
+@keyframes fadeInThemeToggle {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Ensure proper stacking context */
+.header-theme-toggle {
+  position: relative;
+  z-index: 1000;
+}
+
 @keyframes pulse-ring {
   0% {
     transform: scale(0.8);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(1.5);
     opacity: 0;

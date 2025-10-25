@@ -1,20 +1,24 @@
 /**
  * Unified Theme System for Mr Mohrr7am
  * Handles theme switching across all pages
+ * Note: This is now a fallback system - main theme toggle is handled by advanced-header.js
  */
 
 class ThemeManager {
   constructor() {
     this.currentTheme = this.getStoredTheme() || 'light';
-    this.init();
+    this.isInitialized = false;
   }
 
   init() {
-    // Apply initial theme
-    this.applyTheme(this.currentTheme);
-
-    // Setup theme toggle listeners
-    this.setupToggleListeners();
+    if (this.isInitialized) return;
+    
+    // Only initialize if advanced-header.js hasn't already handled it
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle && !themeToggle.hasAttribute('data-advanced-header-initialized')) {
+      this.applyTheme(this.currentTheme);
+      this.setupToggleListeners();
+    }
 
     // Listen for storage changes (for cross-tab sync)
     window.addEventListener('storage', (e) => {
@@ -23,6 +27,8 @@ class ThemeManager {
         this.applyTheme(this.currentTheme);
       }
     });
+
+    this.isInitialized = true;
   }
 
   getStoredTheme() {
@@ -42,13 +48,13 @@ class ThemeManager {
   }
 
   applyTheme(theme) {
-    const body = document.body;
+    // Remove existing theme classes from both html and body
+    document.documentElement.classList.remove('light-theme', 'dark-theme');
+    document.body.classList.remove('light-theme', 'dark-theme');
 
-    // Remove existing theme classes
-    body.classList.remove('light-theme', 'dark-theme');
-
-    // Add new theme class
-    body.classList.add(`${theme}-theme`);
+    // Add new theme class to both html and body
+    document.documentElement.classList.add(`${theme}-theme`);
+    document.body.classList.add(`${theme}-theme`);
 
     // Update theme toggle icons
     this.updateThemeIcons(theme);
@@ -65,18 +71,30 @@ class ThemeManager {
     );
 
     toggleButtons.forEach((button) => {
-      const lightIcon = button.querySelector('.light-icon');
-      const darkIcon = button.querySelector('.dark-icon');
+      const lightContainer = button.querySelector('.light-icon-container');
+      const darkContainer = button.querySelector('.dark-icon-container');
 
-      if (lightIcon && darkIcon) {
-        if (theme === 'dark') {
-          // Show sun icon in dark theme (to switch to light)
-          lightIcon.style.display = 'inline-block';
-          darkIcon.style.display = 'none';
+      if (lightContainer && darkContainer) {
+        if (theme === 'light') {
+          lightContainer.style.display = 'none';
+          lightContainer.style.opacity = '0';
+          lightContainer.style.transform = 'scale(0.5) rotate(-180deg)';
+          lightContainer.style.visibility = 'hidden';
+          
+          darkContainer.style.display = 'flex';
+          darkContainer.style.opacity = '1';
+          darkContainer.style.transform = 'scale(1) rotate(0deg)';
+          darkContainer.style.visibility = 'visible';
         } else {
-          // Show moon icon in light theme (to switch to dark)
-          lightIcon.style.display = 'none';
-          darkIcon.style.display = 'inline-block';
+          lightContainer.style.display = 'flex';
+          lightContainer.style.opacity = '1';
+          lightContainer.style.transform = 'scale(1) rotate(0deg)';
+          lightContainer.style.visibility = 'visible';
+          
+          darkContainer.style.display = 'none';
+          darkContainer.style.opacity = '0';
+          darkContainer.style.transform = 'scale(0.5) rotate(180deg)';
+          darkContainer.style.visibility = 'hidden';
         }
       }
     });
@@ -93,17 +111,26 @@ class ThemeManager {
     );
 
     toggleButtons.forEach((button) => {
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.toggleTheme();
-      });
+      // Only add listener if not already handled by advanced-header.js
+      if (!button.hasAttribute('data-advanced-header-initialized')) {
+        button.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.toggleTheme();
+        });
+      }
     });
   }
 }
 
-// Initialize theme manager when DOM is ready
+// Initialize theme manager when DOM is ready (as fallback)
 document.addEventListener('DOMContentLoaded', () => {
-  window.themeManager = new ThemeManager();
+  // Delay initialization to let advanced-header.js handle it first
+  setTimeout(() => {
+    if (!window.themeManager) {
+      window.themeManager = new ThemeManager();
+      window.themeManager.init();
+    }
+  }, 100);
 });
 
 // Expose global function for manual theme switching

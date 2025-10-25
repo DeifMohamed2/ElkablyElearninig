@@ -10,6 +10,7 @@ const Purchase = require('../models/Purchase');
 const Quiz = require('../models/Quiz');
 const BrilliantStudent = require('../models/BrilliantStudent');
 const ZoomMeeting = require('../models/ZoomMeeting');
+const PromoCode = require('../models/PromoCode');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
@@ -404,7 +405,7 @@ const getAdminDashboard = async (req, res) => {
     console.log('Dashboard data prepared:', dashboardData);
 
     return res.render('admin/dashboard', {
-      title: 'Elkably Analytics Dashboard',
+      title: 'Dashboard | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       dashboardData: dashboardData,
@@ -430,7 +431,7 @@ const getAdminDashboard = async (req, res) => {
     };
 
     return res.render('admin/dashboard', {
-      title: 'Elkably Analytics Dashboard',
+      title: 'Dashboard | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       dashboardData: fallbackData,
@@ -501,7 +502,7 @@ const getCourses = async (req, res) => {
     const filterOptions = await getFilterOptions();
 
     return res.render('admin/courses', {
-      title: 'Course Management',
+      title: 'Course Management | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       courses,
@@ -562,7 +563,7 @@ const createCourse = async (req, res) => {
       level,
       year, // Use provided year when creating course
       category: category.trim(),
-      duration: parseInt(duration),
+      duration: duration && !isNaN(parseInt(duration)) ? parseInt(duration) : 0,
       price: parseFloat(price),
       status,
       createdBy: req.session.user.id,
@@ -624,7 +625,7 @@ const getCourse = async (req, res) => {
     }
 
     return res.render('admin/course-detail', {
-      title: `Course: ${course.title}`,
+      title: `Course: ${course.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       course,
@@ -859,7 +860,7 @@ const getCourseDetails = async (req, res) => {
     };
 
     return res.render('admin/course-detail', {
-      title: `Course Details: ${course.title}`,
+      title: `Course Details: ${course.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       course,
@@ -1214,7 +1215,7 @@ const getCourseContent = async (req, res) => {
       .sort({ name: 1 });
 
     return res.render('admin/course-content', {
-      title: `Course Content: ${course.title}`,
+      title: `Course Content: ${course.title} | ELKABLY`,
       courseCode,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
@@ -1270,9 +1271,9 @@ const createTopic = async (req, res) => {
     const topic = new Topic({
       course: course._id,
       title: title.trim(),
-      description: description.trim(),
+      description: description ? description.trim() : '',
       order: topicCount + 1,
-      estimatedTime: estimatedTime ? parseInt(estimatedTime) : 0,
+      estimatedTime: estimatedTime && !isNaN(parseInt(estimatedTime)) ? parseInt(estimatedTime) : 0,
       isPublished: isPublished === 'on',
       difficulty: difficulty || 'beginner',
       tags: topicTags,
@@ -1369,10 +1370,10 @@ const updateTopic = async (req, res) => {
       topic.description = trimmedDescription;
     }
     if (estimatedTime !== undefined)
-      topic.estimatedTime = parseInt(estimatedTime) || 0;
+      topic.estimatedTime = estimatedTime && !isNaN(parseInt(estimatedTime)) ? parseInt(estimatedTime) : 0;
     if (isPublished !== undefined)
       topic.isPublished = isPublished === 'on' || isPublished === true;
-    if (order) topic.order = parseInt(order);
+    if (order) topic.order = order && !isNaN(parseInt(order)) ? parseInt(order) : topic.order;
 
     if (difficulty) topic.difficulty = difficulty;
     if (unlockConditions) topic.unlockConditions = unlockConditions;
@@ -1740,7 +1741,7 @@ const getTopicDetails = async (req, res) => {
     };
 
     return res.render('admin/topic-details', {
-      title: `Topic Details: ${topic.title}`,
+      title: `Topic Details: ${topic.title} | ELKABLY`,
       courseCode,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
@@ -2206,7 +2207,7 @@ const getContentDetailsPage = async (req, res) => {
     }
 
     return res.render('admin/content-details', {
-      title: `Content Details: ${contentItem.title}`,
+      title: `Content Details: ${contentItem.title} | ELKABLY`,
       courseCode,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
@@ -2349,9 +2350,9 @@ const addTopicContent = async (req, res) => {
           : content
           ? content.trim()
           : '',
-      duration: duration ? parseInt(duration) : 0,
+      duration: duration && !isNaN(parseInt(duration)) ? parseInt(duration) : 0,
       isRequired: isRequired === 'on',
-      order: order ? parseInt(order) : contentCount + 1,
+      order: order && !isNaN(parseInt(order)) ? parseInt(order) : contentCount + 1,
       prerequisites: prerequisiteId ? [prerequisiteId] : [],
       difficulty: difficulty || 'beginner',
       tags: contentTags,
@@ -2402,16 +2403,16 @@ const addTopicContent = async (req, res) => {
         })
       );
       contentItem.quizSettings = {
-        duration: quizDuration ? parseInt(quizDuration) : 30,
-        passingScore: quizPassingScore ? parseInt(quizPassingScore) : 60,
-        maxAttempts: quizMaxAttempts ? parseInt(quizMaxAttempts) : 3,
+        duration: quizDuration && !isNaN(parseInt(quizDuration)) ? parseInt(quizDuration) : 30,
+        passingScore: quizPassingScore && !isNaN(parseInt(quizPassingScore)) ? parseInt(quizPassingScore) : 60,
+        maxAttempts: quizMaxAttempts && !isNaN(parseInt(quizMaxAttempts)) ? parseInt(quizMaxAttempts) : 3,
         shuffleQuestions: quizShuffleQuestions === 'on',
         shuffleOptions: quizShuffleOptions === 'on',
         showCorrectAnswers: quizShowCorrectAnswers === 'on',
         showResults: quizShowResults === 'on',
         instructions: quizInstructions ? quizInstructions.trim() : '',
       };
-      contentItem.duration = quizDuration ? parseInt(quizDuration) : 30;
+      contentItem.duration = quizDuration && !isNaN(parseInt(quizDuration)) ? parseInt(quizDuration) : 30;
       contentItem.completionCriteria = 'pass_quiz';
     }
 
@@ -2461,10 +2462,10 @@ const addTopicContent = async (req, res) => {
       );
       contentItem.homeworkSettings = {
         passingCriteria: 'pass',
-        passingScore: homeworkPassingScore
+        passingScore: homeworkPassingScore && !isNaN(parseInt(homeworkPassingScore))
           ? parseInt(homeworkPassingScore)
           : 60,
-        maxAttempts: homeworkMaxAttempts ? parseInt(homeworkMaxAttempts) : 1,
+        maxAttempts: homeworkMaxAttempts && !isNaN(parseInt(homeworkMaxAttempts)) ? parseInt(homeworkMaxAttempts) : 1,
         shuffleQuestions: homeworkShuffleQuestions === 'on',
         shuffleOptions: homeworkShuffleOptions === 'on',
         showCorrectAnswers: homeworkShowCorrectAnswers === 'on',
@@ -2911,7 +2912,7 @@ const getOrders = async (req, res) => {
     };
 
     return res.render('admin/orders', {
-      title: 'All Orders',
+      title: 'All Orders | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       orders,
@@ -3055,7 +3056,7 @@ const getOrderDetails = async (req, res) => {
     };
 
     return res.render('admin/order-details', {
-      title: `Order ${order.orderNumber}`,
+      title: `Order ${order.orderNumber} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       order,
@@ -3163,7 +3164,7 @@ const generateInvoice = async (req, res) => {
     };
 
     return res.render('admin/invoice', {
-      title: `Invoice - Order ${order.orderNumber}`,
+      title: `Invoice - Order ${order.orderNumber} | ELKABLY`,
       order,
       itemsSummary,
       summary,
@@ -3749,7 +3750,7 @@ const getBundles = async (req, res) => {
     const filterOptions = await getFilterOptions();
 
     return res.render('admin/bundles', {
-      title: 'Bundle Management',
+      title: 'Bundle Management | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       bundles,
@@ -3780,6 +3781,7 @@ const createBundle = async (req, res) => {
       shortDescription,
       subject,
       testType,
+      courseType,
       price,
       discountPrice,
       status = 'draft',
@@ -3798,6 +3800,7 @@ const createBundle = async (req, res) => {
       shortDescription: shortDescription ? shortDescription.trim() : '',
       subject,
       testType,
+      courseType,
       price: parseFloat(price),
       discountPrice: discountPrice ? parseFloat(discountPrice) : null,
       status,
@@ -3860,7 +3863,7 @@ const getBundleManage = async (req, res) => {
     }).sort({ title: 1 });
 
     return res.render('admin/bundle-manage', {
-      title: `Manage Bundle: ${bundle.title}`,
+      title: `Manage Bundle: ${bundle.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       bundle,
@@ -4261,7 +4264,7 @@ const getBundleStudents = async (req, res) => {
     };
 
     return res.render('admin/bundle-students', {
-      title: `Bundle Students: ${bundle.title}`,
+      title: `Bundle Students: ${bundle.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       bundle,
@@ -4589,7 +4592,7 @@ const getBundleInfo = async (req, res) => {
     });
 
     return res.render('admin/bundle-info', {
-      title: `Bundle Information: ${bundle.title}`,
+      title: `Bundle Information: ${bundle.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       bundle,
@@ -4767,7 +4770,7 @@ const getStudents = async (req, res) => {
     });
 
     return res.render('admin/students', {
-      title: 'Student Management',
+      title: 'Student Management | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       students: studentsWithCalculations,
@@ -5245,7 +5248,7 @@ const getStudentDetails = async (req, res) => {
     };
 
     return res.render('admin/student-details', {
-      title: `Student Details - ${student.firstName} ${student.lastName}`,
+      title: `Student Details - ${student.firstName} ${student.lastName} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       student,
@@ -5976,7 +5979,7 @@ const updateStudent = async (req, res) => {
   }
 };
 
-// Delete student (soft delete by deactivating)
+// Delete student (permanent delete)
 const deleteStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -5989,19 +5992,12 @@ const deleteStudent = async (req, res) => {
       });
     }
 
+    // Find student before deletion for logging
     const student = await User.findById(studentId);
     if (!student) {
       return res
         .status(404)
         .json({ success: false, message: 'Student not found' });
-    }
-
-    // Check if student is already deleted
-    if (student.deletedAt) {
-      return res.status(400).json({
-        success: false,
-        message: 'Student has already been deleted',
-      });
     }
 
     // Store student info for logging
@@ -6012,15 +6008,9 @@ const deleteStudent = async (req, res) => {
       username: student.username,
     };
 
-    // Soft delete by deactivating and marking as deleted
-    student.isActive = false;
-    student.deletedAt = new Date();
-    student.deletedBy = req.session.user?.id || 'admin';
-    await student.save();
-
-    // Log the action with detailed information
+    // Log the action with detailed information BEFORE deletion
     console.log(
-      `Admin ${req.session.user?.username || 'unknown'} deleted student:`,
+      `Admin ${req.session.user?.username || 'unknown'} deleting student:`,
       {
         studentId: studentInfo.id,
         studentName: studentInfo.name,
@@ -6030,9 +6020,14 @@ const deleteStudent = async (req, res) => {
       }
     );
 
+    // Permanently delete the student from database
+    await User.findByIdAndDelete(studentId);
+
+    console.log(`Student ${studentInfo.name} (${studentInfo.id}) permanently deleted from database`);
+
     return res.json({
       success: true,
-      message: 'Student has been successfully deleted from the system',
+      message: 'Student has been permanently deleted from the system',
       deletedStudent: {
         id: studentInfo.id,
         name: studentInfo.name,
@@ -8913,6 +8908,1239 @@ const deleteZoomMeeting = async (req, res) => {
   }
 };
 
+/**
+ * Bulk import students from Excel file
+ * Expected columns: Student Name, Student Phone Number, Parent Phone Number, Student Code
+ */
+const bulkImportStudents = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    const XLSX = require('xlsx');
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    const results = {
+      success: [],
+      failed: [],
+      total: data.length,
+    };
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowNumber = i + 2; // +2 because Excel is 1-indexed and we skip header
+
+      try {
+        // Debug: Log the row keys to see what Excel is reading
+        console.log('Row keys:', Object.keys(row));
+        console.log('Row data:', row);
+
+        // Helper function to get value by key with case-insensitive and trimmed matching
+        const getValueByKey = (obj, possibleKeys) => {
+          for (const key of possibleKeys) {
+            // Try exact match
+            if (obj[key] !== undefined) return obj[key];
+            
+            // Try case-insensitive match
+            const lowerKey = key.toLowerCase();
+            for (const objKey in obj) {
+              if (objKey.toLowerCase() === lowerKey) return obj[objKey];
+            }
+            
+            // Try trimmed match
+            for (const objKey in obj) {
+              if (objKey.trim() === key) return obj[objKey];
+            }
+          }
+          return undefined;
+        };
+
+        // Extract data from Excel row - support multiple column name variations
+        const studentName = getValueByKey(row, [
+          'Student Name', 'student name', 'StudentName', 'studentname'
+        ]);
+        
+        const studentPhone = getValueByKey(row, [
+          'Student Phone Number', 'student phone number', 'StudentPhoneNumber', 'studentphonenumber',
+          'Student Phon', 'student phon', 'StudentPhone', 'studentphone',
+          'Student Phone', 'student phone'
+        ]);
+        
+        const parentPhone = getValueByKey(row, [
+          'Parent Phone Number', 'parent phone number', 'ParentPhoneNumber', 'parentphonenumber',
+          'Parent Phone', 'parent phone', 'ParentPhone', 'parentphone'
+        ]);
+        
+        const studentCode = getValueByKey(row, [
+          'Student Code', 'student code', 'StudentCode', 'studentcode'
+        ]);
+
+        console.log('Extracted values:', { studentName, studentPhone, parentPhone, studentCode });
+
+        // Validate required fields
+        if (!studentName || !studentPhone || !parentPhone || !studentCode) {
+          results.failed.push({
+            row: rowNumber,
+            studentName: studentName || 'N/A',
+            reason: 'Missing required fields (Name, Phone, or Code)',
+          });
+          continue;
+        }
+
+        // Parse student name
+        const nameParts = studentName.trim().split(/\s+/);
+        const firstName = nameParts[0] || 'Unknown';
+        const lastName = nameParts.slice(1).join(' ') || 'Student';
+
+        // Parse phone numbers (expecting format: +966XXXXXXXXX or just XXXXXXXXX)
+        let studentNumber = studentPhone.toString().trim();
+        let parentNumber = parentPhone.toString().trim();
+
+        // Remove any non-numeric characters except +
+        studentNumber = studentNumber.replace(/[^\d+]/g, '');
+        parentNumber = parentNumber.replace(/[^\d+]/g, '');
+
+        // Determine country code
+        let studentCountryCode = '+966';
+        let parentCountryCode = '+966';
+
+        if (studentNumber.startsWith('+')) {
+          if (studentNumber.startsWith('+966')) {
+            studentCountryCode = '+966';
+            studentNumber = studentNumber.substring(4);
+          } else if (studentNumber.startsWith('+20')) {
+            studentCountryCode = '+20';
+            studentNumber = studentNumber.substring(3);
+          } else if (studentNumber.startsWith('+971')) {
+            studentCountryCode = '+971';
+            studentNumber = studentNumber.substring(4);
+          } else if (studentNumber.startsWith('+965')) {
+            studentCountryCode = '+965';
+            studentNumber = studentNumber.substring(4);
+          }
+        }
+
+        if (parentNumber.startsWith('+')) {
+          if (parentNumber.startsWith('+966')) {
+            parentCountryCode = '+966';
+            parentNumber = parentNumber.substring(4);
+          } else if (parentNumber.startsWith('+20')) {
+            parentCountryCode = '+20';
+            parentNumber = parentNumber.substring(3);
+          } else if (parentNumber.startsWith('+971')) {
+            parentCountryCode = '+971';
+            parentNumber = parentNumber.substring(4);
+          } else if (parentNumber.startsWith('+965')) {
+            parentCountryCode = '+965';
+            parentNumber = parentNumber.substring(4);
+          }
+        }
+
+        // Check if student code already exists
+        const existingStudent = await User.findOne({ studentCode: studentCode.toString() });
+        if (existingStudent) {
+          results.failed.push({
+            row: rowNumber,
+            studentName: studentName,
+            reason: `Student code ${studentCode} already exists`,
+          });
+          continue;
+        }
+
+        // Check if phone number already exists
+        const existingPhone = await User.findOne({ studentNumber: studentNumber });
+        if (existingPhone) {
+          results.failed.push({
+            row: rowNumber,
+            studentName: studentName,
+            reason: `Phone number already registered`,
+          });
+          continue;
+        }
+
+        // Generate temporary email and username
+        const tempEmail = `temp_${studentCode}@elkably.com`;
+        const tempUsername = `student_${studentCode}`;
+
+        // Create student with incomplete data
+        const newStudent = new User({
+          firstName,
+          lastName,
+          studentNumber,
+          studentCountryCode,
+          parentNumber,
+          parentCountryCode,
+          studentEmail: tempEmail,
+          username: tempUsername,
+          schoolName: 'To Be Completed',
+          grade: 'Year 10',
+          englishTeacher: 'To Be Completed',
+          password: studentCode, // Temporary password
+          howDidYouKnow: 'Bulk Import',
+          studentCode: studentCode.toString(),
+          isCompleteData: false,
+          isActive: true,
+        });
+
+        await newStudent.save();
+
+        results.success.push({
+          row: rowNumber,
+          studentName: studentName,
+          studentCode: studentCode,
+          studentPhone: `${studentCountryCode}${studentNumber}`,
+        });
+      } catch (error) {
+        console.error(`Error importing row ${rowNumber}:`, error);
+        results.failed.push({
+          row: rowNumber,
+          studentName: row['Student Name'] || 'N/A',
+          reason: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    // Clean up uploaded file
+    const fs = require('fs');
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    return res.json({
+      success: true,
+      message: `Import completed: ${results.success.length} successful, ${results.failed.length} failed`,
+      results: results,
+    });
+  } catch (error) {
+    console.error('Bulk import error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to import students',
+    });
+  }
+};
+
+
+
+// ==================== STUDENT ENROLLMENT ====================
+
+// Enroll students manually to a course
+const enrollStudentsToCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { studentIds } = req.body; // Array of student IDs
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select at least one student',
+      });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    const students = await User.find({ _id: { $in: studentIds }, role: 'student' });
+    
+    if (students.length !== studentIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Some students not found',
+      });
+    }
+
+    // Check if any students are already enrolled
+    const alreadyEnrolledStudents = students.filter(student => 
+      student.enrolledCourses.some(enrollment => 
+        enrollment.course && enrollment.course.toString() === courseId
+      )
+    );
+
+    if (alreadyEnrolledStudents.length > 0) {
+      const alreadyEnrolledNames = alreadyEnrolledStudents.map(student => 
+        student.name || `${student.firstName} ${student.lastName}`
+      );
+      
+      return res.status(400).json({
+        success: false,
+        message: `Cannot enroll students who are already enrolled in this course`,
+        alreadyEnrolled: alreadyEnrolledNames,
+        error: 'ALREADY_ENROLLED',
+      });
+    }
+
+    // Enroll all students
+    const enrolledStudents = [];
+    for (const student of students) {
+      // Add enrollment object with course reference
+      student.enrolledCourses.push({
+        course: courseId,
+        enrolledAt: new Date(),
+        progress: 0,
+        lastAccessed: new Date(),
+        completedTopics: [],
+        status: 'active',
+        contentProgress: []
+      });
+      await student.save();
+      enrolledStudents.push(student.name || `${student.firstName} ${student.lastName}`);
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully enrolled ${enrolledStudents.length} student(s)`,
+      enrolled: enrolledStudents,
+    });
+  } catch (error) {
+    console.error('Error enrolling students to course:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to enroll students',
+    });
+  }
+};
+
+// Enroll students manually to a bundle
+const enrollStudentsToBundle = async (req, res) => {
+  try {
+    const { bundleId } = req.params;
+    const { studentIds } = req.body; // Array of student IDs
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select at least one student',
+      });
+    }
+
+    const bundle = await BundleCourse.findById(bundleId);
+    if (!bundle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bundle not found',
+      });
+    }
+
+    const students = await User.find({ _id: { $in: studentIds }, role: 'student' });
+    
+    if (students.length !== studentIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Some students not found',
+      });
+    }
+
+    // Check if any students are already enrolled
+    const alreadyEnrolledStudents = students.filter(student => 
+      student.purchasedBundles.some(purchase => 
+        purchase.bundle && purchase.bundle.toString() === bundleId
+      )
+    );
+
+    if (alreadyEnrolledStudents.length > 0) {
+      const alreadyEnrolledNames = alreadyEnrolledStudents.map(student => 
+        student.name || `${student.firstName} ${student.lastName}`
+      );
+      
+      return res.status(400).json({
+        success: false,
+        message: `Cannot enroll students who are already enrolled in this bundle`,
+        alreadyEnrolled: alreadyEnrolledNames,
+        error: 'ALREADY_ENROLLED',
+      });
+    }
+
+    // Enroll all students to bundle
+    const enrolledStudents = [];
+    for (const student of students) {
+
+      
+      // Also enroll in all courses in the bundle
+      for (const courseId of bundle.courses) {
+        const isAlreadyEnrolled = student.enrolledCourses.some(enrollment => 
+          enrollment.course && enrollment.course.toString() === courseId.toString()
+        );
+        
+        if (!isAlreadyEnrolled) {
+          student.enrolledCourses.push({
+            course: courseId,
+            enrolledAt: new Date(),
+            progress: 0,
+            lastAccessed: new Date(),
+            completedTopics: [],
+            status: 'active',
+            contentProgress: []
+          });
+        }
+      }
+      
+      await student.save();
+      enrolledStudents.push(student.name || `${student.firstName} ${student.lastName}`);
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully enrolled ${enrolledStudents.length} student(s) to bundle`,
+      enrolled: enrolledStudents,
+    });
+  } catch (error) {
+    console.error('Error enrolling students to bundle:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to enroll students',
+    });
+  }
+};
+
+// Bulk enroll students to a course via Excel
+const bulkEnrollStudentsToCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    const XLSX = require('xlsx');
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    const results = {
+      success: [],
+      failed: [],
+      alreadyEnrolled: [],
+      total: data.length,
+    };
+
+    // Helper function to get value by key
+    const getValueByKey = (obj, possibleKeys) => {
+      for (const key of possibleKeys) {
+        if (obj[key] !== undefined) return obj[key];
+        const lowerKey = key.toLowerCase();
+        for (const objKey in obj) {
+          if (objKey.toLowerCase() === lowerKey) return obj[objKey];
+        }
+        for (const objKey in obj) {
+          if (objKey.trim() === key) return obj[objKey];
+        }
+      }
+      return undefined;
+    };
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowNumber = i + 2;
+
+      try {
+        // Extract identifier (email, phone, or code)
+        const identifier = getValueByKey(row, [
+          'Email', 'email', 'Student Email', 'student email',
+          'Phone', 'phone', 'Student Phone', 'student phone', 'Student Number', 'student number',
+          'Code', 'code', 'Student Code', 'student code'
+        ]);
+
+        if (!identifier) {
+          results.failed.push({
+            row: rowNumber,
+            reason: 'Missing identifier (Email, Phone, or Code)',
+          });
+          continue;
+        }
+
+        // Find student by email, phone, or code
+        let student = await User.findOne({
+          $or: [
+            { studentEmail: identifier.toLowerCase() },
+            { studentNumber: identifier },
+            { studentCode: identifier },
+            { username: identifier },
+          ],
+          role: 'student',
+        });
+
+        if (!student) {
+          results.failed.push({
+            row: rowNumber,
+            identifier,
+            reason: 'Student not found',
+          });
+          continue;
+        }
+
+        // Check if already enrolled
+        const isAlreadyEnrolled = student.enrolledCourses.some(enrollment => 
+          enrollment.course && enrollment.course.toString() === courseId
+        );
+        
+        if (isAlreadyEnrolled) {
+          results.alreadyEnrolled.push({
+            row: rowNumber,
+            studentName: student.name || `${student.firstName} ${student.lastName}`,
+            identifier,
+          });
+          continue;
+        }
+
+        // Enroll student
+        student.enrolledCourses.push({
+          course: courseId,
+          enrolledAt: new Date(),
+          progress: 0,
+          lastAccessed: new Date(),
+          completedTopics: [],
+          status: 'active',
+          contentProgress: []
+        });
+        await student.save();
+
+        results.success.push({
+          row: rowNumber,
+          studentName: student.name || `${student.firstName} ${student.lastName}`,
+          identifier,
+        });
+      } catch (error) {
+        console.error(`Error processing row ${rowNumber}:`, error);
+        results.failed.push({
+          row: rowNumber,
+          reason: error.message,
+        });
+      }
+    }
+
+    // Clean up uploaded file
+    const fs = require('fs');
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.json({
+      success: true,
+      message: `Enrollment completed: ${results.success.length} successful, ${results.failed.length} failed, ${results.alreadyEnrolled.length} already enrolled`,
+      results,
+    });
+  } catch (error) {
+    console.error('Error bulk enrolling students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk enroll students',
+    });
+  }
+};
+
+// Bulk enroll students to a bundle via Excel
+const bulkEnrollStudentsToBundle = async (req, res) => {
+  try {
+    const { bundleId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    const bundle = await BundleCourse.findById(bundleId);
+    if (!bundle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bundle not found',
+      });
+    }
+
+    const XLSX = require('xlsx');
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    const results = {
+      success: [],
+      failed: [],
+      alreadyEnrolled: [],
+      total: data.length,
+    };
+
+    // Helper function to get value by key
+    const getValueByKey = (obj, possibleKeys) => {
+      for (const key of possibleKeys) {
+        if (obj[key] !== undefined) return obj[key];
+        const lowerKey = key.toLowerCase();
+        for (const objKey in obj) {
+          if (objKey.toLowerCase() === lowerKey) return obj[objKey];
+        }
+        for (const objKey in obj) {
+          if (objKey.trim() === key) return obj[objKey];
+        }
+      }
+      return undefined;
+    };
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowNumber = i + 2;
+
+      try {
+        // Extract identifier (email, phone, or code)
+        const identifier = getValueByKey(row, [
+          'Email', 'email', 'Student Email', 'student email',
+          'Phone', 'phone', 'Student Phone', 'student phone', 'Student Number', 'student number',
+          'Code', 'code', 'Student Code', 'student code'
+        ]);
+
+        if (!identifier) {
+          results.failed.push({
+            row: rowNumber,
+            reason: 'Missing identifier (Email, Phone, or Code)',
+          });
+          continue;
+        }
+
+        // Find student by email, phone, or code
+        let student = await User.findOne({
+          $or: [
+            { studentEmail: identifier.toLowerCase() },
+            { studentNumber: identifier },
+            { studentCode: identifier },
+            { username: identifier },
+          ],
+          role: 'student',
+        });
+
+        if (!student) {
+          results.failed.push({
+            row: rowNumber,
+            identifier,
+            reason: 'Student not found',
+          });
+          continue;
+        }
+
+        // Check if already enrolled
+        const isAlreadyEnrolled = student.purchasedBundles.some(purchase => 
+          purchase.bundle && purchase.bundle.toString() === bundleId
+        );
+        
+        if (isAlreadyEnrolled) {
+          results.alreadyEnrolled.push({
+            row: rowNumber,
+            studentName: student.name || `${student.firstName} ${student.lastName}`,
+            identifier,
+          });
+          continue;
+        }
+
+        // Enroll student to bundle
+        student.purchasedBundles.push({
+          bundle: bundleId,
+          purchasedAt: new Date(),
+          price: bundle.price || 0,
+          orderNumber: `BULK-${Date.now()}-${rowNumber}`,
+          status: 'active'
+        });
+        
+        // Also enroll in all courses in the bundle
+        for (const courseId of bundle.courses) {
+          const isAlreadyEnrolledInCourse = student.enrolledCourses.some(enrollment => 
+            enrollment.course && enrollment.course.toString() === courseId.toString()
+          );
+          
+          if (!isAlreadyEnrolledInCourse) {
+            student.enrolledCourses.push({
+              course: courseId,
+              enrolledAt: new Date(),
+              progress: 0,
+              lastAccessed: new Date(),
+              completedTopics: [],
+              status: 'active',
+              contentProgress: []
+            });
+          }
+        }
+        
+        await student.save();
+
+        results.success.push({
+          row: rowNumber,
+          studentName: student.name || `${student.firstName} ${student.lastName}`,
+          identifier,
+        });
+      } catch (error) {
+        console.error(`Error processing row ${rowNumber}:`, error);
+        results.failed.push({
+          row: rowNumber,
+          reason: error.message,
+        });
+      }
+    }
+
+    // Clean up uploaded file
+    const fs = require('fs');
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.json({
+      success: true,
+      message: `Enrollment completed: ${results.success.length} successful, ${results.failed.length} failed, ${results.alreadyEnrolled.length} already enrolled`,
+      results,
+    });
+  } catch (error) {
+    console.error('Error bulk enrolling students to bundle:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk enroll students',
+    });
+  }
+};
+
+// Get students for enrollment modal
+const getStudentsForEnrollment = async (req, res) => {
+  try {
+    const { search, page = 1, limit = 20, courseId, bundleId } = req.query;
+    const query = { role: 'student', isActive: true };
+
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { studentEmail: { $regex: search, $options: 'i' } },
+        { studentNumber: { $regex: search, $options: 'i' } },
+        { studentCode: { $regex: search, $options: 'i' } },
+        { username: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Get all students matching the search
+    let students = await User.find(query)
+      .select('firstName lastName studentEmail studentNumber studentCode username grade schoolName enrolledCourses purchasedBundles')
+      .sort({ firstName: 1, lastName: 1 });
+
+    // Filter out already enrolled students using JavaScript
+    if (courseId) {
+      students = students.filter(student => {
+        // Check if student has this course in their enrolledCourses array
+        return !student.enrolledCourses.some(enrollment => 
+          enrollment.course && enrollment.course.toString() === courseId
+        );
+      });
+    }
+    
+    if (bundleId) {
+      students = students.filter(student => {
+        // Check if student has this bundle in their purchasedBundles array
+        return !student.purchasedBundles.some(purchase => 
+          purchase.bundle && purchase.bundle.toString() === bundleId
+        );
+      });
+    }
+
+    // Apply pagination after filtering
+    const total = students.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    students = students.slice(startIndex, endIndex);
+
+    res.json({
+      success: true,
+      students,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch students',
+    });
+  }
+};
+
+// Remove student from course
+const removeStudentFromCourse = async (req, res) => {
+  try {
+    const { courseId, studentId } = req.params;
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    // Find and remove the enrollment
+    const enrollmentIndex = student.enrolledCourses.findIndex(enrollment => 
+      enrollment.course && enrollment.course.toString() === courseId
+    );
+
+    if (enrollmentIndex === -1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student is not enrolled in this course',
+      });
+    }
+
+    // Remove the enrollment
+    student.enrolledCourses.splice(enrollmentIndex, 1);
+    await student.save();
+
+    res.json({
+      success: true,
+      message: 'Student successfully removed from course',
+    });
+  } catch (error) {
+    console.error('Error removing student from course:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove student from course',
+    });
+  }
+};
+
+// Remove student from bundle
+const removeStudentFromBundle = async (req, res) => {
+  try {
+    const { bundleId, studentId } = req.params;
+
+    const bundle = await BundleCourse.findById(bundleId);
+    if (!bundle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bundle not found',
+      });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    // Find and remove the bundle purchase
+    const bundleIndex = student.purchasedBundles.findIndex(purchase => 
+      purchase.bundle && purchase.bundle.toString() === bundleId
+    );
+
+    if (bundleIndex === -1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student has not purchased this bundle',
+      });
+    }
+
+    // Remove the bundle purchase
+    student.purchasedBundles.splice(bundleIndex, 1);
+
+    // Also remove student from all courses in the bundle
+    const removedCourses = [];
+    for (const courseId of bundle.courses) {
+      const courseIndex = student.enrolledCourses.findIndex(enrollment => 
+        enrollment.course && enrollment.course.toString() === courseId.toString()
+      );
+
+      if (courseIndex !== -1) {
+        student.enrolledCourses.splice(courseIndex, 1);
+        removedCourses.push(courseId.toString());
+      }
+    }
+
+    await student.save();
+
+    res.json({
+      success: true,
+      message: `Student successfully removed from bundle and ${removedCourses.length} course(s)`,
+      removedCourses: removedCourses.length,
+    });
+  } catch (error) {
+    console.error('Error removing student from bundle:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove student from bundle',
+    });
+  }
+};
+
+// ==================== PROMO CODES MANAGEMENT ====================
+
+// Get all promo codes with stats
+const getPromoCodes = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, search } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build filter
+    const filter = {};
+    
+    if (status) {
+      if (status === 'active') {
+        filter.isActive = true;
+        filter.validFrom = { $lte: new Date() };
+        filter.validUntil = { $gte: new Date() };
+      } else if (status === 'expired') {
+        filter.validUntil = { $lt: new Date() };
+      } else if (status === 'inactive') {
+        filter.isActive = false;
+      }
+    }
+
+    if (search) {
+      filter.$or = [
+        { code: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get promo codes
+    const promoCodes = await PromoCode.find(filter)
+      .populate('createdBy', 'userName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get stats
+    const totalCodes = await PromoCode.countDocuments();
+    const activeCodes = await PromoCode.countDocuments({
+      isActive: true,
+      validFrom: { $lte: new Date() },
+      validUntil: { $gte: new Date() }
+    });
+    const expiredCodes = await PromoCode.countDocuments({
+      validUntil: { $lt: new Date() }
+    });
+
+    // Calculate total uses
+    const totalUsesResult = await PromoCode.aggregate([
+      { $group: { _id: null, totalUses: { $sum: '$currentUses' } } }
+    ]);
+    const totalUses = totalUsesResult[0]?.totalUses || 0;
+
+    const stats = {
+      totalCodes,
+      activeCodes,
+      expiredCodes,
+      totalUses
+    };
+
+    res.render('admin/promo-codes', {
+      title: 'Promo Codes Management | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      promoCodes,
+      stats,
+      currentFilters: { status, search },
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCodes / parseInt(limit)),
+        hasNext: parseInt(page) < Math.ceil(totalCodes / parseInt(limit)),
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching promo codes:', error);
+    req.flash('error_msg', 'Error loading promo codes');
+    res.render('admin/promo-codes', {
+      title: 'Promo Codes Management | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      promoCodes: [],
+      stats: { totalCodes: 0, activeCodes: 0, expiredCodes: 0, totalUses: 0 },
+      currentFilters: {},
+      pagination: { currentPage: 1, totalPages: 0, hasNext: false, hasPrev: false }
+    });
+  }
+};
+
+// Create new promo code
+const createPromoCode = async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      code,
+      discountType,
+      discountValue,
+      maxDiscountAmount,
+      minOrderAmount,
+      maxUses,
+      allowMultipleUses,
+      validFrom,
+      validUntil,
+      applicableTo
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !code || !discountType || !discountValue || !validFrom || !validUntil) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Check if admin is logged in
+    if (!req.session.adminId && !req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin authentication required'
+      });
+    }
+
+    // Validate discount value
+    if (discountType === 'percentage' && (discountValue < 1 || discountValue > 100)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Percentage discount must be between 1 and 100'
+      });
+    }
+
+    if (discountType === 'fixed' && discountValue <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Fixed discount must be greater than 0'
+      });
+    }
+
+    // Validate dates
+    const fromDate = new Date(validFrom);
+    const untilDate = new Date(validUntil);
+    
+    if (untilDate <= fromDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid until date must be after valid from date'
+      });
+    }
+
+    // Check if code already exists
+    const existingCode = await PromoCode.findOne({ code: code.toUpperCase() });
+    if (existingCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Promo code already exists'
+      });
+    }
+
+    // Create promo code
+    const promoCode = new PromoCode({
+      name,
+      description: description || undefined, // Handle empty description
+      code: code.toUpperCase(),
+      discountType,
+      discountValue: parseFloat(discountValue),
+      maxDiscountAmount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
+      minOrderAmount: parseFloat(minOrderAmount) || 0,
+      maxUses: maxUses ? parseInt(maxUses) : null,
+      allowMultipleUses: allowMultipleUses === 'true' || allowMultipleUses === true,
+      validFrom: fromDate,
+      validUntil: untilDate,
+      applicableTo: applicableTo || 'all',
+      createdBy: req.session.adminId || req.user?.id
+    });
+
+    await promoCode.save();
+
+    res.json({
+      success: true,
+      message: 'Promo code created successfully',
+      promoCode: promoCode
+    });
+  } catch (error) {
+    console.error('Error creating promo code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating promo code',
+      error: error.message
+    });
+  }
+};
+
+// Get single promo code for editing
+const getPromoCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const promoCode = await PromoCode.findById(id);
+    
+    if (!promoCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Promo code not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      promoCode: promoCode
+    });
+  } catch (error) {
+    console.error('Error fetching promo code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching promo code',
+      error: error.message
+    });
+  }
+};
+
+// Get promo code usage history
+const getPromoCodeUsage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const promoCode = await PromoCode.findById(id)
+      .populate('usageHistory.user', 'userName studentEmail')
+      .populate('usageHistory.purchase', 'orderNumber');
+
+    if (!promoCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Promo code not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      promoCode: {
+        _id: promoCode._id,
+        name: promoCode.name,
+        code: promoCode.code
+      },
+      usageHistory: promoCode.usageHistory
+    });
+  } catch (error) {
+    console.error('Error fetching promo code usage:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching usage history',
+      error: error.message
+    });
+  }
+};
+
+// Delete promo code
+const deletePromoCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const promoCode = await PromoCode.findById(id);
+    if (!promoCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Promo code not found'
+      });
+    }
+
+    // Check if promo code has been used
+    if (promoCode.currentUses > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete promo code that has been used'
+      });
+    }
+
+    await PromoCode.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: 'Promo code deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting promo code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting promo code',
+      error: error.message
+    });
+  }
+};
+
+// Update promo code
+const updatePromoCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const promoCode = await PromoCode.findById(id);
+    if (!promoCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Promo code not found'
+      });
+    }
+
+    // Don't allow updating code if it has been used
+    if (promoCode.currentUses > 0 && updateData.code && updateData.code !== promoCode.code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot change code that has been used'
+      });
+    }
+
+    // Validate discount value if provided
+    if (updateData.discountType === 'percentage' && updateData.discountValue) {
+      if (updateData.discountValue < 1 || updateData.discountValue > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Percentage discount must be between 1 and 100'
+        });
+      }
+    }
+
+    // Update promo code
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined) {
+        // Special handling for allowMultipleUses to convert string to boolean
+        if (key === 'allowMultipleUses') {
+          promoCode[key] = updateData[key] === 'true' || updateData[key] === true;
+        } else {
+          promoCode[key] = updateData[key];
+        }
+      }
+    });
+
+    await promoCode.save();
+
+    res.json({
+      success: true,
+      message: 'Promo code updated successfully',
+      promoCode: promoCode
+    });
+  } catch (error) {
+    console.error('Error updating promo code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating promo code',
+      error: error.message
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -8997,4 +10225,21 @@ module.exports = {
   endZoomMeeting,
   getZoomMeetingStats,
   deleteZoomMeeting,
+  // Bulk Import
+  bulkImportStudents,
+  // Student Enrollment
+  enrollStudentsToCourse,
+  enrollStudentsToBundle,
+  bulkEnrollStudentsToCourse,
+  bulkEnrollStudentsToBundle,
+  getStudentsForEnrollment,
+  removeStudentFromCourse,
+  removeStudentFromBundle,
+  // Promo Codes Management
+  getPromoCodes,
+  getPromoCode,
+  createPromoCode,
+  getPromoCodeUsage,
+  deletePromoCode,
+  updatePromoCode,
 };

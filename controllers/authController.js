@@ -6,7 +6,7 @@ const axios = require('axios');
 // Get login page
 const getLoginPage = (req, res) => {
   res.render('auth/login', {
-    title: 'Login',
+    title: 'Login | ELKABLY',
     theme: req.cookies.theme || 'light',
   });
 };
@@ -14,7 +14,7 @@ const getLoginPage = (req, res) => {
 // Get register page
 const getRegisterPage = (req, res) => {
   res.render('auth/register', {
-    title: 'Register',
+    title: 'Register | ELKABLY',
     theme: req.cookies.theme || 'light',
   });
 };
@@ -29,7 +29,7 @@ const getCreateAdminPage = (req, res) => {
     return res.redirect('/auth/login');
   }
   return res.render('admin/create-admin', {
-    title: 'Create Admin',
+    title: 'Create Admin | ELKABLY',
     theme: req.cookies.theme || 'light',
     token: token,
   });
@@ -57,7 +57,7 @@ const createAdmin = async (req, res) => {
 
   if (errors.length > 0) {
     return res.status(400).render('admin/create-admin', {
-      title: 'Create Admin',
+      title: 'Create Admin | ELKABLY',
       theme: req.cookies.theme || 'light',
       errors,
       userName,
@@ -71,7 +71,7 @@ const createAdmin = async (req, res) => {
     if (existing) {
       errors.push({ msg: 'Phone number already used' });
       return res.status(400).render('admin/create-admin', {
-        title: 'Create Admin',
+        title: 'Create Admin | ELKABLY',
         theme: req.cookies.theme || 'light',
         errors,
         userName,
@@ -101,7 +101,7 @@ const createAdmin = async (req, res) => {
     console.error('Create admin error:', err);
     errors.push({ msg: 'An error occurred. Please try again.' });
     return res.status(500).render('admin/create-admin', {
-      title: 'Create Admin',
+      title: 'Create Admin | ELKABLY',
       theme: req.cookies.theme || 'light',
       errors,
       userName,
@@ -288,13 +288,13 @@ const registerUser = async (req, res) => {
   }
 
   // Validate how did you know response
-  if (howDidYouKnow && howDidYouKnow.length > 500) {
-    errors.push({ msg: 'Response must be less than 500 characters' });
+  if (howDidYouKnow && howDidYouKnow.length > 5) {
+    errors.push({ msg: 'Response must be less than 5 characters' });
   }
 
   if (errors.length > 0) {
     return res.render('auth/register', {
-      title: 'Register',
+      title: 'Register | ELKABLY',
       theme: req.cookies.theme || 'light',
       errors,
       firstName,
@@ -346,7 +346,7 @@ const registerUser = async (req, res) => {
     if (errors.length > 0) {
       console.log('Registration validation errors:', errors);
       return res.render('auth/register', {
-        title: 'Register',
+        title: 'Register | ELKABLY',
         theme: req.cookies.theme || 'light',
         errors,
         firstName,
@@ -394,7 +394,7 @@ const registerUser = async (req, res) => {
 
     // Show success page with student code
     res.render('auth/registration-success', {
-      title: 'Registration Successful',
+      title: 'Registration Successful | ELKABLY',
       theme: req.cookies.theme || 'light',
       studentName: savedUser.name,
       studentCode: savedUser.studentCode,
@@ -416,7 +416,7 @@ const registerUser = async (req, res) => {
       console.log('Mongoose validation errors:', validationErrors);
       
       return res.render('auth/register', {
-        title: 'Register',
+        title: 'Register | ELKABLY',
         theme: req.cookies.theme || 'light',
         errors,
         firstName,
@@ -447,7 +447,7 @@ const registerUser = async (req, res) => {
       console.log('Duplicate key error:', field, err.keyValue[field]);
       
       return res.render('auth/register', {
-        title: 'Register',
+        title: 'Register | ELKABLY',
         theme: req.cookies.theme || 'light',
         errors,
         firstName,
@@ -512,7 +512,7 @@ const loginUser = async (req, res) => {
     req.session.lastLoginSubmissionId = null;
     
     return res.render('auth/login', {
-      title: 'Login',
+      title: 'Login | ELKABLY',
       theme: req.cookies.theme || 'light',
       errors,
       email,
@@ -534,7 +534,9 @@ const loginUser = async (req, res) => {
       // If input contains only digits, spaces, dashes, parentheses, or plus (phone number)
       user = await User.findOne({ 
         $or: [
+          { studentNumber: inputValue },
           { parentNumber: inputValue },
+          { $expr: { $eq: [{ $concat: ['$studentCountryCode', '$studentNumber'] }, inputValue] } },
           { $expr: { $eq: [{ $concat: ['$parentCountryCode', '$parentNumber'] }, inputValue] } }
         ]
       });
@@ -556,7 +558,7 @@ const loginUser = async (req, res) => {
     if (!user) {
       errors.push({ msg: 'Invalid email, phone number, or username' });
       return res.render('auth/login', {
-        title: 'Login',
+        title: 'Login | ELKABLY',
         theme: req.cookies.theme || 'light',
         errors,
         email,
@@ -566,10 +568,25 @@ const loginUser = async (req, res) => {
     // Match password (both models implement matchPassword)
     const isMatch = await user.matchPassword(password);
 
-    if (!isMatch) {
+    // Special handling for students with incomplete data - allow login with student code
+    if (!isMatch && user.role === 'student' && user.isCompleteData === false) {
+      // Try to match with student code
+      if (user.studentCode && user.studentCode === password.trim()) {
+        console.log('Student logged in with student code:', user.studentCode);
+        // Allow login with student code for incomplete data students
+      } else {
+        errors.push({ msg: 'Invalid email, phone number, or username' });
+        return res.render('auth/login', {
+          title: 'Login | ELKABLY',
+          theme: req.cookies.theme || 'light',
+          errors,
+          email,
+        });
+      }
+    } else if (!isMatch) {
       errors.push({ msg: 'Invalid email, phone number, or username' });
       return res.render('auth/login', {
-        title: 'Login',
+        title: 'Login | ELKABLY',
         theme: req.cookies.theme || 'light',
         errors,
         email,
@@ -582,7 +599,7 @@ const loginUser = async (req, res) => {
           msg: 'Your account is pending approval. Please contact the administrator or wait for approval.',
         });
         return res.render('auth/login', {
-          title: 'Login',
+          title: 'Login | ELKABLY',
           theme: req.cookies.theme || 'light',
           errors,
           email,
@@ -624,6 +641,7 @@ const loginUser = async (req, res) => {
         parentCountryCode: user.parentCountryCode,
         englishTeacher: user.englishTeacher,
         isActive: user.isActive,
+        isCompleteData: user.isCompleteData,
       };
     }
 
@@ -633,7 +651,7 @@ const loginUser = async (req, res) => {
         console.error('Session save error:', err);
         errors.push({ msg: 'An error occurred during login. Please try again.' });
         return res.render('auth/login', {
-          title: 'Login',
+          title: 'Login | ELKABLY',
           theme: req.cookies.theme || 'light',
           errors,
           email,
@@ -644,6 +662,11 @@ const loginUser = async (req, res) => {
       if (user.role === 'admin') {
         return res.redirect('/admin/dashboard');
       } else {
+        // Check if student data is complete
+        if (user.isCompleteData === false) {
+          req.flash('info_msg', 'Please complete your profile to access all features');
+          return res.redirect('/auth/complete-data');
+        }
         return res.redirect('/student/dashboard');
       }
     });
@@ -673,7 +696,7 @@ const loginUser = async (req, res) => {
     });
     
     return res.render('auth/login', {
-      title: 'Login',
+      title: 'Login | ELKABLY',
       theme: req.cookies.theme || 'light',
       errors,
       email,
@@ -748,7 +771,7 @@ const getTeamManagementPage = async (req, res) => {
     };
 
     res.render('admin/team-management', {
-      title: 'Team Management',
+      title: 'Team Management | ELKABLY',
       teamMembers,
       pagination: {
         currentPage: page,
@@ -926,6 +949,401 @@ const exportTeamMembers = async (req, res) => {
   }
 };
 
+// Get complete data page
+const getCompleteDataPage = async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'student') {
+      req.flash('error_msg', 'Unauthorized access');
+      return res.redirect('/auth/login');
+    }
+
+    const user = await User.findById(req.session.user.id);
+
+    if (!user) {
+      req.flash('error_msg', 'User not found');
+      return res.redirect('/auth/login');
+    }
+
+    // If data is already complete, redirect to dashboard
+    if (user.isCompleteData) {
+      return res.redirect('/student/dashboard');
+    }
+
+    res.render('auth/complete-data', {
+      title: 'Complete Your Profile | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      user: user,
+      errors: [],
+    });
+  } catch (error) {
+    console.error('Error loading complete data page:', error);
+    req.flash('error_msg', 'An error occurred. Please try again.');
+    res.redirect('/auth/login');
+  }
+};
+
+// Complete student data
+const completeStudentData = async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'student') {
+      req.flash('error_msg', 'Unauthorized access');
+      return res.redirect('/auth/login');
+    }
+
+    const userId = req.session.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      req.flash('error_msg', 'User not found');
+      return res.redirect('/auth/login');
+    }
+
+    // If data is already complete, redirect to dashboard
+    if (user.isCompleteData) {
+      return res.redirect('/student/dashboard');
+    }
+
+    const {
+      firstName,
+      lastName,
+      studentNumber,
+      studentCountryCode,
+      parentNumber,
+      parentCountryCode,
+      studentEmail,
+      username,
+      schoolName,
+      grade,
+      englishTeacher,
+      password,
+      password2,
+      howDidYouKnow,
+    } = req.body;
+
+    let errors = [];
+
+    // Validation
+    if (!firstName || firstName.trim().length < 2) {
+      errors.push({ msg: 'First name must be at least 2 characters' });
+    }
+    if (!lastName || lastName.trim().length < 2) {
+      errors.push({ msg: 'Last name must be at least 2 characters' });
+    }
+    if (!studentNumber || studentNumber.trim().length < 10) {
+      errors.push({ msg: 'Student phone number must be at least 10 characters' });
+    }
+    if (!parentNumber || parentNumber.trim().length < 10) {
+      errors.push({ msg: 'Parent phone number must be at least 10 characters' });
+    }
+    if (!studentEmail || !studentEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      errors.push({ msg: 'Please enter a valid student email' });
+    }
+    if (!username || username.trim().length < 3) {
+      errors.push({ msg: 'Username must be at least 3 characters' });
+    }
+    if (!schoolName || schoolName.trim().length < 2) {
+      errors.push({ msg: 'School name must be at least 2 characters' });
+    }
+    if (!grade) {
+      errors.push({ msg: 'Please select your grade' });
+    }
+    if (!englishTeacher || englishTeacher.trim().length < 2) {
+      errors.push({ msg: 'English teacher name must be at least 2 characters' });
+    }
+    if (!password || password.length < 5) {
+      errors.push({ msg: 'Password must be at least 5 characters' });
+    }
+    if (password !== password2) {
+      errors.push({ msg: 'Passwords do not match' });
+    }
+    if (!howDidYouKnow || howDidYouKnow.trim().length < 3) {
+      errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 3 characters)' });
+    }
+
+    // Check for duplicates
+    const existingEmail = await User.findOne({ studentEmail: studentEmail.toLowerCase() });
+    if (existingEmail && existingEmail._id.toString() !== userId) {
+      errors.push({ msg: 'Email is already registered' });
+    }
+
+    const existingUsername = await User.findOne({ username: username.toLowerCase() });
+    if (existingUsername && existingUsername._id.toString() !== userId) {
+      errors.push({ msg: 'Username is already taken' });
+    }
+
+    // MANDATORY: Check if email is still the temporary one
+    if (user.studentEmail && user.studentEmail.startsWith('temp_')) {
+      if (studentEmail.toLowerCase().trim() === user.studentEmail.toLowerCase()) {
+        errors.push({ msg: 'You must change your email address. The temporary email cannot be used.' });
+      }
+    }
+
+    // MANDATORY: Check if username is still the temporary one
+    if (user.username && user.username.startsWith('student_')) {
+      if (username.toLowerCase().trim() === user.username.toLowerCase()) {
+        errors.push({ msg: 'You must change your username. The temporary username cannot be used.' });
+      }
+    }
+
+    // MANDATORY: Check if password is still the student code
+    if (user.studentCode && password.trim() === user.studentCode) {
+      errors.push({ msg: 'You must create a new password. You cannot use your student code as your password.' });
+    }
+
+    if (errors.length > 0) {
+      return res.render('auth/complete-data', {
+        title: 'Complete Your Profile | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        user: user,
+        errors,
+      });
+    }
+
+    // Update user data
+    user.firstName = firstName.trim();
+    user.lastName = lastName.trim();
+    user.studentNumber = studentNumber.trim();
+    user.studentCountryCode = studentCountryCode;
+    user.parentNumber = parentNumber.trim();
+    user.parentCountryCode = parentCountryCode;
+    user.studentEmail = studentEmail.toLowerCase().trim();
+    user.username = username.toLowerCase().trim();
+    user.schoolName = schoolName.trim();
+    user.grade = grade;
+    user.englishTeacher = englishTeacher.trim();
+    user.password = password;
+    user.howDidYouKnow = howDidYouKnow.trim();
+    user.isCompleteData = true;
+
+    await user.save();
+
+    // Update session
+    req.session.user = {
+      id: user._id,
+      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      studentEmail: user.studentEmail,
+      username: user.username,
+      role: user.role,
+      grade: user.grade,
+      schoolName: user.schoolName,
+      studentCode: user.studentCode,
+      studentNumber: user.studentNumber,
+      studentCountryCode: user.studentCountryCode,
+      parentNumber: user.parentNumber,
+      parentCountryCode: user.parentCountryCode,
+      englishTeacher: user.englishTeacher,
+      isActive: user.isActive,
+      isCompleteData: user.isCompleteData,
+    };
+
+    req.flash('success_msg', 'Profile completed successfully! Welcome to Elkably.');
+    res.redirect('/student/dashboard');
+  } catch (error) {
+    console.error('Error completing student data:', error);
+    req.flash('error_msg', 'An error occurred. Please try again.');
+    res.redirect('/auth/complete-data');
+  }
+};
+
+
+// ==================== EXTERNAL SYSTEM API ====================
+
+// Create student from external system (similar to bulk import)
+const createStudentFromExternalSystem = async (req, res) => {
+  try {
+    const {
+      studentName,
+      studentPhone,
+      parentPhone,
+      studentCode,
+      apiKey
+    } = req.body;
+
+    // Validate API key for security
+    const validApiKey = process.env.EXTERNAL_SYSTEM_API_KEY || 'SNFIDNWL11SGNDWJD@##SSNWLSGNE!21121';
+    if (!apiKey || apiKey !== validApiKey) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Unauthorized: Invalid API key' 
+      });
+    }
+
+    // Validate required fields
+    if (!studentName || !studentPhone || !parentPhone || !studentCode) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields', 
+        requiredFields: ['studentName', 'studentPhone', 'parentPhone', 'studentCode'] 
+      });
+    }
+
+    // Parse student name
+    const nameParts = studentName.trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Unknown';
+    const lastName = nameParts.slice(1).join(' ') || 'Student';
+
+    // Parse phone numbers (expecting format: +966XXXXXXXXX or just XXXXXXXXX)
+    let studentNumber = studentPhone.toString().trim();
+    let parentNumber = parentPhone.toString().trim();
+
+    // Remove any non-numeric characters except +
+    studentNumber = studentNumber.replace(/[^\d+]/g, '');
+    parentNumber = parentNumber.replace(/[^\d+]/g, '');
+
+    // Determine country code
+    let studentCountryCode = '+20';
+    let parentCountryCode = '+20';
+
+    // Handle student phone country code
+    if (studentNumber.startsWith('+')) {
+      if (studentNumber.startsWith('+966')) {
+        studentCountryCode = '+966';
+        studentNumber = studentNumber.substring(4);
+      } else if (studentNumber.startsWith('+20')) {
+        studentCountryCode = '+20';
+        studentNumber = studentNumber.substring(3);
+      } else if (studentNumber.startsWith('+971')) {
+        studentCountryCode = '+971';
+        studentNumber = studentNumber.substring(4);
+      } else if (studentNumber.startsWith('+965')) {
+        studentCountryCode = '+965';
+        studentNumber = studentNumber.substring(4);
+      } else {
+        // If starts with + but not a recognized code, default to +966
+        studentCountryCode = '+20';
+        studentNumber = studentNumber.substring(1);
+      }
+    }
+
+    // Handle parent phone country code
+    if (parentNumber.startsWith('+')) {
+      if (parentNumber.startsWith('+966')) {
+        parentCountryCode = '+966';
+        parentNumber = parentNumber.substring(4);
+      } else if (parentNumber.startsWith('+20')) {
+        parentCountryCode = '+20';
+        parentNumber = parentNumber.substring(3);
+      } else if (parentNumber.startsWith('+971')) {
+        parentCountryCode = '+971';
+        parentNumber = parentNumber.substring(4);
+      } else if (parentNumber.startsWith('+965')) {
+        parentCountryCode = '+965';
+        parentNumber = parentNumber.substring(4);
+      } else {
+        // If starts with + but not a recognized code, default to +966
+        parentCountryCode = '+20';
+        parentNumber = parentNumber.substring(1);
+      }
+    }
+
+    // Check if student code already exists
+    const existingStudent = await User.findOne({ studentCode: studentCode.toString() });
+    if (existingStudent) {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Student code already exists',
+        existingStudent: {
+          id: existingStudent._id,
+          name: existingStudent.name,
+          code: existingStudent.studentCode
+        }
+      });
+    }
+
+    // Check if phone number already exists
+    const existingPhone = await User.findOne({ studentNumber: studentNumber });
+    if (existingPhone) {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Phone number already registered',
+        existingStudent: {
+          id: existingPhone._id,
+          name: existingPhone.name,
+          phone: existingPhone.studentNumber
+        }
+      });
+    }
+
+    // Generate temporary email and username
+    const tempEmail = `temp_${studentCode}@elkably.com`;
+    const tempUsername = `student_${studentCode}`;
+
+    // Create student with incomplete data
+    const newStudent = new User({
+      firstName,
+      lastName,
+      studentNumber,
+      studentCountryCode,
+      parentNumber,
+      parentCountryCode,
+      studentEmail: tempEmail,
+      username: tempUsername,
+      schoolName: 'To Be Completed',
+      grade: 'Year 10',
+      englishTeacher: 'To Be Completed',
+      password: studentCode, // Temporary password (student code)
+      howDidYouKnow: 'External System Import',
+      studentCode: studentCode.toString(),
+      isCompleteData: false,
+      isActive: true,
+    });
+
+    const savedStudent = await newStudent.save();
+
+    // Return success response with student data
+    return res.status(201).json({
+      success: true,
+      message: 'Student created successfully from external system',
+      studentData: {
+        id: savedStudent._id,
+        firstName: savedStudent.firstName,
+        lastName: savedStudent.lastName,
+        studentCode: savedStudent.studentCode,
+        studentPhone: `${savedStudent.studentCountryCode}${savedStudent.studentNumber}`,
+        parentPhone: `${savedStudent.parentCountryCode}${savedStudent.parentNumber}`,
+        email: savedStudent.studentEmail,
+        username: savedStudent.username,
+        isCompleteData: savedStudent.isCompleteData,
+        isActive: savedStudent.isActive,
+        createdAt: savedStudent.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating student from external system:', error);
+    
+    // Handle duplicate key errors
+    if (error.name === 'MongoServerError' && error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Duplicate entry', 
+        field: field,
+        error: `The ${field} is already in use.`
+      });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation error', 
+        errors: validationErrors 
+      });
+    }
+    
+    // Handle other errors
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error', 
+      error: error.message 
+    });
+  }
+};
+
 
 module.exports = {
   getLoginPage,
@@ -935,6 +1353,8 @@ module.exports = {
   logoutUser,
   getCreateAdminPage,
   createAdmin,
+  getCompleteDataPage,
+  completeStudentData,
   // Team Management
   getTeamManagementPage,
   getTeamMember,
@@ -942,6 +1362,8 @@ module.exports = {
   updateTeamMember,
   deleteTeamMember,
   exportTeamMembers,
-  // Site Settings Management
+
+  // External System API
+  createStudentFromExternalSystem,
 };
 

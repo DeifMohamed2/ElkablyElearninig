@@ -1,7 +1,35 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const { isAdmin } = require('../middlewares/auth');
 const { upload } = require('../utils/s3Service');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'bulk-import-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const uploadFile = multer({ 
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: function (req, file, cb) {
+    const allowedExtensions = ['.xlsx', '.xls'];
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    if (allowedExtensions.includes(fileExtension)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only Excel files (.xlsx, .xls) are allowed'));
+    }
+  }
+});
+
 const {
   testS3,
   uploadDocument,
@@ -76,6 +104,29 @@ const {
   exportCourseDetails,
   exportTopicDetails,
   exportQuizDetails,
+  // Zoom Meeting Management
+  createZoomMeeting,
+  startZoomMeeting,
+  endZoomMeeting,
+  getZoomMeetingStats,
+  deleteZoomMeeting,
+  // Bulk Import
+  bulkImportStudents,
+  // Student Enrollment
+  enrollStudentsToCourse,
+  enrollStudentsToBundle,
+  bulkEnrollStudentsToCourse,
+  bulkEnrollStudentsToBundle,
+  getStudentsForEnrollment,
+  removeStudentFromCourse,
+  removeStudentFromBundle,
+  // Promo Codes Management
+  getPromoCodes,
+  getPromoCode,
+  createPromoCode,
+  getPromoCodeUsage,
+  deletePromoCode,
+  updatePromoCode,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -229,11 +280,21 @@ router.get('/api/bundles', isAdmin, getBundlesAPI);
 // Student Management Routes
 router.get('/students', isAdmin, getStudents);
 router.get('/students/export', isAdmin, exportStudentData);
+router.post('/students/bulk-import', isAdmin, uploadFile.single('excelFile'), bulkImportStudents);
 router.get('/students/:studentId', isAdmin, getStudentDetails);
 router.get('/students/:studentId/export', isAdmin, exportStudentData);
 router.put('/students/:studentId/status', isAdmin, toggleStudentStatus);
 router.put('/students/:studentId', isAdmin, updateStudent);
 router.delete('/students/:studentId', isAdmin, deleteStudent);
+
+// Student Enrollment Routes
+router.get('/api/students-for-enrollment', isAdmin, getStudentsForEnrollment);
+router.post('/courses/:courseId/enroll', isAdmin, enrollStudentsToCourse);
+router.post('/courses/:courseId/bulk-enroll', isAdmin, uploadFile.single('excelFile'), bulkEnrollStudentsToCourse);
+router.delete('/courses/:courseId/students/:studentId', isAdmin, removeStudentFromCourse);
+router.post('/bundles/:bundleId/enroll', isAdmin, enrollStudentsToBundle);
+router.post('/bundles/:bundleId/bulk-enroll', isAdmin, uploadFile.single('excelFile'), bulkEnrollStudentsToBundle);
+router.delete('/bundles/:bundleId/students/:studentId', isAdmin, removeStudentFromBundle);
 
 // Question Bank Routes
 router.use('/question-banks', questionBankRoutes);
@@ -300,5 +361,12 @@ router.get('/team-management/:id', isAdmin, getTeamMember);
 router.put('/team-management/:id', isAdmin, updateTeamMember);
 router.delete('/team-management/:id', isAdmin, deleteTeamMember);
 
+// Promo Codes Management Routes
+router.get('/promo-codes', isAdmin, getPromoCodes);
+router.get('/promo-codes/:id', isAdmin, getPromoCode);
+router.post('/promo-codes/create', isAdmin, createPromoCode);
+router.get('/promo-codes/:id/usage', isAdmin, getPromoCodeUsage);
+router.put('/promo-codes/:id/update', isAdmin, updatePromoCode);
+router.delete('/promo-codes/:id/delete', isAdmin, deletePromoCode);
 
 module.exports = router;

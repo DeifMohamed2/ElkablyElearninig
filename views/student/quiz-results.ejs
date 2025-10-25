@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= contentItem.title %> - Quiz Results - Elkably E-Learning</title>
+    <title><%= contentItem.title %> - Quiz Results | ELKABLY</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="shortcut icon" type="image/png" href="/images/KImage.jpg">
+    <link rel="apple-touch-icon" href="/images/KImage.jpg">
     
     <!-- CSS -->
     <link rel="stylesheet" href="/css/studentCSS/student-main.css">
@@ -300,6 +305,168 @@
             margin-bottom: 1rem;
             color: var(--text-color);
             line-height: 1.6;
+        }
+
+        /* Question Image Container */
+        .question-image-container {
+            position: relative;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .question-image-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .question-image {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            color: white;
+            font-weight: 600;
+        }
+
+        .question-image-container:hover .image-overlay {
+            opacity: 1;
+        }
+
+        .image-overlay i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .image-overlay span {
+            font-size: 0.9rem;
+        }
+
+        /* Image Preview Modal */
+        .image-preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 2rem;
+        }
+
+        .image-preview-modal.show {
+            display: flex;
+        }
+
+        .image-preview-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-preview-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .image-preview-close {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .image-preview-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* Option Image Styles */
+        .option-image-container {
+            position: relative;
+            margin-left: auto;
+            width: 80px;
+            height: 60px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .option-image-container:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .option-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .option-image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            color: white;
+        }
+
+        .option-image-container:hover .option-image-overlay {
+            opacity: 1;
+        }
+
+        .option-image-overlay i {
+            font-size: 1rem;
         }
 
         /* Math Field Styles */
@@ -844,6 +1011,17 @@
                                         <% } %>
                                     </div>
                                     
+                                    <!-- Question Image -->
+                                    <% if (question.questionImage && question.questionImage.trim() !== '') { %>
+                                        <div class="question-image-container" onclick="previewImage('<%= question.questionImage %>')">
+                                            <img class="question-image" src="<%= question.questionImage %>" alt="Question Image">
+                                            <div class="image-overlay">
+                                                <i class="fas fa-search-plus"></i>
+                                                <span>Click to preview</span>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                    
                                     <% if (question.questionType === 'Written') { %>
                                         <!-- Written Question Answer Review -->
                                         <div class="written-question-container">
@@ -911,6 +1089,14 @@
                                                             <%= option.text %>
                                                         <% } %>
                                                     </div>
+                                                    <% if (option.image && option.image.trim() !== '') { %>
+                                                        <div class="option-image-container" onclick="previewImage('<%= option.image %>')">
+                                                            <img class="option-image" src="<%= option.image %>" alt="Option image">
+                                                            <div class="option-image-overlay">
+                                                                <i class="fas fa-search-plus"></i>
+                                                            </div>
+                                                        </div>
+                                                    <% } %>
                                                 </div>
                                             <% }); %>
                                         </div>
@@ -943,7 +1129,7 @@
                         </a>
                         <a href="/student/course/<%= course._id %>/content" class="btn btn-primary">
                             <i class="fas fa-list"></i>
-                            Course Content
+                            Week Content
                         </a>
                         <% if (!latestAttempt.passed && contentProgress.attempts < (contentItem.type === 'quiz' ? (contentItem.quizSettings?.maxAttempts || 3) : (contentItem.homeworkSettings?.maxAttempts || 1))) { %>
                             <a href="/student/content/<%= contentItem._id %>/take" class="btn btn-success">
@@ -956,5 +1142,52 @@
             </div>
         </main>
     </div>
+
+    <!-- Image Preview Modal -->
+    <div id="imagePreviewModal" class="image-preview-modal" onclick="closeImagePreview()">
+        <div class="image-preview-content" onclick="event.stopPropagation()">
+            <button class="image-preview-close" onclick="closeImagePreview()">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="previewImage" src="" alt="Preview">
+        </div>
+    </div>
+
+    <!-- JavaScript for Image Preview -->
+    <script>
+        // Image preview functions
+        function previewImage(imageSrc) {
+            console.log('previewImage called with:', imageSrc);
+            const modal = document.getElementById('imagePreviewModal');
+            const previewImg = document.getElementById('previewImage');
+            
+            if (!modal || !previewImg) {
+                console.error('Modal or preview image element not found');
+                return;
+            }
+            
+            previewImg.src = imageSrc;
+            modal.classList.add('show');
+            
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+            console.log('Modal should be visible now');
+        }
+
+        function closeImagePreview() {
+            const modal = document.getElementById('imagePreviewModal');
+            modal.classList.remove('show');
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+
+        // Close image preview on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImagePreview();
+            }
+        });
+    </script>
 </body>
 </html>

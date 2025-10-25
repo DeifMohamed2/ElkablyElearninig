@@ -39,18 +39,38 @@ const isStudent = (req, res, next) => {
   res.redirect('/auth/login');
 };
 
+// Middleware to check if student has completed their data
+const isDataComplete = (req, res, next) => {
+  if (req.session && req.session.user && req.session.user.role === 'student') {
+    // Allow access to complete-data page even if data is incomplete
+    if (req.path === '/auth/complete-data' || req.path === '/auth/complete-data') {
+      return next();
+    }
+    
+    // Check if student data is complete
+    if (req.session.user.isCompleteData === false) {
+      req.flash('info_msg', 'Please complete your profile to continue');
+      return res.redirect('/auth/complete-data');
+    }
+  }
+  return next();
+};
+
 // Alternative naming for consistency
 const ensureAuthenticated = isAuthenticated;
 const ensureStudent = isStudent;
 const ensureAdmin = isAdmin;
+const ensureDataComplete = isDataComplete;
 
 module.exports = {
   isAuthenticated,
   isNotAuthenticated,
   isAdmin,
   isStudent,
+  isDataComplete,
   ensureAuthenticated,
   ensureStudent,
   ensureAdmin,
+  ensureDataComplete,
 };
 

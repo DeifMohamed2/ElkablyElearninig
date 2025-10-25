@@ -53,7 +53,7 @@ const getAllQuizzes = async (req, res) => {
     const stats = await Quiz.getQuizStats();
 
     res.render('admin/quizzes', {
-      title: 'Quizzes Management',
+      title: 'Quizzes Management | ELKABLY',
       theme: req.cookies.theme || 'light',
       currentPage: 'quizzes',
       quizzes,
@@ -90,7 +90,7 @@ const getCreateQuiz = async (req, res) => {
     console.log('Question banks data:', questionBanks);
 
     res.render('admin/create-quiz', {
-      title: 'Create New Quiz',
+      title: 'Create New Quiz | ELKABLY',
       theme: req.cookies.theme || 'light',
       currentPage: 'quizzes',
       questionBanks,
@@ -302,7 +302,6 @@ const createQuiz = async (req, res) => {
 
     if (
       !title ||
-      !description ||
       !code ||
       !questionBank ||
       duration === undefined ||
@@ -537,7 +536,7 @@ const getEditQuiz = async (req, res) => {
       .sort({ name: 1 });
 
     res.render('admin/edit-quiz', {
-      title: 'Edit Quiz',
+      title: 'Edit Quiz | ELKABLY',
       theme: req.cookies.theme || 'light',
       currentPage: 'quizzes',
       quiz,
@@ -881,7 +880,7 @@ const getQuizDetails = async (req, res) => {
       .sort((a, b) => b.bestScore - a.bestScore);
 
     res.render('admin/quiz-details', {
-      title: 'Quiz Management',
+      title: 'Quiz Management | ELKABLY',
       theme: req.cookies.theme || 'light',
       currentPage: 'quizzes',
       quiz,

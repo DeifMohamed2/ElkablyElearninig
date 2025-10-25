@@ -1,4 +1,4 @@
-<%- include('partials/header', { title: 'Home' }) %>
+<%- include('partials/header', { title: 'Home', isIndexPage: true }) %>
 
 <!-- Floating Math Elements -->
 <div class="floating-math-elements-professor" id="floatingMath">
@@ -155,7 +155,7 @@
                     <span class="border-symbol border-symbol-3">∫</span>
                     <span class="border-symbol border-symbol-4">∂</span>
                   </div>
-                  <img src="/images/test.png" alt="Professor Mathematics" class="professor-image-enhanced">
+                  <img src="/images/test.png" alt="Professor Mathematics" class="professor-image-enhanced" loading="lazy" decoding="async">
                 </div>
                 <div class="portrait-glow-mathematical"></div>
               </div>
@@ -742,7 +742,7 @@
         <% brilliantStudents.est.forEach(student => { %>
         <article class="student-card-new">
           <div class="student-photo-new">
-            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" onerror="this.src='/images/photoPlaceholder.jpg';">
+            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.src='/images/photoPlaceholder.jpg';">
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -828,7 +828,7 @@
         <% brilliantStudents.dsat.forEach(student => { %>
         <article class="student-card-new">
           <div class="student-photo-new">
-            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" onerror="this.src='/images/photoPlaceholder.jpg';">
+            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.src='/images/photoPlaceholder.jpg';">
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -914,7 +914,7 @@
         <% brilliantStudents.act.forEach(student => { %>
         <article class="student-card-new">
           <div class="student-photo-new">
-            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" onerror="this.src='/images/photoPlaceholder.jpg';">
+            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.src='/images/photoPlaceholder.jpg';">
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -984,9 +984,16 @@
 </section>
 
 <script>
-  // Brilliant Students Slider Functionality
+  // Optimized Brilliant Students Slider Functionality
   document.addEventListener('DOMContentLoaded', function() {
     const sliders = document.querySelectorAll('.students-slider-new');
+
+    // Use requestAnimationFrame for smooth animations
+    const animateSlider = (slides, translateX) => {
+      requestAnimationFrame(() => {
+        slides.style.transform = `translate3d(${translateX}px, 0, 0)`;
+      });
+    };
 
     sliders.forEach(slider => {
       const slides = slider.querySelector('.students-slides-new');
@@ -1003,6 +1010,11 @@
       const sliderId = slider.closest('.brilliant-students-new').id;
       const pagination = document.getElementById(`pagination-${sliderId.split('-').pop()}`);
 
+      // Cache DOM elements and calculations
+      let cachedCardWidth = 420;
+      let cachedVisibleCards = 1;
+      let isAnimating = false;
+
       // Function to get visible cards count based on screen size
       function getVisibleCardsCount() {
         const sliderWidth = slider.offsetWidth;
@@ -1013,36 +1025,32 @@
       }
 
       function updateSlider() {
-        if (totalCards === 0) {
-          console.log('No cards found in slider');
-          return;
-        }
+        if (totalCards === 0 || isAnimating) return;
 
-        const visibleCards = getVisibleCardsCount();
-        const maxIndex = Math.max(0, totalCards - visibleCards);
+        isAnimating = true;
+        
+        // Use cached values when possible
+        if (cachedVisibleCards === 1) {
+          cachedVisibleCards = getVisibleCardsCount();
+        }
+        
+        const maxIndex = Math.max(0, totalCards - cachedVisibleCards);
         const clampedIndex = Math.min(currentIndex, maxIndex);
 
         if (currentIndex !== clampedIndex) {
           currentIndex = clampedIndex;
         }
 
-        // Calculate card width dynamically with fallback
-        let cardWidth = 420; // Default fallback: 400px + 20px gap
-        if (cards[0] && cards[0].offsetWidth > 0) {
-          cardWidth = cards[0].offsetWidth + 20;
-        }
+        // Use cached card width
+        const translateX = -currentIndex * cachedCardWidth;
+        animateSlider(slides, translateX);
 
-        const translateX = -currentIndex * cardWidth;
-        slides.style.transform = `translateX(${translateX}px)`;
-
-        // Update arrow states
+        // Update arrow states with CSS classes for better performance
         const prevDisabled = currentIndex === 0;
         const nextDisabled = currentIndex >= maxIndex;
         
-        prevBtn.style.opacity = prevDisabled ? '0.5' : '1';
-        prevBtn.disabled = prevDisabled;
-        nextBtn.style.opacity = nextDisabled ? '0.5' : '1';
-        nextBtn.disabled = nextDisabled;
+        prevBtn.classList.toggle('disabled', prevDisabled);
+        nextBtn.classList.toggle('disabled', nextDisabled);
 
         // Update pagination dots
         if (pagination) {
@@ -1052,41 +1060,59 @@
           });
         }
 
-        // Debug logging (remove in production)
-        console.log(`Slider update: currentIndex=${currentIndex}, maxIndex=${maxIndex}, visibleCards=${visibleCards}, totalCards=${totalCards}`);
+        // Reset animation flag
+        requestAnimationFrame(() => {
+          isAnimating = false;
+        });
       }
 
-      prevBtn.addEventListener('click', () => {
-        if (currentIndex > 0) {
+      // Throttled event handlers
+      const handlePrevClick = () => {
+        if (currentIndex > 0 && !isAnimating) {
           currentIndex--;
           updateSlider();
         }
-      });
+      };
 
-      nextBtn.addEventListener('click', () => {
-        const visibleCards = getVisibleCardsCount();
-        const maxIndex = Math.max(0, totalCards - visibleCards);
-        if (currentIndex < maxIndex) {
+      const handleNextClick = () => {
+        const maxIndex = Math.max(0, totalCards - cachedVisibleCards);
+        if (currentIndex < maxIndex && !isAnimating) {
           currentIndex++;
           updateSlider();
         }
-      });
+      };
+
+      prevBtn.addEventListener('click', handlePrevClick);
+      nextBtn.addEventListener('click', handleNextClick);
 
       // Pagination dot clicks
       if (pagination) {
         const dots = pagination.querySelectorAll('.pagination-dot');
         dots.forEach((dot, index) => {
           dot.addEventListener('click', () => {
-            currentIndex = index;
-            updateSlider();
+            if (!isAnimating) {
+              currentIndex = index;
+              updateSlider();
+            }
           });
         });
       }
 
-      // Initialize after a short delay to ensure DOM is fully loaded
-      setTimeout(() => {
-        updateSlider();
-      }, 100);
+      // Initialize with intersection observer for better performance
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            // Calculate card width when slider becomes visible
+            if (cards[0] && cards[0].offsetWidth > 0) {
+              cachedCardWidth = cards[0].offsetWidth + 20;
+            }
+            cachedVisibleCards = getVisibleCardsCount();
+            updateSlider();
+          }
+        });
+      }, { threshold: 0.1 });
+
+      observer.observe(slider);
 
       // Additional initialization check
       if (totalCards <= 1) {
@@ -1098,14 +1124,20 @@
         }
       }
 
-      // Handle window resize
+      // Throttled window resize handler
       let resizeTimeout;
-      window.addEventListener('resize', () => {
+      const handleResize = () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
+          cachedVisibleCards = getVisibleCardsCount();
+          if (cards[0] && cards[0].offsetWidth > 0) {
+            cachedCardWidth = cards[0].offsetWidth + 20;
+          }
           updateSlider();
         }, 150);
-      });
+      };
+
+      window.addEventListener('resize', handleResize, { passive: true });
     });
   });
 </script>
@@ -1168,34 +1200,66 @@
             <i class="fas fa-chevron-right"></i>
           </button>
 
-          <!-- Team Member Card -->
-          <div class="team-member-card">
-            <div class="team-card-header">
-              <h3 class="team-card-title">ELKABLY TEAM</h3>
+          <!-- Team Members Container -->
+          <div class="team-members-wrapper">
+            <div class="team-members-track" id="teamMembersTrack">
+              <% if (teamMembers && teamMembers.length > 0) { %>
+                <% teamMembers.forEach((member, index) => { %>
+                  <div class="team-member-card <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>">
+                    <div class="team-card-header">
+                      <h3 class="team-card-title">ELKABLY TEAM</h3>
+                    </div>
+
+                    <div class="team-member-info">
+                      <div class="team-member-image">
+                        <% if (member.image) { %>
+                          <img src="<%= member.image %>" alt="<%= member.name %>" loading="lazy" decoding="async">
+                        <% } else { %>
+                          <div class="team-member-fallback">
+                            <span class="fallback-initials"><%= member.fallbackInitials %></span>
+                          </div>
+                        <% } %>
+                      </div>
+
+                      <div class="team-member-details">
+                        <h4 class="team-member-name"><%= member.name %></h4>
+                        <p class="team-member-position"><%= member.position %></p>
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              <% } else { %>
+                <!-- Fallback if no team members -->
+                <div class="team-member-card" style="display: block;">
+                  <div class="team-card-header">
+                    <h3 class="team-card-title">ELKABLY TEAM</h3>
+                  </div>
+
+                  <div class="team-member-info">
+                    <div class="team-member-image">
+                      <img src="/images/adad.png" alt="Nusayba Elshamy" loading="lazy" decoding="async">
+                    </div>
+
+                    <div class="team-member-details">
+                      <h4 class="team-member-name">Nusayba Elshamy</h4>
+                      <p class="team-member-position">HEAD</p>
+                    </div>
+                  </div>
+                </div>
+              <% } %>
             </div>
-
-            <div class="team-member-info">
-              <div class="team-member-image">
-                <img src="/images/adad.png" alt="Nusayba Elshamy" id="teamMemberImage">
-              </div>
-
-              <div class="team-member-details">
-       
-
-                <h4 class="team-member-name" id="teamMemberName">Nusayba Elshamy</h4>
-                <p class="team-member-position" id="teamMemberPosition">HEAD</p>
-              </div>
-            </div>
-
           </div>
         </div>
 
         <!-- Carousel Indicators -->
-        <div class="team-carousel-indicators">
-          <span class="indicator active" data-index="0"></span>
-          <span class="indicator" data-index="1"></span>
-          <span class="indicator" data-index="2"></span>
-          <span class="indicator" data-index="3"></span>
+        <div class="team-carousel-indicators" id="teamCarouselIndicators">
+          <% if (teamMembers && teamMembers.length > 0) { %>
+            <% teamMembers.forEach((member, index) => { %>
+              <span class="indicator <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>"></span>
+            <% }); %>
+          <% } else { %>
+            <span class="indicator active" data-index="0"></span>
+          <% } %>
         </div>
       </div>
     </div>
@@ -1512,15 +1576,15 @@
       <div class="cart-total" id="cartTotal">
         <div class="cart-total-row">
           <span>Subtotal:</span>
-          <span class="cart-subtotal">$0.00</span>
+          <span class="cart-subtotal">0.00 EGP</span>
         </div>
         <div class="cart-total-row">
           <span>Tax:</span>
-          <span class="cart-tax">$0.00</span>
+          <span class="cart-tax">0.00 EGP</span>
         </div>
         <div class="cart-total-row cart-total-final">
           <span>Total:</span>
-          <span class="cart-total-amount">$0.00</span>
+          <span class="cart-total-amount">0.00 EGP</span>
         </div>
       </div>
 
@@ -1539,7 +1603,6 @@
 
 <!-- Import index-specific CSS -->
 <link rel="stylesheet" href="/css/index.css">
-<link rel="stylesheet" href="/css/course-cards.css">
 
 
 <!-- Shopping Cart Functionality -->
@@ -1600,9 +1663,11 @@
         if (data.success) {
           showCartNotification(data.message || 'Item added to cart successfully', 'success');
 
-          // Update global cart count and refresh cart data
+          // Update global cart count and refresh cart data (only if user is logged in)
           if (window.globalCart) {
+            <% if (user) { %>
             window.globalCart.refreshCartData();
+            <% } %>
           }
 
           // Show cart sidebar
@@ -1651,9 +1716,11 @@
         if (data.success) {
           showCartNotification('Item removed from cart', 'success');
 
-          // Update global cart count and refresh cart data
+          // Update global cart count and refresh cart data (only if user is logged in)
           if (window.globalCart) {
+            <% if (user) { %>
             window.globalCart.refreshCartData();
+            <% } %>
           }
         } else {
           showCartNotification(data.message || 'Failed to remove item from cart', 'error');
@@ -1721,7 +1788,7 @@
       </div>
       <div class="cart-item-details">
         <h5 class="cart-item-title">${item.title}</h5>
-        <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+        <div class="cart-item-price">${item.price.toFixed(2)} EGP</div>
         <div class="cart-item-controls">
           <button class="cart-quantity-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">-</button>
           <span class="cart-quantity">${item.quantity}</span>
@@ -1743,9 +1810,9 @@
     const tax = 0; // No tax
     const total = subtotal + tax;
 
-    document.querySelector('.cart-subtotal').textContent = `$${subtotal.toFixed(2)}`;
-    document.querySelector('.cart-tax').textContent = `$${tax.toFixed(2)}`;
-    document.querySelector('.cart-total-amount').textContent = `$${total.toFixed(2)}`;
+    document.querySelector('.cart-subtotal').textContent = `${subtotal.toFixed(2)} EGP`;
+    document.querySelector('.cart-tax').textContent = `${tax.toFixed(2)} EGP`;
+    document.querySelector('.cart-total-amount').textContent = `${total.toFixed(2)} EGP`;
 
     // Enable/disable checkout button
     const checkoutBtn = document.getElementById('cartCheckout');
@@ -1833,144 +1900,174 @@
     });
   });
 
-  // Elkably Team Carousel Functionality
+  // Optimized Elkably Team Carousel Functionality
   document.addEventListener('DOMContentLoaded', function() {
     // Team member data from server
     const teamMembers = <%- JSON.stringify(teamMembers || []) %>;
-
+    
+    if (teamMembers.length === 0) {
+      return;
+    }
+    
     let currentMemberIndex = 0;
     const totalMembers = teamMembers.length;
+    let autoPlayInterval;
+    let isTransitioning = false;
 
-    // Get DOM elements
-    const teamMemberImage = document.getElementById('teamMemberImage');
-    const teamMemberName = document.getElementById('teamMemberName');
-    const teamMemberPosition = document.getElementById('teamMemberPosition');
-    const teamMemberField = document.getElementById('teamMemberField');
-    const teamMemberExperience = document.getElementById('teamMemberExperience');
+    // Get DOM elements with caching
     const prevBtn = document.getElementById('teamCarouselPrev');
     const nextBtn = document.getElementById('teamCarouselNext');
     const indicators = document.querySelectorAll('.team-carousel-indicators .indicator');
+    const carouselContainer = document.querySelector('.team-carousel-container');
+    const allCards = document.querySelectorAll('.team-member-card');
 
-    // Function to update team member display with sliding animation
-    function updateTeamMember(index, direction = 'right') {
-      const member = teamMembers[index];
-      const card = document.querySelector('.team-member-card');
-
-      // Remove any existing animation classes
-      card.classList.remove('slide-in-left', 'slide-in-right', 'slide-out-left', 'slide-out-right');
-
-      // Add slide out animation
-      const slideOutClass = direction === 'right' ? 'slide-out-left' : 'slide-out-right';
-      card.classList.add(slideOutClass);
-
-      setTimeout(() => {
-        // Update content
-        if (member.image) {
-          teamMemberImage.src = member.image;
-          teamMemberImage.alt = member.name;
-          teamMemberImage.style.display = 'block';
-        } else {
-          teamMemberImage.style.display = 'none';
-        }
-        teamMemberName.textContent = member.name;
-        teamMemberPosition.textContent = member.position;
-        // Remove field and experience as they're not in the new data structure
-        teamMemberField.textContent = '';
-        teamMemberExperience.textContent = '';
-
-        // Remove slide out class and add slide in animation
-        card.classList.remove(slideOutClass);
-        const slideInClass = direction === 'right' ? 'slide-in-right' : 'slide-in-left';
-        card.classList.add(slideInClass);
-
-        // Clean up animation classes after animation completes
-        setTimeout(() => {
-          card.classList.remove(slideInClass);
-        }, 600);
-      }, 400);
-    }
-
-    // Function to update indicators
-    function updateIndicators(index) {
+    // Optimized function to show specific team member
+    function showMember(index) {
+      if (isTransitioning || index === currentMemberIndex) return;
+      
+      isTransitioning = true;
+      
+      // Use CSS classes for better performance
+      allCards.forEach(card => {
+        card.classList.remove('active');
+      });
+      
+      // Show the selected card
+      const selectedCard = document.querySelector(`[data-index="${index}"]`);
+      if (selectedCard) {
+        selectedCard.classList.add('active');
+      }
+      
+      // Update indicators with CSS classes
       indicators.forEach((indicator, i) => {
         indicator.classList.toggle('active', i === index);
       });
-    }
-
-    // Function to go to next member
-    function nextMember() {
-      currentMemberIndex = (currentMemberIndex + 1) % totalMembers;
-      updateTeamMember(currentMemberIndex, 'right');
-      updateIndicators(currentMemberIndex);
-    }
-
-    // Function to go to previous member
-    function prevMember() {
-      currentMemberIndex = (currentMemberIndex - 1 + totalMembers) % totalMembers;
-      updateTeamMember(currentMemberIndex, 'left');
-      updateIndicators(currentMemberIndex);
-    }
-
-    // Event listeners for navigation buttons
-    if (nextBtn) {
-      nextBtn.addEventListener('click', nextMember);
-    }
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', prevMember);
-    }
-
-    // Event listeners for indicators
-    indicators.forEach((indicator, index) => {
-      indicator.addEventListener('click', () => {
-        const direction = index > currentMemberIndex ? 'right' : 'left';
-        currentMemberIndex = index;
-        updateTeamMember(currentMemberIndex, direction);
-        updateIndicators(currentMemberIndex);
+      
+      // Update navigation buttons with CSS classes
+      if (prevBtn) {
+        prevBtn.classList.toggle('disabled', index === 0);
+      }
+      
+      if (nextBtn) {
+        nextBtn.classList.toggle('disabled', index === totalMembers - 1);
+      }
+      
+      currentMemberIndex = index;
+      
+      // Reset transition flag
+      requestAnimationFrame(() => {
+        isTransitioning = false;
       });
-    });
+    }
 
-    // Auto-play functionality (optional)
-    let autoPlayInterval;
+    // Throttled navigation functions
+    const nextMember = () => {
+      if (totalMembers <= 1 || isTransitioning) return;
+      const nextIndex = (currentMemberIndex + 1) % totalMembers;
+      showMember(nextIndex);
+    };
 
+    const prevMember = () => {
+      if (totalMembers <= 1 || isTransitioning) return;
+      const prevIndex = (currentMemberIndex - 1 + totalMembers) % totalMembers;
+      showMember(prevIndex);
+    };
+
+    // Auto-play functionality with visibility check
     function startAutoPlay() {
-      autoPlayInterval = setInterval(nextMember, 5000); // Change every 5 seconds
+      if (totalMembers <= 1) return;
+      stopAutoPlay();
+      autoPlayInterval = setInterval(() => {
+        // Only auto-play if page is visible
+        if (!document.hidden) {
+          nextMember();
+        }
+      }, 3000);
     }
 
     function stopAutoPlay() {
-      clearInterval(autoPlayInterval);
+      if (autoPlayInterval) {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = null;
+      }
     }
 
-    // Start auto-play
-    startAutoPlay();
+    // Initialize carousel
+    function initCarousel() {
+      if (totalMembers <= 1) {
+        // Hide navigation if only one or no members
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (document.getElementById('teamCarouselIndicators')) {
+          document.getElementById('teamCarouselIndicators').style.display = 'none';
+        }
+        return;
+      }
 
-    // Pause auto-play on hover
-    const carouselContainer = document.querySelector('.team-carousel-container');
+      // Show first member
+      showMember(0);
+    }
+
+    // Event listeners with passive options for better performance
+    if (nextBtn) {
+      nextBtn.addEventListener('click', nextMember, { passive: true });
+    }
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', prevMember, { passive: true });
+    }
+
+    // Indicator clicks
+    indicators.forEach((indicator, index) => {
+      indicator.addEventListener('click', () => {
+        if (!isTransitioning) {
+          showMember(index);
+        }
+      }, { passive: true });
+    });
+
+    // Pause auto-play on hover with debouncing
+    let hoverTimeout;
     if (carouselContainer) {
-      carouselContainer.addEventListener('mouseenter', stopAutoPlay);
-      carouselContainer.addEventListener('mouseleave', startAutoPlay);
+      carouselContainer.addEventListener('mouseenter', () => {
+        clearTimeout(hoverTimeout);
+        stopAutoPlay();
+      }, { passive: true });
+      
+      carouselContainer.addEventListener('mouseleave', () => {
+        hoverTimeout = setTimeout(startAutoPlay, 500);
+      }, { passive: true });
     }
 
-    // Keyboard navigation
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'ArrowLeft') {
-        prevMember();
-      } else if (e.key === 'ArrowRight') {
-        nextMember();
+    // Keyboard navigation with focus check
+    const handleKeydown = (e) => {
+      if (carouselContainer && carouselContainer.contains(document.activeElement)) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          prevMember();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          nextMember();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeydown, { passive: false });
+
+    // Pause auto-play when page is hidden
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopAutoPlay();
+      } else {
+        startAutoPlay();
       }
     });
 
-    // Initialize with first member if available
-    if (totalMembers > 0) {
-      updateTeamMember(0, 'right');
-      updateIndicators(0);
-    } else {
-      // Hide team carousel if no members
-      const teamCarousel = document.querySelector('.team-carousel-container');
-      if (teamCarousel) {
-        teamCarousel.style.display = 'none';
-      }
-    }
+    // Initialize carousel
+    initCarousel();
+    
+    // Start auto-play
+    startAutoPlay();
   });
 
   // Enhanced Score Calculator - 3-Step Design
@@ -1984,7 +2081,7 @@
         est2Min: 0,
         bonusThreshold: null,
         bonusPercentage: 0,
-        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 83.28×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA is added as is.'
+        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 83.28×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA multiplied by 10.'
       },
       private: {
         name: 'Private University',
@@ -1993,7 +2090,7 @@
         est2Min: 0,
         bonusThreshold: null,
         bonusPercentage: 0,
-        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 75×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA is added as is.'
+        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 75×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA multiplied by 10.'
       },
       ahlia: {
         name: 'Ahlia University',
@@ -2002,7 +2099,7 @@
         est2Min: 0,
         bonusThreshold: null,
         bonusPercentage: 0,
-        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 75×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA is added as is.'
+        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 75×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA multiplied by 10.'
       }
     };
 
@@ -2299,8 +2396,8 @@ function calculateScore() {
     finalScore += est2Score;
   }
 
-  // ✅ GPA added directly
-  const gpaScore = gpa;
+  // ✅ GPA multiplied by 10
+  const gpaScore = gpa * 10;
   finalScore += gpaScore;
 
   // ✅ Save calculation data

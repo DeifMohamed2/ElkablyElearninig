@@ -91,7 +91,7 @@ const dashboard = async (req, res) => {
         : [];
 
     res.render('student/dashboard', {
-      title: 'Student Dashboard',
+      title: 'Student Dashboard | ELKABLY',
       student,
       stats,
       recentProgress,
@@ -106,7 +106,7 @@ const dashboard = async (req, res) => {
   }
 };
 
-// Enrolled Courses - View all enrolled courses
+// Enrolled Courses - View all enrolled courses with filtering
 const enrolledCourses = async (req, res) => {
   try {
     const studentId = req.session.user.id;
@@ -114,12 +114,24 @@ const enrolledCourses = async (req, res) => {
     const limit = 12;
     const skip = (page - 1) * limit;
 
+    // Get filter parameters
+    const searchQuery = req.query.search || '';
+    const progressFilter = req.query.progress || 'all';
+    const bundleFilter = req.query.bundle || 'all';
+    const sortBy = req.query.sort || 'lastAccessed';
+
     const student = await User.findById(studentId).populate({
       path: 'enrolledCourses.course',
-      populate: {
-        path: 'topics bundle',
-        model: 'Topic',
-      },
+      populate: [
+        {
+          path: 'topics',
+          model: 'Topic',
+        },
+        {
+          path: 'bundle',
+          select: 'title bundleCode',
+        }
+      ],
     });
 
     if (!student) {
@@ -142,20 +154,95 @@ const enrolledCourses = async (req, res) => {
     student.enrolledCourses = validEnrollments;
     await student.save();
 
-    const enrolledCourses = validEnrollments
-      .sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed))
-      .slice(skip, skip + limit);
+    // Apply filters
+    let filteredCourses = validEnrollments;
 
-    const totalCourses = validEnrollments.length;
+    // Search by course name
+    if (searchQuery) {
+      filteredCourses = filteredCourses.filter(enrollment => 
+        enrollment.course.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by bundle
+    if (bundleFilter !== 'all') {
+      filteredCourses = filteredCourses.filter(enrollment => 
+        enrollment.course.bundle && 
+        enrollment.course.bundle._id.toString() === bundleFilter
+      );
+    }
+
+    // Filter by progress percentage
+    if (progressFilter !== 'all') {
+      filteredCourses = filteredCourses.filter(enrollment => {
+        const progress = enrollment.progress || 0;
+        switch (progressFilter) {
+          case 'not-started':
+            return progress === 0;
+          case 'in-progress':
+            return progress > 0 && progress < 100;
+          case 'completed':
+            return progress === 100;
+          case 'high-progress':
+            return progress >= 75;
+          case 'low-progress':
+            return progress < 25;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Sort courses
+    switch (sortBy) {
+      case 'name':
+        filteredCourses.sort((a, b) => a.course.title.localeCompare(b.course.title));
+        break;
+      case 'progress':
+        filteredCourses.sort((a, b) => (b.progress || 0) - (a.progress || 0));
+        break;
+      case 'enrolledAt':
+        filteredCourses.sort((a, b) => new Date(b.enrolledAt) - new Date(a.enrolledAt));
+        break;
+      case 'lastAccessed':
+      default:
+        filteredCourses.sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed));
+        break;
+    }
+
+    // Paginate results
+    const totalCourses = filteredCourses.length;
     const totalPages = Math.ceil(totalCourses / limit);
+    const enrolledCourses = filteredCourses.slice(skip, skip + limit);
+
+    // Get available bundles for filter dropdown
+    const BundleCourse = require('../models/BundleCourse');
+    const bundleIds = validEnrollments
+      .map(e => e.course.bundle?._id)
+      .filter(Boolean)
+      .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
+    
+    const availableBundles = await BundleCourse.find({
+      _id: { $in: bundleIds }
+    }).select('_id title');
+
 
     res.render('student/enrolled-courses', {
-      title: 'My Enrolled Courses',
+      title: 'My Enrolled Weeks | ELKABLY',
       student,
       enrolledCourses,
+      totalCourses: totalCourses, // Add this for the counter
+      availableBundles,
+      filters: {
+        search: searchQuery,
+        progress: progressFilter,
+        bundle: bundleFilter,
+        sort: sortBy
+      },
       pagination: {
         currentPage: page,
         totalPages,
+        totalCourses, // Add this for the counter
         hasNext: page < totalPages,
         hasPrev: page > 1,
         nextPage: page + 1,
@@ -218,7 +305,7 @@ const courseDetails = async (req, res) => {
     );
 
     res.render('student/course-details', {
-      title: `${course.title} - Course Details`,
+      title: `${course.title} - Course Details | ELKABLY`,
       student,
       course,
       enrollment,
@@ -359,7 +446,7 @@ const courseContent = async (req, res) => {
     );
 
     res.render('student/course-content', {
-      title: `${course.title} - Course Content`,
+      title: `${course.title} - Course Content | ELKABLY`,
       student,
       course,
       enrollment,
@@ -560,7 +647,7 @@ const contentDetails = async (req, res) => {
     }
 
     res.render('student/content-details', {
-      title: `${contentItem.title} - Content`,
+      title: `${contentItem.title} - Content | ELKABLY`,
       student,
       course,
       topic,
@@ -708,7 +795,7 @@ const quizzes = async (req, res) => {
     const studentQuizAttempts = student.quizAttempts || [];
 
     res.render('student/quizzes', {
-      title: 'Available Quizzes',
+      title: 'Available Quizzes | ELKABLY',
       student,
       quizzes,
       studentQuizAttempts,
@@ -785,7 +872,7 @@ const takeQuiz = async (req, res) => {
     }
 
     res.render('student/take-quiz', {
-      title: `${quiz.title} - Quiz`,
+      title: `${quiz.title} - Quiz | ELKABLY`,
       student,
       quiz: {
         ...quiz.toObject(),
@@ -966,7 +1053,7 @@ const wishlist = async (req, res) => {
     const paginatedItems = allItems.slice(skip, skip + limit);
 
     res.render('student/wishlist', {
-      title: 'My Wishlist',
+      title: 'My Wishlist | ELKABLY',
       student,
       wishlistCourses: paginatedItems.filter((item) => item.type === 'course'),
       wishlistBundles: paginatedItems.filter((item) => item.type === 'bundle'),
@@ -1080,7 +1167,7 @@ const orderHistory = async (req, res) => {
     );
 
     res.render('student/order-history', {
-      title: 'Order History',
+      title: 'Order History | ELKABLY',
       student,
       orders: populatedOrders,
       pagination: {
@@ -1113,41 +1200,119 @@ const orderDetails = async (req, res) => {
       return res.redirect('/auth/login');
     }
 
-    // Find the specific order
-    const purchaseHistory = student.getPurchaseHistory();
-    const order = purchaseHistory.find((p) => p.orderNumber === orderNumber);
+    // First try to find in Purchase model (new system)
+    const Purchase = require('../models/Purchase');
+    let order = await Purchase.findOne({ 
+      user: studentId, 
+      orderNumber: orderNumber 
+    })
+    .populate('appliedPromoCode', 'code name description discountType discountValue')
+    .populate('items.item')
+    .lean();
 
+    let isNewSystem = true;
+
+    // If not found in Purchase model, try User model (legacy system)
     if (!order) {
-      req.flash('error_msg', 'Order not found');
-      return res.redirect('/student/order-history');
+      isNewSystem = false;
+      const purchaseHistory = student.getPurchaseHistory();
+      order = purchaseHistory.find((p) => p.orderNumber === orderNumber);
+      
+      if (!order) {
+        req.flash('error_msg', 'Order not found');
+        return res.redirect('/student/order-history');
+      }
     }
 
-    // Populate item details
+    // Populate item details based on system and type
     const Course = require('../models/Course');
     const BundleCourse = require('../models/BundleCourse');
 
     let item = null;
-    if (order.type === 'course') {
-      item = await Course.findById(order.course)
-        .populate('topics', 'title description')
-        .select(
-          'title description shortDescription thumbnail level duration tags topics price'
-        );
-    } else if (order.type === 'bundle') {
-      item = await BundleCourse.findById(order.bundle)
-        .populate(
-          'courses',
-          'title description shortDescription thumbnail level duration'
-        )
-        .select(
-          'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
-        );
+    let itemType = 'unknown';
+    let courseId = null;
+    let bundleId = null;
+
+    if (isNewSystem) {
+      // New system - use items array
+      const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
+      
+      if (firstItem && firstItem.itemType === 'course') {
+        itemType = 'course';
+        courseId = firstItem.item;
+        item = await Course.findById(firstItem.item)
+          .populate('topics', 'title description')
+          .select(
+            'title description shortDescription thumbnail level duration tags topics price'
+          );
+      } else if (firstItem && firstItem.itemType === 'bundle') {
+        itemType = 'bundle';
+        bundleId = firstItem.item;
+        item = await BundleCourse.findById(firstItem.item)
+          .populate(
+            'courses',
+            'title description shortDescription thumbnail level duration'
+          )
+          .select(
+            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
+          );
+      }
+    } else {
+      // Legacy system - use direct course/bundle fields
+      if (order.type === 'course' && order.course) {
+        itemType = 'course';
+        courseId = order.course;
+        item = await Course.findById(order.course)
+          .populate('topics', 'title description')
+          .select(
+            'title description shortDescription thumbnail level duration tags topics price'
+          );
+      } else if (order.type === 'bundle' && order.bundle) {
+        itemType = 'bundle';
+        bundleId = order.bundle;
+        item = await BundleCourse.findById(order.bundle)
+          .populate(
+            'courses',
+            'title description shortDescription thumbnail level duration'
+          )
+          .select(
+            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
+          );
+      }
     }
 
+    // Format the order data for the template
+    const formattedOrder = {
+      ...order,
+      item: item,
+      type: itemType,
+      course: courseId,
+      bundle: bundleId,
+      price: order.price || (order.items && order.items[0] ? order.items[0].price : 0),
+      purchasedAt: order.purchasedAt || order.createdAt,
+      // Ensure we have all necessary fields
+      orderNumber: order.orderNumber,
+      status: order.status || 'completed',
+      total: order.total || order.price,
+      subtotal: order.subtotal || order.price,
+      tax: order.tax || 0,
+      discountAmount: order.discountAmount || 0,
+      originalAmount: order.originalAmount || order.price,
+      appliedPromoCode: order.appliedPromoCode,
+      promoCodeUsed: order.promoCodeUsed
+    };
+
+    // Debug logging
+    console.log('Order found:', !!order);
+    console.log('Order type:', order.type);
+    console.log('Item populated:', !!item);
+    console.log('Item title:', item ? item.title : 'No item');
+    console.log('Formatted order data:', JSON.stringify(formattedOrder, null, 2));
+
     res.render('student/order-details', {
-      title: `Order #${orderNumber}`,
+      title: `Order #${orderNumber} | ELKABLY`,
       student,
-      order: { ...order, item },
+      order: formattedOrder,
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
   } catch (error) {
@@ -1185,7 +1350,7 @@ const homeworkAttempts = async (req, res) => {
     const totalPages = Math.ceil(totalAttempts / limit);
 
     res.render('student/homework-attempts', {
-      title: 'My Homework Attempts',
+      title: 'My Homework Attempts | ELKABLY',
       student,
       homeworkProgress,
       pagination: {
@@ -1220,7 +1385,7 @@ const profile = async (req, res) => {
     const achievements = await Progress.getStudentAchievements(studentId);
 
     res.render('student/profile', {
-      title: 'My Profile',
+      title: 'My Profile | ELKABLY',
       student,
       achievements,
       theme: req.cookies.theme || student.preferences?.theme || 'light',
@@ -1251,8 +1416,11 @@ const updateProfile = async (req, res) => {
       'firstName',
       'lastName',
       'schoolName',
-      'englishTeacher',
-      'howDidYouKnow',
+      'grade',
+      'studentNumber',
+      'parentNumber',
+      'studentCountryCode',
+      'parentCountryCode',
     ];
     const filteredUpdates = {};
 
@@ -1283,6 +1451,55 @@ const updateProfile = async (req, res) => {
       });
     }
 
+    // Validate phone numbers if provided
+    if (filteredUpdates.studentNumber && filteredUpdates.studentCountryCode) {
+      const phoneLengthStandards = {
+        '+966': 9,  // Saudi Arabia: 9 digits
+        '+20': 11,  // Egypt: 11 digits (including leading 0)
+        '+971': 9,  // UAE: 9 digits
+        '+965': 8   // Kuwait: 8 digits
+      };
+      
+      const studentNumber = filteredUpdates.studentNumber.replace(/[^\d]/g, '');
+      const expectedLength = phoneLengthStandards[filteredUpdates.studentCountryCode];
+      
+      if (expectedLength && studentNumber.length !== expectedLength) {
+        return res.status(400).json({
+          success: false,
+          message: `Student number must be ${expectedLength} digits for the selected country.`,
+        });
+      }
+    }
+
+    if (filteredUpdates.parentNumber && filteredUpdates.parentCountryCode) {
+      const phoneLengthStandards = {
+        '+966': 9,  // Saudi Arabia: 9 digits
+        '+20': 11,  // Egypt: 11 digits (including leading 0)
+        '+971': 9,  // UAE: 9 digits
+        '+965': 8   // Kuwait: 8 digits
+      };
+      
+      const parentNumber = filteredUpdates.parentNumber.replace(/[^\d]/g, '');
+      const expectedLength = phoneLengthStandards[filteredUpdates.parentCountryCode];
+      
+      if (expectedLength && parentNumber.length !== expectedLength) {
+        return res.status(400).json({
+          success: false,
+          message: `Parent number must be ${expectedLength} digits for the selected country.`,
+        });
+      }
+    }
+
+    // Check if student and parent numbers are the same
+    if (filteredUpdates.studentNumber && filteredUpdates.parentNumber && 
+        filteredUpdates.studentNumber === filteredUpdates.parentNumber && 
+        filteredUpdates.studentCountryCode === filteredUpdates.parentCountryCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student and parent phone numbers cannot be the same.',
+      });
+    }
+
     const student = await User.findByIdAndUpdate(studentId, filteredUpdates, {
       new: true,
       runValidators: true,
@@ -1303,8 +1520,11 @@ const updateProfile = async (req, res) => {
         firstName: student.firstName,
         lastName: student.lastName,
         schoolName: student.schoolName,
-        englishTeacher: student.englishTeacher,
-        howDidYouKnow: student.howDidYouKnow,
+        grade: student.grade,
+        studentNumber: student.studentNumber,
+        parentNumber: student.parentNumber,
+        studentCountryCode: student.studentCountryCode,
+        parentCountryCode: student.parentCountryCode,
       },
     });
   } catch (error) {
@@ -1337,7 +1557,7 @@ const settings = async (req, res) => {
     }
 
     res.render('student/settings', {
-      title: 'Settings',
+      title: 'Settings | ELKABLY',
       student,
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
@@ -1854,7 +2074,7 @@ const takeContentQuiz = async (req, res) => {
     );
     console.log('Populated Content Item:', populatedContentItem);
     res.render('student/take-content-quiz', {
-      title: `Taking ${contentItem.title}`,
+      title: `Taking ${contentItem.title} | ELKABLY`,
       student,
       course,
       topic,
@@ -2002,9 +2222,12 @@ const submitContentQuiz = async (req, res) => {
         points = selectedQ.points || 1;
       }
 
+      // Only include answered questions or provide a default value for unanswered ones
+      const answerValue = userAnswer || (question.questionType === 'Written' ? 'No answer provided' : '0');
+      
       detailedAnswers.push({
         questionId: question._id,
-        selectedAnswer: userAnswer || '',
+        selectedAnswer: answerValue,
         correctAnswer:
           question.questionType === 'Written'
             ? question.getAllCorrectAnswers()
@@ -2190,7 +2413,7 @@ const quizResults = async (req, res) => {
     }
 
     res.render('student/quiz-results', {
-      title: `${contentItem.title} - Results`,
+      title: `${contentItem.title} - Results | ELKABLY`,
       student,
       course,
       topic,
@@ -2629,9 +2852,12 @@ const submitStandaloneQuiz = async (req, res) => {
       }
       totalPoints += points;
 
+      // Only include answered questions or provide a default value for unanswered ones
+      const answerValue = userAnswer || (question.questionType === 'Written' ? 'No answer provided' : '0');
+      
       detailedAnswers.push({
         questionId: question._id,
-        selectedAnswer: userAnswer || '',
+        selectedAnswer: answerValue,
         correctAnswer:
           question.questionType === 'Written'
             ? question.correctAnswers
@@ -2707,12 +2933,27 @@ const getStandaloneQuizResults = async (req, res) => {
     const attemptHistory = quiz.getUserAttemptHistory(student.quizAttempts);
     const bestScore = quiz.getUserBestScore(student.quizAttempts);
 
+    // Get the latest attempt for the score display
+    const latestAttempt = attemptHistory && attemptHistory.length > 0 
+      ? attemptHistory[attemptHistory.length - 1] 
+      : null;
+
+    // Check if answers can be shown
+    let canShowAnswers = quiz.showCorrectAnswers !== false;
+    const lastPassed = !!latestAttempt?.passed;
+    if (!lastPassed) {
+      canShowAnswers = false;
+    }
+
     res.render('student/standalone-quiz-results', {
       title: `${quiz.title} - Results`,
       quiz,
       student,
       attemptHistory,
       bestScore,
+      latestAttempt,
+      canShowAnswers,
+      lastPassed,
       theme: student.preferences?.theme || 'light',
     });
   } catch (error) {
@@ -3025,6 +3266,316 @@ const getZoomMeetingHistory = async (req, res) => {
   }
 };
 
+// Secure endpoint to get a single question
+const getSecureQuestion = async (req, res) => {
+  try {
+    const { contentId, questionIndex, attemptNumber } = req.body;
+    const studentId = req.session.user.id;
+
+    console.log('Secure Question Request:', { contentId, questionIndex, attemptNumber });
+
+    // Validate required fields
+    if (!contentId || questionIndex === undefined || !attemptNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields for question request'
+      });
+    }
+
+    const student = await User.findById(studentId);
+
+    // Find the content item
+    let contentItem = null;
+    for (const enrollment of student.enrolledCourses) {
+      const courseData = await Course.findById(enrollment.course).populate({
+        path: 'topics',
+        populate: {
+          path: 'content',
+          model: 'ContentItem',
+          populate: {
+            path: 'selectedQuestions.question',
+            populate: {
+              path: 'options'
+            }
+          }
+        },
+      });
+
+      if (courseData) {
+        for (const topicData of courseData.topics) {
+          contentItem = topicData.content.find(c => c._id.toString() === contentId);
+          if (contentItem) break;
+        }
+        if (contentItem) break;
+      }
+    }
+
+    if (!contentItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Content item not found'
+      });
+    }
+
+    // Validate question index
+    if (questionIndex < 0 || questionIndex >= contentItem.selectedQuestions.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid question index'
+      });
+    }
+
+    // Get the specific question (without correct answers)
+    const selectedQuestion = contentItem.selectedQuestions[questionIndex];
+    const question = selectedQuestion.question;
+
+    // Create secure question object (no correct answers)
+    const secureQuestion = {
+      _id: question._id,
+      questionText: question.questionText,
+      questionType: question.questionType,
+      questionImage: question.questionImage,
+      points: selectedQuestion.points || 1,
+      options: question.questionType !== 'Written' ? question.options.map(option => ({
+        _id: option._id,
+        text: option.text,
+        image: option.image
+        // NO correctAnswer field for security
+      })) : []
+    };
+
+    res.json({
+      success: true,
+      question: secureQuestion,
+      totalQuestions: contentItem.selectedQuestions.length,
+      questionIndex: questionIndex
+    });
+
+  } catch (error) {
+    console.error('Error getting secure question:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error loading question. Please try again.'
+    });
+  }
+};
+
+// Secure endpoint to load all questions at once (without correct answers)
+const getSecureAllQuestions = async (req, res) => {
+  try {
+    const { contentId, attemptNumber } = req.body;
+    const studentId = req.session.user.id;
+
+    console.log('Secure All Questions Request:', { contentId, attemptNumber });
+
+    // Validate required fields
+    if (!contentId || !attemptNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields for questions request'
+      });
+    }
+
+    const student = await User.findById(studentId);
+
+    // Find the content item
+    let contentItem = null;
+    for (const enrollment of student.enrolledCourses) {
+      const courseData = await Course.findById(enrollment.course).populate({
+        path: 'topics',
+        populate: {
+          path: 'content',
+          model: 'ContentItem',
+          populate: {
+            path: 'selectedQuestions.question',
+            populate: {
+              path: 'options'
+            }
+          }
+        },
+      });
+
+      if (courseData) {
+        for (const topicData of courseData.topics) {
+          contentItem = topicData.content.find(c => c._id.toString() === contentId);
+          if (contentItem) break;
+        }
+        if (contentItem) break;
+      }
+    }
+
+    if (!contentItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Content item not found'
+      });
+    }
+
+    // Create secure questions array (no correct answers)
+    const secureQuestions = contentItem.selectedQuestions.map((selectedQuestion, index) => {
+      const question = selectedQuestion.question;
+      return {
+        _id: question._id,
+        questionText: question.questionText,
+        questionType: question.questionType,
+        questionImage: question.questionImage,
+        points: selectedQuestion.points || 1,
+        index: index,
+        options: question.questionType !== 'Written' ? question.options.map(option => ({
+          _id: option._id,
+          text: option.text,
+          image: option.image
+          // NO correctAnswer field for security
+        })) : []
+      };
+    });
+
+    res.json({
+      success: true,
+      questions: secureQuestions,
+      totalQuestions: secureQuestions.length
+    });
+
+  } catch (error) {
+    console.error('Error getting secure questions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error loading questions. Please try again.'
+    });
+  }
+};
+
+// Secure endpoint to check if a question is answered
+const checkQuestionAnswered = async (req, res) => {
+  try {
+    const { contentId, questionIndex, attemptNumber } = req.body;
+    const studentId = req.session.user.id;
+
+    // Find existing progress for this attempt
+    const progress = await Progress.findOne({
+      student: studentId,
+      content: contentId,
+      attemptNumber: attemptNumber
+    });
+
+    if (!progress || !progress.answers) {
+      return res.json({
+        success: true,
+        answered: false
+      });
+    }
+
+    const student = await User.findById(studentId);
+
+    // Find the content item to get question ID
+    let contentItem = null;
+    for (const enrollment of student.enrolledCourses) {
+      const courseData = await Course.findById(enrollment.course).populate({
+        path: 'topics',
+        populate: {
+          path: 'content',
+          model: 'ContentItem',
+          populate: {
+            path: 'selectedQuestions.question'
+          }
+        },
+      });
+
+      if (courseData) {
+        for (const topicData of courseData.topics) {
+          contentItem = topicData.content.find(c => c._id.toString() === contentId);
+          if (contentItem) break;
+        }
+        if (contentItem) break;
+      }
+    }
+
+    if (!contentItem || questionIndex >= contentItem.selectedQuestions.length) {
+      return res.json({
+        success: true,
+        answered: false
+      });
+    }
+
+    const questionId = contentItem.selectedQuestions[questionIndex].question._id.toString();
+    const answered = progress.answers[questionId] !== undefined;
+
+    res.json({
+      success: true,
+      answered: answered
+    });
+
+  } catch (error) {
+    console.error('Error checking question answered status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking answer status'
+    });
+  }
+};
+
+// Secure endpoint to get standalone quiz questions (without correct answers)
+const getSecureStandaloneQuizQuestions = async (req, res) => {
+  try {
+    const { quizId, attemptNumber } = req.body;
+    const studentId = req.session.user.id;
+
+    // Validate required fields
+    if (!quizId || !attemptNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields for quiz questions request'
+      });
+    }
+
+    // Find the quiz
+    const quiz = await Quiz.findById(quizId).populate({
+      path: 'selectedQuestions.question',
+      populate: {
+        path: 'options'
+      }
+    });
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+
+    // Create secure questions array (no correct answers)
+    const secureQuestions = quiz.selectedQuestions.map((selectedQuestion, index) => {
+      const question = selectedQuestion.question;
+      return {
+        _id: question._id,
+        questionText: question.questionText,
+        questionType: question.questionType,
+        questionImage: question.questionImage,
+        points: selectedQuestion.points || 1,
+        index: index,
+        options: question.questionType !== 'Written' ? question.options.map(option => ({
+          _id: option._id,
+          text: option.text,
+          image: option.image
+          // NO correctAnswer field for security
+        })) : []
+      };
+    });
+
+    res.json({
+      success: true,
+      questions: secureQuestions,
+      totalQuestions: secureQuestions.length
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error loading quiz questions. Please try again.'
+    });
+  }
+};
+
 module.exports = {
   dashboard,
   enrolledCourses,
@@ -3060,8 +3611,14 @@ module.exports = {
   takeQuizPage,
   submitStandaloneQuiz,
   getStandaloneQuizResults,
+  // Secure Quiz functions
+  getSecureQuestion,
+  getSecureAllQuestions,
+  checkQuestionAnswered,
   // Zoom Meeting functions
   joinZoomMeeting,
   leaveZoomMeeting,
   getZoomMeetingHistory,
+  // Secure standalone quiz functions
+  getSecureStandaloneQuizQuestions,
 };

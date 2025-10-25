@@ -172,7 +172,7 @@
             <div class="quiz-form-group">
               <label for="description" class="quiz-form-label">
                 <i class="fas fa-align-left"></i>
-                Description *
+                Description (Optional)
               </label>
               <textarea id="description" name="description" class="quiz-form-control quiz-form-textarea" placeholder="Describe what this quiz covers and its objectives" maxlength="1000"></textarea>
             </div>
@@ -424,14 +424,46 @@
           </div>
 
           <div class="quiz-step-card-body">
+            <!-- Professional Question Selection Tools -->
+            <div class="question-selection-tools mb-3">
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" id="rangeInput" placeholder="e.g., 1-5, 8, 10-12">
+                    <button class="btn btn-outline-secondary" type="button" onclick="selectRange()">
+                      <i class="fas fa-list-ol"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllQuestions()">
+                      <i class="fas fa-check-double me-1"></i> All
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                      <i class="fas fa-times me-1"></i> Clear
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="selectEvenQuestions()">
+                      <i class="fas fa-sort-numeric-down me-1"></i> Even
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="selectOddQuestions()">
+                      <i class="fas fa-sort-numeric-up me-1"></i> Odd
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="selectRandomQuestions()">
+                      <i class="fas fa-random me-1"></i> Random 30%
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Enhanced Question Filters -->
-            <div class="enhanced-question-filters-section">
+            <div class="enhanced-question-filters-section mb-3">
               <div class="enhanced-filters-header">
-                <h5>
+                <h6>
                   <i class="fas fa-filter"></i>
                   Filter & Search Questions
-                </h5>
-                <p>Use filters to find the questions you want to include in your quiz</p>
+                </h6>
               </div>
 
               <div class="enhanced-filters-grid">
@@ -472,138 +504,42 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Enhanced Quick Actions -->
-              <div class="enhanced-quick-actions">
-                <div class="quick-actions-header">
-                  <h6>
-                    <i class="fas fa-bolt"></i>
-                    Quick Actions
-                  </h6>
                 </div>
-                <div class="quick-actions-buttons">
-                  <button type="button" class="btn btn-sm btn-success" onclick="selectAllQuestions()" title="Select All Visible Questions">
-                    <i class="fas fa-check-double"></i>
-                    Select All
-                  </button>
-                  <button type="button" class="btn btn-sm btn-warning" onclick="clearSelection()" title="Clear All Selections">
-                    <i class="fas fa-times"></i>
-                    Clear All
-                  </button>
-                  <button type="button" class="btn btn-sm btn-info" onclick="selectEvenQuestions()" title="Select Even Numbered Questions">
-                    <i class="fas fa-sort-numeric-up"></i>
-                    Even
-                  </button>
-                  <button type="button" class="btn btn-sm btn-info" onclick="selectOddQuestions()" title="Select Odd Numbered Questions">
-                    <i class="fas fa-sort-numeric-down"></i>
-                    Odd
-                  </button>
 
+            <!-- Questions Container -->
+            <div class="questions-container">
+              <div class="questions-grid" id="questionsGrid">
+                <!-- Questions will be loaded here as circles -->
                 </div>
-              </div>
-
-              <!-- Range Selection -->
-              <div class="row mt-3">
-                <div class="col-md-6">
-                  <div class="question-filter-group">
-                    <label class="question-filter-label">Range Selection</label>
-                    <div class="range-selection-container">
-                      <input type="text" class="question-filter-select" id="rangeInput" placeholder="e.g., 1-5, 3, 7-10" style="flex: 1; margin-right: 0.5rem;" onkeypress="if(event.key==='Enter') selectRange()">
-                      <button type="button" class="btn btn-sm btn-primary" onclick="selectRange()" title="Select Range">
-                        <i class="fas fa-check"></i> OK
-                      </button>
-                    </div>
-                    <small class="text-muted">Enter question numbers or ranges (e.g., 1-5, 3, 7-10)</small>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="question-filter-group">
-                    <label class="question-filter-label">Quick Actions</label>
-                    <div class="question-filter-actions">
-                      <button type="button" class="btn btn-sm btn-info" onclick="selectEvenQuestions()" title="Select Even Numbers">
-                        <i class="fas fa-sort-numeric-up"></i> Even
-                      </button>
-                      <button type="button" class="btn btn-sm btn-info" onclick="selectOddQuestions()" title="Select Odd Numbers">
-                        <i class="fas fa-sort-numeric-down"></i> Odd
-                      </button>
-                      <button type="button" class="btn btn-sm btn-secondary" onclick="selectRandomQuestions()" title="Select Random Questions">
-                        <i class="fas fa-random"></i> Random
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Enhanced Questions Grid -->
-            <div class="enhanced-questions-container">
-              <div class="enhanced-questions-header">
-                <div class="enhanced-questions-title">
-                  <h5>
-                    <i class="fas fa-list-check"></i>
-                    Available Questions
-                  </h5>
-                  <span class="enhanced-questions-count" id="questionsCount">(0 questions)</span>
-                </div>
-                <div class="enhanced-questions-actions">
-                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleViewMode()" id="viewModeBtn">
-                    <i class="fas fa-th" id="viewModeIcon"></i>
-                    <span id="viewModeText">Grid View</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Grid View -->
-              <div id="questionsGrid" class="enhanced-questions-grid">
-                <!-- Questions will be loaded here as enhanced cards -->
-              </div>
-
-              <!-- List View -->
-              <div id="questionsList" class="enhanced-questions-list" style="display: none;">
-                <!-- Questions will be loaded here as list items -->
-              </div>
-
-              <div id="noQuestionsMessage" class="enhanced-no-questions-message" style="display: none;">
-                <div class="enhanced-no-questions-content">
-                  <div class="enhanced-no-questions-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                  </div>
-                  <div class="enhanced-no-questions-text">
-                    <h4>No Questions Available</h4>
-                    <p>Please go back to Step 2 and select a question bank first.</p>
-                    <button type="button" class="btn btn-primary" onclick="prevStep(2)">
-                      <i class="fas fa-arrow-left"></i>
-                      Go Back to Select Question Bank
-                    </button>
-                  </div>
-                </div>
+              <div id="noQuestionsMessage" class="text-center py-4" style="display: none;">
+                <i class="fas fa-question-circle fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-0">No Questions Available</p>
+                <small class="text-muted">The selected question bank doesn't contain any questions.</small>
               </div>
             </div>
 
             <!-- Selection Summary -->
-            <div class="question-selection-summary">
-              <div class="question-selection-summary-header">
-                <h5>
-                  <i class="fas fa-chart-bar"></i>
-                  Selection Summary
-                </h5>
+            <div class="selection-summary" id="selectionSummary">
+              <div class="summary-item">
+                <span class="summary-label">Selected Questions:</span>
+                <span class="summary-value" id="selectedCount">0</span>
+                </div>
+              <div class="summary-item">
+                <span class="summary-label">Total Points:</span>
+                <span class="summary-value" id="totalPoints">0</span>
+                </div>
+              <div class="summary-item">
+                <span class="summary-label">Difficulty Distribution:</span>
+                <div class="difficulty-distribution" id="difficultyDistribution">
+                  <div class="difficulty-item">
+                    <span class="badge bg-success">Easy: <span id="easyCount">0</span></span>
               </div>
-              <div class="question-selection-stats">
-                <div class="question-selection-stat">
-                  <span class="question-selection-stat-number" id="selectedCount">0</span>
-                  <span class="question-selection-stat-label">Selected</span>
-                </div>
-                <div class="question-selection-stat">
-                  <span class="question-selection-stat-number" id="totalPoints">0</span>
-                  <span class="question-selection-stat-label">Total Points</span>
-                </div>
-                <div class="question-selection-stat">
-                  <span class="question-selection-stat-number" id="avgDifficulty">-</span>
-                  <span class="question-selection-stat-label">Avg Difficulty</span>
-                </div>
-                <div class="question-selection-stat">
-                  <span class="question-selection-stat-number" id="estimatedTime">-</span>
-                  <span class="question-selection-stat-label">Est. Time (min)</span>
+                  <div class="difficulty-item">
+                    <span class="badge bg-warning">Medium: <span id="mediumCount">0</span></span>
+              </div>
+                  <div class="difficulty-item">
+                    <span class="badge bg-danger">Hard: <span id="hardCount">0</span></span>
+              </div>
                 </div>
               </div>
             </div>
@@ -730,10 +666,7 @@
           showNotification('Quiz code can only contain uppercase letters, numbers, and hyphens', 'error');
           return false;
         }
-        if (!description) {
-          showNotification('Quiz description is required', 'error');
-          return false;
-        }
+        // Description is now optional, so no validation needed
         if (duration === '' || duration === null || duration === undefined) {
           showNotification('Quiz duration is required', 'error');
           return false;
@@ -893,285 +826,76 @@
         }
       }
 
-      // Enhanced Display Questions with Grid and List Views
-      let currentViewMode = 'grid'; // 'grid' or 'list'
-
+      // Professional Display Questions with Circle-based Selection
       function displayQuestions(questions) {
         const questionsGrid = document.getElementById('questionsGrid');
-        const questionsList = document.getElementById('questionsList');
         const noQuestionsMessage = document.getElementById('noQuestionsMessage');
 
-        questionsGrid.innerHTML = '';
-        questionsList.innerHTML = '';
-        document.getElementById('questionsCount').textContent = `(${questions.length} questions)`;
-
         if (!questions || questions.length === 0) {
+          questionsGrid.innerHTML = '';
           noQuestionsMessage.style.display = 'block';
-          questionsGrid.style.display = 'none';
-          questionsList.style.display = 'none';
           return;
         }
 
         noQuestionsMessage.style.display = 'none';
 
-        questions.forEach((question, index) => {
-          // Create enhanced question card for grid view
-          const questionCard = createEnhancedQuestionCard(question, index);
-          questionsGrid.appendChild(questionCard);
+        // Create question circles like in course-content.ejs
+        questionsGrid.innerHTML = questions.map((question, index) => `
+          <div class="question-circle ${question.difficulty || 'medium'}" 
+               onclick="toggleQuestionSelection(${index})" 
+               data-question-index="${index}"
+               title="Question ${index + 1}: ${question.questionText || 'Click to select'}"
+               data-question-id="${question._id}">
+            ${index + 1}
+            <div class="preview-icon" onclick="event.stopPropagation(); previewQuestion('${question._id}')" title="Preview Question">
+        <i class="fas fa-eye"></i>
+      </div>
+    </div>
+        `).join('');
 
-          // Create enhanced question item for list view
-          const questionItem = createEnhancedQuestionItem(question, index);
-          questionsList.appendChild(questionItem);
-        });
-
-        // Show appropriate view
-        if (currentViewMode === 'grid') {
-          questionsGrid.style.display = 'grid';
-          questionsList.style.display = 'none';
-        } else {
-          questionsGrid.style.display = 'none';
-          questionsList.style.display = 'block';
-        }
-
+        // Restore visual state of selected questions
+        restoreQuestionSelection();
         updateSelectionSummary();
       }
 
-      function createEnhancedQuestionCard(question, index) {
-        const questionCard = document.createElement('div');
-        questionCard.className = 'enhanced-question-card';
-        questionCard.dataset.questionId = question._id;
-        questionCard.dataset.questionIndex = index;
-
-        // Get question type display info
-        const typeInfo = getQuestionTypeInfo(question.questionType);
-
-        // Get difficulty color
-        const difficultyColor = getDifficultyColor(question.difficulty);
-
-        // Get answer count for written questions
-        let answerCount = '';
-        if (question.questionType === 'Written' && question.correctAnswers) {
-          answerCount = `${question.correctAnswers.length} answer${question.correctAnswers.length !== 1 ? 's' : ''}`;
-        } else if (question.options) {
-          answerCount = `${question.options.length} option${question.options.length !== 1 ? 's' : ''}`;
-        }
-
-        questionCard.innerHTML = `
-    <div class="enhanced-question-card-header">
-      <div class="enhanced-question-number">${index + 1}</div>
-      <div class="enhanced-question-actions">
-        <button type="button" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); previewQuestion('${question._id}')" title="Preview Question">
-        <i class="fas fa-eye"></i>
-        </button>
-      </div>
-    </div>
-    
-    <div class="enhanced-question-card-body">
-      <div class="enhanced-question-content">
-        <div class="enhanced-question-text">${truncateText(question.questionText, 100)}</div>
-        <div class="enhanced-question-meta">
-          <div class="enhanced-question-type" style="background: ${typeInfo.color}">
-            <i class="${typeInfo.icon}"></i>
-            <span>${typeInfo.label}</span>
-          </div>
-          <div class="enhanced-question-difficulty" style="background: ${difficultyColor}">
-            <i class="fas fa-signal"></i>
-            <span>${question.difficulty}</span>
-          </div>
-        </div>
-        <div class="enhanced-question-stats">
-          <div class="enhanced-question-stat">
-            <i class="fas fa-star"></i>
-            <span>${question.points} pts</span>
-          </div>
-          <div class="enhanced-question-stat">
-            <i class="fas fa-list"></i>
-            <span>${answerCount}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="enhanced-question-card-footer">
-      <div class="enhanced-question-selection">
-        <div class="enhanced-selection-indicator">
-        <i class="fas fa-check"></i>
-        </div>
-        <span class="enhanced-selection-text">Click to select</span>
-      </div>
-      </div>
-    `;
-
-        questionCard.addEventListener('click', (e) => {
-          e.preventDefault();
-          toggleQuestionSelection(question._id, questionCard);
+      function restoreQuestionSelection() {
+        // Clear all selections first
+        document.querySelectorAll('.question-circle').forEach(circle => {
+          circle.classList.remove('selected');
         });
 
-        return questionCard;
-      }
-
-      function createEnhancedQuestionItem(question, index) {
-        const questionItem = document.createElement('div');
-        questionItem.className = 'enhanced-question-item';
-        questionItem.dataset.questionId = question._id;
-        questionItem.dataset.questionIndex = index;
-
-        // Get question type display info
-        const typeInfo = getQuestionTypeInfo(question.questionType);
-
-        // Get answer count for written questions
-        let answerCount = '';
-        if (question.questionType === 'Written' && question.correctAnswers) {
-          answerCount = `${question.correctAnswers.length} answer${question.correctAnswers.length !== 1 ? 's' : ''}`;
-        } else if (question.options) {
-          answerCount = `${question.options.length} option${question.options.length !== 1 ? 's' : ''}`;
-        }
-
-        questionItem.innerHTML = `
-    <div class="enhanced-question-item-header">
-      <div class="enhanced-question-item-number">${index + 1}</div>
-      <div class="enhanced-question-item-actions">
-        <button type="button" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); previewQuestion('${question._id}')" title="Preview Question">
-          <i class="fas fa-eye"></i>
-        </button>
-      </div>
-    </div>
-    
-    <div class="enhanced-question-item-body">
-      <div class="enhanced-question-item-content">
-        <div class="enhanced-question-item-text">${question.questionText}</div>
-        <div class="enhanced-question-item-meta">
-          <div class="enhanced-question-item-type" style="background: ${typeInfo.color}">
-            <i class="${typeInfo.icon}"></i>
-            <span>${typeInfo.label}</span>
-          </div>
-          <div class="enhanced-question-item-difficulty difficulty-${question.difficulty.toLowerCase()}">
-            <i class="fas fa-signal"></i>
-            <span>${question.difficulty}</span>
-          </div>
-          <div class="enhanced-question-item-points">
-            <i class="fas fa-star"></i>
-            <span>${question.points} points</span>
-          </div>
-          <div class="enhanced-question-item-answers">
-            <i class="fas fa-list"></i>
-            <span>${answerCount}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="enhanced-question-item-footer">
-      <div class="enhanced-question-item-selection">
-        <div class="enhanced-selection-indicator">
-          <i class="fas fa-check"></i>
-        </div>
-        <span class="enhanced-selection-text">Click to select</span>
-      </div>
-    </div>
-  `;
-
-        questionItem.addEventListener('click', (e) => {
-          e.preventDefault();
-          toggleQuestionSelection(question._id, questionItem);
-        });
-
-        return questionItem;
-      }
-
-      function getQuestionTypeInfo(questionType) {
-        const typeMap = {
-          'MCQ': {
-            label: 'Multiple Choice',
-            icon: 'fas fa-list-ul',
-            color: '#3b82f6'
-          },
-          'True/False': {
-            label: 'True/False',
-            icon: 'fas fa-check-circle',
-            color: '#10b981'
-          },
-          'Written': {
-            label: 'Written',
-            icon: 'fas fa-edit',
-            color: '#f59e0b'
+        // Restore selections based on selectedQuestions array
+        selectedQuestions.forEach(selection => {
+          const questionIndex = allQuestions.findIndex(q => q._id === selection.question);
+          if (questionIndex !== -1) {
+            const questionElement = document.querySelector(`[data-question-index="${questionIndex}"]`);
+            if (questionElement) {
+              questionElement.classList.add('selected');
+            }
           }
-        };
-        return typeMap[questionType] || {
-          label: questionType,
-          icon: 'fas fa-question',
-          color: '#6b7280'
-        };
+        });
       }
 
-      function getDifficultyColor(difficulty) {
-        const colorMap = {
-          'Easy': '#10b981',
-          'Medium': '#f59e0b',
-          'Hard': '#ef4444'
-        };
-        return colorMap[difficulty] || '#6b7280';
-      }
-
-      function truncateText(text, maxLength) {
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength) + '...';
-      }
-
-      function toggleViewMode() {
-        const questionsGrid = document.getElementById('questionsGrid');
-        const questionsList = document.getElementById('questionsList');
-        const viewModeIcon = document.getElementById('viewModeIcon');
-        const viewModeText = document.getElementById('viewModeText');
-
-        if (currentViewMode === 'grid') {
-          currentViewMode = 'list';
-          questionsGrid.style.display = 'none';
-          questionsList.style.display = 'block';
-          viewModeIcon.className = 'fas fa-list';
-          viewModeText.textContent = 'List View';
-        } else {
-          currentViewMode = 'grid';
-          questionsGrid.style.display = 'grid';
-          questionsList.style.display = 'none';
-          viewModeIcon.className = 'fas fa-th';
-          viewModeText.textContent = 'Grid View';
-        }
-      }
 
       // Toggle Question Selection
-      function toggleQuestionSelection(questionId, element) {
+      function toggleQuestionSelection(index) {
+        const questionElement = document.querySelector(`[data-question-index="${index}"]`);
+        const questionId = allQuestions[index]._id;
         const existingIndex = selectedQuestions.findIndex(sq => sq.question === questionId);
 
         if (existingIndex > -1) {
           // Remove from selection
           selectedQuestions.splice(existingIndex, 1);
-          element.classList.remove('selected');
-
-          // Update selection indicator
-          const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-          const selectionText = element.querySelector('.enhanced-selection-text');
-          if (selectionIndicator && selectionText) {
-            selectionIndicator.style.display = 'none';
-            selectionText.textContent = 'Click to select';
-          }
+          questionElement.classList.remove('selected');
         } else {
           // Add to selection
-          const question = allQuestions.find(q => q._id === questionId);
+          const question = allQuestions[index];
           selectedQuestions.push({
             question: questionId,
             order: selectedQuestions.length + 1,
             points: question.points || 1
           });
-          element.classList.add('selected');
-
-          // Update selection indicator
-          const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-          const selectionText = element.querySelector('.enhanced-selection-text');
-          if (selectionIndicator && selectionText) {
-            selectionIndicator.style.display = 'flex';
-            selectionText.textContent = 'Selected';
-          }
+          questionElement.classList.add('selected');
         }
 
         updateSelectionSummary();
@@ -1180,50 +904,26 @@
 
       // Select All Questions
       function selectAllQuestions() {
-        const visibleElements = Array.from(document.querySelectorAll('.enhanced-question-card:not([style*="display: none"]), .enhanced-question-item:not([style*="display: none"])'));
-        let selectedCount = 0;
-
-        visibleElements.forEach(element => {
-          const questionId = element.dataset.questionId;
-          if (!selectedQuestions.some(sq => sq.question === questionId)) {
-            const question = allQuestions.find(q => q._id === questionId);
-            selectedQuestions.push({
-              question: questionId,
+        selectedQuestions = allQuestions.map(question => ({
+          question: question._id,
               order: selectedQuestions.length + 1,
               points: question.points || 1
-            });
-            element.classList.add('selected');
-
-            // Update selection indicator
-            const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-            const selectionText = element.querySelector('.enhanced-selection-text');
-            if (selectionIndicator && selectionText) {
-              selectionIndicator.style.display = 'flex';
-              selectionText.textContent = 'Selected';
-            }
-
-            selectedCount++;
-          }
+        }));
+        
+        document.querySelectorAll('.question-circle').forEach((circle, index) => {
+          circle.classList.add('selected');
         });
 
         updateSelectionSummary();
         updateCreateButton();
-        showNotification(`Selected ${selectedCount} questions`, 'success');
+        showNotification(`Selected all ${allQuestions.length} questions`, 'success');
       }
 
       // Clear Selection
       function clearSelection() {
         selectedQuestions = [];
-        document.querySelectorAll('.enhanced-question-card, .enhanced-question-item').forEach(element => {
-          element.classList.remove('selected');
-
-          // Update selection indicator
-          const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-          const selectionText = element.querySelector('.enhanced-selection-text');
-          if (selectionIndicator && selectionText) {
-            selectionIndicator.style.display = 'none';
-            selectionText.textContent = 'Click to select';
-          }
+        document.querySelectorAll('.question-circle').forEach(circle => {
+          circle.classList.remove('selected');
         });
         updateSelectionSummary();
         updateCreateButton();
@@ -1238,46 +938,40 @@
           return;
         }
 
-        const questionNumbers = parseRangeInput(rangeInput);
-        if (questionNumbers.length === 0) {
-          showNotification('Invalid range format. Use: 1-5, 3, 7-10', 'error');
-          return;
-        }
+        clearSelection();
 
-        // Get all visible question elements (not filtered out)
-        const allElements = Array.from(document.querySelectorAll('.enhanced-question-card, .enhanced-question-item'));
-        const visibleElements = allElements.filter(element => {
-          const style = window.getComputedStyle(element);
-          return style.display !== 'none';
-        });
-
+        const ranges = rangeInput.split(',');
         let selectedCount = 0;
 
-        questionNumbers.forEach(num => {
-          if (num >= 1 && num <= visibleElements.length) {
-            const element = visibleElements[num - 1];
-            const questionId = element.dataset.questionId;
-
-            if (!selectedQuestions.some(sq => sq.question === questionId)) {
-              const question = allQuestions.find(q => q._id === questionId);
-              if (question) {
+        ranges.forEach(rangeStr => {
+          const trimmed = rangeStr.trim();
+          if (trimmed.includes('-')) {
+            // Range (e.g., "1-5")
+            const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()) - 1);
+            for (let i = start; i <= end && i < allQuestions.length; i++) {
+              if (i >= 0) {
+                const question = allQuestions[i];
                 selectedQuestions.push({
-                  question: questionId,
+                  question: question._id,
                   order: selectedQuestions.length + 1,
                   points: question.points || 1
                 });
-                element.classList.add('selected');
-
-                // Update selection indicator
-                const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-                const selectionText = element.querySelector('.enhanced-selection-text');
-                if (selectionIndicator && selectionText) {
-                  selectionIndicator.style.display = 'flex';
-                  selectionText.textContent = 'Selected';
-                }
-
+                document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
                 selectedCount++;
               }
+            }
+          } else {
+            // Single number (e.g., "3")
+            const index = parseInt(trimmed) - 1;
+            if (index >= 0 && index < allQuestions.length) {
+              const question = allQuestions[index];
+              selectedQuestions.push({
+                question: question._id,
+                order: selectedQuestions.length + 1,
+                points: question.points || 1
+              });
+              document.querySelector(`[data-question-index="${index}"]`).classList.add('selected');
+              selectedCount++;
             }
           }
         });
@@ -1295,61 +989,22 @@
         document.getElementById('rangeInput').value = '';
       }
 
-      // Parse range input (e.g., "1-5, 3, 7-10")
-      function parseRangeInput(input) {
-        const numbers = new Set();
-        const parts = input.split(',').map(part => part.trim());
-
-        parts.forEach(part => {
-          if (part.includes('-')) {
-            // Range (e.g., "1-5")
-            const [start, end] = part.split('-').map(n => parseInt(n.trim()));
-            if (!isNaN(start) && !isNaN(end) && start <= end) {
-              for (let i = start; i <= end; i++) {
-                numbers.add(i);
-              }
-            }
-          } else {
-            // Single number (e.g., "3")
-            const num = parseInt(part);
-            if (!isNaN(num)) {
-              numbers.add(num);
-            }
-          }
-        });
-
-        return Array.from(numbers).sort((a, b) => a - b);
-      }
 
       // Select Even Questions
       function selectEvenQuestions() {
-        const visibleElements = Array.from(document.querySelectorAll('.enhanced-question-card:not([style*="display: none"]), .enhanced-question-item:not([style*="display: none"])'));
+        clearSelection();
         let selectedCount = 0;
 
-        visibleElements.forEach((element, index) => {
-          if ((index + 1) % 2 === 0) { // Even numbers (2, 4, 6, ...)
-            const questionId = element.dataset.questionId;
-            if (!selectedQuestions.some(sq => sq.question === questionId)) {
-              const question = allQuestions.find(q => q._id === questionId);
+        for (let i = 1; i < allQuestions.length; i += 2) {
+          const question = allQuestions[i];
               selectedQuestions.push({
-                question: questionId,
+            question: question._id,
                 order: selectedQuestions.length + 1,
                 points: question.points || 1
               });
-              element.classList.add('selected');
-
-              // Update selection indicator
-              const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-              const selectionText = element.querySelector('.enhanced-selection-text');
-              if (selectionIndicator && selectionText) {
-                selectionIndicator.style.display = 'flex';
-                selectionText.textContent = 'Selected';
-              }
-
+          document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
               selectedCount++;
             }
-          }
-        });
 
         updateSelectionSummary();
         updateCreateButton();
@@ -1358,33 +1013,19 @@
 
       // Select Odd Questions
       function selectOddQuestions() {
-        const visibleElements = Array.from(document.querySelectorAll('.enhanced-question-card:not([style*="display: none"]), .enhanced-question-item:not([style*="display: none"])'));
+        clearSelection();
         let selectedCount = 0;
 
-        visibleElements.forEach((element, index) => {
-          if ((index + 1) % 2 === 1) { // Odd numbers (1, 3, 5, ...)
-            const questionId = element.dataset.questionId;
-            if (!selectedQuestions.some(sq => sq.question === questionId)) {
-              const question = allQuestions.find(q => q._id === questionId);
+        for (let i = 0; i < allQuestions.length; i += 2) {
+          const question = allQuestions[i];
               selectedQuestions.push({
-                question: questionId,
+            question: question._id,
                 order: selectedQuestions.length + 1,
                 points: question.points || 1
               });
-              element.classList.add('selected');
-
-              // Update selection indicator
-              const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-              const selectionText = element.querySelector('.enhanced-selection-text');
-              if (selectionIndicator && selectionText) {
-                selectionIndicator.style.display = 'flex';
-                selectionText.textContent = 'Selected';
-              }
-
+          document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
               selectedCount++;
             }
-          }
-        });
 
         updateSelectionSummary();
         updateCreateButton();
@@ -1393,38 +1034,25 @@
 
       // Select Random Questions
       function selectRandomQuestions() {
-        const visibleElements = Array.from(document.querySelectorAll('.enhanced-question-card:not([style*="display: none"]), .enhanced-question-item:not([style*="display: none"])'));
-        const availableQuestions = visibleElements.filter(element =>
-          !selectedQuestions.some(sq => sq.question === element.dataset.questionId)
-        );
+        clearSelection();
+        const count = Math.ceil(allQuestions.length * 0.3);
+        const randomIndices = [];
 
-        if (availableQuestions.length === 0) {
-          showNotification('All visible questions are already selected', 'info');
-          return;
+        while (randomIndices.length < count) {
+          const randomIndex = Math.floor(Math.random() * allQuestions.length);
+          if (!randomIndices.includes(randomIndex)) {
+            randomIndices.push(randomIndex);
+          }
         }
 
-        // Select 30% of available questions randomly
-        const count = Math.max(1, Math.floor(availableQuestions.length * 0.3));
-        const shuffled = availableQuestions.sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, count);
-
-        selected.forEach(element => {
-          const questionId = element.dataset.questionId;
-          const question = allQuestions.find(q => q._id === questionId);
+        randomIndices.forEach(index => {
+          const question = allQuestions[index];
           selectedQuestions.push({
-            question: questionId,
+            question: question._id,
             order: selectedQuestions.length + 1,
             points: question.points || 1
           });
-          element.classList.add('selected');
-
-          // Update selection indicator
-          const selectionIndicator = element.querySelector('.enhanced-selection-indicator');
-          const selectionText = element.querySelector('.enhanced-selection-text');
-          if (selectionIndicator && selectionText) {
-            selectionIndicator.style.display = 'flex';
-            selectionText.textContent = 'Selected';
-          }
+          document.querySelector(`[data-question-index="${index}"]`).classList.add('selected');
         });
 
         updateSelectionSummary();
@@ -1438,12 +1066,12 @@
         const typeFilter = document.getElementById('typeFilter').value;
         const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
 
-        // Filter both grid and list view elements
-        const questionElements = document.querySelectorAll('.enhanced-question-card, .enhanced-question-item');
+        // Filter question circles
+        const questionElements = document.querySelectorAll('.question-circle');
 
         questionElements.forEach(element => {
-          const questionId = element.dataset.questionId;
-          const question = allQuestions.find(q => q._id === questionId);
+          const questionIndex = parseInt(element.dataset.questionIndex);
+          const question = allQuestions[questionIndex];
 
           if (!question) return;
 
@@ -1467,68 +1095,38 @@
           // Show/hide the element
           element.style.display = show ? '' : 'none';
         });
-
-        // Update visible question count
-        updateVisibleQuestionCount();
       }
 
-      // Update visible question count after filtering
-      function updateVisibleQuestionCount() {
-        const visibleQuestions = document.querySelectorAll('.enhanced-question-card:not([style*="display: none"]), .enhanced-question-item:not([style*="display: none"])');
-        const totalQuestions = allQuestions.length;
-        const visibleCount = visibleQuestions.length;
-
-        const countElement = document.getElementById('questionsCount');
-        if (countElement) {
-          if (visibleCount === totalQuestions) {
-            countElement.textContent = `(${totalQuestions} questions)`;
-          } else {
-            countElement.textContent = `(${visibleCount} of ${totalQuestions} questions)`;
-          }
-        }
-      }
 
       // Update Selection Summary
       function updateSelectionSummary() {
-        document.getElementById('selectedCount').textContent = selectedQuestions.length;
+        const selectedCount = document.getElementById('selectedCount');
+        const totalPoints = document.getElementById('totalPoints');
+        const easyCount = document.getElementById('easyCount');
+        const mediumCount = document.getElementById('mediumCount');
+        const hardCount = document.getElementById('hardCount');
 
-        const totalPoints = selectedQuestions.reduce((sum, sq) => {
-          const question = allQuestions.find(q => q._id === sq.question);
-          return sum + (question ? question.points : 1);
-        }, 0);
-        document.getElementById('totalPoints').textContent = totalPoints;
+        if (selectedCount) selectedCount.textContent = selectedQuestions.length;
 
-        // Calculate average difficulty
-        if (selectedQuestions.length > 0) {
-          const difficulties = selectedQuestions.map(sq => {
-            const question = allQuestions.find(q => q._id === sq.question);
-            return question ? question.difficulty : 'medium';
-          });
+        let points = 0;
+        let easy = 0, medium = 0, hard = 0;
 
-          const difficultyCounts = difficulties.reduce((acc, diff) => {
-            acc[diff] = (acc[diff] || 0) + 1;
-            return acc;
-          }, {});
+        selectedQuestions.forEach(selection => {
+          const question = allQuestions.find(q => q._id === selection.question);
+          if (question) {
+            points += question.points || 1;
 
-          const total = difficulties.length;
-          const easyRatio = (difficultyCounts.easy || 0) / total;
-          const hardRatio = (difficultyCounts.hard || 0) / total;
+            const difficulty = question.difficulty || 'medium';
+            if (difficulty === 'easy') easy++;
+            else if (difficulty === 'hard') hard++;
+            else medium++;
+          }
+        });
 
-          let avgDifficulty = 'medium';
-          if (hardRatio > 0.4) avgDifficulty = 'hard';
-          else if (easyRatio > 0.6) avgDifficulty = 'easy';
-
-          document.getElementById('avgDifficulty').textContent = avgDifficulty;
-
-          // Calculate estimated time (2 minutes per question average)
-          const estimatedTime = Math.ceil(selectedQuestions.length * 2);
-          document.getElementById('estimatedTime').textContent = estimatedTime;
-        } else {
-          document.getElementById('avgDifficulty').textContent = '-';
-          document.getElementById('estimatedTime').textContent = '-';
-        }
-
-        // Update selected questions array (no hidden field needed for JSON submission)
+        if (totalPoints) totalPoints.textContent = points;
+        if (easyCount) easyCount.textContent = easy;
+        if (mediumCount) mediumCount.textContent = medium;
+        if (hardCount) hardCount.textContent = hard;
       }
 
       // Update Create Button State

@@ -58,7 +58,7 @@ const getQuestionBanks = async (req, res) => {
     const filterOptions = await getQuestionBankFilterOptions();
 
     return res.render('admin/question-banks', {
-      title: 'Question Banks',
+      title: 'Question Banks | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       questionBanks,
@@ -174,7 +174,7 @@ const getQuestionBank = async (req, res) => {
     const questionStats = await getQuestionStatsForBank(questionBank._id);
 
     return res.render('admin/question-bank-details', {
-      title: `${questionBank.name} - Question Bank`,
+      title: `${questionBank.name} - Question Bank | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       questionBank,

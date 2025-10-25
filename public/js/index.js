@@ -4,7 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', function() {
   // Theme Toggle Functionality
-  initThemeToggle();
+  // initThemeToggle(); // Removed - handled by advanced-header.js
   
   // Floating Math Elements Animation
   createFloatingMath();
@@ -27,26 +27,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /**
  * Initialize theme toggle functionality
+ * Note: Theme toggle is now handled by advanced-header.js to prevent conflicts
  */
 function initThemeToggle() {
-  const themeToggle = document.getElementById('themeToggle');
-  const body = document.body;
-  
-  // Check for saved theme preference or default to dark
-  const currentTheme = localStorage.getItem('theme') || 'dark';
-  body.setAttribute('data-theme', currentTheme);
-  body.className = currentTheme + '-theme';
-  
-  if (themeToggle) {
-    themeToggle.addEventListener('click', function() {
-      const currentTheme = body.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      
-      body.setAttribute('data-theme', newTheme);
-      body.className = newTheme + '-theme';
-      localStorage.setItem('theme', newTheme);
-    });
-  }
+  // Theme toggle functionality moved to advanced-header.js
+  // This function is kept for compatibility but does nothing
 }
 
 /**

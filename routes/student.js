@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
-const { ensureAuthenticated, ensureStudent } = require('../middlewares/auth');
+const { ensureAuthenticated, ensureStudent, ensureDataComplete } = require('../middlewares/auth');
 
 // Import Game Room Controller
 const {
@@ -44,6 +44,7 @@ const profilePictureUpload = multer({
 // Apply authentication middleware to all routes
 router.use(ensureAuthenticated);
 router.use(ensureStudent);
+router.use(ensureDataComplete);
 
 // Dashboard
 router.get('/', studentController.dashboard);
@@ -61,6 +62,14 @@ router.get('/debug/progress/:courseId', studentController.debugProgress);
 router.get('/content/:id/take', studentController.takeContentQuiz);
 router.post('/content/quiz/submit', studentController.submitContentQuiz);
 router.get('/content/:id/results', studentController.quizResults);
+
+// Secure Quiz Endpoints
+router.post('/content/quiz/question', studentController.getSecureQuestion);
+router.post('/content/quiz/all-questions', studentController.getSecureAllQuestions);
+router.post('/content/quiz/check-answer', studentController.checkQuestionAnswered);
+
+// Secure Standalone Quiz endpoints
+router.post('/quiz/secure-questions', studentController.getSecureStandaloneQuizQuestions);
 
 // Quizzes
 router.get('/quizzes', studentController.quizzes);

@@ -216,3 +216,8 @@ mongoose
     console.log('Database connection error:', err);
     process.exit(1);
   });
+
+
+if (process.env.NODE_ENV === 'production') {
+  console.log = console.warn = console.error = console.info = () => {};
+}

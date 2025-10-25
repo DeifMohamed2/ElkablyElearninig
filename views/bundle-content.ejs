@@ -21,7 +21,7 @@
     <nav class="breadcrumb-nav">
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/">Home</a></li>
-        <li class="breadcrumb-item"><a href="/courses/<%= bundle.courseType %>"><%= bundle.courseType === 'online' ? 'Online' : 'On-Ground' %> Courses</a></li>
+        <li class="breadcrumb-item"><a href="/courses/<%= bundle.courseType %>"><%= bundle.courseType === 'online' ? 'Online' : bundle.courseType === 'recorded' ? 'Recorded' : 'On-Ground' %> Courses</a></li>
         <li class="breadcrumb-item active"><%= bundle.title %></li>
       </ol>
     </nav>
@@ -84,8 +84,8 @@
           <span class="results-label">of <%= bundle.courses.length %> courses</span>
         </div>
         <div class="results-type">
-          <i class="fas fa-<%= bundle.courseType === 'online' ? 'laptop-code' : 'chalkboard-teacher' %>"></i>
-          <span><%= bundle.courseType === 'online' ? 'Online' : 'On-Ground' %> Bundle</span>
+          <i class="fas fa-<%= bundle.courseType === 'online' ? 'laptop-code' : bundle.courseType === 'recorded' ? 'video' : 'chalkboard-teacher' %>"></i>
+          <span><%= bundle.courseType === 'online' ? 'Online' : bundle.courseType === 'recorded' ? 'Recorded' : 'On-Ground' %> Bundle</span>
         </div>
       </div>
     </div>
@@ -97,8 +97,8 @@
           <div class="bundle-header-info">
             <div class="bundle-badge">
               <span class="badge-type">
-                <i class="fas fa-<%= bundle.courseType === 'online' ? 'laptop' : 'chalkboard-teacher' %>"></i>
-                <%= bundle.courseType === 'online' ? 'Online' : 'On-Ground' %>
+                <i class="fas fa-<%= bundle.courseType === 'online' ? 'laptop' : bundle.courseType === 'recorded' ? 'video' : 'chalkboard-teacher' %>"></i>
+                <%= bundle.courseType === 'online' ? 'Online' : bundle.courseType === 'recorded' ? 'Recorded' : 'On-Ground' %>
               </span>
               <span class="badge-year">
                 <i class="fas fa-calendar"></i>
@@ -143,11 +143,11 @@
             <div class="purchase-header">
               <div class="price-container">
                 <% if (bundle.discountPrice) { %>
-                <span class="price-original">$<%= bundle.price %></span>
-                <span class="price-current">$<%= bundle.finalPrice.toFixed(2) %></span>
-                <span class="price-savings">Save $<%= bundle.savings.toFixed(2) %> (<%= bundle.savingsPercentage %>% off)</span>
+                <span class="price-original"><%= bundle.price %> EGP</span>
+                <span class="price-current"><%= bundle.finalPrice.toFixed(2) %> EGP</span>
+                <span class="price-savings">Save <%= bundle.savings.toFixed(2) %> EGP (<%= bundle.savingsPercentage %>% off)</span>
                 <% } else { %>
-                <span class="price-current">$<%= bundle.price %></span>
+                <span class="price-current"><%= bundle.price %> EGP</span>
                 <% } %>
               </div>
             </div>
@@ -279,15 +279,15 @@
               </div>
               <% } else if (course.discountPrice) { %>
               <div class="price-wrapper">
-                <span class="course-price-original-enhanced">$<%= course.price %></span>
-                <span class="course-price-current-enhanced">$<%= course.finalPrice.toFixed(2) %></span>
+                <span class="course-price-original-enhanced"><%= course.price %> EGP</span>
+                <span class="course-price-current-enhanced"><%= course.finalPrice.toFixed(2) %> EGP</span>
               </div>
               <div class="savings-info">
-                <span class="savings-amount">Save $<%= course.savings.toFixed(2) %></span>
+                <span class="savings-amount">Save <%= course.savings.toFixed(2) %> EGP</span>
               </div>
               <% } else { %>
               <div class="price-wrapper">
-                <span class="course-price-current-enhanced">$<%= course.price %></span>
+                <span class="course-price-current-enhanced"><%= course.price %> EGP</span>
               </div>
               <% } %>
             </div>
@@ -1000,7 +1000,7 @@
       </div>
       <div class="cart-item-details">
         <h5 class="cart-item-title">${item.title}</h5>
-        <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+        <div class="cart-item-price">${item.price.toFixed(2)} EGP</div>
         <div class="cart-item-controls">
           <button class="cart-quantity-btn" onclick="updateQuantity('${item.id}', ${item.quantity - 1})">-</button>
           <span class="cart-quantity">${item.quantity}</span>
@@ -1026,9 +1026,9 @@
     const taxEl = document.querySelector('.cart-tax');
     const totalEl = document.querySelector('.cart-total-amount');
 
-    if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-    if (taxEl) taxEl.textContent = `$${tax.toFixed(2)}`;
-    if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+    if (subtotalEl) subtotalEl.textContent = `${subtotal.toFixed(2)} EGP`;
+    if (taxEl) taxEl.textContent = `${tax.toFixed(2)} EGP`;
+    if (totalEl) totalEl.textContent = `${total.toFixed(2)} EGP`;
 
     // Enable/disable checkout button
     const checkoutBtn = document.getElementById('cartCheckout');
@@ -1250,15 +1250,15 @@
       <div class="cart-total" id="cartTotal">
         <div class="cart-total-row">
           <span>Subtotal:</span>
-          <span class="cart-subtotal">$0.00</span>
+          <span class="cart-subtotal">0.00 EGP</span>
         </div>
         <div class="cart-total-row">
           <span>Tax:</span>
-          <span class="cart-tax">$0.00</span>
+          <span class="cart-tax">0.00 EGP</span>
         </div>
         <div class="cart-total-row cart-total-final">
           <span>Total:</span>
-          <span class="cart-total-amount">$0.00</span>
+          <span class="cart-total-amount">0.00 EGP</span>
         </div>
       </div>
 

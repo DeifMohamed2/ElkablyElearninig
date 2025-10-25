@@ -2,6 +2,7 @@ const Purchase = require('../models/Purchase');
 const User = require('../models/User');
 const BundleCourse = require('../models/BundleCourse');
 const Course = require('../models/Course');
+const PromoCode = require('../models/PromoCode');
 const crypto = require('crypto');
 const paymobService = require('../utils/paymobService');
 
@@ -156,6 +157,156 @@ const validateCartMiddleware = async (req, res, next) => {
       cartCount: 0,
     };
     next();
+  }
+};
+
+// Helper function to validate and apply promo code
+async function validateAndApplyPromoCode(promoCode, userId, cartItems, subtotal) {
+  try {
+    // Check if promo code exists and is valid
+    const promo = await PromoCode.findValidPromoCode(promoCode, userId);
+    
+    if (!promo) {
+      throw new Error('Invalid or expired promo code');
+    }
+
+    // Check if user has already used this promo code
+    if (!promo.canUserUse(userId)) {
+      throw new Error('You have already used this promo code');
+    }
+
+    // Calculate discount
+    const discountAmount = promo.calculateDiscount(subtotal, cartItems);
+    const finalAmount = subtotal - discountAmount;
+
+    // SECURITY: Ensure final amount is not negative
+    if (finalAmount < 0) {
+      throw new Error('Invalid discount amount');
+    }
+
+    // SECURITY: Ensure discount doesn't exceed subtotal
+    if (discountAmount > subtotal) {
+      throw new Error('Discount amount cannot exceed order total');
+    }
+
+    return {
+      success: true,
+      promoCode: promo,
+      discountAmount,
+      finalAmount,
+      originalAmount: subtotal
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// API endpoint to validate promo code
+const validatePromoCode = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to use promo codes'
+      });
+    }
+
+    const { promoCode } = req.body;
+    const validatedCart = req.validatedCart;
+
+    if (!promoCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Promo code is required'
+      });
+    }
+
+    if (validatedCart.cartCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cart is empty'
+      });
+    }
+
+    const result = await validateAndApplyPromoCode(
+      promoCode,
+      req.session.user.id,
+      validatedCart.items,
+      validatedCart.subtotal
+    );
+
+    if (result.success) {
+      // Store promo code in session for checkout
+      req.session.appliedPromoCode = {
+        code: result.promoCode.code,
+        id: result.promoCode._id,
+        discountAmount: result.discountAmount,
+        finalAmount: result.finalAmount,
+        originalAmount: result.originalAmount
+      };
+
+      res.json({
+        success: true,
+        message: 'Promo code applied successfully',
+        discountAmount: result.discountAmount,
+        finalAmount: result.finalAmount,
+        originalAmount: result.originalAmount,
+        promoCode: result.promoCode.code
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error validating promo code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error validating promo code'
+    });
+  }
+};
+
+// API endpoint to remove promo code
+const removePromoCode = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please login to manage promo codes'
+      });
+    }
+
+    // Remove promo code from session
+    delete req.session.appliedPromoCode;
+
+    const validatedCart = req.validatedCart || { subtotal: 0 };
+
+    res.json({
+      success: true,
+      message: 'Promo code removed successfully',
+      originalAmount: validatedCart.subtotal,
+      finalAmount: validatedCart.subtotal,
+      discountAmount: 0
+    });
+  } catch (error) {
+    console.error('Error removing promo code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error removing promo code'
+    });
+  }
+};
+
+// Helper function to clear invalid promo code from session
+const clearInvalidPromoCode = (req) => {
+  if (req.session.appliedPromoCode) {
+    console.log('Clearing invalid promo code from session:', req.session.appliedPromoCode.code);
+    delete req.session.appliedPromoCode;
   }
 };
 
@@ -481,7 +632,7 @@ const getCheckout = async (req, res) => {
     }
 
     res.render('checkout', {
-      title: 'Checkout - Mr Kably',
+      title: 'Checkout | ELKABLY',
       theme: req.cookies.theme || 'light',
       cart: validatedCart.items,
       subtotal: validatedCart.subtotal,
@@ -692,6 +843,59 @@ const processPayment = async (req, res) => {
     // Generate unique merchant order ID
     const merchantOrderId = generateUUID();
 
+    // Handle promo code if applied - SECURITY: Always recalculate from server
+    let finalSubtotal = validatedCart.subtotal;
+    let finalTax = validatedCart.tax;
+    let finalTotal = validatedCart.total;
+    let appliedPromoCode = null;
+    let discountAmount = 0;
+
+    if (req.session.appliedPromoCode) {
+      // SECURITY: Re-validate promo code and recalculate amounts from server
+      const promoValidation = await validateAndApplyPromoCode(
+        req.session.appliedPromoCode.code,
+        req.session.user.id,
+        validatedCart.items,
+        validatedCart.subtotal
+      );
+
+      if (promoValidation.success) {
+        appliedPromoCode = promoValidation.promoCode;
+        discountAmount = promoValidation.discountAmount;
+        finalSubtotal = validatedCart.subtotal; // Keep original subtotal
+        finalTax = validatedCart.tax; // Keep original tax
+        finalTotal = promoValidation.finalAmount; // Use server-calculated final amount
+        
+        // SECURITY: Validate that session promo code data matches server calculation
+        const sessionDiscount = req.session.appliedPromoCode.discountAmount || 0;
+        const sessionFinal = req.session.appliedPromoCode.finalAmount || 0;
+        
+        if (Math.abs(sessionDiscount - discountAmount) > 0.01 || 
+            Math.abs(sessionFinal - finalTotal) > 0.01) {
+          console.warn('Promo code session data mismatch, using server calculation:', {
+            sessionDiscount,
+            serverDiscount: discountAmount,
+            sessionFinal,
+            serverFinal: finalTotal
+          });
+        }
+        
+        console.log('Promo code applied successfully:', {
+          originalAmount: validatedCart.subtotal,
+          discountAmount: discountAmount,
+          finalAmount: finalTotal,
+          promoCode: appliedPromoCode.code
+        });
+      } else {
+        // Remove invalid promo code from session
+        delete req.session.appliedPromoCode;
+        return res.status(400).json({
+          success: false,
+          message: `Promo code is no longer valid: ${promoValidation.error}`
+        });
+      }
+    }
+
     // Create purchase record with pending status using validated cart data
     const purchase = new Purchase({
       user: req.session.user.id,
@@ -703,22 +907,27 @@ const processPayment = async (req, res) => {
         price: item.price, // Database-validated price
         quantity: 1,
       })),
-      subtotal: validatedCart.subtotal,
-      tax: validatedCart.tax,
-      total: validatedCart.total,
+      subtotal: finalSubtotal,
+      tax: finalTax,
+      total: finalTotal,
       currency: 'EGP',
       paymentMethod: 'paymob',
       billingAddress,
       status: 'pending',
       paymentStatus: 'pending',
       paymentIntentId: merchantOrderId,
+      // Add promo code information
+      appliedPromoCode: appliedPromoCode ? appliedPromoCode._id : null,
+      discountAmount: discountAmount,
+      originalAmount: validatedCart.subtotal,
+      promoCodeUsed: appliedPromoCode ? appliedPromoCode.code : null,
     });
 
     await purchase.save();
 
     // Create Paymob payment session using validated data
     const orderData = {
-      total: validatedCart.total, // Database-validated total
+      total: finalTotal, // Use final total after promo code discount
       merchantOrderId,
       items: validatedCart.items.map((item) => ({
         title: item.title,
@@ -729,6 +938,15 @@ const processPayment = async (req, res) => {
         }`,
       })),
     };
+
+    // Log payment data for debugging
+    console.log('Creating payment session with data:', {
+      originalSubtotal: validatedCart.subtotal,
+      finalTotal: finalTotal,
+      discountAmount: discountAmount,
+      promoCode: appliedPromoCode ? appliedPromoCode.code : 'none',
+      merchantOrderId: merchantOrderId
+    });
 
     // Add redirect URL to billing address for Paymob iframe
     const enhancedBillingAddress = {
@@ -769,7 +987,7 @@ const processPayment = async (req, res) => {
       paymentData: {
         iframeUrl: paymentSession.iframeUrl,
         orderNumber: purchase.orderNumber,
-        total: validatedCart.total,
+        total: finalTotal, // Use the final total after promo code discount
         currency: 'EGP',
       },
     });
@@ -807,7 +1025,7 @@ const getPurchaseHistory = async (req, res) => {
     const totalPages = Math.ceil(totalPurchases / parseInt(limit));
 
     res.render('purchase-history', {
-      title: 'Purchase History - Mr Kably',
+      title: 'Purchase History | ELKABLY',
       theme: req.cookies.theme || 'light',
       purchases,
       pagination: {
@@ -1032,7 +1250,7 @@ const handlePaymentSuccess = async (req, res) => {
     ) {
       console.log('Payment failure detected in URL parameters:', req.query);
       return res.render('payment-fail', {
-        title: 'Payment Failed - Mr Kably',
+        title: 'Payment Failed | ELKABLY',
         theme: req.cookies.theme || 'light',
         message:
           'Payment was not successful. Please try again or contact support.',
@@ -1054,7 +1272,7 @@ const handlePaymentSuccess = async (req, res) => {
       );
       console.error('Available parameters:', Object.keys(req.query));
       return res.render('payment-fail', {
-        title: 'Payment Error - Mr Kably',
+        title: 'Payment Error | ELKABLY',
         theme: req.cookies.theme || 'light',
         message: 'Invalid payment reference',
       });
@@ -1073,7 +1291,7 @@ const handlePaymentSuccess = async (req, res) => {
         merchantOrderId
       );
       return res.render('payment-fail', {
-        title: 'Payment Error - Mr Kably',
+        title: 'Payment Error | ELKABLY',
         theme: req.cookies.theme || 'light',
         message: 'Payment record not found',
       });
@@ -1098,7 +1316,7 @@ const handlePaymentSuccess = async (req, res) => {
             'Payment verification failed - transaction was not successful'
           );
           return res.render('payment-fail', {
-            title: 'Payment Failed - Mr Kably',
+            title: 'Payment Failed | ELKABLY',
             theme: req.cookies.theme || 'light',
             message:
               'Payment was not successful. Please try again or contact support.',
@@ -1117,7 +1335,7 @@ const handlePaymentSuccess = async (req, res) => {
     if (purchase.status === 'failed' || purchase.paymentStatus === 'failed') {
       console.log('Purchase is marked as failed, redirecting to failure page');
       return res.render('payment-fail', {
-        title: 'Payment Failed - Mr Kably',
+        title: 'Payment Failed | ELKABLY',
         theme: req.cookies.theme || 'light',
         message:
           'Payment was not successful. Please try again or contact support.',
@@ -1188,6 +1406,47 @@ const handlePaymentSuccess = async (req, res) => {
             });
             await user.save();
           }
+        }
+      }
+
+      // Handle promo code usage if applied
+      if (purchase.appliedPromoCode && purchase.discountAmount > 0) {
+        try {
+          // Add promo code usage to user
+          await user.addPromoCodeUsage(
+            purchase.appliedPromoCode,
+            purchase._id,
+            purchase.discountAmount,
+            purchase.originalAmount,
+            purchase.total
+          );
+
+          // Update promo code usage count and history
+          const promoCode = await PromoCode.findById(purchase.appliedPromoCode);
+          if (promoCode) {
+            // Add to usage history
+            promoCode.usageHistory.push({
+              user: purchase.user._id,
+              purchase: purchase._id,
+              discountAmount: purchase.discountAmount,
+              originalAmount: purchase.originalAmount,
+              finalAmount: purchase.total,
+              usedAt: new Date()
+            });
+            
+            // Increment current uses
+            promoCode.currentUses += 1;
+            await promoCode.save();
+            
+            console.log('Promo code usage tracked:', {
+              code: promoCode.code,
+              user: purchase.user._id,
+              purchase: purchase._id,
+              discountAmount: purchase.discountAmount
+            });
+          }
+        } catch (error) {
+          console.error('Error tracking promo code usage:', error);
         }
       }
     }
@@ -1356,6 +1615,47 @@ const handlePaymobWebhook = async (req, res) => {
             }
           }
         }
+
+        // Handle promo code usage if applied
+        if (purchase.appliedPromoCode && purchase.discountAmount > 0) {
+          try {
+            // Add promo code usage to user
+            await user.addPromoCodeUsage(
+              purchase.appliedPromoCode,
+              purchase._id,
+              purchase.discountAmount,
+              purchase.originalAmount,
+              purchase.total
+            );
+
+            // Update promo code usage count and history
+            const promoCode = await PromoCode.findById(purchase.appliedPromoCode);
+            if (promoCode) {
+              // Add to usage history
+              promoCode.usageHistory.push({
+                user: purchase.user._id,
+                purchase: purchase._id,
+                discountAmount: purchase.discountAmount,
+                originalAmount: purchase.originalAmount,
+                finalAmount: purchase.total,
+                usedAt: new Date()
+              });
+              
+              // Increment current uses
+              promoCode.currentUses += 1;
+              await promoCode.save();
+              
+              console.log('Promo code usage tracked:', {
+                code: promoCode.code,
+                user: purchase.user._id,
+                purchase: purchase._id,
+                discountAmount: purchase.discountAmount
+              });
+            }
+          } catch (error) {
+            console.error('Error tracking promo code usage:', error);
+          }
+        }
       }
     } else if (webhookData.isFailed) {
       console.log('Webhook: Payment failed for order:', purchase.orderNumber);
@@ -1489,6 +1789,47 @@ const handlePaymobWebhookRedirect = async (req, res) => {
             }
           }
         }
+
+        // Handle promo code usage if applied
+        if (purchase.appliedPromoCode && purchase.discountAmount > 0) {
+          try {
+            // Add promo code usage to user
+            await user.addPromoCodeUsage(
+              purchase.appliedPromoCode,
+              purchase._id,
+              purchase.discountAmount,
+              purchase.originalAmount,
+              purchase.total
+            );
+
+            // Update promo code usage count and history
+            const promoCode = await PromoCode.findById(purchase.appliedPromoCode);
+            if (promoCode) {
+              // Add to usage history
+              promoCode.usageHistory.push({
+                user: purchase.user._id,
+                purchase: purchase._id,
+                discountAmount: purchase.discountAmount,
+                originalAmount: purchase.originalAmount,
+                finalAmount: purchase.total,
+                usedAt: new Date()
+              });
+              
+              // Increment current uses
+              promoCode.currentUses += 1;
+              await promoCode.save();
+              
+              console.log('Promo code usage tracked:', {
+                code: promoCode.code,
+                user: purchase.user._id,
+                purchase: purchase._id,
+                discountAmount: purchase.discountAmount
+              });
+            }
+          } catch (error) {
+            console.error('Error tracking promo code usage:', error);
+          }
+        }
       }
 
       // Clear the cart after successful payment (webhook redirect)
@@ -1549,4 +1890,8 @@ module.exports = {
   toggleWishlist,
   validateCartMiddleware,
   recalculateCartFromDB,
+  // Promo Code Management
+  validatePromoCode,
+  removePromoCode,
+  clearInvalidPromoCode,
 };

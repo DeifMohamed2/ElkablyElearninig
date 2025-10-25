@@ -34,7 +34,7 @@ exports.getAdminGameRooms = async (req, res) => {
     const total = await GameRoom.countDocuments(filter);
 
     res.render('admin/game-rooms', {
-      title: 'Game Rooms Management',
+      title: 'Game Rooms Management | ELKABLY',
       currentPage: 'game-rooms',
       theme: req.cookies.theme || 'light',
       gameRooms,
@@ -61,7 +61,7 @@ exports.getCreateGameRoom = async (req, res) => {
     const questions = [];
 
     res.render('admin/create-game-room', {
-      title: 'Create Game Room',
+      title: 'Create Game Room | ELKABLY',
       currentPage: 'game-rooms',
       theme: req.cookies.theme || 'light',
       banks,
@@ -286,7 +286,7 @@ exports.getEditGameRoom = async (req, res) => {
     }));
 
     res.render('admin/edit-game-room', {
-      title: 'Edit Game Room',
+      title: 'Edit Game Room | ELKABLY',
       currentPage: 'game-rooms',
       theme: req.cookies.theme || 'light',
       gameRoom: {
@@ -534,7 +534,7 @@ exports.getGameRoomStats = async (req, res) => {
       .sort({ score: -1, timeSpent: 1 });
 
     res.render('admin/game-room-stats', {
-      title: 'Game Room Statistics',
+      title: 'Game Room Statistics | ELKABLY',
       currentPage: 'game-rooms',
       theme: req.cookies.theme || 'light',
       gameRoom,
@@ -588,7 +588,7 @@ exports.getAvailableGameRooms = async (req, res) => {
     });
 
     res.render('student/game-rooms', {
-      title: 'Game Rooms',
+      title: 'Game Rooms | ELKABLY',
       currentPage: 'games',
       theme: req.cookies.theme || 'light',
       student: req.session,
@@ -810,7 +810,7 @@ exports.getGameRoomPlay = async (req, res) => {
     );
 
     res.render('student/game-room-play', {
-      title: `${gameRoom.title} - Game Room`,
+      title: `${gameRoom.title} - Game Room | ELKABLY`,
       theme: req.cookies.theme || 'light',
       student: req.session.user,
       gameRoom,
@@ -928,7 +928,7 @@ exports.getMyGameHistory = async (req, res) => {
     });
 
     res.render('student/game-history', {
-      title: 'My Game History',
+      title: 'My Game History | ELKABLY',
       currentPage: 'games',
       theme: req.cookies.theme || 'light',
       student: req.session,

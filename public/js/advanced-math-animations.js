@@ -213,7 +213,7 @@ function initScrollAnimations() {
     if (heroContent) {
       heroContent.style.transform = `translateY(${scrollY * 0.2}px)`;
     }
-  });
+  }, { passive: true });
 }
 
 // Function to create dynamic math equation particles
