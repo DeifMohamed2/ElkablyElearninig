@@ -16,7 +16,7 @@ function generateUUID() {
 }
 
 // Helper function to recalculate cart totals from database
-async function recalculateCartFromDB(cart) {
+async function recalculateCartFromDB(cart, userId = null) {
   if (!cart || cart.length === 0) {
     return {
       items: [],
@@ -30,8 +30,29 @@ async function recalculateCartFromDB(cart) {
   const validItems = [];
   let subtotal = 0;
 
+  // If userId is provided, get user's purchased items to check for duplicates
+  let user = null;
+  if (userId) {
+    user = await User.findById(userId)
+      .populate('purchasedBundles.bundle')
+      .populate('purchasedCourses.course')
+      .populate('enrolledCourses.course');
+  }
+
   for (const cartItem of cart) {
     try {
+      // Check if user already purchased this item
+      if (user) {
+        if (cartItem.type === 'bundle' && user.hasPurchasedBundle(cartItem.id)) {
+          console.log(`Removing already purchased bundle from cart: ${cartItem.id}`);
+          continue;
+        }
+        if (cartItem.type === 'course' && user.hasAccessToCourse(cartItem.id)) {
+          console.log(`Removing already purchased course from cart: ${cartItem.id}`);
+          continue;
+        }
+      }
+
       let dbItem;
       if (cartItem.type === 'bundle') {
         dbItem = await BundleCourse.findById(cartItem.id).select(
@@ -102,7 +123,14 @@ function clearCart(req, reason = 'successful payment') {
   // Only clear if there are items in the cart
   if (cartCount > 0) {
     req.session.cart = [];
-    console.log(`Cart cleared after ${reason}. ${cartCount} items removed.`);
+    // Force save the session
+    req.session.save((err) => {
+      if (err) {
+        console.error('Error saving session after clearing cart:', err);
+      } else {
+        console.log(`Cart cleared after ${reason}. ${cartCount} items removed.`);
+      }
+    });
   } else {
     console.log(
       `Cart was already empty when attempting to clear after ${reason}.`
@@ -117,7 +145,8 @@ const validateCartMiddleware = async (req, res, next) => {
   try {
     if (req.session.cart && req.session.cart.length > 0) {
       console.log('Validating cart items from database...');
-      const recalculatedCart = await recalculateCartFromDB(req.session.cart);
+      const userId = req.session.user ? req.session.user.id : null;
+      const recalculatedCart = await recalculateCartFromDB(req.session.cart, userId);
 
       // Update session cart with validated items
       req.session.cart = recalculatedCart.validItems;
@@ -340,6 +369,43 @@ const getCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error loading cart',
+    });
+  }
+};
+
+// Clear cart API endpoint
+const clearCartAPI = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please login',
+      });
+    }
+
+    const cartCount = req.session.cart ? req.session.cart.length : 0;
+    req.session.cart = [];
+    
+    // Force save the session
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    console.log(`Cart cleared via API. ${cartCount} items removed.`);
+
+    res.json({
+      success: true,
+      message: 'Cart cleared successfully',
+      cartCount: 0,
+    });
+  } catch (error) {
+    console.error('Error clearing cart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error clearing cart',
     });
   }
 };
@@ -814,6 +880,25 @@ const processPayment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Cart is empty or contains invalid items',
+      });
+    }
+
+    // Check if user already purchased any of the items in cart
+    const user = await User.findById(req.session.user.id);
+    const alreadyPurchasedItems = [];
+
+    for (const item of validatedCart.items) {
+      if (item.type === 'bundle' && user.hasPurchasedBundle(item.id)) {
+        alreadyPurchasedItems.push(`${item.title} (bundle)`);
+      } else if (item.type === 'course' && user.hasAccessToCourse(item.id)) {
+        alreadyPurchasedItems.push(`${item.title} (course)`);
+      }
+    }
+
+    if (alreadyPurchasedItems.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `You already have access to: ${alreadyPurchasedItems.join(', ')}. Please remove these items from your cart.`,
       });
     }
 
@@ -1467,6 +1552,10 @@ const handlePaymentSuccess = async (req, res) => {
     });
   } catch (error) {
     console.error('Error handling payment success:', error);
+    
+    // Clear cart on error in payment success handler
+    clearCart(req, 'payment success error');
+    
     res.render('payment-fail', {
       title: 'Payment Error - Mr Kably',
       theme: req.cookies.theme || 'light',
@@ -1493,6 +1582,9 @@ const handlePaymentFailure = async (req, res) => {
       }
     }
 
+    // Clear the cart after failed payment
+    clearCart(req, 'payment failed');
+
     res.render('payment-fail', {
       title: 'Payment Failed - Mr Kably',
       theme: req.cookies.theme || 'light',
@@ -1501,6 +1593,10 @@ const handlePaymentFailure = async (req, res) => {
     });
   } catch (error) {
     console.error('Error handling payment failure:', error);
+    
+    // Clear cart even on error
+    clearCart(req, 'payment error');
+    
     res.render('payment-fail', {
       title: 'Payment Error - Mr Kably',
       theme: req.cookies.theme || 'light',
@@ -1875,6 +1971,7 @@ const handlePaymobWebhookRedirect = async (req, res) => {
 
 module.exports = {
   getCart,
+  clearCartAPI,
   addToCart,
   removeFromCart,
   getCheckout,

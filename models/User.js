@@ -1070,17 +1070,27 @@ UserSchema.methods.addPurchasedCourse = async function (
   price,
   orderNumber
 ) {
-  if (!this.hasPurchasedCourse(courseId)) {
-    this.purchasedCourses.push({
-      course: courseId,
-      price: price,
-      orderNumber: orderNumber,
-      purchasedAt: new Date(),
-      status: 'active',
-    });
-    return await this.save();
+  // Check for existing active purchase
+  const existingPurchase = this.purchasedCourses.find(
+    (purchase) =>
+      purchase.course &&
+      purchase.course.toString() === courseId.toString() &&
+      purchase.status === 'active'
+  );
+
+  if (existingPurchase) {
+    console.log('Course already purchased, skipping duplicate:', courseId);
+    return this;
   }
-  return this;
+
+  this.purchasedCourses.push({
+    course: courseId,
+    price: price,
+    orderNumber: orderNumber,
+    purchasedAt: new Date(),
+    status: 'active',
+  });
+  return await this.save();
 };
 
 // Instance method to add purchased bundle
@@ -1089,17 +1099,27 @@ UserSchema.methods.addPurchasedBundle = async function (
   price,
   orderNumber
 ) {
-  if (!this.hasPurchasedBundle(bundleId)) {
-    this.purchasedBundles.push({
-      bundle: bundleId,
-      price: price,
-      orderNumber: orderNumber,
-      purchasedAt: new Date(),
-      status: 'active',
-    });
-    return await this.save();
+  // Check for existing active purchase
+  const existingPurchase = this.purchasedBundles.find(
+    (purchase) =>
+      purchase.bundle &&
+      purchase.bundle.toString() === bundleId.toString() &&
+      purchase.status === 'active'
+  );
+
+  if (existingPurchase) {
+    console.log('Bundle already purchased, skipping duplicate:', bundleId);
+    return this;
   }
-  return this;
+
+  this.purchasedBundles.push({
+    bundle: bundleId,
+    price: price,
+    orderNumber: orderNumber,
+    purchasedAt: new Date(),
+    status: 'active',
+  });
+  return await this.save();
 };
 
 // Instance method to enroll in all courses from a bundle
@@ -1109,7 +1129,10 @@ UserSchema.methods.enrollInBundleCourses = async function (bundle) {
   }
 
   for (const course of bundle.courses) {
-    if (!this.isEnrolled(course._id || course)) {
+    // Check if already enrolled before adding
+    const isAlreadyEnrolled = this.isEnrolled(course._id || course);
+    
+    if (!isAlreadyEnrolled) {
       this.enrolledCourses.push({
         course: course._id || course,
         enrolledAt: new Date(),
@@ -1118,6 +1141,8 @@ UserSchema.methods.enrollInBundleCourses = async function (bundle) {
         completedTopics: [],
         status: 'active',
       });
+    } else {
+      console.log('Course already enrolled, skipping duplicate:', course._id || course);
     }
   }
 

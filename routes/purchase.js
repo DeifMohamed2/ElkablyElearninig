@@ -3,6 +3,7 @@ const router = express.Router();
 const { ensureAuthenticated } = require('../middlewares/auth');
 const {
   getCart,
+  clearCartAPI,
   addToCart,
   removeFromCart,
   getCheckout,
@@ -25,6 +26,7 @@ const {
 router.post('/cart', getCart);
 router.post('/cart/add', ensureAuthenticated, addToCart);
 router.post('/cart/remove', ensureAuthenticated, removeFromCart);
+router.post('/cart/clear', ensureAuthenticated, clearCartAPI);
 
 // Checkout routes (with cart validation middleware)
 router.get(

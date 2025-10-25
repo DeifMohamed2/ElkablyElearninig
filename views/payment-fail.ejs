@@ -164,4 +164,68 @@
   </div>
 </div>
 
+<script>
+  // Clear cart on payment failure page
+  document.addEventListener('DOMContentLoaded', function() {
+    // First clear server-side cart
+    fetch('/purchase/cart/clear', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }).then(response => response.json())
+      .then(data => {
+        console.log('Server-side cart cleared:', data);
+        
+        // Clear client-side cart state
+        if (window.sessionCart) {
+          window.sessionCart = [];
+        }
+        
+        // Update cart using globalCart methods if available
+        if (window.globalCart) {
+          window.globalCart.setSessionCart([]);
+          window.globalCart.updateCartCount();
+          window.globalCart.updateCartSidebar();
+          if (typeof window.globalCart.clearCart === 'function') {
+            window.globalCart.clearCart();
+          }
+        }
+        
+        // Update cart count badge manually
+        const cartCountElements = document.querySelectorAll('#cartCount, .cart-count, .cart-badge');
+        cartCountElements.forEach(element => {
+          element.textContent = '0';
+          element.style.display = 'none';
+        });
+        
+        // Close cart sidebar if open
+        const cartSidebar = document.getElementById('cartSidebar');
+        if (cartSidebar && cartSidebar.classList.contains('active')) {
+          cartSidebar.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+        
+        // Clear cart items from sidebar
+        const cartItems = document.getElementById('cartItems');
+        if (cartItems) {
+          cartItems.innerHTML = `
+            <div class="cart-empty">
+              <div class="cart-empty-icon">
+                <i class="fas fa-shopping-cart"></i>
+              </div>
+              <h4>Your cart is empty</h4>
+              <p>Add some courses to get started!</p>
+            </div>
+          `;
+        }
+        
+        console.log('Cart fully cleared and UI updated on payment failure page');
+      })
+      .catch(error => {
+        console.error('Error clearing cart:', error);
+      });
+  });
+</script>
+
 <%- include('partials/footer') %>
