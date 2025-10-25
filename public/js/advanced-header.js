@@ -4,20 +4,15 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-  try {
-    // Initialize all header functionality
-    initializeHeaderScrollEffects();
-    initializeMobileNavigation();
-    initializeThemeToggle();
-    initializeUserDropdown();
-    initializeCartToggle();
-    initializeScrollProgress();
-    initializeNavigationDropdown();
-    initializeSmoothScrolling();
-  } catch (error) {
-    console.error('Error initializing header functionality:', error);
-    // Continue execution even if some features fail
-  }
+  // Initialize all header functionality
+  initializeHeaderScrollEffects();
+  initializeMobileNavigation();
+  initializeThemeToggle();
+  initializeUserDropdown();
+  initializeCartToggle();
+  initializeScrollProgress();
+  initializeNavigationDropdown();
+  initializeSmoothScrolling();
 });
 
 /**
@@ -171,7 +166,7 @@ function initializeUserDropdown() {
   const mobileOverlay = document.getElementById('mobileDropdownOverlay');
 
   if (!userDropdown || !dropdownMenu || !dropdownContainer) {
-    // Silently return if dropdown elements don't exist (e.g., on pages without user dropdown)
+    console.warn('Dropdown elements not found');
     return;
   }
 
