@@ -97,7 +97,9 @@
             </h5>
           </div>
           <div class="card-body" style="padding: 24px;">
-            <div style="height: 300px;" id="ordersSalesChart"></div>
+            <div style="position: relative; height: 300px;">
+              <canvas id="ordersSalesChart"></canvas>
+            </div>
           </div>
         </div>
 
@@ -308,7 +310,7 @@
 </div>
 
 <!-- Include Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.min.js" integrity="sha512-n/G+dROKbKL3GVngGWmWfwK0yPctjZQM752diVYnXZtD/48agpUKLIn0xDQL9ydZ91x6BiOmTIFwWjjFi2kEFg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- Orders Page JS -->
 <script>
   // Excel Export Function
@@ -336,91 +338,122 @@
     }, 2000);
   }
 
+  // Get real data from server
+  const monthlyData = <%- JSON.stringify(analytics.monthlySalesData || { labels: [], revenue: [], orderCount: [] }) %>;
+
   document.addEventListener('DOMContentLoaded', function() {
     // Sales Analytics Chart
-    const ctx = document.getElementById('ordersSalesChart').getContext('2d');
+    const chartElement = document.getElementById('ordersSalesChart');
+    if (!chartElement) {
+      console.error('Chart canvas element not found');
+      return;
+    }
 
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [{
-            label: 'Revenue',
-            data: [2500, 3200, 2800, 3500, 4200, 3800, 4500, 5100, 4800, 5500, 5200, 6000], // Sample revenue data
-            borderColor: '#B80101',
-            backgroundColor: 'rgba(184, 1, 1, 0.1)',
-            tension: 0.4,
-            fill: true
-          },
-          {
-            label: 'Orders',
-            data: [25, 32, 28, 35, 42, 38, 45, 51, 48, 55, 52, 60], // Sample order count data
-            borderColor: '#0d6efd',
-            borderDashed: [5, 5],
-            backgroundColor: 'transparent',
-            tension: 0.4,
-            fill: false,
-            yAxisID: 'y1'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
+    const ctx = chartElement.getContext('2d');
+    if (!ctx) {
+      console.error('Could not get 2d context from canvas');
+      return;
+    }
+
+    try {
+      const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: monthlyData.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          datasets: [{
+              label: 'Revenue (EGP)',
+              data: monthlyData.revenue || [],
+              borderColor: '#B80101',
+              backgroundColor: 'rgba(184, 1, 1, 0.1)',
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'Orders',
+              data: monthlyData.orderCount || [],
+              borderColor: '#0d6efd',
+              borderDash: [5, 5],
+              backgroundColor: 'transparent',
+              tension: 0.4,
+              fill: false,
+              yAxisID: 'y1'
+            }
+          ]
         },
-        plugins: {
-          legend: {
-            position: 'top',
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
           },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) {
-                  label += ': ';
-                }
-                if (context.parsed.y !== null) {
-                  if (context.dataset.label === 'Revenue') {
-                    label += context.parsed.y.toFixed(2) + ' EGP';
-                  } else {
-                    label += context.parsed.y;
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 15
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
+              borderColor: '#B80101',
+              borderWidth: 2,
+              cornerRadius: 8,
+              displayColors: true,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
                   }
+                  if (context.parsed.y !== null) {
+                    if (context.dataset.label === 'Revenue') {
+                      label += context.parsed.y.toFixed(2) + ' EGP';
+                    } else {
+                      label += context.parsed.y;
+                    }
+                  }
+                  return label;
                 }
-                return label;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Revenue'
-            },
-            ticks: {
-              callback: function(value, index, values) {
-                return '$' + value;
               }
             }
           },
-          y1: {
-            beginAtZero: true,
-            position: 'right',
-            title: {
-              display: true,
-              text: 'Orders'
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Revenue (EGP)'
+              },
+              ticks: {
+                callback: function(value, index, values) {
+                  return value.toFixed(0);
+                }
+              }
             },
-            grid: {
-              drawOnChartArea: false
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: 'Number of Orders'
+              },
+              grid: {
+                drawOnChartArea: false
+              }
             }
           }
         }
-      }
-    });
+      });
+      
+      console.log('Sales chart initialized successfully');
+    } catch (error) {
+      console.error('Error initializing sales chart:', error);
+    }
   });
 </script>
 

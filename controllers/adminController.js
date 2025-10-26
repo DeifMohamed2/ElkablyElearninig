@@ -2833,6 +2833,42 @@ const deleteTopicContent = async (req, res) => {
 
 // ==================== ORDERS MANAGEMENT (ADMIN) ====================
 
+// Helper function to process monthly sales data for charts
+const processMonthlySalesData = (monthlyData) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  // Get last 12 months
+  const currentDate = new Date();
+  const last12Months = [];
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+    last12Months.push({
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      label: months[date.getMonth()],
+      revenue: 0,
+      orderCount: 0
+    });
+  }
+
+  // Fill in actual data
+  monthlyData.forEach(data => {
+    const monthIndex = last12Months.findIndex(
+      m => m.year === data._id.year && m.month === data._id.month
+    );
+    if (monthIndex !== -1) {
+      last12Months[monthIndex].revenue = data.revenue || 0;
+      last12Months[monthIndex].orderCount = data.orderCount || 0;
+    }
+  });
+
+  return {
+    labels: last12Months.map(m => m.label),
+    revenue: last12Months.map(m => m.revenue),
+    orderCount: last12Months.map(m => m.orderCount)
+  };
+};
+
 // List all orders with filtering, analytics, and pagination
 const getOrders = async (req, res) => {
   try {
@@ -2876,7 +2912,7 @@ const getOrders = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [orders, totalOrders, revenueAgg] = await Promise.all([
+    const [orders, totalOrders, revenueAgg, monthlySalesData] = await Promise.all([
       Purchase.find(filter)
         .populate('user', 'firstName lastName studentEmail studentCode')
         .populate('items.item')
@@ -2908,6 +2944,21 @@ const getOrders = async (req, res) => {
           },
         },
       ]),
+      // Get monthly sales data for the last 12 months
+      Purchase.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' }
+            },
+            revenue: { $sum: '$total' },
+            orderCount: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ])
     ]);
 
     const totalPages = Math.ceil(totalOrders / parseInt(limit));
@@ -2921,6 +2972,9 @@ const getOrders = async (req, res) => {
       refunded: 0,
     };
 
+    // Process monthly sales data for chart
+    const chartData = processMonthlySalesData(monthlySalesData);
+
     return res.render('admin/orders', {
       title: 'All Orders | ELKABLY',
       theme: req.cookies.theme || 'light',
@@ -2933,6 +2987,7 @@ const getOrders = async (req, res) => {
           totalOrders > 0
             ? Math.round((revenue.totalRevenue / totalOrders) * 100) / 100
             : 0,
+        monthlySalesData: chartData,
       },
       currentFilters: {
         status,

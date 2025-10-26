@@ -117,7 +117,7 @@ const promoCodeSchema = new mongoose.Schema({
 });
 
 // Index for better performance
-promoCodeSchema.index({ code: 1 });
+// Note: code index is automatically created due to unique: true
 promoCodeSchema.index({ isActive: 1, validFrom: 1, validUntil: 1 });
 promoCodeSchema.index({ 'usageHistory.user': 1 });
 

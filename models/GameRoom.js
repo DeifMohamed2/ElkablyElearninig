@@ -447,7 +447,7 @@ gameRoomSchema.statics.findOrCreateSessionGroup = async function (
 };
 
 // Index for better performance
-gameRoomSchema.index({ roomCode: 1 });
+// Note: roomCode index is automatically created due to unique: true
 gameRoomSchema.index({ isActive: 1, isPublic: 1 });
 gameRoomSchema.index({ gameState: 1 });
 gameRoomSchema.index({ createdBy: 1 });

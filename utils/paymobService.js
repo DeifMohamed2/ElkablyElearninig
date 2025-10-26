@@ -11,14 +11,6 @@ class PaymobService {
     this.integrationIdWallet = process.env.PAYMOB_INTEGRATION_ID_WALLET;
     this.webhookSecret = process.env.PAYMOB_WEBHOOK_SECRET;
 
-    // Debug logging
-    console.log('PaymobService initialized with:');
-    console.log('- Base URL:', this.baseUrl);
-    console.log('- API Key available:', !!this.apiKey);
-    console.log('- API Key length:', this.apiKey ? this.apiKey.length : 0);
-    console.log('- Iframe ID:', this.iframeId);
-    console.log('- Integration ID Card:', this.integrationIdCard);
-    console.log('- Integration ID Wallet:', this.integrationIdWallet);
 
     // Validate required environment variables
     if (!this.apiKey) {
