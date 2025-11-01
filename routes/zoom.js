@@ -120,7 +120,7 @@ router.post('/webhook', async (req, res) => {
       }
 
       // Get webhook secret token from environment
-      const webhookSecret = process.env.ZOOM_WEBHOOK_SECRET_TOKEN || process.env.ZOOM_WEBHOOK_SECRET;
+      const webhookSecret = process.env.ZOOM_Token ;
       
       if (!webhookSecret) {
         console.error('❌ ZOOM_WEBHOOK_SECRET_TOKEN or ZOOM_WEBHOOK_SECRET not set in environment');
