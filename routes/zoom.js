@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const zoomService = require('../utils/zoomService');
 const { isAdmin, isStudent, isAuthenticated } = require('../middlewares/auth');
 const {
@@ -94,6 +95,7 @@ router.get('/student/zoom/history', isStudent, getZoomMeetingHistory);
 /**
  * Zoom webhook endpoint for receiving meeting events
  * This endpoint handles:
+ * - endpoint.url_validation (for webhook URL validation)
  * - meeting.started
  * - meeting.ended
  * - meeting.participant_joined
@@ -106,7 +108,43 @@ router.post('/webhook', async (req, res) => {
 
     console.log('🎯 Zoom webhook received:', event);
 
-    // Process the webhook event
+    // Handle URL validation challenge from Zoom
+    if (event === 'endpoint.url_validation') {
+      const plainToken = payload?.plainToken;
+      
+      if (!plainToken) {
+        console.error('❌ Missing plainToken in validation request');
+        return res.status(400).json({ 
+          error: 'Missing plainToken in validation payload' 
+        });
+      }
+
+      // Get webhook secret token from environment
+      const webhookSecret = process.env.ZOOM_WEBHOOK_SECRET_TOKEN || process.env.ZOOM_WEBHOOK_SECRET;
+      
+      if (!webhookSecret) {
+        console.error('❌ ZOOM_WEBHOOK_SECRET_TOKEN or ZOOM_WEBHOOK_SECRET not set in environment');
+        return res.status(500).json({ 
+          error: 'Webhook secret not configured' 
+        });
+      }
+
+      // Generate encrypted token using HMAC SHA-256
+      const encryptedToken = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(plainToken)
+        .digest('hex');
+
+      console.log('✅ URL validation response sent');
+      
+      // Return both tokens for Zoom to verify
+      return res.status(200).json({
+        plainToken: plainToken,
+        encryptedToken: encryptedToken,
+      });
+    }
+
+    // Process other webhook events
     await zoomService.processWebhook(event, payload);
 
     // Respond with 200 to acknowledge receipt
