@@ -94,6 +94,9 @@ const {
   // Admin Management
   getCreateAdminForm,
   createNewAdmin,
+  updateAdmin,
+  deleteAdmin,
+  toggleAdminStatus,
   // Export functions
   exportCourses,
   exportOrders,
@@ -347,6 +350,9 @@ router.get(
 // Admin Management Routes
 router.get('/create-admin', isAdmin, getCreateAdminForm);
 router.post('/create-admin', isAdmin, createNewAdmin);
+router.put('/admins/:adminId', isAdmin, updateAdmin);
+router.delete('/admins/:adminId', isAdmin, deleteAdmin);
+router.post('/admins/:adminId/toggle-status', isAdmin, toggleAdminStatus);
 
 // Brilliant Students Management Routes
 router.get('/brilliant-students', isAdmin, getBrilliantStudents);

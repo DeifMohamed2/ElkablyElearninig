@@ -8545,11 +8545,18 @@ const calculateWeeklyPattern = (activityTimeline) => {
 // Admin Management Functions
 const getCreateAdminForm = async (req, res) => {
   try {
+    // Fetch all admins for the list
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
     res.render('admin/create-admin-panel', {
-      title: 'Create New Admin',
+      title: 'Admin Management',
       currentPage: 'create-admin',
       theme: req.cookies.theme || 'light',
       user: req.user,
+      admins: admins || [],
     });
   } catch (error) {
     console.error('Error loading create admin form:', error);
@@ -8564,9 +8571,10 @@ const createNewAdmin = async (req, res) => {
 
     // Basic validation
     if (!userName || !phoneNumber || !password) {
+      const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 }).lean();
       req.flash('error', 'Username, phone number, and password are required');
       return res.render('admin/create-admin-panel', {
-        title: 'Create New Admin',
+        title: 'Admin Management',
         currentPage: 'create-admin',
         theme: req.cookies.theme || 'light',
         user: req.user,
@@ -8574,13 +8582,15 @@ const createNewAdmin = async (req, res) => {
         userName,
         phoneNumber,
         email,
+        admins: admins || [],
       });
     }
 
     if (password.length < 6) {
+      const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 }).lean();
       req.flash('error', 'Password must be at least 6 characters long');
       return res.render('admin/create-admin-panel', {
-        title: 'Create New Admin',
+        title: 'Admin Management',
         currentPage: 'create-admin',
         theme: req.cookies.theme || 'light',
         user: req.user,
@@ -8588,6 +8598,7 @@ const createNewAdmin = async (req, res) => {
         userName,
         phoneNumber,
         email,
+        admins: admins || [],
       });
     }
 
@@ -8601,8 +8612,9 @@ const createNewAdmin = async (req, res) => {
     });
 
     if (existingAdmin) {
+      const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 }).lean();
       return res.render('admin/create-admin-panel', {
-        title: 'Create New Admin',
+        title: 'Admin Management',
         currentPage: 'create-admin',
         theme: req.cookies.theme || 'light',
         user: req.user,
@@ -8612,6 +8624,7 @@ const createNewAdmin = async (req, res) => {
         userName,
         phoneNumber,
         email,
+        admins: admins || [],
       });
     }
 
@@ -8626,23 +8639,34 @@ const createNewAdmin = async (req, res) => {
       password: hashedPassword,
       role: 'admin',
       isActive: true,
-      createdBy: req.user._id,
-      createdAt: new Date(),
     });
 
     await newAdmin.save();
 
+    // Fetch all admins for the list
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
     return res.render('admin/create-admin-panel', {
-      title: 'Create New Admin',
+      title: 'Admin Management',
       currentPage: 'create-admin',
       theme: req.cookies.theme || 'light',
       user: req.user,
       success: `Admin account for ${userName} created successfully!`,
+      admins: admins || [],
     });
   } catch (error) {
     console.error('Error creating admin:', error);
+    // Fetch all admins for the list even on error
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
     return res.render('admin/create-admin-panel', {
-      title: 'Create New Admin',
+      title: 'Admin Management',
       currentPage: 'create-admin',
       theme: req.cookies.theme || 'light',
       user: req.user,
@@ -8650,6 +8674,7 @@ const createNewAdmin = async (req, res) => {
       userName: req.body.userName,
       phoneNumber: req.body.phoneNumber,
       email: req.body.email,
+      admins: admins || [],
     });
   }
 };
@@ -10289,6 +10314,217 @@ const getDashboardChartData = async (req, res) => {
   }
 };
 
+// ==================== ADMIN MANAGEMENT ====================
+
+// Update admin details
+const updateAdmin = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const { userName, phoneNumber, email, isActive } = req.body;
+
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found',
+      });
+    }
+
+    // Update fields
+    admin.userName = userName || admin.userName;
+    admin.phoneNumber = phoneNumber || admin.phoneNumber;
+    admin.email = email || admin.email;
+    admin.isActive = isActive !== undefined ? isActive === 'true' || isActive === true : admin.isActive;
+
+    await admin.save();
+
+    // Fetch all admins for the list
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.render('admin/create-admin-panel', {
+      title: 'Admin Management',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      success: `Admin account updated successfully!`,
+      admins: admins || [],
+    });
+  } catch (error) {
+    console.error('Error updating admin:', error);
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.render('admin/create-admin-panel', {
+      title: 'Admin Management',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      errors: ['Failed to update admin: ' + error.message],
+      admins: admins || [],
+    });
+  }
+};
+
+// Delete admin
+const deleteAdmin = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+
+    // Prevent deleting yourself
+    if (!req.user || !req.user.id) {
+      req.flash('error', 'User session not found');
+      return res.redirect('/auth/login');
+    }
+
+    if (adminId === req.user.id.toString()) {
+      const admins = await Admin.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return res.render('admin/create-admin-panel', {
+        title: 'Admin Management',
+        currentPage: 'create-admin',
+        theme: req.cookies.theme || 'light',
+        user: req.user,
+        errors: ['You cannot delete your own account!'],
+        admins: admins || [],
+      });
+    }
+
+    const admin = await Admin.findByIdAndDelete(adminId);
+    if (!admin) {
+      const admins = await Admin.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return res.render('admin/create-admin-panel', {
+        title: 'Admin Management',
+        currentPage: 'create-admin',
+        theme: req.cookies.theme || 'light',
+        user: req.user,
+        errors: ['Admin not found'],
+        admins: admins || [],
+      });
+    }
+
+    // Fetch all admins for the list
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.render('admin/create-admin-panel', {
+      title: 'Admin Management',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      success: `Admin account deleted successfully!`,
+      admins: admins || [],
+    });
+  } catch (error) {
+    console.error('Error deleting admin:', error);
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.render('admin/create-admin-panel', {
+      title: 'Admin Management',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      errors: ['Failed to delete admin: ' + error.message],
+      admins: admins || [],
+    });
+  }
+};
+
+// Toggle admin status
+const toggleAdminStatus = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+
+    // Prevent deactivating yourself
+    if (!req.user || !req.user.id) {
+      req.flash('error', 'User session not found');
+      return res.redirect('/auth/login');
+    }
+
+    if (adminId === req.user.id.toString()) {
+      const admins = await Admin.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return res.render('admin/create-admin-panel', {
+        title: 'Admin Management',
+        currentPage: 'create-admin',
+        theme: req.cookies.theme || 'light',
+        user: req.user,
+        errors: ['You cannot deactivate your own account!'],
+        admins: admins || [],
+      });
+    }
+
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      const admins = await Admin.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return res.render('admin/create-admin-panel', {
+        title: 'Admin Management',
+        currentPage: 'create-admin',
+        theme: req.cookies.theme || 'light',
+        user: req.user,
+        errors: ['Admin not found'],
+        admins: admins || [],
+      });
+    }
+
+    admin.isActive = !admin.isActive;
+    await admin.save();
+
+    // Fetch all admins for the list
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.render('admin/create-admin-panel', {
+      title: 'Admin Management',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      success: `Admin account ${admin.isActive ? 'activated' : 'deactivated'} successfully!`,
+      admins: admins || [],
+    });
+  } catch (error) {
+    console.error('Error toggling admin status:', error);
+    const admins = await Admin.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.render('admin/create-admin-panel', {
+      title: 'Admin Management',
+      currentPage: 'create-admin',
+      theme: req.cookies.theme || 'light',
+      user: req.user,
+      errors: ['Failed to toggle admin status: ' + error.message],
+      admins: admins || [],
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -10357,6 +10593,9 @@ module.exports = {
   // Admin Management
   getCreateAdminForm,
   createNewAdmin,
+  updateAdmin,
+  deleteAdmin,
+  toggleAdminStatus,
   // Export functions
   exportCourses,
   exportOrders,
