@@ -178,9 +178,18 @@
 
               <div class="topic-content-section" style="display: none;">
                 <% if (topic.content && topic.content.length > 0) { %>
-                <div class="content-items">
+                <div class="content-items-header">
+                  <button class="btn btn-sm btn-outline-secondary content-reorder-btn" onclick="toggleContentReorder('<%= topic._id %>')" title="Reorder Content">
+                    <i class="fas fa-sort"></i>
+                    Reorder Content
+                  </button>
+                </div>
+                <div class="content-items" data-topic-id="<%= topic._id %>">
                   <% topic.content.forEach(contentItem => { %>
-                  <div class="content-item" data-content-id="<%= contentItem._id %>" data-content-type="<%= contentItem.type %>">
+                  <div class="content-item" data-content-id="<%= contentItem._id %>" data-content-type="<%= contentItem.type %>" data-order="<%= contentItem.order || 0 %>">
+                    <div class="content-drag-handle" title="Drag to reorder">
+                      <i class="fas fa-grip-vertical"></i>
+                    </div>
                     <div class="content-icon <%= contentItem.type %>">
                       <i class="fas fa-<%= getContentIcon(contentItem.type) %>"></i>
                     </div>
@@ -459,7 +468,6 @@
                     <option value="homework">Homework</option>
                     <option value="quiz">Quiz</option>
                     <option value="zoom">Zoom Live Session</option>
-                    <option value="reading">Reading Material</option>
                     <option value="link">External Link</option>
                   </select>
                 </div>
@@ -532,14 +540,6 @@
                 </div>
 
                 <div class="admin-form-group">
-                  <label for="contentOrder" class="admin-form-label">
-                    <i class="fas fa-sort-numeric-up me-2"></i>
-                    Order
-                  </label>
-                  <input type="number" class="admin-form-control" id="contentOrder" name="order" min="1">
-                </div>
-
-                <div class="admin-form-group">
                   <label for="contentDifficulty" class="admin-form-label">
                     <i class="fas fa-signal me-2"></i>
                     Difficulty Level
@@ -549,15 +549,6 @@
                     <option value="intermediate">Intermediate</option>
                     <option value="advanced">Advanced</option>
                   </select>
-                </div>
-
-                <div class="admin-form-group">
-                  <div class="admin-form-check">
-                    <input type="checkbox" class="admin-form-check-input" id="isRequired" name="isRequired" checked>
-                    <label class="admin-form-check-label" for="isRequired">
-                      Required content
-                    </label>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1242,7 +1233,6 @@
                     <option value="homework">Homework</option>
                     <option value="quiz">Quiz</option>
                     <option value="zoom">Zoom Live Session</option>
-                    <option value="reading">Reading Material</option>
                     <option value="link">External Link</option>
                   </select>
                 </div>
@@ -1969,7 +1959,6 @@ function getContentIcon(type) {
     'homework': 'tasks',
     'quiz': 'question-circle',
     'zoom': 'video',
-    'reading': 'book',
     'link': 'external-link-alt'
   };
   return icons[type] || 'file';
@@ -2729,7 +2718,7 @@ function getContentIcon(type) {
     const contentUrlInput = document.getElementById('editContentUrl');
 
     // Show relevant sections based on content type
-    if (type === 'video' || type === 'pdf' || type === 'reading' || type === 'link') {
+    if (type === 'video' || type === 'pdf' || type === 'link') {
       document.getElementById('editContentUrlSection').style.display = 'block';
       if (contentUrlInput) {
         contentUrlInput.required = true; // Make required for these types
@@ -3549,6 +3538,161 @@ function getContentIcon(type) {
       });
   }
 
+  // ==================== CONTENT REORDERING FUNCTIONS ====================
+  
+  let contentReorderModes = {}; // Track reorder mode for each topic
+
+  function toggleContentReorder(topicId) {
+    // Prevent event from bubbling to parent topic card
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    const contentItems = document.querySelector(`.content-items[data-topic-id="${topicId}"]`);
+    const reorderBtn = event.target.closest('.content-reorder-btn');
+    
+    if (!contentItems) return;
+
+    // Toggle reorder mode for this topic
+    contentReorderModes[topicId] = !contentReorderModes[topicId];
+
+    if (contentReorderModes[topicId]) {
+      // Enable reorder mode
+      contentItems.classList.add('reorder-mode');
+      reorderBtn.classList.add('active');
+      reorderBtn.innerHTML = '<i class="fas fa-check"></i> Save Order';
+      
+      // Make content items draggable
+      const items = contentItems.querySelectorAll('.content-item');
+      items.forEach(item => {
+        item.draggable = true;
+        item.classList.add('draggable');
+        item.addEventListener('dragstart', handleContentDragStart);
+        item.addEventListener('dragover', handleContentDragOver);
+        item.addEventListener('drop', handleContentDrop);
+        item.addEventListener('dragend', handleContentDragEnd);
+      });
+    } else {
+      // Disable reorder mode and save
+      contentItems.classList.remove('reorder-mode');
+      reorderBtn.classList.remove('active');
+      reorderBtn.innerHTML = '<i class="fas fa-sort"></i> Reorder Content';
+      
+      // Remove draggable
+      const items = contentItems.querySelectorAll('.content-item');
+      items.forEach(item => {
+        item.draggable = false;
+        item.classList.remove('draggable');
+        item.removeEventListener('dragstart', handleContentDragStart);
+        item.removeEventListener('dragover', handleContentDragOver);
+        item.removeEventListener('drop', handleContentDrop);
+        item.removeEventListener('dragend', handleContentDragEnd);
+      });
+
+      // Save the new order
+      updateContentOrder(topicId);
+    }
+  }
+
+  let draggedContentElement = null;
+
+  function handleContentDragStart(e) {
+    draggedContentElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.outerHTML);
+  }
+
+  function handleContentDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Add visual feedback
+    const contentItem = e.target.closest('.content-item');
+    if (contentItem && contentItem !== draggedContentElement) {
+      contentItem.classList.add('drag-over');
+    }
+    
+    return false;
+  }
+
+  function handleContentDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    // Remove drag-over class from all items
+    document.querySelectorAll('.content-item').forEach(item => {
+      item.classList.remove('drag-over');
+    });
+
+    const dropTarget = e.target.closest('.content-item');
+    
+    if (draggedContentElement !== dropTarget && dropTarget) {
+      const contentItems = dropTarget.parentElement;
+      const items = Array.from(contentItems.querySelectorAll('.content-item'));
+      const draggedIndex = items.indexOf(draggedContentElement);
+      const targetIndex = items.indexOf(dropTarget);
+
+      if (draggedIndex < targetIndex) {
+        contentItems.insertBefore(draggedContentElement, dropTarget.nextSibling);
+      } else {
+        contentItems.insertBefore(draggedContentElement, dropTarget);
+      }
+    }
+
+    return false;
+  }
+
+  function handleContentDragEnd(e) {
+    document.querySelectorAll('.content-item').forEach(item => {
+      item.classList.remove('dragging', 'drag-over');
+    });
+    draggedContentElement = null;
+  }
+
+  function updateContentOrder(topicId) {
+    const contentItems = document.querySelector(`.content-items[data-topic-id="${topicId}"]`);
+    if (!contentItems) return;
+
+    const items = contentItems.querySelectorAll('.content-item');
+    const orderUpdates = [];
+
+    items.forEach((item, index) => {
+      const contentId = item.dataset.contentId;
+      orderUpdates.push({
+        contentId: contentId,
+        order: index + 1
+      });
+    });
+
+    // Send order updates to server
+    fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/content/reorder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderUpdates
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('Content order updated successfully!', 'success');
+        } else {
+          showNotification('Error updating content order', 'error');
+          console.error('Error updating content order:', data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error updating content order', 'error');
+      });
+  }
+
   function toggleAllTopics() {
     const topicCards = document.querySelectorAll('.topic-card');
     const firstCard = topicCards[0];
@@ -3577,7 +3721,6 @@ function getContentIcon(type) {
       'homework': 'tasks',
       'quiz': 'question-circle',
       'zoom': 'video',
-      'reading': 'book',
       'link': 'external-link-alt'
     };
     return icons[type] || 'file';
@@ -3660,7 +3803,7 @@ function getContentIcon(type) {
           contentUrlSection.style.display = 'block';
           contentUrlInput.required = true;
 
-          const needsFileUpload = ['pdf', 'reading'].includes(type);
+          const needsFileUpload = ['pdf'].includes(type);
 
           if (needsFileUpload) {
             fileUploadSection.style.display = 'block';
@@ -3689,7 +3832,11 @@ function getContentIcon(type) {
     const topicCards = document.querySelectorAll('.topic-card');
     topicCards.forEach(card => {
       card.addEventListener('click', function(e) {
-        if (!e.target.closest('.topic-actions') && !reorderMode) {
+        // Don't toggle if clicking on topic actions, reorder button, or content items header
+        if (!e.target.closest('.topic-actions') && 
+            !e.target.closest('.content-items-header') && 
+            !e.target.closest('.content-reorder-btn') && 
+            !reorderMode) {
           // Toggle topic content visibility
           const contentSection = this.querySelector('.topic-content-section');
           if (contentSection) {
@@ -5600,6 +5747,213 @@ function getContentIcon(type) {
 
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  /* ==================== CONTENT REORDERING STYLES ==================== */
+  
+  .content-items-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 10px;
+  }
+
+  .content-reorder-btn {
+    transition: all 0.3s ease;
+  }
+
+  .content-reorder-btn.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-color: #10b981;
+  }
+
+  .content-reorder-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .content-drag-handle {
+    display: none;
+    cursor: grab;
+    padding: 10px;
+    color: #6b7280;
+    transition: all 0.3s ease;
+  }
+
+  .content-drag-handle:hover {
+    color: #3b82f6;
+  }
+
+  .content-drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .content-items.reorder-mode .content-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .content-items.reorder-mode .content-item {
+    cursor: move;
+    transition: all 0.3s ease;
+    border: 2px dashed transparent;
+  }
+
+  .content-items.reorder-mode .content-item:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+  }
+
+  .content-item.draggable {
+    opacity: 1;
+  }
+
+  .content-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .content-item.drag-over {
+    border-color: #10b981 !important;
+    background: #d1fae5 !important;
+    transform: scale(1.02);
+  }
+
+  /* Adjust content item layout for drag handle */
+  .content-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .content-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .content-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 18px;
+    color: white;
+  }
+
+  .content-icon.video {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  }
+
+  .content-icon.pdf {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  }
+
+  .content-icon.quiz {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  }
+
+  .content-icon.homework {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  }
+
+  .content-icon.link {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  }
+
+  .content-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .content-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 5px 0;
+  }
+
+  .content-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .content-description {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 5px 0 0 0;
+  }
+
+  .content-actions {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  /* Dark theme support */
+  .dark-theme .content-items-header {
+    background: #1f2937;
+  }
+
+  .dark-theme .content-item {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .dark-theme .content-item:hover {
+    background: #111827;
+  }
+
+  .dark-theme .content-items.reorder-mode .content-item:hover {
+    border-color: #3b82f6;
+    background: #1e3a8a;
+  }
+
+  .dark-theme .content-item.drag-over {
+    background: #064e3b !important;
+  }
+
+  .dark-theme .content-title {
+    color: #f9fafb;
+  }
+
+  .dark-theme .content-meta,
+  .dark-theme .content-description {
+    color: #9ca3af;
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .content-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .content-actions {
+      flex-direction: row;
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    .content-drag-handle {
+      padding: 5px;
     }
   }
 </style>

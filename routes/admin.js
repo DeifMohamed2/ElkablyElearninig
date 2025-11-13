@@ -45,6 +45,7 @@ const {
   updateTopicVisibility,
   getTopicDetails,
   reorderTopics,
+  reorderContent,
   deleteTopic,
   addTopicContent,
   updateTopicContent,
@@ -65,6 +66,7 @@ const {
   // Student Management Controllers
   getStudents,
   getStudentDetails,
+  getStudentEditPage,
   toggleStudentStatus,
   exportStudentData,
   updateStudent,
@@ -130,6 +132,13 @@ const {
   getPromoCodeUsage,
   deletePromoCode,
   updatePromoCode,
+  // Bulk Promo Codes Management
+  createBulkPromoCodes,
+  getBulkCollections,
+  getBulkCollectionDetails,
+  exportBulkCollection,
+  deleteBulkCollection,
+  toggleBulkCollectionStatus,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -155,6 +164,7 @@ const {
   createTeamMember,
   updateTeamMember,
   deleteTeamMember,
+  reorderTeamMembers,
   exportTeamMembers,
 } = require('../controllers/authController');
 
@@ -199,6 +209,7 @@ router.get(
 );
 router.post('/courses/:courseCode/topics/create', isAdmin, createTopic);
 router.put('/courses/:courseCode/topics/reorder', isAdmin, reorderTopics);
+router.put('/courses/:courseCode/topics/:topicId/content/reorder', isAdmin, reorderContent);
 router.put(
   '/courses/:courseCode/topics/:topicId/visibility',
   isAdmin,
@@ -301,6 +312,8 @@ router.get('/api/bundles', isAdmin, getBundlesAPI);
 router.get('/students', isAdmin, getStudents);
 router.get('/students/export', isAdmin, exportStudentData);
 router.post('/students/bulk-import', isAdmin, uploadFile.single('excelFile'), bulkImportStudents);
+router.get('/students/:studentId/edit', isAdmin, getStudentEditPage);
+router.post('/students/:studentId/update', isAdmin, uploadFile.single('profilePicture'), updateStudent);
 router.get('/students/:studentId', isAdmin, getStudentDetails);
 router.get('/students/:studentId/export', isAdmin, exportStudentData);
 router.put('/students/:studentId/status', isAdmin, toggleStudentStatus);
@@ -359,7 +372,7 @@ router.get('/brilliant-students', isAdmin, getBrilliantStudents);
 router.post('/brilliant-students', isAdmin, createBrilliantStudent);
 router.get('/brilliant-students/export', isAdmin, exportBrilliantStudents);
 router.get('/brilliant-students/stats', isAdmin, getBrilliantStudentsStats);
-router.post('/brilliant-students/reorder', isAdmin, reorderBrilliantStudents);
+router.put('/brilliant-students/reorder', isAdmin, reorderBrilliantStudents);
 router.get('/brilliant-students/:id', isAdmin, getBrilliantStudentDetails);
 router.put('/brilliant-students/:id', isAdmin, updateBrilliantStudent);
 router.delete('/brilliant-students/:id', isAdmin, deleteBrilliantStudent);
@@ -380,6 +393,7 @@ router.get('/export/comprehensive', isAdmin, exportComprehensiveReport);
 router.get('/team-management', isAdmin, getTeamManagementPage);
 router.post('/team-management', isAdmin, createTeamMember);
 router.get('/team-management/export', isAdmin, exportTeamMembers);
+router.put('/team-management/reorder', isAdmin, reorderTeamMembers);
 router.get('/team-management/:id', isAdmin, getTeamMember);
 router.put('/team-management/:id', isAdmin, updateTeamMember);
 router.delete('/team-management/:id', isAdmin, deleteTeamMember);
@@ -391,6 +405,14 @@ router.post('/promo-codes/create', isAdmin, createPromoCode);
 router.get('/promo-codes/:id/usage', isAdmin, getPromoCodeUsage);
 router.put('/promo-codes/:id/update', isAdmin, updatePromoCode);
 router.delete('/promo-codes/:id/delete', isAdmin, deletePromoCode);
+
+// Bulk Promo Codes Management Routes
+router.post('/promo-codes/bulk/create', isAdmin, createBulkPromoCodes);
+router.get('/promo-codes/bulk/collections', isAdmin, getBulkCollections);
+router.get('/promo-codes/bulk/collections/:bulkCollectionId', isAdmin, getBulkCollectionDetails);
+router.get('/promo-codes/bulk/collections/:bulkCollectionId/export', isAdmin, exportBulkCollection);
+router.delete('/promo-codes/bulk/collections/:bulkCollectionId', isAdmin, deleteBulkCollection);
+router.put('/promo-codes/bulk/collections/:bulkCollectionId/status', isAdmin, toggleBulkCollectionStatus);
 
 // WhatsApp Management Routes
 router.get('/whatsapp', isAdmin, getWhatsAppDashboard);

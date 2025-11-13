@@ -146,13 +146,18 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   animation: progress-shine 2s infinite;
 }
 
 @keyframes progress-shine {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .brilliant-students-container .progress-text {
@@ -811,13 +816,15 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
-  display: none; /* Changed from flex to none to ensure it's hidden */
+  display: none;
+  /* Changed from flex to none to ensure it's hidden */
   align-items: center;
   justify-content: center;
   z-index: 1000;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease; /* Fallback transition */
+  transition: all 0.3s ease;
+  /* Fallback transition */
 }
 
 /* Ensure modal is hidden by default with multiple approaches */
@@ -1177,36 +1184,36 @@
     gap: 16px;
     align-items: stretch;
   }
-  
+
   .brilliant-students-actions {
     justify-content: center;
   }
-  
+
   .brilliant-students-stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .brilliant-students-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .filters-row {
     grid-template-columns: 1fr;
   }
-  
+
   .filter-actions {
     justify-content: center;
   }
-  
+
   .form-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .modal-content {
     padding: 20px;
     margin: 20px;
   }
-  
+
   .modal-actions {
     flex-direction: column;
   }
@@ -1216,13 +1223,13 @@
   .brilliant-students-stats {
     grid-template-columns: 1fr;
   }
-  
+
   .student-card-actions {
     position: static;
     justify-content: center;
     margin-top: 12px;
   }
-  
+
   .student-card-footer {
     flex-direction: column;
     gap: 8px;
@@ -1300,12 +1307,31 @@
 
 /* Drag and Drop */
 .brilliant-students-container .draggable {
-  cursor: move;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.brilliant-students-container .draggable:active {
+  cursor: grabbing;
 }
 
 .brilliant-students-container .dragging {
-  opacity: 0.5;
-  transform: rotate(5deg);
+  opacity: 0.4;
+  transform: scale(0.95) rotate(2deg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  position: relative;
+}
+
+.brilliant-students-container .drag-over {
+  border: 2px dashed var(--admin-primary) !important;
+  background: rgba(184, 1, 1, 0.1) !important;
+  transform: scale(1.02);
+}
+
+.dark-theme .brilliant-students-container .drag-over {
+  background: rgba(184, 1, 1, 0.15) !important;
 }
 
 .brilliant-students-container .drop-zone {
@@ -1323,6 +1349,29 @@
   background: rgba(184, 1, 1, 0.1);
 }
 
+/* Drag Handle Indicator */
+.brilliant-students-container .student-card::before {
+  content: '⋮⋮';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: rgba(184, 1, 1, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  letter-spacing: -2px;
+}
+
+.brilliant-students-container .student-card:hover::before {
+  opacity: 1;
+}
+
+.brilliant-students-container .draggable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* Animation Classes */
 .brilliant-students-container .fade-in {
   animation: fadeIn 0.5s ease-out;
@@ -1336,6 +1385,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -1346,6 +1396,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

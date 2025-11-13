@@ -191,17 +191,20 @@ const validateCartMiddleware = async (req, res, next) => {
 };
 
 // Helper function to validate and apply promo code
-async function validateAndApplyPromoCode(promoCode, userId, cartItems, subtotal) {
+async function validateAndApplyPromoCode(promoCode, userId, cartItems, subtotal, userEmail = null) {
   try {
     // Check if promo code exists and is valid
-    const promo = await PromoCode.findValidPromoCode(promoCode, userId);
+    const promo = await PromoCode.findValidPromoCode(promoCode, userId, userEmail);
     
     if (!promo) {
       throw new Error('Invalid or expired promo code');
     }
 
     // Check if user has already used this promo code
-    if (!promo.canUserUse(userId)) {
+    if (!promo.canUserUse(userId, userEmail)) {
+      if (promo.restrictToStudents) {
+        throw new Error('This promo code is not available for your account');
+      }
       throw new Error('You have already used this promo code');
     }
 
@@ -265,7 +268,8 @@ const validatePromoCode = async (req, res) => {
       promoCode,
       req.session.user.id,
       validatedCart.items,
-      validatedCart.subtotal
+      validatedCart.subtotal,
+      req.session.user.email || req.session.user.studentEmail
     );
 
     if (result.success) {
@@ -959,7 +963,8 @@ const processPayment = async (req, res) => {
         req.session.appliedPromoCode.code,
         req.session.user.id,
         validatedCart.items,
-        validatedCart.subtotal
+        validatedCart.subtotal,
+        req.session.user.email || req.session.user.studentEmail
       );
 
       if (promoValidation.success) {
@@ -1527,6 +1532,16 @@ const handlePaymentSuccess = async (req, res) => {
             
             // Increment current uses
             promoCode.currentUses += 1;
+            
+            // If this is a single-use bulk code, mark it as used
+            if (promoCode.isSingleUseOnly) {
+              promoCode.usedByStudent = purchase.user._id;
+              const userEmail = user.studentEmail || user.email;
+              if (userEmail) {
+                promoCode.usedByStudentEmail = userEmail.toLowerCase();
+              }
+            }
+            
             await promoCode.save();
             
           }

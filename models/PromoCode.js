@@ -79,10 +79,52 @@ const promoCodeSchema = new mongoose.Schema({
     enum: ['BundleCourse', 'Course'],
     default: null
   },
+  restrictToStudents: {
+    type: Boolean,
+    default: false // false = available to all students, true = restricted to specific students
+  },
+  allowedStudents: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  allowedStudentEmails: [{
+    type: String,
+    lowercase: true,
+    trim: true
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin',
     required: true
+  },
+  // Bulk Code Collection Fields
+  isBulkCode: {
+    type: Boolean,
+    default: false // true if this is part of a bulk code collection
+  },
+  bulkCollectionName: {
+    type: String,
+    trim: true,
+    default: null // Collection name for grouping bulk codes (e.g., "School X Codes")
+  },
+  bulkCollectionId: {
+    type: String,
+    default: null // Unique identifier for the bulk collection
+  },
+  isSingleUseOnly: {
+    type: Boolean,
+    default: false // true if code can only be used once by one student (for bulk codes)
+  },
+  usedByStudent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null // For single-use codes, track which student used it
+  },
+  usedByStudentEmail: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    default: null // For single-use codes, track student email
   },
   usageHistory: [{
     user: {
@@ -120,6 +162,9 @@ const promoCodeSchema = new mongoose.Schema({
 // Note: code index is automatically created due to unique: true
 promoCodeSchema.index({ isActive: 1, validFrom: 1, validUntil: 1 });
 promoCodeSchema.index({ 'usageHistory.user': 1 });
+promoCodeSchema.index({ isBulkCode: 1, bulkCollectionId: 1 });
+promoCodeSchema.index({ bulkCollectionName: 1 });
+promoCodeSchema.index({ isSingleUseOnly: 1, usedByStudent: 1 });
 
 // Virtual for checking if promo code is valid
 promoCodeSchema.virtual('isValid').get(function() {
@@ -137,7 +182,28 @@ promoCodeSchema.virtual('remainingUses').get(function() {
 });
 
 // Method to check if user can use this promo code
-promoCodeSchema.methods.canUserUse = function(userId) {
+promoCodeSchema.methods.canUserUse = function(userId, userEmail = null) {
+  // Check if this is a single-use bulk code that has already been used
+  if (this.isSingleUseOnly && this.usedByStudent) {
+    return false; // Code has already been used by someone
+  }
+  
+  // Check if promo code is restricted to specific students
+  if (this.restrictToStudents) {
+    // Check if user is in allowed students list (by ID or email)
+    const isAllowedById = this.allowedStudents.some(allowedId => 
+      allowedId.toString() === userId.toString()
+    );
+    
+    const isAllowedByEmail = userEmail && this.allowedStudentEmails.some(email => 
+      email.toLowerCase() === userEmail.toLowerCase()
+    );
+    
+    if (!isAllowedById && !isAllowedByEmail) {
+      return false; // User is not in the allowed list
+    }
+  }
+  
   // If allowMultipleUses is true, user can use it multiple times
   if (this.allowMultipleUses) {
     return this.isValid;
@@ -205,8 +271,8 @@ promoCodeSchema.methods.calculateDiscount = function(orderAmount, items = []) {
 };
 
 // Method to apply promo code
-promoCodeSchema.methods.applyPromoCode = function(userId, purchaseId, orderAmount, items = []) {
-  if (!this.canUserUse(userId)) {
+promoCodeSchema.methods.applyPromoCode = function(userId, purchaseId, orderAmount, items = [], userEmail = null) {
+  if (!this.canUserUse(userId, userEmail)) {
     throw new Error('User cannot use this promo code');
   }
 
@@ -224,6 +290,14 @@ promoCodeSchema.methods.applyPromoCode = function(userId, purchaseId, orderAmoun
 
   // Increment current uses
   this.currentUses += 1;
+  
+  // If this is a single-use bulk code, mark it as used
+  if (this.isSingleUseOnly) {
+    this.usedByStudent = userId;
+    if (userEmail) {
+      this.usedByStudentEmail = userEmail.toLowerCase();
+    }
+  }
 
   return {
     discountAmount,
@@ -245,7 +319,7 @@ promoCodeSchema.statics.generateRandomCode = function(length = 8) {
 };
 
 // Static method to find valid promo code
-promoCodeSchema.statics.findValidPromoCode = async function(code, userId) {
+promoCodeSchema.statics.findValidPromoCode = async function(code, userId, userEmail = null) {
   const promoCode = await this.findOne({ 
     code: code.toUpperCase(),
     isActive: true 
@@ -255,11 +329,56 @@ promoCodeSchema.statics.findValidPromoCode = async function(code, userId) {
     throw new Error('Promo code not found');
   }
 
-  if (!promoCode.canUserUse(userId)) {
+  if (!promoCode.canUserUse(userId, userEmail)) {
+    if (promoCode.isSingleUseOnly && promoCode.usedByStudent) {
+      throw new Error('This promo code has already been used');
+    }
+    if (promoCode.restrictToStudents) {
+      throw new Error('This promo code is not available for your account');
+    }
     throw new Error('You have already used this promo code or it is not valid');
   }
 
   return promoCode;
+};
+
+// Static method to generate bulk promo codes
+promoCodeSchema.statics.generateBulkCodes = async function(count, prefix = '', length = 8) {
+  const codes = new Set();
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  
+  while (codes.size < count) {
+    let code = prefix;
+    for (let i = 0; i < length; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    // Check if code already exists in database
+    const exists = await this.findOne({ code: code.toUpperCase() });
+    if (!exists) {
+      codes.add(code.toUpperCase());
+    }
+  }
+  
+  return Array.from(codes);
+};
+
+// Static method to get bulk collection statistics
+promoCodeSchema.statics.getBulkCollectionStats = async function(bulkCollectionId) {
+  const codes = await this.find({ bulkCollectionId });
+  
+  const totalCodes = codes.length;
+  const usedCodes = codes.filter(code => code.usedByStudent).length;
+  const unusedCodes = totalCodes - usedCodes;
+  const activeCodes = codes.filter(code => code.isActive).length;
+  
+  return {
+    totalCodes,
+    usedCodes,
+    unusedCodes,
+    activeCodes,
+    usagePercentage: totalCodes > 0 ? ((usedCodes / totalCodes) * 100).toFixed(2) : 0
+  };
 };
 
 // Pre-save middleware to ensure code is uppercase

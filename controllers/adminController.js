@@ -2261,6 +2261,53 @@ const reorderTopics = async (req, res) => {
   }
 };
 
+// Reorder content items within a topic
+const reorderContent = async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const { orderUpdates } = req.body;
+
+    if (!orderUpdates || !Array.isArray(orderUpdates)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid order updates' 
+      });
+    }
+
+    const topic = await Topic.findById(topicId);
+    if (!topic) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Topic not found' 
+      });
+    }
+
+    // Update each content item's order
+    orderUpdates.forEach((update) => {
+      const contentItem = topic.content.id(update.contentId);
+      if (contentItem) {
+        contentItem.order = update.order;
+      }
+    });
+
+    // Sort content by order before saving
+    topic.content.sort((a, b) => a.order - b.order);
+
+    await topic.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Content order updated successfully' 
+    });
+  } catch (error) {
+    console.error('Error reordering content:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error updating content order' 
+    });
+  }
+};
+
 // Delete topic
 const deleteTopic = async (req, res) => {
   try {
@@ -6011,36 +6058,127 @@ const exportStudentData = async (req, res) => {
   }
 };
 
-// Update student information
+// Get student edit page
+const getStudentEditPage = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    // Validate studentId
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).render('404', {
+        message: 'Invalid student ID format',
+        title: 'Error | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        user: req.session.user,
+      });
+    }
+
+    // Get student data
+    const student = await User.findById(studentId).select('-password');
+
+    if (!student) {
+      return res.status(404).render('404', {
+        message: 'Student not found',
+        title: 'Error | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        user: req.session.user,
+      });
+    }
+
+    res.render('admin/student-edit', {
+      title: `Edit ${student.firstName} ${student.lastName} | ELKABLY`,
+      theme: req.cookies.theme || 'light',
+      user: req.session.user,
+      student,
+      success: req.query.success || null,
+      error: req.query.error || null,
+    });
+  } catch (error) {
+    console.error('Error loading student edit page:', error);
+    res.status(500).render('404', {
+      message: 'Error loading edit page',
+      title: 'Error | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      user: req.session.user,
+    });
+  }
+};
+
+// Update student information (form submission)
 const updateStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
     const updateData = req.body;
 
-    // Remove sensitive fields that shouldn't be updated
+    // Validate studentId
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.redirect(`/admin/students/${studentId}/edit?error=${encodeURIComponent('Invalid student ID')}`);
+    }
+
+    // Find the student
+    const student = await User.findById(studentId);
+
+    if (!student) {
+      return res.redirect(`/admin/students?error=${encodeURIComponent('Student not found')}`);
+    }
+
+    // Handle password update if provided
+    if (updateData.newPassword && updateData.newPassword.trim() !== '') {
+      if (updateData.newPassword !== updateData.confirmPassword) {
+        return res.redirect(`/admin/students/${studentId}/edit?error=${encodeURIComponent('Passwords do not match')}`);
+      }
+      
+      // Update password (will be hashed by pre-save middleware)
+      student.password = updateData.newPassword;
+    }
+
+    // Remove password fields from update data
+    delete updateData.newPassword;
+    delete updateData.confirmPassword;
     delete updateData.password;
+    
+    // Remove fields that shouldn't be updated
     delete updateData.studentCode;
     delete updateData.role;
 
-    const student = await User.findByIdAndUpdate(studentId, updateData, {
-      new: true,
-      runValidators: true,
-    }).select('-password');
+    // Handle checkbox for isActive (checkboxes don't send false values)
+    updateData.isActive = updateData.isActive === 'on' || updateData.isActive === true;
 
-    if (!student) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Student not found' });
+    // Handle profile picture upload if provided
+    if (req.file) {
+      // If using Cloudinary or similar, upload the file
+      // For now, we'll store the file path
+      updateData.profilePicture = `/uploads/${req.file.filename}`;
     }
 
-    return res.json({
-      success: true,
-      message: 'Student updated successfully',
-      student,
+    // Update student fields
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined && updateData[key] !== null) {
+        student[key] = updateData[key];
+      }
     });
+
+    // Save the student (this will trigger validation and password hashing if password was changed)
+    await student.save();
+
+    // Redirect back to edit page with success message
+    return res.redirect(`/admin/students/${studentId}/edit?success=${encodeURIComponent('Student information updated successfully')}`);
   } catch (error) {
     console.error('Error updating student:', error);
-    return res.status(500).json({ success: false, message: 'Update failed' });
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errorMessages = Object.values(error.errors).map(err => err.message).join(', ');
+      return res.redirect(`/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent(errorMessages)}`);
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.redirect(`/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent(`This ${field} is already in use`)}`);
+    }
+
+    return res.redirect(`/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent('Failed to update student information')}`);
   }
 };
 
@@ -9934,6 +10072,7 @@ const getPromoCodes = async (req, res) => {
     // Get promo codes
     const promoCodes = await PromoCode.find(filter)
       .populate('createdBy', 'userName email')
+      .populate('allowedStudents', 'firstName lastName studentEmail studentCode')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -10004,7 +10143,9 @@ const createPromoCode = async (req, res) => {
       allowMultipleUses,
       validFrom,
       validUntil,
-      applicableTo
+      applicableTo,
+      restrictToStudents,
+      allowedStudentIds
     } = req.body;
 
     // Validate required fields
@@ -10058,6 +10199,30 @@ const createPromoCode = async (req, res) => {
       });
     }
 
+    // Parse allowed students if provided
+    let allowedStudents = [];
+    let allowedStudentEmails = [];
+    
+    if (restrictToStudents === 'true' || restrictToStudents === true) {
+      if (allowedStudentIds) {
+        try {
+          const studentIds = typeof allowedStudentIds === 'string' 
+            ? JSON.parse(allowedStudentIds) 
+            : allowedStudentIds;
+          
+          if (Array.isArray(studentIds) && studentIds.length > 0) {
+            // Fetch students to get their emails
+            const User = require('../models/User');
+            const students = await User.find({ _id: { $in: studentIds } }).select('_id studentEmail');
+            allowedStudents = students.map(s => s._id);
+            allowedStudentEmails = students.map(s => s.studentEmail).filter(email => email);
+          }
+        } catch (error) {
+          console.error('Error parsing allowed students:', error);
+        }
+      }
+    }
+
     // Create promo code
     const promoCode = new PromoCode({
       name,
@@ -10072,6 +10237,9 @@ const createPromoCode = async (req, res) => {
       validFrom: fromDate,
       validUntil: untilDate,
       applicableTo: applicableTo || 'all',
+      restrictToStudents: restrictToStudents === 'true' || restrictToStudents === true,
+      allowedStudents: allowedStudents,
+      allowedStudentEmails: allowedStudentEmails,
       createdBy: req.session.adminId || req.user?.id
     });
 
@@ -10097,7 +10265,8 @@ const getPromoCode = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const promoCode = await PromoCode.findById(id);
+    const promoCode = await PromoCode.findById(id)
+      .populate('allowedStudents', 'firstName lastName studentEmail studentCode');
     
     if (!promoCode) {
       return res.status(404).json({
@@ -10224,9 +10393,39 @@ const updatePromoCode = async (req, res) => {
       }
     }
 
+    // Handle allowed students update
+    if (updateData.restrictToStudents !== undefined) {
+      promoCode.restrictToStudents = updateData.restrictToStudents === 'true' || updateData.restrictToStudents === true;
+      
+      if (promoCode.restrictToStudents && updateData.allowedStudentIds) {
+        try {
+          const studentIds = typeof updateData.allowedStudentIds === 'string' 
+            ? JSON.parse(updateData.allowedStudentIds) 
+            : updateData.allowedStudentIds;
+          
+          if (Array.isArray(studentIds) && studentIds.length > 0) {
+            // Fetch students to get their emails
+            const User = require('../models/User');
+            const students = await User.find({ _id: { $in: studentIds } }).select('_id studentEmail');
+            promoCode.allowedStudents = students.map(s => s._id);
+            promoCode.allowedStudentEmails = students.map(s => s.studentEmail).filter(email => email);
+          } else {
+            promoCode.allowedStudents = [];
+            promoCode.allowedStudentEmails = [];
+          }
+        } catch (error) {
+          console.error('Error parsing allowed students:', error);
+        }
+      } else if (!promoCode.restrictToStudents) {
+        // Clear allowed students if restriction is removed
+        promoCode.allowedStudents = [];
+        promoCode.allowedStudentEmails = [];
+      }
+    }
+
     // Update promo code
     Object.keys(updateData).forEach(key => {
-      if (updateData[key] !== undefined) {
+      if (updateData[key] !== undefined && key !== 'restrictToStudents' && key !== 'allowedStudentIds') {
         // Special handling for allowMultipleUses to convert string to boolean
         if (key === 'allowMultipleUses') {
           promoCode[key] = updateData[key] === 'true' || updateData[key] === true;
@@ -10248,6 +10447,382 @@ const updatePromoCode = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating promo code',
+      error: error.message
+    });
+  }
+};
+
+// ==================== BULK PROMO CODES MANAGEMENT ====================
+
+// Create bulk promo codes
+const createBulkPromoCodes = async (req, res) => {
+  try {
+    const {
+      collectionName,
+      count,
+      discountType,
+      discountValue,
+      maxDiscountAmount,
+      minOrderAmount,
+      validFrom,
+      validUntil,
+      applicableTo,
+      codePrefix
+    } = req.body;
+
+    // Validate required fields
+    if (!collectionName || !count || !discountType || !discountValue || !validFrom || !validUntil) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Check if admin is logged in
+    if (!req.session.adminId && !req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin authentication required'
+      });
+    }
+
+    const adminId = req.session.adminId || req.user?.id;
+
+    // Validate count
+    const codeCount = parseInt(count);
+    if (codeCount < 1 || codeCount > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Code count must be between 1 and 1000'
+      });
+    }
+
+    // Validate discount value
+    if (discountType === 'percentage' && (discountValue < 1 || discountValue > 100)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Percentage discount must be between 1 and 100'
+      });
+    }
+
+    if (discountType === 'fixed' && discountValue <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Fixed discount must be greater than 0'
+      });
+    }
+
+    // Validate dates
+    const fromDate = new Date(validFrom);
+    const untilDate = new Date(validUntil);
+    
+    if (untilDate <= fromDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid until date must be after valid from date'
+      });
+    }
+
+    // Generate unique collection ID
+    const bulkCollectionId = `BULK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Generate unique codes
+    const codes = await PromoCode.generateBulkCodes(codeCount, codePrefix || '', 8);
+
+    // Create promo codes
+    const promoCodeDocs = codes.map(code => ({
+      code,
+      name: `${collectionName} - ${code}`,
+      description: `Bulk code from collection: ${collectionName}`,
+      discountType,
+      discountValue: parseFloat(discountValue),
+      maxDiscountAmount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
+      minOrderAmount: minOrderAmount ? parseFloat(minOrderAmount) : 0,
+      maxUses: 1, // Each bulk code can only be used once total
+      allowMultipleUses: false, // User cannot use the same code multiple times
+      validFrom: fromDate,
+      validUntil: untilDate,
+      isActive: true,
+      applicableTo: applicableTo || 'all',
+      restrictToStudents: false,
+      createdBy: adminId,
+      isBulkCode: true,
+      bulkCollectionName: collectionName,
+      bulkCollectionId,
+      isSingleUseOnly: true // Each code can only be used by one student
+    }));
+
+    // Insert all codes
+    const createdCodes = await PromoCode.insertMany(promoCodeDocs);
+
+    res.json({
+      success: true,
+      message: `Successfully created ${createdCodes.length} promo codes`,
+      bulkCollectionId,
+      collectionName,
+      totalCodes: createdCodes.length
+    });
+  } catch (error) {
+    console.error('Error creating bulk promo codes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating bulk promo codes',
+      error: error.message
+    });
+  }
+};
+
+// Get bulk collections
+const getBulkCollections = async (req, res) => {
+  try {
+    // Get all unique bulk collections
+    const collections = await PromoCode.aggregate([
+      { $match: { isBulkCode: true } },
+      {
+        $group: {
+          _id: '$bulkCollectionId',
+          collectionName: { $first: '$bulkCollectionName' },
+          totalCodes: { $sum: 1 },
+          usedCodes: {
+            $sum: { $cond: [{ $ne: ['$usedByStudent', null] }, 1, 0] }
+          },
+          activeCodes: {
+            $sum: { $cond: ['$isActive', 1, 0] }
+          },
+          discountType: { $first: '$discountType' },
+          discountValue: { $first: '$discountValue' },
+          validFrom: { $first: '$validFrom' },
+          validUntil: { $first: '$validUntil' },
+          createdAt: { $first: '$createdAt' }
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]);
+
+    // Calculate additional stats for each collection
+    const collectionsWithStats = collections.map(col => ({
+      ...col,
+      unusedCodes: col.totalCodes - col.usedCodes,
+      usagePercentage: col.totalCodes > 0 ? ((col.usedCodes / col.totalCodes) * 100).toFixed(2) : 0
+    }));
+
+    res.json({
+      success: true,
+      collections: collectionsWithStats
+    });
+  } catch (error) {
+    console.error('Error fetching bulk collections:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching bulk collections',
+      error: error.message
+    });
+  }
+};
+
+// Get bulk collection details
+const getBulkCollectionDetails = async (req, res) => {
+  try {
+    const { bulkCollectionId } = req.params;
+
+    // Get all codes in this collection
+    const codes = await PromoCode.find({ bulkCollectionId })
+      .populate('usedByStudent', 'firstName lastName studentEmail studentCode')
+      .sort({ code: 1 });
+
+    if (codes.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bulk collection not found'
+      });
+    }
+
+    // Get statistics
+    const stats = await PromoCode.getBulkCollectionStats(bulkCollectionId);
+
+    res.json({
+      success: true,
+      collectionName: codes[0].bulkCollectionName,
+      bulkCollectionId,
+      codes,
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching bulk collection details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching bulk collection details',
+      error: error.message
+    });
+  }
+};
+
+// Export bulk collection to Excel
+const exportBulkCollection = async (req, res) => {
+  try {
+    const { bulkCollectionId } = req.params;
+
+    // Get all codes in this collection
+    const codes = await PromoCode.find({ bulkCollectionId })
+      .populate('usedByStudent', 'firstName lastName studentEmail studentCode')
+      .sort({ code: 1 });
+
+    if (codes.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bulk collection not found'
+      });
+    }
+
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Bulk Promo Codes');
+
+    // Set column headers
+    worksheet.columns = [
+      { header: 'Code', key: 'code', width: 20 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Discount Type', key: 'discountType', width: 15 },
+      { header: 'Discount Value', key: 'discountValue', width: 15 },
+      { header: 'Used By Student', key: 'usedByStudent', width: 25 },
+      { header: 'Student Email', key: 'studentEmail', width: 30 },
+      { header: 'Student Code', key: 'studentCode', width: 15 },
+      { header: 'Used At', key: 'usedAt', width: 20 },
+      { header: 'Valid From', key: 'validFrom', width: 20 },
+      { header: 'Valid Until', key: 'validUntil', width: 20 },
+      { header: 'Is Active', key: 'isActive', width: 12 }
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFB80101' }
+    };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add data rows
+    codes.forEach(code => {
+      const usedAt = code.usageHistory.length > 0 
+        ? new Date(code.usageHistory[0].usedAt).toLocaleString()
+        : 'Not Used';
+
+      worksheet.addRow({
+        code: code.code,
+        status: code.usedByStudent ? 'Used' : 'Unused',
+        discountType: code.discountType === 'percentage' ? 'Percentage' : 'Fixed',
+        discountValue: code.discountType === 'percentage' 
+          ? `${code.discountValue}%` 
+          : `EGP ${code.discountValue}`,
+        usedByStudent: code.usedByStudent 
+          ? `${code.usedByStudent.firstName} ${code.usedByStudent.lastName}`
+          : '-',
+        studentEmail: code.usedByStudent?.studentEmail || '-',
+        studentCode: code.usedByStudent?.studentCode || '-',
+        usedAt,
+        validFrom: new Date(code.validFrom).toLocaleString(),
+        validUntil: new Date(code.validUntil).toLocaleString(),
+        isActive: code.isActive ? 'Yes' : 'No'
+      });
+    });
+
+    // Add summary section
+    worksheet.addRow([]);
+    worksheet.addRow([]);
+    const summaryStartRow = worksheet.lastRow.number + 1;
+    
+    worksheet.addRow(['Collection Summary']);
+    worksheet.getRow(summaryStartRow).font = { bold: true, size: 14 };
+    
+    const stats = await PromoCode.getBulkCollectionStats(bulkCollectionId);
+    worksheet.addRow(['Collection Name:', codes[0].bulkCollectionName]);
+    worksheet.addRow(['Total Codes:', stats.totalCodes]);
+    worksheet.addRow(['Used Codes:', stats.usedCodes]);
+    worksheet.addRow(['Unused Codes:', stats.unusedCodes]);
+    worksheet.addRow(['Usage Percentage:', `${stats.usagePercentage}%`]);
+    worksheet.addRow(['Active Codes:', stats.activeCodes]);
+
+    // Set response headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=bulk-promo-codes-${codes[0].bulkCollectionName.replace(/\s+/g, '-')}-${Date.now()}.xlsx`
+    );
+
+    // Write to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting bulk collection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting bulk collection',
+      error: error.message
+    });
+  }
+};
+
+// Delete bulk collection
+const deleteBulkCollection = async (req, res) => {
+  try {
+    const { bulkCollectionId } = req.params;
+
+    // Check if any codes in the collection have been used
+    const usedCodesCount = await PromoCode.countDocuments({
+      bulkCollectionId,
+      usedByStudent: { $ne: null }
+    });
+
+    if (usedCodesCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete collection. ${usedCodesCount} code(s) have already been used.`
+      });
+    }
+
+    // Delete all codes in the collection
+    const result = await PromoCode.deleteMany({ bulkCollectionId });
+
+    res.json({
+      success: true,
+      message: `Successfully deleted ${result.deletedCount} promo codes from the collection`
+    });
+  } catch (error) {
+    console.error('Error deleting bulk collection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting bulk collection',
+      error: error.message
+    });
+  }
+};
+
+// Toggle bulk collection status
+const toggleBulkCollectionStatus = async (req, res) => {
+  try {
+    const { bulkCollectionId } = req.params;
+    const { isActive } = req.body;
+
+    // Update all codes in the collection
+    const result = await PromoCode.updateMany(
+      { bulkCollectionId },
+      { $set: { isActive: isActive === true || isActive === 'true' } }
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully updated ${result.modifiedCount} promo codes`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error toggling bulk collection status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error toggling bulk collection status',
       error: error.message
     });
   }
@@ -10545,6 +11120,7 @@ module.exports = {
   getContentDetailsPage,
   getContentDetailsForEdit,
   reorderTopics,
+  reorderContent,
   deleteTopic,
   addTopicContent,
   updateTopicContent,
@@ -10563,6 +11139,7 @@ module.exports = {
   // Student Management Controllers
   getStudents,
   getStudentDetails,
+  getStudentEditPage,
   toggleStudentStatus,
   exportStudentData,
   updateStudent,
@@ -10630,4 +11207,11 @@ module.exports = {
   getPromoCodeUsage,
   deletePromoCode,
   updatePromoCode,
+  // Bulk Promo Codes Management
+  createBulkPromoCodes,
+  getBulkCollections,
+  getBulkCollectionDetails,
+  exportBulkCollection,
+  deleteBulkCollection,
+  toggleBulkCollectionStatus,
 };

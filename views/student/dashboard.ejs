@@ -84,6 +84,46 @@
                 font-size: 1.25rem;
             }
         }
+        
+        /* Active Learning Paths - Scrollable Container */
+        .courses-list {
+            max-height: 600px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 8px;
+        }
+        
+        /* Custom Scrollbar */
+        .courses-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .courses-list::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+        }
+        
+        .courses-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: var(--radius-sm);
+            transition: var(--transition-normal);
+        }
+        
+        .courses-list::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
+        }
+        
+        /* Firefox scrollbar */
+        .courses-list {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) var(--bg-secondary);
+        }
+        
+        @media (max-width: 768px) {
+            .courses-list {
+                max-height: 500px;
+            }
+        }
     </style>
     
     <!-- Meta Tags -->
@@ -117,15 +157,11 @@
                             <div class="stat-icon">
                                 <i class="fas fa-book-open"></i>
                             </div>
-                            <div class="stat-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+12%</span>
-                            </div>
+                        
                         </div>
                         <div class="stat-content">
                             <div class="stat-value"><%= stats.totalCourses %></div>
                             <div class="stat-label">Enrolled Weeks</div>
-                            <div class="stat-description">Active learning paths</div>
                         </div>
                     </div>
                     
@@ -134,15 +170,11 @@
                             <div class="stat-icon">
                                 <i class="fas fa-check-circle"></i>
                             </div>
-                            <div class="stat-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+5</span>
-                            </div>
+                         
                         </div>
                         <div class="stat-content">
                             <div class="stat-value"><%= stats.completedCourses %></div>
                             <div class="stat-label">Completed Weeks</div>
-                            <div class="stat-description">Certificates earned</div>
                         </div>
                     </div>
                     
@@ -151,15 +183,11 @@
                             <div class="stat-icon">
                                 <i class="fas fa-question-circle"></i>
                             </div>
-                            <div class="stat-trend neutral">
-                                <i class="fas fa-minus"></i>
-                                <span>0%</span>
-                            </div>
+                      
                         </div>
                         <div class="stat-content">
                             <div class="stat-value"><%= stats.totalQuizAttempts %></div>
                             <div class="stat-label">Quiz Attempts</div>
-                            <div class="stat-description">Knowledge assessments</div>
                         </div>
                     </div>
                     
@@ -168,22 +196,18 @@
                             <div class="stat-icon">
                                 <i class="fas fa-trophy"></i>
                             </div>
-                            <div class="stat-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+3%</span>
-                            </div>
+                            
                         </div>
                         <div class="stat-content">
                             <div class="stat-value"><%= stats.averageScore %>%</div>
-                            <div class="stat-label">Average Score</div>
-                            <div class="stat-description">Overall performance</div>
+                            <div class="stat-label">Overall Score</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Enhanced Main Content Grid -->
                 <div class="main-content-grid">
-                    <!-- Left Column -->
+                    <!-- Left Column - Active Courses -->
                     <div class="content-column">
                         <!-- Simple Active Weeks -->
                         <div class="card simple-card">
@@ -256,69 +280,9 @@
                                 <% } %>
                             </div>
                         </div>
-
-                        <!-- Enhanced Recent Activity -->
-                        <div class="card enhanced-card">
-                            <div class="card-header enhanced">
-                                <div class="card-title-section">
-                                    <div class="card-icon">
-                                        <i class="fas fa-history"></i>
-                                    </div>
-                                    <div class="card-title-content">
-                                        <h3 class="card-title">Recent Activity</h3>
-                                        <p class="card-subtitle">Your learning journey</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <% if (recentProgress && recentProgress.length > 0) { %>
-                                    <div class="activity-timeline">
-                                        <% recentProgress.forEach((activity, index) => { %>
-                                            <div class="activity-item <%= index === 0 ? 'latest' : '' %>">
-                                                <div class="activity-indicator">
-                                                    <div class="activity-icon">
-                                                        <i class="fas fa-<%= getActivityIcon(activity.activity) %>"></i>
-                                                    </div>
-                                                    <% if (index < recentProgress.length - 1) { %>
-                                                        <div class="activity-line"></div>
-                                                    <% } %>
-                                                </div>
-                                                <div class="activity-content">
-                                                    <div class="activity-main">
-                                                        <h4 class="activity-title"><%= getActivityText(activity.activity) %></h4>
-                                                        <p class="activity-description">
-                                                            <%= activity.course ? activity.course.title : 'General activity' %>
-                                                        </p>
-                                                    </div>
-                                                    <div class="activity-meta">
-                                                        <span class="activity-time">
-                                                            <%= new Date(activity.timestamp).toLocaleDateString() %>
-                                                        </span>
-                                                        <% if (activity.points > 0) { %>
-                                                            <span class="activity-points">
-                                                                <i class="fas fa-star"></i>
-                                                                +<%= activity.points %> pts
-                                                            </span>
-                                                        <% } %>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <% }); %>
-                                    </div>
-                                <% } else { %>
-                                    <div class="empty-state">
-                                        <div class="empty-icon">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <h4>No Recent Activity</h4>
-                                        <p>Start learning to see your activity here</p>
-                                    </div>
-                                <% } %>
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- Enhanced Right Column -->
+                    <!-- Right Column - Quizzes and Activity -->
                     <div class="sidebar-column">
                         <!-- Enhanced Available Quizzes -->
                         <div class="card enhanced-card">
@@ -395,65 +359,63 @@
                             </div>
                         </div>
 
-                        <!-- Enhanced Quick Actions -->
+                        <!-- Enhanced Recent Activity -->
                         <div class="card enhanced-card">
                             <div class="card-header enhanced">
                                 <div class="card-title-section">
                                     <div class="card-icon">
-                                        <i class="fas fa-bolt"></i>
+                                        <i class="fas fa-history"></i>
                                     </div>
                                     <div class="card-title-content">
-                                        <h3 class="card-title">Quick Actions</h3>
-                                        <p class="card-subtitle">Navigate quickly</p>
+                                        <h3 class="card-title">Activity History</h3>
+                                        <p class="card-subtitle">Your learning journey</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="quick-actions">
-                                    <a href="/student/wishlist" class="quick-action-item">
-                                        <div class="action-icon">
-                                            <i class="fas fa-heart"></i>
+                                <% if (recentProgress && recentProgress.length > 0) { %>
+                                    <div class="activity-timeline">
+                                        <% recentProgress.forEach((activity, index) => { %>
+                                            <div class="activity-item <%= index === 0 ? 'latest' : '' %>">
+                                                <div class="activity-indicator">
+                                                    <div class="activity-icon">
+                                                        <i class="fas fa-<%= getActivityIcon(activity.activity) %>"></i>
+                                                    </div>
+                                                    <% if (index < recentProgress.length - 1) { %>
+                                                        <div class="activity-line"></div>
+                                                    <% } %>
+                                                </div>
+                                                <div class="activity-content">
+                                                    <div class="activity-main">
+                                                        <h4 class="activity-title"><%= getActivityText(activity.activity) %></h4>
+                                                        <p class="activity-description">
+                                                            <%= activity.course ? activity.course.title : 'General activity' %>
+                                                        </p>
+                                                    </div>
+                                                    <div class="activity-meta">
+                                                        <span class="activity-time">
+                                                            <%= new Date(activity.timestamp).toLocaleDateString() %>
+                                                        </span>
+                                                        <% if (activity.points > 0) { %>
+                                                            <span class="activity-points">
+                                                                <i class="fas fa-star"></i>
+                                                                +<%= activity.points %> pts
+                                                            </span>
+                                                        <% } %>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } else { %>
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <i class="fas fa-clock"></i>
                                         </div>
-                                        <div class="action-content">
-                                            <span class="action-title">My Wishlist</span>
-                                            <span class="action-subtitle"><%= stats.wishlistCount %> items</span>
-                                        </div>
-                                        <i class="fas fa-chevron-right action-arrow"></i>
-                                    </a>
-                                    
-                                    <!-- <a href="/student/homework-attempts" class="quick-action-item">
-                                        <div class="action-icon">
-                                            <i class="fas fa-tasks"></i>
-                                        </div>
-                                        <div class="action-content">
-                                            <span class="action-title">Homework Attempts</span>
-                                            <span class="action-subtitle">View submissions</span>
-                                        </div>
-                                        <i class="fas fa-chevron-right action-arrow"></i>
-                                    </a>
-                                     -->
-                                    <a href="/student/profile" class="quick-action-item">
-                                        <div class="action-icon">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div class="action-content">
-                                            <span class="action-title">View Profile</span>
-                                            <span class="action-subtitle">Manage account</span>
-                                        </div>
-                                        <i class="fas fa-chevron-right action-arrow"></i>
-                                    </a>
-                                    
-                                    <a href="/student/settings" class="quick-action-item">
-                                        <div class="action-icon">
-                                            <i class="fas fa-cog"></i>
-                                        </div>
-                                        <div class="action-content">
-                                            <span class="action-title">Settings</span>
-                                            <span class="action-subtitle">Preferences</span>
-                                        </div>
-                                        <i class="fas fa-chevron-right action-arrow"></i>
-                                    </a>
-                                </div>
+                                        <h4>No Recent Activity</h4>
+                                        <p>Start learning to see your activity here</p>
+                                    </div>
+                                <% } %>
                             </div>
                         </div>
                     </div>

@@ -40,9 +40,7 @@
           <h2 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">
             My Enrolled Weeks
           </h2>
-          <p style="color: var(--text-secondary);">
-            Continue your learning journey and track your progress across all enrolled courses.
-          </p>
+    
         </div>
 
         <!-- Search and Filter Bar -->
@@ -159,11 +157,14 @@
           });
         %>
         
-        <% Object.values(groupedCourses).forEach(bundleGroup => { %>
-          <!-- Small Bundle Name Display -->
-          <div class="bundle-name-display" style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; padding: var(--spacing-sm) var(--spacing-md); background: var(--bg-secondary); border-left: 4px solid var(--primary-color); border-radius: 0 8px 8px 0;">
+        <% Object.values(groupedCourses).forEach((bundleGroup, index) => { %>
+          <!-- Small Bundle Name Display (Collapsible Header) -->
+          <div class="bundle-name-display" 
+               style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; padding: var(--spacing-sm) var(--spacing-md); background: var(--bg-secondary); border-left: 4px solid var(--primary-color); border-radius: 0 8px 8px 0; cursor: pointer; transition: all 0.3s ease;"
+               onclick="toggleBundle('bundle-<%= index %>')">
             <div style="display: flex; align-items: center; justify-content: space-between;">
               <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                <i class="fas fa-chevron-down bundle-toggle-icon" id="icon-bundle-<%= index %>" style="color: var(--primary-color); font-size: 0.9rem; transition: transform 0.3s ease;"></i>
                 <i class="fas fa-layer-group" style="color: var(--primary-color); font-size: 0.9rem;"></i>
                 <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
                   <%= bundleGroup.bundleName %>
@@ -178,8 +179,10 @@
             </div>
           </div>
           
-          <!-- Courses in this Bundle -->
-          <div class="courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+          <!-- Courses in this Bundle (Collapsible Content) -->
+          <div class="courses-grid bundle-content" 
+               id="bundle-<%= index %>"
+               style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl); overflow: hidden; transition: all 0.3s ease;">
             <% bundleGroup.courses.forEach(enrollment => { 
                             const course = enrollment.course;
                             const progress = enrollment.progress;
@@ -398,8 +401,28 @@
 
   <!-- JavaScript -->
   <script>
+    // Toggle bundle collapse/expand
+    function toggleBundle(bundleId) {
+      const bundleContent = document.getElementById(bundleId);
+      const icon = document.getElementById('icon-' + bundleId);
+      
+      if (bundleContent.style.display === 'none') {
+        bundleContent.style.display = 'grid';
+        icon.style.transform = 'rotate(0deg)';
+      } else {
+        bundleContent.style.display = 'none';
+        icon.style.transform = 'rotate(-90deg)';
+      }
+    }
+
     // Add hover effects and interactions
     document.addEventListener('DOMContentLoaded', function() {
+      // Initialize all bundle icons to collapsed state
+      const bundleIcons = document.querySelectorAll('.bundle-toggle-icon');
+      bundleIcons.forEach(icon => {
+        icon.style.transform = 'rotate(-90deg)';
+      });
+
       const courseCards = document.querySelectorAll('.course-card');
 
       courseCards.forEach(card => {
@@ -412,26 +435,19 @@
         });
       });
 
-      // Auto-submit form on filter change
-      const filterSelects = document.querySelectorAll('.filter-select');
-      filterSelects.forEach(select => {
-        select.addEventListener('change', function() {
-          this.form.submit();
+      // Add hover effect to bundle headers
+      const bundleHeaders = document.querySelectorAll('.bundle-name-display');
+      bundleHeaders.forEach(header => {
+        header.addEventListener('mouseenter', function() {
+          this.style.background = 'var(--bg-primary)';
+        });
+        
+        header.addEventListener('mouseleave', function() {
+          this.style.background = 'var(--bg-secondary)';
         });
       });
 
-      // Search input with debounce
-      const searchInput = document.querySelector('.search-input');
-      let searchTimeout;
-      
-      if (searchInput) {
-        searchInput.addEventListener('input', function() {
-          clearTimeout(searchTimeout);
-          searchTimeout = setTimeout(() => {
-            this.form.submit();
-          }, 500);
-        });
-      }
+      // Removed auto-submit on filter change - now only submits when Apply button is clicked
     });
 
     // Progress bar animation

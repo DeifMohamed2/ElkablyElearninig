@@ -295,8 +295,8 @@ const registerUser = async (req, res) => {
   if (howDidYouKnow && howDidYouKnow.length > 500) {
     errors.push({ msg: 'Response must be less than 500 characters' });
   }
-  if (howDidYouKnow && howDidYouKnow.trim().length < 3) {
-    errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 3 characters)' });
+  if (howDidYouKnow && howDidYouKnow.trim().length < 5) {
+    errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 5 characters)' });
   }
 
   if (errors.length > 0) {
@@ -938,6 +938,32 @@ const deleteTeamMember = async (req, res) => {
   }
 };
 
+// Reorder team members
+const reorderTeamMembers = async (req, res) => {
+  try {
+    const { members } = req.body;
+
+    if (!Array.isArray(members)) {
+      return res.json({ success: false, message: 'Invalid members data' });
+    }
+
+    const updatePromises = members.map((member, index) => {
+      return TeamMember.findByIdAndUpdate(
+        member.id,
+        { displayOrder: index },
+        { new: true }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    res.json({ success: true, message: 'Team members reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering team members:', error);
+    res.json({ success: false, message: 'Failed to reorder team members' });
+  }
+};
+
 // Export team members
 const exportTeamMembers = async (req, res) => {
   try {
@@ -1086,8 +1112,8 @@ const completeStudentData = async (req, res) => {
     if (password !== password2) {
       errors.push({ msg: 'Passwords do not match' });
     }
-    if (!howDidYouKnow || howDidYouKnow.trim().length < 3) {
-      errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 3 characters)' });
+    if (!howDidYouKnow || howDidYouKnow.trim().length < 5) {
+      errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 5 characters)' });
     }
 
     // Check for duplicates
@@ -1398,6 +1424,7 @@ module.exports = {
   createTeamMember,
   updateTeamMember,
   deleteTeamMember,
+  reorderTeamMembers,
   exportTeamMembers,
 
   // External System API

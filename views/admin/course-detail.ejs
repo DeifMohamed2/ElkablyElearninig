@@ -1199,10 +1199,17 @@
       return;
     }
 
-    container.innerHTML = students.map(student => `
-      <div class="student-item d-flex align-items-center justify-content-between p-3 border rounded mb-2">
+    container.innerHTML = students.map(student => {
+      const isSelected = selectedStudents.has(student._id);
+      return `
+      <div class="student-item ${isSelected ? 'selected' : ''} d-flex align-items-center justify-content-between p-3 border rounded mb-2" 
+           data-student-id="${student._id}"
+           onclick="toggleStudentCardSelection('${student._id}')"
+           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)'; if(!this.classList.contains('selected')) this.style.borderColor='rgba(184, 1, 1, 0.3)';"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow=''; if(!this.classList.contains('selected')) this.style.borderColor='transparent';"
+           style="cursor: pointer; transition: all 0.3s ease; user-select: none; border: 2px solid ${isSelected ? 'rgba(184, 1, 1, 0.5)' : 'transparent'}; background: ${isSelected ? 'rgba(184, 1, 1, 0.05)' : 'transparent'};">
         <div class="d-flex align-items-center">
-          <input type="checkbox" class="form-check-input me-3" value="${student._id}" onchange="toggleStudentSelection('${student._id}')">
+          <input type="checkbox" class="form-check-input me-3" value="${student._id}" ${isSelected ? 'checked' : ''} style="pointer-events: none;">
           <div class="student-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
             ${student.firstName.charAt(0)}${student.lastName.charAt(0)}
           </div>
@@ -1215,19 +1222,40 @@
           ${student.grade || 'N/A'}
         </div>
       </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // Toggle student selection
   const selectedStudents = new Set();
-  function toggleStudentSelection(studentId) {
+  
+  // Toggle student card selection (when clicking the whole card)
+  function toggleStudentCardSelection(studentId) {
     const checkbox = document.querySelector(`input[value="${studentId}"]`);
-    if (checkbox.checked) {
-      selectedStudents.add(studentId);
-    } else {
+    const studentItem = document.querySelector(`[data-student-id="${studentId}"]`);
+    
+    if (!checkbox || !studentItem) return;
+    
+    // Toggle selection
+    if (selectedStudents.has(studentId)) {
       selectedStudents.delete(studentId);
+      checkbox.checked = false;
+      studentItem.classList.remove('selected');
+      studentItem.style.background = 'transparent';
+      studentItem.style.borderColor = 'transparent';
+    } else {
+      selectedStudents.add(studentId);
+      checkbox.checked = true;
+      studentItem.classList.add('selected');
+      studentItem.style.background = 'rgba(184, 1, 1, 0.05)';
+      studentItem.style.borderColor = 'rgba(184, 1, 1, 0.5)';
     }
+    
     updateEnrollButton();
+  }
+  
+  function toggleStudentSelection(studentId) {
+    toggleStudentCardSelection(studentId);
   }
 
   // Update enroll button state

@@ -132,35 +132,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Floating Formula Word Rotation
 function initFloatingFormulaRotation() {
-  // Define word arrays for each formula card using the provided Arabic words
-  const allWords = [
-    'Tab3an ghlat',
-    'Okeeshan',
-    'Ya Doctor',
-    '5alek re5m',
-    'A3adi',
-    'Y5rbt kda',
-    'Za2 za2a',
-    'Zay el gardal',
-    'Shdyd el so2al da',
-    'Howa ana bta3 kebda',
-    'Assalam alikom',
-    'Bravo',
-    'Ezayko ya shbab',
-    'Sha2leb w 2el2eb',
-    'Da3s',
-    'Dy 7aga teet',
-    'Salam moz2kt',
-    'Gebna Nesto'
-  ];
-
-  // Distribute words across formula cards
+  // Define word arrays for each formula card - 8 boxes with rotating words
   const wordArrays = {
-    'formula-1': allWords.slice(0, 4),
-    'formula-2': allWords.slice(4, 8),
-    'formula-3': allWords.slice(8, 12),
-    'formula-4': allWords.slice(12, 16),
-    'formula-5': allWords.slice(16, 18)
+    'formula-top': ['Tab3an ghlat', 'dy 7aga teet', 'sha2leb w 2e2leb'],
+    'formula-left-1': ['ya doctor', 'zo2o za2a'],
+    'formula-left-2': ['y5rbet kda', 'zay el gardal'],
+    'formula-left-3': ['5alek re5m', 'howa ana bta3 kebda'],
+    'formula-right-1': ['zo2o za2a', 'ya doctor'],
+    'formula-right-2': ['zay el gardal', 'y5rbet kda'],
+    'formula-right-3': ['howa ana bta3 kebda', '5alek re5m'],
+    'formula-bottom': ['salam mo2akt', 'Tab3an ghlat', 'dy 7aga teet']
   };
 
   // Get all formula cards
@@ -168,16 +149,23 @@ function initFloatingFormulaRotation() {
   
   // Initialize word rotation for each card
   formulaCards.forEach((card, index) => {
-    const cardClass = card.classList[1]; // Get the second class (formula-1, formula-2, etc.)
-    const words = wordArrays[cardClass] || ['Default Word'];
+    const cardClasses = Array.from(card.classList);
+    // Find the formula-* class
+    const cardClass = cardClasses.find(cls => cls.startsWith('formula-'));
     
-    // Start rotation immediately without fade
-    rotateWords(card, words);
-    
-    // Continue rotation every 8 seconds
-    setInterval(() => {
-      rotateWords(card, words);
-    }, 7000);
+    if (cardClass && wordArrays[cardClass]) {
+      const words = wordArrays[cardClass];
+      
+      // Start rotation after 3 seconds delay to show initial text first
+      setTimeout(() => {
+        rotateWords(card, words);
+        
+        // Continue rotation every 7 seconds
+        setInterval(() => {
+          rotateWords(card, words);
+        }, 7000);
+      }, 3000);
+    }
   });
 }
 

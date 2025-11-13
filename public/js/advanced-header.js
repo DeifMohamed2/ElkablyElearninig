@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeScrollProgress();
   initializeNavigationDropdown();
   initializeSmoothScrolling();
+  
+  // Handle hash on page load (when redirecting from other pages)
+  handleHashOnPageLoad();
 });
 
 /**
@@ -535,6 +538,36 @@ function initializeScrollBasedNavigation() {
 
 // Initialize scroll-based navigation
 document.addEventListener('DOMContentLoaded', initializeScrollBasedNavigation);
+
+/**
+ * Handle hash on page load - scroll to section when redirected from other pages
+ */
+function handleHashOnPageLoad() {
+  // Check if URL has a hash
+  if (window.location.hash) {
+    const hash = window.location.hash;
+    const targetId = hash.substring(1);
+    
+    // Wait a bit for page to fully load and render
+    setTimeout(() => {
+      const target = document.getElementById(targetId);
+      
+      if (target) {
+        const headerHeight = document.querySelector('.advanced-header')?.offsetHeight || 0;
+        const targetPosition = target.offsetTop - headerHeight - 20;
+        
+        // Scroll to target section
+        window.scrollTo({
+          top: targetPosition,
+          behavior: 'smooth'
+        });
+        
+        // Update active navigation item
+        updateActiveNavigationItem(hash);
+      }
+    }, 100); // Small delay to ensure DOM is fully rendered
+  }
+}
 
 // Export functions for global use
 window.smoothScrollTo = smoothScrollTo;

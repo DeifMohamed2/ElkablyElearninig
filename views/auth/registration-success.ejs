@@ -89,62 +89,6 @@
           <span>Important: Please save this code securely. You won't be able to retrieve it later.</span>
               </div>
             </div>
-
-      <!-- Status Section -->
-      <div class="status-section">
-        <div class="status-card pending">
-          <div class="status-icon">
-            <i class="fas fa-clock"></i>
-              </div>
-          <div class="status-content">
-            <h4>Account Pending Approval</h4>
-            <p>Your account is being reviewed by our administrators. You'll receive an email notification once it's approved.</p>
-            <div class="status-timeline">
-              <div class="timeline-item completed">
-                <div class="timeline-dot"></div>
-                <span>Registration Complete</span>
-            </div>
-              <div class="timeline-item active">
-                <div class="timeline-dot"></div>
-                <span>Under Review</span>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <span>Account Approved</span>
-            </div>
-          </div>
-          </div>
-          </div>
-        </div>
-
-      <!-- Next Steps -->
-      <div class="next-steps-section">
-        <h3 class="steps-title">What's Next?</h3>
-        <div class="steps-grid">
-          <div class="step-card" data-step="1">
-            <div class="step-icon">
-              <i class="fas fa-save"></i>
-              </div>
-            <h4>Save Your Code</h4>
-            <p>Download, screenshot, or print your student code for safekeeping.</p>
-              </div>
-          <div class="step-card" data-step="2">
-            <div class="step-icon">
-              <i class="fas fa-hourglass-half"></i>
-              </div>
-            <h4>Wait for Approval</h4>
-            <p>Our team will review and approve your account within 24-48 hours.</p>
-            </div>
-          <div class="step-card" data-step="3">
-            <div class="step-icon">
-              <i class="fas fa-rocket"></i>
-          </div>
-            <h4>Start Learning</h4>
-            <p>Once approved, login and begin your mathematical journey with us!</p>
-        </div>
-        </div>
-      </div>
-
       <!-- Action Buttons -->
       <div class="action-section">
         <a href="/" class="btn-primary">
@@ -153,7 +97,7 @@
         </a>
         <a href="/auth/login" class="btn-secondary">
           <i class="fas fa-sign-in-alt"></i>
-          <span>Try Login Later</span>
+          <span> Login </span>
         </a>
       </div>
     </div>
@@ -565,8 +509,8 @@ Welcome to Elkably!`;
   }
 
   .success-circle {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     margin: 0 auto;
     position: relative;
     display: flex;
@@ -575,8 +519,8 @@ Welcome to Elkably!`;
   }
 
   .checkmark-container {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
     background: var(--elkably-success);
     border-radius: 50%;
     display: flex;
@@ -584,53 +528,87 @@ Welcome to Elkably!`;
     justify-content: center;
     z-index: 3;
     position: relative;
+    animation: scaleIn 0.5s ease-out forwards;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+  }
+
+  @keyframes scaleIn {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .checkmark {
-    width: 24px;
-    height: 12px;
-    border: 3px solid white;
+    width: 30px;
+    height: 15px;
+    border: 4px solid white;
     border-top: none;
     border-right: none;
-    transform: rotate(-45deg);
-    animation: checkmark 0.6s ease-in-out 0.5s both;
+    transform: rotate(-45deg) translateY(-2px);
+    animation: drawCheckmark 0.6s ease-in-out 0.3s both;
+    opacity: 0;
   }
 
-  @keyframes checkmark {
-    from {
+  @keyframes drawCheckmark {
+    0% {
       width: 0;
       height: 0;
+      opacity: 0;
     }
-    to {
-      width: 24px;
-      height: 12px;
+    50% {
+      width: 15px;
+      height: 0;
+      opacity: 1;
+    }
+    100% {
+      width: 30px;
+      height: 15px;
+      opacity: 1;
     }
   }
 
   .pulse-ring {
     position: absolute;
-    width: 120px;
-    height: 120px;
-    border: 2px solid var(--elkably-success);
+    width: 140px;
+    height: 140px;
+    border: 3px solid var(--elkably-success);
     border-radius: 50%;
     animation: pulse 2s ease-out infinite;
+    opacity: 0;
   }
 
-  .pulse-ring:nth-child(2) { animation-delay: 0.5s; }
-  .pulse-ring:nth-child(3) { animation-delay: 1s; }
+  .pulse-ring:nth-child(2) { animation-delay: 0.3s; }
+  .pulse-ring:nth-child(3) { animation-delay: 0.6s; }
+  .pulse-ring:nth-child(4) { animation-delay: 0.9s; }
 
   @keyframes pulse {
     0% {
-      transform: scale(0.8);
-      opacity: 1;
+      transform: scale(0.6);
+      opacity: 0.8;
     }
     100% {
-      transform: scale(1.4);
+      transform: scale(1.5);
       opacity: 0;
     }
   }
 
   .success-animation.animate .pulse-ring {
+    animation-play-state: running;
+  }
+
+  .success-animation.animate .checkmark-container {
+    animation-play-state: running;
+  }
+
+  .success-animation.animate .checkmark {
     animation-play-state: running;
   }
 
@@ -1212,18 +1190,24 @@ Welcome to Elkably!`;
     }
 
     .success-circle {
-    width: 100px;
-    height: 100px;
+      width: 110px;
+      height: 110px;
     }
 
     .checkmark-container {
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
+    }
+
+    .checkmark {
+      width: 22px;
+      height: 11px;
+      border-width: 3px;
     }
 
     .pulse-ring {
-      width: 100px;
-      height: 100px;
+      width: 110px;
+      height: 110px;
     }
   }
 </style>

@@ -918,38 +918,105 @@
 
         // Drag and drop functionality
         let draggedElement = null;
+        let draggedIndex = null;
 
         document.addEventListener('DOMContentLoaded', function() {
           const grid = document.getElementById('studentsGrid');
 
           if (grid) {
-            grid.addEventListener('dragstart', function(e) {
-              if (e.target.classList.contains('draggable')) {
-                draggedElement = e.target;
-                e.target.classList.add('dragging');
-              }
-            });
+            const draggableCards = grid.querySelectorAll('.draggable');
+            
+            draggableCards.forEach((card, index) => {
+              // Make cards draggable
+              card.setAttribute('draggable', 'true');
+              
+              card.addEventListener('dragstart', function(e) {
+                draggedElement = card;
+                draggedIndex = index;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', card.innerHTML);
+              });
 
-            grid.addEventListener('dragend', function(e) {
-              if (e.target.classList.contains('draggable')) {
-                e.target.classList.remove('dragging');
-                draggedElement = null;
-              }
-            });
+              card.addEventListener('dragend', function(e) {
+                card.classList.remove('dragging');
+                // Remove all drag-over classes
+                grid.querySelectorAll('.drag-over').forEach(el => {
+                  el.classList.remove('drag-over');
+                });
+              });
 
-            grid.addEventListener('dragover', function(e) {
-              e.preventDefault();
-            });
+              card.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                if (draggedElement !== card) {
+                  card.classList.add('drag-over');
+                }
+              });
 
-            grid.addEventListener('drop', function(e) {
-              e.preventDefault();
-              if (draggedElement && e.target.classList.contains('student-card')) {
-                // Handle reordering logic here
-                console.log('Reordering students...');
-              }
+              card.addEventListener('dragleave', function(e) {
+                card.classList.remove('drag-over');
+              });
+
+              card.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                card.classList.remove('drag-over');
+                
+                if (draggedElement !== card) {
+                  // Get all cards
+                  const allCards = Array.from(grid.querySelectorAll('.draggable'));
+                  const draggedIdx = allCards.indexOf(draggedElement);
+                  const targetIdx = allCards.indexOf(card);
+                  
+                  // Reorder in DOM
+                  if (draggedIdx < targetIdx) {
+                    card.parentNode.insertBefore(draggedElement, card.nextSibling);
+                  } else {
+                    card.parentNode.insertBefore(draggedElement, card);
+                  }
+                  
+                  // Save new order to backend
+                  saveStudentsOrder();
+                }
+              });
             });
           }
         });
+
+        // Save students order to backend
+        async function saveStudentsOrder() {
+          try {
+            const grid = document.getElementById('studentsGrid');
+            const cards = grid.querySelectorAll('.draggable');
+            
+            const studentsOrder = Array.from(cards).map((card, index) => ({
+              id: card.getAttribute('data-id'),
+              order: index
+            }));
+
+            const response = await fetch('/admin/brilliant-students/reorder', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ students: studentsOrder })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              showNotification('Students reordered successfully!', 'success');
+            } else {
+              showNotification('Failed to save order. Please refresh the page.', 'error');
+            }
+          } catch (error) {
+            console.error('Error saving students order:', error);
+            showNotification('Failed to save order. Please try again.', 'error');
+          }
+        }
       </script>
 
     </div> <!-- admin-content -->
