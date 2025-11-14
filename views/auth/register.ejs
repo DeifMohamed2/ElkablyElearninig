@@ -1794,15 +1794,34 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="reading-modal-overlay" id="modalOverlay"></div>
   <div class="reading-modal-container">
     <div class="reading-modal-header">
-      <h3 id="modalTitle">Terms of Service</h3>
-      <button class="modal-close-btn" id="closeModalBtn" disabled title="Please read to the end">
+      <div class="modal-header-left">
+        <h3 id="modalTitle" data-english="Terms of Service" data-arabic="شروط الخدمة">Terms of Service</h3>
+        <!-- Language Toggle Button in Modal -->
+        <button class="modal-lang-toggle-btn" id="modalLangToggle" data-lang="en">
+          <i class="fas fa-globe"></i>
+          <span class="modal-lang-text">AR</span>
+        </button>
+      </div>
+      <button class="modal-close-btn" id="closeModalBtn" disabled data-english-title="Please read to the end" data-arabic-title="يرجى القراءة حتى النهاية" title="Please read to the end">
         <i class="fas fa-times"></i>
       </button>
     </div>
     
     <div class="reading-progress-bar">
-      <div class="reading-progress-fill" id="readingProgressFill"></div>
-      <span class="reading-progress-text" id="readingProgressText">Scroll to read: 0%</span>
+      <div class="reading-progress-track">
+        <div class="reading-progress-fill" id="readingProgressFill">
+          <div class="progress-shine"></div>
+        </div>
+        <div class="progress-steps">
+          <div class="progress-step" data-step="25"></div>
+          <div class="progress-step" data-step="50"></div>
+          <div class="progress-step" data-step="75"></div>
+        </div>
+      </div>
+      <div class="progress-info">
+        <span class="reading-progress-text" id="readingProgressText" data-english="Scroll to read: 0%" data-arabic="انتقل للقراءة: 0%">Scroll to read: 0%</span>
+        <span class="progress-percentage" id="progressPercentage">0%</span>
+      </div>
     </div>
     
     <div class="reading-modal-content" id="modalContent">
@@ -1812,7 +1831,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="reading-modal-footer">
       <button class="btn-confirm-read" id="confirmReadBtn" disabled>
         <i class="fas fa-check-circle"></i>
-        <span>I Have Read and Understood</span>
+        <span data-english="I Have Read and Understood" data-arabic="لقد قرأت وفهمت">I Have Read and Understood</span>
       </button>
     </div>
   </div>
@@ -1883,6 +1902,14 @@ document.addEventListener('DOMContentLoaded', function() {
   justify-content: space-between;
   align-items: center;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  position: relative;
+}
+
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
 }
 
 .reading-modal-header h3 {
@@ -1890,6 +1917,43 @@ document.addEventListener('DOMContentLoaded', function() {
   font-size: 1.8rem;
   font-weight: 700;
   color: #dc2626;
+}
+
+/* Modal Language Toggle Button - Fixed Position */
+.modal-lang-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border: 2px solid rgba(220, 38, 38, 0.2);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  direction: ltr;
+  text-align: left;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.modal-lang-toggle-btn:hover {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.3);
+  transform: translateY(-1px);
+}
+
+.modal-lang-toggle-btn i {
+  font-size: 0.9rem;
+}
+
+.modal-lang-text {
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+  direction: ltr;
 }
 
 .modal-close-btn {
@@ -1920,31 +1984,86 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .reading-progress-bar {
   position: relative;
-  height: 50px;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 20px 30px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reading-progress-track {
+  position: relative;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 10px;
   overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .reading-progress-fill {
-  position: absolute;
+  position: relative;
   left: 0;
   top: 0;
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #dc2626, #ef4444);
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+  overflow: hidden;
+}
+
+.progress-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.progress-steps {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.progress-step {
+  width: 4px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .reading-progress-text {
-  position: relative;
-  z-index: 1;
   font-weight: 600;
-  font-size: 0.95rem;
-  color: #374151;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.progress-percentage {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #dc2626;
+  min-width: 45px;
+  text-align: right;
 }
 
 .reading-modal-content {
@@ -2560,6 +2679,133 @@ document.addEventListener('DOMContentLoaded', function() {
 .dark-theme .info-note p {
   color: #d1d5db;
 }
+
+/* RTL Support for Modal - Only content, not header */
+.reading-modal-content.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .modal-document-content {
+  direction: rtl;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .reading-progress-fill {
+  right: 0;
+  left: auto;
+}
+
+.reading-modal-content.rtl .progress-info {
+  flex-direction: row-reverse;
+}
+
+.reading-modal-content.rtl .progress-percentage {
+  text-align: left;
+}
+
+.reading-modal-content.rtl .document-section {
+  border-left: none;
+  border-right: 4px solid #dc2626;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section h3 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section h3 .section-number {
+  order: 2;
+  margin-left: 12px;
+  margin-right: 0;
+}
+
+.reading-modal-content.rtl .document-section h4 {
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section p {
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section ul {
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section ul li {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: embed;
+  position: relative;
+}
+
+.reading-modal-content.rtl .document-section ul li i {
+  order: 2;
+  margin-left: 0;
+  margin-right: 0;
+  flex-shrink: 0;
+  width: 18px;
+  direction: ltr;
+  text-align: center;
+}
+
+.reading-modal-content.rtl .document-section ul li strong {
+  order: 1;
+  text-align: right;
+  direction: rtl;
+  margin-left: 0;
+  margin-right: 0;
+  unicode-bidi: embed;
+}
+
+.reading-modal-content.rtl .document-section ul li span {
+  order: 1;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: embed;
+  flex: 1;
+}
+
+/* Ensure all non-icon content in list items flows RTL */
+.reading-modal-content.rtl .document-section ul li > *:not(i) {
+  order: 1;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.reading-modal-content.rtl .info-note {
+  flex-direction: row;
+  justify-content: flex-start;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .info-note i {
+  order: 2;
+  margin-left: 12px;
+  margin-right: 0;
+}
+
+.reading-modal-content.rtl .info-note p {
+  order: 1;
+  text-align: right;
+}
+
+/* Keep header and button in LTR */
+.reading-modal-header,
+.modal-lang-toggle-btn {
+  direction: ltr;
+}
 </style>
 
 <!-- Modal Reading Tracking Script -->
@@ -2640,11 +2886,11 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="document-section">
         <h3><span class="section-number">5</span> Course Guidelines</h3>
         <ul>
-          <li><i class="fas fa-check-circle"></i> Attendance is <strong>A MUST</strong> for all live and on-ground sessions.</li>
-          <li><i class="fas fa-check-circle"></i> Any student who is absent <strong>3 times</strong> will be dismissed from the course, whether attending on-ground or online.</li>
-          <li><i class="fas fa-check-circle"></i> Submitting homework is <strong>A MUST</strong> to be allowed to attend the session.</li>
-          <li><i class="fas fa-check-circle"></i> For live sessions, having the <strong>Microphone On</strong> is mandatory to ensure participation with Mr. Kably.</li>
-          <li><i class="fas fa-check-circle"></i> <strong>Camera Must be on</strong> during live sessions for better participation and communication.</li>
+          <li><i class="fas fa-check-circle"></i> Attendance is A MUST for all live and on-ground sessions.</li>
+          <li><i class="fas fa-check-circle"></i> Any student who is absent 3 times will be dismissed from the course, whether attending on-ground or online.</li>
+          <li><i class="fas fa-check-circle"></i> Submitting homework is A MUST to be allowed to attend the session.</li>
+          <li><i class="fas fa-check-circle"></i> For live sessions, having the Microphone On is mandatory to ensure participation with Mr. Kably.</li>
+          <li><i class="fas fa-check-circle"></i> Camera Must be on during live sessions for better participation and communication.</li>
         </ul>
       </div>
     </div>
@@ -2747,20 +2993,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Reset progress
     readingProgressFill.style.width = '0%';
-    readingProgressText.textContent = 'Scroll to read: 0%';
+    if (progressPercentage) progressPercentage.textContent = '0%';
     
-    // Set content
-    if (type === 'terms') {
-      modalTitle.textContent = 'Terms of Service';
-      modalContent.innerHTML = termsContent;
-    } else {
-      modalTitle.textContent = 'Privacy Policy';
-      modalContent.innerHTML = privacyContent;
-    }
+    // Apply language to modal (this will set content and title)
+    applyModalLanguage(modalLang);
     
     // Reset buttons
     closeModalBtn.disabled = true;
     confirmReadBtn.disabled = true;
+    if (modalLang === 'ar') {
+      closeModalBtn.title = 'يرجى القراءة حتى النهاية';
+    } else {
+      closeModalBtn.title = 'Please read to the end';
+    }
     
     // Show modal
     modal.classList.add('active');
@@ -2773,10 +3018,276 @@ document.addEventListener('DOMContentLoaded', function() {
     updateScrollProgress();
   }
   
+  // Get modal content based on language
+  function getModalContent(type, lang) {
+    if (type === 'terms') {
+      if (lang === 'ar') {
+        return getTermsContentAR();
+      }
+      return getTermsContentEN();
+    } else {
+      if (lang === 'ar') {
+        return getPrivacyContentAR();
+      }
+      return getPrivacyContentEN();
+    }
+  }
+  
+  function getTermsContentEN() {
+    return termsContent;
+  }
+  
+  function getTermsContentAR() {
+    return `
+      <div class="modal-document-content">
+        <div class="document-section">
+          <h3><span class="section-number">1</span> قبول الشروط</h3>
+          <p>من خلال الوصول إلى منصة وكابلي التعليمية واستخدامها، فإنك تقبل وتوافق على الالتزام بشروط وأحكام هذه الاتفاقية. إذا كنت لا توافق على الالتزام بما سبق، يرجى عدم استخدام هذه الخدمة.</p>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">2</span> الخدمات التعليمية</h3>
+          <p>يوفر وكابلي خدمات تعليمية تشمل:</p>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> دورات الرياضيات عبر الإنترنت والدروس الخصوصية</span></li>
+            <li><i class="fas fa-check-circle"></i><span> الاختبارات التدريبية والاختبارات القصيرة</span></li>
+            <li><i class="fas fa-check-circle"></i><span> مواد تعليمية تفاعلية</span></li>
+            <li><i class="fas fa-check-circle"></i><span> تتبع التقدم والتحليلات</span></li>
+            <li><i class="fas fa-check-circle"></i><span> ألعاب الاختبارات متعددة اللاعبين</span></li>
+          </ul>
+          <p>يتم توفير جميع الخدمات على أساس "كما هي" ونحتفظ بالحق في تعديل أو إيقاف أي خدمة في أي وقت.</p>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">3</span> حسابات المستخدمين</h3>
+          <p>للوصول إلى ميزات معينة في منصتنا، يجب عليك إنشاء حساب. أنت مسؤول عن:</p>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> توفير معلومات دقيقة وكاملة</span></li>
+            <li><i class="fas fa-check-circle"></i><span> الحفاظ على أمان حسابك</span></li>
+            <li><i class="fas fa-check-circle"></i><span> جميع الأنشطة التي تحدث تحت حسابك</span></li>
+            <li><i class="fas fa-check-circle"></i><span> إخطارنا فوراً بأي استخدام غير مصرح به</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">4</span> شروط الدفع</h3>
+          <p>شروط الدفع لخدماتنا:</p>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> جميع الرسوم غير قابلة للاسترداد ما لم يذكر خلاف ذلك</span></li>
+            <li><i class="fas fa-check-circle"></i><span> يجب الدفع مسبقاً قبل تقديم الخدمة</span></li>
+            <li><i class="fas fa-check-circle"></i><span> نقبل طرق دفع متنوعة كما هو موضح أثناء الدفع</span></li>
+            <li><i class="fas fa-check-circle"></i><span> قد تتغير الأسعار في أي وقت مع إشعار المستخدمين الحاليين</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">5</span> إرشادات الدورة</h3>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> <strong>الحضور إجباري</strong> لجميع الجلسات الحية والوجاهية.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> سيتم فصل أي طالب يتغيب <strong>3 مرات</strong> من الدورة، سواء كان يحضر وجاهياً أو عبر الإنترنت.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> <strong>تقديم الواجبات المنزلية إجباري</strong> للسماح بحضور الجلسة.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> لجلسات البث المباشر، يجب تشغيل <strong>الميكروفون إجبارياً</strong> لضمان المشاركة مع الأستاذ كابلي.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> <strong>يجب تشغيل الكاميرا</strong> أثناء جلسات البث المباشر لمشاركة وتواصل أفضل.</span></li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+  
+  function getPrivacyContentEN() {
+    return privacyContent;
+  }
+  
+  function getPrivacyContentAR() {
+    return `
+      <div class="modal-document-content">
+        <div class="document-section">
+          <h3><span class="section-number">1</span> المعلومات التي نجمعها</h3>
+          <h4>المعلومات الشخصية</h4>
+          <p>عند التسجيل في خدماتنا، نقوم بجمع:</p>
+          <ul>
+            <li><i class="fas fa-user"></i><span> الاسم وعنوان البريد الإلكتروني واسم المستخدم</span></li>
+            <li><i class="fas fa-phone"></i><span> أرقام الهاتف (الطالب والوالد)</span></li>
+            <li><i class="fas fa-school"></i><span> معلومات المدرسة ومستوى الصف</span></li>
+            <li><i class="fas fa-id-card"></i><span> أرقام هوية الطالب</span></li>
+            <li><i class="fas fa-chalkboard-teacher"></i><span> معلومات المعلم</span></li>
+          </ul>
+          <h4>البيانات التعليمية</h4>
+          <p>لتوفير تجارب تعليمية مخصصة، نقوم بجمع:</p>
+          <ul>
+            <li><i class="fas fa-chart-line"></i><span> نتائج الاختبارات والامتحانات</span></li>
+            <li><i class="fas fa-clock"></i><span> الوقت المستغرق في الأنشطة التعليمية</span></li>
+            <li><i class="fas fa-book"></i><span> بيانات تقدم الدورة وإتمامها</span></li>
+            <li><i class="fas fa-gamepad"></i><span> مشاركة غرفة اللعبة والترتيب</span></li>
+            <li><i class="fas fa-star"></i><span> تحليلات الأداء والرؤى</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">2</span> كيفية استخدام معلوماتك</h3>
+          <p>نستخدم معلوماتك للأغراض التالية:</p>
+          <ul>
+            <li><i class="fas fa-graduation-cap"></i><span> <strong>الخدمات التعليمية:</strong> توفير تجارب تعليمية مخصصة وتتبع التقدم</span></li>
+            <li><i class="fas fa-comments"></i><span> <strong>التواصل:</strong> إرسال التحديثات والإشعارات والمحتوى التعليمي المهم</span></li>
+            <li><i class="fas fa-cogs"></i><span> <strong>تحسين المنصة:</strong> تعزيز خدماتنا وتطوير ميزات جديدة</span></li>
+            <li><i class="fas fa-shield-alt"></i><span> <strong>الأمان:</strong> الحماية من الاحتيال والوصول غير المصرح به</span></li>
+            <li><i class="fas fa-chart-bar"></i><span> <strong>التحليلات:</strong> فهم أنماط الاستخدام لتحسين منصتنا</span></li>
+            <li><i class="fas fa-credit-card"></i><span> <strong>معالجة المدفوعات:</strong> التعامل مع مشتريات الدورات والفواتير</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">3</span> مشاركة المعلومات والإفصاح</h3>
+          <p>نحن لا نبيع أو نتاجر أو نؤجر معلوماتك الشخصية. قد نشارك معلوماتك في الظروف المحدودة التالية:</p>
+          <ul>
+            <li><i class="fas fa-users"></i><span> <strong>بموافقتك:</strong> عندما توافق صراحة على مشاركة المعلومات</span></li>
+            <li><i class="fas fa-gavel"></i><span> <strong>المتطلبات القانونية:</strong> عندما يتطلب القانون ذلك أو لحماية حقوقنا</span></li>
+            <li><i class="fas fa-handshake"></i><span> <strong>مقدمي الخدمات:</strong> مع أطراف ثالثة موثوقة تساعدنا في تشغيل منصتنا</span></li>
+            <li><i class="fas fa-shield-alt"></i><span> <strong>السلامة والأمان:</strong> لحماية سلامة مستخدمينا ومنصتنا</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">4</span> أمان البيانات</h3>
+          <p>نطبق تدابير أمنية شاملة لحماية معلوماتك:</p>
+          <ul>
+            <li><i class="fas fa-lock"></i><span> <strong>التشفير:</strong> يتم تشفير جميع البيانات أثناء النقل والتخزين</span></li>
+            <li><i class="fas fa-server"></i><span> <strong>خوادم آمنة:</strong> البيانات مخزنة على خوادم آمنة ومراقبة</span></li>
+            <li><i class="fas fa-key"></i><span> <strong>ضوابط الوصول:</strong> وصول محدود إلى المعلومات الشخصية على أساس الحاجة إلى المعرفة</span></li>
+            <li><i class="fas fa-shield-alt"></i><span> <strong>عمليات التدقيق المنتظمة:</strong> تقييمات الأمان واختبار الثغرات</span></li>
+            <li><i class="fas fa-user-shield"></i><span> <strong>تدريب الموظفين:</strong> تدريب منتظم على الخصوصية والأمان لجميع الموظفين</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">5</span> حقوقك وخياراتك</h3>
+          <p>لديك الحقوق التالية فيما يتعلق بمعلوماتك الشخصية:</p>
+          <ul>
+            <li><i class="fas fa-eye"></i><span> <strong>الوصول:</strong> طلب نسخة من معلوماتك الشخصية</span></li>
+            <li><i class="fas fa-edit"></i><span> <strong>التصحيح:</strong> تحديث أو تصحيح معلومات غير دقيقة</span></li>
+            <li><i class="fas fa-trash"></i><span> <strong>الحذف:</strong> طلب حذف معلوماتك الشخصية</span></li>
+            <li><i class="fas fa-ban"></i><span> <strong>القيود:</strong> تحديد كيفية استخدامنا لمعلوماتك</span></li>
+            <li><i class="fas fa-download"></i><span> <strong>قابلية النقل:</strong> تصدير بياناتك بتنسيق قابل للقراءة آلياً</span></li>
+            <li><i class="fas fa-bell-slash"></i><span> <strong>إلغاء الاشتراك:</strong> إلغاء الاشتراك في الاتصالات التسويقية</span></li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+  
   // Close Modal Function
   function closeModal() {
     modal.classList.remove('active');
     document.body.style.overflow = '';
+  }
+  
+  // Modal Language Toggle
+  let modalLang = localStorage.getItem('modalLang') || 'en';
+  const modalLangToggle = document.getElementById('modalLangToggle');
+  const progressPercentage = document.getElementById('progressPercentage');
+  
+  // Initialize modal language button - Show opposite language
+  if (modalLangToggle) {
+    if (modalLang === 'ar') {
+      // When Arabic is selected, show "EN" button
+      modalLangToggle.querySelector('.modal-lang-text').textContent = 'EN';
+    } else {
+      // When English is selected, show "AR" button
+      modalLangToggle.querySelector('.modal-lang-text').textContent = 'AR';
+    }
+    modalLangToggle.setAttribute('data-lang', modalLang);
+  }
+  
+  if (modalLangToggle) {
+    modalLangToggle.addEventListener('click', function() {
+      modalLang = modalLang === 'en' ? 'ar' : 'en';
+      localStorage.setItem('modalLang', modalLang);
+      
+      // Save current scroll position and completion status
+      const currentScrollTop = modalContent.scrollTop;
+      const wasAtBottom = hasScrolledToBottom;
+      
+      // Reload modal content with new language
+      applyModalLanguage(modalLang);
+      
+      // Restore scroll position after content loads
+      setTimeout(() => {
+        modalContent.scrollTop = currentScrollTop;
+        updateScrollProgress();
+        // If was at bottom, ensure buttons are still enabled
+        if (wasAtBottom && modalContent.scrollTop + modalContent.clientHeight >= modalContent.scrollHeight - 10) {
+          hasScrolledToBottom = true;
+          closeModalBtn.disabled = false;
+          confirmReadBtn.disabled = false;
+        }
+      }, 50);
+    });
+  }
+  
+  function applyModalLanguage(lang) {
+    // Update language toggle button - Show opposite language
+    if (modalLangToggle) {
+      if (lang === 'ar') {
+        // When Arabic is selected, show "EN" button (to switch to English)
+        modalLangToggle.querySelector('.modal-lang-text').textContent = 'EN';
+        modalLangToggle.setAttribute('data-lang', 'ar');
+      } else {
+        // When English is selected, show "AR" button (to switch to Arabic)
+        modalLangToggle.querySelector('.modal-lang-text').textContent = 'AR';
+        modalLangToggle.setAttribute('data-lang', 'en');
+      }
+    }
+    
+    // Reload modal content with new language if document is set
+    if (currentDocument) {
+      // Get the new content in the selected language
+      const newContent = getModalContent(currentDocument, lang);
+      modalContent.innerHTML = newContent;
+      
+      // Update modal title
+      if (currentDocument === 'terms') {
+        const titleText = lang === 'ar' ? 'شروط الخدمة' : 'Terms of Service';
+        modalTitle.textContent = titleText;
+      } else {
+        const titleText = lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy';
+        modalTitle.textContent = titleText;
+      }
+    }
+    
+    // Apply RTL only to modal content, not the whole modal
+    if (lang === 'ar') {
+      modalContent.classList.add('rtl');
+    } else {
+      modalContent.classList.remove('rtl');
+    }
+    
+    // Update all text elements with data attributes (for buttons, progress text, etc.)
+    const textElements = modal.querySelectorAll('[data-english][data-arabic]');
+    textElements.forEach(element => {
+      const text = lang === 'ar' ? element.getAttribute('data-arabic') : element.getAttribute('data-english');
+      element.textContent = text;
+    });
+    
+    // Update buttons text
+    const confirmBtnText = confirmReadBtn.querySelector('span').getAttribute(lang === 'ar' ? 'data-arabic' : 'data-english');
+    if (confirmBtnText) confirmReadBtn.querySelector('span').textContent = confirmBtnText;
+    
+    const closeBtnTitle = closeModalBtn.getAttribute(lang === 'ar' ? 'data-arabic-title' : 'data-english-title');
+    if (closeBtnTitle) closeModalBtn.title = closeBtnTitle;
+    
+    // Update progress text
+    updateProgressText();
+  }
+  
+  function updateProgressText() {
+    const scrollTop = modalContent.scrollTop;
+    const scrollHeight = modalContent.scrollHeight;
+    const clientHeight = modalContent.clientHeight;
+    const scrollableHeight = scrollHeight - clientHeight;
+    const scrollPercentage = (scrollTop / scrollableHeight) * 100;
+    const percentage = Math.round(Math.min(scrollPercentage, 100));
+    
+    if (percentage >= 100) {
+      readingProgressText.textContent = modalLang === 'ar' ? 'اكتملت القراءة! ✓' : 'Reading complete! ✓';
+    } else {
+      const text = readingProgressText.getAttribute(modalLang === 'ar' ? 'data-arabic' : 'data-english');
+      readingProgressText.textContent = text.replace('0%', `${percentage}%`);
+    }
+    if (progressPercentage) {
+      progressPercentage.textContent = `${percentage}%`;
+    }
   }
   
   // Update Scroll Progress
@@ -2787,18 +3298,38 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const scrollableHeight = scrollHeight - clientHeight;
     const scrollPercentage = (scrollTop / scrollableHeight) * 100;
+    const percentage = Math.min(scrollPercentage, 100);
     
     // Update progress bar
-    readingProgressFill.style.width = Math.min(scrollPercentage, 100) + '%';
-    readingProgressText.textContent = `Scroll to read: ${Math.round(Math.min(scrollPercentage, 100))}%`;
+    readingProgressFill.style.width = percentage + '%';
+    
+    // Update progress text and percentage
+    updateProgressText();
+    
+    // Update progress steps visibility
+    const steps = document.querySelectorAll('.progress-step');
+    steps.forEach((step, index) => {
+      const stepValue = [25, 50, 75][index];
+      if (percentage >= stepValue) {
+        step.style.opacity = '1';
+        step.style.background = '#dc2626';
+      } else {
+        step.style.opacity = '0.5';
+        step.style.background = 'rgba(255, 255, 255, 0.6)';
+      }
+    });
     
     // Check if user has scrolled to the bottom (with 10px threshold)
     if (scrollTop + clientHeight >= scrollHeight - 10) {
       hasScrolledToBottom = true;
       closeModalBtn.disabled = false;
       confirmReadBtn.disabled = false;
-      readingProgressText.textContent = 'Reading complete! ✓';
-      closeModalBtn.title = 'Close';
+      updateProgressText();
+      if (modalLang === 'ar') {
+        closeModalBtn.title = 'إغلاق';
+      } else {
+        closeModalBtn.title = 'Close';
+      }
     }
   }
   
