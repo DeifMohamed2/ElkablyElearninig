@@ -70,6 +70,21 @@ npm install
 PORT=3000
 SESSION_SECRET=your_session_secret
 MONGODB_URI=your_mongodb_connection_string
+
+# Paymob Payment Gateway Configuration
+# Old API (for card payments via iframe)
+PAYMOB_API_KEY=your_paymob_api_key
+PAYMOB_IFRAME_ID=your_paymob_iframe_id
+PAYMOB_INTEGRATION_ID_CARD=your_card_integration_id
+PAYMOB_INTEGRATION_ID_WALLET=your_wallet_integration_id
+PAYMOB_WEBHOOK_SECRET=your_webhook_secret
+PAYMOB_BASE_URL=https://accept.paymob.com
+
+# Unified Checkout API (for mobile wallet payments - NEW)
+# Required for mobile wallet (Vodafone Cash, Orange Money)
+PAYMOB_PUBLIC_KEY=your_paymob_public_key
+PAYMOB_SECRET_KEY=your_paymob_secret_key
+# Note: The secret key is used as "Token" in Authorization header for unified checkout API
 ```
 
 4. Run the application
@@ -82,6 +97,50 @@ npm start
 ```
 
 5. Open your browser and navigate to `http://localhost:3000`
+
+## Paymob Payment Integration
+
+The application supports two Paymob payment methods:
+
+### 1. Credit/Debit Card Payments (Old API)
+- Uses Paymob's iframe-based payment system
+- Requires: `PAYMOB_API_KEY`, `PAYMOB_IFRAME_ID`, `PAYMOB_INTEGRATION_ID_CARD`
+- Payment is processed in an embedded iframe on the checkout page
+
+### 2. Mobile Wallet Payments (Unified Checkout API - NEW)
+- Uses Paymob's new unified checkout API
+- Supports: Vodafone Cash, Orange Money
+- Requires: `PAYMOB_PUBLIC_KEY`, `PAYMOB_SECRET_KEY`
+- Payment redirects to Paymob's unified checkout page
+- Payment method ID: `47` (Mobile Wallet)
+
+### How to Get Paymob Credentials
+
+1. **Old API Credentials** (for card payments):
+   - Log in to your Paymob Accept Dashboard
+   - Navigate to Settings → API Keys to get your `PAYMOB_API_KEY`
+   - Go to iFrames tab to get your `PAYMOB_IFRAME_ID`
+   - Go to Integration tab to get your `PAYMOB_INTEGRATION_ID_CARD`
+
+2. **Unified Checkout Credentials** (for mobile wallet):
+   - Log in to your Paymob Accept Dashboard
+   - Navigate to Settings → API Keys
+   - Get your `PAYMOB_PUBLIC_KEY` (public key for unified checkout)
+   - Get your `PAYMOB_SECRET_KEY` (secret key used as Token in Authorization header)
+   - The secret key format should be: `egy_sk_test_...` or `egy_sk_live_...`
+
+### Payment Flow
+
+1. **Card Payment**: User selects card payment → iframe opens → payment processed → webhook callback
+2. **Mobile Wallet**: User selects mobile wallet → redirects to unified checkout → payment processed → redirects back to success page
+
+### Webhook Configuration
+
+Configure your Paymob webhook URL to:
+- `https://yourdomain.com/purchase/webhook/paymob` (POST)
+- `https://yourdomain.com/purchase/webhook` (GET redirect)
+
+The webhook secret should match your `PAYMOB_WEBHOOK_SECRET` environment variable.
 
 ## Features to Implement Next
 

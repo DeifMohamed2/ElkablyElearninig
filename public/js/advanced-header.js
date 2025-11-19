@@ -180,6 +180,20 @@ function initializeUserDropdown() {
     e.preventDefault();
     e.stopPropagation();
     
+    // Check if mobile view (768px and below)
+    const isMobile = window.innerWidth <= 768;
+    
+    // On mobile, redirect to dashboard instead of opening dropdown
+    if (isMobile) {
+      // Check if user is logged in (check if dashboard link exists)
+      const dashboardLink = dropdownMenu.querySelector('a[href="/student/dashboard"]');
+      if (dashboardLink) {
+        window.location.href = '/student/dashboard';
+        return;
+      }
+    }
+    
+    // Desktop behavior: toggle dropdown
     const isExpanded = userDropdown.getAttribute('aria-expanded') === 'true';
     
     if (isExpanded) {

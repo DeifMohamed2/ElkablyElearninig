@@ -129,8 +129,8 @@
               </div>
 
               <div class="checkout-payment-option disabled">
-                <input type="radio" id="mobileWallet" name="selectedPaymentMethod" value="wallet" disabled>
-                <label for="mobileWallet" class="checkout-payment-label disabled">
+                <input type="radio" id="mobileWallet" name="selectedPaymentMethod" value="wallet">
+                <label for="mobileWallet" class="checkout-payment-label">
                   <div class="checkout-payment-icon">
                     <i class="fas fa-mobile-alt"></i>
                   </div>
@@ -258,10 +258,6 @@
           <div id="promoCodeDiscountRow" class="checkout-summary-row" style="display: none;">
             <span class="checkout-summary-label">Promo Code Discount:</span>
             <span class="checkout-summary-value promo-discount" id="promoDiscountValue">-EGP 0.00</span>
-          </div>
-          <div class="checkout-summary-row">
-            <span class="checkout-summary-label">Tax:</span>
-            <span class="checkout-summary-value">EGP <%= tax.toFixed(2) %></span>
           </div>
           <div class="checkout-summary-row checkout-summary-total">
             <span class="checkout-summary-label">Total:</span>
@@ -472,7 +468,7 @@
 
         const data = await response.json();
 
-        if (data.success && data.paymentData && data.paymentData.iframeUrl) {
+        if (data.success && data.paymentData && (data.paymentData.iframeUrl || data.paymentData.checkoutUrl)) {
           showNotification('Redirecting to payment gateway...', 'success');
 
           // SECURITY: Verify that the payment total matches our expected total
@@ -486,8 +482,15 @@
             return;
           }
 
-          // Show payment iframe
-          showPaymentIframe(data.paymentData);
+          // Check if this is unified checkout (mobile wallet) - redirect instead of iframe
+          if (data.paymentData.isUnifiedCheckout || data.paymentData.checkoutUrl) {
+            // Unified checkout - redirect to payment page
+            const checkoutUrl = data.paymentData.checkoutUrl || data.paymentData.iframeUrl;
+            window.location.href = checkoutUrl;
+          } else {
+            // Old API - show payment iframe
+            showPaymentIframe(data.paymentData);
+          }
         } else {
           showNotification(data.message || 'Failed to create payment session', 'error');
         }
@@ -713,10 +716,6 @@
             <div class="checkout-total-row">
               <span class="checkout-total-label">Subtotal:</span>
               <span class="checkout-total-value">EGP${purchaseData.subtotal.toFixed(2)}</span>
-            </div>
-            <div class="checkout-total-row">
-              <span class="checkout-total-label">Tax:</span>
-              <span class="checkout-total-value">EGP${purchaseData.tax.toFixed(2)}</span>
             </div>
             <div class="checkout-total-row checkout-total-final">
               <span class="checkout-total-label">Total Paid:</span>

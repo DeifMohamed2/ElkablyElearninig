@@ -10,6 +10,10 @@ class PaymobService {
     this.integrationIdCard = process.env.PAYMOB_INTEGRATION_ID_CARD;
     this.integrationIdWallet = process.env.PAYMOB_INTEGRATION_ID_WALLET;
     this.webhookSecret = process.env.PAYMOB_WEBHOOK_SECRET;
+    
+    // Unified Checkout API credentials (new API)
+    this.publicKey = process.env.PAYMOB_PUBLIC_KEY;
+    this.secretKey = process.env.PAYMOB_SECRET_KEY; // Used for Token authentication
 
 
     // Validate required environment variables
@@ -18,6 +22,12 @@ class PaymobService {
     }
     if (!this.iframeId) {
       console.warn('⚠️ PAYMOB_IFRAME_ID is not set in environment variables');
+    }
+    if (!this.publicKey) {
+      console.warn('⚠️ PAYMOB_PUBLIC_KEY is not set - unified checkout (mobile wallet) will not work');
+    }
+    if (!this.secretKey) {
+      console.warn('⚠️ PAYMOB_SECRET_KEY is not set - unified checkout (mobile wallet) will not work');
     }
   }
 
@@ -248,10 +258,282 @@ class PaymobService {
   }
 
   /**
+   * Create payment intention using unified checkout API (new API)
+   * This is used for mobile wallet payments
+   */
+  async createIntention(orderData, billingData, paymentMethods = null) {
+    const maxRetries = 3;
+    const retryDelay = 2000;
+
+    if (!this.secretKey) {
+      throw new Error('PAYMOB_SECRET_KEY is required for unified checkout');
+    }
+
+    // If paymentMethods not provided, use integration IDs
+    // payment_methods can be either payment type IDs [1, 47] or integration IDs
+    // For mobile wallet, try using integration ID if available
+    let finalPaymentMethods = paymentMethods;
+    if (!finalPaymentMethods) {
+      // Default: use payment type IDs [1 = Card, 47 = Mobile Wallet]
+      finalPaymentMethods = [1, 47];
+    }
+
+    const url = `${this.baseUrl}/v1/intention/`;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const amountCents = Math.round(orderData.total * 100);
+
+        // Prepare items array - ensure amounts are in smallest currency unit (piastres for EGP)
+        const items = orderData.items.map((item) => {
+          const itemPrice = item.price || 0;
+          const itemQuantity = item.quantity || 1;
+          const itemAmount = Math.round(itemPrice * 100); // Convert to piastres
+          
+          return {
+            name: item.title || item.name || 'Item',
+            amount: itemAmount,
+            description: item.description || item.title || item.name || '',
+            quantity: itemQuantity,
+          };
+        });
+
+        // Validate that items total matches order total
+        const itemsTotal = items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+        if (Math.abs(itemsTotal - amountCents) > 1) {
+          console.warn(`Items total (${itemsTotal}) doesn't match order total (${amountCents}). Adjusting items...`);
+          // Adjust the last item to match the total
+          if (items.length > 0) {
+            const difference = amountCents - itemsTotal;
+            items[items.length - 1].amount = Math.max(1, items[items.length - 1].amount + difference);
+          }
+        }
+
+        // Prepare billing data - use actual values or reasonable defaults, avoid 'NA'
+        const billingDataFormatted = {
+          apartment: billingData.apartment || billingData.address || '1',
+          first_name: billingData.firstName || 'Customer',
+          last_name: billingData.lastName || 'Customer',
+          street: billingData.address || billingData.street || 'Street',
+          building: billingData.building || '1',
+          phone_number: billingData.phone || '+201000000000',
+          city: billingData.city || 'Cairo',
+          country: billingData.country || 'EG',
+          email: billingData.email || 'customer@example.com',
+          floor: billingData.floor || '1',
+          state: billingData.state || billingData.city || 'Cairo',
+        };
+
+        const body = {
+          amount: amountCents,
+          currency: 'EGP',
+          payment_methods: finalPaymentMethods, // Can be [1, 47] or integration IDs
+          items: items,
+          billing_data: billingDataFormatted,
+          customer: {
+            first_name: billingData.firstName || 'Customer',
+            last_name: billingData.lastName || 'Customer',
+            email: billingData.email || 'customer@example.com',
+            extras: {
+              merchant_order_id: orderData.merchantOrderId,
+            },
+          },
+          extras: {
+            merchant_order_id: orderData.merchantOrderId,
+          },
+        };
+
+        const response = await axios.post(url, body, {
+          timeout: 15000,
+          headers: {
+            'Authorization': `Token ${this.secretKey}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'ElkablyElearning/1.0',
+          },
+        });
+
+        console.log('Payment intention created successfully');
+        return {
+          success: true,
+          clientSecret: response.data.client_secret,
+          intentionId: response.data.id,
+          merchantOrderId: orderData.merchantOrderId,
+          amountCents,
+        };
+      } catch (error) {
+        // Log detailed error information
+        console.error(
+          `Error creating payment intention (Attempt ${attempt}/${maxRetries}):`,
+          error.code || error.message
+        );
+        
+        // Log full error details for debugging
+        if (error.response) {
+          console.error('Paymob API Error Response:', {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data,
+            headers: error.response.headers,
+          });
+        }
+        
+        // Log request details for debugging (before making request)
+        if (attempt === 1) {
+          const requestUrl = `${this.baseUrl}/v1/intention/`;
+          const secretKeyType = this.secretKey ? (this.secretKey.includes('_test_') ? 'TEST' : 'LIVE') : 'MISSING';
+          console.log('=== Unified Checkout Request ===');
+          console.log('Request URL:', requestUrl);
+          console.log('Payment Methods (Type IDs):', finalPaymentMethods);
+          console.log('Secret Key Type:', secretKeyType);
+          console.log('Authorization Header:', `Token ${this.secretKey ? this.secretKey.substring(0, 20) + '...' : 'MISSING'}`);
+          console.log('Note: Unified checkout uses payment TYPE IDs [47], not integration IDs');
+          console.log('Ensure your integration is in', secretKeyType, 'mode to match your secret key');
+        }
+
+        if (attempt === maxRetries) {
+          if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+            throw new Error(
+              'Connection timeout while creating payment intention. Please try again.'
+            );
+          } else if (error.response?.status === 401) {
+            throw new Error(
+              'Invalid Paymob secret key. Please check your configuration.'
+            );
+          } else if (error.response?.status === 400 || error.response?.status === 404) {
+            // Bad request or Not Found - log the actual error message
+            const errorDetails = error.response?.data;
+            const errorMessage = 
+              errorDetails?.detail ||
+              errorDetails?.message ||
+              errorDetails?.error ||
+              (typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails)) ||
+              'Invalid request to Paymob. Please check your request format.';
+            console.error('Paymob API Error Details:', errorDetails);
+            
+            // Special handling for integration ID errors
+            if (errorDetails?.detail && errorDetails.detail.includes('Integration ID')) {
+              const secretKeyType = this.secretKey ? (this.secretKey.includes('_test_') ? 'TEST' : 'LIVE') : 'UNKNOWN';
+              throw new Error(
+                `Paymob Configuration Error: ${errorMessage}\n` +
+                `Your secret key appears to be for ${secretKeyType} mode.\n` +
+                `Please ensure:\n` +
+                `1. Your integration is activated in ${secretKeyType} mode in Paymob dashboard\n` +
+                `2. Payment type 47 (Mobile Wallet) is enabled for unified checkout\n` +
+                `3. Your secret key matches the mode (test/live) of your integration`
+              );
+            }
+            
+            throw new Error(`Paymob API Error: ${errorMessage}`);
+          } else if (error.response?.status >= 500) {
+            throw new Error('Paymob server error. Please try again later.');
+          } else {
+            const errorMessage =
+              error.response?.data?.message ||
+              error.response?.data?.error ||
+              error.message ||
+              'Failed to create payment intention';
+            throw new Error(errorMessage);
+          }
+        }
+
+        const delay = retryDelay * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  /**
+   * Get unified checkout URL for mobile wallet payments
+   */
+  getUnifiedCheckoutUrl(clientSecret) {
+    if (!this.publicKey) {
+      throw new Error('PAYMOB_PUBLIC_KEY is required for unified checkout');
+    }
+
+    const checkoutUrl = `${this.baseUrl}/unifiedcheckout/?publicKey=${this.publicKey}&clientSecret=${clientSecret}`;
+    return checkoutUrl;
+  }
+
+  /**
+   * Create unified checkout session (for mobile wallet)
+   */
+  async createUnifiedCheckoutSession(orderData, billingData, paymentMethods = null) {
+    try {
+      // Determine payment methods to use
+      // Unified checkout API uses payment TYPE IDs, not integration IDs
+      // Payment type IDs: 1 = Card, 47 = Mobile Wallet
+      let finalPaymentMethods = paymentMethods;
+      
+      if (!finalPaymentMethods) {
+        // Use payment type ID for mobile wallet (as shown in Postman collection)
+        // Note: This is different from integration IDs used in the old API
+        finalPaymentMethods = [47]; // 47 = Mobile Wallet payment type
+        console.log('Using payment type ID: 47 (Mobile Wallet)');
+        console.log('Note: Unified checkout uses payment TYPE IDs, not integration IDs');
+      }
+      
+      // Create payment intention
+      const intention = await this.createIntention(orderData, billingData, finalPaymentMethods);
+
+      if (!intention.success) {
+        return {
+          success: false,
+          error: intention.error || 'Failed to create payment intention',
+        };
+      }
+
+      // Generate unified checkout URL
+      const checkoutUrl = this.getUnifiedCheckoutUrl(intention.clientSecret);
+
+      return {
+        success: true,
+        checkoutUrl,
+        clientSecret: intention.clientSecret,
+        intentionId: intention.intentionId,
+        merchantOrderId: intention.merchantOrderId,
+        amountCents: intention.amountCents,
+      };
+    } catch (error) {
+      console.error('Error creating unified checkout session:', error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Create complete payment session (order + payment key)
+   * Uses old API for card payments, new unified checkout for mobile wallet
    */
   async createPaymentSession(orderData, billingData, paymentMethod = 'card') {
     try {
+      // Use unified checkout API for mobile wallet payments
+      if (paymentMethod === 'wallet') {
+        // Use unified checkout - will automatically use integration ID if available
+        const unifiedSession = await this.createUnifiedCheckoutSession(
+          orderData,
+          billingData,
+          null // Will auto-detect: use integration ID if available, otherwise payment type ID
+        );
+
+        if (unifiedSession.success) {
+          return {
+            success: true,
+            checkoutUrl: unifiedSession.checkoutUrl,
+            iframeUrl: unifiedSession.checkoutUrl, // For compatibility
+            clientSecret: unifiedSession.clientSecret,
+            intentionId: unifiedSession.intentionId,
+            merchantOrderId: unifiedSession.merchantOrderId,
+            amountCents: unifiedSession.amountCents,
+            isUnifiedCheckout: true,
+          };
+        } else {
+          return unifiedSession;
+        }
+      }
+
+      // Use old API for card payments
       const authToken = await this.getAuthToken();
 
       // Convert amount to cents (Paymob uses cents)
@@ -265,11 +547,8 @@ class PaymobService {
         orderData.items
       );
 
-      // Determine integration ID based on payment method
-      const integrationId =
-        paymentMethod === 'wallet'
-          ? this.integrationIdWallet
-          : this.integrationIdCard;
+      // Use card integration ID
+      const integrationId = this.integrationIdCard;
 
       // Generate payment key
       const paymentToken = await this.generatePaymentKey(
@@ -290,6 +569,7 @@ class PaymobService {
         iframeUrl,
         merchantOrderId: orderData.merchantOrderId,
         amountCents,
+        isUnifiedCheckout: false,
       };
     } catch (error) {
       console.error('Error creating payment session:', error.message);

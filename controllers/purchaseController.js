@@ -1094,6 +1094,8 @@ const processPayment = async (req, res) => {
       message: 'Payment session created successfully',
       paymentData: {
         iframeUrl: paymentSession.iframeUrl,
+        checkoutUrl: paymentSession.checkoutUrl || paymentSession.iframeUrl, // Unified checkout URL
+        isUnifiedCheckout: paymentSession.isUnifiedCheckout || false,
         orderNumber: purchase.orderNumber,
         total: finalTotal, // Use the final total after promo code discount
         currency: 'EGP',
