@@ -11,6 +11,7 @@ const Quiz = require('../models/Quiz');
 const BrilliantStudent = require('../models/BrilliantStudent');
 const ZoomMeeting = require('../models/ZoomMeeting');
 const PromoCode = require('../models/PromoCode');
+const TeamMember = require('../models/TeamMember');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
@@ -11100,6 +11101,233 @@ const toggleAdminStatus = async (req, res) => {
   }
 };
 
+// ==================== TEAM MANAGEMENT ====================
+
+// Get team management page
+const getTeamManagementPage = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const filters = {
+      search: req.query.search || '',
+      isActive: req.query.isActive || ''
+    };
+
+    const [teamMembers, totalMembers] = await TeamMember.getForAdmin(page, limit, filters);
+    const totalPages = Math.ceil(totalMembers / limit);
+
+    // Get statistics
+    const stats = {
+      total: await TeamMember.countDocuments(),
+      active: await TeamMember.countDocuments({ isActive: true }),
+      inactive: await TeamMember.countDocuments({ isActive: false })
+    };
+
+    res.render('admin/team-management', {
+      title: 'Team Management | ELKABLY',
+      teamMembers,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        hasPrev: page > 1,
+        hasNext: page < totalPages,
+        prevPage: page - 1,
+        nextPage: page + 1,
+        totalMembers
+      },
+      stats,
+      filters
+    });
+  } catch (error) {
+    console.error('Error loading team management page:', error);
+    req.flash('error_msg', 'Failed to load team management page');
+    res.redirect('/admin');
+  }
+};
+
+// Get single team member for editing
+const getTeamMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const teamMember = await TeamMember.findById(id);
+    
+    if (!teamMember) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team member not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: teamMember
+    });
+  } catch (error) {
+    console.error('Error getting team member:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get team member'
+    });
+  }
+};
+
+// Create new team member
+const createTeamMember = async (req, res) => {
+  try {
+    const { name, position, image, fallbackInitials, displayOrder, isActive } = req.body;
+
+    // Validate required fields
+    if (!name || !position) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name and position are required'
+      });
+    }
+
+    const teamMember = new TeamMember({
+      name,
+      position,
+      image: image || null,
+      fallbackInitials,
+      displayOrder: parseInt(displayOrder) || 0,
+      isActive: isActive === 'true'
+    });
+
+    await teamMember.save();
+
+    res.json({
+      success: true,
+      message: 'Team member created successfully',
+      data: teamMember
+    });
+  } catch (error) {
+    console.error('Error creating team member:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create team member'
+    });
+  }
+};
+
+// Update team member
+const updateTeamMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, position, image, fallbackInitials, displayOrder, isActive } = req.body;
+
+    const teamMember = await TeamMember.findById(id);
+    if (!teamMember) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team member not found'
+      });
+    }
+
+    // Update fields
+    teamMember.name = name;
+    teamMember.position = position;
+    teamMember.image = image || null;
+    teamMember.fallbackInitials = fallbackInitials;
+    teamMember.displayOrder = parseInt(displayOrder) || 0;
+    teamMember.isActive = isActive === 'true';
+
+    await teamMember.save();
+
+    res.json({
+      success: true,
+      message: 'Team member updated successfully',
+      data: teamMember
+    });
+  } catch (error) {
+    console.error('Error updating team member:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update team member'
+    });
+  }
+};
+
+// Delete team member
+const deleteTeamMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const teamMember = await TeamMember.findById(id);
+    
+    if (!teamMember) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team member not found'
+      });
+    }
+
+    await TeamMember.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: 'Team member deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting team member:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete team member'
+    });
+  }
+};
+
+// Reorder team members
+const reorderTeamMembers = async (req, res) => {
+  try {
+    const { members } = req.body;
+
+    if (!Array.isArray(members)) {
+      return res.json({ success: false, message: 'Invalid members data' });
+    }
+
+    const updatePromises = members.map((member, index) => {
+      return TeamMember.findByIdAndUpdate(
+        member.id,
+        { displayOrder: index },
+        { new: true }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    res.json({ success: true, message: 'Team members reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering team members:', error);
+    res.json({ success: false, message: 'Failed to reorder team members' });
+  }
+};
+
+// Export team members
+const exportTeamMembers = async (req, res) => {
+  try {
+    const teamMembers = await TeamMember.find({})
+      .sort({ displayOrder: 1, createdAt: -1 })
+      .select('name position image fallbackInitials displayOrder isActive createdAt');
+
+    // Simple CSV export
+    const csvHeader = 'Name,Position,Image URL,Fallback Initials,Display Order,Active,Created At\n';
+    const csvData = teamMembers.map(member => 
+      `"${member.name}","${member.position}","${member.image || ''}","${member.fallbackInitials}",${member.displayOrder},${member.isActive},"${member.createdAt.toISOString()}"`
+    ).join('\n');
+
+    const csv = csvHeader + csvData;
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="team-members-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting team members:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export team members'
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -11214,4 +11442,12 @@ module.exports = {
   exportBulkCollection,
   deleteBulkCollection,
   toggleBulkCollectionStatus,
+  // Team Management
+  getTeamManagementPage,
+  getTeamMember,
+  createTeamMember,
+  updateTeamMember,
+  deleteTeamMember,
+  reorderTeamMembers,
+  exportTeamMembers,
 };

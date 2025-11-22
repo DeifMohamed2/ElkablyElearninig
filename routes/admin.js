@@ -139,6 +139,14 @@ const {
   exportBulkCollection,
   deleteBulkCollection,
   toggleBulkCollectionStatus,
+  // Team Management (moved from authController)
+  getTeamManagementPage,
+  getTeamMember,
+  createTeamMember,
+  updateTeamMember,
+  deleteTeamMember,
+  reorderTeamMembers,
+  exportTeamMembers,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -157,16 +165,7 @@ const {
   getQuestionsByBank,
 } = require('../controllers/gameRoomController');
 
-// Import Team and Site Settings Controllers
-const {
-  getTeamManagementPage,
-  getTeamMember,
-  createTeamMember,
-  updateTeamMember,
-  deleteTeamMember,
-  reorderTeamMembers,
-  exportTeamMembers,
-} = require('../controllers/authController');
+// Team Management is now imported from adminController (moved from authController)
 
 // Import WhatsApp Controllers
 const {

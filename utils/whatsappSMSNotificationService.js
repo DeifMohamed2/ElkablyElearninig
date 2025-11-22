@@ -8,6 +8,7 @@ const cloudinary = require('./cloudinary');
 class WhatsAppSMSNotificationService {
   constructor() {
     this.sessionApiKey = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
+    this.whatsappLink = 'https://wa.me/201050994880';
   }
 
   /**
@@ -44,12 +45,61 @@ class WhatsAppSMSNotificationService {
   }
 
   /**
-   * Ensure SMS message is within 160 characters
+   * Ensure SMS message includes WhatsApp link and is within 160 characters
+   * Appends WhatsApp link while preserving total length within limit
    */
   truncateSmsMessage(message, maxLength = 160) {
     if (!message) return '';
-    if (message.length <= maxLength) return message;
-    return message.substring(0, maxLength - 3) + '...';
+    
+    // Reserve space for WhatsApp link (27 chars) plus separator
+    const linkWithSeparator = `\n${this.whatsappLink}`;
+    const linkLength = linkWithSeparator.length; // 28 chars (27 + newline)
+    const availableLength = maxLength - linkLength; // 132 chars for message
+    
+    // Truncate message if needed to fit within available length
+    let finalMessage = message;
+    if (message.length > availableLength) {
+      finalMessage = message.substring(0, availableLength - 3) + '...';
+    }
+    
+    // Append WhatsApp link (only if not already present)
+    if (!finalMessage.includes(this.whatsappLink)) {
+      return finalMessage + linkWithSeparator;
+    }
+    
+    // If link already exists, ensure total length is within limit
+    if (finalMessage.length > maxLength) {
+      return finalMessage.substring(0, maxLength - 3) + '...';
+    }
+    
+    return finalMessage;
+  }
+
+  /**
+   * Ensure any SMS message includes WhatsApp link and stays within 160 characters
+   * This method is used for messages that might not go through truncateSmsMessage
+   */
+  ensureSmsMessageWithLink(message, maxLength = 160) {
+    if (!message) return '';
+    
+    // Check if link is already present
+    if (message.includes(this.whatsappLink)) {
+      // Link already exists, just ensure length is within limit
+      if (message.length <= maxLength) return message;
+      return message.substring(0, maxLength - 3) + '...';
+    }
+    
+    // Append link and ensure total length is within limit
+    const linkWithSeparator = `\n${this.whatsappLink}`;
+    const linkLength = linkWithSeparator.length;
+    const availableLength = maxLength - linkLength;
+    
+    let finalMessage = message;
+    if (message.length > availableLength) {
+      finalMessage = message.substring(0, availableLength - 3) + '...';
+    }
+    
+    return finalMessage + linkWithSeparator;
   }
 
   /**
@@ -218,7 +268,9 @@ class WhatsAppSMSNotificationService {
           console.log(`📱 Sending SMS to Egyptian number: ${studentPhone} (${studentCountryCode})`);
           
           // Use provided SMS message or fallback to WhatsApp message
-          const messageToSend = smsMessage || whatsappMessage;
+          let messageToSend = smsMessage || whatsappMessage;
+          // Ensure WhatsApp link is included in SMS message
+          messageToSend = this.ensureSmsMessageWithLink(messageToSend);
           
           const smsResult = await sendSms({
             recipient: studentPhone,
@@ -319,7 +371,9 @@ class WhatsAppSMSNotificationService {
           console.log(`📱 Sending SMS to Egyptian number: ${parentPhone} (${parentCountryCode})`);
           
           // Use provided SMS message or fallback to WhatsApp message
-          const messageToSend = smsMessage || whatsappMessage;
+          let messageToSend = smsMessage || whatsappMessage;
+          // Ensure WhatsApp link is included in SMS message
+          messageToSend = this.ensureSmsMessageWithLink(messageToSend);
           
           const smsResult = await sendSms({
             recipient: parentPhone,

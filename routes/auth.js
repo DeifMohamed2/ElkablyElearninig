@@ -38,7 +38,4 @@ router.post('/admin/create-admin', createAdmin);
 // External System API
 router.post('/api/create-student-external', createStudentFromExternalSystem);
 
-
-
-
 module.exports = router;
