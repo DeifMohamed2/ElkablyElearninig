@@ -15,7 +15,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
 const zoomService = require('../utils/zoomService');
-const whatsappNotificationService = require('../utils/whatsappNotificationService');
+const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 
 
 
@@ -7054,7 +7054,7 @@ const createBrilliantStudent = async (req, res) => {
           finalMaxScore = 800;
           break;
         case 'DSAT':
-          finalMaxScore = 1600;
+          finalMaxScore = 800;
           break;
         case 'ACT':
           finalMaxScore = 36;
@@ -7087,12 +7087,12 @@ const createBrilliantStudent = async (req, res) => {
       });
     } else if (
       testType === 'DSAT' &&
-      (finalScore < 0 || finalScore > 1600 || finalMaxScore !== 1600)
+      (finalScore < 0 || finalScore > 800 || finalMaxScore !== 800)
     ) {
       return res.status(400).json({
         success: false,
-        message: 'DSAT scores must be between 0-1600',
-        maxAllowed: 1600,
+        message: 'DSAT scores must be between 0-800',
+        maxAllowed: 800,
       });
     } else if (
       testType === 'ACT' &&
@@ -7208,7 +7208,7 @@ const updateBrilliantStudent = async (req, res) => {
           finalMaxScore = 800;
           break;
         case 'DSAT':
-          finalMaxScore = 1600;
+          finalMaxScore = 800;
           break;
         case 'ACT':
           finalMaxScore = 36;
@@ -7241,12 +7241,12 @@ const updateBrilliantStudent = async (req, res) => {
       });
     } else if (
       testType === 'DSAT' &&
-      (finalScore < 0 || finalScore > 1600 || finalMaxScore !== 1600)
+      (finalScore < 0 || finalScore > 800 || finalMaxScore !== 800)
     ) {
       return res.status(400).json({
         success: false,
-        message: 'DSAT scores must be between 0-1600',
-        maxAllowed: 1600,
+        message: 'DSAT scores must be between 0-800',
+        maxAllowed: 800,
       });
     } else if (
       testType === 'ACT' &&
@@ -9417,7 +9417,7 @@ const enrollStudentsToCourse = async (req, res) => {
       
       // Send WhatsApp notification for course enrollment
       try {
-        await whatsappNotificationService.sendCourseEnrollmentNotification(
+        await whatsappSMSNotificationService.sendCourseEnrollmentNotification(
           student._id,
           course
         );
@@ -9504,8 +9504,8 @@ const enrollStudentsToBundle = async (req, res) => {
       
       // Send WhatsApp notification for bundle enrollment
       try {
-        const whatsappNotificationService = require('../utils/whatsappNotificationService');
-        await whatsappNotificationService.sendBundleEnrollmentNotification(
+        const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+        await whatsappSMSNotificationService.sendBundleEnrollmentNotification(
           student._id,
           bundle
         );

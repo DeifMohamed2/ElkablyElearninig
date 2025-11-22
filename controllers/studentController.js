@@ -9,7 +9,7 @@ const QuestionBank = require('../models/QuestionBank');
 const ZoomMeeting = require('../models/ZoomMeeting');
 const mongoose = require('mongoose');
 const zoomService = require('../utils/zoomService');
-const whatsappNotificationService = require('../utils/whatsappNotificationService');
+const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 
 // Dashboard - Main student dashboard
 const dashboard = async (req, res) => {
@@ -766,7 +766,7 @@ const updateContentProgress = async (req, res) => {
       
       // Check if content is completed (check for completionStatus: 'completed')
       if (progressData && progressData.completionStatus === 'completed') {
-        await whatsappNotificationService.sendContentCompletionNotification(
+        await whatsappSMSNotificationService.sendContentCompletionNotification(
           studentId,
           { title: contentTitle, type: contentType },
           course
@@ -1014,7 +1014,7 @@ const submitQuiz = async (req, res) => {
 
     // Send WhatsApp notification to parent
     try {
-      await whatsappNotificationService.sendQuizCompletionNotification(
+      await whatsappSMSNotificationService.sendQuizCompletionNotification(
         studentId,
         quiz,
         correctAnswers,
@@ -2321,7 +2321,7 @@ const submitContentQuiz = async (req, res) => {
 
     // Send WhatsApp notification to parent for content quiz completion
     try {
-      await whatsappNotificationService.sendQuizCompletionNotification(
+      await whatsappSMSNotificationService.sendQuizCompletionNotification(
         studentId,
         {
           title: contentItem.title || 'Content Quiz',
@@ -2946,7 +2946,7 @@ const submitStandaloneQuiz = async (req, res) => {
 
     // Send WhatsApp notification to parent for standalone quiz completion
     try {
-      await whatsappNotificationService.sendQuizCompletionNotification(
+      await whatsappSMSNotificationService.sendQuizCompletionNotification(
         req.session.user.id,
         quiz,
         correctAnswers,

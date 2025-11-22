@@ -34,7 +34,7 @@ const BundleCourseSchema = new mongoose.Schema(
     },
     testType: {
       type: String,
-      enum: ['EST', 'SAT', 'ACT'],
+      enum: ['EST', 'SAT', 'ACT', 'EST&SAT'],
       required: true,
     },
     courseType: {

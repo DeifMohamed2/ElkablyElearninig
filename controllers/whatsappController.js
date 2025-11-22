@@ -2,7 +2,7 @@ const wasender = require('../utils/wasender');
 const User = require('../models/User');
 const Course = require('../models/Course');
 const BundleCourse = require('../models/BundleCourse');
-const whatsappNotificationService = require('../utils/whatsappNotificationService');
+const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 const QRCode = require('qrcode');
 
 // Get WhatsApp management dashboard
@@ -279,11 +279,11 @@ const sendBulkMessage = async (req, res) => {
     let result;
     
     if (targetType === 'all_students') {
-      result = await whatsappNotificationService.sendMessageToAllStudents(customMessage);
+      result = await whatsappSMSNotificationService.sendMessageToAllStudents(customMessage);
     } else if (targetType === 'course' && targetId) {
-      result = await whatsappNotificationService.sendMessageToCourseStudents(targetId, customMessage);
+      result = await whatsappSMSNotificationService.sendMessageToCourseStudents(targetId, customMessage);
     } else if (targetType === 'bundle' && targetId) {
-      result = await whatsappNotificationService.sendMessageToBundleStudents(targetId, customMessage);
+      result = await whatsappSMSNotificationService.sendMessageToBundleStudents(targetId, customMessage);
     } else {
       return res.status(400).json({
         success: false,
@@ -318,7 +318,7 @@ const sendTestMessage = async (req, res) => {
       });
     }
 
-    const result = await whatsappNotificationService.sendToParent(studentId, customMessage);
+    const result = await whatsappSMSNotificationService.sendToParent(studentId, customMessage);
     
     res.json({
       success: result.success,

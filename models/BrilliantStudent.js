@@ -26,7 +26,7 @@ const brilliantStudentSchema = new mongoose.Schema({
         if (this.testType === 'EST') {
           return score >= 0 && score <= 800;
         } else if (this.testType === 'DSAT') {
-          return score >= 0 && score <= 1600;
+          return score >= 0 && score <= 800;
         } else if (this.testType === 'ACT') {
           return score >= 0 && score <= 36;
         }
@@ -44,7 +44,7 @@ const brilliantStudentSchema = new mongoose.Schema({
         if (this.testType === 'EST') {
           return maxScore === 800;
         } else if (this.testType === 'DSAT') {
-          return maxScore === 1600;
+          return maxScore === 800;
         } else if (this.testType === 'ACT') {
           return maxScore === 36;
         }

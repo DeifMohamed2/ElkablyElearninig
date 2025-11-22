@@ -1,6 +1,38 @@
+const User = require('../models/User');
+
 // Middleware to check if user is authenticated
-const isAuthenticated = (req, res, next) => {
+const isAuthenticated = async (req, res, next) => {
   if (req.session && req.session.user && req.session.user.id) {
+    // For students, validate session token to ensure single device login
+    if (req.session.user.role === 'student') {
+      try {
+        const user = await User.findById(req.session.user.id);
+        
+        // If user doesn't exist or session token doesn't match, invalidate session
+        if (!user || !user.sessionToken || user.sessionToken !== req.session.user.sessionToken) {
+          // Clear session token from user document if user exists
+          if (user && user.sessionToken) {
+            user.sessionToken = null;
+            await user.save();
+          }
+          
+          // Destroy session and redirect to login
+          req.session.destroy((err) => {
+            if (err) {
+              console.error('Error destroying session:', err);
+            }
+          });
+          res.clearCookie('elkably.session');
+          req.flash('error_msg', 'Your account is being used on another device. Please log in again.');
+          return res.redirect('/auth/login');
+        }
+      } catch (err) {
+        console.error('Error validating session token:', err);
+        req.flash('error_msg', 'An error occurred. Please log in again.');
+        return res.redirect('/auth/login');
+      }
+    }
+    
     return next();
   }
   req.flash('error_msg', 'Please log in to access this page');
@@ -31,9 +63,37 @@ const isAdmin = (req, res, next) => {
 };
 
 // Middleware to check if user is student
-const isStudent = (req, res, next) => {
+const isStudent = async (req, res, next) => {
   if (req.session && req.session.user && req.session.user.role === 'student') {
-    return next();
+    // Validate session token for single device login
+    try {
+      const user = await User.findById(req.session.user.id);
+      
+      // If user doesn't exist or session token doesn't match, invalidate session
+      if (!user || !user.sessionToken || user.sessionToken !== req.session.user.sessionToken) {
+        // Clear session token from user document if user exists
+        if (user && user.sessionToken) {
+          user.sessionToken = null;
+          await user.save();
+        }
+        
+        // Destroy session and redirect to login
+        req.session.destroy((err) => {
+          if (err) {
+            console.error('Error destroying session:', err);
+          }
+        });
+        res.clearCookie('elkably.session');
+        req.flash('error_msg', 'Your account is being used on another device. Please log in again.');
+        return res.redirect('/auth/login');
+      }
+      
+      return next();
+    } catch (err) {
+      console.error('Error validating session token:', err);
+      req.flash('error_msg', 'An error occurred. Please log in again.');
+      return res.redirect('/auth/login');
+    }
   }
   req.flash('error_msg', 'Unauthorized: Students only');
   res.redirect('/auth/login');

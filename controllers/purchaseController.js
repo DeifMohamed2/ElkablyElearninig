@@ -5,7 +5,7 @@ const Course = require('../models/Course');
 const PromoCode = require('../models/PromoCode');
 const crypto = require('crypto');
 const paymobService = require('../utils/paymobService');
-const whatsappNotificationService = require('../utils/whatsappNotificationService');
+const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 
 // Simple UUID v4 generator
 function generateUUID() {
@@ -846,7 +846,7 @@ const directCheckout = async (req, res) => {
     // Send WhatsApp notification for direct checkout
     try {
       console.log('📱 Sending WhatsApp notification for direct checkout:', purchase.orderNumber);
-      await whatsappNotificationService.sendPurchaseInvoiceNotification(
+      await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
         user._id,
         purchase
       );
@@ -1444,7 +1444,7 @@ const handlePaymentSuccess = async (req, res) => {
       if (!purchase.whatsappNotificationSent) {
         try {
           console.log('📱 Sending WhatsApp notification for completed purchase:', purchase.orderNumber);
-          await whatsappNotificationService.sendPurchaseInvoiceNotification(
+          await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
             purchase.user._id,
             purchase
           );
@@ -1560,7 +1560,7 @@ const handlePaymentSuccess = async (req, res) => {
     // Send WhatsApp notification to parent with invoice
     try {
       console.log('📱 Sending WhatsApp notification for new purchase:', purchase.orderNumber);
-      await whatsappNotificationService.sendPurchaseInvoiceNotification(
+      await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
         purchase.user._id,
         purchase
       );
@@ -1774,10 +1774,10 @@ const handlePaymobWebhook = async (req, res) => {
       //   console.log(`[Webhook] Starting WhatsApp notification for webhook payment: ${purchase.orderNumber}`);
       //   console.log(`[Webhook] User ID: ${purchase.user._id}`);
         
-      //   const invoiceUrl = await whatsappNotificationService.generateAndUploadInvoice(purchase);
+      //   const invoiceUrl = await whatsappSMSNotificationService.generateAndUploadInvoice(purchase);
       //   console.log(`[Webhook] Invoice URL generated: ${invoiceUrl}`);
         
-      //   const whatsappResult = await whatsappNotificationService.sendPurchaseInvoiceNotification(
+      //   const whatsappResult = await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
       //     purchase.user._id,
       //     purchase,
       //     invoiceUrl

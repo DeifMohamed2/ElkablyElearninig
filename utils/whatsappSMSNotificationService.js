@@ -1,0 +1,838 @@
+const wasender = require('./wasender');
+const { sendSms } = require('./sms');
+const User = require('../models/User');
+const Course = require('../models/Course');
+const BundleCourse = require('../models/BundleCourse');
+const cloudinary = require('./cloudinary');
+
+class WhatsAppSMSNotificationService {
+  constructor() {
+    this.sessionApiKey = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
+  }
+
+  /**
+   * Check if a phone number is Egyptian (+20 or 20 or starts with 0 in Egypt format)
+   */
+  isEgyptianNumber(phoneNumber, countryCode) {
+    if (!phoneNumber) return false;
+    
+    // Check country code first (most reliable)
+    if (countryCode === '+20' || countryCode === '20') {
+      return true;
+    }
+    
+    // Check phone number format
+    const cleaned = String(phoneNumber).replace(/\D/g, '');
+    
+    // Egyptian numbers: starts with 20 followed by 10 digits, or starts with 0 followed by 10 digits
+    if (/^20\d{10}$/.test(cleaned)) {
+      return true;
+    }
+    
+    // Local Egyptian format: starts with 0 followed by 10 digits
+    if (/^0\d{10}$/.test(cleaned)) {
+      return true;
+    }
+    
+    // Check if formatted number starts with +20
+    const formatted = String(phoneNumber).replace(/^\++/, '');
+    if (formatted.startsWith('20') && /^20\d{10,11}$/.test(formatted.replace(/\D/g, ''))) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Ensure SMS message is within 160 characters
+   */
+  truncateSmsMessage(message, maxLength = 160) {
+    if (!message) return '';
+    if (message.length <= maxLength) return message;
+    return message.substring(0, maxLength - 3) + '...';
+  }
+
+  /**
+   * Generate SMS message for quiz completion (140-160 chars) - Vertical format
+   */
+  getSmsQuizCompletionMessage(student, quizData, score, totalQuestions, percentage) {
+    const grade = `${score}/${totalQuestions}`;
+    const quizTitle = (quizData.title || 'Quiz').substring(0, 30);
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    
+    let message;
+    if (percentage >= 90) {
+      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nOutstanding! Keep it up!\nELKABLY`;
+    } else if (percentage >= 70) {
+      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nGood job! Great progress!\nELKABLY`;
+    } else if (percentage >= 50) {
+      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nKeep encouraging them!\nELKABLY`;
+    } else {
+      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nMore practice needed.\nPlease support!\nELKABLY`;
+    }
+    
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS message for content completion (140-160 chars) - Vertical format
+   */
+  getSmsContentCompletionMessage(student, contentData, courseData) {
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const contentTitle = (contentData.title || 'Content').substring(0, 35);
+    const weekTitle = (courseData.title || 'Week').substring(0, 25);
+    const message = `Progress Update\n${studentName} completed:\n"${contentTitle}"\nIn: ${weekTitle}\nExcellent progress!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS message for topic completion (140-160 chars) - Vertical format
+   */
+  getSmsTopicCompletionMessage(student, topicData, courseData) {
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const topicTitle = (topicData.title || 'Topic').substring(0, 35);
+    const weekTitle = (courseData.title || 'Week').substring(0, 25);
+    const message = `Progress Update\n${studentName} completed:\n"${topicTitle}"\nIn: ${weekTitle}\nExcellent work!\nKeep encouraging!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS message for course completion (140-160 chars) - Vertical format
+   */
+  getSmsCourseCompletionMessage(student, courseData) {
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const weekTitle = (courseData.title || 'Week').substring(0, 30);
+    const message = `Congratulations!\n${studentName} completed:\n${weekTitle}\nExcellent work!\nWe are proud!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS message for purchase notification (140-160 chars) - Vertical format
+   */
+  getSmsPurchaseMessage(student, purchaseData) {
+    const studentName = (student.firstName || student.name || '').substring(0, 20);
+    const orderNum = (purchaseData.orderNumber || purchaseData._id.toString()).substring(0, 12);
+    const total = purchaseData.total || 0;
+    const items = purchaseData.items ? purchaseData.items.length : 1;
+    const message = `Payment Confirmed!\nStudent: ${studentName}\nOrder: #${orderNum}\nItems: ${items} item(s)\nTotal: EGP ${total}\nThank you!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS welcome message for student (140-160 chars) - Vertical format
+   */
+  getSmsWelcomeMessageStudent(student) {
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const code = (student.studentCode || '').substring(0, 15);
+    const schoolName = (student.schoolName || '').substring(0, 18);
+    const grade = student.grade || '';
+    let message = `Welcome to ELKABLY!\nDear ${studentName}\nCode: ${code}`;
+    if (schoolName) message += `\nSchool: ${schoolName}`;
+    if (grade) message += `\nGrade: ${grade}`;
+    message += `\nYour learning journey starts now!\nAccess courses & start learning!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS welcome message for parent (140-160 chars) - Vertical format
+   */
+  getSmsWelcomeMessageParent(student) {
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const code = (student.studentCode || '').substring(0, 15);
+    const schoolName = (student.schoolName || '').substring(0, 18);
+    const grade = student.grade || '';
+    let message = `Welcome to ELKABLY!\nStudent: ${studentName}\nCode: ${code}`;
+    if (schoolName) message += `\nSchool: ${schoolName}`;
+    if (grade) message += `\nGrade: ${grade}`;
+    message += `\nLearning journey starts now!\nAccess courses & start learning!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS message for course enrollment (140-160 chars) - Vertical format
+   */
+  getSmsCourseEnrollmentMessage(student, courseData) {
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const weekTitle = (courseData.title || 'Week').substring(0, 35);
+    const subject = (courseData.subject || '').substring(0, 18);
+    let message = `Enrollment Confirmed!\nStudent: ${studentName}\nCourse: ${weekTitle}`;
+    if (subject) message += `\nSubject: ${subject}`;
+    message += `\nReady to learn!\nAccess materials now!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS message for bundle enrollment (140-160 chars) - Vertical format
+   */
+  getSmsBundleEnrollmentMessage(student, bundleData) {
+    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const courseTitle = (bundleData.title || 'Course').substring(0, 30);
+    const weeks = bundleData.courses ? bundleData.courses.length : 0;
+    const subject = (bundleData.subject || '').substring(0, 18);
+    let message = `Enrollment Confirmed!\nStudent: ${studentName}\nCourse: ${courseTitle}`;
+    if (subject) message += `\nSubject: ${subject}`;
+    message += `\nWeeks: ${weeks} included\nAccess all materials!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Format phone number for WhatsApp
+   */
+  formatPhoneNumber(phoneNumber, countryCode) {
+    let formatted = phoneNumber.replace(/\D/g, '');
+    
+    if (countryCode && !formatted.startsWith(countryCode.replace('+', ''))) {
+      formatted = countryCode.replace('+', '') + formatted;
+    }
+    
+    return `+${formatted}`;
+  }
+
+  /**
+   * Send direct message to student
+   * Automatically routes to SMS for Egyptian numbers, WhatsApp for others
+   */
+  async sendToStudent(studentId, whatsappMessage, smsMessage = null) {
+    try {
+      // Get student data
+      const student = await User.findById(studentId);
+      if (!student) {
+        console.error('Student not found:', studentId);
+        return { success: false, message: 'Student not found' };
+      }
+
+      const studentPhone = student.studentNumber;
+      const studentCountryCode = student.studentCountryCode;
+      
+      if (!studentPhone) {
+        console.error('Student phone number not found');
+        return { success: false, message: 'Student phone number not found' };
+      }
+      
+      // Check if number is Egyptian
+      const isEgyptian = this.isEgyptianNumber(studentPhone, studentCountryCode);
+      
+      if (isEgyptian) {
+        // Send via SMS for Egyptian numbers
+        try {
+          console.log(`📱 Sending SMS to Egyptian number: ${studentPhone} (${studentCountryCode})`);
+          
+          // Use provided SMS message or fallback to WhatsApp message
+          const messageToSend = smsMessage || whatsappMessage;
+          
+          const smsResult = await sendSms({
+            recipient: studentPhone,
+            message: messageToSend,
+            senderId: 'ELKABLYTEAM'
+          });
+          
+          console.log(`✅ SMS sent successfully to student ${student.firstName} ${student.lastName} (${studentPhone})`);
+          return { 
+            success: true, 
+            message: 'SMS sent successfully',
+            method: 'SMS',
+            details: smsResult
+          };
+        } catch (smsError) {
+          console.error('❌ SMS sending error:', smsError);
+          return { 
+            success: false, 
+            message: `SMS failed: ${smsError.message || 'Unknown error'}`,
+            method: 'SMS',
+            error: smsError.details || smsError.message
+          };
+        }
+      } else {
+        // Send via WhatsApp for non-Egyptian numbers
+        try {
+          // Check if session API key is available
+          if (!this.sessionApiKey) {
+            console.error('Session API key is not configured');
+            return { success: false, message: 'Session API key not configured' };
+          }
+          
+          // Format phone number for WhatsApp
+          const formattedPhone = this.formatPhoneNumber(studentPhone, studentCountryCode);
+          
+          console.log(`💬 Sending WhatsApp to non-Egyptian number: ${formattedPhone} (${studentCountryCode})`);
+          
+          // Send message via WhatsApp
+          const result = await wasender.sendTextMessage(
+            this.sessionApiKey,
+            formattedPhone,
+            whatsappMessage
+          );
+
+          if (result.success) {
+            console.log(`✅ WhatsApp message sent to student ${student.firstName} ${student.lastName} (${formattedPhone})`);
+            return { 
+              success: true, 
+              message: 'WhatsApp message sent successfully',
+              method: 'WhatsApp'
+            };
+          } else {
+            console.error('❌ Failed to send WhatsApp message:', result.message);
+            return { 
+              success: false, 
+              message: result.message || 'Failed to send WhatsApp message',
+              method: 'WhatsApp'
+            };
+          }
+        } catch (whatsappError) {
+          console.error('❌ WhatsApp sending error:', whatsappError);
+          return { 
+            success: false, 
+            message: `WhatsApp failed: ${whatsappError.message || 'Unknown error'}`,
+            method: 'WhatsApp',
+            error: whatsappError.message
+          };
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in sendToStudent:', error);
+      return { success: false, message: 'Failed to send notification', error: error.message };
+    }
+  }
+
+  /**
+   * Send direct message to parent
+   * Automatically routes to SMS for Egyptian numbers, WhatsApp for others
+   */
+  async sendToParent(studentId, whatsappMessage, smsMessage = null) {
+    try {
+      // Get student data
+      const student = await User.findById(studentId);
+      if (!student) {
+        console.error('Student not found:', studentId);
+        return { success: false, message: 'Student not found' };
+      }
+
+      const parentPhone = student.parentNumber;
+      const parentCountryCode = student.parentCountryCode;
+      
+      // Check if number is Egyptian
+      const isEgyptian = this.isEgyptianNumber(parentPhone, parentCountryCode);
+      
+      if (isEgyptian) {
+        // Send via SMS for Egyptian numbers
+        try {
+          console.log(`📱 Sending SMS to Egyptian number: ${parentPhone} (${parentCountryCode})`);
+          
+          // Use provided SMS message or fallback to WhatsApp message
+          const messageToSend = smsMessage || whatsappMessage;
+          
+          const smsResult = await sendSms({
+            recipient: parentPhone,
+            message: messageToSend,
+            senderId: 'ELKABLYTEAM'
+          });
+          
+          console.log(`✅ SMS sent successfully to parent of ${student.firstName} ${student.lastName} (${parentPhone})`);
+          return { 
+            success: true, 
+            message: 'SMS sent successfully',
+            method: 'SMS',
+            details: smsResult
+          };
+        } catch (smsError) {
+          console.error('❌ SMS sending error:', smsError);
+          // If SMS fails, don't fallback to WhatsApp - return error
+          return { 
+            success: false, 
+            message: `SMS failed: ${smsError.message || 'Unknown error'}`,
+            method: 'SMS',
+            error: smsError.details || smsError.message
+          };
+        }
+      } else {
+        // Send via WhatsApp for non-Egyptian numbers
+        try {
+          // Check if session API key is available
+          if (!this.sessionApiKey) {
+            console.error('Session API key is not configured');
+            return { success: false, message: 'Session API key not configured' };
+          }
+          
+          // Format phone number for WhatsApp
+          const formattedPhone = this.formatPhoneNumber(parentPhone, parentCountryCode);
+          
+          console.log(`💬 Sending WhatsApp to non-Egyptian number: ${formattedPhone} (${parentCountryCode})`);
+          
+          // Send message via WhatsApp
+          const result = await wasender.sendTextMessage(
+            this.sessionApiKey,
+            formattedPhone,
+            whatsappMessage
+          );
+
+          if (result.success) {
+            console.log(`✅ WhatsApp message sent to parent of ${student.firstName} ${student.lastName} (${formattedPhone})`);
+            return { 
+              success: true, 
+              message: 'WhatsApp message sent successfully',
+              method: 'WhatsApp'
+            };
+          } else {
+            console.error('❌ Failed to send WhatsApp message:', result.message);
+            return { 
+              success: false, 
+              message: result.message || 'Failed to send WhatsApp message',
+              method: 'WhatsApp'
+            };
+          }
+        } catch (whatsappError) {
+          console.error('❌ WhatsApp sending error:', whatsappError);
+          return { 
+            success: false, 
+            message: `WhatsApp failed: ${whatsappError.message || 'Unknown error'}`,
+            method: 'WhatsApp',
+            error: whatsappError.message
+          };
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in sendToParent:', error);
+      return { success: false, message: 'Failed to send notification', error: error.message };
+    }
+  }
+
+  /**
+   * Send quiz completion notification
+   */
+  async sendQuizCompletionNotification(studentId, quizData, score, totalQuestions) {
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.error('Student not found:', studentId);
+      return { success: false, message: 'Student not found' };
+    }
+
+    const percentage = Math.round((score / totalQuestions) * 100);
+    const grade = `${score}/${totalQuestions}`;
+    
+    let performanceMessage = '';
+    if (percentage >= 90) {
+      performanceMessage = '🎉 Outstanding performance! Your student is excelling!';
+    } else if (percentage >= 70) {
+      performanceMessage = '👍 Good job! Your student is making great progress!';
+    } else if (percentage >= 50) {
+      performanceMessage = '📈 Your student is improving! Keep encouraging them!';
+    } else {
+      performanceMessage = '💪 Your student needs more practice! Keep supporting them!';
+    }
+
+    const completionDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // WhatsApp message
+    const whatsappMessage = `📚 *Quiz Completed!*
+
+🎓 *Student:* ${student.name}
+📝 *Quiz:* ${quizData.title || 'Quiz'}
+📊 *Grade:* ${grade} (${percentage}%)
+📅 *Completed:* ${completionDate}
+
+${performanceMessage}
+
+🏆 *ELKABLY TEAM*`;
+
+    // SMS message (max 160 chars)
+    const smsMessage = this.getSmsQuizCompletionMessage(student, quizData, score, totalQuestions, percentage);
+
+    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+  }
+
+  /**
+   * Send content completion notification
+   */
+  async sendContentCompletionNotification(studentId, contentData, courseData) {
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.error('Student not found:', studentId);
+      return { success: false, message: 'Student not found' };
+    }
+
+    const completionDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // WhatsApp message
+    const whatsappMessage = `📖 *Content Progress!*
+
+🎓 *Student:* ${student.name}
+📚 *Week:* ${courseData.title || 'Week'}
+📝 *Content:* ${contentData.title || 'Content'}
+📅 *Completed:* ${completionDate}
+
+🎉 Your student is making great progress! Keep encouraging them!
+
+🏆 *ELKABLY TEAM*`;
+
+    // SMS message (max 160 chars)
+    const smsMessage = this.getSmsContentCompletionMessage(student, contentData, courseData);
+
+    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+  }
+
+  /**
+   * Send topic completion notification
+   */
+  async sendTopicCompletionNotification(studentId, topicData, courseData) {
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.error('Student not found:', studentId);
+      return { success: false, message: 'Student not found' };
+    }
+
+    const completionDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // WhatsApp message
+    const whatsappMessage = `📚 *Topic Completed!*
+
+🎓 *Student:* ${student.name}
+📖 *Week:* ${courseData.title || 'Week'}
+📝 *Topic:* ${topicData.title || 'Topic'}
+📅 *Completed:* ${completionDate}
+
+🎉 Excellent work! Your student is moving forward with learning!
+
+🏆 *ELKABLY TEAM*`;
+
+    // SMS message (max 160 chars)
+    const smsMessage = this.getSmsTopicCompletionMessage(student, topicData, courseData);
+
+    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+  }
+
+  /**
+   * Send course completion notification
+   */
+  async sendCourseCompletionNotification(studentId, courseData) {
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.error('Student not found:', studentId);
+      return { success: false, message: 'Student not found' };
+    }
+
+    const completionDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // WhatsApp message
+    const whatsappMessage = `🎓 *Week Completed!*
+
+🎓 *Student:* ${student.name}
+📚 *Week:* ${courseData.title || 'Week'}
+📅 *Completed:* ${completionDate}
+
+🏆 Congratulations! You have successfully completed the week!
+
+🎉 Your student is doing excellent work!
+
+🏆 *ELKABLY TEAM*`;
+
+    // SMS message (max 160 chars)
+    const smsMessage = this.getSmsCourseCompletionMessage(student, courseData);
+
+    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+  }
+
+  /**
+   * Send purchase notification (simple text message)
+   */
+  async sendPurchaseInvoiceNotification(studentId, purchaseData) {
+    try {
+      console.log('📱 Starting WhatsApp purchase notification for student:', studentId);
+      
+      const student = await User.findById(studentId);
+      if (!student) {
+        console.error('❌ Student not found:', studentId);
+        return { success: false, message: 'Student not found' };
+      }
+
+      console.log('👤 Student found:', {
+        name: `${student.firstName} ${student.lastName}`,
+        phone: student.parentNumber,
+        countryCode: student.parentCountryCode
+      });
+
+      const purchaseDate = new Date(purchaseData.createdAt || purchaseData.purchasedAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // WhatsApp message
+      const whatsappMessage = `🎉 *Payment Confirmed Successfully!*
+
+🎓 *Student:* ${student.firstName} ${student.lastName}
+
+📦 *Order Number:* #${purchaseData.orderNumber || purchaseData._id}
+
+📚 *Items:* ${purchaseData.items ? purchaseData.items.map(item => item.title).join(', ') : 'Week/Course'}
+
+💰 *Total Amount:* EGP ${purchaseData.total || 0}
+
+📅 *Purchase Date:* ${purchaseDate}
+
+🏆 *ELKABLY TEAM*`;
+
+      // SMS message (max 160 chars)
+      const smsMessage = this.getSmsPurchaseMessage(student, purchaseData);
+
+      console.log('📤 Sending message...');
+      
+      return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    } catch (error) {
+      console.error('❌ Error in sendPurchaseInvoiceNotification:', error);
+      return { success: false, message: 'Failed to send purchase notification' };
+    }
+  }
+
+  /**
+   * Send welcome message to new student
+   * Sends to both student and parent
+   */
+  async sendWelcomeMessage(studentId) {
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.error('Student not found:', studentId);
+      return { success: false, message: 'Student not found' };
+    }
+
+    // WhatsApp message for student
+    const studentWhatsappMessage = `🎉 *Welcome to ELKABLY!*
+
+🎓 *Student:* ${student.name}
+🆔 *Student Code:* ${student.studentCode}
+🏫 *School:* ${student.schoolName}
+📚 *Grade:* ${student.grade}
+
+🎯 Your learning journey begins now!
+📖 You can access your weeks and start learning today.
+
+🏆 *ELKABLY TEAM*`;
+
+    // WhatsApp message for parent
+    const parentWhatsappMessage = `🎉 *Welcome to ELKABLY!*
+
+🎓 *Student:* ${student.name}
+🆔 *Student Code:* ${student.studentCode}
+🏫 *School:* ${student.schoolName}
+📚 *Grade:* ${student.grade}
+
+🎯 Your student's learning journey begins now!
+📖 Your student can access their weeks and start learning today.
+
+🏆 *ELKABLY TEAM*`;
+
+    // SMS messages (max 160 chars)
+    const studentSmsMessage = this.getSmsWelcomeMessageStudent(student);
+    const parentSmsMessage = this.getSmsWelcomeMessageParent(student);
+
+    // Send to both student and parent
+    const results = {
+      student: null,
+      parent: null
+    };
+
+    // Send to student if phone number exists
+    if (student.studentNumber) {
+      try {
+        results.student = await this.sendToStudent(studentId, studentWhatsappMessage, studentSmsMessage);
+      } catch (error) {
+        console.error('Error sending welcome message to student:', error);
+        results.student = { success: false, message: error.message };
+      }
+    } else {
+      console.log('Student phone number not available, skipping student welcome message');
+      results.student = { success: false, message: 'Student phone number not available' };
+    }
+
+    // Send to parent
+    try {
+      results.parent = await this.sendToParent(studentId, parentWhatsappMessage, parentSmsMessage);
+    } catch (error) {
+      console.error('Error sending welcome message to parent:', error);
+      results.parent = { success: false, message: error.message };
+    }
+
+    // Return combined result
+    return {
+      success: (results.student?.success || !student.studentNumber) && results.parent?.success,
+      student: results.student,
+      parent: results.parent
+    };
+  }
+
+  /**
+   * Send course enrollment notification
+   */
+  async sendCourseEnrollmentNotification(studentId, courseData) {
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.error('Student not found:', studentId);
+      return { success: false, message: 'Student not found' };
+    }
+
+    const enrollmentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // WhatsApp message
+    const whatsappMessage = `📚 *Enrollment Confirmed!*
+
+🎓 *Student:* ${student.name}
+📖 *Week:* ${courseData.title || 'Week'}
+📅 *Enrollment Date:* ${enrollmentDate}
+📚 *Subject:* ${courseData.subject || 'Subject'}
+
+🎯 Your student is now enrolled and ready to learn!
+📖 Your student can access the week materials and start their learning journey.
+
+🏆 *ELKABLY TEAM*`;
+
+    // SMS message (max 160 chars)
+    const smsMessage = this.getSmsCourseEnrollmentMessage(student, courseData);
+
+    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+  }
+
+  /**
+   * Send bundle enrollment notification
+   */
+  async sendBundleEnrollmentNotification(studentId, bundleData) {
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.error('Student not found:', studentId);
+      return { success: false, message: 'Student not found' };
+    }
+
+    const enrollmentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // WhatsApp message
+    const whatsappMessage = `📦 *Course Enrollment Confirmed!*
+
+🎓 *Student:* ${student.name}
+📚 *Course:* ${bundleData.title || 'Course'}
+📖 *Weeks:* ${bundleData.courses ? bundleData.courses.length : 0} weeks included
+📅 *Enrollment Date:* ${enrollmentDate}
+📚 *Subject:* ${bundleData.subject || 'Subject'}
+
+🎯 Your student is now enrolled in a comprehensive learning course!
+📖 Your student can access all week materials and start their learning journey.
+
+🏆 *ELKABLY TEAM*`;
+
+    // SMS message (max 160 chars)
+    const smsMessage = this.getSmsBundleEnrollmentMessage(student, bundleData);
+
+    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+  }
+
+  /**
+   * Send bulk message to multiple parents
+   */
+  async sendBulkMessage(studentIds, message) {
+    const results = [];
+    
+    for (const studentId of studentIds) {
+      try {
+        const result = await this.sendToParent(studentId, message);
+        results.push({
+          studentId,
+          success: result.success,
+          message: result.message
+        });
+      } catch (error) {
+        results.push({
+          studentId,
+          success: false,
+          message: error.message
+        });
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Send message to course students
+   */
+  async sendMessageToCourseStudents(courseId, message) {
+    try {
+      const course = await Course.findById(courseId).populate('enrolledStudents');
+      if (!course) {
+        return { success: false, message: 'Course not found' };
+      }
+
+      const studentIds = course.enrolledStudents.map(student => student._id);
+      return await this.sendBulkMessage(studentIds, message);
+    } catch (error) {
+      console.error('Error sending message to course students:', error);
+      return { success: false, message: 'Failed to send message to course students' };
+    }
+  }
+
+  /**
+   * Send message to bundle students
+   */
+  async sendMessageToBundleStudents(bundleId, message) {
+    try {
+      const bundle = await BundleCourse.findById(bundleId).populate('enrolledStudents');
+      if (!bundle) {
+        return { success: false, message: 'Bundle not found' };
+      }
+
+      const studentIds = bundle.enrolledStudents.map(student => student._id);
+      return await this.sendBulkMessage(studentIds, message);
+    } catch (error) {
+      console.error('Error sending message to bundle students:', error);
+      return { success: false, message: 'Failed to send message to bundle students' };
+    }
+  }
+
+  /**
+   * Send message to all active students
+   */
+  async sendMessageToAllStudents(message) {
+    try {
+      const students = await User.find({ isActive: true, role: 'student' });
+      const studentIds = students.map(student => student._id);
+      return await this.sendBulkMessage(studentIds, message);
+    } catch (error) {
+      console.error('Error sending message to all students:', error);
+      return { success: false, message: 'Failed to send message to all students' };
+    }
+  }
+
+
+}
+
+module.exports = new WhatsAppSMSNotificationService();

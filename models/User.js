@@ -508,6 +508,11 @@ const UserSchema = new mongoose.Schema(
         default: 'en',
       },
     },
+    sessionToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -1350,7 +1355,7 @@ UserSchema.methods.updateContentProgress = async function (
       
       // Send WhatsApp notification for topic completion
       try {
-        const whatsappNotificationService = require('../utils/whatsappNotificationService');
+        const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
         const Course = require('./Course');
         const Topic = require('./Topic');
         
@@ -1358,7 +1363,7 @@ UserSchema.methods.updateContentProgress = async function (
         const topic = await Topic.findById(topicId);
         
         if (course && topic) {
-          await whatsappNotificationService.sendTopicCompletionNotification(
+          await whatsappSMSNotificationService.sendTopicCompletionNotification(
             this._id,
             topic,
             course
@@ -1715,13 +1720,13 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
     
     // Send WhatsApp notification for course completion
     try {
-      const whatsappNotificationService = require('../utils/whatsappNotificationService');
+      const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
       const Course = require('./Course');
       
       const course = await Course.findById(courseId);
       
       if (course) {
-        await whatsappNotificationService.sendCourseCompletionNotification(
+        await whatsappSMSNotificationService.sendCourseCompletionNotification(
           this._id,
           course
         );

@@ -2,7 +2,8 @@ const Admin = require('../models/Admin');
 const User = require('../models/User');
 const TeamMember = require('../models/TeamMember');
 const axios = require('axios');
-const whatsappNotificationService = require('../utils/whatsappNotificationService');
+const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+const crypto = require('crypto');
 
 // Get login page
 const getLoginPage = (req, res) => {
@@ -402,7 +403,7 @@ const registerUser = async (req, res) => {
 
     // Send WhatsApp welcome message to parent
     try {
-      await whatsappNotificationService.sendWelcomeMessage(savedUser._id);
+      await whatsappSMSNotificationService.sendWelcomeMessage(savedUser._id);
     } catch (whatsappError) {
       console.error('WhatsApp welcome message error:', whatsappError);
       // Don't fail the registration if WhatsApp fails
@@ -629,6 +630,15 @@ const loginUser = async (req, res) => {
       req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 1 day
     }
 
+    // Generate session token for students to enforce single device login
+    let sessionToken = null;
+    if (user.role === 'student') {
+      sessionToken = crypto.randomBytes(32).toString('hex');
+      // Update user with new session token (this invalidates any previous sessions)
+      user.sessionToken = sessionToken;
+      await user.save();
+    }
+
     // Create session
     if (user.role === 'admin') {
       req.session.user = {
@@ -658,6 +668,7 @@ const loginUser = async (req, res) => {
         englishTeacher: user.englishTeacher,
         isActive: user.isActive,
         isCompleteData: user.isCompleteData,
+        sessionToken: sessionToken, // Store session token in session for validation
       };
     }
 
@@ -721,7 +732,20 @@ const loginUser = async (req, res) => {
 };
 
 // Logout user
-const logoutUser = (req, res) => {
+const logoutUser = async (req, res) => {
+  // Clear session token from user document if student
+  if (req.session && req.session.user && req.session.user.role === 'student' && req.session.user.id) {
+    try {
+      const user = await User.findById(req.session.user.id);
+      if (user) {
+        user.sessionToken = null;
+        await user.save();
+      }
+    } catch (err) {
+      console.error('Error clearing session token on logout:', err);
+    }
+  }
+
   req.session.destroy((err) => {
     if (err) {
       console.error('Logout error:', err);
