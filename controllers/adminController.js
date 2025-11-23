@@ -11106,15 +11106,31 @@ const toggleAdminStatus = async (req, res) => {
 // Get team management page
 const getTeamManagementPage = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
     const filters = {
       search: req.query.search || '',
       isActive: req.query.isActive || ''
     };
 
-    const [teamMembers, totalMembers] = await TeamMember.getForAdmin(page, limit, filters);
-    const totalPages = Math.ceil(totalMembers / limit);
+    // Build query without pagination - fetch all members
+    const query = {};
+    
+    // Apply filters
+    if (filters.search) {
+      query.$or = [
+        { name: { $regex: filters.search, $options: 'i' } },
+        { position: { $regex: filters.search, $options: 'i' } }
+      ];
+    }
+    
+    if (filters.isActive !== undefined && filters.isActive !== '') {
+      query.isActive = filters.isActive === 'true';
+    }
+
+    // Fetch all team members without pagination
+    const teamMembers = await TeamMember.find(query)
+      .sort({ displayOrder: 1, createdAt: -1 });
+    
+    const totalMembers = teamMembers.length;
 
     // Get statistics
     const stats = {
@@ -11127,12 +11143,6 @@ const getTeamManagementPage = async (req, res) => {
       title: 'Team Management | ELKABLY',
       teamMembers,
       pagination: {
-        currentPage: page,
-        totalPages,
-        hasPrev: page > 1,
-        hasNext: page < totalPages,
-        prevPage: page - 1,
-        nextPage: page + 1,
         totalMembers
       },
       stats,
@@ -11184,12 +11194,21 @@ const createTeamMember = async (req, res) => {
       });
     }
 
+    // If displayOrder is not provided or is 0, set it to the last position (highest order + 1)
+    let finalDisplayOrder = parseInt(displayOrder);
+    if (!finalDisplayOrder || finalDisplayOrder === 0) {
+      const lastMember = await TeamMember.findOne()
+        .sort({ displayOrder: -1 })
+        .select('displayOrder');
+      finalDisplayOrder = lastMember ? lastMember.displayOrder + 1 : 0;
+    }
+
     const teamMember = new TeamMember({
       name,
       position,
       image: image || null,
       fallbackInitials,
-      displayOrder: parseInt(displayOrder) || 0,
+      displayOrder: finalDisplayOrder,
       isActive: isActive === 'true'
     });
 

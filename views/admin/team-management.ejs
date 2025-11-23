@@ -164,32 +164,6 @@
           <% } %>
         </div>
 
-        <!-- Pagination -->
-        <% if (pagination.totalPages > 1) { %>
-        <div class="brilliant-students-pagination">
-          <% if (pagination.hasPrev) { %>
-          <a href="?page=<%= pagination.prevPage %>" class="admin-pagination-btn">
-            <i class="fas fa-chevron-left"></i>
-            Previous
-          </a>
-          <% } %>
-
-          <% for (let i = 1; i <= pagination.totalPages; i++) { %>
-          <% if (i === pagination.currentPage) { %>
-          <span class="admin-pagination-btn active"><%= i %></span>
-          <% } else { %>
-          <a href="?page=<%= i %>" class="admin-pagination-btn"><%= i %></a>
-          <% } %>
-          <% } %>
-
-          <% if (pagination.hasNext) { %>
-          <a href="?page=<%= pagination.nextPage %>" class="admin-pagination-btn">
-            Next
-            <i class="fas fa-chevron-right"></i>
-          </a>
-          <% } %>
-        </div>
-        <% } %>
       </div>
 
       <!-- Add/Edit Team Member Modal (Bootstrap) -->
@@ -250,10 +224,10 @@
                     </div>
                   </div>
 
-                  <div class="form-group">
+                  <div class="form-group" id="displayOrderGroup" style="display: none;">
                     <label class="form-label">Display Order</label>
                     <input type="number" name="displayOrder" class="form-control" min="0" value="0">
-                    <div class="form-help">Lower numbers appear first</div>
+                    <div class="form-help">Lower numbers appear first. New members are automatically added to the end.</div>
                   </div>
 
                   <div class="form-group">
@@ -491,6 +465,12 @@
           currentMemberId = null;
           document.getElementById('modalTitle').textContent = 'Add Team Member';
           document.getElementById('memberForm').reset();
+          
+          // Hide displayOrder field when adding (will be auto-set to last)
+          const displayOrderGroup = document.getElementById('displayOrderGroup');
+          if (displayOrderGroup) {
+            displayOrderGroup.style.display = 'none';
+          }
 
           // Reset image upload section
           const imagePreview = document.getElementById('memberImagePreview');
@@ -549,6 +529,12 @@
 
               // Populate form with member data
               document.getElementById('modalTitle').textContent = 'Edit Team Member';
+
+              // Show displayOrder field when editing
+              const displayOrderGroup = document.getElementById('displayOrderGroup');
+              if (displayOrderGroup) {
+                displayOrderGroup.style.display = 'block';
+              }
 
               // Fill form fields
               document.querySelector('input[name="name"]').value = member.data.name;
@@ -636,7 +622,7 @@
               position: formData.get('position'),
               image: formData.get('image'),
               fallbackInitials: formData.get('fallbackInitials'),
-              displayOrder: formData.get('displayOrder'),
+              displayOrder: isEditMode ? parseInt(formData.get('displayOrder')) || 0 : 0, // Auto-set to last when creating
               isActive: formData.get('isActive')
             };
 
