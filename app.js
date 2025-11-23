@@ -209,6 +209,7 @@ mongoose
   .then((result) => {
     server.listen(PORT, () => {
       console.log('Connected to database and listening on port', PORT);
+      console.log('Server is running on http://localhost:' + PORT);
       console.log(`Socket.IO enabled for real-time game functionality`);
     });
   })

@@ -966,93 +966,96 @@
 </script>
 
 
-<!-- Elkably Team Section -->
-<section class="elkably-team-section" id="elkably-team" data-aos="fade-up">
-  <div class="team-full-width-wrapper">
-    <div class="team-three-column-layout">
-      <!-- Left Column - Logo -->
-      <div class="team-logo-column">
-        <div class="team-logo-container">
-          <img src="/images/K.png" alt="Elkably Logo" class="team-logo-image">
+<!-- Elkably Team Section - Enhanced Responsive Design -->
+<section class="elkably-team-section-new" id="elkably-team" data-aos="fade-up">
+  <div class="container">
+    <!-- Desktop: 3-Column Layout | Mobile: Stacked -->
+    <div class="team-layout-wrapper">
+      <!-- Column 1: Logo -->
+      <div class="team-column team-column-logo">
+        <div class="team-logo-wrapper">
+          <div class="team-logo-circle">
+            <img src="/images/K.png" alt="Elkably Logo" class="team-logo-img">
+          </div>
         </div>
       </div>
 
-      <!-- Center Column - Text Content -->
-      <div class="team-text-column">
-        <h2 class="team-title">
-          <span class="team-title-red">ELKABLY</span> TEAM
-        </h2>
-        <p class="team-description">
-          Each one of us was just like you, an American Diploma student. So you can always depend on us giving you the best assistance!
-        </p>
+      <!-- Column 2: Text Content -->
+      <div class="team-column team-column-text">
+        <div class="team-header-content">
+          <h2 class="team-section-title">
+            <span class="team-title-accent">ELKABLY</span> TEAM
+          </h2>
+          <p class="team-section-description">
+            Each one of us was just like you, an American Diploma student. So you can always depend on us giving you the best assistance!
+          </p>
+        </div>
       </div>
 
-      <!-- Right Column - Team Member Carousel -->
-      <div class="team-carousel-column">
-        <div class="team-carousel-container">
-          <div class="team-carousel">
-            <!-- Carousel Navigation Arrows -->
-            <button class="team-carousel-prev" id="teamCarouselPrev">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <button class="team-carousel-next" id="teamCarouselNext">
-              <i class="fas fa-chevron-right"></i>
-            </button>
+      <!-- Column 3: Carousel -->
+      <div class="team-column team-column-carousel">
+        <div class="team-carousel-wrapper">
+      <div class="team-carousel-container-new">
+        <!-- Navigation Arrows -->
+        <button class="team-nav-btn team-nav-prev" id="teamCarouselPrev" aria-label="Previous team member">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="team-nav-btn team-nav-next" id="teamCarouselNext" aria-label="Next team member">
+          <i class="fas fa-chevron-right"></i>
+        </button>
 
-            <!-- Team Members Container -->
-            <div class="team-members-wrapper">
-              <div class="team-members-track" id="teamMembersTrack">
-                <% if (teamMembers && teamMembers.length > 0) { %>
-                  <% teamMembers.forEach((member, index) => { %>
-                    <div class="team-member-card <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>">
-                      <div class="team-member-info">
-                        <div class="team-member-image">
-                          <% if (member.image) { %>
-                            <img src="<%= member.image %>" alt="<%= member.name %>" loading="lazy" decoding="async">
-                          <% } else { %>
-                            <div class="team-member-fallback">
-                              <span class="fallback-initials"><%= member.fallbackInitials %></span>
-                            </div>
-                          <% } %>
-                        </div>
-
-                        <div class="team-member-details">
-                          <h4 class="team-member-name"><%= member.name %></h4>
-                          <p class="team-member-position"><%= member.position %></p>
-                        </div>
+        <!-- Team Members Track -->
+        <div class="team-carousel-track" id="teamMembersTrack">
+          <% if (teamMembers && teamMembers.length > 0) { %>
+            <% teamMembers.forEach((member, index) => { %>
+              <div class="team-member-slide <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>">
+                <div class="team-member-card-new">
+                  <div class="team-member-avatar">
+                    <% if (member.image && member.image.trim() !== '') { %>
+                      <img src="<%= member.image %>" alt="<%= member.name %>" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                      <div class="team-member-fallback-new" style="display: none;">
+                        <span class="fallback-initials-new"><%= member.fallbackInitials || (member.name ? member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'TM') %></span>
                       </div>
-                    </div>
-                  <% }); %>
-                <% } else { %>
-                  <!-- Fallback if no team members -->
-                  <div class="team-member-card active" style="display: flex;">
-                    <div class="team-member-info">
-                      <div class="team-member-image">
-                        <img src="/images/adad.png" alt="Nusayba Elshamy" loading="lazy" decoding="async">
+                    <% } else { %>
+                      <div class="team-member-fallback-new">
+                        <span class="fallback-initials-new"><%= member.fallbackInitials || (member.name ? member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'TM') %></span>
                       </div>
-
-                      <div class="team-member-details">
-                        <h4 class="team-member-name">Nusayba Elshamy</h4>
-                        <p class="team-member-position">HEAD</p>
-                      </div>
-                    </div>
+                    <% } %>
                   </div>
-                <% } %>
+                  <div class="team-member-info-new">
+                    <h3 class="team-member-name-new"><%= member.name %></h3>
+                    <p class="team-member-role-new"><%= member.position %></p>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          <% } else { %>
+            <!-- Fallback -->
+            <div class="team-member-slide active" data-index="0">
+              <div class="team-member-card-new">
+                <div class="team-member-avatar">
+                  <img src="/images/adad.png" alt="Nusayba Elshamy" loading="lazy" decoding="async">
+                </div>
+                <div class="team-member-info-new">
+                  <h3 class="team-member-name-new">Nusayba Elshamy</h3>
+                  <p class="team-member-role-new">HEAD</p>
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Carousel Indicators -->
-          <div class="team-carousel-indicators" id="teamCarouselIndicators">
-            <% if (teamMembers && teamMembers.length > 0) { %>
-              <% teamMembers.forEach((member, index) => { %>
-                <span class="indicator <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>"></span>
-              <% }); %>
-            <% } else { %>
-              <span class="indicator active" data-index="0"></span>
-            <% } %>
-          </div>
+          <% } %>
         </div>
+
+        <!-- Carousel Indicators -->
+        <div class="team-carousel-dots" id="teamCarouselIndicators">
+          <% if (teamMembers && teamMembers.length > 0) { %>
+            <% teamMembers.forEach((member, index) => { %>
+              <button class="team-dot <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>" aria-label="Go to slide <%= index + 1 %>"></button>
+            <% }); %>
+          <% } else { %>
+            <button class="team-dot active" data-index="0"></button>
+          <% } %>
+        </div>
+      </div>
       </div>
     </div>
   </div>
@@ -1688,7 +1691,7 @@
     });
   });
 
-  // Optimized Elkably Team Carousel Functionality
+  // Enhanced Elkably Team Carousel Functionality
   document.addEventListener('DOMContentLoaded', function() {
     // Team member data from server
     const teamMembers = <%- JSON.stringify(teamMembers || []) %>;
@@ -1702,12 +1705,12 @@
     let autoPlayInterval;
     let isTransitioning = false;
 
-    // Get DOM elements with caching
+    // Get DOM elements with new class names
     const prevBtn = document.getElementById('teamCarouselPrev');
     const nextBtn = document.getElementById('teamCarouselNext');
-    const indicators = document.querySelectorAll('.team-carousel-indicators .indicator');
-    const carouselContainer = document.querySelector('.team-carousel-container');
-    const allCards = document.querySelectorAll('.team-member-card');
+    const dots = document.querySelectorAll('.team-carousel-dots .team-dot');
+    const carouselContainer = document.querySelector('.team-carousel-container-new');
+    const allSlides = document.querySelectorAll('.team-member-slide');
 
     // Optimized function to show specific team member
     function showMember(index) {
@@ -1715,20 +1718,20 @@
       
       isTransitioning = true;
       
-      // Use CSS classes for better performance
-      allCards.forEach(card => {
-        card.classList.remove('active');
+      // Hide all slides
+      allSlides.forEach(slide => {
+        slide.classList.remove('active');
       });
       
-      // Show the selected card
-      const selectedCard = document.querySelector(`[data-index="${index}"]`);
-      if (selectedCard) {
-        selectedCard.classList.add('active');
+      // Show the selected slide
+      const selectedSlide = document.querySelector(`.team-member-slide[data-index="${index}"]`);
+      if (selectedSlide) {
+        selectedSlide.classList.add('active');
       }
       
-      // Update indicators with CSS classes
-      indicators.forEach((indicator, i) => {
-        indicator.classList.toggle('active', i === index);
+      // Update dots with CSS classes
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
       });
       
       // Remove disabled state from buttons since carousel loops infinitely
@@ -1788,8 +1791,9 @@
         // Hide navigation if only one or no members
         if (prevBtn) prevBtn.style.display = 'none';
         if (nextBtn) nextBtn.style.display = 'none';
-        if (document.getElementById('teamCarouselIndicators')) {
-          document.getElementById('teamCarouselIndicators').style.display = 'none';
+        const dotsContainer = document.getElementById('teamCarouselIndicators');
+        if (dotsContainer) {
+          dotsContainer.style.display = 'none';
         }
         return;
       }
@@ -1807,9 +1811,9 @@
       prevBtn.addEventListener('click', prevMember, { passive: true });
     }
 
-    // Indicator clicks
-    indicators.forEach((indicator, index) => {
-      indicator.addEventListener('click', () => {
+    // Dot clicks
+    dots.forEach((dot, index) => {
+      dot.addEventListener('click', () => {
         if (!isTransitioning) {
           showMember(index);
         }
