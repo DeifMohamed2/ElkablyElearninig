@@ -1,5 +1,22 @@
 const User = require('../models/User');
 
+// Helper function to safely call req.flash() when sessions are available
+const safeFlash = (req, type, message) => {
+  try {
+    // Check if req.session exists and req.flash is available
+    if (req.session && typeof req.flash === 'function') {
+      req.flash(type, message);
+    } else {
+      // Log the message if flash is not available (e.g., in Socket.IO contexts)
+      console.log(`[Flash Message] ${type}: ${message}`);
+    }
+  } catch (err) {
+    // If flash fails, log the error and the message
+    console.error('Error calling req.flash():', err.message);
+    console.log(`[Flash Message] ${type}: ${message}`);
+  }
+};
+
 // Middleware to check if user is authenticated
 const isAuthenticated = async (req, res, next) => {
   if (req.session && req.session.user && req.session.user.id) {
@@ -23,19 +40,19 @@ const isAuthenticated = async (req, res, next) => {
             }
           });
           res.clearCookie('elkably.session');
-          req.flash('error_msg', 'Your account is being used on another device. Please log in again.');
+          safeFlash(req, 'error_msg', 'Your account is being used on another device. Please log in again.');
           return res.redirect('/auth/login');
         }
       } catch (err) {
         console.error('Error validating session token:', err);
-        req.flash('error_msg', 'An error occurred. Please log in again.');
+        safeFlash(req, 'error_msg', 'An error occurred. Please log in again.');
         return res.redirect('/auth/login');
       }
     }
     
     return next();
   }
-  req.flash('error_msg', 'Please log in to access this page');
+  safeFlash(req, 'error_msg', 'Please log in to access this page');
   res.redirect('/auth/login');
 };
 
@@ -58,7 +75,7 @@ const isAdmin = (req, res, next) => {
   if (req.session && req.session.user && req.session.user.role === 'admin') {
     return next();
   }
-  req.flash('error_msg', 'Unauthorized: Admins only');
+  safeFlash(req, 'error_msg', 'Unauthorized: Admins only');
   res.redirect('/auth/login');
 };
 
@@ -84,18 +101,18 @@ const isStudent = async (req, res, next) => {
           }
         });
         res.clearCookie('elkably.session');
-        req.flash('error_msg', 'Your account is being used on another device. Please log in again.');
+        safeFlash(req, 'error_msg', 'Your account is being used on another device. Please log in again.');
         return res.redirect('/auth/login');
       }
       
       return next();
     } catch (err) {
       console.error('Error validating session token:', err);
-      req.flash('error_msg', 'An error occurred. Please log in again.');
+      safeFlash(req, 'error_msg', 'An error occurred. Please log in again.');
       return res.redirect('/auth/login');
     }
   }
-  req.flash('error_msg', 'Unauthorized: Students only');
+  safeFlash(req, 'error_msg', 'Unauthorized: Students only');
   res.redirect('/auth/login');
 };
 
@@ -109,7 +126,7 @@ const isDataComplete = (req, res, next) => {
     
     // Check if student data is complete
     if (req.session.user.isCompleteData === false) {
-      req.flash('info_msg', 'Please complete your profile to continue');
+      safeFlash(req, 'info_msg', 'Please complete your profile to continue');
       return res.redirect('/auth/complete-data');
     }
   }

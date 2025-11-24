@@ -1,5 +1,385 @@
 <%- include('partials/header', { title: 'Home', isIndexPage: true }) %>
 
+<style>
+  .media-guard {
+    position: relative;
+  }
+
+  .media-guard::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    pointer-events: all;
+  }
+
+  .media-guard img,
+  .media-guard picture,
+  .media-guard video {
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* Brilliant Students Horizontal Slider - Full Width (Edge to Edge) */
+  .brilliant-students-new {
+    overflow: hidden;
+  }
+
+  .students-carousel-wrapper {
+    position: relative;
+    width: 100vw;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    padding: 20px 0;
+  }
+
+  .students-carousel-container-new {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .students-carousel-track {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    min-height: 450px;
+    padding: 0 80px;
+  }
+
+  @media (max-width: 1400px) {
+    .students-carousel-track {
+      padding: 0 60px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .students-carousel-track {
+      padding: 0 60px;
+      /* Add scroll-snap for better mobile experience */
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .student-slide {
+      /* Enable snap points for mobile */
+      scroll-snap-align: center;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .students-carousel-track {
+      padding: 0 50px;
+    }
+  }
+
+  .students-slides-container {
+    display: flex;
+    gap: 20px;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+    width: fit-content;
+  }
+  
+  /* Smooth scrolling for mobile */
+  @media (max-width: 768px) {
+    .students-slides-container {
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
+  .student-slide {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .student-slide .student-card-new {
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+  }
+
+  /* Make all student photos the same size */
+  .student-photo-new {
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+    border-radius: 12px;
+    position: relative;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .student-photo-new img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+  }
+
+  /* Fallback initials styling - same as team members */
+  .student-fallback-new {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--red-primary, #B80101) 0%, #8B0000 100%);
+    border-radius: 12px;
+  }
+
+  .student-fallback-initials {
+    font-size: 48px;
+    font-weight: bold;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* Responsive card sizes */
+  @media (min-width: 1400px) {
+    .student-slide .student-card-new {
+      width: 320px;
+      min-width: 320px;
+      max-width: 320px;
+    }
+    .students-slides-container {
+      gap: 25px;
+    }
+  }
+
+  @media (max-width: 1200px) {
+    .student-slide .student-card-new {
+      width: 280px;
+      min-width: 280px;
+      max-width: 280px;
+    }
+  }
+
+  @media (max-width: 992px) {
+    .student-slide .student-card-new {
+      width: 260px;
+      min-width: 260px;
+      max-width: 260px;
+    }
+    .students-slides-container {
+      gap: 15px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .students-carousel-track {
+      padding: 0 20px;
+      /* Ensure only one card is visible at a time */
+      overflow: hidden;
+    }
+    
+    .student-slide .student-card-new {
+      width: calc(100vw - 100px);
+      min-width: calc(100vw - 100px);
+      max-width: calc(100vw - 100px);
+      /* Ensure card takes most of the viewport width */
+    }
+    
+    .student-photo-new {
+      height: 320px;
+    }
+    
+    .student-fallback-initials {
+      font-size: 48px;
+    }
+    
+    /* Adjust gap for mobile to ensure proper spacing */
+    .students-slides-container {
+      gap: 20px;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .students-carousel-track {
+      padding: 0 15px;
+    }
+    
+    .student-slide .student-card-new {
+      width: calc(100vw - 70px);
+      min-width: calc(100vw - 70px);
+      max-width: calc(100vw - 70px);
+    }
+    
+    .student-photo-new {
+      height: 300px;
+    }
+    
+    .student-fallback-initials {
+      font-size: 44px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .students-carousel-track {
+      padding: 0 10px;
+    }
+    
+    .student-slide .student-card-new {
+      width: calc(100vw - 60px);
+      min-width: calc(100vw - 60px);
+      max-width: calc(100vw - 60px);
+    }
+    
+    .student-photo-new {
+      height: 280px;
+    }
+    
+    .student-fallback-initials {
+      font-size: 40px;
+    }
+  }
+
+  .students-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(184, 1, 1, 0.2);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .students-nav-btn:hover {
+    background: var(--red-primary, #B80101);
+    border-color: var(--red-primary, #B80101);
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
+  }
+
+  .students-nav-btn:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  .students-nav-prev {
+    left: 20px;
+  }
+
+  .students-nav-next {
+    right: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .students-nav-prev {
+      left: 5px;
+    }
+    .students-nav-next {
+      right: 5px;
+    }
+    
+    .students-nav-btn {
+      width: 44px;
+      height: 44px;
+      font-size: 16px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .students-nav-prev {
+      left: 2px;
+    }
+    .students-nav-next {
+      right: 2px;
+    }
+    
+    .students-nav-btn {
+      width: 40px;
+      height: 40px;
+      font-size: 14px;
+    }
+  }
+
+  .students-carousel-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+  }
+
+  .students-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(184, 1, 1, 0.3);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+  }
+
+  .students-dot:hover {
+    background: rgba(184, 1, 1, 0.5);
+    border-color: rgba(184, 1, 1, 0.7);
+    transform: scale(1.2);
+  }
+
+  .students-dot.active {
+    background: var(--red-primary, #B80101);
+    border-color: var(--red-primary, #B80101);
+    width: 14px;
+    height: 14px;
+  }
+
+  @media (max-width: 768px) {
+    .students-carousel-container-new {
+      padding: 0 50px;
+    }
+
+    .students-nav-prev {
+      left: 5px;
+    }
+
+    .students-nav-next {
+      right: 5px;
+    }
+
+    .students-nav-btn {
+      width: 40px;
+      height: 40px;
+      font-size: 14px;
+    }
+
+    .student-slide .student-card-new {
+      max-width: 100%;
+      padding: 0 10px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .students-carousel-container-new {
+      padding: 0 40px;
+    }
+
+    .students-nav-btn {
+      width: 35px;
+      height: 35px;
+      font-size: 12px;
+    }
+  }
+</style>
+
 <!-- Floating Math Elements -->
 <div class="floating-math-elements-professor" id="floatingMath">
   <div class="math-element-professor" data-equation="∂">∂</div>
@@ -550,17 +930,36 @@
     <div class="section-header-new text-center">
       <h2 class="section-title-new">Some of our <span class="highlight-red">Brilliant Students</span> (EST)</h2>
     </div>
+    </div>
 
-    <div class="students-slider-new" aria-label="Brilliant EST Students">
-      <button class="slider-arrow slider-arrow-prev" aria-label="Previous">
+  <div class="students-carousel-wrapper">
+      <div class="students-carousel-container-new">
+        <!-- Navigation Arrows -->
+        <button class="students-nav-btn students-nav-prev" id="studentsCarouselPrevEST" aria-label="Previous student">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <div class="students-slides-new">
+        <button class="students-nav-btn students-nav-next" id="studentsCarouselNextEST" aria-label="Next student">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <!-- Students Track -->
+        <div class="students-carousel-track" id="studentsTrackEST">
+          <div class="students-slides-container" id="studentsSlidesContainerEST">
         <% if (brilliantStudents && brilliantStudents.est && brilliantStudents.est.length > 0) { %>
-        <% brilliantStudents.est.forEach(student => { %>
+              <% brilliantStudents.est.forEach((student, index) => { %>
+                <div class="student-slide" data-index="<%= index %>">
         <article class="student-card-new">
-          <div class="student-photo-new">
-            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.src='/images/photoPlaceholder.jpg';">
+          <div class="student-photo-new media-guard">
+            <% if (student.image && student.image.trim() !== '') { %>
+              <img src="<%= student.image %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="student-fallback-new" style="display: none;">
+                <span class="student-fallback-initials"><%= student.fallbackInitials || (student.name ? student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST') %></span>
+              </div>
+            <% } else { %>
+              <div class="student-fallback-new">
+                <span class="student-fallback-initials"><%= student.fallbackInitials || (student.name ? student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST') %></span>
+              </div>
+            <% } %>
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -579,13 +978,16 @@
             </div>
           </div>
         </article>
+                </div>
         <% }); %>
         <% } else { %>
         <!-- Fallback static EST students if no data available -->
+              <div class="student-slide" data-index="0">
         <article class="student-card-new">
-          <div class="student-photo-new">
-            <img src="/images/test.png" alt="Jana Hossam" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="fallback-shape-new" style="display: none;">JH</div>
+          <div class="student-photo-new media-guard">
+            <div class="student-fallback-new">
+              <span class="student-fallback-initials">JH</span>
+            </div>
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -604,19 +1006,14 @@
             </div>
           </div>
         </article>
+              </div>
         <% } %>
       </div>
-      <button class="slider-arrow slider-arrow-next" aria-label="Next">
-        <i class="fas fa-chevron-right"></i>
-      </button>
     </div>
 
-    <!-- Pagination Dots -->
-    <div class="slider-pagination" id="pagination-est">
-      <button class="pagination-dot active" data-slide="0"></button>
-      <button class="pagination-dot" data-slide="1"></button>
-      <button class="pagination-dot" data-slide="2"></button>
-      <button class="pagination-dot" data-slide="3"></button>
+        <!-- Carousel Indicators -->
+        <div class="students-carousel-dots" id="studentsCarouselIndicatorsEST">
+        </div>
     </div>
   </div>
 </section>
@@ -627,17 +1024,36 @@
     <div class="section-header-new text-center">
       <h2 class="section-title-new">Some of our <span class="highlight-red">Brilliant Students</span> (D-SAT)</h2>
     </div>
+    </div>
 
-    <div class="students-slider-new" aria-label="Brilliant DSAT Students">
-      <button class="slider-arrow slider-arrow-prev" aria-label="Previous">
+  <div class="students-carousel-wrapper">
+      <div class="students-carousel-container-new">
+        <!-- Navigation Arrows -->
+        <button class="students-nav-btn students-nav-prev" id="studentsCarouselPrevDSAT" aria-label="Previous student">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <div class="students-slides-new">
+        <button class="students-nav-btn students-nav-next" id="studentsCarouselNextDSAT" aria-label="Next student">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <!-- Students Track -->
+        <div class="students-carousel-track" id="studentsTrackDSAT">
+          <div class="students-slides-container" id="studentsSlidesContainerDSAT">
         <% if (brilliantStudents && brilliantStudents.dsat && brilliantStudents.dsat.length > 0) { %>
-        <% brilliantStudents.dsat.forEach(student => { %>
+              <% brilliantStudents.dsat.forEach((student, index) => { %>
+                <div class="student-slide" data-index="<%= index %>">
         <article class="student-card-new">
-          <div class="student-photo-new">
-            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.src='/images/photoPlaceholder.jpg';">
+          <div class="student-photo-new media-guard">
+            <% if (student.image && student.image.trim() !== '') { %>
+              <img src="<%= student.image %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="student-fallback-new" style="display: none;">
+                <span class="student-fallback-initials"><%= student.fallbackInitials || (student.name ? student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST') %></span>
+              </div>
+            <% } else { %>
+              <div class="student-fallback-new">
+                <span class="student-fallback-initials"><%= student.fallbackInitials || (student.name ? student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST') %></span>
+              </div>
+            <% } %>
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -656,13 +1072,16 @@
             </div>
           </div>
         </article>
+                </div>
         <% }); %>
         <% } else { %>
         <!-- Fallback static DSAT students if no data available -->
+              <div class="student-slide" data-index="0">
         <article class="student-card-new">
-          <div class="student-photo-new">
-            <img src="/images/test.png" alt="Alex Johnson" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="fallback-shape-new" style="display: none;">AJ</div>
+          <div class="student-photo-new media-guard">
+            <div class="student-fallback-new">
+              <span class="student-fallback-initials">AJ</span>
+            </div>
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -681,19 +1100,15 @@
             </div>
           </div>
         </article>
+              </div>
         <% } %>
       </div>
-      <button class="slider-arrow slider-arrow-next" aria-label="Next">
-        <i class="fas fa-chevron-right"></i>
-      </button>
     </div>
 
-    <!-- Pagination Dots -->
-    <div class="slider-pagination" id="pagination-dsat">
-      <button class="pagination-dot active" data-slide="0"></button>
-      <button class="pagination-dot" data-slide="1"></button>
-      <button class="pagination-dot" data-slide="2"></button>
-      <button class="pagination-dot" data-slide="3"></button>
+        <!-- Carousel Indicators (Optional - can be removed if not needed) -->
+        <!-- Carousel Indicators -->
+        <div class="students-carousel-dots" id="studentsCarouselIndicatorsDSAT">
+        </div>
     </div>
   </div>
 </section>
@@ -704,17 +1119,36 @@
     <div class="section-header-new text-center">
       <h2 class="section-title-new">Some of our <span class="highlight-red">Brilliant Students</span> (ACT)</h2>
     </div>
+    </div>
 
-    <div class="students-slider-new" aria-label="Brilliant ACT Students">
-      <button class="slider-arrow slider-arrow-prev" aria-label="Previous">
+  <div class="students-carousel-wrapper">
+      <div class="students-carousel-container-new">
+        <!-- Navigation Arrows -->
+        <button class="students-nav-btn students-nav-prev" id="studentsCarouselPrevACT" aria-label="Previous student">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <div class="students-slides-new">
+        <button class="students-nav-btn students-nav-next" id="studentsCarouselNextACT" aria-label="Next student">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <!-- Students Track -->
+        <div class="students-carousel-track" id="studentsTrackACT">
+          <div class="students-slides-container" id="studentsSlidesContainerACT">
         <% if (brilliantStudents && brilliantStudents.act && brilliantStudents.act.length > 0) { %>
-        <% brilliantStudents.act.forEach(student => { %>
+              <% brilliantStudents.act.forEach((student, index) => { %>
+                <div class="student-slide" data-index="<%= index %>">
         <article class="student-card-new">
-          <div class="student-photo-new">
-            <img src="<%= student.image || '/images/photoPlaceholder.jpg' %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.src='/images/photoPlaceholder.jpg';">
+          <div class="student-photo-new media-guard">
+            <% if (student.image && student.image.trim() !== '') { %>
+              <img src="<%= student.image %>" alt="<%= student.name %>" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="student-fallback-new" style="display: none;">
+                <span class="student-fallback-initials"><%= student.fallbackInitials || (student.name ? student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST') %></span>
+              </div>
+            <% } else { %>
+              <div class="student-fallback-new">
+                <span class="student-fallback-initials"><%= student.fallbackInitials || (student.name ? student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'ST') %></span>
+              </div>
+            <% } %>
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -733,13 +1167,16 @@
             </div>
           </div>
         </article>
+                </div>
         <% }); %>
         <% } else { %>
         <!-- Fallback static ACT students if no data available -->
+              <div class="student-slide" data-index="0">
         <article class="student-card-new">
-          <div class="student-photo-new">
-            <img src="/images/test.png" alt="Michael Brown" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="fallback-shape-new" style="display: none;">MB</div>
+          <div class="student-photo-new media-guard">
+            <div class="student-fallback-new">
+              <span class="student-fallback-initials">MB</span>
+            </div>
           </div>
           <div class="student-content-new">
             <div class="student-badge-new">
@@ -758,178 +1195,506 @@
             </div>
           </div>
         </article>
+              </div>
         <% } %>
       </div>
-      <button class="slider-arrow slider-arrow-next" aria-label="Next">
-        <i class="fas fa-chevron-right"></i>
-      </button>
     </div>
 
-    <!-- Pagination Dots -->
-    <div class="slider-pagination" id="pagination-act">
-      <button class="pagination-dot active" data-slide="0"></button>
-      <button class="pagination-dot" data-slide="1"></button>
-      <button class="pagination-dot" data-slide="2"></button>
-      <button class="pagination-dot" data-slide="3"></button>
+        <!-- Carousel Indicators (Optional - can be removed if not needed) -->
+        <!-- Carousel Indicators -->
+        <div class="students-carousel-dots" id="studentsCarouselIndicatorsACT">
+        </div>
     </div>
   </div>
 </section>
 
 <script>
-  // Optimized Brilliant Students Slider Functionality
+  // Brilliant Students Horizontal Slider - Smooth Scrolling
   document.addEventListener('DOMContentLoaded', function() {
-    const sliders = document.querySelectorAll('.students-slider-new');
+    // Initialize slider for each test type
+    const sliderConfigs = [
+      { 
+        type: 'EST', 
+        prevId: 'studentsCarouselPrevEST', 
+        nextId: 'studentsCarouselNextEST', 
+        trackId: 'studentsTrackEST',
+        containerId: 'studentsSlidesContainerEST',
+        dotsId: 'studentsCarouselIndicatorsEST'
+      },
+      { 
+        type: 'DSAT', 
+        prevId: 'studentsCarouselPrevDSAT', 
+        nextId: 'studentsCarouselNextDSAT', 
+        trackId: 'studentsTrackDSAT',
+        containerId: 'studentsSlidesContainerDSAT',
+        dotsId: 'studentsCarouselIndicatorsDSAT'
+      },
+      { 
+        type: 'ACT', 
+        prevId: 'studentsCarouselPrevACT', 
+        nextId: 'studentsCarouselNextACT', 
+        trackId: 'studentsTrackACT',
+        containerId: 'studentsSlidesContainerACT',
+        dotsId: 'studentsCarouselIndicatorsACT'
+      }
+    ];
 
-    // Use requestAnimationFrame for smooth animations
-    const animateSlider = (slides, translateX) => {
-      requestAnimationFrame(() => {
-        slides.style.transform = `translate3d(${translateX}px, 0, 0)`;
-      });
-    };
-
-    sliders.forEach(slider => {
-      const slides = slider.querySelector('.students-slides-new');
-      const prevBtn = slider.querySelector('.slider-arrow-prev');
-      const nextBtn = slider.querySelector('.slider-arrow-next');
-
-      if (!slides || !prevBtn || !nextBtn) return;
-
-      let currentIndex = 0;
-      const cards = slides.querySelectorAll('.student-card-new');
-      const totalCards = cards.length;
-
-      // Get the pagination container for this slider
-      const sliderId = slider.closest('.brilliant-students-new').id;
-      const pagination = document.getElementById(`pagination-${sliderId.split('-').pop()}`);
-
-      // Cache DOM elements and calculations
-      let cachedCardWidth = 420;
-      let cachedVisibleCards = 1;
-      let isAnimating = false;
-
-      // Function to get visible cards count based on screen size
-      function getVisibleCardsCount() {
-        const sliderWidth = slider.offsetWidth;
-        const cardWidth = 400; // Base card width from CSS
-        const gap = 20; // Gap between cards
-        const visibleCount = Math.floor((sliderWidth + gap) / (cardWidth + gap));
-        return Math.max(1, visibleCount); // Ensure at least 1 card is visible
+    sliderConfigs.forEach(config => {
+      const prevBtn = document.getElementById(config.prevId);
+      const nextBtn = document.getElementById(config.nextId);
+      const track = document.getElementById(config.trackId);
+      const container = document.getElementById(config.containerId);
+      const dotsContainer = document.getElementById(config.dotsId);
+      
+      if (!prevBtn || !nextBtn || !track || !container) {
+        return;
       }
 
-      function updateSlider() {
-        if (totalCards === 0 || isAnimating) return;
+      const slides = container.querySelectorAll('.student-slide');
+      
+      if (slides.length === 0) {
+        // Hide navigation if no students
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (dotsContainer) dotsContainer.style.display = 'none';
+        return;
+      }
 
-        isAnimating = true;
+      let scrollPosition = 0;
+      let isScrolling = false;
+      let cardWidth = 0;
+      let cardGap = 20;
+      let visibleCards = 0;
+      let maxScroll = 0;
+      let totalPages = 0;
+      let dots = [];
+
+      // Calculate dimensions
+      function calculateDimensions() {
+        if (slides.length === 0) return;
         
-        // Use cached values when possible
-        if (cachedVisibleCards === 1) {
-          cachedVisibleCards = getVisibleCardsCount();
+        const firstCard = slides[0].querySelector('.student-card-new');
+        if (firstCard) {
+          const cardRect = firstCard.getBoundingClientRect();
+          cardWidth = cardRect.width;
         }
         
-        const maxIndex = Math.max(0, totalCards - cachedVisibleCards);
-        const clampedIndex = Math.min(currentIndex, maxIndex);
-
-        if (currentIndex !== clampedIndex) {
-          currentIndex = clampedIndex;
-        }
-
-        // Use cached card width
-        const translateX = -currentIndex * cachedCardWidth;
-        animateSlider(slides, translateX);
-
-        // Update arrow states with CSS classes for better performance
-        const prevDisabled = currentIndex === 0;
-        const nextDisabled = currentIndex >= maxIndex;
+        const trackRect = track.getBoundingClientRect();
+        const trackWidth = trackRect.width;
         
-        prevBtn.classList.toggle('disabled', prevDisabled);
-        nextBtn.classList.toggle('disabled', nextDisabled);
-
-        // Update pagination dots
-        if (pagination) {
-          const dots = pagination.querySelectorAll('.pagination-dot');
-          dots.forEach((dot, index) => {
-            dot.classList.toggle('active', index === currentIndex);
-          });
+        // Get track padding (left + right)
+        const trackStyles = window.getComputedStyle(track);
+        const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+        const trackPaddingRight = parseFloat(trackStyles.paddingRight) || 0;
+        const trackPadding = trackPaddingLeft + trackPaddingRight;
+        
+        // Check if mobile view (viewport width <= 768px)
+        const isMobile = window.innerWidth <= 768;
+        
+        // Calculate how many cards fit in viewport
+        // On mobile, always show only 1 card
+        if (isMobile) {
+          visibleCards = 1;
+        } else {
+          visibleCards = Math.floor(trackWidth / (cardWidth + cardGap));
         }
+        
+        // Calculate total width of all cards including gaps
+        const totalWidth = slides.length * (cardWidth + cardGap) - cardGap;
+        
+        // Calculate available scrollable width (track width minus padding)
+        const availableWidth = trackWidth - trackPadding;
+        
+        if (isMobile) {
+          // Mobile: Allow scrolling until last card can be centered
+          // Last card's center position: (slides.length - 1) * (cardWidth + cardGap) + cardWidth / 2
+          // To center it, we need: scrollPosition = lastCardCenter - availableWidth / 2
+          const lastCardIndex = slides.length - 1;
+          const lastCardLeftEdge = lastCardIndex * (cardWidth + cardGap);
+          const lastCardCenter = lastCardLeftEdge + cardWidth / 2;
+          
+          // Max scroll allows last card to be centered
+          maxScroll = Math.max(0, lastCardCenter - availableWidth / 2);
+          
+          // Also ensure we can scroll enough to show the last card fully
+          const lastCardRightEdge = lastCardLeftEdge + cardWidth;
+          const maxScrollForFullVisibility = Math.max(0, lastCardRightEdge - availableWidth + trackPaddingRight);
+          
+          // Use the maximum of both to ensure we can both center and fully show the last card
+          maxScroll = Math.max(maxScroll, maxScrollForFullVisibility);
+        } else {
+          // Desktop: Allow scrolling until last card can be centered or at least fully visible with padding
+          const lastCardIndex = slides.length - 1;
+          const lastCardLeftEdge = lastCardIndex * (cardWidth + cardGap);
+          const lastCardCenter = lastCardLeftEdge + cardWidth / 2;
+          
+          // Option 1: Center the last card
+          const scrollToCenter = Math.max(0, lastCardCenter - availableWidth / 2);
+          
+          // Option 2: Show last card fully with padding
+          const lastCardRightEdge = lastCardLeftEdge + cardWidth;
+          const scrollToShowFully = Math.max(0, lastCardRightEdge - availableWidth + (availableWidth / 2 - cardWidth / 2));
+          
+          // Use the maximum to allow both centering and full visibility
+          maxScroll = Math.max(scrollToCenter, scrollToShowFully);
+          
+          // Add extra padding to ensure the last card appears nicely
+          maxScroll += (availableWidth / 2 - cardWidth / 2);
+        }
+        
+        // Calculate total pages (number of scroll positions)
+        // On mobile, scroll one card at a time. On desktop, scroll by 2-3 cards
+        const cardsPerScroll = isMobile ? 1 : Math.max(2, Math.floor(visibleCards * 0.6)); // Scroll 60% of visible cards on desktop
+        const scrollAmount = (cardWidth + cardGap) * cardsPerScroll;
+        // On mobile, total pages equals number of cards since we show one at a time
+        totalPages = isMobile ? slides.length : (maxScroll > 0 ? Math.ceil(maxScroll / scrollAmount) + 1 : 1);
+        
+        // Update dots
+        updateDots();
+      }
 
-        // Reset animation flag
+      // Update scroll position smoothly
+      function updateScrollPosition() {
+        if (isScrolling) return;
+        
+        isScrolling = true;
+        container.style.transform = `translateX(-${scrollPosition}px)`;
+        
+        // Update button states
+        updateButtonStates();
+        
+        // Update active dot
+        updateActiveDot();
+        
         requestAnimationFrame(() => {
-          isAnimating = false;
+          isScrolling = false;
         });
       }
-
-      // Throttled event handlers
-      const handlePrevClick = () => {
-        if (currentIndex > 0 && !isAnimating) {
-          currentIndex--;
-          updateSlider();
+      
+      // Create dots dynamically
+      function updateDots() {
+        if (!dotsContainer) return;
+        
+        // Clear existing dots
+        dotsContainer.innerHTML = '';
+        dots = [];
+        
+        // Only show dots if there's more than one page
+        if (totalPages <= 1) {
+          dotsContainer.style.display = 'none';
+          return;
         }
-      };
-
-      const handleNextClick = () => {
-        const maxIndex = Math.max(0, totalCards - cachedVisibleCards);
-        if (currentIndex < maxIndex && !isAnimating) {
-          currentIndex++;
-          updateSlider();
-        }
-      };
-
-      prevBtn.addEventListener('click', handlePrevClick);
-      nextBtn.addEventListener('click', handleNextClick);
-
-      // Pagination dot clicks
-      if (pagination) {
-        const dots = pagination.querySelectorAll('.pagination-dot');
-        dots.forEach((dot, index) => {
+        
+        dotsContainer.style.display = 'flex';
+        
+        // Create dots for each page
+        for (let i = 0; i < totalPages; i++) {
+          const dot = document.createElement('button');
+          dot.className = 'students-dot';
+          if (i === 0) dot.classList.add('active');
+          dot.setAttribute('data-page', i);
+          dot.setAttribute('aria-label', `Go to page ${i + 1}`);
+          
           dot.addEventListener('click', () => {
-            if (!isAnimating) {
-              currentIndex = index;
-              updateSlider();
+            scrollToPage(i);
+          }, { passive: true });
+          
+          dotsContainer.appendChild(dot);
+          dots.push(dot);
+        }
+      }
+      
+      // Update active dot based on scroll position
+      function updateActiveDot() {
+        if (dots.length === 0 || totalPages <= 1) return;
+        
+        calculateDimensions();
+        const isMobile = window.innerWidth <= 768;
+        const cardsPerScroll = isMobile ? 1 : Math.max(2, Math.floor(visibleCards * 0.6));
+        const scrollAmount = (cardWidth + cardGap) * cardsPerScroll;
+        
+        // On mobile, calculate page based on which card is centered
+        let currentPage;
+        if (isMobile) {
+          const trackRect = track.getBoundingClientRect();
+          const trackStyles = window.getComputedStyle(track);
+          const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+          const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
+          const centerX = availableWidth / 2;
+          
+          // Find which card is closest to center
+          let closestIndex = 0;
+          let closestDistance = Infinity;
+          slides.forEach((slide, index) => {
+            const cardLeftEdge = index * (cardWidth + cardGap) - scrollPosition;
+            const cardCenter = cardLeftEdge + cardWidth / 2;
+            const distance = Math.abs(cardCenter - centerX);
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestIndex = index;
             }
           });
+          currentPage = closestIndex;
+        } else {
+          currentPage = Math.round(scrollPosition / scrollAmount);
+        }
+        
+        const activePage = Math.min(currentPage, totalPages - 1);
+        
+        dots.forEach((dot, index) => {
+          dot.classList.toggle('active', index === activePage);
         });
       }
-
-      // Initialize with intersection observer for better performance
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            // Calculate card width when slider becomes visible
-            if (cards[0] && cards[0].offsetWidth > 0) {
-              cachedCardWidth = cards[0].offsetWidth + 20;
-            }
-            cachedVisibleCards = getVisibleCardsCount();
-            updateSlider();
+      
+      // Scroll to specific page
+      function scrollToPage(pageIndex) {
+        if (isScrolling || pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        calculateDimensions();
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+          // Mobile: Center the selected card
+          const cardIndex = pageIndex;
+          const trackRect = track.getBoundingClientRect();
+          const trackStyles = window.getComputedStyle(track);
+          const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+          const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
+          const centerX = availableWidth / 2;
+          
+          const cardCenter = cardIndex * (cardWidth + cardGap) + cardWidth / 2;
+          scrollPosition = Math.max(0, Math.min(cardCenter - centerX, maxScroll));
+        } else {
+          const cardsPerScroll = Math.max(2, Math.floor(visibleCards * 0.6));
+          const scrollAmount = (cardWidth + cardGap) * cardsPerScroll;
+          
+          // If it's the last page, scroll to maxScroll to show the last card fully
+          if (pageIndex === totalPages - 1) {
+            scrollPosition = maxScroll;
+          } else {
+            scrollPosition = Math.min(pageIndex * scrollAmount, maxScroll);
           }
-        });
-      }, { threshold: 0.1 });
+        }
+        
+        updateScrollPosition();
+      }
 
-      observer.observe(slider);
+      // Update button states
+      function updateButtonStates() {
+        if (scrollPosition <= 1) {
+          prevBtn.style.opacity = '0.5';
+          prevBtn.style.pointerEvents = 'none';
+        } else {
+          prevBtn.style.opacity = '1';
+          prevBtn.style.pointerEvents = 'auto';
+        }
 
-      // Additional initialization check
-      if (totalCards <= 1) {
-        // Hide navigation if only one or no cards
-        prevBtn.style.display = 'none';
-        nextBtn.style.display = 'none';
-        if (pagination) {
-          pagination.style.display = 'none';
+        // Use a threshold to account for rounding and ensure last card is accessible
+        // Allow a bit more tolerance for the new maxScroll calculation
+        const threshold = 10;
+        if (scrollPosition >= maxScroll - threshold) {
+          nextBtn.style.opacity = '0.5';
+          nextBtn.style.pointerEvents = 'none';
+        } else {
+          nextBtn.style.opacity = '1';
+          nextBtn.style.pointerEvents = 'auto';
         }
       }
 
-      // Throttled window resize handler
-      let resizeTimeout;
-      const handleResize = () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-          cachedVisibleCards = getVisibleCardsCount();
-          if (cards[0] && cards[0].offsetWidth > 0) {
-            cachedCardWidth = cards[0].offsetWidth + 20;
+      // Snap to center for mobile (centers the nearest card)
+      function snapToCenter() {
+        const isMobile = window.innerWidth <= 768;
+        if (!isMobile) return;
+        
+        calculateDimensions();
+        const trackRect = track.getBoundingClientRect();
+        const trackStyles = window.getComputedStyle(track);
+        const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+        const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
+        const centerX = availableWidth / 2;
+        
+        // Find the card closest to center
+        let closestCard = null;
+        let closestDistance = Infinity;
+        
+        slides.forEach((slide, index) => {
+          const card = slide.querySelector('.student-card-new');
+          if (!card) return;
+          
+          const cardLeftEdge = index * (cardWidth + cardGap) - scrollPosition;
+          const cardCenter = cardLeftEdge + cardWidth / 2;
+          const distance = Math.abs(cardCenter - centerX);
+          
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestCard = { index, cardCenter: index * (cardWidth + cardGap) + cardWidth / 2 };
           }
-          updateSlider();
-        }, 150);
-      };
+        });
+        
+        if (closestCard) {
+          // Center this card
+          const targetScroll = closestCard.cardCenter - centerX;
+          scrollPosition = Math.max(0, Math.min(targetScroll, maxScroll));
+          updateScrollPosition();
+        }
+      }
 
-      window.addEventListener('resize', handleResize, { passive: true });
+      // Scroll functions - scroll by multiple cards for bigger movement
+      function scrollNext() {
+        if (isScrolling) return;
+        
+        calculateDimensions();
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+          // Mobile: Scroll to next card and center it
+          const currentCardIndex = Math.round(scrollPosition / (cardWidth + cardGap));
+          const nextCardIndex = Math.min(currentCardIndex + 1, slides.length - 1);
+          
+          const trackRect = track.getBoundingClientRect();
+          const trackStyles = window.getComputedStyle(track);
+          const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+          const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
+          const centerX = availableWidth / 2;
+          
+          const nextCardCenter = nextCardIndex * (cardWidth + cardGap) + cardWidth / 2;
+          const targetScroll = nextCardCenter - centerX;
+          
+          scrollPosition = Math.max(0, Math.min(targetScroll, maxScroll));
+        } else {
+          // Desktop: Calculate how many cards to scroll (2-3 cards for bigger movement)
+          const cardsPerScroll = Math.max(2, Math.floor(visibleCards * 0.6)); // Scroll 60% of visible cards
+          const scrollAmount = (cardWidth + cardGap) * cardsPerScroll;
+          
+          // If we're close to the end, scroll to maxScroll exactly to show last card
+          if (scrollPosition + scrollAmount >= maxScroll - 10) {
+            scrollPosition = maxScroll;
+          } else {
+            scrollPosition = Math.min(scrollPosition + scrollAmount, maxScroll);
+          }
+        }
+        
+        updateScrollPosition();
+      }
+
+      function scrollPrev() {
+        if (isScrolling || scrollPosition <= 0) return;
+        
+        calculateDimensions();
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+          // Mobile: Scroll to previous card and center it
+          const currentCardIndex = Math.round(scrollPosition / (cardWidth + cardGap));
+          const prevCardIndex = Math.max(currentCardIndex - 1, 0);
+          
+          const trackRect = track.getBoundingClientRect();
+          const trackStyles = window.getComputedStyle(track);
+          const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+          const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
+          const centerX = availableWidth / 2;
+          
+          const prevCardCenter = prevCardIndex * (cardWidth + cardGap) + cardWidth / 2;
+          const targetScroll = prevCardCenter - centerX;
+          
+          scrollPosition = Math.max(0, Math.min(targetScroll, maxScroll));
+        } else {
+          // Desktop: Calculate how many cards to scroll (2-3 cards for bigger movement)
+          const cardsPerScroll = Math.max(2, Math.floor(visibleCards * 0.6)); // Scroll 60% of visible cards
+          const scrollAmount = (cardWidth + cardGap) * cardsPerScroll;
+          
+          scrollPosition = Math.max(scrollPosition - scrollAmount, 0);
+        }
+        
+        updateScrollPosition();
+      }
+
+      // Initialize on load
+      function initSlider() {
+        // Wait for images to load for accurate dimensions
+        setTimeout(() => {
+          calculateDimensions();
+          updateButtonStates();
+          updateActiveDot();
+        }, 100);
+      }
+
+      // Event listeners
+      if (nextBtn) {
+        nextBtn.addEventListener('click', scrollNext, { passive: true });
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', scrollPrev, { passive: true });
+      }
+
+      // Handle window resize
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          calculateDimensions();
+          // Clamp scroll position to new max
+          scrollPosition = Math.min(scrollPosition, maxScroll);
+          updateScrollPosition();
+        }, 150);
+      }, { passive: true });
+
+      // Touch/swipe support for mobile
+      let touchStartX = 0;
+      let touchEndX = 0;
+      
+      container.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+
+      container.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      }, { passive: true });
+
+      function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+          if (diff > 0) {
+            scrollNext();
+          } else {
+            scrollPrev();
+          }
+        } else {
+          // Small swipe - snap to nearest center
+          snapToCenter();
+        }
+      }
+
+      // Initialize slider
+      initSlider();
+      
+      // Recalculate after images load
+      const images = container.querySelectorAll('img');
+      let imagesLoaded = 0;
+      images.forEach(img => {
+        if (img.complete) {
+          imagesLoaded++;
+        } else {
+          img.addEventListener('load', () => {
+            imagesLoaded++;
+            if (imagesLoaded === images.length) {
+              calculateDimensions();
+              updateButtonStates();
+              updateActiveDot();
+            }
+          }, { once: true });
+        }
+      });
+      
+      if (imagesLoaded === images.length) {
+        calculateDimensions();
+        updateButtonStates();
+        updateActiveDot();
+      }
     });
   });
 </script>
@@ -961,6 +1726,23 @@
           link.click();
         }
       });
+    });
+  });
+</script>
+
+<script>
+  // Basic media protection (prevents context menu & dragging on guarded areas)
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('contextmenu', (event) => {
+      if (event.target.closest('.media-guard')) {
+        event.preventDefault();
+      }
+    });
+
+    document.addEventListener('dragstart', (event) => {
+      if (event.target.closest('.media-guard')) {
+        event.preventDefault();
+      }
     });
   });
 </script>
@@ -1010,7 +1792,7 @@
             <% teamMembers.forEach((member, index) => { %>
               <div class="team-member-slide <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>">
                 <div class="team-member-card-new">
-                  <div class="team-member-avatar">
+                  <div class="team-member-avatar media-guard">
                     <% if (member.image && member.image.trim() !== '') { %>
                       <img src="<%= member.image %>" alt="<%= member.name %>" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                       <div class="team-member-fallback-new" style="display: none;">
@@ -1033,7 +1815,7 @@
             <!-- Fallback -->
             <div class="team-member-slide active" data-index="0">
               <div class="team-member-card-new">
-                <div class="team-member-avatar">
+                <div class="team-member-avatar media-guard">
                   <img src="/images/adad.png" alt="Nusayba Elshamy" loading="lazy" decoding="async">
                 </div>
                 <div class="team-member-info-new">
@@ -1691,7 +2473,7 @@
     });
   });
 
-  // Enhanced Elkably Team Carousel Functionality
+  // Enhanced Elkably Team Carousel Functionality (manual navigation only)
   document.addEventListener('DOMContentLoaded', function() {
     // Team member data from server
     const teamMembers = <%- JSON.stringify(teamMembers || []) %>;
@@ -1702,7 +2484,6 @@
     
     let currentMemberIndex = 0;
     const totalMembers = teamMembers.length;
-    let autoPlayInterval;
     let isTransitioning = false;
 
     // Get DOM elements with new class names
@@ -1753,7 +2534,7 @@
       });
     }
 
-    // Throttled navigation functions
+    // Navigation functions
     const nextMember = () => {
       if (totalMembers <= 1 || isTransitioning) return;
       const nextIndex = (currentMemberIndex + 1) % totalMembers;
@@ -1765,25 +2546,6 @@
       const prevIndex = (currentMemberIndex - 1 + totalMembers) % totalMembers;
       showMember(prevIndex);
     };
-
-    // Auto-play functionality with visibility check
-    function startAutoPlay() {
-      if (totalMembers <= 1) return;
-      stopAutoPlay();
-      autoPlayInterval = setInterval(() => {
-        // Only auto-play if page is visible
-        if (!document.hidden) {
-          nextMember();
-        }
-      }, 3000);
-    }
-
-    function stopAutoPlay() {
-      if (autoPlayInterval) {
-        clearInterval(autoPlayInterval);
-        autoPlayInterval = null;
-      }
-    }
 
     // Initialize carousel
     function initCarousel() {
@@ -1802,7 +2564,7 @@
       showMember(0);
     }
 
-    // Event listeners with passive options for better performance
+    // Event listeners
     if (nextBtn) {
       nextBtn.addEventListener('click', nextMember, { passive: true });
     }
@@ -1820,19 +2582,6 @@
       }, { passive: true });
     });
 
-    // Pause auto-play on hover with debouncing
-    let hoverTimeout;
-    if (carouselContainer) {
-      carouselContainer.addEventListener('mouseenter', () => {
-        clearTimeout(hoverTimeout);
-        stopAutoPlay();
-      }, { passive: true });
-      
-      carouselContainer.addEventListener('mouseleave', () => {
-        hoverTimeout = setTimeout(startAutoPlay, 500);
-      }, { passive: true });
-    }
-
     // Keyboard navigation with focus check
     const handleKeydown = (e) => {
       if (carouselContainer && carouselContainer.contains(document.activeElement)) {
@@ -1848,20 +2597,8 @@
 
     document.addEventListener('keydown', handleKeydown, { passive: false });
 
-    // Pause auto-play when page is hidden
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopAutoPlay();
-      } else {
-        startAutoPlay();
-      }
-    });
-
     // Initialize carousel
     initCarousel();
-    
-    // Start auto-play
-    startAutoPlay();
   });
 
   // Enhanced Score Calculator - 3-Step Design

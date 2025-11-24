@@ -116,11 +116,11 @@ const getLandingPage = async (req, res) => {
         totalStudents: totalStudents[0]?.total || 0,
       })),
 
-      // Get brilliant students for each test type in parallel
+      // Get brilliant students for each test type in parallel (load all active students)
       Promise.all([
-        BrilliantStudent.getByTestType('EST', 4),
-        BrilliantStudent.getByTestType('DSAT', 4),
-        BrilliantStudent.getByTestType('ACT', 4),
+        BrilliantStudent.getByTestType('EST'),
+        BrilliantStudent.getByTestType('DSAT'),
+        BrilliantStudent.getByTestType('ACT'),
       ]).then(([est, dsat, act]) => ({ est, dsat, act })),
 
       // Get team members

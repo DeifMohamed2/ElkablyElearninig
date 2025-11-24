@@ -127,13 +127,18 @@ brilliantStudentSchema.pre('save', function(next) {
 });
 
 // Static method to get students by test type
-brilliantStudentSchema.statics.getByTestType = function(testType, limit = 10) {
-  return this.find({ 
+brilliantStudentSchema.statics.getByTestType = function(testType, limit = null) {
+  let query = this.find({ 
     testType: testType, 
     isActive: true 
   })
-  .sort({ displayOrder: 1, percentage: -1 })
-  .limit(limit);
+  .sort({ displayOrder: 1, percentage: -1 });
+
+  if (typeof limit === 'number' && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  return query;
 };
 
 // Static method to get top performers
