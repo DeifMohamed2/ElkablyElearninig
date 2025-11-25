@@ -1534,6 +1534,407 @@ const createStudentFromExternalSystem = async (req, res) => {
   }
 };
 
+// Get forgot password page
+const getForgotPasswordPage = (req, res) => {
+  // Clear all forgot password session data on page load/refresh
+  // This ensures users start fresh if they refresh the page
+  delete req.session.forgot_password_phone_verified;
+  delete req.session.forgot_password_phone_number;
+  delete req.session.forgot_password_country_code;
+  delete req.session.forgot_password_user_id;
+  delete req.session.forgot_password_otp;
+  delete req.session.forgot_password_otp_expiry;
+  delete req.session.forgot_password_otp_attempts;
+  delete req.session.forgot_password_otp_blocked_until;
+  delete req.session.lastResetPasswordSubmissionId;
+  
+  res.render('auth/forgot-password', {
+    title: 'Forgot Password | ELKABLY',
+    theme: req.cookies.theme || 'light',
+    phoneVerified: false,
+    phoneNumber: '',
+    countryCode: '',
+    userId: '',
+  });
+};
+
+// Initiate forgot password - find account and prepare for OTP
+const initiateForgotPassword = async (req, res) => {
+  try {
+    const { identifier } = req.body;
+    
+    if (!identifier || identifier.trim().length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid phone number, username, or email'
+      });
+    }
+
+    const inputValue = identifier.trim();
+    let user = null;
+
+    // Try to find user by email
+    if (inputValue.includes('@')) {
+      user = await User.findOne({ studentEmail: inputValue.toLowerCase() });
+    }
+    // Try to find by phone number
+    else if (inputValue.match(/^[\d\s\-\(\)\+]+$/)) {
+      // Try with country code
+      user = await User.findOne({
+        $or: [
+          { studentNumber: inputValue.replace(/[^\d]/g, '') },
+          { $expr: { $eq: [{ $concat: ['$studentCountryCode', '$studentNumber'] }, inputValue] } }
+        ]
+      });
+    }
+    // Try to find by username
+    else {
+      user = await User.findOne({
+        username: { $regex: new RegExp(`^${inputValue}$`, 'i') }
+      });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Account not found. Please check your phone number, username, or email.'
+      });
+    }
+
+    // Store user ID and phone info in session for password reset
+    req.session.forgot_password_user_id = user._id.toString();
+    req.session.forgot_password_phone_verified = false;
+    req.session.forgot_password_phone_number = user.studentNumber;
+    req.session.forgot_password_country_code = user.studentCountryCode;
+
+    return res.json({
+      success: true,
+      userId: user._id.toString(),
+      phoneNumber: user.studentNumber,
+      countryCode: user.studentCountryCode,
+      message: 'Account found. OTP will be sent to your registered phone number.'
+    });
+  } catch (error) {
+    console.error('Initiate forgot password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred. Please try again.'
+    });
+  }
+};
+
+// Send OTP for forgot password
+const sendForgotPasswordOTP = async (req, res) => {
+  try {
+    const { phoneNumber, countryCode } = req.body;
+    
+    if (!phoneNumber || !countryCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number and country code are required'
+      });
+    }
+
+    // Verify user ID is in session
+    if (!req.session.forgot_password_user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session expired. Please start over.'
+      });
+    }
+
+    // Verify phone number matches session
+    const cleanPhoneNumber = phoneNumber.replace(/[^\d]/g, '');
+    if (cleanPhoneNumber !== req.session.forgot_password_phone_number) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number mismatch. Please start over.'
+      });
+    }
+
+    // Rate limiting: Check OTP send attempts (3 attempts per hour)
+    const attemptsKey = 'forgot_password_otp_attempts';
+    const attemptsBlockedKey = 'forgot_password_otp_blocked_until';
+    const maxAttempts = 3;
+    const blockDuration = 60 * 60 * 1000; // 1 hour
+
+    if (!req.session[attemptsKey]) {
+      req.session[attemptsKey] = 0;
+    }
+
+    const blockedUntil = req.session[attemptsBlockedKey];
+    if (blockedUntil && Date.now() < blockedUntil) {
+      const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / (60 * 1000));
+      return res.status(429).json({
+        success: false,
+        message: `Too many OTP requests. Please try again after ${remainingMinutes} minute(s).`,
+        blockedUntil: blockedUntil,
+        retryAfter: remainingMinutes
+      });
+    }
+
+    if (blockedUntil && Date.now() >= blockedUntil) {
+      req.session[attemptsKey] = 0;
+      delete req.session[attemptsBlockedKey];
+    }
+
+    if (req.session[attemptsKey] >= maxAttempts) {
+      const blockUntil = Date.now() + blockDuration;
+      req.session[attemptsBlockedKey] = blockUntil;
+      const remainingMinutes = Math.ceil(blockDuration / (60 * 1000));
+      
+      return res.status(429).json({
+        success: false,
+        message: `You have exceeded the maximum number of OTP requests (${maxAttempts}). Please try again after ${remainingMinutes} minute(s).`,
+        blockedUntil: blockUntil,
+        retryAfter: remainingMinutes
+      });
+    }
+
+    // Increment attempts
+    req.session[attemptsKey] = (req.session[attemptsKey] || 0) + 1;
+
+    // Generate OTP
+    const otp = generateOTP();
+    console.log('Forgot Password OTP:', otp);
+    const fullPhoneNumber = countryCode + cleanPhoneNumber;
+
+    // Store OTP in session with expiration (5 minutes)
+    req.session.forgot_password_otp = otp;
+    req.session.forgot_password_otp_expiry = Date.now() + (5 * 60 * 1000);
+    req.session.forgot_password_phone_verified = false;
+
+    // Send OTP via SMS
+    const message = `Your ELKABLY password reset code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+    
+    try {
+      await sendSms({
+        recipient: fullPhoneNumber,
+        message: message,
+      });
+      
+      console.log(`Forgot password OTP sent to ${fullPhoneNumber}`);
+      
+      return res.json({
+        success: true,
+        message: 'OTP sent successfully',
+        expiresIn: 300,
+        attemptsRemaining: maxAttempts - req.session[attemptsKey]
+      });
+    } catch (smsError) {
+      console.error('SMS sending error:', smsError);
+      
+      delete req.session.forgot_password_otp;
+      delete req.session.forgot_password_otp_expiry;
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please try again.',
+        error: smsError.message,
+      });
+    }
+  } catch (error) {
+    console.error('Send forgot password OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while sending OTP',
+      error: error.message,
+    });
+  }
+};
+
+// Verify OTP for forgot password
+const verifyForgotPasswordOTP = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP is required',
+      });
+    }
+
+    // Verify user ID is in session
+    if (!req.session.forgot_password_user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session expired. Please start over.'
+      });
+    }
+
+    const storedOTP = req.session.forgot_password_otp;
+    const expiryTime = req.session.forgot_password_otp_expiry;
+
+    if (!storedOTP || !expiryTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP not found or expired. Please request a new OTP.',
+      });
+    }
+
+    if (Date.now() > expiryTime) {
+      delete req.session.forgot_password_otp;
+      delete req.session.forgot_password_otp_expiry;
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new OTP.',
+      });
+    }
+
+    if (otp.toString() !== storedOTP.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP. Please try again.',
+      });
+    }
+
+    // Mark phone as verified
+    req.session.forgot_password_phone_verified = true;
+    
+    // Clear OTP from session (one-time use)
+    delete req.session.forgot_password_otp;
+    delete req.session.forgot_password_otp_expiry;
+    
+    // Reset OTP attempts counter on successful verification
+    delete req.session.forgot_password_otp_attempts;
+    delete req.session.forgot_password_otp_blocked_until;
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully',
+    });
+  } catch (error) {
+    console.error('Verify forgot password OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while verifying OTP',
+      error: error.message,
+    });
+  }
+};
+
+// Reset password
+const resetPassword = async (req, res) => {
+  try {
+    const { userId, newPassword, confirmPassword, submissionId } = req.body;
+
+    // Check duplicate submission
+    if (submissionId && req.session.lastResetPasswordSubmissionId === submissionId) {
+      console.log('Duplicate reset password submission detected:', submissionId);
+      req.flash('error_msg', 'Your password reset is already being processed. Please do not refresh or resubmit the form.');
+      return res.redirect('/auth/forgot-password');
+    }
+
+    if (submissionId) {
+      req.session.lastResetPasswordSubmissionId = submissionId;
+    }
+
+    let errors = [];
+
+    // Verify session
+    if (!req.session.forgot_password_user_id) {
+      errors.push({ msg: 'Session expired. Please start over.' });
+      return res.render('auth/forgot-password', {
+        title: 'Forgot Password | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        errors,
+        phoneVerified: false,
+      });
+    }
+
+    // Verify OTP was verified
+    if (!req.session.forgot_password_phone_verified) {
+      errors.push({ msg: 'Please verify OTP first' });
+      return res.render('auth/forgot-password', {
+        title: 'Forgot Password | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        errors,
+        phoneVerified: false,
+      });
+    }
+
+    // Verify user ID matches
+    const sessionUserId = req.session.forgot_password_user_id;
+    if (userId !== sessionUserId) {
+      errors.push({ msg: 'User ID mismatch. Please start over.' });
+      return res.render('auth/forgot-password', {
+        title: 'Forgot Password | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        errors,
+        phoneVerified: false,
+      });
+    }
+
+    // Validate passwords
+    if (!newPassword || !confirmPassword) {
+      errors.push({ msg: 'Please fill in all required fields' });
+    }
+
+    if (newPassword && newPassword.length < 6) {
+      errors.push({ msg: 'Password must be at least 6 characters long' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      errors.push({ msg: 'Passwords do not match' });
+    }
+
+    if (errors.length > 0) {
+      return res.render('auth/forgot-password', {
+        title: 'Forgot Password | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        errors,
+        userId: sessionUserId,
+        phoneVerified: req.session.forgot_password_phone_verified || false,
+      });
+    }
+
+    // Find user
+    const user = await User.findById(sessionUserId);
+    if (!user) {
+      errors.push({ msg: 'User not found' });
+      // Clear session
+      delete req.session.forgot_password_user_id;
+      delete req.session.forgot_password_phone_verified;
+      delete req.session.forgot_password_phone_number;
+      delete req.session.forgot_password_country_code;
+      
+      return res.render('auth/forgot-password', {
+        title: 'Forgot Password | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        errors,
+        phoneVerified: false,
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    // Clear all forgot password session data
+    delete req.session.forgot_password_user_id;
+    delete req.session.forgot_password_phone_verified;
+    delete req.session.forgot_password_phone_number;
+    delete req.session.forgot_password_country_code;
+    delete req.session.forgot_password_otp;
+    delete req.session.forgot_password_otp_expiry;
+    delete req.session.forgot_password_otp_attempts;
+    delete req.session.forgot_password_otp_blocked_until;
+    delete req.session.lastResetPasswordSubmissionId;
+
+    req.flash('success_msg', 'Password reset successfully! You can now log in with your new password.');
+    res.redirect('/auth/login');
+  } catch (error) {
+    console.error('Reset password error:', error);
+    
+    // Reset submission ID
+    req.session.lastResetPasswordSubmissionId = null;
+    
+    req.flash('error_msg', 'An error occurred. Please try again.');
+    res.redirect('/auth/forgot-password');
+  }
+};
+
 module.exports = {
   getLoginPage,
   getRegisterPage,
@@ -1547,6 +1948,12 @@ module.exports = {
   // OTP functions
   sendOTP,
   verifyOTP,
+  // Forgot Password functions
+  getForgotPasswordPage,
+  initiateForgotPassword,
+  sendForgotPasswordOTP,
+  verifyForgotPasswordOTP,
+  resetPassword,
   // External System API
   createStudentFromExternalSystem,
 };

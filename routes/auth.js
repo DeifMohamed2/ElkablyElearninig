@@ -13,6 +13,11 @@ const {
   completeStudentData,
   sendOTP,
   verifyOTP,
+  getForgotPasswordPage,
+  initiateForgotPassword,
+  sendForgotPasswordOTP,
+  verifyForgotPasswordOTP,
+  resetPassword,
   createStudentFromExternalSystem,
 } = require('../controllers/authController');
 
@@ -33,6 +38,17 @@ router.post('/verify-otp', verifyOTP);
 // Complete data page (for students with incomplete profiles)
 router.get('/complete-data', isAuthenticated, getCompleteDataPage);
 router.post('/complete-data', isAuthenticated, completeStudentData);
+
+// Forgot Password page
+router.get('/forgot-password', isNotAuthenticated, getForgotPasswordPage);
+// Initiate forgot password (find account)
+router.post('/forgot-password/initiate', initiateForgotPassword);
+// Send OTP for forgot password
+router.post('/forgot-password/send-otp', sendForgotPasswordOTP);
+// Verify OTP for forgot password
+router.post('/forgot-password/verify-otp', verifyForgotPasswordOTP);
+// Reset password
+router.post('/reset-password', resetPassword);
 
 // Logout handle
 router.get('/logout', logoutUser);
