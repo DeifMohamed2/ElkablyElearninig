@@ -11,6 +11,8 @@ const {
   createAdmin,
   getCompleteDataPage,
   completeStudentData,
+  sendOTP,
+  verifyOTP,
   createStudentFromExternalSystem,
 } = require('../controllers/authController');
 
@@ -23,6 +25,10 @@ router.post('/login', loginUser);
 router.get('/register', isNotAuthenticated, getRegisterPage);
 // Register submit
 router.post('/register', registerUser);
+
+// OTP routes (allow both authenticated and unauthenticated users)
+router.post('/send-otp', sendOTP);
+router.post('/verify-otp', verifyOTP);
 
 // Complete data page (for students with incomplete profiles)
 router.get('/complete-data', isAuthenticated, getCompleteDataPage);

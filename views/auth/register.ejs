@@ -102,6 +102,8 @@
       <form action="/auth/register" method="POST" class="auth-form needs-validation" novalidate>
         <!-- Hidden submission ID to prevent duplicate submissions -->
         <input type="hidden" name="submissionId" id="submissionId" value="">
+        <!-- Hidden field to pass OTP verification state -->
+        <input type="hidden" id="serverOtpVerified" value="<%= typeof studentPhoneVerified !== 'undefined' && studentPhoneVerified ? 'true' : 'false' %>">
         
         <!-- Step 1: Personal Information -->
         <div class="form-step active" data-step="1">
@@ -166,6 +168,29 @@
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter your student number.</div>
+              
+              <!-- Student OTP Verification -->
+              <div class="otp-verification-section" id="studentOtpSection" style="display: none;">
+                <div class="otp-section-content">
+                  <button type="button" id="sendStudentOtpBtn" class="btn-send-otp">
+                    <i class="fas fa-paper-plane"></i> Send OTP
+                  </button>
+                  <div class="otp-input-group" id="studentOtpInputGroup" style="display: none;">
+                    <input type="text" id="studentOtpInput" class="form-control-modern otp-input" 
+                           placeholder="000000" maxlength="6" pattern="[0-9]{6}">
+                    <button type="button" id="verifyStudentOtpBtn" class="btn-verify-otp">
+                      <i class="fas fa-check"></i> Verify
+                    </button>
+                  </div>
+                  <div class="otp-status" id="studentOtpStatus"></div>
+                  <div class="otp-timer" id="studentOtpTimer" style="display: none;">
+                    <i class="fas fa-clock"></i> Resend OTP in <span id="studentOtpCountdown">60</span>s
+                  </div>
+                  <button type="button" id="resendStudentOtpBtn" class="btn-resend-otp" style="display: none;">
+                    <i class="fas fa-redo"></i> Resend OTP
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="form-group-modern">
@@ -584,6 +609,330 @@
   background: #374151;
 }
 
+/* OTP Verification Section Styling */
+.otp-verification-section {
+  margin-top: 16px;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 16px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.otp-section-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.otp-verification-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #dc2626, #ef4444, #dc2626);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.dark-theme .otp-verification-section {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  border-color: #4b5563;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .otp-verification-section::before {
+  background: linear-gradient(90deg, #ef4444, #f87171, #ef4444);
+  background-size: 200% 100%;
+}
+
+.btn-send-otp, .btn-verify-otp, .btn-resend-otp {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+
+.btn-send-otp {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+}
+
+.btn-send-otp:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.btn-send-otp:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+}
+
+.btn-send-otp:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.btn-verify-otp {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  margin: 0;
+  width: 100%;
+  max-width: 280px;
+}
+
+.btn-verify-otp:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-verify-otp:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.btn-verify-otp:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.btn-resend-otp {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.btn-resend-otp:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-resend-otp:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.otp-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  max-width: 400px;
+  width: 100%;
+}
+
+.otp-input {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 8px;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15), 0 2px 8px rgba(220, 38, 38, 0.2);
+  transform: scale(1.02);
+}
+
+.otp-input.verified {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  animation: verifiedPulse 0.5s ease;
+}
+
+@keyframes verifiedPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.dark-theme .otp-input {
+  background: #1f2937;
+  border-color: #4b5563;
+  color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .otp-input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15), 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.dark-theme .otp-input.verified {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+}
+
+/* Locked phone input styling */
+.phone-input.otp-locked,
+.country-select.otp-locked {
+  background: #f3f4f6 !important;
+  cursor: not-allowed;
+  opacity: 0.8;
+  position: relative;
+}
+
+.phone-input.otp-locked::after {
+  content: '🔒';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 16px;
+}
+
+.dark-theme .phone-input.otp-locked,
+.dark-theme .country-select.otp-locked {
+  background: #374151 !important;
+}
+
+.phone-input-group:has(.otp-locked) {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.dark-theme .phone-input-group:has(.otp-locked) {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.otp-status {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 22px;
+  text-align: center;
+  padding: 6px 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 400px;
+}
+
+.otp-status.success {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.otp-status.error {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.otp-status.info {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.otp-timer {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(107, 114, 128, 0.1);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.otp-timer i {
+  font-size: 12px;
+}
+
+.dark-theme .otp-timer {
+  color: #9ca3af;
+  background: rgba(156, 163, 175, 0.1);
+}
+
+.otp-timer span {
+  font-weight: 700;
+  color: #dc2626;
+  font-size: 16px;
+}
+
+.dark-theme .otp-timer span {
+  color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .otp-verification-section {
+    padding: 16px;
+    margin-top: 12px;
+  }
+
+  .otp-input-group {
+    gap: 12px;
+    max-width: 100%;
+  }
+
+  .otp-input {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .btn-verify-otp {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+  }
+
+  .btn-send-otp, .btn-resend-otp {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 /* Terms and Conditions Checkbox Styling */
 .form-check-modern {
   display: flex;
@@ -978,6 +1327,20 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Track which fields have been touched/interacted with
   const touchedFields = new Set();
+  
+  // OTP State Management (initialize early) - Only for student phone number
+  // Check if OTP was verified on server side (from session)
+  const serverOtpVerifiedInput = document.getElementById('serverOtpVerified');
+  const serverSideVerified = serverOtpVerifiedInput && serverOtpVerifiedInput.value === 'true';
+  const otpState = {
+    student: {
+      verified: serverSideVerified,
+      timer: null,
+      countdown: 0,
+      rateLimitTimer: null,
+      rateLimitCountdown: 0
+    }
+  };
 
   // ============================================
   // Validation Functions (must be defined first)
@@ -1333,6 +1696,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Check if step is valid without modifying DOM (for button state)
   function isStepValid(stepNumber) {
+    // For step 1, check OTP verification first (only student phone needs OTP)
+    if (stepNumber === 1) {
+      if (!otpState || !otpState.student) {
+        // OTP state not initialized yet, check form fields only
+      } else if (!otpState.student.verified) {
+        return false;
+      }
+    }
+    
     let isValid = true;
     const stepFields = getStepFields(stepNumber);
 
@@ -1786,6 +2158,580 @@ document.addEventListener('DOMContentLoaded', function() {
       updateNextButtonState();
     }, 100);
   }
+
+  // ============================================
+  // OTP Verification Functionality
+  // ============================================
+  
+  // OTP State Management is defined earlier in the script
+
+  // Show OTP section when phone number is entered and valid
+  function checkAndShowOtpSection(type) {
+    const phoneInput = type === 'student' ? studentNumberInput : parentNumberInput;
+    const countrySelect = type === 'student' ? studentCountrySelect : parentCountrySelect;
+    const otpSection = document.getElementById(`${type}OtpSection`);
+    const sendBtn = document.getElementById(`send${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    if (!phoneInput || !countrySelect || !otpSection) return;
+    
+    const phoneNumber = phoneInput.value.replace(/[^\d]/g, '');
+    const countryCode = countrySelect.value;
+    const expectedLength = phoneLengthStandards[countryCode];
+    
+    // Show OTP section if phone number is valid
+    if (phoneNumber && phoneNumber.length === expectedLength && !otpState[type].verified) {
+      otpSection.style.display = 'block';
+      // Enable send button if not rate limited
+      if (sendBtn && !otpState[type].rateLimitTimer) {
+        sendBtn.style.display = 'inline-flex';
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+      }
+    } else if (otpState[type].verified) {
+      otpSection.style.display = 'block';
+      // Hide send button when verified
+      if (sendBtn) {
+        sendBtn.style.display = 'none';
+      }
+    } else {
+      otpSection.style.display = 'none';
+    }
+  }
+
+
+  // Send OTP function
+  async function sendOTP(type) {
+    const phoneInput = type === 'student' ? studentNumberInput : parentNumberInput;
+    const countrySelect = type === 'student' ? studentCountrySelect : parentCountrySelect;
+    const sendBtn = document.getElementById(`send${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    const otpInputGroup = document.getElementById(`${type}OtpInputGroup`);
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    const otpTimer = document.getElementById(`${type}OtpTimer`);
+    const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    if (!phoneInput || !countrySelect) return;
+    
+    const phoneNumber = phoneInput.value.replace(/[^\d]/g, '');
+    const countryCode = countrySelect.value;
+    
+    // Validate phone number first
+    if (!phoneNumber || phoneNumber.length < 8) {
+      showOtpStatus(type, 'Please enter a valid phone number', 'error');
+      return;
+    }
+    
+    // Disable send button
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    showOtpStatus(type, 'Sending OTP...', 'info');
+    
+    try {
+      const response = await fetch('/auth/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: phoneNumber,
+          countryCode: countryCode,
+          type: type
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        let statusMessage = 'OTP sent successfully! Please check your phone.';
+        if (data.attemptsRemaining !== undefined) {
+          statusMessage += ` (${data.attemptsRemaining} attempt(s) remaining)`;
+        }
+        showOtpStatus(type, statusMessage, 'success');
+        sendBtn.style.display = 'none';
+        otpInputGroup.style.display = 'flex';
+        otpTimer.style.display = 'block';
+        resendBtn.style.display = 'none';
+        
+        // Clear any rate limiting states
+        clearRateLimitTimer(type);
+        
+        // Lock phone number input after OTP is sent (prevent changing number)
+        lockPhoneNumberInput(type);
+        
+        // Start countdown timer
+        startOtpCountdown(type, 60);
+      } else if (response.status === 429) {
+        // Rate limiting - too many attempts
+        showOtpStatus(type, data.message || 'Too many OTP requests. Please try again later.', 'error');
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-clock"></i> Try Again Later';
+        
+        // Start rate limit countdown timer
+        if (data.retryAfter && data.blockedUntil) {
+          const retryAfterSeconds = data.retryAfter * 60; // Convert minutes to seconds
+          startRateLimitTimer(type, retryAfterSeconds, data.blockedUntil);
+        }
+      } else {
+        showOtpStatus(type, data.message || 'Failed to send OTP. Please try again.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+      }
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      
+      // Check if it's a rate limit error
+      if (error.status === 429) {
+        showOtpStatus(type, 'Too many OTP requests. Please try again later.', 'error');
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-clock"></i> Try Again Later';
+      } else {
+        showOtpStatus(type, 'An error occurred. Please try again.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+      }
+    }
+  }
+
+  // Verify OTP function
+  async function verifyOTP(type) {
+    const otpInput = document.getElementById(`${type}OtpInput`);
+    const verifyBtn = document.getElementById(`verify${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    
+    if (!otpInput) return;
+    
+    const otp = otpInput.value.trim();
+    
+    if (!otp || otp.length !== 6) {
+      showOtpStatus(type, 'Please enter a valid 6-digit OTP', 'error');
+      return;
+    }
+    
+    // Disable verify button
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    showOtpStatus(type, 'Verifying OTP...', 'info');
+    
+    try {
+      const response = await fetch('/auth/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          otp: otp,
+          type: type
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        otpState[type].verified = true;
+        showOtpStatus(type, '✓ Verified', 'success');
+        otpInput.classList.add('verified');
+        otpInput.disabled = true;
+        verifyBtn.style.display = 'none';
+        
+        // Clear countdown and rate limit timer
+        clearOtpCountdown(type);
+        clearRateLimitTimer(type);
+        
+        // Hide timer and resend button after successful verification
+        const otpTimer = document.getElementById(`${type}OtpTimer`);
+        const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+        const otpInputGroup = document.getElementById(`${type}OtpInputGroup`);
+        if (otpTimer) {
+          otpTimer.style.display = 'none';
+          // Clear any running timers
+          clearOtpCountdown(type);
+        }
+        if (resendBtn) resendBtn.style.display = 'none';
+        // Hide the input group but keep the status visible
+        if (otpInputGroup) otpInputGroup.style.display = 'none';
+        
+        // Phone number is already locked when OTP was sent, no need to lock again
+        
+        // Update form validation
+        updateNextButtonState();
+      } else {
+        showOtpStatus(type, data.message || 'Invalid OTP. Please try again.', 'error');
+        otpInput.value = '';
+        otpInput.focus();
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = '<i class="fas fa-check"></i> Verify';
+      }
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      showOtpStatus(type, 'An error occurred. Please try again.', 'error');
+      verifyBtn.disabled = false;
+      verifyBtn.innerHTML = '<i class="fas fa-check"></i> Verify';
+    }
+  }
+
+  // Show OTP status message
+  function showOtpStatus(type, message, status) {
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    if (!otpStatus) return;
+    
+    otpStatus.textContent = message;
+    otpStatus.className = `otp-status ${status}`;
+    
+    // Don't clear "Verified" status - keep it permanently
+    if (status === 'success' && message !== '✓ Verified') {
+      setTimeout(() => {
+        otpStatus.textContent = '';
+        otpStatus.className = 'otp-status';
+      }, 5000);
+    }
+    
+    // Clear error messages after a longer duration (20 seconds)
+    if (status === 'error') {
+      setTimeout(() => {
+        otpStatus.textContent = '';
+        otpStatus.className = 'otp-status';
+      }, 20000);
+    }
+  }
+
+  // Start OTP countdown timer
+  function startOtpCountdown(type, seconds) {
+    clearOtpCountdown(type);
+    
+    const countdownEl = document.getElementById(`${type}OtpCountdown`);
+    const otpTimer = document.getElementById(`${type}OtpTimer`);
+    const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    otpState[type].countdown = seconds;
+    
+    if (countdownEl) {
+      countdownEl.textContent = seconds;
+    }
+    
+    otpState[type].timer = setInterval(() => {
+      otpState[type].countdown--;
+      
+      if (countdownEl) {
+        countdownEl.textContent = otpState[type].countdown;
+      }
+      
+      if (otpState[type].countdown <= 0) {
+        clearOtpCountdown(type);
+        if (otpTimer) otpTimer.style.display = 'none';
+        if (resendBtn) resendBtn.style.display = 'inline-flex';
+      }
+    }, 1000);
+  }
+
+  // Clear OTP countdown
+  function clearOtpCountdown(type) {
+    if (otpState[type].timer) {
+      clearInterval(otpState[type].timer);
+      otpState[type].timer = null;
+    }
+    otpState[type].countdown = 0;
+  }
+
+  // Start rate limit countdown timer (for 1 hour block)
+  function startRateLimitTimer(type, seconds, blockedUntil) {
+    // Clear any existing rate limit timer
+    clearRateLimitTimer(type);
+    
+    const sendBtn = document.getElementById(`send${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    const otpTimer = document.getElementById(`${type}OtpTimer`);
+    const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    // Store rate limit timer in otpState
+    if (!otpState[type].rateLimitTimer) {
+      otpState[type].rateLimitTimer = null;
+    }
+    if (!otpState[type].rateLimitCountdown) {
+      otpState[type].rateLimitCountdown = 0;
+    }
+    
+    otpState[type].rateLimitCountdown = seconds;
+    
+    // Show timer message
+    if (otpStatus) {
+      otpStatus.textContent = `Too many attempts. Please try again after ${Math.ceil(seconds / 60)} minute(s).`;
+      otpStatus.className = 'otp-status error';
+    }
+    
+    if (otpTimer) {
+      otpTimer.style.display = 'block';
+      const countdownEl = document.getElementById(`${type}OtpCountdown`);
+      if (countdownEl) {
+        countdownEl.textContent = Math.ceil(seconds / 60);
+      }
+    }
+    
+    // Update countdown every second
+    otpState[type].rateLimitTimer = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((blockedUntil - now) / 1000));
+      
+      otpState[type].rateLimitCountdown = remaining;
+      
+      const minutes = Math.ceil(remaining / 60);
+      
+      if (otpStatus) {
+        otpStatus.textContent = `Too many attempts. Please try again after ${minutes} minute(s).`;
+      }
+      
+      const countdownEl = document.getElementById(`${type}OtpCountdown`);
+      if (countdownEl && otpTimer) {
+        countdownEl.textContent = minutes;
+      }
+      
+      if (remaining <= 0) {
+        clearRateLimitTimer(type);
+        // Re-enable send button
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+        }
+        if (otpStatus) {
+          otpStatus.textContent = '';
+          otpStatus.className = 'otp-status';
+        }
+        if (otpTimer) {
+          otpTimer.style.display = 'none';
+        }
+      }
+    }, 1000);
+  }
+
+  // Clear rate limit timer
+  function clearRateLimitTimer(type) {
+    if (otpState[type].rateLimitTimer) {
+      clearInterval(otpState[type].rateLimitTimer);
+      otpState[type].rateLimitTimer = null;
+    }
+    otpState[type].rateLimitCountdown = 0;
+  }
+
+  // Lock phone number input after OTP is sent or verified (prevents tampering)
+  function lockPhoneNumberInput(type) {
+    const phoneInput = type === 'student' ? studentNumberInput : parentNumberInput;
+    const countrySelect = type === 'student' ? studentCountrySelect : parentCountrySelect;
+    
+    if (!phoneInput || !countrySelect) return;
+    
+    // Check if already locked to prevent re-locking
+    if (phoneInput.getAttribute('data-locked') === 'true') {
+      return; // Already locked, don't try to lock again
+    }
+    
+    // Store the original values
+    const originalPhone = phoneInput.value;
+    const originalCountry = countrySelect.value;
+    
+    // Mark as locked
+    phoneInput.setAttribute('data-locked', 'true');
+    phoneInput.setAttribute('data-original-phone', originalPhone);
+    countrySelect.setAttribute('data-locked', 'true');
+    countrySelect.setAttribute('data-original-country', originalCountry);
+    
+    // Disable inputs
+    phoneInput.disabled = true;
+    countrySelect.disabled = true;
+    
+    // Add visual styling to show it's locked
+    if (phoneInput.classList) {
+      phoneInput.classList.add('otp-locked');
+    }
+    if (countrySelect.classList) {
+      countrySelect.classList.add('otp-locked');
+    }
+    
+    // Prevent any attempts to change via JavaScript or inspector
+    // Note: We don't use Object.defineProperty on form elements as it's unreliable
+    // Instead, we rely on disabled state, event prevention, and DOM mutation observer
+    
+    // Prevent input events
+    const preventChange = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      phoneInput.value = originalPhone;
+      countrySelect.value = originalCountry;
+      return false;
+    };
+    
+    phoneInput.addEventListener('input', preventChange, true);
+    phoneInput.addEventListener('change', preventChange, true);
+    phoneInput.addEventListener('keydown', preventChange, true);
+    countrySelect.addEventListener('change', preventChange, true);
+    
+    // Monitor for DOM mutations (in case user tries to remove disabled attribute)
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes') {
+          if (mutation.attributeName === 'disabled' && !phoneInput.disabled) {
+            phoneInput.disabled = true;
+          }
+          if (mutation.attributeName === 'disabled' && !countrySelect.disabled) {
+            countrySelect.disabled = true;
+          }
+          if (phoneInput.value !== originalPhone) {
+            phoneInput.value = originalPhone;
+          }
+          if (countrySelect.value !== originalCountry) {
+            countrySelect.value = originalCountry;
+          }
+        }
+      });
+    });
+    
+    observer.observe(phoneInput, {
+      attributes: true,
+      attributeFilter: ['disabled', 'value']
+    });
+    
+    observer.observe(countrySelect, {
+      attributes: true,
+      attributeFilter: ['disabled', 'value']
+    });
+    
+    // Store observer for cleanup if needed
+    phoneInput._otpObserver = observer;
+  }
+
+  // Setup OTP event listeners
+  function setupOtpListeners() {
+    // Student OTP listeners
+    if (studentNumberInput && studentCountrySelect) {
+      studentNumberInput.addEventListener('input', () => {
+        if (!otpState.student.verified) {
+          checkAndShowOtpSection('student');
+        }
+      });
+      
+      studentNumberInput.addEventListener('blur', () => {
+        if (!otpState.student.verified) {
+          checkAndShowOtpSection('student');
+        }
+      });
+      
+      studentCountrySelect.addEventListener('change', () => {
+        if (!otpState.student.verified) {
+          checkAndShowOtpSection('student');
+        }
+      });
+    }
+    
+    // Send OTP button - only for student
+    const sendStudentOtpBtn = document.getElementById('sendStudentOtpBtn');
+    
+    if (sendStudentOtpBtn) {
+      sendStudentOtpBtn.addEventListener('click', () => sendOTP('student'));
+    }
+    
+    // Verify OTP button - only for student
+    const verifyStudentOtpBtn = document.getElementById('verifyStudentOtpBtn');
+    
+    if (verifyStudentOtpBtn) {
+      verifyStudentOtpBtn.addEventListener('click', () => verifyOTP('student'));
+    }
+    
+    // Resend OTP button - only for student
+    const resendStudentOtpBtn = document.getElementById('resendStudentOtpBtn');
+    
+    if (resendStudentOtpBtn) {
+      resendStudentOtpBtn.addEventListener('click', () => {
+        const sendBtn = document.getElementById('sendStudentOtpBtn');
+        const otpInputGroup = document.getElementById('studentOtpInputGroup');
+        const otpTimer = document.getElementById('studentOtpTimer');
+        
+        sendBtn.style.display = 'inline-flex';
+        otpInputGroup.style.display = 'none';
+        otpTimer.style.display = 'none';
+        resendStudentOtpBtn.style.display = 'none';
+        sendOTP('student');
+      });
+    }
+    
+    // Allow Enter key to verify OTP and restrict input to numbers only - only for student
+    const studentOtpInput = document.getElementById('studentOtpInput');
+    
+    if (studentOtpInput) {
+      // Only allow numeric input
+      studentOtpInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^\d]/g, '');
+      });
+      
+      studentOtpInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !verifyStudentOtpBtn.disabled) {
+          verifyOTP('student');
+        }
+      });
+    }
+  }
+
+
+  // Initialize OTP listeners
+  setupOtpListeners();
+  
+  // Restore OTP verification state if verified on server side
+  setTimeout(() => {
+    // If OTP is verified on server side, restore verified state
+    if (serverSideVerified && otpState.student.verified) {
+      // Lock phone number fields
+      lockPhoneNumberInput('student');
+      
+      // Show OTP section with verified status
+      const otpSection = document.getElementById('studentOtpSection');
+      const otpStatus = document.getElementById('studentOtpStatus');
+      const sendBtn = document.getElementById('sendStudentOtpBtn');
+      const otpInput = document.getElementById('studentOtpInput');
+      const verifyBtn = document.getElementById('verifyStudentOtpBtn');
+      const otpInputGroup = document.getElementById('studentOtpInputGroup');
+      const otpTimer = document.getElementById('studentOtpTimer');
+      const resendBtn = document.getElementById('resendStudentOtpBtn');
+      
+      if (otpSection) {
+        otpSection.style.display = 'block';
+      }
+      if (sendBtn) {
+        sendBtn.style.display = 'none';
+      }
+      if (otpStatus) {
+        otpStatus.textContent = '✓ Verified';
+        otpStatus.className = 'otp-status success';
+      }
+      if (otpInput) {
+        otpInput.classList.add('verified');
+        otpInput.disabled = true;
+        otpInput.value = '000000';
+      }
+      if (verifyBtn) {
+        verifyBtn.style.display = 'none';
+      }
+      if (otpInputGroup) {
+        otpInputGroup.style.display = 'none';
+      }
+      if (otpTimer) {
+        otpTimer.style.display = 'none';
+      }
+      if (resendBtn) {
+        resendBtn.style.display = 'none';
+      }
+      
+      // Update form validation
+      updateNextButtonState();
+    } else if (studentNumberInput && studentNumberInput.value) {
+      // Check if phone number is valid and show OTP section
+      const phoneNumber = studentNumberInput.value.replace(/[^\d]/g, '');
+      const countryCode = studentCountrySelect.value;
+      const expectedLength = phoneLengthStandards[countryCode];
+      
+      if (phoneNumber && phoneNumber.length === expectedLength && !otpState.student.verified) {
+        checkAndShowOtpSection('student');
+      }
+    }
+    if (parentNumberInput && parentNumberInput.value) {
+      // Don't auto-check, let user trigger it
+    }
+  }, 500);
 });
 </script>
 
@@ -3417,6 +4363,18 @@ document.addEventListener('DOMContentLoaded', function() {
       closeModal();
     }
   });
+  
+  // Auto-hide server-side error alerts after a longer duration (30 seconds)
+  const errorAlert = document.querySelector('.alert-danger.auth-alert');
+  if (errorAlert) {
+    setTimeout(() => {
+      errorAlert.style.transition = 'opacity 0.5s ease-out';
+      errorAlert.style.opacity = '0';
+      setTimeout(() => {
+        errorAlert.style.display = 'none';
+      }, 500);
+    }, 30000); // 30 seconds
+  }
 });
 </script>
 

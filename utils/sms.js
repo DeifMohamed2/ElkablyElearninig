@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const WHY_SMS_API_URL = 'https://bulk.whysms.com/api/v3/sms/send';
-const WHY_SMS_TOKEN = '942|itCs2SXqGJdHewglUnC2BkKCo9LdStkW5D0Z249acbc1';
+const WHY_SMS_TOKEN = process.env.WHY_SMS_TOKEN;
 const DEFAULT_SENDER_ID = 'ELKABLYTEAM';
 
 function normalizeRecipient(recipient) {

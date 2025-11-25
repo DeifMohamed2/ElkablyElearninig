@@ -23,18 +23,18 @@
         <p class="auth-brand-subtitle">Complete Your Profile</p>
       </div>
       
-      <div class="auth-features">
+     <div class="auth-features">
         <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="100">
-          <i class="fas fa-user-check"></i>
-          <span>Almost There!</span>
+          <img src="/images/ESTLOGO.jpg" alt="EST" class="auth-feature-logo">
+          <span>EST</span>
         </div>
         <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="200">
-          <i class="fas fa-shield-alt"></i>
-          <span>Secure Account</span>
+          <img src="/images/SATLOGO.jpg" alt="SAT" class="auth-feature-logo">
+          <span>D-SAT</span>
         </div>
         <div class="auth-feature-item" data-aos="fade-right" data-aos-delay="300">
-          <i class="fas fa-rocket"></i>
-          <span>Start Learning</span>
+          <img src="/images/ACTLOGO.jpg" alt="ACT" class="auth-feature-logo">
+          <span>ACT</span>
         </div>
       </div>
     </div>
@@ -50,6 +50,22 @@
           Complete Your Profile
         </h2>
         <p class="auth-form-subtitle">Fill in the remaining details to get started</p>
+        
+        <!-- Progress Steps -->
+        <div class="registration-steps">
+          <div class="step-item active" data-step="1">
+            <div class="step-number">1</div>
+            <span class="step-label">Personal Info</span>
+          </div>
+          <div class="step-item" data-step="2">
+            <div class="step-number">2</div>
+            <span class="step-label">Academic Details</span>
+          </div>
+          <div class="step-item" data-step="3">
+            <div class="step-number">3</div>
+            <span class="step-label">Account Setup</span>
+          </div>
+        </div>
       </div>
 
       <!-- Display Errors -->
@@ -72,6 +88,8 @@
       <form action="/auth/complete-data" method="POST" class="auth-form needs-validation" novalidate>
         <!-- Hidden submission ID to prevent duplicate submissions -->
         <input type="hidden" name="submissionId" id="submissionId" value="">
+        <!-- Hidden field to pass OTP verification state -->
+        <input type="hidden" id="serverOtpVerified" value="<%= typeof studentPhoneVerified !== 'undefined' && studentPhoneVerified ? 'true' : 'false' %>">
         
         <!-- Step 1: Personal Information -->
         <div class="form-step active" data-step="1">
@@ -113,9 +131,13 @@
                 <i class="fas fa-id-card form-label-icon"></i>
                 Student Number *
               </label>
+              <!-- Hidden inputs to preserve values (disabled fields don't submit) -->
+              <input type="hidden" name="studentCountryCode" value="<%= typeof user !== 'undefined' && user.studentCountryCode ? user.studentCountryCode : '+20' %>">
+              <input type="hidden" name="studentNumber" value="<%= typeof user !== 'undefined' && user.studentNumber ? user.studentNumber : '' %>">
+              
               <div class="input-group-modern phone-input-group">
                 <div class="country-code-selector">
-                  <select id="studentCountryCode" name="studentCountryCode" class="country-select" required readonly disabled>
+                  <select id="studentCountryCode" class="country-select" required readonly disabled>
                     <option value="+966" <%= typeof user !== 'undefined' && user.studentCountryCode == '+966' ? 'selected' : '' %>>
                       🇸🇦 +966
                     </option>
@@ -130,12 +152,35 @@
                     </option>
                   </select>
                 </div>
-                <input type="text" id="studentNumber" name="studentNumber" class="form-control-modern phone-input" 
+                <input type="text" id="studentNumber" class="form-control-modern phone-input" 
                        placeholder="Enter your student number" 
-                       value="<%= typeof user !== 'undefined' && user.studentNumber ? user.studentNumber : '' %>" required readonly>
+                       value="<%= typeof user !== 'undefined' && user.studentNumber ? user.studentNumber : '' %>" required readonly disabled>
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter your student number.</div>
+              
+              <!-- Student OTP Verification -->
+              <div class="otp-verification-section" id="studentOtpSection" style="display: none;">
+                <div class="otp-section-content">
+                  <button type="button" id="sendStudentOtpBtn" class="btn-send-otp">
+                    <i class="fas fa-paper-plane"></i> Send OTP
+                  </button>
+                  <div class="otp-input-group" id="studentOtpInputGroup" style="display: none;">
+                    <input type="text" id="studentOtpInput" class="form-control-modern otp-input" 
+                           placeholder="000000" maxlength="6" pattern="[0-9]{6}">
+                    <button type="button" id="verifyStudentOtpBtn" class="btn-verify-otp">
+                      <i class="fas fa-check"></i> Verify
+                    </button>
+                  </div>
+                  <div class="otp-status" id="studentOtpStatus"></div>
+                  <div class="otp-timer" id="studentOtpTimer" style="display: none;">
+                    <i class="fas fa-clock"></i> Resend OTP in <span id="studentOtpCountdown">60</span>s
+                  </div>
+                  <button type="button" id="resendStudentOtpBtn" class="btn-resend-otp" style="display: none;">
+                    <i class="fas fa-redo"></i> Resend OTP
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="form-group-modern">
@@ -143,9 +188,13 @@
                 <i class="fas fa-phone form-label-icon"></i>
                 Parent Number *
               </label>
+              <!-- Hidden inputs to preserve values (disabled fields don't submit) -->
+              <input type="hidden" name="parentCountryCode" value="<%= typeof user !== 'undefined' && user.parentCountryCode ? user.parentCountryCode : '+20' %>">
+              <input type="hidden" name="parentNumber" value="<%= typeof user !== 'undefined' && user.parentNumber ? user.parentNumber : '' %>">
+              
               <div class="input-group-modern phone-input-group">
                 <div class="country-code-selector">
-                  <select id="parentCountryCode" name="parentCountryCode" class="country-select" required readonly disabled>
+                  <select id="parentCountryCode" class="country-select" required readonly disabled>
                     <option value="+966" <%= typeof user !== 'undefined' && user.parentCountryCode == '+966' ? 'selected' : '' %>>
                       🇸🇦 +966
                     </option>
@@ -160,9 +209,9 @@
                     </option>
                   </select>
                 </div>
-                <input type="tel" id="parentNumber" name="parentNumber" class="form-control-modern phone-input" 
+                <input type="tel" id="parentNumber" class="form-control-modern phone-input" 
                        placeholder="Enter parent phone number" 
-                       value="<%= typeof user !== 'undefined' && user.parentNumber ? user.parentNumber : '' %>" required readonly>
+                       value="<%= typeof user !== 'undefined' && user.parentNumber ? user.parentNumber : '' %>" required readonly disabled>
                 <div class="input-focus-line"></div>
               </div>
               <div class="invalid-feedback-modern">Please enter a valid parent phone number.</div>
@@ -273,7 +322,7 @@
             <div class="input-group-modern">
               <input type="text" id="englishTeacher" name="englishTeacher" class="form-control-modern" 
                      placeholder="Enter your English teacher's name" 
-                     value="" required>
+                     value="" required autocomplete="name">
               <div class="input-focus-line"></div>
             </div>
             <div class="invalid-feedback-modern">Please enter your English teacher's name.</div>
@@ -292,7 +341,7 @@
               </label>
               <div class="input-group-modern">
                 <input type="password" id="password" name="password" class="form-control-modern" 
-                       placeholder="Create a new password" required minlength="5">
+                       placeholder="Create a new password" required minlength="5" autocomplete="new-password">
                 <button class="btn-toggle-password" type="button" id="togglePassword">
                   <i class="fas fa-eye"></i>
                 </button>
@@ -315,7 +364,7 @@
               </label>
               <div class="input-group-modern">
                 <input type="password" id="password2" name="password2" class="form-control-modern" 
-                       placeholder="Confirm your password" required>
+                       placeholder="Confirm your password" required autocomplete="new-password">
                 <button class="btn-toggle-password" type="button" id="togglePassword2">
                   <i class="fas fa-eye"></i>
                 </button>
@@ -339,12 +388,53 @@
             <div class="invalid-feedback-modern">Please tell us how you heard about Mr Kably.</div>
           </div>
 
-          <div class="form-check-modern">
-            <input type="checkbox" class="form-check-input-modern" id="termsCheck" required>
-            <label class="form-check-label-modern" for="termsCheck">
-              I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
-            </label>
-            <div class="invalid-feedback-modern">You must agree before submitting.</div>
+          <!-- Terms and Privacy Agreement Section -->
+          <div class="terms-agreement-section">
+            <div class="terms-agreement-header">
+              <i class="fas fa-shield-check"></i>
+              <h4>Legal Agreement Required</h4>
+            </div>
+            
+            <p class="terms-agreement-text">
+              Please read and agree to our legal documents:
+            </p>
+            
+            <div class="terms-documents-grid">
+              <a href="#" class="document-card" id="openTermsModal">
+                <div class="document-card-icon">
+                  <i class="fas fa-file-contract"></i>
+                </div>
+                <div class="document-card-content">
+                  <h5>Terms of Service</h5>
+                  <span id="termsReadStatus" class="document-status status-pending">
+                    <i class="fas fa-clock"></i> Click to Read
+                  </span>
+                </div>
+                <div class="document-card-arrow">
+                  <i class="fas fa-arrow-right"></i>
+                </div>
+              </a>
+              
+              <a href="#" class="document-card" id="openPrivacyModal">
+                <div class="document-card-icon">
+                  <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="document-card-content">
+                  <h5>Privacy Policy</h5>
+                  <span id="privacyReadStatus" class="document-status status-pending">
+                    <i class="fas fa-clock"></i> Click to Read
+                  </span>
+                </div>
+                <div class="document-card-arrow">
+                  <i class="fas fa-arrow-right"></i>
+                </div>
+              </a>
+            </div>
+            
+            <div class="terms-completion-notice" id="termsCompletionNotice" style="display: none;">
+              <i class="fas fa-check-circle"></i>
+              <span>All documents read. You may proceed!</span>
+            </div>
           </div>
         </div>
 
@@ -632,6 +722,548 @@
     font-size: 13px;
   }
 }
+
+/* OTP Verification Section Styling */
+.otp-verification-section {
+  margin-top: 16px;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 16px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.otp-section-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.otp-verification-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #dc2626, #ef4444, #dc2626);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.dark-theme .otp-verification-section {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  border-color: #4b5563;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .otp-verification-section::before {
+  background: linear-gradient(90deg, #ef4444, #f87171, #ef4444);
+  background-size: 200% 100%;
+}
+
+.btn-send-otp, .btn-verify-otp, .btn-resend-otp {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+
+.btn-send-otp {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+}
+
+.btn-send-otp:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.btn-send-otp:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+}
+
+.btn-send-otp:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.btn-verify-otp {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  margin: 0;
+  width: 100%;
+  max-width: 280px;
+}
+
+.btn-verify-otp:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-verify-otp:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.btn-verify-otp:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.btn-resend-otp {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.btn-resend-otp:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-resend-otp:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.otp-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  max-width: 400px;
+  width: 100%;
+}
+
+.otp-input {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 8px;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15), 0 2px 8px rgba(220, 38, 38, 0.2);
+  transform: scale(1.02);
+}
+
+.otp-input.verified {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  animation: verifiedPulse 0.5s ease;
+}
+
+@keyframes verifiedPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.dark-theme .otp-input {
+  background: #1f2937;
+  border-color: #4b5563;
+  color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .otp-input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15), 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.dark-theme .otp-input.verified {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+}
+
+/* Locked phone input styling */
+.phone-input.otp-locked,
+.country-select.otp-locked {
+  background: #f3f4f6 !important;
+  cursor: not-allowed;
+  opacity: 0.8;
+  position: relative;
+}
+
+.phone-input.otp-locked::after {
+  content: '🔒';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 16px;
+}
+
+.dark-theme .phone-input.otp-locked,
+.dark-theme .country-select.otp-locked {
+  background: #374151 !important;
+}
+
+.phone-input-group:has(.otp-locked) {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.dark-theme .phone-input-group:has(.otp-locked) {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.otp-status {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 22px;
+  text-align: center;
+  padding: 6px 14px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 400px;
+}
+
+.otp-status.success {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.otp-status.error {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.otp-status.info {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.otp-timer {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(107, 114, 128, 0.1);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.otp-timer i {
+  font-size: 12px;
+}
+
+.dark-theme .otp-timer {
+  color: #9ca3af;
+  background: rgba(156, 163, 175, 0.1);
+}
+
+.otp-timer span {
+  font-weight: 700;
+  color: #dc2626;
+  font-size: 16px;
+}
+
+.dark-theme .otp-timer span {
+  color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .otp-verification-section {
+    padding: 16px;
+    margin-top: 12px;
+  }
+
+  .otp-input-group {
+    gap: 12px;
+    max-width: 100%;
+  }
+
+  .otp-input {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .btn-verify-otp {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+  }
+
+  .btn-send-otp, .btn-resend-otp {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* ============================================ */
+/* Field Validation Error/Success Styling */
+/* ============================================ */
+
+/* Field Error Message Styling */
+.field-error-message {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(220, 53, 69, 0.1);
+  border-left: 3px solid #dc3545;
+  border-radius: 6px;
+  animation: slideInError 0.3s ease;
+}
+
+.field-error-message i {
+  font-size: 0.9rem;
+  color: #dc3545;
+  flex-shrink: 0;
+}
+
+@keyframes slideInError {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Valid field styling */
+.form-control-modern.is-valid,
+.form-control-modern.is-valid:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.form-control-modern.is-valid:focus {
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.15);
+}
+
+/* Invalid field styling */
+.form-control-modern.is-invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.form-control-modern.is-invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+}
+
+/* Select element validation */
+.form-control-modern.is-invalid select,
+select.form-control-modern.is-invalid {
+  border-color: #dc3545;
+}
+
+.form-control-modern.is-valid select,
+select.form-control-modern.is-valid {
+  border-color: #28a745;
+}
+
+/* Textarea validation */
+textarea.form-control-modern.is-invalid {
+  border-color: #dc3545;
+}
+
+textarea.form-control-modern.is-valid {
+  border-color: #28a745;
+}
+
+/* Phone input group validation */
+.phone-input-group.has-error {
+  border-color: #dc3545;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.phone-input-group.has-success {
+  border-color: #28a745;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Disabled button styling */
+.btn-nav.btn-disabled,
+.btn-nav:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: #e9ecef !important;
+  border-color: #dee2e6 !important;
+  color: #6c757d !important;
+}
+
+.btn-nav.btn-disabled:hover,
+.btn-nav:disabled:hover {
+  transform: none !important;
+  background: #e9ecef !important;
+  border-color: #dee2e6 !important;
+  color: #6c757d !important;
+}
+
+.btn-nav.btn-disabled i,
+.btn-nav:disabled i {
+  color: #6c757d !important;
+}
+
+/* Step completed indicator */
+.step-item.completed .step-number {
+  background: #28a745 !important;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  position: relative;
+}
+
+.step-item.completed .step-number::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Checkbox validation */
+.form-check-modern.has-error {
+  border-color: #dc3545;
+  background: rgba(220, 53, 69, 0.05);
+}
+
+.form-check-modern.has-success {
+  border-color: #28a745;
+  background: rgba(40, 167, 69, 0.05);
+}
+
+/* Dark theme error messages */
+.dark-theme .field-error-message {
+  background: rgba(220, 53, 69, 0.2);
+  color: #ff6b6b;
+  border-left-color: #ff6b6b;
+}
+
+.dark-theme .field-error-message i {
+  color: #ff6b6b;
+}
+
+.dark-theme .form-control-modern.is-invalid {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
+}
+
+.dark-theme .form-control-modern.is-valid {
+  border-color: #51cf66;
+  box-shadow: 0 0 0 3px rgba(81, 207, 102, 0.15);
+}
+
+.dark-theme .phone-input-group.has-error {
+  border-color: #ff6b6b;
+  background: #1f2937;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
+}
+
+.dark-theme .phone-input-group.has-success {
+  border-color: #51cf66;
+  background: #1f2937;
+  box-shadow: 0 0 0 3px rgba(81, 207, 102, 0.15);
+}
+
+.dark-theme .btn-nav.btn-disabled,
+.dark-theme .btn-nav:disabled {
+  background: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #9ca3af !important;
+}
+
+.dark-theme .form-check-modern.has-error {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.dark-theme .form-check-modern.has-success {
+  border-color: #51cf66;
+  background: rgba(81, 207, 102, 0.1);
+}
+
+/* Smooth transitions */
+.form-control-modern,
+.phone-input-group,
+.form-check-modern {
+  transition: all 0.3s ease;
+}
+
+/* Focus states for validation */
+.form-group-modern:has(.is-invalid) .form-label-modern {
+  color: #dc3545;
+}
+
+.form-group-modern:has(.is-valid) .form-label-modern {
+  color: #28a745;
+}
+
+.dark-theme .form-group-modern:has(.is-invalid) .form-label-modern {
+  color: #ff6b6b;
+}
+
+.dark-theme .form-group-modern:has(.is-valid) .form-label-modern {
+  color: #51cf66;
+}
 </style>
 
 <!-- Theme Manager -->
@@ -643,49 +1275,3194 @@
 <!-- Auth Animations -->
 <script src="/js/auth-animations.js"></script>
 
-<!-- Country Code JavaScript -->
+<!-- Comprehensive Step-by-Step Validation JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const countrySelects = document.querySelectorAll('.country-select');
+  // ============================================
+  // Configuration
+  // ============================================
+  const phoneLengthStandards = {
+    '+966': 9,  // Saudi Arabia: 9 digits
+    '+20': 11,  // Egypt: 11 digits (including leading 0)
+    '+971': 9,  // UAE: 9 digits
+    '+965': 8   // Kuwait: 8 digits
+  };
+
+  // ============================================
+  // DOM Elements
+  // ============================================
+  const form = document.querySelector('.auth-form');
+  const nextStepBtn = document.getElementById('nextStep');
+  const prevStepBtn = document.getElementById('prevStep');
+  const submitBtn = document.getElementById('submitBtn');
+  const formSteps = document.querySelectorAll('.form-step');
+  const stepItems = document.querySelectorAll('.step-item');
   
-  countrySelects.forEach(select => {
-    select.addEventListener('change', function() {
-      // Add a subtle animation when country is changed
-      this.style.transform = 'scale(1.02)';
-      setTimeout(() => {
-        this.style.transform = 'scale(1)';
-      }, 150);
-    });
-    
-    // Add focus styling
-    select.addEventListener('focus', function() {
-      this.parentElement.parentElement.style.borderColor = '#dc2626';
-      this.parentElement.parentElement.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.1)';
-    });
-    
-    select.addEventListener('blur', function() {
-      this.parentElement.parentElement.style.borderColor = 'transparent';
-      this.parentElement.parentElement.style.boxShadow = 'none';
-    });
-  });
+  // Step 1 Fields
+  const firstNameInput = document.getElementById('firstName');
+  const lastNameInput = document.getElementById('lastName');
+  const studentNumberInput = document.getElementById('studentNumber');
+  const studentCountrySelect = document.getElementById('studentCountryCode');
+  const parentNumberInput = document.getElementById('parentNumber');
+  const parentCountrySelect = document.getElementById('parentCountryCode');
+  const studentEmailInput = document.getElementById('studentEmail');
+  const usernameInput = document.getElementById('username');
   
-  // Phone number formatting
-  const phoneInputs = document.querySelectorAll('.phone-input');
-  phoneInputs.forEach(input => {
-    input.addEventListener('input', function() {
-      // Remove any non-numeric characters except spaces and hyphens
-      this.value = this.value.replace(/[^\d\s\-]/g, '');
+  // Step 2 Fields
+  const schoolNameInput = document.getElementById('schoolName');
+  const gradeSelect = document.getElementById('grade');
+  const englishTeacherInput = document.getElementById('englishTeacher');
+  
+  // Step 3 Fields
+  const passwordInput = document.getElementById('password');
+  const password2Input = document.getElementById('password2');
+  const howDidYouKnowInput = document.getElementById('howDidYouKnow');
+
+  // Current step tracker
+  let currentStep = 1;
+  const totalSteps = 3;
+  
+  // Track which fields have been touched/interacted with
+  const touchedFields = new Set();
+  
+  // OTP State Management (initialize early) - Only for student phone number
+  // Check if OTP was verified on server side (from session)
+  const serverOtpVerifiedInput = document.getElementById('serverOtpVerified');
+  const serverSideVerified = serverOtpVerifiedInput && serverOtpVerifiedInput.value === 'true';
+  const otpState = {
+    student: {
+      verified: serverSideVerified,
+      timer: null,
+      countdown: 0,
+      rateLimitTimer: null,
+      rateLimitCountdown: 0
+    }
+  };
+
+  // ============================================
+  // Validation Functions (must be defined first)
+  // ============================================
+  function validateStudentNumber() {
+    if (!studentNumberInput || !studentCountrySelect) {
+      return { valid: false, message: 'Student number is required' };
+    }
+    const phoneNumber = studentNumberInput.value.replace(/[^\d]/g, '');
+    const countryCode = studentCountrySelect.value;
+    const expectedLength = phoneLengthStandards[countryCode];
+    
+    if (!phoneNumber) {
+      return { valid: false, message: 'Student number is required' };
+    }
+    
+    if (expectedLength && phoneNumber.length !== expectedLength) {
+      return { valid: false, message: `Student number must be ${expectedLength} digits for ${countryCode}` };
+    }
+    
+    // Check if student and parent numbers are the same
+    if (parentNumberInput && parentCountrySelect) {
+      const parentNumber = parentNumberInput.value.replace(/[^\d]/g, '');
+      const parentCountry = parentCountrySelect.value;
+      if (phoneNumber && parentNumber && phoneNumber === parentNumber && countryCode === parentCountry) {
+        return { valid: false, message: 'Student and parent phone numbers cannot be the same' };
+      }
+    }
+    
+    return { valid: true };
+  }
+
+  function validateParentNumber() {
+    if (!parentNumberInput || !parentCountrySelect) {
+      return { valid: false, message: 'Parent number is required' };
+    }
+    const phoneNumber = parentNumberInput.value.replace(/[^\d]/g, '');
+    const countryCode = parentCountrySelect.value;
+    const expectedLength = phoneLengthStandards[countryCode];
+    
+    if (!phoneNumber) {
+      return { valid: false, message: 'Parent number is required' };
+    }
+    
+    if (expectedLength && phoneNumber.length !== expectedLength) {
+      return { valid: false, message: `Parent number must be ${expectedLength} digits for ${countryCode}` };
+    }
+    
+    // Check if student and parent numbers are the same
+    if (studentNumberInput && studentCountrySelect) {
+      const studentNumber = studentNumberInput.value.replace(/[^\d]/g, '');
+      const studentCountry = studentCountrySelect.value;
+      if (phoneNumber && studentNumber && phoneNumber === studentNumber && countryCode === studentCountry) {
+        return { valid: false, message: 'Parent and student phone numbers cannot be the same' };
+      }
+    }
+    
+    return { valid: true };
+  }
+
+  function validatePasswordMatch() {
+    if (!passwordInput || !password2Input) {
+      return { valid: false, message: 'Passwords do not match' };
+    }
+    if (passwordInput.value !== password2Input.value) {
+      return { valid: false, message: 'Passwords do not match' };
+    }
+    return { valid: true };
+  }
+
+  // ============================================
+  // Validation Rules
+  // ============================================
+  const validationRules = {
+    firstName: {
+      required: true,
+      minLength: 2,
+      maxLength: 50,
+      pattern: /^[a-zA-Z\s\u0600-\u06FF]+$/,
+      message: 'First name must be 2-50 characters and contain only letters'
+    },
+    lastName: {
+      required: true,
+      minLength: 2,
+      maxLength: 50,
+      pattern: /^[a-zA-Z\s\u0600-\u06FF]+$/,
+      message: 'Last name must be 2-50 characters and contain only letters'
+    },
+    studentNumber: {
+      required: true,
+      validate: validateStudentNumber,
+      message: 'Student number is required and must match country format'
+    },
+    parentNumber: {
+      required: true,
+      validate: validateParentNumber,
+      message: 'Parent number is required and must match country format'
+    },
+    studentEmail: {
+      required: true,
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      message: 'Please enter a valid email address'
+    },
+    username: {
+      required: true,
+      minLength: 3,
+      maxLength: 30,
+      pattern: /^[a-zA-Z0-9_]+$/,
+      message: 'Username must be 3-30 characters and contain only letters, numbers, and underscores'
+    },
+    schoolName: {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+      message: 'School name must be 2-100 characters'
+    },
+    grade: {
+      required: true,
+      message: 'Please select your grade'
+    },
+    englishTeacher: {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+      pattern: /^[a-zA-Z\s\u0600-\u06FF]+$/,
+      message: 'English teacher name must be 2-100 characters and contain only letters'
+    },
+    password: {
+      required: true,
+      minLength: 5,
+      message: 'Password must be at least 5 characters long'
+    },
+    password2: {
+      required: true,
+      validate: validatePasswordMatch,
+      message: 'Passwords do not match'
+    },
+    howDidYouKnow: {
+      required: true,
+      minLength: 5,
+      maxLength: 500,
+      message: 'Please provide at least 5 characters describing how you heard about Mr Kably'
+    }
+  };
+
+  // ============================================
+  // Field Validation
+  // ============================================
+  function validateField(fieldName, input, rule) {
+    const value = input.value.trim();
+    let isValid = true;
+    let errorMessage = '';
+
+    // Check required
+    if (rule.required && !value) {
+      isValid = false;
+      errorMessage = rule.message || 'This field is required';
+    }
+
+    // Check min length
+    if (isValid && value && rule.minLength && value.length < rule.minLength) {
+      isValid = false;
+      errorMessage = rule.message || `Minimum length is ${rule.minLength} characters`;
+    }
+
+    // Check max length
+    if (isValid && value && rule.maxLength && value.length > rule.maxLength) {
+      isValid = false;
+      errorMessage = rule.message || `Maximum length is ${rule.maxLength} characters`;
+    }
+
+    // Check pattern
+    if (isValid && value && rule.pattern && !rule.pattern.test(value)) {
+      isValid = false;
+      errorMessage = rule.message || 'Invalid format';
+    }
+
+    // Custom validation
+    if (isValid && value && rule.validate) {
+      const customResult = rule.validate();
+      if (!customResult.valid) {
+        isValid = false;
+        errorMessage = customResult.message || rule.message;
+      }
+    }
+
+    // Special handling for select elements
+    if (input.tagName === 'SELECT' && isValid && value === '') {
+      isValid = false;
+      errorMessage = rule.message || 'Please select an option';
+    }
+
+    // Special handling for checkboxes
+    if (input.type === 'checkbox' && rule.required && !input.checked) {
+      isValid = false;
+      errorMessage = rule.message || 'This field is required';
+    }
+
+    return { isValid, errorMessage };
+  }
+
+  // ============================================
+  // Display Error/Success
+  // ============================================
+  function showFieldError(input, message, showError = true) {
+    const formGroup = input.closest('.form-group-modern');
+    if (!formGroup) return;
+
+    // Get field name to check if it's been touched
+    const fieldId = input.id;
+    const isTouched = touchedFields.has(fieldId);
+
+    // Only show error message if field has been touched or if explicitly requested
+    if (!showError && !isTouched) {
+      // Just mark as invalid without showing message
+      input.classList.remove('is-valid');
+      input.classList.add('is-invalid');
+      return;
+    }
+
+    // Remove existing error
+    const existingError = formGroup.querySelector('.field-error-message');
+    if (existingError) {
+      existingError.remove();
+    }
+
+    // Remove valid class and classes from parent groups
+    input.classList.remove('is-valid');
+    input.classList.add('is-invalid');
+
+    // Handle phone input groups
+    if (input.classList.contains('phone-input')) {
+      const phoneGroup = input.closest('.phone-input-group');
+      if (phoneGroup) {
+        phoneGroup.classList.remove('has-success');
+        phoneGroup.classList.add('has-error');
+      }
+    }
+
+    // Handle checkboxes
+    if (input.type === 'checkbox') {
+      const checkGroup = input.closest('.form-check-modern');
+      if (checkGroup) {
+        checkGroup.classList.remove('has-success');
+        checkGroup.classList.add('has-error');
+      }
+    }
+
+    // Only add error message if field has been touched
+    if (isTouched || showError) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'field-error-message';
+      errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+      formGroup.appendChild(errorDiv);
+    }
+  }
+
+  function showFieldSuccess(input, showSuccess = true) {
+    const formGroup = input.closest('.form-group-modern');
+    if (!formGroup) return;
+
+    // Get field name to check if it's been touched
+    const fieldId = input.id;
+    const isTouched = touchedFields.has(fieldId);
+
+    // Only show success indicator if field has been touched or explicitly requested
+    if (!showSuccess && !isTouched) {
+      // Just remove invalid class without showing success
+      input.classList.remove('is-invalid');
+      return;
+    }
+
+    // Remove existing error
+    const existingError = formGroup.querySelector('.field-error-message');
+    if (existingError) {
+      existingError.remove();
+    }
+
+    // Remove invalid class and add valid
+    input.classList.remove('is-invalid');
+    input.classList.add('is-valid');
+
+    // Handle phone input groups
+    if (input.classList.contains('phone-input')) {
+      const phoneGroup = input.closest('.phone-input-group');
+      if (phoneGroup) {
+        phoneGroup.classList.remove('has-error');
+        phoneGroup.classList.add('has-success');
+      }
+    }
+
+    // Handle checkboxes
+    if (input.type === 'checkbox') {
+      const checkGroup = input.closest('.form-check-modern');
+      if (checkGroup) {
+        checkGroup.classList.remove('has-error');
+        checkGroup.classList.add('has-success');
+      }
+    }
+  }
+
+  function clearFieldError(input) {
+    const formGroup = input.closest('.form-group-modern');
+    if (!formGroup) return;
+
+    const existingError = formGroup.querySelector('.field-error-message');
+    if (existingError) {
+      existingError.remove();
+    }
+
+    input.classList.remove('is-invalid', 'is-valid');
+
+    // Clear phone input group classes
+    if (input.classList.contains('phone-input')) {
+      const phoneGroup = input.closest('.phone-input-group');
+      if (phoneGroup) {
+        phoneGroup.classList.remove('has-error', 'has-success');
+      }
+    }
+
+    // Clear checkbox group classes
+    if (input.type === 'checkbox') {
+      const checkGroup = input.closest('.form-check-modern');
+      if (checkGroup) {
+        checkGroup.classList.remove('has-error', 'has-success');
+      }
+    }
+  }
+
+  // ============================================
+  // Step Validation
+  // ============================================
+  function validateStep(stepNumber, showErrors = true) {
+    let isValid = true;
+    const stepFields = getStepFields(stepNumber);
+
+    stepFields.forEach(({ name, input }) => {
+      const rule = validationRules[name];
+      if (!rule || !input) return;
+
+      const result = validateField(name, input, rule);
+      if (!result.isValid) {
+        showFieldError(input, result.errorMessage, showErrors);
+        isValid = false;
+      } else {
+        // Only show success if field has been touched or errors are being shown
+        showFieldSuccess(input, showErrors);
+      }
     });
+
+    return isValid;
+  }
+
+  // Check if step is valid without modifying DOM (for button state)
+  function isStepValid(stepNumber) {
+    // For step 1, check OTP verification first (only student phone needs OTP)
+    if (stepNumber === 1) {
+      if (!otpState || !otpState.student) {
+        // OTP state not initialized yet, check form fields only
+      } else if (!otpState.student.verified) {
+        return false;
+      }
+    }
+    
+    let isValid = true;
+    const stepFields = getStepFields(stepNumber);
+
+    stepFields.forEach(({ name, input }) => {
+      const rule = validationRules[name];
+      if (!rule || !input) return;
+
+      const result = validateField(name, input, rule);
+      if (!result.isValid) {
+        isValid = false;
+      }
+    });
+
+    return isValid;
+  }
+
+  function getStepFields(stepNumber) {
+    switch (stepNumber) {
+      case 1:
+        return [
+          { name: 'firstName', input: firstNameInput },
+          { name: 'lastName', input: lastNameInput },
+          { name: 'studentNumber', input: studentNumberInput },
+          { name: 'parentNumber', input: parentNumberInput },
+          { name: 'studentEmail', input: studentEmailInput },
+          { name: 'username', input: usernameInput }
+        ];
+      case 2:
+        return [
+          { name: 'schoolName', input: schoolNameInput },
+          { name: 'grade', input: gradeSelect },
+          { name: 'englishTeacher', input: englishTeacherInput }
+        ];
+      case 3:
+        return [
+          { name: 'password', input: passwordInput },
+          { name: 'password2', input: password2Input },
+          { name: 'howDidYouKnow', input: howDidYouKnowInput }
+        ];
+      default:
+        return [];
+    }
+  }
+
+  // ============================================
+  // Real-time Validation
+  // ============================================
+  function setupFieldValidation(fieldName, input, rule) {
+    if (!input) return;
+
+    // Mark field as touched when user interacts
+    const markTouched = () => {
+      markFieldAsTouched(input);
+    };
+
+    // Real-time validation on input/blur
+    const validateFieldHandler = () => {
+      markFieldAsTouched(input);
+      const result = validateField(fieldName, input, rule);
+      if (result.isValid) {
+        showFieldSuccess(input);
+      } else {
+        showFieldError(input, result.errorMessage, true);
+      }
+      updateNextButtonState();
+    };
+
+    // For text inputs, validate on blur and input
+    if (input.type === 'text' || input.type === 'email' || input.type === 'tel' || input.tagName === 'TEXTAREA') {
+      input.addEventListener('focus', markTouched);
+      input.addEventListener('blur', validateFieldHandler);
+      input.addEventListener('input', debounce(() => {
+        markTouched();
+        validateFieldHandler();
+      }, 500));
+    }
+    
+    // For select inputs, validate on change
+    if (input.tagName === 'SELECT') {
+      input.addEventListener('focus', markTouched);
+      input.addEventListener('change', validateFieldHandler);
+    }
+    
+    // For checkboxes, validate on change
+    if (input.type === 'checkbox') {
+      input.addEventListener('change', validateFieldHandler);
+      input.addEventListener('click', markTouched);
+    }
+  }
+
+  // ============================================
+  // Step Navigation
+  // ============================================
+  function updateNextButtonState() {
+    // Check validation without showing errors (for button state)
+    const isValid = isStepValid(currentStep);
+    
+    if (nextStepBtn) {
+      if (isValid) {
+        nextStepBtn.disabled = false;
+        nextStepBtn.classList.remove('btn-disabled');
+      } else {
+        nextStepBtn.disabled = true;
+        nextStepBtn.classList.add('btn-disabled');
+      }
+    }
+  }
+  
+  // Mark field as touched when user interacts
+  function markFieldAsTouched(input) {
+    if (input && input.id) {
+      touchedFields.add(input.id);
+    }
+  }
+
+  function goToStep(stepNumber) {
+    if (stepNumber < 1 || stepNumber > totalSteps) return;
+
+    // Validate current step before moving
+    if (stepNumber > currentStep) {
+      // Mark all fields in current step as touched before validation
+      const stepFields = getStepFields(currentStep);
+      stepFields.forEach(({ input }) => {
+        if (input && input.id) {
+          touchedFields.add(input.id);
+        }
+      });
+      
+      // Validate with errors shown
+      if (!validateStep(currentStep, true)) {
+        // Scroll to first error
+        const firstError = document.querySelector('.form-step.active .is-invalid');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstError.focus();
+        }
+        return;
+      }
+    }
+
+    // Update step display
+    formSteps.forEach((step, index) => {
+      if (index + 1 === stepNumber) {
+        step.classList.add('active');
+      } else {
+        step.classList.remove('active');
+      }
+    });
+
+    // Update step indicators
+    stepItems.forEach((item, index) => {
+      if (index + 1 === stepNumber) {
+        item.classList.add('active');
+      } else if (index + 1 < stepNumber) {
+        item.classList.add('completed');
+      } else {
+        item.classList.remove('active', 'completed');
+      }
+    });
+
+    // Update navigation buttons
+    if (prevStepBtn) {
+      prevStepBtn.style.display = stepNumber > 1 ? 'flex' : 'none';
+    }
+    if (nextStepBtn) {
+      nextStepBtn.style.display = stepNumber < totalSteps ? 'flex' : 'none';
+    }
+    if (submitBtn) {
+      submitBtn.style.display = stepNumber === totalSteps ? 'flex' : 'none';
+    }
+
+    currentStep = stepNumber;
+    updateNextButtonState();
+
+    // Scroll to top of form
+    const formContainer = document.querySelector('.auth-form-container');
+    if (formContainer) {
+      formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  // ============================================
+  // Event Listeners
+  // ============================================
+  if (nextStepBtn) {
+    nextStepBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Mark all fields in current step as touched
+      const stepFields = getStepFields(currentStep);
+      stepFields.forEach(({ input }) => {
+        if (input && input.id) {
+          touchedFields.add(input.id);
+        }
+      });
+      
+      // Validate with errors shown
+      if (validateStep(currentStep, true)) {
+        goToStep(currentStep + 1);
+      } else {
+        // Scroll to first error
+        const firstError = document.querySelector('.form-step.active .is-invalid');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstError.focus();
+        }
+      }
+    });
+  }
+
+  if (prevStepBtn) {
+    prevStepBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      goToStep(currentStep - 1);
+    });
+  }
+
+  // Setup validation for all fields (except phone numbers and passwords which are handled separately)
+  Object.keys(validationRules).forEach(fieldName => {
+    // Skip phone numbers and passwords - they have special validation handlers
+    if (fieldName === 'studentNumber' || fieldName === 'parentNumber' || 
+        fieldName === 'password' || fieldName === 'password2') {
+      return;
+    }
+    
+    const rule = validationRules[fieldName];
+    let input;
+    
+    switch (fieldName) {
+      case 'firstName': input = firstNameInput; break;
+      case 'lastName': input = lastNameInput; break;
+      case 'studentEmail': input = studentEmailInput; break;
+      case 'username': input = usernameInput; break;
+      case 'schoolName': input = schoolNameInput; break;
+      case 'grade': input = gradeSelect; break;
+      case 'englishTeacher': input = englishTeacherInput; break;
+      case 'howDidYouKnow': input = howDidYouKnowInput; break;
+    }
+    
+    if (input) {
+      setupFieldValidation(fieldName, input, rule);
+    }
   });
 
-  // Generate unique submission ID to prevent duplicate submissions
-  const submissionIdInput = document.getElementById('submissionId');
-  if (submissionIdInput) {
-    const generateSubmissionId = () => {
-      return 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    };
-    submissionIdInput.value = generateSubmissionId();
+  // Phone number formatting and validation - validate both fields when either changes
+  const validatePhoneNumbers = debounce(() => {
+    if (currentStep === 1) {
+      // Validate student number
+      if (studentNumberInput && validationRules.studentNumber) {
+        const studentResult = validateField('studentNumber', studentNumberInput, validationRules.studentNumber);
+        if (studentResult.isValid) {
+          showFieldSuccess(studentNumberInput);
+        } else {
+          showFieldError(studentNumberInput, studentResult.errorMessage, true);
+        }
+      }
+      
+      // Validate parent number
+      if (parentNumberInput && validationRules.parentNumber) {
+        const parentResult = validateField('parentNumber', parentNumberInput, validationRules.parentNumber);
+        if (parentResult.isValid) {
+          showFieldSuccess(parentNumberInput);
+        } else {
+          showFieldError(parentNumberInput, parentResult.errorMessage, true);
+        }
+      }
+      
+      updateNextButtonState();
+    }
+  }, 300);
+
+  // Student number input handling
+  if (studentNumberInput) {
+    studentNumberInput.addEventListener('focus', () => markFieldAsTouched(studentNumberInput));
+    studentNumberInput.addEventListener('input', function() {
+      markFieldAsTouched(this);
+      // Remove any non-numeric characters
+      this.value = this.value.replace(/[^\d]/g, '');
+      // Trigger validation for both phone fields
+      validatePhoneNumbers();
+    });
+    studentNumberInput.addEventListener('blur', function() {
+      markFieldAsTouched(this);
+      validatePhoneNumbers();
+    });
   }
+
+  // Parent number input handling
+  if (parentNumberInput) {
+    parentNumberInput.addEventListener('focus', () => markFieldAsTouched(parentNumberInput));
+    parentNumberInput.addEventListener('input', function() {
+      markFieldAsTouched(this);
+      // Remove any non-numeric characters
+      this.value = this.value.replace(/[^\d]/g, '');
+      // Trigger validation for both phone fields
+      validatePhoneNumbers();
+    });
+    parentNumberInput.addEventListener('blur', function() {
+      markFieldAsTouched(this);
+      validatePhoneNumbers();
+    });
+  }
+
+  // Special handling for country code changes - trigger phone validation
+  if (studentCountrySelect) {
+    studentCountrySelect.addEventListener('focus', () => {
+      markFieldAsTouched(studentNumberInput);
+    });
+    studentCountrySelect.addEventListener('change', function() {
+      markFieldAsTouched(studentNumberInput);
+      validatePhoneNumbers();
+    });
+  }
+
+  if (parentCountrySelect) {
+    parentCountrySelect.addEventListener('focus', () => {
+      markFieldAsTouched(parentNumberInput);
+    });
+    parentCountrySelect.addEventListener('change', function() {
+      markFieldAsTouched(parentNumberInput);
+      validatePhoneNumbers();
+    });
+  }
+
+  // Password confirmation validation - validate both fields when either changes
+  if (passwordInput && password2Input) {
+    const validatePasswords = debounce(() => {
+      if (currentStep === 3) {
+        // Validate password field
+        const passwordRule = validationRules.password;
+        if (passwordRule) {
+          const passwordResult = validateField('password', passwordInput, passwordRule);
+          if (passwordResult.isValid) {
+            showFieldSuccess(passwordInput);
+          } else {
+            showFieldError(passwordInput, passwordResult.errorMessage, true);
+          }
+        }
+        
+        // Validate password confirmation field
+        const password2Rule = validationRules.password2;
+        if (password2Rule) {
+          const password2Result = validateField('password2', password2Input, password2Rule);
+          if (password2Result.isValid) {
+            showFieldSuccess(password2Input);
+          } else {
+            showFieldError(password2Input, password2Result.errorMessage, true);
+          }
+        }
+        
+        updateNextButtonState();
+      }
+    }, 300);
+
+    passwordInput.addEventListener('focus', () => markFieldAsTouched(passwordInput));
+    passwordInput.addEventListener('input', function() {
+      markFieldAsTouched(this);
+      validatePasswords();
+    });
+    passwordInput.addEventListener('blur', function() {
+      markFieldAsTouched(this);
+      validatePasswords();
+    });
+    
+    password2Input.addEventListener('focus', () => markFieldAsTouched(password2Input));
+    password2Input.addEventListener('input', function() {
+      markFieldAsTouched(this);
+      validatePasswords();
+    });
+    password2Input.addEventListener('blur', function() {
+      markFieldAsTouched(this);
+      validatePasswords();
+    });
+  }
+
+  // Form submission
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      // Mark all fields as touched before validation
+      for (let i = 1; i <= totalSteps; i++) {
+        const stepFields = getStepFields(i);
+        stepFields.forEach(({ input }) => {
+          if (input && input.id) {
+            touchedFields.add(input.id);
+          }
+        });
+      }
+      
+      // Validate all steps before submission with errors shown
+      let allValid = true;
+      for (let i = 1; i <= totalSteps; i++) {
+        if (!validateStep(i, true)) {
+          allValid = false;
+          // Go to first invalid step
+          goToStep(i);
+          break;
+        }
+      }
+
+      if (!allValid) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Generate unique submission ID
+      const submissionIdInput = document.getElementById('submissionId');
+      if (submissionIdInput && !submissionIdInput.value) {
+        submissionIdInput.value = 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      }
+    });
+  }
+  
+  // Initialize submit button state - disabled by default
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('btn-disabled');
+  }
+
+  // ============================================
+  // Utility Functions
+  // ============================================
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // ============================================
+  // Initialization
+  // ============================================
+  // Initialize button states - Next button should be disabled initially
+  if (nextStepBtn) {
+    nextStepBtn.disabled = true;
+    nextStepBtn.classList.add('btn-disabled');
+  }
+
+  // Initialize step display
+  goToStep(1);
+
+  // Validate step 1 on page load if any fields have values (for form repopulation)
+  const hasInitialValues = Array.from(document.querySelectorAll('.form-control-modern')).some(input => input.value.trim() !== '');
+  if (hasInitialValues) {
+    // Delay to ensure DOM is ready
+    setTimeout(() => {
+      updateNextButtonState();
+    }, 100);
+  }
+
+  // ============================================
+  // OTP Verification Functionality
+  // ============================================
+  
+  // OTP State Management is defined earlier in the script
+
+  // Show OTP section when phone number is entered and valid
+  function checkAndShowOtpSection(type) {
+    const phoneInput = type === 'student' ? studentNumberInput : parentNumberInput;
+    const countrySelect = type === 'student' ? studentCountrySelect : parentCountrySelect;
+    const otpSection = document.getElementById(`${type}OtpSection`);
+    const sendBtn = document.getElementById(`send${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    if (!phoneInput || !countrySelect || !otpSection) return;
+    
+    const phoneNumber = phoneInput.value.replace(/[^\d]/g, '');
+    const countryCode = countrySelect.value;
+    const expectedLength = phoneLengthStandards[countryCode];
+    
+    // Show OTP section if phone number is valid
+    if (phoneNumber && phoneNumber.length === expectedLength && !otpState[type].verified) {
+      otpSection.style.display = 'block';
+      // Enable send button if not rate limited
+      if (sendBtn && !otpState[type].rateLimitTimer) {
+        sendBtn.style.display = 'inline-flex';
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+      }
+    } else if (otpState[type].verified) {
+      otpSection.style.display = 'block';
+      // Hide send button when verified
+      if (sendBtn) {
+        sendBtn.style.display = 'none';
+      }
+    } else {
+      otpSection.style.display = 'none';
+    }
+  }
+
+
+  // Send OTP function
+  async function sendOTP(type) {
+    const phoneInput = type === 'student' ? studentNumberInput : parentNumberInput;
+    const countrySelect = type === 'student' ? studentCountrySelect : parentCountrySelect;
+    const sendBtn = document.getElementById(`send${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    const otpInputGroup = document.getElementById(`${type}OtpInputGroup`);
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    const otpTimer = document.getElementById(`${type}OtpTimer`);
+    const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    if (!phoneInput || !countrySelect) return;
+    
+    const phoneNumber = phoneInput.value.replace(/[^\d]/g, '');
+    const countryCode = countrySelect.value;
+    
+    // Validate phone number first
+    if (!phoneNumber || phoneNumber.length < 8) {
+      showOtpStatus(type, 'Please enter a valid phone number', 'error');
+      return;
+    }
+    
+    // Disable send button
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    showOtpStatus(type, 'Sending OTP...', 'info');
+    
+    try {
+      const response = await fetch('/auth/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: phoneNumber,
+          countryCode: countryCode,
+          type: type
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        let statusMessage = 'OTP sent successfully! Please check your phone.';
+        if (data.attemptsRemaining !== undefined) {
+          statusMessage += ` (${data.attemptsRemaining} attempt(s) remaining)`;
+        }
+        showOtpStatus(type, statusMessage, 'success');
+        sendBtn.style.display = 'none';
+        otpInputGroup.style.display = 'flex';
+        otpTimer.style.display = 'block';
+        resendBtn.style.display = 'none';
+        
+        // Clear any rate limiting states
+        clearRateLimitTimer(type);
+        
+        // Lock phone number input after OTP is sent (prevent changing number)
+        lockPhoneNumberInput(type);
+        
+        // Start countdown timer
+        startOtpCountdown(type, 60);
+      } else if (response.status === 429) {
+        // Rate limiting - too many attempts
+        showOtpStatus(type, data.message || 'Too many OTP requests. Please try again later.', 'error');
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-clock"></i> Try Again Later';
+        
+        // Start rate limit countdown timer
+        if (data.retryAfter && data.blockedUntil) {
+          const retryAfterSeconds = data.retryAfter * 60; // Convert minutes to seconds
+          startRateLimitTimer(type, retryAfterSeconds, data.blockedUntil);
+        }
+      } else {
+        showOtpStatus(type, data.message || 'Failed to send OTP. Please try again.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+      }
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      
+      // Check if it's a rate limit error
+      if (error.status === 429) {
+        showOtpStatus(type, 'Too many OTP requests. Please try again later.', 'error');
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-clock"></i> Try Again Later';
+      } else {
+        showOtpStatus(type, 'An error occurred. Please try again.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+      }
+    }
+  }
+
+  // Verify OTP function
+  async function verifyOTP(type) {
+    const otpInput = document.getElementById(`${type}OtpInput`);
+    const verifyBtn = document.getElementById(`verify${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    
+    if (!otpInput) return;
+    
+    const otp = otpInput.value.trim();
+    
+    if (!otp || otp.length !== 6) {
+      showOtpStatus(type, 'Please enter a valid 6-digit OTP', 'error');
+      return;
+    }
+    
+    // Disable verify button
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    showOtpStatus(type, 'Verifying OTP...', 'info');
+    
+    try {
+      const response = await fetch('/auth/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          otp: otp,
+          type: type
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        otpState[type].verified = true;
+        showOtpStatus(type, '✓ Verified', 'success');
+        otpInput.classList.add('verified');
+        otpInput.disabled = true;
+        verifyBtn.style.display = 'none';
+        
+        // Clear countdown and rate limit timer
+        clearOtpCountdown(type);
+        clearRateLimitTimer(type);
+        
+        // Hide timer and resend button after successful verification
+        const otpTimer = document.getElementById(`${type}OtpTimer`);
+        const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+        const otpInputGroup = document.getElementById(`${type}OtpInputGroup`);
+        if (otpTimer) {
+          otpTimer.style.display = 'none';
+          // Clear any running timers
+          clearOtpCountdown(type);
+        }
+        if (resendBtn) resendBtn.style.display = 'none';
+        // Hide the input group but keep the status visible
+        if (otpInputGroup) otpInputGroup.style.display = 'none';
+        
+        // Phone number is already locked when OTP was sent, no need to lock again
+        
+        // Update form validation
+        updateNextButtonState();
+      } else {
+        showOtpStatus(type, data.message || 'Invalid OTP. Please try again.', 'error');
+        otpInput.value = '';
+        otpInput.focus();
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = '<i class="fas fa-check"></i> Verify';
+      }
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      showOtpStatus(type, 'An error occurred. Please try again.', 'error');
+      verifyBtn.disabled = false;
+      verifyBtn.innerHTML = '<i class="fas fa-check"></i> Verify';
+    }
+  }
+
+  // Show OTP status message
+  function showOtpStatus(type, message, status) {
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    if (!otpStatus) return;
+    
+    otpStatus.textContent = message;
+    otpStatus.className = `otp-status ${status}`;
+    
+    // Don't clear "Verified" status - keep it permanently
+    if (status === 'success' && message !== '✓ Verified') {
+      setTimeout(() => {
+        otpStatus.textContent = '';
+        otpStatus.className = 'otp-status';
+      }, 5000);
+    }
+    
+    // Clear error messages after a longer duration (20 seconds)
+    if (status === 'error') {
+      setTimeout(() => {
+        otpStatus.textContent = '';
+        otpStatus.className = 'otp-status';
+      }, 20000);
+    }
+  }
+
+  // Start OTP countdown timer
+  function startOtpCountdown(type, seconds) {
+    clearOtpCountdown(type);
+    
+    const countdownEl = document.getElementById(`${type}OtpCountdown`);
+    const otpTimer = document.getElementById(`${type}OtpTimer`);
+    const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    otpState[type].countdown = seconds;
+    
+    if (countdownEl) {
+      countdownEl.textContent = seconds;
+    }
+    
+    otpState[type].timer = setInterval(() => {
+      otpState[type].countdown--;
+      
+      if (countdownEl) {
+        countdownEl.textContent = otpState[type].countdown;
+      }
+      
+      if (otpState[type].countdown <= 0) {
+        clearOtpCountdown(type);
+        if (otpTimer) otpTimer.style.display = 'none';
+        if (resendBtn) resendBtn.style.display = 'inline-flex';
+      }
+    }, 1000);
+  }
+
+  // Clear OTP countdown
+  function clearOtpCountdown(type) {
+    if (otpState[type].timer) {
+      clearInterval(otpState[type].timer);
+      otpState[type].timer = null;
+    }
+    otpState[type].countdown = 0;
+  }
+
+  // Start rate limit countdown timer (for 1 hour block)
+  function startRateLimitTimer(type, seconds, blockedUntil) {
+    // Clear any existing rate limit timer
+    clearRateLimitTimer(type);
+    
+    const sendBtn = document.getElementById(`send${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    const otpStatus = document.getElementById(`${type}OtpStatus`);
+    const otpTimer = document.getElementById(`${type}OtpTimer`);
+    const resendBtn = document.getElementById(`resend${type.charAt(0).toUpperCase() + type.slice(1)}OtpBtn`);
+    
+    // Store rate limit timer in otpState
+    if (!otpState[type].rateLimitTimer) {
+      otpState[type].rateLimitTimer = null;
+    }
+    if (!otpState[type].rateLimitCountdown) {
+      otpState[type].rateLimitCountdown = 0;
+    }
+    
+    otpState[type].rateLimitCountdown = seconds;
+    
+    // Show timer message
+    if (otpStatus) {
+      otpStatus.textContent = `Too many attempts. Please try again after ${Math.ceil(seconds / 60)} minute(s).`;
+      otpStatus.className = 'otp-status error';
+    }
+    
+    if (otpTimer) {
+      otpTimer.style.display = 'block';
+      const countdownEl = document.getElementById(`${type}OtpCountdown`);
+      if (countdownEl) {
+        countdownEl.textContent = Math.ceil(seconds / 60);
+      }
+    }
+    
+    // Update countdown every second
+    otpState[type].rateLimitTimer = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((blockedUntil - now) / 1000));
+      
+      otpState[type].rateLimitCountdown = remaining;
+      
+      const minutes = Math.ceil(remaining / 60);
+      
+      if (otpStatus) {
+        otpStatus.textContent = `Too many attempts. Please try again after ${minutes} minute(s).`;
+      }
+      
+      const countdownEl = document.getElementById(`${type}OtpCountdown`);
+      if (countdownEl && otpTimer) {
+        countdownEl.textContent = minutes;
+      }
+      
+      if (remaining <= 0) {
+        clearRateLimitTimer(type);
+        // Re-enable send button
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP';
+        }
+        if (otpStatus) {
+          otpStatus.textContent = '';
+          otpStatus.className = 'otp-status';
+        }
+        if (otpTimer) {
+          otpTimer.style.display = 'none';
+        }
+      }
+    }, 1000);
+  }
+
+  // Clear rate limit timer
+  function clearRateLimitTimer(type) {
+    if (otpState[type].rateLimitTimer) {
+      clearInterval(otpState[type].rateLimitTimer);
+      otpState[type].rateLimitTimer = null;
+    }
+    otpState[type].rateLimitCountdown = 0;
+  }
+
+  // Lock phone number input after OTP is sent or verified (prevents tampering)
+  function lockPhoneNumberInput(type) {
+    const phoneInput = type === 'student' ? studentNumberInput : parentNumberInput;
+    const countrySelect = type === 'student' ? studentCountrySelect : parentCountrySelect;
+    
+    if (!phoneInput || !countrySelect) return;
+    
+    // Check if already locked to prevent re-locking
+    if (phoneInput.getAttribute('data-locked') === 'true') {
+      return; // Already locked, don't try to lock again
+    }
+    
+    // Store the original values
+    const originalPhone = phoneInput.value;
+    const originalCountry = countrySelect.value;
+    
+    // Mark as locked
+    phoneInput.setAttribute('data-locked', 'true');
+    phoneInput.setAttribute('data-original-phone', originalPhone);
+    countrySelect.setAttribute('data-locked', 'true');
+    countrySelect.setAttribute('data-original-country', originalCountry);
+    
+    // Disable inputs
+    phoneInput.disabled = true;
+    countrySelect.disabled = true;
+    
+    // Add visual styling to show it's locked
+    if (phoneInput.classList) {
+      phoneInput.classList.add('otp-locked');
+    }
+    if (countrySelect.classList) {
+      countrySelect.classList.add('otp-locked');
+    }
+    
+    // Prevent any attempts to change via JavaScript or inspector
+    // Note: We don't use Object.defineProperty on form elements as it's unreliable
+    // Instead, we rely on disabled state, event prevention, and DOM mutation observer
+    
+    // Prevent input events
+    const preventChange = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      phoneInput.value = originalPhone;
+      countrySelect.value = originalCountry;
+      return false;
+    };
+    
+    phoneInput.addEventListener('input', preventChange, true);
+    phoneInput.addEventListener('change', preventChange, true);
+    phoneInput.addEventListener('keydown', preventChange, true);
+    countrySelect.addEventListener('change', preventChange, true);
+    
+    // Monitor for DOM mutations (in case user tries to remove disabled attribute)
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes') {
+          if (mutation.attributeName === 'disabled' && !phoneInput.disabled) {
+            phoneInput.disabled = true;
+          }
+          if (mutation.attributeName === 'disabled' && !countrySelect.disabled) {
+            countrySelect.disabled = true;
+          }
+          if (phoneInput.value !== originalPhone) {
+            phoneInput.value = originalPhone;
+          }
+          if (countrySelect.value !== originalCountry) {
+            countrySelect.value = originalCountry;
+          }
+        }
+      });
+    });
+    
+    observer.observe(phoneInput, {
+      attributes: true,
+      attributeFilter: ['disabled', 'value']
+    });
+    
+    observer.observe(countrySelect, {
+      attributes: true,
+      attributeFilter: ['disabled', 'value']
+    });
+    
+    // Store observer for cleanup if needed
+    phoneInput._otpObserver = observer;
+  }
+
+  // Setup OTP event listeners
+  function setupOtpListeners() {
+    // Student OTP listeners
+    if (studentNumberInput && studentCountrySelect) {
+      studentNumberInput.addEventListener('input', () => {
+        if (!otpState.student.verified) {
+          checkAndShowOtpSection('student');
+        }
+      });
+      
+      studentNumberInput.addEventListener('blur', () => {
+        if (!otpState.student.verified) {
+          checkAndShowOtpSection('student');
+        }
+      });
+      
+      studentCountrySelect.addEventListener('change', () => {
+        if (!otpState.student.verified) {
+          checkAndShowOtpSection('student');
+        }
+      });
+    }
+    
+    // Send OTP button - only for student
+    const sendStudentOtpBtn = document.getElementById('sendStudentOtpBtn');
+    
+    if (sendStudentOtpBtn) {
+      sendStudentOtpBtn.addEventListener('click', () => sendOTP('student'));
+    }
+    
+    // Verify OTP button - only for student
+    const verifyStudentOtpBtn = document.getElementById('verifyStudentOtpBtn');
+    
+    if (verifyStudentOtpBtn) {
+      verifyStudentOtpBtn.addEventListener('click', () => verifyOTP('student'));
+    }
+    
+    // Resend OTP button - only for student
+    const resendStudentOtpBtn = document.getElementById('resendStudentOtpBtn');
+    
+    if (resendStudentOtpBtn) {
+      resendStudentOtpBtn.addEventListener('click', () => {
+        const sendBtn = document.getElementById('sendStudentOtpBtn');
+        const otpInputGroup = document.getElementById('studentOtpInputGroup');
+        const otpTimer = document.getElementById('studentOtpTimer');
+        
+        sendBtn.style.display = 'inline-flex';
+        otpInputGroup.style.display = 'none';
+        otpTimer.style.display = 'none';
+        resendStudentOtpBtn.style.display = 'none';
+        sendOTP('student');
+      });
+    }
+    
+    // Allow Enter key to verify OTP and restrict input to numbers only - only for student
+    const studentOtpInput = document.getElementById('studentOtpInput');
+    
+    if (studentOtpInput) {
+      // Only allow numeric input
+      studentOtpInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^\d]/g, '');
+      });
+      
+      studentOtpInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !verifyStudentOtpBtn.disabled) {
+          verifyOTP('student');
+        }
+      });
+    }
+  }
+
+
+  // Initialize OTP listeners
+  setupOtpListeners();
+  
+  // Auto-validate all pre-filled fields on page load
+  setTimeout(() => {
+    // Validate all Step 1 fields if they have values
+    const step1Fields = [
+      { name: 'firstName', input: firstNameInput },
+      { name: 'lastName', input: lastNameInput },
+      { name: 'studentNumber', input: studentNumberInput },
+      { name: 'parentNumber', input: parentNumberInput },
+      { name: 'studentEmail', input: studentEmailInput },
+      { name: 'username', input: usernameInput }
+    ];
+    
+    step1Fields.forEach(({ name, input }) => {
+      if (input && input.classList && input.value && input.value.trim() !== '') {
+        // Mark as touched
+        markFieldAsTouched(input);
+        
+        // Validate the field
+        const rule = validationRules[name];
+        if (rule) {
+          const result = validateField(name, input, rule);
+          if (result.isValid) {
+            showFieldSuccess(input, true);
+          } else {
+            // Only show error if it's a critical validation issue
+            // For pre-filled fields, we'll be lenient and just mark as invalid without showing error
+            if (input.classList) {
+              input.classList.remove('is-valid');
+              input.classList.add('is-invalid');
+            }
+          }
+        }
+      }
+    });
+    
+    // Validate Step 2 fields if they have values
+    const step2Fields = [
+      { name: 'schoolName', input: schoolNameInput },
+      { name: 'grade', input: gradeSelect },
+      { name: 'englishTeacher', input: englishTeacherInput }
+    ];
+    
+    step2Fields.forEach(({ name, input }) => {
+      if (input && input.classList && input.value && input.value.trim() !== '') {
+        markFieldAsTouched(input);
+        const rule = validationRules[name];
+        if (rule) {
+          const result = validateField(name, input, rule);
+          if (result.isValid) {
+            showFieldSuccess(input, true);
+          } else {
+            if (input.classList) {
+              input.classList.remove('is-valid');
+              input.classList.add('is-invalid');
+            }
+          }
+        }
+      }
+    });
+    
+    // Validate Step 3 fields if they have values
+    const step3Fields = [
+      { name: 'password', input: passwordInput },
+      { name: 'password2', input: password2Input },
+      { name: 'howDidYouKnow', input: howDidYouKnowInput }
+    ];
+    
+    step3Fields.forEach(({ name, input }) => {
+      if (input && input.classList && input.value && input.value.trim() !== '') {
+        markFieldAsTouched(input);
+        const rule = validationRules[name];
+        if (rule) {
+          const result = validateField(name, input, rule);
+          if (result.isValid) {
+            showFieldSuccess(input, true);
+          } else {
+            if (input.classList) {
+              input.classList.remove('is-valid');
+              input.classList.add('is-invalid');
+            }
+          }
+        }
+      }
+    });
+    
+    // Special handling for student number - show OTP section if valid
+    if (studentNumberInput && studentCountrySelect) {
+      const phoneNumber = studentNumberInput.value.replace(/[^\d]/g, '');
+      const countryCode = studentCountrySelect.value;
+      const expectedLength = phoneLengthStandards[countryCode];
+      
+      // If OTP is verified on server side, restore verified state
+      if (serverSideVerified && otpState.student.verified) {
+        // Lock phone number fields (even if already disabled, add visual styling)
+        if (studentNumberInput && !studentNumberInput.disabled) {
+          lockPhoneNumberInput('student');
+        } else if (studentNumberInput) {
+          // Fields are already disabled, just add visual styling
+          studentNumberInput.classList.add('otp-locked');
+          if (studentCountrySelect) {
+            studentCountrySelect.classList.add('otp-locked');
+          }
+        }
+        
+        // Show OTP section with verified status
+        const otpSection = document.getElementById('studentOtpSection');
+        const otpStatus = document.getElementById('studentOtpStatus');
+        const sendBtn = document.getElementById('sendStudentOtpBtn');
+        const otpInput = document.getElementById('studentOtpInput');
+        const verifyBtn = document.getElementById('verifyStudentOtpBtn');
+        const otpInputGroup = document.getElementById('studentOtpInputGroup');
+        const otpTimer = document.getElementById('studentOtpTimer');
+        const resendBtn = document.getElementById('resendStudentOtpBtn');
+        
+        if (otpSection) {
+          otpSection.style.display = 'block';
+        }
+        if (sendBtn) {
+          sendBtn.style.display = 'none';
+        }
+        if (otpStatus) {
+          otpStatus.textContent = '✓ Verified';
+          otpStatus.className = 'otp-status success';
+        }
+        if (otpInput) {
+          otpInput.classList.add('verified');
+          otpInput.disabled = true;
+          otpInput.value = '000000';
+        }
+        if (verifyBtn) {
+          verifyBtn.style.display = 'none';
+        }
+        if (otpInputGroup) {
+          otpInputGroup.style.display = 'none';
+        }
+        if (otpTimer) {
+          otpTimer.style.display = 'none';
+        }
+        if (resendBtn) {
+          resendBtn.style.display = 'none';
+        }
+      } else if (phoneNumber && phoneNumber.length === expectedLength && !otpState.student.verified) {
+        // Automatically show OTP section if not verified
+        checkAndShowOtpSection('student');
+      } else if (otpState.student.verified) {
+        // If already verified, show the section with verified status
+        checkAndShowOtpSection('student');
+      }
+    }
+    
+    // Update button state after validating all pre-filled values
+    updateNextButtonState();
+  }, 500);
 });
 </script>
 
+<!-- Terms and Privacy Modal -->
+<div class="reading-modal" id="readingModal">
+  <div class="reading-modal-overlay" id="modalOverlay"></div>
+  <div class="reading-modal-container">
+    <div class="reading-modal-header">
+      <div class="modal-header-left">
+        <h3 id="modalTitle" data-english="Terms of Service" data-arabic="شروط الخدمة">Terms of Service</h3>
+        <!-- Language Toggle Button in Modal -->
+        <button class="modal-lang-toggle-btn" id="modalLangToggle" data-lang="en">
+          <i class="fas fa-globe"></i>
+          <span class="modal-lang-text">AR</span>
+        </button>
+      </div>
+      <button class="modal-close-btn" id="closeModalBtn" disabled data-english-title="Please read to the end" data-arabic-title="يرجى القراءة حتى النهاية" title="Please read to the end">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="reading-progress-bar">
+      <div class="reading-progress-track">
+        <div class="reading-progress-fill" id="readingProgressFill">
+          <div class="progress-shine"></div>
+        </div>
+        <div class="progress-steps">
+          <div class="progress-step" data-step="25"></div>
+          <div class="progress-step" data-step="50"></div>
+          <div class="progress-step" data-step="75"></div>
+        </div>
+      </div>
+      <div class="progress-info">
+        <span class="reading-progress-text" id="readingProgressText" data-english="Scroll to read: 0%" data-arabic="انتقل للقراءة: 0%">Scroll to read: 0%</span>
+        <span class="progress-percentage" id="progressPercentage">0%</span>
+      </div>
+    </div>
+    
+    <div class="reading-modal-content" id="modalContent">
+      <!-- Content will be loaded here dynamically -->
+    </div>
+    
+    <div class="reading-modal-footer">
+      <button class="btn-confirm-read" id="confirmReadBtn" disabled>
+        <i class="fas fa-check-circle"></i>
+        <span data-english="I Have Read and Understood" data-arabic="لقد قرأت وفهمت">I Have Read and Understood</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Styles -->
+<style>
+/* Reading Modal Styles */
+.reading-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.reading-modal.active {
+  display: flex;
+  opacity: 1;
+}
+
+.reading-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+}
+
+.reading-modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1;
+  animation: modalSlideIn 0.4s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: scale(0.9) translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.reading-modal-header {
+  padding: 25px 30px;
+  border-bottom: 2px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  position: relative;
+}
+
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+}
+
+.reading-modal-header h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+/* Modal Language Toggle Button - Fixed Position */
+.modal-lang-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border: 2px solid rgba(220, 38, 38, 0.2);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  direction: ltr;
+  text-align: left;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.modal-lang-toggle-btn:hover {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.3);
+  transform: translateY(-1px);
+}
+
+.modal-lang-toggle-btn i {
+  font-size: 0.9rem;
+}
+
+.modal-lang-text {
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+  direction: ltr;
+}
+
+.modal-close-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-size: 1.2rem;
+}
+
+.modal-close-btn:not(:disabled) {
+  cursor: pointer;
+  background: #dc2626;
+  color: white;
+}
+
+.modal-close-btn:not(:disabled):hover {
+  background: #b91c1c;
+  transform: scale(1.1);
+}
+
+.reading-progress-bar {
+  position: relative;
+  padding: 20px 30px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reading-progress-track {
+  position: relative;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.reading-progress-fill {
+  position: relative;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+  overflow: hidden;
+}
+
+.progress-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.progress-steps {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.progress-step {
+  width: 4px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reading-progress-text {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.progress-percentage {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #dc2626;
+  min-width: 45px;
+  text-align: right;
+}
+
+.reading-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px;
+  background: white;
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+.reading-modal-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.reading-modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.reading-modal-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+
+.reading-modal-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #b91c1c, #dc2626);
+}
+
+.reading-modal-footer {
+  padding: 25px 30px;
+  border-top: 2px solid #e5e7eb;
+  background: #f8f9fa;
+}
+
+.btn-confirm-read {
+  width: 100%;
+  padding: 18px 30px;
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: not-allowed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  opacity: 0.5;
+}
+
+.btn-confirm-read:not(:disabled) {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.btn-confirm-read:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
+}
+
+.btn-confirm-read i {
+  font-size: 1.3rem;
+}
+
+/* Terms Agreement Section */
+.terms-agreement-section {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.04) 0%, rgba(239, 68, 68, 0.04) 100%);
+  border: 2px solid rgba(220, 38, 38, 0.15);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  transition: all 0.3s ease;
+}
+
+.terms-agreement-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.terms-agreement-header i {
+  font-size: 1.3rem;
+  color: #dc2626;
+}
+
+.terms-agreement-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.terms-agreement-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #6b7280;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+/* Document Cards Grid */
+.terms-documents-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.document-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.document-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.05), transparent);
+  transition: left 0.5s ease;
+}
+
+.document-card:hover {
+  border-color: #dc2626;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.15);
+}
+
+.document-card:hover::before {
+  left: 100%;
+}
+
+.document-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(239, 68, 68, 0.1));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc2626;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+}
+
+.document-card:hover .document-card-icon {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+  transform: scale(1.1);
+}
+
+.document-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.document-card-content h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  transition: color 0.3s ease;
+}
+
+.document-card:hover .document-card-content h5 {
+  color: #dc2626;
+}
+
+.document-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.document-status.status-pending {
+  color: #d97706;
+}
+
+.document-status.status-pending i {
+  animation: clockSpin 2s linear infinite;
+}
+
+@keyframes clockSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.document-status.status-completed {
+  color: #15803d;
+}
+
+.document-card-arrow {
+  flex-shrink: 0;
+  color: #9ca3af;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.document-card:hover .document-card-arrow {
+  color: #dc2626;
+  transform: translateX(5px);
+}
+
+/* Completed state for document card */
+.document-card.completed {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(16, 185, 129, 0.05));
+}
+
+.document-card.completed:hover {
+  border-color: #15803d;
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.15);
+}
+
+.document-card.completed .document-card-icon {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.15));
+  color: #15803d;
+}
+
+.document-card.completed:hover .document-card-icon {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  color: white;
+}
+
+@keyframes statusComplete {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Completion Notice */
+.terms-completion-notice {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(16, 185, 129, 0.12) 100%);
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideInNotice 0.4s ease-out;
+}
+
+@keyframes slideInNotice {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.terms-completion-notice i {
+  font-size: 1.2rem;
+  color: #15803d;
+  flex-shrink: 0;
+  animation: checkPulse 0.6s ease-in-out;
+}
+
+@keyframes checkPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.terms-completion-notice span {
+  font-size: 0.85rem;
+  color: #15803d;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Dark Theme Support */
+.dark-theme .terms-agreement-section {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(239, 68, 68, 0.08) 100%);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.dark-theme .terms-agreement-header h4 {
+  color: #ef4444;
+}
+
+.dark-theme .terms-agreement-text {
+  color: #9ca3af;
+}
+
+.dark-theme .document-card {
+  background: #2d2d2d;
+  border-color: #374151;
+}
+
+.dark-theme .document-card:hover {
+  border-color: #ef4444;
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.2);
+}
+
+.dark-theme .document-card-content h5 {
+  color: #f3f4f6;
+}
+
+.dark-theme .document-card:hover .document-card-content h5 {
+  color: #ef4444;
+}
+
+.dark-theme .document-status.status-pending {
+  color: #fbbf24;
+}
+
+.dark-theme .document-status.status-completed {
+  color: #4ade80;
+}
+
+.dark-theme .document-card.completed {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(16, 185, 129, 0.08));
+}
+
+.dark-theme .document-card.completed:hover {
+  border-color: #4ade80;
+}
+
+.dark-theme .terms-completion-notice {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.dark-theme .terms-completion-notice i,
+.dark-theme .terms-completion-notice span {
+  color: #4ade80;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .terms-agreement-section {
+    padding: 16px;
+  }
+  
+  .terms-agreement-header h4 {
+    font-size: 1rem;
+  }
+  
+  .terms-agreement-text {
+    font-size: 0.85rem;
+  }
+  
+  .terms-documents-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .document-card {
+    padding: 12px;
+  }
+  
+  .document-card-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+  
+  .document-card-content h5 {
+    font-size: 0.9rem;
+  }
+  
+  .document-status {
+    font-size: 0.75rem;
+  }
+  
+  .terms-completion-notice {
+    padding: 10px 14px;
+  }
+  
+  .terms-completion-notice span {
+    font-size: 0.8rem;
+  }
+}
+
+/* Dark Theme Support */
+.dark-theme .reading-modal-container {
+  background: #1a1a1a;
+}
+
+.dark-theme .reading-modal-header {
+  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+  border-bottom-color: #374151;
+}
+
+.dark-theme .reading-modal-header h3 {
+  color: #ef4444;
+}
+
+.dark-theme .reading-progress-bar {
+  background: #2d2d2d;
+}
+
+.dark-theme .reading-progress-text {
+  color: #d1d5db;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.dark-theme .reading-modal-content {
+  background: #1a1a1a;
+  color: #d1d5db;
+}
+
+.dark-theme .reading-modal-content h3,
+.dark-theme .reading-modal-content h4 {
+  color: #f3f4f6;
+}
+
+.dark-theme .reading-modal-content p,
+.dark-theme .reading-modal-content li {
+  color: #d1d5db;
+}
+
+.dark-theme .reading-modal-footer {
+  background: #2d2d2d;
+  border-top-color: #374151;
+}
+
+.dark-theme .modal-close-btn {
+  background: #374151;
+  color: #9ca3af;
+}
+
+.dark-theme .modal-close-btn:not(:disabled) {
+  background: #ef4444;
+  color: white;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .reading-modal-container {
+    width: 95%;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+  
+  .reading-modal-header {
+    padding: 20px;
+  }
+  
+  .reading-modal-header h3 {
+    font-size: 1.4rem;
+  }
+  
+  .reading-modal-content {
+    padding: 25px 20px;
+  }
+  
+  .reading-modal-footer {
+    padding: 20px;
+  }
+  
+  .btn-confirm-read {
+    padding: 16px 24px;
+    font-size: 1rem;
+  }
+  
+  .terms-status-info {
+    flex-direction: column;
+  }
+  
+  .status-badge {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Modal Content Styles */
+.modal-document-content {
+  color: #374151;
+  line-height: 1.7;
+}
+
+.document-section {
+  margin-bottom: 35px;
+  padding: 25px;
+  background: rgba(248, 250, 252, 0.5);
+  border-radius: 16px;
+  border-left: 4px solid #dc2626;
+}
+
+.document-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1f2937;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.section-number {
+  width: 36px;
+  height: 36px;
+  background: #dc2626;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.document-section h4 {
+  color: #1f2937;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 20px 0 12px 0;
+}
+
+.document-section p {
+  margin-bottom: 15px;
+  color: #4b5563;
+}
+
+.document-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0;
+}
+
+.document-section ul li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  color: #4b5563;
+}
+
+.document-section ul li i {
+  color: #dc2626;
+  font-size: 0.95rem;
+  width: 18px;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(220, 38, 38, 0.05);
+  border: 1px solid rgba(220, 38, 38, 0.1);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.info-note i {
+  color: #dc2626;
+  font-size: 1.2rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.info-note p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+/* Dark theme for modal content */
+.dark-theme .modal-document-content {
+  color: #d1d5db;
+}
+
+.dark-theme .document-section {
+  background: rgba(51, 65, 85, 0.3);
+}
+
+.dark-theme .document-section h3,
+.dark-theme .document-section h4 {
+  color: #f3f4f6;
+}
+
+.dark-theme .document-section p,
+.dark-theme .document-section ul li {
+  color: #d1d5db;
+}
+
+.dark-theme .info-note {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+.dark-theme .info-note p {
+  color: #d1d5db;
+}
+
+/* RTL Support for Modal - Only content, not header */
+.reading-modal-content.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .modal-document-content {
+  direction: rtl;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .reading-progress-fill {
+  right: 0;
+  left: auto;
+}
+
+.reading-modal-content.rtl .progress-info {
+  flex-direction: row-reverse;
+}
+
+.reading-modal-content.rtl .progress-percentage {
+  text-align: left;
+}
+
+.reading-modal-content.rtl .document-section {
+  border-left: none;
+  border-right: 4px solid #dc2626;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section h3 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section h3 .section-number {
+  order: 2;
+  margin-left: 12px;
+  margin-right: 0;
+}
+
+.reading-modal-content.rtl .document-section h4 {
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section p {
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section ul {
+  text-align: right;
+}
+
+.reading-modal-content.rtl .document-section ul li {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: embed;
+  position: relative;
+}
+
+.reading-modal-content.rtl .document-section ul li i {
+  order: 2;
+  margin-left: 0;
+  margin-right: 0;
+  flex-shrink: 0;
+  width: 18px;
+  direction: ltr;
+  text-align: center;
+}
+
+.reading-modal-content.rtl .document-section ul li strong {
+  order: 1;
+  text-align: right;
+  direction: rtl;
+  margin-left: 0;
+  margin-right: 0;
+  unicode-bidi: embed;
+}
+
+.reading-modal-content.rtl .document-section ul li span {
+  order: 1;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: embed;
+  flex: 1;
+}
+
+/* Ensure all non-icon content in list items flows RTL */
+.reading-modal-content.rtl .document-section ul li > *:not(i) {
+  order: 1;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.reading-modal-content.rtl .info-note {
+  flex-direction: row;
+  justify-content: flex-start;
+  text-align: right;
+}
+
+.reading-modal-content.rtl .info-note i {
+  order: 2;
+  margin-left: 12px;
+  margin-right: 0;
+}
+
+.reading-modal-content.rtl .info-note p {
+  order: 1;
+  text-align: right;
+}
+
+/* Keep header and button in LTR */
+.reading-modal-header,
+.modal-lang-toggle-btn {
+  direction: ltr;
+}
+</style>
+
+<!-- Modal Reading Tracking Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Track reading status
+  const readingStatus = {
+    terms: false,
+    privacy: false
+  };
+  
+  // Modal Elements
+  const modal = document.getElementById('readingModal');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalContent = document.getElementById('modalContent');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const confirmReadBtn = document.getElementById('confirmReadBtn');
+  const readingProgressFill = document.getElementById('readingProgressFill');
+  const readingProgressText = document.getElementById('readingProgressText');
+  
+  // Trigger Elements
+  const openTermsModal = document.getElementById('openTermsModal');
+  const openPrivacyModal = document.getElementById('openPrivacyModal');
+  
+  // Status Elements
+  const termsReadStatus = document.getElementById('termsReadStatus');
+  const privacyReadStatus = document.getElementById('privacyReadStatus');
+  const termsCompletionNotice = document.getElementById('termsCompletionNotice');
+  const submitBtn = document.getElementById('submitBtn');
+  
+  let currentDocument = null;
+  let hasScrolledToBottom = false;
+  
+  // Terms of Service Content
+  const termsContent = `
+    <div class="modal-document-content">
+      <div class="document-section">
+        <h3><span class="section-number">1</span> Acceptance of Terms</h3>
+        <p>By accessing and using Elkably's educational platform, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">2</span> Educational Services</h3>
+        <p>Elkably provides educational services including:</p>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> Online mathematics courses and tutoring</li>
+          <li><i class="fas fa-check-circle"></i> Practice tests and quizzes</li>
+          <li><i class="fas fa-check-circle"></i> Interactive learning materials</li>
+          <li><i class="fas fa-check-circle"></i> Progress tracking and analytics</li>
+          <li><i class="fas fa-check-circle"></i> Multiplayer quiz games</li>
+        </ul>
+        <p>All services are provided on an "as is" basis and we reserve the right to modify or discontinue any service at any time.</p>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">3</span> User Accounts</h3>
+        <p>To access certain features of our platform, you must create an account. You are responsible for:</p>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> Providing accurate and complete information</li>
+          <li><i class="fas fa-check-circle"></i> Maintaining the security of your account</li>
+          <li><i class="fas fa-check-circle"></i> All activities that occur under your account</li>
+          <li><i class="fas fa-check-circle"></i> Notifying us immediately of any unauthorized use</li>
+        </ul>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">4</span> Payment Terms</h3>
+        <p>Payment terms for our services:</p>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> All fees are non-refundable unless otherwise stated</li>
+          <li><i class="fas fa-check-circle"></i> Payment must be made in advance of service delivery</li>
+          <li><i class="fas fa-check-circle"></i> We accept various payment methods as displayed during checkout</li>
+          <li><i class="fas fa-check-circle"></i> Prices may change at any time with notice to existing users</li>
+        </ul>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">5</span> Course Guidelines</h3>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> Attendance is A MUST for all live and on-ground sessions.</li>
+          <li><i class="fas fa-check-circle"></i> Any student who is absent 3 times will be dismissed from the course, whether attending on-ground or online.</li>
+          <li><i class="fas fa-check-circle"></i> Submitting homework is A MUST to be allowed to attend the session.</li>
+          <li><i class="fas fa-check-circle"></i> For live sessions, having the Microphone On is mandatory to ensure participation with Mr. Kably.</li>
+          <li><i class="fas fa-check-circle"></i> Camera Must be on during live sessions for better participation and communication.</li>
+        </ul>
+      </div>
+    </div>
+  `;
+  
+  // Privacy Policy Content
+  const privacyContent = `
+    <div class="modal-document-content">
+      <div class="document-section">
+        <h3><span class="section-number">1</span> Information We Collect</h3>
+        <h4>Personal Information</h4>
+        <p>When you register for our services, we collect:</p>
+        <ul>
+          <li><i class="fas fa-user"></i> Name, email address, and username</li>
+          <li><i class="fas fa-phone"></i> Phone numbers (student and parent)</li>
+          <li><i class="fas fa-school"></i> School information and grade level</li>
+          <li><i class="fas fa-id-card"></i> Student identification numbers</li>
+          <li><i class="fas fa-chalkboard-teacher"></i> Teacher information</li>
+        </ul>
+        
+        <h4>Educational Data</h4>
+        <p>To provide personalized learning experiences, we collect:</p>
+        <ul>
+          <li><i class="fas fa-chart-line"></i> Quiz scores and test results</li>
+          <li><i class="fas fa-clock"></i> Time spent on learning activities</li>
+          <li><i class="fas fa-book"></i> Course progress and completion data</li>
+          <li><i class="fas fa-gamepad"></i> Game room participation and rankings</li>
+          <li><i class="fas fa-star"></i> Performance analytics and insights</li>
+        </ul>
+        
+        <h4>Technical Information</h4>
+        <p>We automatically collect certain technical information:</p>
+        <ul>
+          <li><i class="fas fa-globe"></i> IP address and location data</li>
+          <li><i class="fas fa-desktop"></i> Device type and browser information</li>
+          <li><i class="fas fa-cookie"></i> Cookies and similar tracking technologies</li>
+          <li><i class="fas fa-history"></i> Usage patterns and platform interactions</li>
+        </ul>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">2</span> How We Use Your Information</h3>
+        <p>We use your information for the following purposes:</p>
+        <ul>
+          <li><i class="fas fa-graduation-cap"></i> <strong>Educational Services:</strong> Provide personalized learning experiences and track progress</li>
+          <li><i class="fas fa-comments"></i> <strong>Communication:</strong> Send important updates, notifications, and educational content</li>
+          <li><i class="fas fa-cogs"></i> <strong>Platform Improvement:</strong> Enhance our services and develop new features</li>
+          <li><i class="fas fa-shield-alt"></i> <strong>Security:</strong> Protect against fraud and unauthorized access</li>
+          <li><i class="fas fa-chart-bar"></i> <strong>Analytics:</strong> Understand usage patterns to improve our platform</li>
+          <li><i class="fas fa-credit-card"></i> <strong>Payment Processing:</strong> Handle course purchases and billing</li>
+        </ul>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">3</span> Information Sharing and Disclosure</h3>
+        <p>We do not sell, trade, or rent your personal information. We may share your information in the following limited circumstances:</p>
+        <ul>
+          <li><i class="fas fa-users"></i> <strong>With Your Consent:</strong> When you explicitly agree to share information</li>
+          <li><i class="fas fa-gavel"></i> <strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
+          <li><i class="fas fa-handshake"></i> <strong>Service Providers:</strong> With trusted third parties who help us operate our platform</li>
+          <li><i class="fas fa-shield-alt"></i> <strong>Safety and Security:</strong> To protect the safety of our users and platform</li>
+        </ul>
+        <div class="info-note">
+          <i class="fas fa-info-circle"></i>
+          <p><strong>Note:</strong> All third-party service providers are required to maintain the confidentiality of your information and are prohibited from using it for any other purpose.</p>
+        </div>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">4</span> Data Security</h3>
+        <p>We implement comprehensive security measures to protect your information:</p>
+        <ul>
+          <li><i class="fas fa-lock"></i> <strong>Encryption:</strong> All data is encrypted in transit and at rest</li>
+          <li><i class="fas fa-server"></i> <strong>Secure Servers:</strong> Data stored on secure, monitored servers</li>
+          <li><i class="fas fa-key"></i> <strong>Access Controls:</strong> Limited access to personal information on a need-to-know basis</li>
+          <li><i class="fas fa-shield-alt"></i> <strong>Regular Audits:</strong> Security assessments and vulnerability testing</li>
+          <li><i class="fas fa-user-shield"></i> <strong>Staff Training:</strong> Regular privacy and security training for all employees</li>
+        </ul>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">5</span> Your Rights and Choices</h3>
+        <p>You have the following rights regarding your personal information:</p>
+        <ul>
+          <li><i class="fas fa-eye"></i> <strong>Access:</strong> Request a copy of your personal information</li>
+          <li><i class="fas fa-edit"></i> <strong>Correction:</strong> Update or correct inaccurate information</li>
+          <li><i class="fas fa-trash"></i> <strong>Deletion:</strong> Request deletion of your personal information</li>
+          <li><i class="fas fa-ban"></i> <strong>Restriction:</strong> Limit how we use your information</li>
+          <li><i class="fas fa-download"></i> <strong>Portability:</strong> Export your data in a machine-readable format</li>
+          <li><i class="fas fa-bell-slash"></i> <strong>Opt-out:</strong> Unsubscribe from marketing communications</li>
+        </ul>
+      </div>
+    </div>
+  `;
+  
+  // Open Modal Function
+  function openModal(type) {
+    currentDocument = type;
+    hasScrolledToBottom = false;
+    
+    // Reset progress
+    readingProgressFill.style.width = '0%';
+    if (progressPercentage) progressPercentage.textContent = '0%';
+    
+    // Apply language to modal (this will set content and title)
+    applyModalLanguage(modalLang);
+    
+    // Reset buttons
+    closeModalBtn.disabled = true;
+    confirmReadBtn.disabled = true;
+    if (modalLang === 'ar') {
+      closeModalBtn.title = 'يرجى القراءة حتى النهاية';
+    } else {
+      closeModalBtn.title = 'Please read to the end';
+    }
+    
+    // Show modal
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Scroll to top
+    modalContent.scrollTop = 0;
+    
+    // Update scroll tracking
+    updateScrollProgress();
+  }
+  
+  // Get modal content based on language
+  function getModalContent(type, lang) {
+    if (type === 'terms') {
+      if (lang === 'ar') {
+        return getTermsContentAR();
+      }
+      return getTermsContentEN();
+    } else {
+      if (lang === 'ar') {
+        return getPrivacyContentAR();
+      }
+      return getPrivacyContentEN();
+    }
+  }
+  
+  function getTermsContentEN() {
+    return termsContent;
+  }
+  
+  function getTermsContentAR() {
+    return `
+      <div class="modal-document-content">
+        <div class="document-section">
+          <h3><span class="section-number">1</span> قبول الشروط</h3>
+          <p>من خلال الوصول إلى منصة وكابلي التعليمية واستخدامها، فإنك تقبل وتوافق على الالتزام بشروط وأحكام هذه الاتفاقية. إذا كنت لا توافق على الالتزام بما سبق، يرجى عدم استخدام هذه الخدمة.</p>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">2</span> الخدمات التعليمية</h3>
+          <p>يوفر وكابلي خدمات تعليمية تشمل:</p>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> دورات الرياضيات عبر الإنترنت والدروس الخصوصية</span></li>
+            <li><i class="fas fa-check-circle"></i><span> الاختبارات التدريبية والاختبارات القصيرة</span></li>
+            <li><i class="fas fa-check-circle"></i><span> مواد تعليمية تفاعلية</span></li>
+            <li><i class="fas fa-check-circle"></i><span> تتبع التقدم والتحليلات</span></li>
+            <li><i class="fas fa-check-circle"></i><span> ألعاب الاختبارات متعددة اللاعبين</span></li>
+          </ul>
+          <p>يتم توفير جميع الخدمات على أساس "كما هي" ونحتفظ بالحق في تعديل أو إيقاف أي خدمة في أي وقت.</p>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">3</span> حسابات المستخدمين</h3>
+          <p>للوصول إلى ميزات معينة في منصتنا، يجب عليك إنشاء حساب. أنت مسؤول عن:</p>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> توفير معلومات دقيقة وكاملة</span></li>
+            <li><i class="fas fa-check-circle"></i><span> الحفاظ على أمان حسابك</span></li>
+            <li><i class="fas fa-check-circle"></i><span> جميع الأنشطة التي تحدث تحت حسابك</span></li>
+            <li><i class="fas fa-check-circle"></i><span> إخطارنا فوراً بأي استخدام غير مصرح به</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">4</span> شروط الدفع</h3>
+          <p>شروط الدفع لخدماتنا:</p>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> جميع الرسوم غير قابلة للاسترداد ما لم يذكر خلاف ذلك</span></li>
+            <li><i class="fas fa-check-circle"></i><span> يجب الدفع مسبقاً قبل تقديم الخدمة</span></li>
+            <li><i class="fas fa-check-circle"></i><span> نقبل طرق دفع متنوعة كما هو موضح أثناء الدفع</span></li>
+            <li><i class="fas fa-check-circle"></i><span> قد تتغير الأسعار في أي وقت مع إشعار المستخدمين الحاليين</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">5</span> إرشادات الدورة</h3>
+          <ul>
+            <li><i class="fas fa-check-circle"></i><span> <strong>الحضور إجباري</strong> لجميع الجلسات الحية والوجاهية.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> سيتم فصل أي طالب يتغيب <strong>3 مرات</strong> من الدورة، سواء كان يحضر وجاهياً أو عبر الإنترنت.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> <strong>تقديم الواجبات المنزلية إجباري</strong> للسماح بحضور الجلسة.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> لجلسات البث المباشر، يجب تشغيل <strong>الميكروفون إجبارياً</strong> لضمان المشاركة مع الأستاذ كابلي.</span></li>
+            <li><i class="fas fa-check-circle"></i><span> <strong>يجب تشغيل الكاميرا</strong> أثناء جلسات البث المباشر لمشاركة وتواصل أفضل.</span></li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+  
+  function getPrivacyContentEN() {
+    return privacyContent;
+  }
+  
+  function getPrivacyContentAR() {
+    return `
+      <div class="modal-document-content">
+        <div class="document-section">
+          <h3><span class="section-number">1</span> المعلومات التي نجمعها</h3>
+          <h4>المعلومات الشخصية</h4>
+          <p>عند التسجيل في خدماتنا، نقوم بجمع:</p>
+          <ul>
+            <li><i class="fas fa-user"></i><span> الاسم وعنوان البريد الإلكتروني واسم المستخدم</span></li>
+            <li><i class="fas fa-phone"></i><span> أرقام الهاتف (الطالب والوالد)</span></li>
+            <li><i class="fas fa-school"></i><span> معلومات المدرسة ومستوى الصف</span></li>
+            <li><i class="fas fa-id-card"></i><span> أرقام هوية الطالب</span></li>
+            <li><i class="fas fa-chalkboard-teacher"></i><span> معلومات المعلم</span></li>
+          </ul>
+          <h4>البيانات التعليمية</h4>
+          <p>لتوفير تجارب تعليمية مخصصة، نقوم بجمع:</p>
+          <ul>
+            <li><i class="fas fa-chart-line"></i><span> نتائج الاختبارات والامتحانات</span></li>
+            <li><i class="fas fa-clock"></i><span> الوقت المستغرق في الأنشطة التعليمية</span></li>
+            <li><i class="fas fa-book"></i><span> بيانات تقدم الدورة وإتمامها</span></li>
+            <li><i class="fas fa-gamepad"></i><span> مشاركة غرفة اللعبة والترتيب</span></li>
+            <li><i class="fas fa-star"></i><span> تحليلات الأداء والرؤى</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">2</span> كيفية استخدام معلوماتك</h3>
+          <p>نستخدم معلوماتك للأغراض التالية:</p>
+          <ul>
+            <li><i class="fas fa-graduation-cap"></i><span> <strong>الخدمات التعليمية:</strong> توفير تجارب تعليمية مخصصة وتتبع التقدم</span></li>
+            <li><i class="fas fa-comments"></i><span> <strong>التواصل:</strong> إرسال التحديثات والإشعارات والمحتوى التعليمي المهم</span></li>
+            <li><i class="fas fa-cogs"></i><span> <strong>تحسين المنصة:</strong> تعزيز خدماتنا وتطوير ميزات جديدة</span></li>
+            <li><i class="fas fa-shield-alt"></i><span> <strong>الأمان:</strong> الحماية من الاحتيال والوصول غير المصرح به</span></li>
+            <li><i class="fas fa-chart-bar"></i><span> <strong>التحليلات:</strong> فهم أنماط الاستخدام لتحسين منصتنا</span></li>
+            <li><i class="fas fa-credit-card"></i><span> <strong>معالجة المدفوعات:</strong> التعامل مع مشتريات الدورات والفواتير</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">3</span> مشاركة المعلومات والإفصاح</h3>
+          <p>نحن لا نبيع أو نتاجر أو نؤجر معلوماتك الشخصية. قد نشارك معلوماتك في الظروف المحدودة التالية:</p>
+          <ul>
+            <li><i class="fas fa-users"></i><span> <strong>بموافقتك:</strong> عندما توافق صراحة على مشاركة المعلومات</span></li>
+            <li><i class="fas fa-gavel"></i><span> <strong>المتطلبات القانونية:</strong> عندما يتطلب القانون ذلك أو لحماية حقوقنا</span></li>
+            <li><i class="fas fa-handshake"></i><span> <strong>مقدمي الخدمات:</strong> مع أطراف ثالثة موثوقة تساعدنا في تشغيل منصتنا</span></li>
+            <li><i class="fas fa-shield-alt"></i><span> <strong>السلامة والأمان:</strong> لحماية سلامة مستخدمينا ومنصتنا</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">4</span> أمان البيانات</h3>
+          <p>نطبق تدابير أمنية شاملة لحماية معلوماتك:</p>
+          <ul>
+            <li><i class="fas fa-lock"></i><span> <strong>التشفير:</strong> يتم تشفير جميع البيانات أثناء النقل والتخزين</span></li>
+            <li><i class="fas fa-server"></i><span> <strong>خوادم آمنة:</strong> البيانات مخزنة على خوادم آمنة ومراقبة</span></li>
+            <li><i class="fas fa-key"></i><span> <strong>ضوابط الوصول:</strong> وصول محدود إلى المعلومات الشخصية على أساس الحاجة إلى المعرفة</span></li>
+            <li><i class="fas fa-shield-alt"></i><span> <strong>عمليات التدقيق المنتظمة:</strong> تقييمات الأمان واختبار الثغرات</span></li>
+            <li><i class="fas fa-user-shield"></i><span> <strong>تدريب الموظفين:</strong> تدريب منتظم على الخصوصية والأمان لجميع الموظفين</span></li>
+          </ul>
+        </div>
+        <div class="document-section">
+          <h3><span class="section-number">5</span> حقوقك وخياراتك</h3>
+          <p>لديك الحقوق التالية فيما يتعلق بمعلوماتك الشخصية:</p>
+          <ul>
+            <li><i class="fas fa-eye"></i><span> <strong>الوصول:</strong> طلب نسخة من معلوماتك الشخصية</span></li>
+            <li><i class="fas fa-edit"></i><span> <strong>التصحيح:</strong> تحديث أو تصحيح معلومات غير دقيقة</span></li>
+            <li><i class="fas fa-trash"></i><span> <strong>الحذف:</strong> طلب حذف معلوماتك الشخصية</span></li>
+            <li><i class="fas fa-ban"></i><span> <strong>القيود:</strong> تحديد كيفية استخدامنا لمعلوماتك</span></li>
+            <li><i class="fas fa-download"></i><span> <strong>قابلية النقل:</strong> تصدير بياناتك بتنسيق قابل للقراءة آلياً</span></li>
+            <li><i class="fas fa-bell-slash"></i><span> <strong>إلغاء الاشتراك:</strong> إلغاء الاشتراك في الاتصالات التسويقية</span></li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Close Modal Function
+  function closeModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  // Modal Language Toggle
+  let modalLang = localStorage.getItem('modalLang') || 'en';
+  const modalLangToggle = document.getElementById('modalLangToggle');
+  const progressPercentage = document.getElementById('progressPercentage');
+  
+  // Initialize modal language button - Show opposite language
+  if (modalLangToggle) {
+    if (modalLang === 'ar') {
+      // When Arabic is selected, show "EN" button
+      modalLangToggle.querySelector('.modal-lang-text').textContent = 'EN';
+    } else {
+      // When English is selected, show "AR" button
+      modalLangToggle.querySelector('.modal-lang-text').textContent = 'AR';
+    }
+    modalLangToggle.setAttribute('data-lang', modalLang);
+  }
+  
+  if (modalLangToggle) {
+    modalLangToggle.addEventListener('click', function() {
+      modalLang = modalLang === 'en' ? 'ar' : 'en';
+      localStorage.setItem('modalLang', modalLang);
+      
+      // Save current scroll position and completion status
+      const currentScrollTop = modalContent.scrollTop;
+      const wasAtBottom = hasScrolledToBottom;
+      
+      // Reload modal content with new language
+      applyModalLanguage(modalLang);
+      
+      // Restore scroll position after content loads
+      setTimeout(() => {
+        modalContent.scrollTop = currentScrollTop;
+        updateScrollProgress();
+        // If was at bottom, ensure buttons are still enabled
+        if (wasAtBottom && modalContent.scrollTop + modalContent.clientHeight >= modalContent.scrollHeight - 10) {
+          hasScrolledToBottom = true;
+          closeModalBtn.disabled = false;
+          confirmReadBtn.disabled = false;
+        }
+      }, 50);
+    });
+  }
+  
+  function applyModalLanguage(lang) {
+    // Update language toggle button - Show opposite language
+    if (modalLangToggle) {
+      if (lang === 'ar') {
+        // When Arabic is selected, show "EN" button (to switch to English)
+        modalLangToggle.querySelector('.modal-lang-text').textContent = 'EN';
+        modalLangToggle.setAttribute('data-lang', 'ar');
+      } else {
+        // When English is selected, show "AR" button (to switch to Arabic)
+        modalLangToggle.querySelector('.modal-lang-text').textContent = 'AR';
+        modalLangToggle.setAttribute('data-lang', 'en');
+      }
+    }
+    
+    // Reload modal content with new language if document is set
+    if (currentDocument) {
+      // Get the new content in the selected language
+      const newContent = getModalContent(currentDocument, lang);
+      modalContent.innerHTML = newContent;
+      
+      // Update modal title
+      if (currentDocument === 'terms') {
+        const titleText = lang === 'ar' ? 'شروط الخدمة' : 'Terms of Service';
+        modalTitle.textContent = titleText;
+      } else {
+        const titleText = lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy';
+        modalTitle.textContent = titleText;
+      }
+    }
+    
+    // Apply RTL only to modal content, not the whole modal
+    if (lang === 'ar') {
+      modalContent.classList.add('rtl');
+    } else {
+      modalContent.classList.remove('rtl');
+    }
+    
+    // Update all text elements with data attributes (for buttons, progress text, etc.)
+    const textElements = modal.querySelectorAll('[data-english][data-arabic]');
+    textElements.forEach(element => {
+      const text = lang === 'ar' ? element.getAttribute('data-arabic') : element.getAttribute('data-english');
+      element.textContent = text;
+    });
+    
+    // Update buttons text
+    const confirmBtnText = confirmReadBtn.querySelector('span').getAttribute(lang === 'ar' ? 'data-arabic' : 'data-english');
+    if (confirmBtnText) confirmReadBtn.querySelector('span').textContent = confirmBtnText;
+    
+    const closeBtnTitle = closeModalBtn.getAttribute(lang === 'ar' ? 'data-arabic-title' : 'data-english-title');
+    if (closeBtnTitle) closeModalBtn.title = closeBtnTitle;
+    
+    // Update progress text
+    updateProgressText();
+  }
+  
+  function updateProgressText() {
+    const scrollTop = modalContent.scrollTop;
+    const scrollHeight = modalContent.scrollHeight;
+    const clientHeight = modalContent.clientHeight;
+    const scrollableHeight = scrollHeight - clientHeight;
+    const scrollPercentage = (scrollTop / scrollableHeight) * 100;
+    const percentage = Math.round(Math.min(scrollPercentage, 100));
+    
+    if (percentage >= 100) {
+      readingProgressText.textContent = modalLang === 'ar' ? 'اكتملت القراءة! ✓' : 'Reading complete! ✓';
+    } else {
+      const text = readingProgressText.getAttribute(modalLang === 'ar' ? 'data-arabic' : 'data-english');
+      readingProgressText.textContent = text.replace('0%', `${percentage}%`);
+    }
+    if (progressPercentage) {
+      progressPercentage.textContent = `${percentage}%`;
+    }
+  }
+  
+  // Update Scroll Progress
+  function updateScrollProgress() {
+    const scrollTop = modalContent.scrollTop;
+    const scrollHeight = modalContent.scrollHeight;
+    const clientHeight = modalContent.clientHeight;
+    
+    const scrollableHeight = scrollHeight - clientHeight;
+    const scrollPercentage = (scrollTop / scrollableHeight) * 100;
+    const percentage = Math.min(scrollPercentage, 100);
+    
+    // Update progress bar
+    readingProgressFill.style.width = percentage + '%';
+    
+    // Update progress text and percentage
+    updateProgressText();
+    
+    // Update progress steps visibility
+    const steps = document.querySelectorAll('.progress-step');
+    steps.forEach((step, index) => {
+      const stepValue = [25, 50, 75][index];
+      if (percentage >= stepValue) {
+        step.style.opacity = '1';
+        step.style.background = '#dc2626';
+      } else {
+        step.style.opacity = '0.5';
+        step.style.background = 'rgba(255, 255, 255, 0.6)';
+      }
+    });
+    
+    // Check if user has scrolled to the bottom (with 10px threshold)
+    if (scrollTop + clientHeight >= scrollHeight - 10) {
+      hasScrolledToBottom = true;
+      closeModalBtn.disabled = false;
+      confirmReadBtn.disabled = false;
+      updateProgressText();
+      if (modalLang === 'ar') {
+        closeModalBtn.title = 'إغلاق';
+      } else {
+        closeModalBtn.title = 'Close';
+      }
+    }
+  }
+  
+  // Confirm Read Function
+  function confirmRead() {
+    if (!hasScrolledToBottom) return;
+    
+    // Mark as read
+    readingStatus[currentDocument] = true;
+    
+    // Update status and card appearance
+    if (currentDocument === 'terms') {
+      const card = document.getElementById('openTermsModal');
+      termsReadStatus.className = 'document-status status-completed';
+      termsReadStatus.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
+      if (card) {
+        card.classList.add('completed');
+      }
+    } else {
+      const card = document.getElementById('openPrivacyModal');
+      privacyReadStatus.className = 'document-status status-completed';
+      privacyReadStatus.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
+      if (card) {
+        card.classList.add('completed');
+      }
+    }
+    
+    // Show completion notice and enable submit button if both are read
+    if (readingStatus.terms && readingStatus.privacy) {
+      if (termsCompletionNotice) {
+        termsCompletionNotice.style.display = 'flex';
+      }
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('btn-disabled');
+        // Scroll to submit button for better UX
+        setTimeout(() => {
+          submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    }
+    
+    // Close modal
+    closeModal();
+  }
+  
+  // Event Listeners
+  if (openTermsModal) {
+    openTermsModal.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal('terms');
+    });
+  }
+  
+  if (openPrivacyModal) {
+    openPrivacyModal.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal('privacy');
+    });
+  }
+  
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', closeModal);
+  }
+  
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', function() {
+      if (!closeModalBtn.disabled) {
+        closeModal();
+      }
+    });
+  }
+  
+  if (confirmReadBtn) {
+    confirmReadBtn.addEventListener('click', confirmRead);
+  }
+  
+  if (modalContent) {
+    modalContent.addEventListener('scroll', updateScrollProgress);
+  }
+  
+  // ESC key to close (only if reading is complete)
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.classList.contains('active') && !closeModalBtn.disabled) {
+      closeModal();
+    }
+  });
+  
+  // Auto-hide server-side error alerts after a longer duration (30 seconds)
+  const errorAlert = document.querySelector('.alert-danger.auth-alert');
+  if (errorAlert) {
+    setTimeout(() => {
+      errorAlert.style.transition = 'opacity 0.5s ease-out';
+      errorAlert.style.opacity = '0';
+      setTimeout(() => {
+        errorAlert.style.display = 'none';
+      }, 500);
+    }, 30000); // 30 seconds
+  }
+});
+</script>

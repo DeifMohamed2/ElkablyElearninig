@@ -3,6 +3,7 @@ const User = require('../models/User');
 const axios = require('axios');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 const crypto = require('crypto');
+const { sendSms } = require('../utils/sms');
 
 // Get login page
 const getLoginPage = (req, res) => {
@@ -17,6 +18,7 @@ const getRegisterPage = (req, res) => {
   res.render('auth/register', {
     title: 'Register | ELKABLY',
     theme: req.cookies.theme || 'light',
+    studentPhoneVerified: req.session.student_phone_verified || false,
   });
 };
 
@@ -112,6 +114,202 @@ const createAdmin = async (req, res) => {
   }
 };
 
+// Generate a random 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send OTP to phone number
+const sendOTP = async (req, res) => {
+  try {
+    const { phoneNumber, countryCode, type } = req.body; // type: 'student' or 'parent'
+    
+    if (!phoneNumber || !countryCode) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Phone number and country code are required' 
+      });
+    }
+
+    // Validate phone number format
+    const cleanPhoneNumber = phoneNumber.replace(/[^\d]/g, '');
+    if (!cleanPhoneNumber || cleanPhoneNumber.length < 8) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid phone number format' 
+      });
+    }
+
+    // Rate limiting: Check OTP send attempts (3 attempts per hour)
+    const attemptsKey = `${type}_otp_attempts`;
+    const attemptsBlockedKey = `${type}_otp_blocked_until`;
+    const maxAttempts = 3;
+    const blockDuration = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    // Initialize attempts counter if not exists
+    if (!req.session[attemptsKey]) {
+      req.session[attemptsKey] = 0;
+    }
+
+    // Check if user is currently blocked
+    const blockedUntil = req.session[attemptsBlockedKey];
+    if (blockedUntil && Date.now() < blockedUntil) {
+      const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / (60 * 1000));
+      return res.status(429).json({
+        success: false,
+        message: `Too many OTP requests. Please try again after ${remainingMinutes} minute(s).`,
+        blockedUntil: blockedUntil,
+        retryAfter: remainingMinutes
+      });
+    }
+
+    // Reset attempts if block period has passed
+    if (blockedUntil && Date.now() >= blockedUntil) {
+      req.session[attemptsKey] = 0;
+      delete req.session[attemptsBlockedKey];
+    }
+
+    // Check if user has exceeded max attempts (check BEFORE incrementing)
+    if (req.session[attemptsKey] >= maxAttempts) {
+      const blockUntil = Date.now() + blockDuration;
+      req.session[attemptsBlockedKey] = blockUntil;
+      const remainingMinutes = Math.ceil(blockDuration / (60 * 1000));
+      
+      return res.status(429).json({
+        success: false,
+        message: `You have exceeded the maximum number of OTP requests (${maxAttempts}). Please try again after ${remainingMinutes} minute(s).`,
+        blockedUntil: blockUntil,
+        retryAfter: remainingMinutes
+      });
+    }
+
+    // Increment attempts counter (only if not blocked)
+    req.session[attemptsKey] = (req.session[attemptsKey] || 0) + 1;
+
+    // Generate OTP
+    const otp = generateOTP();
+    console.log('OTP:', otp);
+    const fullPhoneNumber = countryCode + cleanPhoneNumber;
+
+    // Store OTP in session with expiration (5 minutes)
+    const otpKey = `${type}_otp`;
+    const otpExpiryKey = `${type}_otp_expiry`;
+    
+    req.session[otpKey] = otp;
+    req.session[otpExpiryKey] = Date.now() + (5 * 60 * 1000); // 5 minutes
+    req.session[`${type}_phone_verified`] = false;
+    req.session[`${type}_phone_number`] = fullPhoneNumber;
+
+    // Send OTP via SMS
+    const message = `Your ELKABLY verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+    
+    try {
+      await sendSms({
+        recipient: fullPhoneNumber,
+        message: message,
+      });
+      
+      console.log(`OTP sent to ${fullPhoneNumber} for ${type}`);
+      
+      return res.json({
+        success: true,
+        message: 'OTP sent successfully',
+        expiresIn: 300, // 5 minutes in seconds
+        attemptsRemaining: maxAttempts - req.session[attemptsKey]
+      });
+    } catch (smsError) {
+      console.error('SMS sending error:', smsError);
+      
+      // Clear session on SMS failure
+      delete req.session[otpKey];
+      delete req.session[otpExpiryKey];
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please try again.',
+        error: smsError.message,
+      });
+    }
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while sending OTP',
+      error: error.message,
+    });
+  }
+};
+
+// Verify OTP
+const verifyOTP = async (req, res) => {
+  try {
+    const { otp, type } = req.body; // type: 'student' or 'parent'
+    
+    if (!otp || !type) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP and type are required',
+      });
+    }
+
+    const otpKey = `${type}_otp`;
+    const otpExpiryKey = `${type}_otp_expiry`;
+    const storedOTP = req.session[otpKey];
+    const expiryTime = req.session[otpExpiryKey];
+
+    // Check if OTP exists
+    if (!storedOTP || !expiryTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP not found or expired. Please request a new OTP.',
+      });
+    }
+
+    // Check if OTP has expired
+    if (Date.now() > expiryTime) {
+      delete req.session[otpKey];
+      delete req.session[otpExpiryKey];
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new OTP.',
+      });
+    }
+
+    // Verify OTP
+    if (otp.toString() !== storedOTP.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP. Please try again.',
+      });
+    }
+
+    // Mark phone as verified
+    req.session[`${type}_phone_verified`] = true;
+    
+    // Clear OTP from session (one-time use)
+    delete req.session[otpKey];
+    delete req.session[otpExpiryKey];
+    
+    // Reset OTP attempts counter on successful verification
+    const attemptsKey = `${type}_otp_attempts`;
+    const attemptsBlockedKey = `${type}_otp_blocked_until`;
+    delete req.session[attemptsKey];
+    delete req.session[attemptsBlockedKey];
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully',
+    });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while verifying OTP',
+      error: error.message,
+    });
+  }
+};
+
 // Register user
 const registerUser = async (req, res) => {
   const {
@@ -146,6 +344,58 @@ const registerUser = async (req, res) => {
   }
 
   let errors = [];
+
+  // Verify OTP for student phone number
+  if (!req.session.student_phone_verified) {
+    errors.push({ 
+      msg: 'Student phone number must be verified with OTP before registration',
+      field: 'studentNumber'
+    });
+  }
+
+  // SECURITY: Verify student phone number matches the verified one (prevent tampering)
+  if (req.session.student_phone_verified) {
+    const cleanStudentNumber = studentNumber.replace(/[^\d]/g, '');
+    const verifiedStudentPhone = req.session.student_phone_number || '';
+    const expectedStudentPhone = studentCountryCode + cleanStudentNumber;
+    
+    if (!verifiedStudentPhone || verifiedStudentPhone !== expectedStudentPhone) {
+      console.error('Security violation: Student phone number mismatch', {
+        verified: verifiedStudentPhone,
+        submitted: expectedStudentPhone
+      });
+      errors.push({ 
+        msg: 'Student phone number does not match the verified number. Phone number cannot be changed after verification.',
+        field: 'studentNumber'
+      });
+      // Clear verification to force re-verification
+      delete req.session.student_phone_verified;
+      delete req.session.student_phone_number;
+    }
+  }
+
+  // If OTP verification failed, return early with errors
+  if (errors.length > 0) {
+    console.log('OTP verification errors:', errors);
+    return res.render('auth/register', {
+      title: 'Register | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      errors,
+      firstName,
+      lastName,
+      studentNumber,
+      studentCountryCode,
+      parentNumber,
+      parentCountryCode,
+      studentEmail,
+      username,
+      schoolName,
+      grade,
+      englishTeacher,
+      howDidYouKnow,
+      studentPhoneVerified: req.session.student_phone_verified || false,
+    });
+  }
 
   // Check required fields
   if (
@@ -316,6 +566,7 @@ const registerUser = async (req, res) => {
       grade,
       englishTeacher,
       howDidYouKnow,
+      studentPhoneVerified: req.session.student_phone_verified || false,
     });
   }
 
@@ -391,6 +642,15 @@ const registerUser = async (req, res) => {
     });
 
     const savedUser = await newUser.save();
+    
+    // Clear OTP verification flags after successful registration
+    delete req.session.student_phone_verified;
+    delete req.session.student_phone_number;
+    delete req.session.student_otp;
+    delete req.session.student_otp_expiry;
+    // Clear rate limiting counters after successful registration
+    delete req.session.student_otp_attempts;
+    delete req.session.student_otp_blocked_until;
     
     // Send student data to online system API
     try {
@@ -551,9 +811,7 @@ const loginUser = async (req, res) => {
       user = await User.findOne({ 
         $or: [
           { studentNumber: inputValue },
-          { parentNumber: inputValue },
           { $expr: { $eq: [{ $concat: ['$studentCountryCode', '$studentNumber'] }, inputValue] } },
-          { $expr: { $eq: [{ $concat: ['$parentCountryCode', '$parentNumber'] }, inputValue] } }
         ]
       });
       if (!user) {
@@ -570,7 +828,7 @@ const loginUser = async (req, res) => {
         });
       }
     }
-
+    console.log('User found:', user);
     if (!user) {
       errors.push({ msg: 'Invalid email, phone number, or username' });
       return res.render('auth/login', {
@@ -812,6 +1070,7 @@ const getCompleteDataPage = async (req, res) => {
       theme: req.cookies.theme || 'light',
       user: user,
       errors: [],
+      studentPhoneVerified: req.session.student_phone_verified || false,
     });
   } catch (error) {
     console.error('Error loading complete data page:', error);
@@ -874,18 +1133,90 @@ const completeStudentData = async (req, res) => {
 
     let errors = [];
 
+    // Check required fields (same pattern as registerUser)
+    if (
+      !firstName ||
+      !lastName ||
+      !studentNumber ||
+      !studentCountryCode ||
+      !parentNumber ||
+      !parentCountryCode ||
+      !studentEmail ||
+      !username ||
+      !schoolName ||
+      !grade ||
+      !englishTeacher ||
+      !password ||
+      !password2 ||
+      !howDidYouKnow
+    ) {
+      errors.push({ msg: 'Please fill in all required fields' });
+    }
+
     // Validation
-    if (!firstName || firstName.trim().length < 2) {
+    if (firstName && firstName.trim().length < 2) {
       errors.push({ msg: 'First name must be at least 2 characters' });
     }
-    if (!lastName || lastName.trim().length < 2) {
+    if (lastName && lastName.trim().length < 2) {
       errors.push({ msg: 'Last name must be at least 2 characters' });
     }
-    if (!studentNumber || studentNumber.trim().length < 10) {
-      errors.push({ msg: 'Student phone number must be at least 10 characters' });
+    
+    // Phone number length standards by country code
+    const phoneLengthStandards = {
+      '+966': 9,  // Saudi Arabia: 9 digits
+      '+20': 11,  // Egypt: 11 digits (including leading 0)
+      '+971': 9,  // UAE: 9 digits
+      '+965': 8   // Kuwait: 8 digits
+    };
+    
+    // Validate country codes
+    const validCountryCodes = ['+966', '+20', '+971', '+965'];
+    if (studentCountryCode && !validCountryCodes.includes(studentCountryCode)) {
+      errors.push({ msg: 'Please select a valid country code for student number' });
     }
-    if (!parentNumber || parentNumber.trim().length < 10) {
-      errors.push({ msg: 'Parent phone number must be at least 10 characters' });
+    if (parentCountryCode && !validCountryCodes.includes(parentCountryCode)) {
+      errors.push({ msg: 'Please select a valid country code for parent number' });
+    }
+    
+    // Check if student and parent numbers are the same
+    if (studentNumber && parentNumber && 
+        studentNumber.trim() === parentNumber.trim() && 
+        studentCountryCode === parentCountryCode) {
+      errors.push({ msg: 'Student and parent phone numbers cannot be the same' });
+    }
+    
+    // Validate phone number lengths based on country (only if both are present)
+    if (studentNumber && studentCountryCode) {
+      const cleanStudentNumber = studentNumber.replace(/[^\d]/g, '');
+      const expectedLength = phoneLengthStandards[studentCountryCode];
+      if (expectedLength && cleanStudentNumber.length !== expectedLength) {
+        errors.push({ 
+          msg: `Student number must be ${expectedLength} digits for the selected country` 
+        });
+      }
+    }
+
+    if (parentNumber && parentCountryCode) {
+      const cleanParentNumber = parentNumber.replace(/[^\d]/g, '');
+      const expectedLength = phoneLengthStandards[parentCountryCode];
+      if (expectedLength && cleanParentNumber.length !== expectedLength) {
+        errors.push({ 
+          msg: `Parent number must be ${expectedLength} digits for the selected country` 
+        });
+      }
+    }
+    
+    // Basic phone number format validation (digits, spaces, hyphens, parentheses only)
+    const phoneRegex = /^[\d\s\-\(\)]+$/;
+    if (parentNumber && !phoneRegex.test(parentNumber)) {
+      errors.push({
+        msg: 'Parent phone number can only contain digits, spaces, hyphens, and parentheses',
+      });
+    }
+    if (studentNumber && !phoneRegex.test(studentNumber)) {
+      errors.push({
+        msg: 'Student phone number can only contain digits, spaces, hyphens, and parentheses',
+      });
     }
     if (!studentEmail || !studentEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
       errors.push({ msg: 'Please enter a valid student email' });
@@ -951,6 +1282,7 @@ const completeStudentData = async (req, res) => {
         theme: req.cookies.theme || 'light',
         user: user,
         errors,
+        studentPhoneVerified: req.session.student_phone_verified || false,
       });
     }
 
@@ -1212,6 +1544,9 @@ module.exports = {
   createAdmin,
   getCompleteDataPage,
   completeStudentData,
+  // OTP functions
+  sendOTP,
+  verifyOTP,
   // External System API
   createStudentFromExternalSystem,
 };
