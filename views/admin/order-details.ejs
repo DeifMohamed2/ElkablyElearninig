@@ -154,7 +154,7 @@
               <span class="summary-label">Subtotal</span>
               <span class="summary-value"><%= order.currency %> <%= summary.subtotal.toFixed(2) %></span>
             </div>
-  
+
             <hr class="my-3">
             <div class="summary-row total-row">
               <span class="summary-label">Total</span>
@@ -247,6 +247,24 @@
                       <span class="detail-label">Intent ID</span>
                       <span class="detail-value small"><%= order.paymentIntentId || 'N/A' %></span>
                     </div>
+                    <% if (order.paymobTransactionId) { %>
+                    <div class="detail-row">
+                      <span class="detail-label">Paymob Transaction ID</span>
+                      <span class="detail-value small"><%= order.paymobTransactionId %></span>
+                    </div>
+                    <% } %>
+                    <% if (order.paymobOrderId) { %>
+                    <div class="detail-row">
+                      <span class="detail-label">Paymob Order ID</span>
+                      <span class="detail-value small"><%= order.paymobOrderId %></span>
+                    </div>
+                    <% } %>
+                    <% if (order.status === 'failed' && order.failureReason) { %>
+                    <div class="detail-row">
+                      <span class="detail-label text-danger">Failure Reason</span>
+                      <span class="detail-value small text-danger"><%= order.failureReason %></span>
+                    </div>
+                    <% } %>
                   </div>
                 </div>
               </div>

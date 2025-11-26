@@ -106,6 +106,20 @@ const PurchaseSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    paymobTransactionId: {
+      type: String,
+      default: '',
+      index: true, // Add index for faster lookups
+    },
+    paymobOrderId: {
+      type: String,
+      default: '',
+      index: true, // Add index for faster lookups
+    },
+    failureReason: {
+      type: String,
+      default: '',
+    },
     paymentGatewayResponse: {
       type: mongoose.Schema.Types.Mixed,
       default: {},

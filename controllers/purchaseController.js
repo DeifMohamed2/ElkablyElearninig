@@ -44,12 +44,19 @@ async function recalculateCartFromDB(cart, userId = null) {
     try {
       // Check if user already purchased this item
       if (user) {
-        if (cartItem.type === 'bundle' && user.hasPurchasedBundle(cartItem.id)) {
-          console.log(`Removing already purchased bundle from cart: ${cartItem.id}`);
+        if (
+          cartItem.type === 'bundle' &&
+          user.hasPurchasedBundle(cartItem.id)
+        ) {
+          console.log(
+            `Removing already purchased bundle from cart: ${cartItem.id}`
+          );
           continue;
         }
         if (cartItem.type === 'course' && user.hasAccessToCourse(cartItem.id)) {
-          console.log(`Removing already purchased course from cart: ${cartItem.id}`);
+          console.log(
+            `Removing already purchased course from cart: ${cartItem.id}`
+          );
           continue;
         }
       }
@@ -129,7 +136,9 @@ function clearCart(req, reason = 'successful payment') {
       if (err) {
         console.error('Error saving session after clearing cart:', err);
       } else {
-        console.log(`Cart cleared after ${reason}. ${cartCount} items removed.`);
+        console.log(
+          `Cart cleared after ${reason}. ${cartCount} items removed.`
+        );
       }
     });
   } else {
@@ -147,7 +156,10 @@ const validateCartMiddleware = async (req, res, next) => {
     if (req.session.cart && req.session.cart.length > 0) {
       console.log('Validating cart items from database...');
       const userId = req.session.user ? req.session.user.id : null;
-      const recalculatedCart = await recalculateCartFromDB(req.session.cart, userId);
+      const recalculatedCart = await recalculateCartFromDB(
+        req.session.cart,
+        userId
+      );
 
       // Update session cart with validated items
       req.session.cart = recalculatedCart.validItems;
@@ -191,11 +203,21 @@ const validateCartMiddleware = async (req, res, next) => {
 };
 
 // Helper function to validate and apply promo code
-async function validateAndApplyPromoCode(promoCode, userId, cartItems, subtotal, userEmail = null) {
+async function validateAndApplyPromoCode(
+  promoCode,
+  userId,
+  cartItems,
+  subtotal,
+  userEmail = null
+) {
   try {
     // Check if promo code exists and is valid
-    const promo = await PromoCode.findValidPromoCode(promoCode, userId, userEmail);
-    
+    const promo = await PromoCode.findValidPromoCode(
+      promoCode,
+      userId,
+      userEmail
+    );
+
     if (!promo) {
       throw new Error('Invalid or expired promo code');
     }
@@ -227,12 +249,12 @@ async function validateAndApplyPromoCode(promoCode, userId, cartItems, subtotal,
       promoCode: promo,
       discountAmount,
       finalAmount,
-      originalAmount: subtotal
+      originalAmount: subtotal,
     };
   } catch (error) {
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -243,7 +265,7 @@ const validatePromoCode = async (req, res) => {
     if (!req.session.user) {
       return res.status(401).json({
         success: false,
-        message: 'Please login to use promo codes'
+        message: 'Please login to use promo codes',
       });
     }
 
@@ -253,14 +275,14 @@ const validatePromoCode = async (req, res) => {
     if (!promoCode) {
       return res.status(400).json({
         success: false,
-        message: 'Promo code is required'
+        message: 'Promo code is required',
       });
     }
 
     if (validatedCart.cartCount === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Cart is empty'
+        message: 'Cart is empty',
       });
     }
 
@@ -279,7 +301,7 @@ const validatePromoCode = async (req, res) => {
         id: result.promoCode._id,
         discountAmount: result.discountAmount,
         finalAmount: result.finalAmount,
-        originalAmount: result.originalAmount
+        originalAmount: result.originalAmount,
       };
 
       res.json({
@@ -288,19 +310,19 @@ const validatePromoCode = async (req, res) => {
         discountAmount: result.discountAmount,
         finalAmount: result.finalAmount,
         originalAmount: result.originalAmount,
-        promoCode: result.promoCode.code
+        promoCode: result.promoCode.code,
       });
     } else {
       res.status(400).json({
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
   } catch (error) {
     console.error('Error validating promo code:', error);
     res.status(500).json({
       success: false,
-      message: 'Error validating promo code'
+      message: 'Error validating promo code',
     });
   }
 };
@@ -311,7 +333,7 @@ const removePromoCode = async (req, res) => {
     if (!req.session.user) {
       return res.status(401).json({
         success: false,
-        message: 'Please login to manage promo codes'
+        message: 'Please login to manage promo codes',
       });
     }
 
@@ -325,13 +347,13 @@ const removePromoCode = async (req, res) => {
       message: 'Promo code removed successfully',
       originalAmount: validatedCart.subtotal,
       finalAmount: validatedCart.subtotal,
-      discountAmount: 0
+      discountAmount: 0,
     });
   } catch (error) {
     console.error('Error removing promo code:', error);
     res.status(500).json({
       success: false,
-      message: 'Error removing promo code'
+      message: 'Error removing promo code',
     });
   }
 };
@@ -339,7 +361,10 @@ const removePromoCode = async (req, res) => {
 // Helper function to clear invalid promo code from session
 const clearInvalidPromoCode = (req) => {
   if (req.session.appliedPromoCode) {
-    console.log('Clearing invalid promo code from session:', req.session.appliedPromoCode.code);
+    console.log(
+      'Clearing invalid promo code from session:',
+      req.session.appliedPromoCode.code
+    );
     delete req.session.appliedPromoCode;
   }
 };
@@ -390,7 +415,7 @@ const clearCartAPI = async (req, res) => {
 
     const cartCount = req.session.cart ? req.session.cart.length : 0;
     req.session.cart = [];
-    
+
     // Force save the session
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
@@ -845,18 +870,24 @@ const directCheckout = async (req, res) => {
 
     // Send WhatsApp notification for direct checkout
     try {
-      console.log('📱 Sending WhatsApp notification for direct checkout:', purchase.orderNumber);
+      console.log(
+        '📱 Sending WhatsApp notification for direct checkout:',
+        purchase.orderNumber
+      );
       await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
         user._id,
         purchase
       );
-      
+
       // Mark WhatsApp notification as sent
       purchase.whatsappNotificationSent = true;
       await purchase.save();
       console.log('✅ WhatsApp notification sent for direct checkout');
     } catch (whatsappError) {
-      console.error('❌ WhatsApp notification error for direct checkout:', whatsappError);
+      console.error(
+        '❌ WhatsApp notification error for direct checkout:',
+        whatsappError
+      );
       // Don't fail the direct checkout if WhatsApp fails
     }
 
@@ -920,7 +951,9 @@ const processPayment = async (req, res) => {
     if (alreadyPurchasedItems.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `You already have access to: ${alreadyPurchasedItems.join(', ')}. Please remove these items from your cart.`,
+        message: `You already have access to: ${alreadyPurchasedItems.join(
+          ', '
+        )}. Please remove these items from your cart.`,
       });
     }
 
@@ -973,33 +1006,39 @@ const processPayment = async (req, res) => {
         finalSubtotal = validatedCart.subtotal; // Keep original subtotal
         finalTax = validatedCart.tax; // Keep original tax
         finalTotal = promoValidation.finalAmount; // Use server-calculated final amount
-        
+
         // SECURITY: Validate that session promo code data matches server calculation
-        const sessionDiscount = req.session.appliedPromoCode.discountAmount || 0;
+        const sessionDiscount =
+          req.session.appliedPromoCode.discountAmount || 0;
         const sessionFinal = req.session.appliedPromoCode.finalAmount || 0;
-        
-        if (Math.abs(sessionDiscount - discountAmount) > 0.01 || 
-            Math.abs(sessionFinal - finalTotal) > 0.01) {
-          console.warn('Promo code session data mismatch, using server calculation:', {
-            sessionDiscount,
-            serverDiscount: discountAmount,
-            sessionFinal,
-            serverFinal: finalTotal
-          });
+
+        if (
+          Math.abs(sessionDiscount - discountAmount) > 0.01 ||
+          Math.abs(sessionFinal - finalTotal) > 0.01
+        ) {
+          console.warn(
+            'Promo code session data mismatch, using server calculation:',
+            {
+              sessionDiscount,
+              serverDiscount: discountAmount,
+              sessionFinal,
+              serverFinal: finalTotal,
+            }
+          );
         }
-        
+
         console.log('Promo code applied successfully:', {
           originalAmount: validatedCart.subtotal,
           discountAmount: discountAmount,
           finalAmount: finalTotal,
-          promoCode: appliedPromoCode.code
+          promoCode: appliedPromoCode.code,
         });
       } else {
         // Remove invalid promo code from session
         delete req.session.appliedPromoCode;
         return res.status(400).json({
           success: false,
-          message: `Promo code is no longer valid: ${promoValidation.error}`
+          message: `Promo code is no longer valid: ${promoValidation.error}`,
         });
       }
     }
@@ -1053,7 +1092,7 @@ const processPayment = async (req, res) => {
       finalTotal: finalTotal,
       discountAmount: discountAmount,
       promoCode: appliedPromoCode ? appliedPromoCode.code : 'none',
-      merchantOrderId: merchantOrderId
+      merchantOrderId: merchantOrderId,
     });
 
     // Add redirect URL to billing address for Paymob iframe
@@ -1347,6 +1386,58 @@ const handlePaymentSuccess = async (req, res) => {
     let merchantOrderId =
       req.query.merchantOrderId || req.query.merchant_order_id;
 
+    // Verify HMAC if transaction data is present in query params
+    if (req.query.id || req.query.order) {
+      console.log('🔐 Verifying HMAC for payment callback...');
+      const transactionData = {
+        obj: {
+          amount_cents: req.query.amount_cents,
+          created_at: req.query.created_at,
+          currency: req.query.currency,
+          error_occured: req.query.error_occured === 'true',
+          has_parent_transaction: req.query.has_parent_transaction === 'true',
+          id: req.query.id,
+          integration_id: req.query.integration_id,
+          is_3d_secure: req.query.is_3d_secure === 'true',
+          is_auth: req.query.is_auth === 'true',
+          is_capture: req.query.is_capture === 'true',
+          is_refunded: req.query.is_refunded === 'true',
+          is_standalone_payment: req.query.is_standalone_payment === 'true',
+          is_voided: req.query.is_voided === 'true',
+          order: req.query.order,
+          owner: req.query.owner,
+          pending: req.query.pending === 'true',
+          source_data: {
+            pan: req.query['source_data.pan'],
+            sub_type: req.query['source_data.sub_type'],
+            type: req.query['source_data.type'],
+          },
+          success: req.query.success === 'true',
+        },
+        hmac: req.query.hmac,
+      };
+
+      const hmacValid = paymobService.verifyTransactionHMAC(transactionData);
+      if (!hmacValid) {
+        console.error('❌ HMAC verification failed for payment callback');
+        console.error('Transaction ID:', req.query.id);
+        console.error('Merchant Order ID:', req.query.merchant_order_id);
+
+        // In production, reject invalid HMAC
+        if (process.env.NODE_ENV === 'production') {
+          return res.render('payment-fail', {
+            title: 'Payment Verification Failed | ELKABLY',
+            theme: req.cookies.theme || 'light',
+            message:
+              'Payment verification failed. Please contact support if you were charged.',
+          });
+        } else {
+          console.warn('⚠️ Proceeding despite HMAC failure (development mode)');
+        }
+      } else {
+        console.log('✅ HMAC verification successful');
+      }
+    }
 
     // If no merchant order ID in query, check if this is a Paymob redirect
     // Check for explicit failure indicators in URL parameters
@@ -1439,16 +1530,18 @@ const handlePaymentSuccess = async (req, res) => {
       purchase.status === 'completed' &&
       purchase.paymentStatus === 'completed'
     ) {
-
       // Only send WhatsApp notification if not already sent
       if (!purchase.whatsappNotificationSent) {
         try {
-          console.log('📱 Sending WhatsApp notification for completed purchase:', purchase.orderNumber);
+          console.log(
+            '📱 Sending WhatsApp notification for completed purchase:',
+            purchase.orderNumber
+          );
           await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
             purchase.user._id,
             purchase
           );
-          
+
           // Mark WhatsApp notification as sent
           purchase.whatsappNotificationSent = true;
           await purchase.save();
@@ -1529,12 +1622,12 @@ const handlePaymentSuccess = async (req, res) => {
               discountAmount: purchase.discountAmount,
               originalAmount: purchase.originalAmount,
               finalAmount: purchase.total,
-              usedAt: new Date()
+              usedAt: new Date(),
             });
-            
+
             // Increment current uses
             promoCode.currentUses += 1;
-            
+
             // If this is a single-use bulk code, mark it as used
             if (promoCode.isSingleUseOnly) {
               promoCode.usedByStudent = purchase.user._id;
@@ -1543,9 +1636,8 @@ const handlePaymentSuccess = async (req, res) => {
                 promoCode.usedByStudentEmail = userEmail.toLowerCase();
               }
             }
-            
+
             await promoCode.save();
-            
           }
         } catch (error) {
           console.error('Error tracking promo code usage:', error);
@@ -1553,18 +1645,20 @@ const handlePaymentSuccess = async (req, res) => {
       }
     }
 
-
     // Clear the cart after successful payment
     clearCart(req, 'payment success page');
 
     // Send WhatsApp notification to parent with invoice
     try {
-      console.log('📱 Sending WhatsApp notification for new purchase:', purchase.orderNumber);
+      console.log(
+        '📱 Sending WhatsApp notification for new purchase:',
+        purchase.orderNumber
+      );
       await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
         purchase.user._id,
         purchase
       );
-      
+
       // Mark WhatsApp notification as sent
       purchase.whatsappNotificationSent = true;
       await purchase.save();
@@ -1582,10 +1676,10 @@ const handlePaymentSuccess = async (req, res) => {
     });
   } catch (error) {
     console.error('Error handling payment success:', error);
-    
+
     // Clear cart on error in payment success handler
     clearCart(req, 'payment success error');
-    
+
     res.render('payment-fail', {
       title: 'Payment Error - Mr Kably',
       theme: req.cookies.theme || 'light',
@@ -1597,36 +1691,62 @@ const handlePaymentSuccess = async (req, res) => {
 // Handle payment failure
 const handlePaymentFailure = async (req, res) => {
   try {
-    const { merchantOrderId } = req.query;
+    const { merchantOrderId, reason, transactionId, orderId } = req.query;
 
     if (merchantOrderId) {
       // Update purchase status to failed
       const purchase = await Purchase.findOne({
         paymentIntentId: merchantOrderId,
       });
+
       if (purchase && purchase.status === 'pending') {
         purchase.status = 'failed';
         purchase.paymentStatus = 'failed';
+
+        // Save Paymob IDs if available
+        if (transactionId) {
+          purchase.paymobTransactionId = String(transactionId);
+        }
+        if (orderId) {
+          purchase.paymobOrderId = String(orderId);
+        }
+
+        // Save failure reason
+        if (reason) {
+          purchase.failureReason = decodeURIComponent(reason);
+        }
+
         await purchase.save();
-        console.log('Payment failed for order:', purchase.orderNumber);
+
+        console.log('💾 Payment failed and saved for order:', {
+          orderNumber: purchase.orderNumber,
+          paymobTransactionId: purchase.paymobTransactionId,
+          paymobOrderId: purchase.paymobOrderId,
+          failureReason: purchase.failureReason,
+          status: purchase.status,
+        });
       }
     }
 
     // Clear the cart after failed payment
     clearCart(req, 'payment failed');
 
+    // Get friendly error message
+    const errorMessage = req.query.reason
+      ? decodeURIComponent(req.query.reason)
+      : 'Your payment could not be processed. Please try again or contact support.';
+
     res.render('payment-fail', {
       title: 'Payment Failed - Mr Kably',
       theme: req.cookies.theme || 'light',
-      message:
-        'Your payment could not be processed. Please try again or contact support.',
+      message: errorMessage,
     });
   } catch (error) {
     console.error('Error handling payment failure:', error);
-    
+
     // Clear cart even on error
     clearCart(req, 'payment error');
-    
+
     res.render('payment-fail', {
       title: 'Payment Error - Mr Kably',
       theme: req.cookies.theme || 'light',
@@ -1656,6 +1776,19 @@ const handlePaymobWebhook = async (req, res) => {
 
     const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
 
+    // Verify HMAC for transaction data (recommended by Paymob)
+    const hmacValid = paymobService.verifyTransactionHMAC(payload);
+    if (!hmacValid && process.env.NODE_ENV === 'production') {
+      console.error('❌ HMAC verification failed for webhook');
+      console.error('Transaction ID:', payload?.obj?.id || payload?.id);
+      console.error(
+        'Merchant Order ID:',
+        payload?.obj?.order?.merchant_order_id
+      );
+      // Still process but log the failure
+      console.warn('⚠️ Processing webhook despite HMAC failure (for testing)');
+    }
+
     // Process webhook payload with query parameters (for comprehensive detection like standalone app)
     const webhookData = paymobService.processWebhookPayload(payload, req.query);
 
@@ -1672,13 +1805,57 @@ const handlePaymobWebhook = async (req, res) => {
       return res.status(404).send('Purchase not found');
     }
 
+    // Save Paymob transaction details
+    const transactionId =
+      payload?.obj?.id || payload?.id || webhookData.transactionId;
+    const paymobOrderId =
+      payload?.obj?.order?.id || payload?.obj?.order || payload?.order;
+
+    if (transactionId) {
+      purchase.paymobTransactionId = String(transactionId);
+    }
+    if (paymobOrderId) {
+      purchase.paymobOrderId = String(paymobOrderId);
+    }
+
     // Only process if current status is pending
     if (purchase.status !== 'pending') {
       return res.status(200).send('OK');
     }
 
-    if (webhookData.isSuccess) {
+    // Handle FAILED webhook
+    if (webhookData.isFailed) {
+      console.log(
+        '❌ Webhook: Payment FAILED for order:',
+        purchase.orderNumber
+      );
 
+      purchase.status = 'failed';
+      purchase.paymentStatus = 'failed';
+
+      // Extract failure reason
+      const failureReason =
+        payload?.obj?.data?.message ||
+        payload?.data?.message ||
+        payload?.obj?.message ||
+        'Payment declined or failed';
+
+      purchase.failureReason = failureReason;
+      purchase.paymentGatewayResponse = webhookData.rawPayload;
+      await purchase.save();
+
+      console.log('💾 Failed purchase saved via webhook:', {
+        orderNumber: purchase.orderNumber,
+        paymobTransactionId: purchase.paymobTransactionId,
+        paymobOrderId: purchase.paymobOrderId,
+        failureReason: purchase.failureReason,
+        status: purchase.status,
+      });
+
+      return res.status(200).send('OK');
+    }
+
+    if (webhookData.isSuccess) {
       // Update purchase status
       purchase.status = 'completed';
       purchase.paymentStatus = 'completed';
@@ -1740,7 +1917,9 @@ const handlePaymobWebhook = async (req, res) => {
             );
 
             // Update promo code usage count and history
-            const promoCode = await PromoCode.findById(purchase.appliedPromoCode);
+            const promoCode = await PromoCode.findById(
+              purchase.appliedPromoCode
+            );
             if (promoCode) {
               // Add to usage history
               promoCode.usageHistory.push({
@@ -1749,18 +1928,18 @@ const handlePaymobWebhook = async (req, res) => {
                 discountAmount: purchase.discountAmount,
                 originalAmount: purchase.originalAmount,
                 finalAmount: purchase.total,
-                usedAt: new Date()
+                usedAt: new Date(),
               });
-              
+
               // Increment current uses
               promoCode.currentUses += 1;
               await promoCode.save();
-              
+
               console.log('Promo code usage tracked:', {
                 code: promoCode.code,
                 user: purchase.user._id,
                 purchase: purchase._id,
-                discountAmount: purchase.discountAmount
+                discountAmount: purchase.discountAmount,
               });
             }
           } catch (error) {
@@ -1773,16 +1952,16 @@ const handlePaymobWebhook = async (req, res) => {
       // try {
       //   console.log(`[Webhook] Starting WhatsApp notification for webhook payment: ${purchase.orderNumber}`);
       //   console.log(`[Webhook] User ID: ${purchase.user._id}`);
-        
+
       //   const invoiceUrl = await whatsappSMSNotificationService.generateAndUploadInvoice(purchase);
       //   console.log(`[Webhook] Invoice URL generated: ${invoiceUrl}`);
-        
+
       //   const whatsappResult = await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
       //     purchase.user._id,
       //     purchase,
       //     invoiceUrl
       //   );
-        
+
       //   if (whatsappResult.success) {
       //     console.log(`[Webhook] ✅ WhatsApp notification sent successfully for webhook payment: ${purchase.orderNumber}`);
       //   } else {
@@ -1794,7 +1973,6 @@ const handlePaymobWebhook = async (req, res) => {
       //   // Don't fail the webhook if WhatsApp fails
       // }
     } else if (webhookData.isFailed) {
-
       purchase.status = 'failed';
       purchase.paymentStatus = 'failed';
       purchase.paymentGatewayResponse = webhookData.rawPayload;
@@ -1815,20 +1993,54 @@ const handlePaymobWebhookRedirect = async (req, res) => {
   try {
     console.log('Paymob webhook redirect received with query:', req.query);
 
-    const merchantOrderId =
+    let merchantOrderId =
       req.query.merchant_order_id ||
       req.query.merchantOrder ||
       req.query.merchantOrderId;
 
-    if (!merchantOrderId) {
+    let purchase = null;
+
+    // For unified checkout, merchant_order_id might not be in query params
+    // Try to find purchase by transaction ID first
+    if (!merchantOrderId && req.query.id) {
+      console.log(
+        'Unified checkout callback - looking up purchase by transaction ID or recent pending purchase...'
+      );
+
+      // Try to find the most recent pending purchase for the session user
+      if (req.session && req.session.user) {
+        const userId = req.session.user.id;
+        purchase = await Purchase.findOne({
+          user: userId,
+          status: 'pending',
+          paymentStatus: 'pending',
+        })
+          .sort({ createdAt: -1 }) // Most recent first
+          .limit(1)
+          .populate('user');
+
+        if (purchase) {
+          merchantOrderId = purchase.paymentIntentId;
+          console.log(
+            'Found pending purchase by user session:',
+            merchantOrderId
+          );
+        }
+      }
+    }
+
+    // If still no merchant order ID or purchase, try old API
+    if (!merchantOrderId && !purchase) {
       console.warn('Webhook redirect: No merchant order ID found in query');
       return res.redirect('/purchase/payment/fail?reason=missing_order_id');
     }
 
-    // Find purchase by merchant order ID
-    const purchase = await Purchase.findOne({
-      paymentIntentId: merchantOrderId,
-    }).populate('user');
+    // Find purchase by merchant order ID if not already found
+    if (!purchase) {
+      purchase = await Purchase.findOne({
+        paymentIntentId: merchantOrderId,
+      }).populate('user');
+    }
 
     if (!purchase) {
       console.warn(
@@ -1846,8 +2058,18 @@ const handlePaymobWebhookRedirect = async (req, res) => {
       isSuccess: webhookData.isSuccess,
       isFailed: webhookData.isFailed,
       isPending: webhookData.isPending,
+      transactionId: req.query.id,
+      paymobOrderId: req.query.order,
       query: req.query,
     });
+
+    // Save Paymob transaction details regardless of status
+    if (req.query.id) {
+      purchase.paymobTransactionId = req.query.id;
+    }
+    if (req.query.order) {
+      purchase.paymobOrderId = req.query.order;
+    }
 
     // Only process if current status is pending
     if (purchase.status !== 'pending') {
@@ -1867,17 +2089,71 @@ const handlePaymobWebhookRedirect = async (req, res) => {
       }
     }
 
+    // Handle FAILED payment - Save with status 'failed'
+    if (webhookData.isFailed) {
+      console.log(
+        '❌ Webhook redirect: Payment FAILED for order:',
+        purchase.orderNumber
+      );
+
+      // Update purchase status to failed
+      purchase.status = 'failed';
+      purchase.paymentStatus = 'failed';
+
+      // Save failure reason
+      const failureReason =
+        req.query['data.message'] ||
+        req.query.message ||
+        webhookData.rawPayload?.obj?.data?.message ||
+        'Payment declined or failed';
+
+      purchase.failureReason = failureReason;
+      purchase.paymentGatewayResponse = {
+        queryParams: req.query,
+        processedAt: new Date(),
+        status: 'failed',
+      };
+
+      await purchase.save();
+
+      console.log('💾 Failed purchase saved:', {
+        orderNumber: purchase.orderNumber,
+        paymobTransactionId: purchase.paymobTransactionId,
+        paymobOrderId: purchase.paymobOrderId,
+        failureReason: purchase.failureReason,
+        status: purchase.status,
+      });
+
+      // Clear cart after failed payment
+      clearCart(req, 'payment failed via webhook redirect');
+
+      return res.redirect(
+        `/purchase/payment/fail?reason=${encodeURIComponent(failureReason)}`
+      );
+    }
+
     if (webhookData.isSuccess) {
       console.log(
-        'Webhook redirect: Payment successful for order:',
+        '✅ Webhook redirect: Payment successful for order:',
         purchase.orderNumber
       );
 
       // Update purchase status
       purchase.status = 'completed';
       purchase.paymentStatus = 'completed';
-      purchase.paymentGatewayResponse = { queryParams: req.query };
+      purchase.paymentGatewayResponse = {
+        queryParams: req.query,
+        processedAt: new Date(),
+        status: 'completed',
+      };
       await purchase.save();
+
+      console.log('💾 Successful purchase saved:', {
+        orderNumber: purchase.orderNumber,
+        paymobTransactionId: purchase.paymobTransactionId,
+        paymobOrderId: purchase.paymobOrderId,
+        status: purchase.status,
+      });
 
       // Process user enrollments (same logic as webhook)
       const user = await User.findById(purchase.user._id)
@@ -1934,7 +2210,9 @@ const handlePaymobWebhookRedirect = async (req, res) => {
             );
 
             // Update promo code usage count and history
-            const promoCode = await PromoCode.findById(purchase.appliedPromoCode);
+            const promoCode = await PromoCode.findById(
+              purchase.appliedPromoCode
+            );
             if (promoCode) {
               // Add to usage history
               promoCode.usageHistory.push({
@@ -1943,18 +2221,18 @@ const handlePaymobWebhookRedirect = async (req, res) => {
                 discountAmount: purchase.discountAmount,
                 originalAmount: purchase.originalAmount,
                 finalAmount: purchase.total,
-                usedAt: new Date()
+                usedAt: new Date(),
               });
-              
+
               // Increment current uses
               promoCode.currentUses += 1;
               await promoCode.save();
-              
+
               console.log('Promo code usage tracked:', {
                 code: promoCode.code,
                 user: purchase.user._id,
                 purchase: purchase._id,
-                discountAmount: purchase.discountAmount
+                discountAmount: purchase.discountAmount,
               });
             }
           } catch (error) {
@@ -1969,34 +2247,56 @@ const handlePaymobWebhookRedirect = async (req, res) => {
       return res.redirect(
         `/purchase/payment/success?merchantOrderId=${merchantOrderId}`
       );
-    } else if (webhookData.isFailed) {
+    } else if (webhookData.isPending) {
+      // Payment is still pending
       console.log(
-        'Webhook redirect: Payment failed for order:',
+        '⏳ Webhook redirect: Payment PENDING for order:',
+        purchase.orderNumber
+      );
+
+      // Keep purchase as pending but save Paymob IDs
+      purchase.paymentGatewayResponse = {
+        queryParams: req.query,
+        processedAt: new Date(),
+        status: 'pending',
+      };
+      await purchase.save();
+
+      console.log('💾 Pending purchase saved:', {
+        orderNumber: purchase.orderNumber,
+        paymobTransactionId: purchase.paymobTransactionId,
+        paymobOrderId: purchase.paymobOrderId,
+        status: purchase.status,
+      });
+
+      return res.redirect('/purchase/payment/fail?reason=payment_pending');
+    } else {
+      // Unknown status - treat as failed for safety
+      console.log(
+        '❓ Webhook redirect: Unknown payment status for order:',
         purchase.orderNumber
       );
 
       purchase.status = 'failed';
       purchase.paymentStatus = 'failed';
-      purchase.paymentGatewayResponse = { queryParams: req.query };
+      purchase.failureReason = 'Unknown payment status';
+      purchase.paymentGatewayResponse = {
+        queryParams: req.query,
+        processedAt: new Date(),
+        status: 'unknown',
+      };
       await purchase.save();
 
-      const reason =
-        req.query['data.message'] ||
-        req.query.message ||
-        req.query.reason ||
-        req.query.error ||
-        req.query.acq_response_code ||
-        'payment_failed';
+      console.log('💾 Unknown status purchase saved as failed:', {
+        orderNumber: purchase.orderNumber,
+        paymobTransactionId: purchase.paymobTransactionId,
+        paymobOrderId: purchase.paymobOrderId,
+        status: purchase.status,
+      });
+
       return res.redirect(
-        `/purchase/payment/fail?reason=${encodeURIComponent(reason)}`
+        '/purchase/payment/fail?reason=payment_status_unknown'
       );
-    } else {
-      console.log(
-        'Webhook redirect: Payment status pending/unknown for order:',
-        purchase.orderNumber
-      );
-      // Keep as pending and redirect to a pending page or retry
-      return res.redirect('/purchase/payment/fail?reason=payment_pending');
     }
   } catch (error) {
     console.error('Error processing Paymob webhook redirect:', error);

@@ -18,8 +18,6 @@ const ExcelExporter = require('../utils/excelExporter');
 const zoomService = require('../utils/zoomService');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 
-
-
 // Admin Dashboard with Real Data
 const getAdminDashboard = async (req, res) => {
   try {
@@ -158,7 +156,7 @@ const getAdminDashboard = async (req, res) => {
       ]),
 
       // Brilliant students statistics
-      BrilliantStudent.getStatistics().catch(err => {
+      BrilliantStudent.getStatistics().catch((err) => {
         console.error('Error fetching brilliant students statistics:', err);
         return {};
       }),
@@ -232,14 +230,14 @@ const getAdminDashboard = async (req, res) => {
     let whatsappStatus = 'disconnected';
     let whatsappMessages = 0;
     let whatsappTemplates = 0;
-    
+
     try {
       const wasender = require('../utils/wasender');
       const sessionStatus = await wasender.getGlobalStatus();
       if (sessionStatus.success) {
         whatsappStatus = 'connected';
       }
-      
+
       // WhatsAppTemplate model doesn't exist yet, so we'll set templates to 0
       whatsappTemplates = 0;
       // You can add message count logic here if you track sent messages
@@ -290,9 +288,18 @@ const getAdminDashboard = async (req, res) => {
           (sum, stat) => sum + (stat.count || 0),
           0
         ),
-        est: (brilliantStudentsStats && brilliantStudentsStats.EST) ? brilliantStudentsStats.EST.count || 0 : 0,
-        dsat: (brilliantStudentsStats && brilliantStudentsStats.DSAT) ? brilliantStudentsStats.DSAT.count || 0 : 0,
-        act: (brilliantStudentsStats && brilliantStudentsStats.ACT) ? brilliantStudentsStats.ACT.count || 0 : 0,
+        est:
+          brilliantStudentsStats && brilliantStudentsStats.EST
+            ? brilliantStudentsStats.EST.count || 0
+            : 0,
+        dsat:
+          brilliantStudentsStats && brilliantStudentsStats.DSAT
+            ? brilliantStudentsStats.DSAT.count || 0
+            : 0,
+        act:
+          brilliantStudentsStats && brilliantStudentsStats.ACT
+            ? brilliantStudentsStats.ACT.count || 0
+            : 0,
         avgScore:
           Object.keys(brilliantStudentsStats || {}).length > 0
             ? Object.values(brilliantStudentsStats).reduce(
@@ -1284,7 +1291,10 @@ const createTopic = async (req, res) => {
       title: title.trim(),
       description: description ? description.trim() : '',
       order: topicCount + 1,
-      estimatedTime: estimatedTime && !isNaN(parseInt(estimatedTime)) ? parseInt(estimatedTime) : 0,
+      estimatedTime:
+        estimatedTime && !isNaN(parseInt(estimatedTime))
+          ? parseInt(estimatedTime)
+          : 0,
       isPublished: isPublished === 'on',
       difficulty: difficulty || 'beginner',
       tags: topicTags,
@@ -1381,10 +1391,15 @@ const updateTopic = async (req, res) => {
       topic.description = trimmedDescription;
     }
     if (estimatedTime !== undefined)
-      topic.estimatedTime = estimatedTime && !isNaN(parseInt(estimatedTime)) ? parseInt(estimatedTime) : 0;
+      topic.estimatedTime =
+        estimatedTime && !isNaN(parseInt(estimatedTime))
+          ? parseInt(estimatedTime)
+          : 0;
     if (isPublished !== undefined)
       topic.isPublished = isPublished === 'on' || isPublished === true;
-    if (order) topic.order = order && !isNaN(parseInt(order)) ? parseInt(order) : topic.order;
+    if (order)
+      topic.order =
+        order && !isNaN(parseInt(order)) ? parseInt(order) : topic.order;
 
     if (difficulty) topic.difficulty = difficulty;
     if (unlockConditions) topic.unlockConditions = unlockConditions;
@@ -2269,17 +2284,17 @@ const reorderContent = async (req, res) => {
     const { orderUpdates } = req.body;
 
     if (!orderUpdates || !Array.isArray(orderUpdates)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid order updates' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order updates',
       });
     }
 
     const topic = await Topic.findById(topicId);
     if (!topic) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Topic not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Topic not found',
       });
     }
 
@@ -2296,15 +2311,15 @@ const reorderContent = async (req, res) => {
 
     await topic.save();
 
-    res.json({ 
-      success: true, 
-      message: 'Content order updated successfully' 
+    res.json({
+      success: true,
+      message: 'Content order updated successfully',
     });
   } catch (error) {
     console.error('Error reordering content:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error updating content order' 
+    res.status(500).json({
+      success: false,
+      message: 'Error updating content order',
     });
   }
 };
@@ -2410,7 +2425,8 @@ const addTopicContent = async (req, res) => {
           : '',
       duration: duration && !isNaN(parseInt(duration)) ? parseInt(duration) : 0,
       isRequired: isRequired === 'on',
-      order: order && !isNaN(parseInt(order)) ? parseInt(order) : contentCount + 1,
+      order:
+        order && !isNaN(parseInt(order)) ? parseInt(order) : contentCount + 1,
       prerequisites: prerequisiteId ? [prerequisiteId] : [],
       difficulty: difficulty || 'beginner',
       tags: contentTags,
@@ -2461,16 +2477,28 @@ const addTopicContent = async (req, res) => {
         })
       );
       contentItem.quizSettings = {
-        duration: quizDuration && !isNaN(parseInt(quizDuration)) ? parseInt(quizDuration) : 30,
-        passingScore: quizPassingScore && !isNaN(parseInt(quizPassingScore)) ? parseInt(quizPassingScore) : 60,
-        maxAttempts: quizMaxAttempts && !isNaN(parseInt(quizMaxAttempts)) ? parseInt(quizMaxAttempts) : 3,
+        duration:
+          quizDuration && !isNaN(parseInt(quizDuration))
+            ? parseInt(quizDuration)
+            : 30,
+        passingScore:
+          quizPassingScore && !isNaN(parseInt(quizPassingScore))
+            ? parseInt(quizPassingScore)
+            : 60,
+        maxAttempts:
+          quizMaxAttempts && !isNaN(parseInt(quizMaxAttempts))
+            ? parseInt(quizMaxAttempts)
+            : 3,
         shuffleQuestions: quizShuffleQuestions === 'on',
         shuffleOptions: quizShuffleOptions === 'on',
         showCorrectAnswers: quizShowCorrectAnswers === 'on',
         showResults: quizShowResults === 'on',
         instructions: quizInstructions ? quizInstructions.trim() : '',
       };
-      contentItem.duration = quizDuration && !isNaN(parseInt(quizDuration)) ? parseInt(quizDuration) : 30;
+      contentItem.duration =
+        quizDuration && !isNaN(parseInt(quizDuration))
+          ? parseInt(quizDuration)
+          : 30;
       contentItem.completionCriteria = 'pass_quiz';
     }
 
@@ -2520,10 +2548,14 @@ const addTopicContent = async (req, res) => {
       );
       contentItem.homeworkSettings = {
         passingCriteria: 'pass',
-        passingScore: homeworkPassingScore && !isNaN(parseInt(homeworkPassingScore))
-          ? parseInt(homeworkPassingScore)
-          : 60,
-        maxAttempts: homeworkMaxAttempts && !isNaN(parseInt(homeworkMaxAttempts)) ? parseInt(homeworkMaxAttempts) : 1,
+        passingScore:
+          homeworkPassingScore && !isNaN(parseInt(homeworkPassingScore))
+            ? parseInt(homeworkPassingScore)
+            : 60,
+        maxAttempts:
+          homeworkMaxAttempts && !isNaN(parseInt(homeworkMaxAttempts))
+            ? parseInt(homeworkMaxAttempts)
+            : 1,
         shuffleQuestions: homeworkShuffleQuestions === 'on',
         shuffleOptions: homeworkShuffleOptions === 'on',
         showCorrectAnswers: homeworkShowCorrectAnswers === 'on',
@@ -2883,26 +2915,43 @@ const deleteTopicContent = async (req, res) => {
 
 // Helper function to process monthly sales data for charts
 const processMonthlySalesData = (monthlyData) => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
   // Get last 12 months
   const currentDate = new Date();
   const last12Months = [];
   for (let i = 11; i >= 0; i--) {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+    const date = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - i,
+      1
+    );
     last12Months.push({
       year: date.getFullYear(),
       month: date.getMonth() + 1,
       label: months[date.getMonth()],
       revenue: 0,
-      orderCount: 0
+      orderCount: 0,
     });
   }
 
   // Fill in actual data
-  monthlyData.forEach(data => {
+  monthlyData.forEach((data) => {
     const monthIndex = last12Months.findIndex(
-      m => m.year === data._id.year && m.month === data._id.month
+      (m) => m.year === data._id.year && m.month === data._id.month
     );
     if (monthIndex !== -1) {
       last12Months[monthIndex].revenue = data.revenue || 0;
@@ -2911,9 +2960,9 @@ const processMonthlySalesData = (monthlyData) => {
   });
 
   return {
-    labels: last12Months.map(m => m.label),
-    revenue: last12Months.map(m => m.revenue),
-    orderCount: last12Months.map(m => m.orderCount)
+    labels: last12Months.map((m) => m.label),
+    revenue: last12Months.map((m) => m.revenue),
+    orderCount: last12Months.map((m) => m.orderCount),
   };
 };
 
@@ -2960,54 +3009,59 @@ const getOrders = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [orders, totalOrders, revenueAgg, monthlySalesData] = await Promise.all([
-      Purchase.find(filter)
-        .populate('user', 'firstName lastName studentEmail studentCode')
-        .populate('items.item')
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      Purchase.countDocuments(filter),
-      Purchase.aggregate([
-        { $match: filter },
-        {
-          $group: {
-            _id: null,
-            totalRevenue: { $sum: '$total' },
-            completedRevenue: {
-              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$total', 0] },
-            },
-            refundedAmount: { $sum: { $ifNull: ['$refundAmount', 0] } },
-            completed: {
-              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
-            },
-            pending: {
-              $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
-            },
-            failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
-            refunded: {
-              $sum: { $cond: [{ $eq: ['$status', 'refunded'] }, 1, 0] },
+    const [orders, totalOrders, revenueAgg, monthlySalesData] =
+      await Promise.all([
+        Purchase.find(filter)
+          .populate('user', 'firstName lastName studentEmail studentCode')
+          .populate('items.item')
+          .sort(sort)
+          .skip(skip)
+          .limit(parseInt(limit))
+          .lean(),
+        Purchase.countDocuments(filter),
+        Purchase.aggregate([
+          { $match: filter },
+          {
+            $group: {
+              _id: null,
+              totalRevenue: { $sum: '$total' },
+              completedRevenue: {
+                $sum: {
+                  $cond: [{ $eq: ['$status', 'completed'] }, '$total', 0],
+                },
+              },
+              refundedAmount: { $sum: { $ifNull: ['$refundAmount', 0] } },
+              completed: {
+                $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+              },
+              pending: {
+                $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+              },
+              failed: {
+                $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] },
+              },
+              refunded: {
+                $sum: { $cond: [{ $eq: ['$status', 'refunded'] }, 1, 0] },
+              },
             },
           },
-        },
-      ]),
-      // Get monthly sales data for the last 12 months
-      Purchase.aggregate([
-        { $match: filter },
-        {
-          $group: {
-            _id: {
-              year: { $year: '$createdAt' },
-              month: { $month: '$createdAt' }
+        ]),
+        // Get monthly sales data for the last 12 months
+        Purchase.aggregate([
+          { $match: filter },
+          {
+            $group: {
+              _id: {
+                year: { $year: '$createdAt' },
+                month: { $month: '$createdAt' },
+              },
+              revenue: { $sum: '$total' },
+              orderCount: { $sum: 1 },
             },
-            revenue: { $sum: '$total' },
-            orderCount: { $sum: 1 }
-          }
-        },
-        { $sort: { '_id.year': 1, '_id.month': 1 } }
-      ])
-    ]);
+          },
+          { $sort: { '_id.year': 1, '_id.month': 1 } },
+        ]),
+      ]);
 
     const totalPages = Math.ceil(totalOrders / parseInt(limit));
     const revenue = revenueAgg[0] || {
@@ -6113,22 +6167,32 @@ const updateStudent = async (req, res) => {
 
     // Validate studentId
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.redirect(`/admin/students/${studentId}/edit?error=${encodeURIComponent('Invalid student ID')}`);
+      return res.redirect(
+        `/admin/students/${studentId}/edit?error=${encodeURIComponent(
+          'Invalid student ID'
+        )}`
+      );
     }
 
     // Find the student
     const student = await User.findById(studentId);
 
     if (!student) {
-      return res.redirect(`/admin/students?error=${encodeURIComponent('Student not found')}`);
+      return res.redirect(
+        `/admin/students?error=${encodeURIComponent('Student not found')}`
+      );
     }
 
     // Handle password update if provided
     if (updateData.newPassword && updateData.newPassword.trim() !== '') {
       if (updateData.newPassword !== updateData.confirmPassword) {
-        return res.redirect(`/admin/students/${studentId}/edit?error=${encodeURIComponent('Passwords do not match')}`);
+        return res.redirect(
+          `/admin/students/${studentId}/edit?error=${encodeURIComponent(
+            'Passwords do not match'
+          )}`
+        );
       }
-      
+
       // Update password (will be hashed by pre-save middleware)
       student.password = updateData.newPassword;
     }
@@ -6137,13 +6201,14 @@ const updateStudent = async (req, res) => {
     delete updateData.newPassword;
     delete updateData.confirmPassword;
     delete updateData.password;
-    
+
     // Remove fields that shouldn't be updated
     delete updateData.studentCode;
     delete updateData.role;
 
     // Handle checkbox for isActive (checkboxes don't send false values)
-    updateData.isActive = updateData.isActive === 'on' || updateData.isActive === true;
+    updateData.isActive =
+      updateData.isActive === 'on' || updateData.isActive === true;
 
     // Handle profile picture upload if provided
     if (req.file) {
@@ -6153,7 +6218,7 @@ const updateStudent = async (req, res) => {
     }
 
     // Update student fields
-    Object.keys(updateData).forEach(key => {
+    Object.keys(updateData).forEach((key) => {
       if (updateData[key] !== undefined && updateData[key] !== null) {
         student[key] = updateData[key];
       }
@@ -6163,23 +6228,41 @@ const updateStudent = async (req, res) => {
     await student.save();
 
     // Redirect back to edit page with success message
-    return res.redirect(`/admin/students/${studentId}/edit?success=${encodeURIComponent('Student information updated successfully')}`);
+    return res.redirect(
+      `/admin/students/${studentId}/edit?success=${encodeURIComponent(
+        'Student information updated successfully'
+      )}`
+    );
   } catch (error) {
     console.error('Error updating student:', error);
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
-      const errorMessages = Object.values(error.errors).map(err => err.message).join(', ');
-      return res.redirect(`/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent(errorMessages)}`);
+      const errorMessages = Object.values(error.errors)
+        .map((err) => err.message)
+        .join(', ');
+      return res.redirect(
+        `/admin/students/${
+          req.params.studentId
+        }/edit?error=${encodeURIComponent(errorMessages)}`
+      );
     }
 
     // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return res.redirect(`/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent(`This ${field} is already in use`)}`);
+      return res.redirect(
+        `/admin/students/${
+          req.params.studentId
+        }/edit?error=${encodeURIComponent(`This ${field} is already in use`)}`
+      );
     }
 
-    return res.redirect(`/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent('Failed to update student information')}`);
+    return res.redirect(
+      `/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent(
+        'Failed to update student information'
+      )}`
+    );
   }
 };
 
@@ -6227,7 +6310,9 @@ const deleteStudent = async (req, res) => {
     // Permanently delete the student from database
     await User.findByIdAndDelete(studentId);
 
-    console.log(`Student ${studentInfo.name} (${studentInfo.id}) permanently deleted from database`);
+    console.log(
+      `Student ${studentInfo.name} (${studentInfo.id}) permanently deleted from database`
+    );
 
     return res.json({
       success: true,
@@ -7502,6 +7587,10 @@ const exportOrders = async (req, res) => {
       totalAmount: order.totalAmount,
       paymentMethod: order.paymentMethod || '',
       status: order.status,
+      paymentStatus: order.paymentStatus || '',
+      paymobTransactionId: order.paymobTransactionId || '',
+      paymobOrderId: order.paymobOrderId || '',
+      failureReason: order.failureReason || '',
       createdAt: order.createdAt,
       processedAt: order.processedAt || order.createdAt,
     }));
@@ -8710,7 +8799,10 @@ const createNewAdmin = async (req, res) => {
 
     // Basic validation
     if (!userName || !phoneNumber || !password) {
-      const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 }).lean();
+      const admins = await Admin.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .lean();
       req.flash('error', 'Username, phone number, and password are required');
       return res.render('admin/create-admin-panel', {
         title: 'Admin Management',
@@ -8726,7 +8818,10 @@ const createNewAdmin = async (req, res) => {
     }
 
     if (password.length < 6) {
-      const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 }).lean();
+      const admins = await Admin.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .lean();
       req.flash('error', 'Password must be at least 6 characters long');
       return res.render('admin/create-admin-panel', {
         title: 'Admin Management',
@@ -8751,7 +8846,10 @@ const createNewAdmin = async (req, res) => {
     });
 
     if (existingAdmin) {
-      const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 }).lean();
+      const admins = await Admin.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .lean();
       return res.render('admin/create-admin-panel', {
         title: 'Admin Management',
         currentPage: 'create-admin',
@@ -9176,13 +9274,13 @@ const bulkImportStudents = async (req, res) => {
           for (const key of possibleKeys) {
             // Try exact match
             if (obj[key] !== undefined) return obj[key];
-            
+
             // Try case-insensitive match
             const lowerKey = key.toLowerCase();
             for (const objKey in obj) {
               if (objKey.toLowerCase() === lowerKey) return obj[objKey];
             }
-            
+
             // Try trimmed match
             for (const objKey in obj) {
               if (objKey.trim() === key) return obj[objKey];
@@ -9193,25 +9291,49 @@ const bulkImportStudents = async (req, res) => {
 
         // Extract data from Excel row - support multiple column name variations
         const studentName = getValueByKey(row, [
-          'Student Name', 'student name', 'StudentName', 'studentname'
-        ]);
-        
-        const studentPhone = getValueByKey(row, [
-          'Student Phone Number', 'student phone number', 'StudentPhoneNumber', 'studentphonenumber',
-          'Student Phon', 'student phon', 'StudentPhone', 'studentphone',
-          'Student Phone', 'student phone'
-        ]);
-        
-        const parentPhone = getValueByKey(row, [
-          'Parent Phone Number', 'parent phone number', 'ParentPhoneNumber', 'parentphonenumber',
-          'Parent Phone', 'parent phone', 'ParentPhone', 'parentphone'
-        ]);
-        
-        const studentCode = getValueByKey(row, [
-          'Student Code', 'student code', 'StudentCode', 'studentcode'
+          'Student Name',
+          'student name',
+          'StudentName',
+          'studentname',
         ]);
 
-        console.log('Extracted values:', { studentName, studentPhone, parentPhone, studentCode });
+        const studentPhone = getValueByKey(row, [
+          'Student Phone Number',
+          'student phone number',
+          'StudentPhoneNumber',
+          'studentphonenumber',
+          'Student Phon',
+          'student phon',
+          'StudentPhone',
+          'studentphone',
+          'Student Phone',
+          'student phone',
+        ]);
+
+        const parentPhone = getValueByKey(row, [
+          'Parent Phone Number',
+          'parent phone number',
+          'ParentPhoneNumber',
+          'parentphonenumber',
+          'Parent Phone',
+          'parent phone',
+          'ParentPhone',
+          'parentphone',
+        ]);
+
+        const studentCode = getValueByKey(row, [
+          'Student Code',
+          'student code',
+          'StudentCode',
+          'studentcode',
+        ]);
+
+        console.log('Extracted values:', {
+          studentName,
+          studentPhone,
+          parentPhone,
+          studentCode,
+        });
 
         // Validate required fields
         if (!studentName || !studentPhone || !parentPhone || !studentCode) {
@@ -9273,7 +9395,9 @@ const bulkImportStudents = async (req, res) => {
         }
 
         // Check if student code already exists
-        const existingStudent = await User.findOne({ studentCode: studentCode.toString() });
+        const existingStudent = await User.findOne({
+          studentCode: studentCode.toString(),
+        });
         if (existingStudent) {
           results.failed.push({
             row: rowNumber,
@@ -9284,7 +9408,9 @@ const bulkImportStudents = async (req, res) => {
         }
 
         // Check if phone number already exists
-        const existingPhone = await User.findOne({ studentNumber: studentNumber });
+        const existingPhone = await User.findOne({
+          studentNumber: studentNumber,
+        });
         if (existingPhone) {
           results.failed.push({
             row: rowNumber,
@@ -9356,8 +9482,6 @@ const bulkImportStudents = async (req, res) => {
   }
 };
 
-
-
 // ==================== STUDENT ENROLLMENT ====================
 
 // Enroll students manually to a course
@@ -9381,8 +9505,11 @@ const enrollStudentsToCourse = async (req, res) => {
       });
     }
 
-    const students = await User.find({ _id: { $in: studentIds }, role: 'student' });
-    
+    const students = await User.find({
+      _id: { $in: studentIds },
+      role: 'student',
+    });
+
     if (students.length !== studentIds.length) {
       return res.status(400).json({
         success: false,
@@ -9391,17 +9518,18 @@ const enrollStudentsToCourse = async (req, res) => {
     }
 
     // Check if any students are already enrolled
-    const alreadyEnrolledStudents = students.filter(student => 
-      student.enrolledCourses.some(enrollment => 
-        enrollment.course && enrollment.course.toString() === courseId
+    const alreadyEnrolledStudents = students.filter((student) =>
+      student.enrolledCourses.some(
+        (enrollment) =>
+          enrollment.course && enrollment.course.toString() === courseId
       )
     );
 
     if (alreadyEnrolledStudents.length > 0) {
-      const alreadyEnrolledNames = alreadyEnrolledStudents.map(student => 
-        student.name || `${student.firstName} ${student.lastName}`
+      const alreadyEnrolledNames = alreadyEnrolledStudents.map(
+        (student) => student.name || `${student.firstName} ${student.lastName}`
       );
-      
+
       return res.status(400).json({
         success: false,
         message: `Cannot enroll students who are already enrolled in this course`,
@@ -9414,8 +9542,10 @@ const enrollStudentsToCourse = async (req, res) => {
     const enrolledStudents = [];
     for (const student of students) {
       await student.safeEnrollInCourse(courseId);
-      enrolledStudents.push(student.name || `${student.firstName} ${student.lastName}`);
-      
+      enrolledStudents.push(
+        student.name || `${student.firstName} ${student.lastName}`
+      );
+
       // Send WhatsApp notification for course enrollment
       try {
         await whatsappSMSNotificationService.sendCourseEnrollmentNotification(
@@ -9463,8 +9593,11 @@ const enrollStudentsToBundle = async (req, res) => {
       });
     }
 
-    const students = await User.find({ _id: { $in: studentIds }, role: 'student' });
-    
+    const students = await User.find({
+      _id: { $in: studentIds },
+      role: 'student',
+    });
+
     if (students.length !== studentIds.length) {
       return res.status(400).json({
         success: false,
@@ -9473,17 +9606,17 @@ const enrollStudentsToBundle = async (req, res) => {
     }
 
     // Check if any students are already enrolled
-    const alreadyEnrolledStudents = students.filter(student => 
-      student.purchasedBundles.some(purchase => 
-        purchase.bundle && purchase.bundle.toString() === bundleId
+    const alreadyEnrolledStudents = students.filter((student) =>
+      student.purchasedBundles.some(
+        (purchase) => purchase.bundle && purchase.bundle.toString() === bundleId
       )
     );
 
     if (alreadyEnrolledStudents.length > 0) {
-      const alreadyEnrolledNames = alreadyEnrolledStudents.map(student => 
-        student.name || `${student.firstName} ${student.lastName}`
+      const alreadyEnrolledNames = alreadyEnrolledStudents.map(
+        (student) => student.name || `${student.firstName} ${student.lastName}`
       );
-      
+
       return res.status(400).json({
         success: false,
         message: `Cannot enroll students who are already enrolled in this bundle`,
@@ -9495,14 +9628,14 @@ const enrollStudentsToBundle = async (req, res) => {
     // Enroll all students to bundle
     const enrolledStudents = [];
     for (const student of students) {
-
-      
       // Also enroll in all courses in the bundle using safe enrollment
       for (const courseId of bundle.courses) {
         await student.safeEnrollInCourse(courseId);
       }
-      enrolledStudents.push(student.name || `${student.firstName} ${student.lastName}`);
-      
+      enrolledStudents.push(
+        student.name || `${student.firstName} ${student.lastName}`
+      );
+
       // Send WhatsApp notification for bundle enrollment
       try {
         const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
@@ -9511,7 +9644,10 @@ const enrollStudentsToBundle = async (req, res) => {
           bundle
         );
       } catch (whatsappError) {
-        console.error('WhatsApp bundle enrollment notification error:', whatsappError);
+        console.error(
+          'WhatsApp bundle enrollment notification error:',
+          whatsappError
+        );
         // Don't fail the enrollment if WhatsApp fails
       }
     }
@@ -9534,7 +9670,7 @@ const enrollStudentsToBundle = async (req, res) => {
 const cleanupUserDuplicates = async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -9542,9 +9678,9 @@ const cleanupUserDuplicates = async (req, res) => {
         message: 'User not found',
       });
     }
-    
+
     const result = await user.cleanupDuplicates();
-    
+
     res.json({
       success: true,
       message: `Cleaned up ${result.duplicatesRemoved} duplicates for user`,
@@ -9619,9 +9755,20 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
       try {
         // Extract identifier (email, phone, or code)
         const identifier = getValueByKey(row, [
-          'Email', 'email', 'Student Email', 'student email',
-          'Phone', 'phone', 'Student Phone', 'student phone', 'Student Number', 'student number',
-          'Code', 'code', 'Student Code', 'student code'
+          'Email',
+          'email',
+          'Student Email',
+          'student email',
+          'Phone',
+          'phone',
+          'Student Phone',
+          'student phone',
+          'Student Number',
+          'student number',
+          'Code',
+          'code',
+          'Student Code',
+          'student code',
         ]);
 
         if (!identifier) {
@@ -9653,14 +9800,16 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
         }
 
         // Check if already enrolled
-        const isAlreadyEnrolled = student.enrolledCourses.some(enrollment => 
-          enrollment.course && enrollment.course.toString() === courseId
+        const isAlreadyEnrolled = student.enrolledCourses.some(
+          (enrollment) =>
+            enrollment.course && enrollment.course.toString() === courseId
         );
-        
+
         if (isAlreadyEnrolled) {
           results.alreadyEnrolled.push({
             row: rowNumber,
-            studentName: student.name || `${student.firstName} ${student.lastName}`,
+            studentName:
+              student.name || `${student.firstName} ${student.lastName}`,
             identifier,
           });
           continue;
@@ -9671,7 +9820,8 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
 
         results.success.push({
           row: rowNumber,
-          studentName: student.name || `${student.firstName} ${student.lastName}`,
+          studentName:
+            student.name || `${student.firstName} ${student.lastName}`,
           identifier,
         });
       } catch (error) {
@@ -9758,9 +9908,20 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
       try {
         // Extract identifier (email, phone, or code)
         const identifier = getValueByKey(row, [
-          'Email', 'email', 'Student Email', 'student email',
-          'Phone', 'phone', 'Student Phone', 'student phone', 'Student Number', 'student number',
-          'Code', 'code', 'Student Code', 'student code'
+          'Email',
+          'email',
+          'Student Email',
+          'student email',
+          'Phone',
+          'phone',
+          'Student Phone',
+          'student phone',
+          'Student Number',
+          'student number',
+          'Code',
+          'code',
+          'Student Code',
+          'student code',
         ]);
 
         if (!identifier) {
@@ -9792,14 +9953,16 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
         }
 
         // Check if already enrolled
-        const isAlreadyEnrolled = student.purchasedBundles.some(purchase => 
-          purchase.bundle && purchase.bundle.toString() === bundleId
+        const isAlreadyEnrolled = student.purchasedBundles.some(
+          (purchase) =>
+            purchase.bundle && purchase.bundle.toString() === bundleId
         );
-        
+
         if (isAlreadyEnrolled) {
           results.alreadyEnrolled.push({
             row: rowNumber,
-            studentName: student.name || `${student.firstName} ${student.lastName}`,
+            studentName:
+              student.name || `${student.firstName} ${student.lastName}`,
             identifier,
           });
           continue;
@@ -9811,15 +9974,17 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
           purchasedAt: new Date(),
           price: bundle.price || 0,
           orderNumber: `BULK-${Date.now()}-${rowNumber}`,
-          status: 'active'
+          status: 'active',
         });
-        
+
         // Also enroll in all courses in the bundle
         for (const courseId of bundle.courses) {
-          const isAlreadyEnrolledInCourse = student.enrolledCourses.some(enrollment => 
-            enrollment.course && enrollment.course.toString() === courseId.toString()
+          const isAlreadyEnrolledInCourse = student.enrolledCourses.some(
+            (enrollment) =>
+              enrollment.course &&
+              enrollment.course.toString() === courseId.toString()
           );
-          
+
           if (!isAlreadyEnrolledInCourse) {
             student.enrolledCourses.push({
               course: courseId,
@@ -9828,16 +9993,17 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
               lastAccessed: new Date(),
               completedTopics: [],
               status: 'active',
-              contentProgress: []
+              contentProgress: [],
             });
           }
         }
-        
+
         await student.save();
 
         results.success.push({
           row: rowNumber,
-          studentName: student.name || `${student.firstName} ${student.lastName}`,
+          studentName:
+            student.name || `${student.firstName} ${student.lastName}`,
           identifier,
         });
       } catch (error) {
@@ -9888,24 +10054,28 @@ const getStudentsForEnrollment = async (req, res) => {
 
     // Get all students matching the search
     let students = await User.find(query)
-      .select('firstName lastName studentEmail studentNumber studentCode username grade schoolName enrolledCourses purchasedBundles')
+      .select(
+        'firstName lastName studentEmail studentNumber studentCode username grade schoolName enrolledCourses purchasedBundles'
+      )
       .sort({ firstName: 1, lastName: 1 });
 
     // Filter out already enrolled students using JavaScript
     if (courseId) {
-      students = students.filter(student => {
+      students = students.filter((student) => {
         // Check if student has this course in their enrolledCourses array
-        return !student.enrolledCourses.some(enrollment => 
-          enrollment.course && enrollment.course.toString() === courseId
+        return !student.enrolledCourses.some(
+          (enrollment) =>
+            enrollment.course && enrollment.course.toString() === courseId
         );
       });
     }
-    
+
     if (bundleId) {
-      students = students.filter(student => {
+      students = students.filter((student) => {
         // Check if student has this bundle in their purchasedBundles array
-        return !student.purchasedBundles.some(purchase => 
-          purchase.bundle && purchase.bundle.toString() === bundleId
+        return !student.purchasedBundles.some(
+          (purchase) =>
+            purchase.bundle && purchase.bundle.toString() === bundleId
         );
       });
     }
@@ -9946,8 +10116,9 @@ const removeStudentFromCourse = async (req, res) => {
     }
 
     // Find and remove the enrollment
-    const enrollmentIndex = student.enrolledCourses.findIndex(enrollment => 
-      enrollment.course && enrollment.course.toString() === courseId
+    const enrollmentIndex = student.enrolledCourses.findIndex(
+      (enrollment) =>
+        enrollment.course && enrollment.course.toString() === courseId
     );
 
     if (enrollmentIndex === -1) {
@@ -9996,8 +10167,8 @@ const removeStudentFromBundle = async (req, res) => {
     }
 
     // Find and remove the bundle purchase
-    const bundleIndex = student.purchasedBundles.findIndex(purchase => 
-      purchase.bundle && purchase.bundle.toString() === bundleId
+    const bundleIndex = student.purchasedBundles.findIndex(
+      (purchase) => purchase.bundle && purchase.bundle.toString() === bundleId
     );
 
     if (bundleIndex === -1) {
@@ -10013,8 +10184,10 @@ const removeStudentFromBundle = async (req, res) => {
     // Also remove student from all courses in the bundle
     const removedCourses = [];
     for (const courseId of bundle.courses) {
-      const courseIndex = student.enrolledCourses.findIndex(enrollment => 
-        enrollment.course && enrollment.course.toString() === courseId.toString()
+      const courseIndex = student.enrolledCourses.findIndex(
+        (enrollment) =>
+          enrollment.course &&
+          enrollment.course.toString() === courseId.toString()
       );
 
       if (courseIndex !== -1) {
@@ -10049,7 +10222,7 @@ const getPromoCodes = async (req, res) => {
 
     // Build filter
     const filter = {};
-    
+
     if (status) {
       if (status === 'active') {
         filter.isActive = true;
@@ -10066,14 +10239,17 @@ const getPromoCodes = async (req, res) => {
       filter.$or = [
         { code: { $regex: search, $options: 'i' } },
         { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } },
       ];
     }
 
     // Get promo codes
     const promoCodes = await PromoCode.find(filter)
       .populate('createdBy', 'userName email')
-      .populate('allowedStudents', 'firstName lastName studentEmail studentCode')
+      .populate(
+        'allowedStudents',
+        'firstName lastName studentEmail studentCode'
+      )
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -10083,15 +10259,15 @@ const getPromoCodes = async (req, res) => {
     const activeCodes = await PromoCode.countDocuments({
       isActive: true,
       validFrom: { $lte: new Date() },
-      validUntil: { $gte: new Date() }
+      validUntil: { $gte: new Date() },
     });
     const expiredCodes = await PromoCode.countDocuments({
-      validUntil: { $lt: new Date() }
+      validUntil: { $lt: new Date() },
     });
 
     // Calculate total uses
     const totalUsesResult = await PromoCode.aggregate([
-      { $group: { _id: null, totalUses: { $sum: '$currentUses' } } }
+      { $group: { _id: null, totalUses: { $sum: '$currentUses' } } },
     ]);
     const totalUses = totalUsesResult[0]?.totalUses || 0;
 
@@ -10099,7 +10275,7 @@ const getPromoCodes = async (req, res) => {
       totalCodes,
       activeCodes,
       expiredCodes,
-      totalUses
+      totalUses,
     };
 
     res.render('admin/promo-codes', {
@@ -10112,8 +10288,8 @@ const getPromoCodes = async (req, res) => {
         currentPage: parseInt(page),
         totalPages: Math.ceil(totalCodes / parseInt(limit)),
         hasNext: parseInt(page) < Math.ceil(totalCodes / parseInt(limit)),
-        hasPrev: parseInt(page) > 1
-      }
+        hasPrev: parseInt(page) > 1,
+      },
     });
   } catch (error) {
     console.error('Error fetching promo codes:', error);
@@ -10124,7 +10300,12 @@ const getPromoCodes = async (req, res) => {
       promoCodes: [],
       stats: { totalCodes: 0, activeCodes: 0, expiredCodes: 0, totalUses: 0 },
       currentFilters: {},
-      pagination: { currentPage: 1, totalPages: 0, hasNext: false, hasPrev: false }
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
     });
   }
 };
@@ -10146,14 +10327,21 @@ const createPromoCode = async (req, res) => {
       validUntil,
       applicableTo,
       restrictToStudents,
-      allowedStudentIds
+      allowedStudentIds,
     } = req.body;
 
     // Validate required fields
-    if (!name || !code || !discountType || !discountValue || !validFrom || !validUntil) {
+    if (
+      !name ||
+      !code ||
+      !discountType ||
+      !discountValue ||
+      !validFrom ||
+      !validUntil
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields'
+        message: 'Missing required fields',
       });
     }
 
@@ -10161,33 +10349,36 @@ const createPromoCode = async (req, res) => {
     if (!req.session.adminId && !req.user?.id) {
       return res.status(401).json({
         success: false,
-        message: 'Admin authentication required'
+        message: 'Admin authentication required',
       });
     }
 
     // Validate discount value
-    if (discountType === 'percentage' && (discountValue < 1 || discountValue > 100)) {
+    if (
+      discountType === 'percentage' &&
+      (discountValue < 1 || discountValue > 100)
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Percentage discount must be between 1 and 100'
+        message: 'Percentage discount must be between 1 and 100',
       });
     }
 
     if (discountType === 'fixed' && discountValue <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Fixed discount must be greater than 0'
+        message: 'Fixed discount must be greater than 0',
       });
     }
 
     // Validate dates
     const fromDate = new Date(validFrom);
     const untilDate = new Date(validUntil);
-    
+
     if (untilDate <= fromDate) {
       return res.status(400).json({
         success: false,
-        message: 'Valid until date must be after valid from date'
+        message: 'Valid until date must be after valid from date',
       });
     }
 
@@ -10196,27 +10387,32 @@ const createPromoCode = async (req, res) => {
     if (existingCode) {
       return res.status(400).json({
         success: false,
-        message: 'Promo code already exists'
+        message: 'Promo code already exists',
       });
     }
 
     // Parse allowed students if provided
     let allowedStudents = [];
     let allowedStudentEmails = [];
-    
+
     if (restrictToStudents === 'true' || restrictToStudents === true) {
       if (allowedStudentIds) {
         try {
-          const studentIds = typeof allowedStudentIds === 'string' 
-            ? JSON.parse(allowedStudentIds) 
-            : allowedStudentIds;
-          
+          const studentIds =
+            typeof allowedStudentIds === 'string'
+              ? JSON.parse(allowedStudentIds)
+              : allowedStudentIds;
+
           if (Array.isArray(studentIds) && studentIds.length > 0) {
             // Fetch students to get their emails
             const User = require('../models/User');
-            const students = await User.find({ _id: { $in: studentIds } }).select('_id studentEmail');
-            allowedStudents = students.map(s => s._id);
-            allowedStudentEmails = students.map(s => s.studentEmail).filter(email => email);
+            const students = await User.find({
+              _id: { $in: studentIds },
+            }).select('_id studentEmail');
+            allowedStudents = students.map((s) => s._id);
+            allowedStudentEmails = students
+              .map((s) => s.studentEmail)
+              .filter((email) => email);
           }
         } catch (error) {
           console.error('Error parsing allowed students:', error);
@@ -10231,17 +10427,21 @@ const createPromoCode = async (req, res) => {
       code: code.toUpperCase(),
       discountType,
       discountValue: parseFloat(discountValue),
-      maxDiscountAmount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
+      maxDiscountAmount: maxDiscountAmount
+        ? parseFloat(maxDiscountAmount)
+        : null,
       minOrderAmount: parseFloat(minOrderAmount) || 0,
       maxUses: maxUses ? parseInt(maxUses) : null,
-      allowMultipleUses: allowMultipleUses === 'true' || allowMultipleUses === true,
+      allowMultipleUses:
+        allowMultipleUses === 'true' || allowMultipleUses === true,
       validFrom: fromDate,
       validUntil: untilDate,
       applicableTo: applicableTo || 'all',
-      restrictToStudents: restrictToStudents === 'true' || restrictToStudents === true,
+      restrictToStudents:
+        restrictToStudents === 'true' || restrictToStudents === true,
       allowedStudents: allowedStudents,
       allowedStudentEmails: allowedStudentEmails,
-      createdBy: req.session.adminId || req.user?.id
+      createdBy: req.session.adminId || req.user?.id,
     });
 
     await promoCode.save();
@@ -10249,14 +10449,14 @@ const createPromoCode = async (req, res) => {
     res.json({
       success: true,
       message: 'Promo code created successfully',
-      promoCode: promoCode
+      promoCode: promoCode,
     });
   } catch (error) {
     console.error('Error creating promo code:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating promo code',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10265,27 +10465,29 @@ const createPromoCode = async (req, res) => {
 const getPromoCode = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const promoCode = await PromoCode.findById(id)
-      .populate('allowedStudents', 'firstName lastName studentEmail studentCode');
-    
+
+    const promoCode = await PromoCode.findById(id).populate(
+      'allowedStudents',
+      'firstName lastName studentEmail studentCode'
+    );
+
     if (!promoCode) {
       return res.status(404).json({
         success: false,
-        message: 'Promo code not found'
+        message: 'Promo code not found',
       });
     }
-    
+
     res.json({
       success: true,
-      promoCode: promoCode
+      promoCode: promoCode,
     });
   } catch (error) {
     console.error('Error fetching promo code:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching promo code',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10302,7 +10504,7 @@ const getPromoCodeUsage = async (req, res) => {
     if (!promoCode) {
       return res.status(404).json({
         success: false,
-        message: 'Promo code not found'
+        message: 'Promo code not found',
       });
     }
 
@@ -10311,16 +10513,16 @@ const getPromoCodeUsage = async (req, res) => {
       promoCode: {
         _id: promoCode._id,
         name: promoCode.name,
-        code: promoCode.code
+        code: promoCode.code,
       },
-      usageHistory: promoCode.usageHistory
+      usageHistory: promoCode.usageHistory,
     });
   } catch (error) {
     console.error('Error fetching promo code usage:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching usage history',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10334,7 +10536,7 @@ const deletePromoCode = async (req, res) => {
     if (!promoCode) {
       return res.status(404).json({
         success: false,
-        message: 'Promo code not found'
+        message: 'Promo code not found',
       });
     }
 
@@ -10342,7 +10544,7 @@ const deletePromoCode = async (req, res) => {
     if (promoCode.currentUses > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete promo code that has been used'
+        message: 'Cannot delete promo code that has been used',
       });
     }
 
@@ -10350,14 +10552,14 @@ const deletePromoCode = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Promo code deleted successfully'
+      message: 'Promo code deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting promo code:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting promo code',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10372,15 +10574,19 @@ const updatePromoCode = async (req, res) => {
     if (!promoCode) {
       return res.status(404).json({
         success: false,
-        message: 'Promo code not found'
+        message: 'Promo code not found',
       });
     }
 
     // Don't allow updating code if it has been used
-    if (promoCode.currentUses > 0 && updateData.code && updateData.code !== promoCode.code) {
+    if (
+      promoCode.currentUses > 0 &&
+      updateData.code &&
+      updateData.code !== promoCode.code
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot change code that has been used'
+        message: 'Cannot change code that has been used',
       });
     }
 
@@ -10389,27 +10595,34 @@ const updatePromoCode = async (req, res) => {
       if (updateData.discountValue < 1 || updateData.discountValue > 100) {
         return res.status(400).json({
           success: false,
-          message: 'Percentage discount must be between 1 and 100'
+          message: 'Percentage discount must be between 1 and 100',
         });
       }
     }
 
     // Handle allowed students update
     if (updateData.restrictToStudents !== undefined) {
-      promoCode.restrictToStudents = updateData.restrictToStudents === 'true' || updateData.restrictToStudents === true;
-      
+      promoCode.restrictToStudents =
+        updateData.restrictToStudents === 'true' ||
+        updateData.restrictToStudents === true;
+
       if (promoCode.restrictToStudents && updateData.allowedStudentIds) {
         try {
-          const studentIds = typeof updateData.allowedStudentIds === 'string' 
-            ? JSON.parse(updateData.allowedStudentIds) 
-            : updateData.allowedStudentIds;
-          
+          const studentIds =
+            typeof updateData.allowedStudentIds === 'string'
+              ? JSON.parse(updateData.allowedStudentIds)
+              : updateData.allowedStudentIds;
+
           if (Array.isArray(studentIds) && studentIds.length > 0) {
             // Fetch students to get their emails
             const User = require('../models/User');
-            const students = await User.find({ _id: { $in: studentIds } }).select('_id studentEmail');
-            promoCode.allowedStudents = students.map(s => s._id);
-            promoCode.allowedStudentEmails = students.map(s => s.studentEmail).filter(email => email);
+            const students = await User.find({
+              _id: { $in: studentIds },
+            }).select('_id studentEmail');
+            promoCode.allowedStudents = students.map((s) => s._id);
+            promoCode.allowedStudentEmails = students
+              .map((s) => s.studentEmail)
+              .filter((email) => email);
           } else {
             promoCode.allowedStudents = [];
             promoCode.allowedStudentEmails = [];
@@ -10425,11 +10638,16 @@ const updatePromoCode = async (req, res) => {
     }
 
     // Update promo code
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] !== undefined && key !== 'restrictToStudents' && key !== 'allowedStudentIds') {
+    Object.keys(updateData).forEach((key) => {
+      if (
+        updateData[key] !== undefined &&
+        key !== 'restrictToStudents' &&
+        key !== 'allowedStudentIds'
+      ) {
         // Special handling for allowMultipleUses to convert string to boolean
         if (key === 'allowMultipleUses') {
-          promoCode[key] = updateData[key] === 'true' || updateData[key] === true;
+          promoCode[key] =
+            updateData[key] === 'true' || updateData[key] === true;
         } else {
           promoCode[key] = updateData[key];
         }
@@ -10441,14 +10659,14 @@ const updatePromoCode = async (req, res) => {
     res.json({
       success: true,
       message: 'Promo code updated successfully',
-      promoCode: promoCode
+      promoCode: promoCode,
     });
   } catch (error) {
     console.error('Error updating promo code:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating promo code',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10468,14 +10686,21 @@ const createBulkPromoCodes = async (req, res) => {
       validFrom,
       validUntil,
       applicableTo,
-      codePrefix
+      codePrefix,
     } = req.body;
 
     // Validate required fields
-    if (!collectionName || !count || !discountType || !discountValue || !validFrom || !validUntil) {
+    if (
+      !collectionName ||
+      !count ||
+      !discountType ||
+      !discountValue ||
+      !validFrom ||
+      !validUntil
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields'
+        message: 'Missing required fields',
       });
     }
 
@@ -10483,7 +10708,7 @@ const createBulkPromoCodes = async (req, res) => {
     if (!req.session.adminId && !req.user?.id) {
       return res.status(401).json({
         success: false,
-        message: 'Admin authentication required'
+        message: 'Admin authentication required',
       });
     }
 
@@ -10494,50 +10719,61 @@ const createBulkPromoCodes = async (req, res) => {
     if (codeCount < 1 || codeCount > 1000) {
       return res.status(400).json({
         success: false,
-        message: 'Code count must be between 1 and 1000'
+        message: 'Code count must be between 1 and 1000',
       });
     }
 
     // Validate discount value
-    if (discountType === 'percentage' && (discountValue < 1 || discountValue > 100)) {
+    if (
+      discountType === 'percentage' &&
+      (discountValue < 1 || discountValue > 100)
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Percentage discount must be between 1 and 100'
+        message: 'Percentage discount must be between 1 and 100',
       });
     }
 
     if (discountType === 'fixed' && discountValue <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Fixed discount must be greater than 0'
+        message: 'Fixed discount must be greater than 0',
       });
     }
 
     // Validate dates
     const fromDate = new Date(validFrom);
     const untilDate = new Date(validUntil);
-    
+
     if (untilDate <= fromDate) {
       return res.status(400).json({
         success: false,
-        message: 'Valid until date must be after valid from date'
+        message: 'Valid until date must be after valid from date',
       });
     }
 
     // Generate unique collection ID
-    const bulkCollectionId = `BULK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const bulkCollectionId = `BULK_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
 
     // Generate unique codes
-    const codes = await PromoCode.generateBulkCodes(codeCount, codePrefix || '', 8);
+    const codes = await PromoCode.generateBulkCodes(
+      codeCount,
+      codePrefix || '',
+      8
+    );
 
     // Create promo codes
-    const promoCodeDocs = codes.map(code => ({
+    const promoCodeDocs = codes.map((code) => ({
       code,
       name: `${collectionName} - ${code}`,
       description: `Bulk code from collection: ${collectionName}`,
       discountType,
       discountValue: parseFloat(discountValue),
-      maxDiscountAmount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
+      maxDiscountAmount: maxDiscountAmount
+        ? parseFloat(maxDiscountAmount)
+        : null,
       minOrderAmount: minOrderAmount ? parseFloat(minOrderAmount) : 0,
       maxUses: 1, // Each bulk code can only be used once total
       allowMultipleUses: false, // User cannot use the same code multiple times
@@ -10550,7 +10786,7 @@ const createBulkPromoCodes = async (req, res) => {
       isBulkCode: true,
       bulkCollectionName: collectionName,
       bulkCollectionId,
-      isSingleUseOnly: true // Each code can only be used by one student
+      isSingleUseOnly: true, // Each code can only be used by one student
     }));
 
     // Insert all codes
@@ -10561,14 +10797,14 @@ const createBulkPromoCodes = async (req, res) => {
       message: `Successfully created ${createdCodes.length} promo codes`,
       bulkCollectionId,
       collectionName,
-      totalCodes: createdCodes.length
+      totalCodes: createdCodes.length,
     });
   } catch (error) {
     console.error('Error creating bulk promo codes:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating bulk promo codes',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10585,38 +10821,41 @@ const getBulkCollections = async (req, res) => {
           collectionName: { $first: '$bulkCollectionName' },
           totalCodes: { $sum: 1 },
           usedCodes: {
-            $sum: { $cond: [{ $ne: ['$usedByStudent', null] }, 1, 0] }
+            $sum: { $cond: [{ $ne: ['$usedByStudent', null] }, 1, 0] },
           },
           activeCodes: {
-            $sum: { $cond: ['$isActive', 1, 0] }
+            $sum: { $cond: ['$isActive', 1, 0] },
           },
           discountType: { $first: '$discountType' },
           discountValue: { $first: '$discountValue' },
           validFrom: { $first: '$validFrom' },
           validUntil: { $first: '$validUntil' },
-          createdAt: { $first: '$createdAt' }
-        }
+          createdAt: { $first: '$createdAt' },
+        },
       },
-      { $sort: { createdAt: -1 } }
+      { $sort: { createdAt: -1 } },
     ]);
 
     // Calculate additional stats for each collection
-    const collectionsWithStats = collections.map(col => ({
+    const collectionsWithStats = collections.map((col) => ({
       ...col,
       unusedCodes: col.totalCodes - col.usedCodes,
-      usagePercentage: col.totalCodes > 0 ? ((col.usedCodes / col.totalCodes) * 100).toFixed(2) : 0
+      usagePercentage:
+        col.totalCodes > 0
+          ? ((col.usedCodes / col.totalCodes) * 100).toFixed(2)
+          : 0,
     }));
 
     res.json({
       success: true,
-      collections: collectionsWithStats
+      collections: collectionsWithStats,
     });
   } catch (error) {
     console.error('Error fetching bulk collections:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching bulk collections',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10634,7 +10873,7 @@ const getBulkCollectionDetails = async (req, res) => {
     if (codes.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Bulk collection not found'
+        message: 'Bulk collection not found',
       });
     }
 
@@ -10646,14 +10885,14 @@ const getBulkCollectionDetails = async (req, res) => {
       collectionName: codes[0].bulkCollectionName,
       bulkCollectionId,
       codes,
-      stats
+      stats,
     });
   } catch (error) {
     console.error('Error fetching bulk collection details:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching bulk collection details',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10671,7 +10910,7 @@ const exportBulkCollection = async (req, res) => {
     if (codes.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Bulk collection not found'
+        message: 'Bulk collection not found',
       });
     }
 
@@ -10691,7 +10930,7 @@ const exportBulkCollection = async (req, res) => {
       { header: 'Used At', key: 'usedAt', width: 20 },
       { header: 'Valid From', key: 'validFrom', width: 20 },
       { header: 'Valid Until', key: 'validUntil', width: 20 },
-      { header: 'Is Active', key: 'isActive', width: 12 }
+      { header: 'Is Active', key: 'isActive', width: 12 },
     ];
 
     // Style header row
@@ -10699,24 +10938,30 @@ const exportBulkCollection = async (req, res) => {
     worksheet.getRow(1).fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFB80101' }
+      fgColor: { argb: 'FFB80101' },
     };
-    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getRow(1).alignment = {
+      vertical: 'middle',
+      horizontal: 'center',
+    };
 
     // Add data rows
-    codes.forEach(code => {
-      const usedAt = code.usageHistory.length > 0 
-        ? new Date(code.usageHistory[0].usedAt).toLocaleString()
-        : 'Not Used';
+    codes.forEach((code) => {
+      const usedAt =
+        code.usageHistory.length > 0
+          ? new Date(code.usageHistory[0].usedAt).toLocaleString()
+          : 'Not Used';
 
       worksheet.addRow({
         code: code.code,
         status: code.usedByStudent ? 'Used' : 'Unused',
-        discountType: code.discountType === 'percentage' ? 'Percentage' : 'Fixed',
-        discountValue: code.discountType === 'percentage' 
-          ? `${code.discountValue}%` 
-          : `EGP ${code.discountValue}`,
-        usedByStudent: code.usedByStudent 
+        discountType:
+          code.discountType === 'percentage' ? 'Percentage' : 'Fixed',
+        discountValue:
+          code.discountType === 'percentage'
+            ? `${code.discountValue}%`
+            : `EGP ${code.discountValue}`,
+        usedByStudent: code.usedByStudent
           ? `${code.usedByStudent.firstName} ${code.usedByStudent.lastName}`
           : '-',
         studentEmail: code.usedByStudent?.studentEmail || '-',
@@ -10724,7 +10969,7 @@ const exportBulkCollection = async (req, res) => {
         usedAt,
         validFrom: new Date(code.validFrom).toLocaleString(),
         validUntil: new Date(code.validUntil).toLocaleString(),
-        isActive: code.isActive ? 'Yes' : 'No'
+        isActive: code.isActive ? 'Yes' : 'No',
       });
     });
 
@@ -10732,10 +10977,10 @@ const exportBulkCollection = async (req, res) => {
     worksheet.addRow([]);
     worksheet.addRow([]);
     const summaryStartRow = worksheet.lastRow.number + 1;
-    
+
     worksheet.addRow(['Collection Summary']);
     worksheet.getRow(summaryStartRow).font = { bold: true, size: 14 };
-    
+
     const stats = await PromoCode.getBulkCollectionStats(bulkCollectionId);
     worksheet.addRow(['Collection Name:', codes[0].bulkCollectionName]);
     worksheet.addRow(['Total Codes:', stats.totalCodes]);
@@ -10751,7 +10996,10 @@ const exportBulkCollection = async (req, res) => {
     );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=bulk-promo-codes-${codes[0].bulkCollectionName.replace(/\s+/g, '-')}-${Date.now()}.xlsx`
+      `attachment; filename=bulk-promo-codes-${codes[0].bulkCollectionName.replace(
+        /\s+/g,
+        '-'
+      )}-${Date.now()}.xlsx`
     );
 
     // Write to response
@@ -10762,7 +11010,7 @@ const exportBulkCollection = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error exporting bulk collection',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10775,13 +11023,13 @@ const deleteBulkCollection = async (req, res) => {
     // Check if any codes in the collection have been used
     const usedCodesCount = await PromoCode.countDocuments({
       bulkCollectionId,
-      usedByStudent: { $ne: null }
+      usedByStudent: { $ne: null },
     });
 
     if (usedCodesCount > 0) {
       return res.status(400).json({
         success: false,
-        message: `Cannot delete collection. ${usedCodesCount} code(s) have already been used.`
+        message: `Cannot delete collection. ${usedCodesCount} code(s) have already been used.`,
       });
     }
 
@@ -10790,14 +11038,14 @@ const deleteBulkCollection = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully deleted ${result.deletedCount} promo codes from the collection`
+      message: `Successfully deleted ${result.deletedCount} promo codes from the collection`,
     });
   } catch (error) {
     console.error('Error deleting bulk collection:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting bulk collection',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10817,14 +11065,14 @@ const toggleBulkCollectionStatus = async (req, res) => {
     res.json({
       success: true,
       message: `Successfully updated ${result.modifiedCount} promo codes`,
-      modifiedCount: result.modifiedCount
+      modifiedCount: result.modifiedCount,
     });
   } catch (error) {
     console.error('Error toggling bulk collection status:', error);
     res.status(500).json({
       success: false,
       message: 'Error toggling bulk collection status',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10836,56 +11084,56 @@ const getDashboardChartData = async (req, res) => {
   try {
     const { days = 30 } = req.query;
     const daysInt = parseInt(days);
-    
+
     // Calculate date range
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysInt);
-    
+
     // Get student growth data
     const studentGrowth = await User.aggregate([
       {
         $match: {
           role: 'student',
-          createdAt: { $gte: startDate }
-        }
+          createdAt: { $gte: startDate },
+        },
       },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
     ]);
-    
+
     // Get revenue data
     const revenueData = await Purchase.aggregate([
       {
         $match: {
           createdAt: { $gte: startDate },
-          status: { $in: ['completed', 'paid'] }
-        }
+          status: { $in: ['completed', 'paid'] },
+        },
       },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          total: { $sum: '$total' }
-        }
+          total: { $sum: '$total' },
+        },
       },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
     ]);
-    
+
     res.json({
       success: true,
       studentGrowth,
-      revenueData
+      revenueData,
     });
   } catch (error) {
     console.error('Error fetching chart data:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching chart data',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -10910,7 +11158,10 @@ const updateAdmin = async (req, res) => {
     admin.userName = userName || admin.userName;
     admin.phoneNumber = phoneNumber || admin.phoneNumber;
     admin.email = email || admin.email;
-    admin.isActive = isActive !== undefined ? isActive === 'true' || isActive === true : admin.isActive;
+    admin.isActive =
+      isActive !== undefined
+        ? isActive === 'true' || isActive === true
+        : admin.isActive;
 
     await admin.save();
 
@@ -11080,7 +11331,9 @@ const toggleAdminStatus = async (req, res) => {
       currentPage: 'create-admin',
       theme: req.cookies.theme || 'light',
       user: req.user,
-      success: `Admin account ${admin.isActive ? 'activated' : 'deactivated'} successfully!`,
+      success: `Admin account ${
+        admin.isActive ? 'activated' : 'deactivated'
+      } successfully!`,
       admins: admins || [],
     });
   } catch (error) {
@@ -11108,45 +11361,47 @@ const getTeamManagementPage = async (req, res) => {
   try {
     const filters = {
       search: req.query.search || '',
-      isActive: req.query.isActive || ''
+      isActive: req.query.isActive || '',
     };
 
     // Build query without pagination - fetch all members
     const query = {};
-    
+
     // Apply filters
     if (filters.search) {
       query.$or = [
         { name: { $regex: filters.search, $options: 'i' } },
-        { position: { $regex: filters.search, $options: 'i' } }
+        { position: { $regex: filters.search, $options: 'i' } },
       ];
     }
-    
+
     if (filters.isActive !== undefined && filters.isActive !== '') {
       query.isActive = filters.isActive === 'true';
     }
 
     // Fetch all team members without pagination
-    const teamMembers = await TeamMember.find(query)
-      .sort({ displayOrder: 1, createdAt: -1 });
-    
+    const teamMembers = await TeamMember.find(query).sort({
+      displayOrder: 1,
+      createdAt: -1,
+    });
+
     const totalMembers = teamMembers.length;
 
     // Get statistics
     const stats = {
       total: await TeamMember.countDocuments(),
       active: await TeamMember.countDocuments({ isActive: true }),
-      inactive: await TeamMember.countDocuments({ isActive: false })
+      inactive: await TeamMember.countDocuments({ isActive: false }),
     };
 
     res.render('admin/team-management', {
       title: 'Team Management | ELKABLY',
       teamMembers,
       pagination: {
-        totalMembers
+        totalMembers,
       },
       stats,
-      filters
+      filters,
     });
   } catch (error) {
     console.error('Error loading team management page:', error);
@@ -11160,23 +11415,23 @@ const getTeamMember = async (req, res) => {
   try {
     const { id } = req.params;
     const teamMember = await TeamMember.findById(id);
-    
+
     if (!teamMember) {
       return res.status(404).json({
         success: false,
-        message: 'Team member not found'
+        message: 'Team member not found',
       });
     }
 
     res.json({
       success: true,
-      data: teamMember
+      data: teamMember,
     });
   } catch (error) {
     console.error('Error getting team member:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get team member'
+      message: 'Failed to get team member',
     });
   }
 };
@@ -11184,13 +11439,14 @@ const getTeamMember = async (req, res) => {
 // Create new team member
 const createTeamMember = async (req, res) => {
   try {
-    const { name, position, image, fallbackInitials, displayOrder, isActive } = req.body;
+    const { name, position, image, fallbackInitials, displayOrder, isActive } =
+      req.body;
 
     // Validate required fields
     if (!name || !position) {
       return res.status(400).json({
         success: false,
-        message: 'Name and position are required'
+        message: 'Name and position are required',
       });
     }
 
@@ -11209,7 +11465,7 @@ const createTeamMember = async (req, res) => {
       image: image || null,
       fallbackInitials,
       displayOrder: finalDisplayOrder,
-      isActive: isActive === 'true'
+      isActive: isActive === 'true',
     });
 
     await teamMember.save();
@@ -11217,13 +11473,13 @@ const createTeamMember = async (req, res) => {
     res.json({
       success: true,
       message: 'Team member created successfully',
-      data: teamMember
+      data: teamMember,
     });
   } catch (error) {
     console.error('Error creating team member:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create team member'
+      message: 'Failed to create team member',
     });
   }
 };
@@ -11232,13 +11488,14 @@ const createTeamMember = async (req, res) => {
 const updateTeamMember = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, position, image, fallbackInitials, displayOrder, isActive } = req.body;
+    const { name, position, image, fallbackInitials, displayOrder, isActive } =
+      req.body;
 
     const teamMember = await TeamMember.findById(id);
     if (!teamMember) {
       return res.status(404).json({
         success: false,
-        message: 'Team member not found'
+        message: 'Team member not found',
       });
     }
 
@@ -11255,13 +11512,13 @@ const updateTeamMember = async (req, res) => {
     res.json({
       success: true,
       message: 'Team member updated successfully',
-      data: teamMember
+      data: teamMember,
     });
   } catch (error) {
     console.error('Error updating team member:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update team member'
+      message: 'Failed to update team member',
     });
   }
 };
@@ -11271,11 +11528,11 @@ const deleteTeamMember = async (req, res) => {
   try {
     const { id } = req.params;
     const teamMember = await TeamMember.findById(id);
-    
+
     if (!teamMember) {
       return res.status(404).json({
         success: false,
-        message: 'Team member not found'
+        message: 'Team member not found',
       });
     }
 
@@ -11283,13 +11540,13 @@ const deleteTeamMember = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Team member deleted successfully'
+      message: 'Team member deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting team member:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete team member'
+      message: 'Failed to delete team member',
     });
   }
 };
@@ -11325,24 +11582,39 @@ const exportTeamMembers = async (req, res) => {
   try {
     const teamMembers = await TeamMember.find({})
       .sort({ displayOrder: 1, createdAt: -1 })
-      .select('name position image fallbackInitials displayOrder isActive createdAt');
+      .select(
+        'name position image fallbackInitials displayOrder isActive createdAt'
+      );
 
     // Simple CSV export
-    const csvHeader = 'Name,Position,Image URL,Fallback Initials,Display Order,Active,Created At\n';
-    const csvData = teamMembers.map(member => 
-      `"${member.name}","${member.position}","${member.image || ''}","${member.fallbackInitials}",${member.displayOrder},${member.isActive},"${member.createdAt.toISOString()}"`
-    ).join('\n');
+    const csvHeader =
+      'Name,Position,Image URL,Fallback Initials,Display Order,Active,Created At\n';
+    const csvData = teamMembers
+      .map(
+        (member) =>
+          `"${member.name}","${member.position}","${member.image || ''}","${
+            member.fallbackInitials
+          }",${member.displayOrder},${
+            member.isActive
+          },"${member.createdAt.toISOString()}"`
+      )
+      .join('\n');
 
     const csv = csvHeader + csvData;
-    
+
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="team-members-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="team-members-${
+        new Date().toISOString().split('T')[0]
+      }.csv"`
+    );
     res.send(csv);
   } catch (error) {
     console.error('Error exporting team members:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to export team members'
+      message: 'Failed to export team members',
     });
   }
 };

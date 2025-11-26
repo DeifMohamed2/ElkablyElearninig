@@ -10,11 +10,14 @@ class PaymobService {
     this.integrationIdCard = process.env.PAYMOB_INTEGRATION_ID_CARD;
     this.integrationIdWallet = process.env.PAYMOB_INTEGRATION_ID_WALLET;
     this.webhookSecret = process.env.PAYMOB_WEBHOOK_SECRET;
-    
+
     // Unified Checkout API credentials (new API)
     this.publicKey = process.env.PAYMOB_PUBLIC_KEY;
     this.secretKey = process.env.PAYMOB_SECRET_KEY; // Used for Token authentication
 
+    // HMAC Secret for transaction verification
+    this.hmacSecret =
+      process.env.PAYMOB_HMAC_SECRET || process.env.PAYMOB_WEBHOOK_SECRET;
 
     // Validate required environment variables
     if (!this.apiKey) {
@@ -24,10 +27,19 @@ class PaymobService {
       console.warn('⚠️ PAYMOB_IFRAME_ID is not set in environment variables');
     }
     if (!this.publicKey) {
-      console.warn('⚠️ PAYMOB_PUBLIC_KEY is not set - unified checkout (mobile wallet) will not work');
+      console.warn(
+        '⚠️ PAYMOB_PUBLIC_KEY is not set - unified checkout (mobile wallet) will not work'
+      );
     }
     if (!this.secretKey) {
-      console.warn('⚠️ PAYMOB_SECRET_KEY is not set - unified checkout (mobile wallet) will not work');
+      console.warn(
+        '⚠️ PAYMOB_SECRET_KEY is not set - unified checkout (mobile wallet) will not work'
+      );
+    }
+    if (!this.hmacSecret) {
+      console.warn(
+        '⚠️ PAYMOB_HMAC_SECRET is not set - transaction verification may fail'
+      );
     }
   }
 
@@ -269,13 +281,26 @@ class PaymobService {
       throw new Error('PAYMOB_SECRET_KEY is required for unified checkout');
     }
 
-    // If paymentMethods not provided, use integration IDs
-    // payment_methods can be either payment type IDs [1, 47] or integration IDs
-    // For mobile wallet, try using integration ID if available
+    // If paymentMethods not provided, use integration IDs from environment
+    // payment_methods array should contain actual integration IDs registered in Paymob dashboard
+    // NOT payment type IDs (common confusion)
     let finalPaymentMethods = paymentMethods;
     if (!finalPaymentMethods) {
-      // Default: use payment type IDs [1 = Card, 47 = Mobile Wallet]
-      finalPaymentMethods = [1, 47];
+      // Use actual integration IDs from dashboard
+      const methods = [];
+      if (this.integrationIdCard)
+        methods.push(parseInt(this.integrationIdCard));
+      if (this.integrationIdWallet)
+        methods.push(parseInt(this.integrationIdWallet));
+
+      if (methods.length === 0) {
+        throw new Error(
+          'No payment integration IDs configured. Please check PAYMOB_INTEGRATION_ID_CARD and PAYMOB_INTEGRATION_ID_WALLET in .env'
+        );
+      }
+
+      finalPaymentMethods = methods;
+      console.log('Using integration IDs:', finalPaymentMethods);
     }
 
     const url = `${this.baseUrl}/v1/intention/`;
@@ -289,7 +314,7 @@ class PaymobService {
           const itemPrice = item.price || 0;
           const itemQuantity = item.quantity || 1;
           const itemAmount = Math.round(itemPrice * 100); // Convert to piastres
-          
+
           return {
             name: item.title || item.name || 'Item',
             amount: itemAmount,
@@ -299,13 +324,21 @@ class PaymobService {
         });
 
         // Validate that items total matches order total
-        const itemsTotal = items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+        const itemsTotal = items.reduce(
+          (sum, item) => sum + item.amount * item.quantity,
+          0
+        );
         if (Math.abs(itemsTotal - amountCents) > 1) {
-          console.warn(`Items total (${itemsTotal}) doesn't match order total (${amountCents}). Adjusting items...`);
+          console.warn(
+            `Items total (${itemsTotal}) doesn't match order total (${amountCents}). Adjusting items...`
+          );
           // Adjust the last item to match the total
           if (items.length > 0) {
             const difference = amountCents - itemsTotal;
-            items[items.length - 1].amount = Math.max(1, items[items.length - 1].amount + difference);
+            items[items.length - 1].amount = Math.max(
+              1,
+              items[items.length - 1].amount + difference
+            );
           }
         }
 
@@ -346,7 +379,7 @@ class PaymobService {
         const response = await axios.post(url, body, {
           timeout: 15000,
           headers: {
-            'Authorization': `Token ${this.secretKey}`,
+            Authorization: `Token ${this.secretKey}`,
             'Content-Type': 'application/json',
             'User-Agent': 'ElkablyElearning/1.0',
           },
@@ -366,7 +399,7 @@ class PaymobService {
           `Error creating payment intention (Attempt ${attempt}/${maxRetries}):`,
           error.code || error.message
         );
-        
+
         // Log full error details for debugging
         if (error.response) {
           console.error('Paymob API Error Response:', {
@@ -376,18 +409,38 @@ class PaymobService {
             headers: error.response.headers,
           });
         }
-        
+
         // Log request details for debugging (before making request)
         if (attempt === 1) {
           const requestUrl = `${this.baseUrl}/v1/intention/`;
-          const secretKeyType = this.secretKey ? (this.secretKey.includes('_test_') ? 'TEST' : 'LIVE') : 'MISSING';
+          const secretKeyType = this.secretKey
+            ? this.secretKey.includes('_test_')
+              ? 'TEST'
+              : 'LIVE'
+            : 'MISSING';
           console.log('=== Unified Checkout Request ===');
           console.log('Request URL:', requestUrl);
-          console.log('Payment Methods (Type IDs):', finalPaymentMethods);
+          console.log(
+            'Payment Methods (Integration IDs):',
+            finalPaymentMethods
+          );
           console.log('Secret Key Type:', secretKeyType);
-          console.log('Authorization Header:', `Token ${this.secretKey ? this.secretKey.substring(0, 20) + '...' : 'MISSING'}`);
-          console.log('Note: Unified checkout uses payment TYPE IDs [47], not integration IDs');
-          console.log('Ensure your integration is in', secretKeyType, 'mode to match your secret key');
+          console.log(
+            'Authorization Header:',
+            `Token ${
+              this.secretKey
+                ? this.secretKey.substring(0, 20) + '...'
+                : 'MISSING'
+            }`
+          );
+          console.log(
+            'Note: Using actual integration IDs from Paymob dashboard'
+          );
+          console.log(
+            'Ensure your integration is in',
+            secretKeyType,
+            'mode to match your secret key'
+          );
         }
 
         if (attempt === maxRetries) {
@@ -399,30 +452,44 @@ class PaymobService {
             throw new Error(
               'Invalid Paymob secret key. Please check your configuration.'
             );
-          } else if (error.response?.status === 400 || error.response?.status === 404) {
+          } else if (
+            error.response?.status === 400 ||
+            error.response?.status === 404
+          ) {
             // Bad request or Not Found - log the actual error message
             const errorDetails = error.response?.data;
-            const errorMessage = 
+            const errorMessage =
               errorDetails?.detail ||
               errorDetails?.message ||
               errorDetails?.error ||
-              (typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails)) ||
+              (typeof errorDetails === 'string'
+                ? errorDetails
+                : JSON.stringify(errorDetails)) ||
               'Invalid request to Paymob. Please check your request format.';
             console.error('Paymob API Error Details:', errorDetails);
-            
+
             // Special handling for integration ID errors
-            if (errorDetails?.detail && errorDetails.detail.includes('Integration ID')) {
-              const secretKeyType = this.secretKey ? (this.secretKey.includes('_test_') ? 'TEST' : 'LIVE') : 'UNKNOWN';
+            if (
+              errorDetails?.detail &&
+              errorDetails.detail.includes('Integration ID')
+            ) {
+              const secretKeyType = this.secretKey
+                ? this.secretKey.includes('_test_')
+                  ? 'TEST'
+                  : 'LIVE'
+                : 'UNKNOWN';
               throw new Error(
                 `Paymob Configuration Error: ${errorMessage}\n` +
-                `Your secret key appears to be for ${secretKeyType} mode.\n` +
-                `Please ensure:\n` +
-                `1. Your integration is activated in ${secretKeyType} mode in Paymob dashboard\n` +
-                `2. Payment type 47 (Mobile Wallet) is enabled for unified checkout\n` +
-                `3. Your secret key matches the mode (test/live) of your integration`
+                  `Your secret key appears to be for ${secretKeyType} mode.\n` +
+                  `Please ensure:\n` +
+                  `1. Your integration IDs (${finalPaymentMethods.join(
+                    ', '
+                  )}) are activated in ${secretKeyType} mode in Paymob dashboard\n` +
+                  `2. The integration IDs match the payment methods you want to support (card/wallet)\n` +
+                  `3. Your secret key matches the mode (test/live) of your integrations`
               );
             }
-            
+
             throw new Error(`Paymob API Error: ${errorMessage}`);
           } else if (error.response?.status >= 500) {
             throw new Error('Paymob server error. Please try again later.');
@@ -457,23 +524,31 @@ class PaymobService {
   /**
    * Create unified checkout session (for mobile wallet)
    */
-  async createUnifiedCheckoutSession(orderData, billingData, paymentMethods = null) {
+  async createUnifiedCheckoutSession(
+    orderData,
+    billingData,
+    paymentMethods = null
+  ) {
     try {
       // Determine payment methods to use
-      // Unified checkout API uses payment TYPE IDs, not integration IDs
-      // Payment type IDs: 1 = Card, 47 = Mobile Wallet
+      // Unified checkout API uses actual integration IDs registered in dashboard
       let finalPaymentMethods = paymentMethods;
-      
+
       if (!finalPaymentMethods) {
-        // Use payment type ID for mobile wallet (as shown in Postman collection)
-        // Note: This is different from integration IDs used in the old API
-        finalPaymentMethods = [47]; // 47 = Mobile Wallet payment type
-        console.log('Using payment type ID: 47 (Mobile Wallet)');
-        console.log('Note: Unified checkout uses payment TYPE IDs, not integration IDs');
+        // Use wallet integration ID for mobile wallet payments
+        if (!this.integrationIdWallet) {
+          throw new Error('PAYMOB_INTEGRATION_ID_WALLET not configured');
+        }
+        finalPaymentMethods = [parseInt(this.integrationIdWallet)];
+        console.log('Using wallet integration ID:', finalPaymentMethods);
       }
-      
+
       // Create payment intention
-      const intention = await this.createIntention(orderData, billingData, finalPaymentMethods);
+      const intention = await this.createIntention(
+        orderData,
+        billingData,
+        finalPaymentMethods
+      );
 
       if (!intention.success) {
         return {
@@ -610,6 +685,113 @@ class PaymobService {
   }
 
   /**
+   * Verify HMAC for transaction callback
+   * Used for redirect callbacks and transaction verification
+   * Based on Paymob documentation: https://docs.paymob.com/docs/transaction-webhooks
+   */
+  verifyTransactionHMAC(transactionData) {
+    if (!this.hmacSecret) {
+      console.warn(
+        '⚠️ HMAC secret not configured - skipping HMAC verification'
+      );
+      return true; // Allow in development, but log warning
+    }
+
+    try {
+      // Extract transaction data fields in the exact order required by Paymob
+      // The order matters for HMAC calculation
+      const obj = transactionData.obj || transactionData;
+
+      const fields = [
+        obj.amount_cents || '',
+        obj.created_at || '',
+        obj.currency || '',
+        obj.error_occured === false
+          ? 'false'
+          : obj.error_occured === true
+          ? 'true'
+          : '',
+        obj.has_parent_transaction === false
+          ? 'false'
+          : obj.has_parent_transaction === true
+          ? 'true'
+          : '',
+        obj.id || '',
+        obj.integration_id || '',
+        obj.is_3d_secure === false
+          ? 'false'
+          : obj.is_3d_secure === true
+          ? 'true'
+          : '',
+        obj.is_auth === false ? 'false' : obj.is_auth === true ? 'true' : '',
+        obj.is_capture === false
+          ? 'false'
+          : obj.is_capture === true
+          ? 'true'
+          : '',
+        obj.is_refunded === false
+          ? 'false'
+          : obj.is_refunded === true
+          ? 'true'
+          : '',
+        obj.is_standalone_payment === false
+          ? 'false'
+          : obj.is_standalone_payment === true
+          ? 'true'
+          : '',
+        obj.is_voided === false
+          ? 'false'
+          : obj.is_voided === true
+          ? 'true'
+          : '',
+        obj.order?.id || obj.order || '',
+        obj.owner || '',
+        obj.pending === false ? 'false' : obj.pending === true ? 'true' : '',
+        obj.source_data?.pan || obj.source_data_pan || '',
+        obj.source_data?.sub_type || obj.source_data_sub_type || '',
+        obj.source_data?.type || obj.source_data_type || '',
+        obj.success === false ? 'false' : obj.success === true ? 'true' : '',
+      ];
+
+      // Concatenate all fields
+      const concatenatedString = fields.join('');
+
+      // Calculate HMAC
+      const calculatedHMAC = crypto
+        .createHmac('sha512', this.hmacSecret)
+        .update(concatenatedString)
+        .digest('hex');
+
+      // Get the HMAC from the transaction
+      const receivedHMAC = transactionData.hmac || obj.hmac;
+
+      if (!receivedHMAC) {
+        console.warn('⚠️ No HMAC found in transaction data');
+        return false;
+      }
+
+      // Compare HMACs
+      const isValid = calculatedHMAC === receivedHMAC;
+
+      if (!isValid) {
+        console.error('❌ HMAC verification failed');
+        console.error(
+          'Calculated HMAC:',
+          calculatedHMAC.substring(0, 20) + '...'
+        );
+        console.error('Received HMAC:', receivedHMAC.substring(0, 20) + '...');
+      } else {
+        console.log('✅ HMAC verification successful');
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('Error verifying HMAC:', error.message);
+      return false;
+    }
+  }
+
+  /**
    * Process webhook payload and determine payment status
    * Enhanced to match Paymob standalone app comprehensive failure detection
    */
@@ -647,8 +829,13 @@ class PaymobService {
       // Query-based success checks (for redirect callbacks)
       (queryParams?.success === 'true' &&
         queryParams?.pending === 'false' &&
-        queryParams?.error_occured !== 'true' &&
+        queryParams?.error_occured !== 'true') ||
+      // Additional success indicators for unified checkout
+      (queryParams?.success === 'true' &&
+        queryParams?.txn_response_code === '200') ||
+      (queryParams?.success === 'true' &&
         (queryParams?.['data.message'] === 'Approved' ||
+          queryParams?.['data.message']?.includes('completed successfully') ||
           queryParams?.acq_response_code === '00' ||
           queryParams?.txn_response_code === 'APPROVED' ||
           queryParams?.is_capture === 'true' ||
@@ -719,7 +906,14 @@ class PaymobService {
         ));
 
     // Check for zero paid amount (indication of failure)
+    // IMPORTANT: Unified checkout redirect callbacks don't include paid_amount_cents
+    // Only check this if the field actually exists to avoid false negatives
+    const hasPaidAmountField =
+      payload?.obj?.order?.paid_amount_cents !== undefined ||
+      payload?.order?.paid_amount_cents !== undefined;
+
     const zeroPaidAmount =
+      hasPaidAmountField &&
       (payload?.obj?.order?.paid_amount_cents === 0 ||
         payload?.order?.paid_amount_cents === 0) &&
       (payload?.obj?.amount_cents > 0 || payload?.amount_cents > 0);
@@ -747,11 +941,19 @@ class PaymobService {
       failureResponseCodes.includes(String(queryParams?.response_code));
 
     // Check for payment status indicators
+    // IMPORTANT: Unified checkout redirect callbacks don't include payment_status
+    // Only check this if the field actually exists to avoid false negatives
+    const hasPaymentStatusField =
+      payload?.obj?.order?.payment_status !== undefined ||
+      payload?.order?.payment_status !== undefined;
+
     const paymentStatusFailure =
-      String(payload?.obj?.order?.payment_status).toUpperCase() === 'UNPAID' ||
-      String(payload?.order?.payment_status).toUpperCase() === 'UNPAID' ||
-      String(payload?.obj?.order?.payment_status).toUpperCase() === 'FAILED' ||
-      String(payload?.order?.payment_status).toUpperCase() === 'FAILED';
+      hasPaymentStatusField &&
+      (String(payload?.obj?.order?.payment_status).toUpperCase() === 'UNPAID' ||
+        String(payload?.order?.payment_status).toUpperCase() === 'UNPAID' ||
+        String(payload?.obj?.order?.payment_status).toUpperCase() ===
+          'FAILED' ||
+        String(payload?.order?.payment_status).toUpperCase() === 'FAILED');
 
     // Determine final status
     const isFailed =
@@ -772,16 +974,20 @@ class PaymobService {
       messageFailure,
       responseCodeFailure,
       zeroPaidAmount,
+      hasPaidAmountField,
       responseCodeIndicatesFailure,
       paymentStatusFailure,
+      hasPaymentStatusField,
       finalIsSuccess: isSuccess,
       finalIsFailed: isFailed,
       statusCandidates: statusCandidates.filter(Boolean),
-      successField: payload?.obj?.success || payload?.success,
+      successField:
+        payload?.obj?.success || payload?.success || queryParams?.success,
       messageField:
         payload?.obj?.data?.message || queryParams?.['data.message'],
       responseCodeField:
         payload?.obj?.data?.acq_response_code || queryParams?.acq_response_code,
+      txnResponseCode: queryParams?.txn_response_code,
       paidAmount:
         payload?.obj?.order?.paid_amount_cents ||
         payload?.order?.paid_amount_cents,
