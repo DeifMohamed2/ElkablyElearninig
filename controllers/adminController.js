@@ -11619,6 +11619,534 @@ const exportTeamMembers = async (req, res) => {
   }
 };
 
+// ==================== BULK SMS MESSAGING ====================
+
+const { sendSms, sendBulkSms } = require('../utils/sms');
+
+// Get Bulk SMS Page
+const getBulkSMSPage = async (req, res) => {
+  try {
+    const stats = {
+      totalStudents: await User.countDocuments({ role: 'student', isActive: true }),
+      totalCourses: await Course.countDocuments(),
+      totalBundles: await BundleCourse.countDocuments()
+    };
+
+    res.render('admin/bulk-sms', {
+      title: 'Bulk SMS Messaging | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      stats
+    });
+  } catch (error) {
+    console.error('Error loading Bulk SMS page:', error);
+    req.flash('error_msg', 'Failed to load Bulk SMS page');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+// Get Students for SMS (with pagination and search)
+const getStudentsForSMS = async (req, res) => {
+  try {
+    const { search, page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    let query = { role: 'student', isActive: true };
+    
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { studentEmail: { $regex: search, $options: 'i' } },
+        { studentCode: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const students = await User.find(query)
+      .select('_id firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode')
+      .limit(parseInt(limit))
+      .skip(skip)
+      .sort({ createdAt: -1 });
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      success: true,
+      students: students.map(s => ({
+        _id: s._id,
+        name: `${s.firstName} ${s.lastName}`,
+        email: s.studentEmail,
+        studentCode: s.studentCode,
+        parentPhone: s.parentCountryCode ? `${s.parentCountryCode}${s.parentNumber}` : s.parentNumber,
+        studentPhone: s.studentCountryCode ? `${s.studentCountryCode}${s.studentNumber}` : s.studentNumber
+      })),
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        total,
+        hasNext: skip + students.length < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching students for SMS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch students'
+    });
+  }
+};
+
+// Get Courses for SMS
+const getCoursesForSMS = async (req, res) => {
+  try {
+    const courses = await Course.find({})
+      .select('_id title')
+      .sort({ title: 1 });
+
+    // Get student count for each course
+    const coursesWithCount = await Promise.all(
+      courses.map(async (course) => {
+        const studentIds = await Progress.find({ course: course._id })
+          .distinct('student');
+        const studentCount = studentIds.length;
+        return {
+          _id: course._id,
+          title: course.title,
+          studentCount
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      courses: coursesWithCount
+    });
+  } catch (error) {
+    console.error('Error fetching courses for SMS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch courses'
+    });
+  }
+};
+
+// Get Bundles for SMS
+const getBundlesForSMS = async (req, res) => {
+  try {
+    const bundles = await BundleCourse.find({})
+      .select('_id title')
+      .sort({ title: 1 });
+
+    // Get student count for each bundle (students enrolled in any course in the bundle)
+    const bundlesWithCount = await Promise.all(
+      bundles.map(async (bundle) => {
+        // Get all courses in the bundle
+        const bundleDoc = await BundleCourse.findById(bundle._id).populate('courses');
+        if (!bundleDoc || !bundleDoc.courses || bundleDoc.courses.length === 0) {
+          return {
+            _id: bundle._id,
+            title: bundle.title,
+            studentCount: 0
+          };
+        }
+        
+        const courseIds = bundleDoc.courses.map(c => c._id);
+        // Get unique students enrolled in any course in this bundle
+        const studentIds = await Progress.find({ course: { $in: courseIds } })
+          .distinct('student');
+        const studentCount = studentIds.length;
+        return {
+          _id: bundle._id,
+          title: bundle.title,
+          studentCount
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      bundles: bundlesWithCount
+    });
+  } catch (error) {
+    console.error('Error fetching bundles for SMS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch bundles'
+    });
+  }
+};
+
+// Get student count for a specific course
+const getCourseStudentsCount = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    const studentIds = await Progress.find({ course: courseId })
+      .distinct('student');
+    
+    const count = studentIds.length;
+
+    res.json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    console.error('Error fetching course student count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch student count'
+    });
+  }
+};
+
+// Get student count for a specific bundle
+const getBundleStudentsCount = async (req, res) => {
+  try {
+    const { bundleId } = req.params;
+    
+    // Get bundle with courses
+    const bundle = await BundleCourse.findById(bundleId).populate('courses');
+    if (!bundle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bundle not found'
+      });
+    }
+    
+    if (!bundle.courses || bundle.courses.length === 0) {
+      return res.json({
+        success: true,
+        count: 0
+      });
+    }
+    
+    const courseIds = bundle.courses.map(c => c._id);
+    // Get unique students enrolled in any course in this bundle
+    const studentIds = await Progress.find({ course: { $in: courseIds } })
+      .distinct('student');
+    
+    const count = studentIds.length;
+
+    res.json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    console.error('Error fetching bundle student count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch student count'
+    });
+  }
+};
+
+// Send Bulk SMS
+const sendBulkSMS = async (req, res) => {
+  try {
+    const { targetType, targetId, recipientType, selectedStudents, message } = req.body;
+
+    if (!message || message.trim().length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message is required and must be at least 10 characters'
+      });
+    }
+
+    // Check character limit based on language (Arabic: 70, English: 160)
+    const containsArabic = /[\u0600-\u06FF]/.test(message);
+    const maxChars = containsArabic ? 70 : 160;
+    
+    if (message.length > maxChars) {
+      return res.status(400).json({
+        success: false,
+        message: `Message exceeds ${maxChars} character limit for ${containsArabic ? 'Arabic' : 'English'} messages`
+      });
+    }
+
+    let recipients = [];
+    const results = {
+      success: [],
+      failed: [],
+      total: 0
+    };
+
+    // Get recipients based on target type
+    if (targetType === 'selected_students' && selectedStudents && selectedStudents.length > 0) {
+      // Get selected students
+      const students = await User.find({
+        _id: { $in: selectedStudents },
+        role: 'student',
+        isActive: true
+      }).select('firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode');
+
+      students.forEach(student => {
+        if (recipientType === 'parents' || recipientType === 'both') {
+          const parentPhone = student.parentCountryCode 
+            ? `${student.parentCountryCode}${student.parentNumber}` 
+            : student.parentNumber;
+          if (parentPhone) {
+            recipients.push({
+              phone: parentPhone,
+              name: `${student.firstName} ${student.lastName}'s Parent`,
+              type: 'parent'
+            });
+          }
+        }
+        if (recipientType === 'students' || recipientType === 'both') {
+          const studentPhone = student.studentCountryCode 
+            ? `${student.studentCountryCode}${student.studentNumber}` 
+            : student.studentNumber;
+          if (studentPhone) {
+            recipients.push({
+              phone: studentPhone,
+              name: `${student.firstName} ${student.lastName}`,
+              type: 'student'
+            });
+          }
+        }
+      });
+    } else if (targetType === 'all_students') {
+      // Get all active students
+      const students = await User.find({
+        role: 'student',
+        isActive: true
+      }).select('firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode');
+
+      students.forEach(student => {
+        if (recipientType === 'parents' || recipientType === 'both') {
+          const parentPhone = student.parentCountryCode 
+            ? `${student.parentCountryCode}${student.parentNumber}` 
+            : student.parentNumber;
+          if (parentPhone) {
+            recipients.push({
+              phone: parentPhone,
+              name: `${student.firstName} ${student.lastName}'s Parent`,
+              type: 'parent'
+            });
+          }
+        }
+        if (recipientType === 'students' || recipientType === 'both') {
+          const studentPhone = student.studentCountryCode 
+            ? `${student.studentCountryCode}${student.studentNumber}` 
+            : student.studentNumber;
+          if (studentPhone) {
+            recipients.push({
+              phone: studentPhone,
+              name: `${student.firstName} ${student.lastName}`,
+              type: 'student'
+            });
+          }
+        }
+      });
+    } else if (targetType === 'course' && targetId) {
+      // Get students enrolled in course
+      const course = await Course.findById(targetId).populate('enrolledStudents');
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          message: 'Course not found'
+        });
+      }
+
+      const enrollments = await Progress.find({ courseId: targetId })
+        .populate('studentId', 'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode')
+        .select('studentId');
+
+      const studentIds = [...new Set(enrollments.map(e => e.studentId?._id).filter(Boolean))];
+      const students = await User.find({
+        _id: { $in: studentIds },
+        role: 'student',
+        isActive: true
+      }).select('firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode');
+
+      students.forEach(student => {
+        if (recipientType === 'parents' || recipientType === 'both') {
+          const parentPhone = student.parentCountryCode 
+            ? `${student.parentCountryCode}${student.parentNumber}` 
+            : student.parentNumber;
+          if (parentPhone) {
+            recipients.push({
+              phone: parentPhone,
+              name: `${student.firstName} ${student.lastName}'s Parent`,
+              type: 'parent'
+            });
+          }
+        }
+        if (recipientType === 'students' || recipientType === 'both') {
+          const studentPhone = student.studentCountryCode 
+            ? `${student.studentCountryCode}${student.studentNumber}` 
+            : student.studentNumber;
+          if (studentPhone) {
+            recipients.push({
+              phone: studentPhone,
+              name: `${student.firstName} ${student.lastName}`,
+              type: 'student'
+            });
+          }
+        }
+      });
+    } else if (targetType === 'bundle' && targetId) {
+      // Get students enrolled in bundle
+      const bundle = await BundleCourse.findById(targetId);
+      if (!bundle) {
+        return res.status(404).json({
+          success: false,
+          message: 'Bundle not found'
+        });
+      }
+
+      const enrollments = await Progress.find({ bundleId: targetId })
+        .populate('studentId', 'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode')
+        .select('studentId');
+
+      const studentIds = [...new Set(enrollments.map(e => e.studentId?._id).filter(Boolean))];
+      const students = await User.find({
+        _id: { $in: studentIds },
+        role: 'student',
+        isActive: true
+      }).select('firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode');
+
+      students.forEach(student => {
+        if (recipientType === 'parents' || recipientType === 'both') {
+          const parentPhone = student.parentCountryCode 
+            ? `${student.parentCountryCode}${student.parentNumber}` 
+            : student.parentNumber;
+          if (parentPhone) {
+            recipients.push({
+              phone: parentPhone,
+              name: `${student.firstName} ${student.lastName}'s Parent`,
+              type: 'parent'
+            });
+          }
+        }
+        if (recipientType === 'students' || recipientType === 'both') {
+          const studentPhone = student.studentCountryCode 
+            ? `${student.studentCountryCode}${student.studentNumber}` 
+            : student.studentNumber;
+          if (studentPhone) {
+            recipients.push({
+              phone: studentPhone,
+              name: `${student.firstName} ${student.lastName}`,
+              type: 'student'
+            });
+          }
+        }
+      });
+    }
+
+    // Remove duplicates
+    const uniqueRecipients = recipients.filter((recipient, index, self) =>
+      index === self.findIndex(r => r.phone === recipient.phone)
+    );
+
+    results.total = uniqueRecipients.length;
+
+    // Send SMS in batches using bulk API for better performance
+    const BATCH_SIZE = 50; // Send 50 recipients per batch
+    const batches = [];
+    
+    for (let i = 0; i < uniqueRecipients.length; i += BATCH_SIZE) {
+      batches.push(uniqueRecipients.slice(i, i + BATCH_SIZE));
+    }
+
+    // Process batches
+    for (const batch of batches) {
+      try {
+        // Extract phone numbers for this batch
+        const batchPhones = batch.map(r => r.phone);
+        
+        // Send bulk SMS
+        await sendBulkSms({
+          recipients: batchPhones,
+          message: message.trim()
+        });
+        
+        // All recipients in batch succeeded
+        batch.forEach(recipient => {
+          results.success.push({
+            phone: recipient.phone,
+            name: recipient.name,
+            type: recipient.type
+          });
+        });
+      } catch (error) {
+        console.error(`Failed to send SMS batch:`, error);
+        
+        // Extract error message from API response
+        let errorMessage = 'Unknown error';
+        
+        // Priority 1: Check if it's an API error with isApiError flag
+        if (error.isApiError && error.message) {
+          errorMessage = error.message;
+        }
+        // Priority 2: Check error.details for API error format (status: "error")
+        else if (error.details && typeof error.details === 'object') {
+          if (error.details.status === 'error') {
+            errorMessage = error.details.message || 'SMS API returned an error';
+          } else {
+            errorMessage = error.details.message || error.details.error || error.details.help || JSON.stringify(error.details);
+          }
+        }
+        // Priority 3: Check error.message (from utils/sms.js)
+        else if (error.message && error.message !== 'WhySMS API error') {
+          errorMessage = error.message;
+        }
+        // Priority 4: Check error.response.data for API error format
+        else if (error.response?.data) {
+          const responseData = error.response.data;
+          if (responseData.status === 'error') {
+            errorMessage = responseData.message || 'SMS API returned an error';
+          } else if (typeof responseData === 'object') {
+            errorMessage = responseData.message || responseData.error || responseData.help || JSON.stringify(responseData);
+          } else {
+            errorMessage = String(responseData);
+          }
+        }
+        // Priority 5: Check error.details as string
+        else if (error.details) {
+          errorMessage = String(error.details);
+        }
+        // Priority 6: Fallback to error.message
+        else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Add status code if available for better error context (but not for API-level errors)
+        if (!error.isApiError) {
+          if (error.statusCode) {
+            errorMessage = `[${error.statusCode}] ${errorMessage}`;
+          } else if (error.response?.status) {
+            errorMessage = `[${error.response.status}] ${errorMessage}`;
+          }
+        }
+        
+        // If bulk send fails, mark all recipients in batch as failed
+        // If we can't determine which specific ones failed, mark all
+        batch.forEach(recipient => {
+          results.failed.push({
+            phone: recipient.phone,
+            name: recipient.name,
+            type: recipient.type,
+            error: errorMessage
+          });
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `SMS sent to ${results.success.length} out of ${results.total} recipients`,
+      results
+    });
+  } catch (error) {
+    console.error('Error sending bulk SMS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send bulk SMS: ' + error.message
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -11741,4 +12269,12 @@ module.exports = {
   deleteTeamMember,
   reorderTeamMembers,
   exportTeamMembers,
+  // Bulk SMS Messaging
+  getBulkSMSPage,
+  getStudentsForSMS,
+  getCoursesForSMS,
+  getBundlesForSMS,
+  getCourseStudentsCount,
+  getBundleStudentsCount,
+  sendBulkSMS,
 };

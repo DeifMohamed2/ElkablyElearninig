@@ -156,51 +156,6 @@
                 </div>
 
 
-        <!-- Bulk Messaging -->
-        <div class="admin-section-header">
-            <h3 class="admin-section-title">
-                <i class="fas fa-broadcast-tower"></i> Bulk Messaging
-            </h3>
-                </div>
-
-        <div class="bulk-message-form whatsapp-hover-lift">
-            <div class="bulk-message-header">
-                <h5 class="bulk-message-title">
-                    <i class="fas fa-broadcast-tower"></i> Send Bulk Messages
-                </h5>
-                            </div>
-            <form id="bulkMessageForm">
-                <div class="bulk-form-row">
-                    <div class="bulk-form-group">
-                        <label class="bulk-form-label">Target Audience</label>
-                        <select class="bulk-form-control" id="targetType" name="targetType" required>
-                                                <option value="">Select Target</option>
-                                                <option value="all_students">All Students</option>
-                                                <option value="course">Specific Course</option>
-                                                <option value="bundle">Specific Bundle</option>
-                                            </select>
-                                        </div>
-                    <div class="bulk-form-group" id="targetSelectContainer" style="display: none;">
-                        <label class="bulk-form-label">Select Target</label>
-                        <select class="bulk-form-control" id="targetId" name="targetId">
-                                                <!-- Options will be loaded dynamically -->
-                                            </select>
-                                        </div>
-                    <div class="bulk-form-group">
-                        <label class="bulk-form-label">Custom Message</label>
-                        <textarea class="bulk-form-control" id="customMessage" name="customMessage" rows="4" placeholder="Enter your custom message here..." required></textarea>
-                        <small class="form-text text-muted">Use emojis and formatting to make your message professional and engaging!</small>
-                                        </div>
-                                    </div>
-                <div class="text-center mt-4">
-                    <button type="submit" class="bulk-form-submit">
-                                                <i class="fas fa-paper-plane"></i> Send Bulk Message
-                                            </button>
-                                    </div>
-                                </form>
-                        </div>
-                    </div>
-                </div>
             </main>
     </div>
 
@@ -659,60 +614,6 @@
         }
 
 
-        // Handle target type change
-        document.getElementById('targetType').addEventListener('change', function() {
-            const targetSelectContainer = document.getElementById('targetSelectContainer');
-            const targetId = document.getElementById('targetId');
-            
-            if (this.value === 'course' || this.value === 'bundle') {
-                targetSelectContainer.style.display = 'block';
-                loadTargetOptions(this.value);
-            } else {
-                targetSelectContainer.style.display = 'none';
-            }
-        });
-
-        // Load target options
-        function loadTargetOptions(type) {
-            const targetId = document.getElementById('targetId');
-            const endpoint = type === 'course' ? '/admin/whatsapp/courses' : '/admin/whatsapp/bundles';
-            
-            fetch(endpoint)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        targetId.innerHTML = '<option value="">Select ' + type + '</option>';
-                        data[type + 's'].forEach(item => {
-                            targetId.innerHTML += `<option value="${item._id}">${item.title}</option>`;
-                        });
-                    }
-                })
-                .catch(error => console.error('Error loading options:', error));
-        }
-
-        // Handle bulk message form
-        document.getElementById('bulkMessageForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            
-            fetch('/admin/whatsapp/bulk-message', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('Bulk message sent successfully!', 'success');
-                } else {
-                    showNotification('Error: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('An error occurred', 'error');
-            });
-        });
 
         // Theme toggle function
         function toggleTheme() {

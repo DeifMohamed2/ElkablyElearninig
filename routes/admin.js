@@ -147,6 +147,14 @@ const {
   deleteTeamMember,
   reorderTeamMembers,
   exportTeamMembers,
+  // Bulk SMS Messaging
+  getBulkSMSPage,
+  getStudentsForSMS,
+  getCoursesForSMS,
+  getBundlesForSMS,
+  getCourseStudentsCount,
+  getBundleStudentsCount,
+  sendBulkSMS,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -427,6 +435,16 @@ router.get('/whatsapp/students', isAdmin, getStudentsForMessaging);
 router.get('/whatsapp/courses', isAdmin, getCoursesForMessaging);
 router.get('/whatsapp/bundles', isAdmin, getBundlesForMessaging);
 router.get('/whatsapp/session-status', isAdmin, getSessionStatus);
+router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
+
+// Bulk SMS Messaging Routes
+router.get('/bulk-sms', isAdmin, getBulkSMSPage);
+router.get('/bulk-sms/students', isAdmin, getStudentsForSMS);
+router.get('/bulk-sms/courses', isAdmin, getCoursesForSMS);
+router.get('/bulk-sms/bundles', isAdmin, getBundlesForSMS);
+router.get('/bulk-sms/course-students-count/:courseId', isAdmin, getCourseStudentsCount);
+router.get('/bulk-sms/bundle-students-count/:bundleId', isAdmin, getBundleStudentsCount);
+router.post('/bulk-sms/send', isAdmin, sendBulkSMS);
 router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
 
 // Duplicate cleanup routes

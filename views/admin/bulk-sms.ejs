@@ -1,0 +1,1107 @@
+<%- include('./partials/admin-header', { pageCSS: 'bulk-sms' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'bulk-sms' }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Bulk SMS Messaging',
+        breadcrumbSubtitle: 'Send SMS to Students & Parents',
+        showSearch: false
+    }) %>
+    
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="bulk-sms-dashboard admin-fade-in">
+        
+        <!-- Flash Messages -->
+        <% if (typeof error_msg !== 'undefined' && error_msg.length > 0) { %>
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <%= error_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% } %>
+        <% if (typeof success_msg !== 'undefined' && success_msg.length > 0) { %>
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <%= success_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% } %>
+
+        <!-- Enhanced Bulk SMS Dashboard Header -->
+        <div class="admin-dashboard-header">
+          <div class="dashboard-header-content">
+            <div class="dashboard-header-left">
+              <div class="dashboard-title-section">
+                <h1 class="admin-dashboard-title">
+                  <span class="title-icon">📱</span>
+                  Bulk SMS Messaging
+                </h1>
+                <p class="admin-dashboard-subtitle">
+                  Send SMS messages to students, parents, or both. Target all students, specific courses, bundles, or select individual students.
+                </p>
+              </div>
+            </div>
+            
+            <div class="dashboard-header-right">
+              <div class="dashboard-meta-cards">
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fas fa-users"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Total Students</span>
+                    <span class="meta-card-value"><%= stats.totalStudents || 0 %></span>
+                  </div>
+                </div>
+                
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fas fa-book"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Total Courses</span>
+                    <span class="meta-card-value"><%= stats.totalCourses || 0 %></span>
+                  </div>
+                </div>
+                
+                <div class="meta-card">
+                  <div class="meta-card-icon">
+                    <i class="fas fa-box"></i>
+                  </div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Total Bundles</span>
+                    <span class="meta-card-value"><%= stats.totalBundles || 0 %></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk SMS Form -->
+        <div class="admin-section-header">
+          <h3 class="admin-section-title">
+            <i class="fas fa-paper-plane"></i> Send Bulk SMS
+          </h3>
+        </div>
+
+        <div class="bulk-sms-form-container">
+          <form id="bulkSMSForm">
+            
+            <!-- Target Audience Selection -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h4 class="form-section-title">
+                  <i class="fas fa-bullseye"></i> Target Audience
+                </h4>
+                <p class="form-section-description">Choose who will receive the SMS message</p>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-users"></i> Target Type
+                    <span class="required">*</span>
+                  </label>
+                  <select class="form-control" id="targetType" name="targetType" required>
+                    <option value="">Select Target Type</option>
+                    <option value="all_students">All Students</option>
+                    <option value="course">Specific Week</option>
+                    <option value="bundle">Specific Bundle</option>
+                    <option value="selected_students">Selected Students</option>
+                  </select>
+                  <small class="form-help">Choose how to target your recipients</small>
+                </div>
+
+                <div class="form-group" id="targetSelectContainer" style="display: none;">
+                  <label class="form-label">
+                    <i class="fas fa-list"></i> Select Target
+                    <span class="required">*</span>
+                  </label>
+                  <select class="form-control" id="targetId" name="targetId">
+                    <option value="">Select...</option>
+                  </select>
+                  <small class="form-help">Select the specific week or bundle</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Student Selection (for selected_students) -->
+            <div class="form-section" id="studentSelectionSection" style="display: none;">
+              <div class="form-section-header">
+                <h4 class="form-section-title">
+                  <i class="fas fa-user-check"></i> Select Students
+                </h4>
+                <p class="form-section-description">Search and select specific students to send messages to</p>
+              </div>
+              
+              <div class="student-selection-container">
+                <div class="student-search-box">
+                  <i class="fas fa-search"></i>
+                  <input type="text" id="studentSearch" placeholder="Search students by name, email, or code..." class="student-search-input">
+                  <button type="button" class="btn-clear-search" id="clearSearch">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                
+                <div class="student-list-container">
+                  <div id="studentList" class="student-list">
+                    <div class="loading-state">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <span>Loading students...</span>
+                    </div>
+                  </div>
+                  
+                  <div id="studentPagination" class="student-pagination"></div>
+                </div>
+                
+                <div class="selected-students-summary">
+                  <div class="selected-count">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="selectedCount">0</span> students selected
+                  </div>
+                  <button type="button" class="btn-clear-selection" id="clearSelection">
+                    <i class="fas fa-times"></i> Clear Selection
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recipient Type Selection -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h4 class="form-section-title">
+                  <i class="fas fa-user-friends"></i> Recipient Type
+                </h4>
+                <p class="form-section-description">Choose who should receive the message</p>
+              </div>
+              
+              <div class="recipient-type-options">
+                <label class="recipient-option">
+                  <input type="radio" name="recipientType" value="students" checked>
+                  <div class="recipient-option-content">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Students Only</span>
+                  </div>
+                </label>
+                
+                <label class="recipient-option">
+                  <input type="radio" name="recipientType" value="parents">
+                  <div class="recipient-option-content">
+                    <i class="fas fa-user-friends"></i>
+                    <span>Parents Only</span>
+                  </div>
+                </label>
+                
+                <label class="recipient-option">
+                  <input type="radio" name="recipientType" value="both">
+                  <div class="recipient-option-content">
+                    <i class="fas fa-users"></i>
+                    <span>Both Students & Parents</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Message Count Preview -->
+            <div class="form-section" id="messageCountPreviewSection" style="display: none;">
+              <div class="form-section-header">
+                <h4 class="form-section-title">
+                  <i class="fas fa-chart-bar"></i> Message Count Preview
+                </h4>
+                <p class="form-section-description">Preview of how many messages will be sent</p>
+              </div>
+              <div class="message-count-preview">
+                <div class="count-preview-card">
+                  <div class="count-preview-header">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Recipient Type: <strong id="recipientTypeLabel">Students Only</strong></span>
+                  </div>
+                  <div class="count-preview-content">
+                    <div class="count-item" id="studentCountItem">
+                      <span class="count-label">Students:</span>
+                      <span class="count-value" id="studentCount">0</span>
+                    </div>
+                    <div class="count-item" id="parentCountItem">
+                      <span class="count-label">Parents:</span>
+                      <span class="count-value" id="parentCount">0</span>
+                    </div>
+                    <div class="count-item total">
+                      <span class="count-label">Total Messages:</span>
+                      <span class="count-value" id="totalCount">0</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message Content -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h4 class="form-section-title">
+                  <i class="fas fa-comment-alt"></i> Message Content
+                </h4>
+                <p class="form-section-description">Compose your SMS message</p>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-envelope"></i> SMS Message
+                  <span class="required">*</span>
+                </label>
+                <textarea 
+                  class="form-control message-textarea" 
+                  id="message" 
+                  name="message" 
+                  rows="6" 
+                  placeholder="Enter your SMS message here... (English: max 160 chars, Arabic: max 70 chars)"
+                  required
+                  maxlength="160"></textarea>
+                <div class="message-info">
+                  <div class="char-count-container">
+                    <div class="char-count">
+                      <span id="charCount">0</span> / <span id="maxCharCount">160</span> characters
+                    </div>
+                    <div class="language-indicator">
+                      <i class="fas fa-language"></i>
+                      <span id="languageType">English</span>
+                    </div>
+                  </div>
+                  <div class="message-preview">
+                    <strong>Preview:</strong>
+                    <div id="messagePreview" class="preview-text">Your message will appear here...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Send Button -->
+            <div class="form-actions">
+              <button type="button" class="admin-action-btn secondary" id="previewBtn">
+                <i class="fas fa-eye"></i> Preview
+              </button>
+              <button type="submit" class="admin-action-btn primary" id="sendBtn">
+                <i class="fas fa-paper-plane"></i> Send SMS
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Results Modal -->
+        <div class="modal fade" id="resultsModal" tabindex="-1">
+          <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">
+                  <i class="fas fa-chart-bar"></i> SMS Sending Results
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" id="resultsContent">
+                <!-- Results will be displayed here -->
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="admin-action-btn secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Global variables
+  let selectedStudents = new Set();
+  let currentPage = 1;
+  let currentSearch = '';
+  let totalStudents = 0;
+  let messageTextarea, charCount, maxCharCount, languageType, messagePreview;
+
+  // Function to detect if message contains Arabic characters
+  function containsArabic(text) {
+    const arabicRegex = /[\u0600-\u06FF]/;
+    return arabicRegex.test(text);
+  }
+  
+  // Function to update character limit based on language
+  function updateCharacterLimit(text) {
+    if (!messageTextarea || !charCount || !maxCharCount || !languageType || !messagePreview) return;
+    
+    const hasArabic = containsArabic(text);
+    const maxChars = hasArabic ? 70 : 160;
+    const currentLength = text.length;
+    
+    // Update maxlength attribute
+    messageTextarea.setAttribute('maxlength', maxChars);
+    
+    // Update max character count display
+    maxCharCount.textContent = maxChars;
+    
+    // Update language indicator
+    if (hasArabic) {
+      languageType.textContent = 'Arabic';
+      languageType.style.color = '#3b82f6';
+    } else {
+      languageType.textContent = 'English';
+      languageType.style.color = '#10b981';
+    }
+    
+    // Update character count
+    charCount.textContent = currentLength;
+    
+    // Color coding based on percentage
+    const percentage = (currentLength / maxChars) * 100;
+    if (percentage >= 100) {
+      charCount.style.color = '#ef4444';
+      charCount.style.fontWeight = '700';
+    } else if (percentage >= 80) {
+      charCount.style.color = '#f59e0b';
+      charCount.style.fontWeight = '600';
+    } else {
+      charCount.style.color = '#22c55e';
+      charCount.style.fontWeight = '500';
+    }
+    
+    // Update preview
+    messagePreview.textContent = text || 'Your message will appear here...';
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeForm();
+    loadStudents();
+    setupEventListeners();
+  });
+
+  // Initialize form
+  function initializeForm() {
+    const targetType = document.getElementById('targetType');
+    const targetSelectContainer = document.getElementById('targetSelectContainer');
+    const studentSelectionSection = document.getElementById('studentSelectionSection');
+    
+    targetType.addEventListener('change', function() {
+      const value = this.value;
+      
+      // Show/hide target select
+      if (value === 'course' || value === 'bundle') {
+        targetSelectContainer.style.display = 'block';
+        loadTargetOptions(value);
+      } else {
+        targetSelectContainer.style.display = 'none';
+        document.getElementById('targetId').value = '';
+      }
+      
+      // Show/hide student selection
+      if (value === 'selected_students') {
+        studentSelectionSection.style.display = 'block';
+        // Update count when showing student selection
+        setTimeout(() => updateMessageCount(), 100);
+      } else {
+        studentSelectionSection.style.display = 'none';
+        selectedStudents.clear();
+        updateSelectedCount();
+        // Update count when hiding student selection
+        updateMessageCount();
+      }
+    });
+    
+    // Add event listener for target selection change
+    document.getElementById('targetId').addEventListener('change', function() {
+      updateMessageCount();
+    });
+    
+    // Add event listener for recipient type change
+    document.querySelectorAll('input[name="recipientType"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        updateMessageCount();
+      });
+    });
+
+    // Character count for message with language detection
+    messageTextarea = document.getElementById('message');
+    charCount = document.getElementById('charCount');
+    maxCharCount = document.getElementById('maxCharCount');
+    languageType = document.getElementById('languageType');
+    messagePreview = document.getElementById('messagePreview');
+    
+    messageTextarea.addEventListener('input', function() {
+      updateCharacterLimit(this.value);
+    });
+    
+    // Initialize on page load
+    updateCharacterLimit(messageTextarea.value);
+  }
+
+  // Load target options (courses/bundles)
+  function loadTargetOptions(type) {
+    const targetId = document.getElementById('targetId');
+    const endpoint = type === 'course' ? '/admin/bulk-sms/courses' : '/admin/bulk-sms/bundles';
+    
+    targetId.innerHTML = '<option value="">Loading...</option>';
+    
+    fetch(endpoint)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const label = type === 'course' ? 'week' : 'bundle';
+          targetId.innerHTML = '<option value="">Select ' + label + '</option>';
+          const items = type === 'course' ? data.courses : data.bundles;
+          items.forEach(item => {
+            targetId.innerHTML += `<option value="${item._id}" data-count="${item.studentCount || 0}">${item.title}</option>`;
+          });
+          // Update count after loading
+          updateMessageCount();
+        }
+      })
+      .catch(error => {
+        console.error('Error loading options:', error);
+        targetId.innerHTML = '<option value="">Error loading options</option>';
+      });
+  }
+  
+  // Update message count preview
+  async function updateMessageCount() {
+    const targetType = document.getElementById('targetType').value;
+    const targetId = document.getElementById('targetId').value;
+    const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value || 'students';
+    const messageCountPreviewSection = document.getElementById('messageCountPreviewSection');
+    const recipientTypeLabel = document.getElementById('recipientTypeLabel');
+    const studentCountItem = document.getElementById('studentCountItem');
+    const parentCountItem = document.getElementById('parentCountItem');
+    
+    let studentCount = 0;
+    let parentCount = 0;
+    
+    if (targetType === 'all_students') {
+      // Fetch total students count
+      try {
+        const response = await fetch('/admin/bulk-sms/students?limit=1');
+        const data = await response.json();
+        if (data.success) {
+          studentCount = data.pagination.total || 0;
+        }
+      } catch (error) {
+        console.error('Error fetching student count:', error);
+      }
+    } else if (targetType === 'selected_students') {
+      // Use selected students count
+      studentCount = selectedStudents.size;
+    } else if (targetType === 'course' && targetId) {
+      // Fetch student count for course
+      try {
+        const response = await fetch(`/admin/bulk-sms/course-students-count/${targetId}`);
+        const data = await response.json();
+        if (data.success) {
+          studentCount = data.count || 0;
+        }
+      } catch (error) {
+        console.error('Error fetching course student count:', error);
+      }
+    } else if (targetType === 'bundle' && targetId) {
+      // Fetch student count for bundle
+      try {
+        const response = await fetch(`/admin/bulk-sms/bundle-students-count/${targetId}`);
+        const data = await response.json();
+        if (data.success) {
+          studentCount = data.count || 0;
+        }
+      } catch (error) {
+        console.error('Error fetching bundle student count:', error);
+      }
+    }
+    
+    // Calculate parent count (same as student count, assuming each student has one parent)
+    parentCount = studentCount;
+    
+    // Update display based on recipient type
+    let displayStudentCount = 0;
+    let displayParentCount = 0;
+    let totalCount = 0;
+    let recipientTypeText = '';
+    
+    if (recipientType === 'students') {
+      displayStudentCount = studentCount;
+      displayParentCount = 0;
+      totalCount = studentCount;
+      recipientTypeText = 'Students Only';
+      // Hide parent count item
+      if (parentCountItem) parentCountItem.style.display = 'none';
+      if (studentCountItem) studentCountItem.style.display = 'flex';
+    } else if (recipientType === 'parents') {
+      displayStudentCount = 0;
+      displayParentCount = parentCount;
+      totalCount = parentCount;
+      recipientTypeText = 'Parents Only';
+      // Hide student count item
+      if (studentCountItem) studentCountItem.style.display = 'none';
+      if (parentCountItem) parentCountItem.style.display = 'flex';
+    } else if (recipientType === 'both') {
+      displayStudentCount = studentCount;
+      displayParentCount = parentCount;
+      totalCount = studentCount + parentCount;
+      recipientTypeText = 'Both Students & Parents';
+      // Show both items
+      if (studentCountItem) studentCountItem.style.display = 'flex';
+      if (parentCountItem) parentCountItem.style.display = 'flex';
+    }
+    
+    // Update UI
+    document.getElementById('studentCount').textContent = displayStudentCount;
+    document.getElementById('parentCount').textContent = displayParentCount;
+    document.getElementById('totalCount').textContent = totalCount;
+    
+    // Update recipient type label
+    if (recipientTypeLabel) {
+      recipientTypeLabel.textContent = recipientTypeText;
+    }
+    
+    // Show/hide preview section
+    if (targetType && (targetType !== 'selected_students' || selectedStudents.size > 0)) {
+      if (messageCountPreviewSection) {
+        messageCountPreviewSection.style.display = 'block';
+      }
+    } else {
+      if (messageCountPreviewSection) {
+        messageCountPreviewSection.style.display = 'none';
+      }
+    }
+  }
+
+  // Load students
+  function loadStudents(page = 1, search = '') {
+    const studentList = document.getElementById('studentList');
+    studentList.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><span>Loading students...</span></div>';
+    
+    const params = new URLSearchParams({ page, limit: 20 });
+    if (search) params.append('search', search);
+    
+    fetch(`/admin/bulk-sms/students?${params}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          currentPage = data.pagination.currentPage;
+          totalStudents = data.pagination.total;
+          displayStudents(data.students);
+          displayPagination(data.pagination);
+        } else {
+          studentList.innerHTML = '<div class="error-state"><i class="fas fa-exclamation-triangle"></i><span>Failed to load students</span></div>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading students:', error);
+        studentList.innerHTML = '<div class="error-state"><i class="fas fa-exclamation-triangle"></i><span>Error loading students</span></div>';
+      });
+  }
+
+  // Display students
+  function displayStudents(students) {
+    const studentList = document.getElementById('studentList');
+    
+    if (students.length === 0) {
+      studentList.innerHTML = '<div class="empty-state"><i class="fas fa-user-slash"></i><span>No students found</span></div>';
+      return;
+    }
+    
+    studentList.innerHTML = students.map(student => {
+      const isSelected = selectedStudents.has(student._id);
+      return `
+        <div class="student-item ${isSelected ? 'selected' : ''}" data-id="${student._id}" onclick="toggleStudent('${student._id}')">
+          <div class="student-checkbox">
+            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleStudent('${student._id}')" onclick="event.stopPropagation()">
+            <div class="checkbox-indicator">
+              <i class="fas fa-check"></i>
+            </div>
+          </div>
+          <div class="student-info">
+            <div class="student-name">
+              <i class="fas fa-user-graduate"></i>
+              ${student.name}
+            </div>
+            <div class="student-details">
+              <span><i class="fas fa-envelope"></i> ${student.email}</span>
+              <span><i class="fas fa-hashtag"></i> ${student.studentCode || 'N/A'}</span>
+            </div>
+          </div>
+          <div class="student-phone">
+            <div class="phone-info">
+              <i class="fas fa-phone"></i> ${student.studentPhone || 'N/A'}
+            </div>
+            <div class="phone-info">
+              <i class="fas fa-user-friends"></i> ${student.parentPhone || 'N/A'}
+            </div>
+          </div>
+          <div class="student-select-indicator">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Display pagination
+  function displayPagination(pagination) {
+    const paginationContainer = document.getElementById('studentPagination');
+    
+    if (pagination.totalPages <= 1) {
+      paginationContainer.innerHTML = '';
+      return;
+    }
+    
+    let html = '<div class="pagination-controls">';
+    
+    if (pagination.hasPrev) {
+      html += `<button class="pagination-btn" onclick="loadStudents(${pagination.currentPage - 1}, '${currentSearch}')">
+        <i class="fas fa-chevron-left"></i> Previous
+      </button>`;
+    }
+    
+    html += `<span class="pagination-info">Page ${pagination.currentPage} of ${pagination.totalPages}</span>`;
+    
+    if (pagination.hasNext) {
+      html += `<button class="pagination-btn" onclick="loadStudents(${pagination.currentPage + 1}, '${currentSearch}')">
+        Next <i class="fas fa-chevron-right"></i>
+      </button>`;
+    }
+    
+    html += '</div>';
+    paginationContainer.innerHTML = html;
+  }
+
+  // Reset form completely
+  function resetForm() {
+    const form = document.getElementById('bulkSMSForm');
+    const targetType = document.getElementById('targetType');
+    const targetId = document.getElementById('targetId');
+    const targetSelectContainer = document.getElementById('targetSelectContainer');
+    const studentSelectionSection = document.getElementById('studentSelectionSection');
+    const messageTextarea = document.getElementById('message');
+    const recipientTypeRadios = document.querySelectorAll('input[name="recipientType"]');
+    const studentSearch = document.getElementById('studentSearch');
+    
+    // Reset form
+    form.reset();
+    
+    // Reset target type
+    targetType.value = '';
+    
+    // Reset target ID
+    targetId.value = '';
+    targetId.innerHTML = '<option value="">Select...</option>';
+    
+    // Hide target select container
+    targetSelectContainer.style.display = 'none';
+    
+    // Clear selected students
+    selectedStudents.clear();
+    updateSelectedCount();
+    updateStudentItems();
+    
+    // Hide student selection section
+    studentSelectionSection.style.display = 'none';
+    
+    // Clear student search
+    if (studentSearch) {
+      studentSearch.value = '';
+      currentSearch = '';
+    }
+    
+    // Reset message textarea
+    messageTextarea.value = '';
+    updateCharacterLimit('');
+    
+    // Reset recipient type to default (students)
+    if (recipientTypeRadios.length > 0) {
+      recipientTypeRadios[0].checked = true;
+    }
+    
+    // Reset message count preview
+    const messageCountPreviewSection = document.getElementById('messageCountPreviewSection');
+    if (messageCountPreviewSection) {
+      messageCountPreviewSection.style.display = 'none';
+    }
+    
+    // Update message count
+    updateMessageCount();
+  }
+
+  // Toggle student selection
+  function toggleStudent(studentId) {
+    if (selectedStudents.has(studentId)) {
+      selectedStudents.delete(studentId);
+    } else {
+      selectedStudents.add(studentId);
+    }
+    updateSelectedCount();
+    updateStudentItems();
+    // Update message count immediately when student selection changes
+    updateMessageCount();
+  }
+
+  // Update selected count
+  function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = selectedStudents.size;
+  }
+
+  // Update student items display
+  function updateStudentItems() {
+    document.querySelectorAll('.student-item').forEach(item => {
+      const studentId = item.getAttribute('data-id');
+      if (selectedStudents.has(studentId)) {
+        item.classList.add('selected');
+        item.querySelector('input[type="checkbox"]').checked = true;
+      } else {
+        item.classList.remove('selected');
+        item.querySelector('input[type="checkbox"]').checked = false;
+      }
+    });
+  }
+
+  // Setup event listeners
+  function setupEventListeners() {
+    // Student search
+    const studentSearch = document.getElementById('studentSearch');
+    let searchTimeout;
+    
+    studentSearch.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      currentSearch = this.value;
+      searchTimeout = setTimeout(() => {
+        loadStudents(1, currentSearch);
+      }, 500);
+    });
+    
+    // Clear search
+    document.getElementById('clearSearch').addEventListener('click', function() {
+      studentSearch.value = '';
+      currentSearch = '';
+      loadStudents(1, '');
+    });
+    
+    // Clear selection
+    document.getElementById('clearSelection').addEventListener('click', function() {
+      selectedStudents.clear();
+      updateSelectedCount();
+      updateStudentItems();
+      // Update message count when selection is cleared
+      updateMessageCount();
+    });
+    
+    // Form submission
+    document.getElementById('bulkSMSForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      sendBulkSMS();
+    });
+  }
+
+  // Send bulk SMS
+  function sendBulkSMS() {
+    const form = document.getElementById('bulkSMSForm');
+    const formData = new FormData(form);
+    const sendBtn = document.getElementById('sendBtn');
+    const originalText = sendBtn.innerHTML;
+    
+    // Validation
+    const targetType = formData.get('targetType');
+    const message = formData.get('message');
+    
+    if (!targetType) {
+      showNotification('Please select a target type', 'error');
+      return;
+    }
+    
+    if (!message || message.trim().length < 10) {
+      showNotification('Message must be at least 10 characters', 'error');
+      return;
+    }
+    
+    // Check character limit based on language
+    const hasArabic = /[\u0600-\u06FF]/.test(message);
+    const maxChars = hasArabic ? 70 : 160;
+    if (message.length > maxChars) {
+      showNotification(`Message exceeds ${maxChars} character limit for ${hasArabic ? 'Arabic' : 'English'} messages`, 'error');
+      return;
+    }
+    
+    if (targetType === 'selected_students' && selectedStudents.size === 0) {
+      showNotification('Please select at least one student', 'error');
+      return;
+    }
+    
+    if ((targetType === 'course' || targetType === 'bundle') && !formData.get('targetId')) {
+      showNotification('Please select a ' + targetType, 'error');
+      return;
+    }
+    
+    // Prepare data
+    const data = {
+      targetType: formData.get('targetType'),
+      targetId: formData.get('targetId') || null,
+      recipientType: formData.get('recipientType'),
+      selectedStudents: Array.from(selectedStudents),
+      message: message.trim()
+    };
+    
+    // Show loading
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    sendBtn.disabled = true;
+    
+    // Show progress indicator
+    const progressIndicator = document.createElement('div');
+    progressIndicator.id = 'sendingProgress';
+    progressIndicator.className = 'sending-progress-indicator';
+    progressIndicator.innerHTML = `
+      <div class="progress-indicator-content">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Sending SMS messages...</span>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(progressIndicator);
+    
+    // Send request
+    fetch('/admin/bulk-sms/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Remove progress indicator
+        if (progressIndicator.parentNode) {
+          progressIndicator.remove();
+        }
+        
+        if (data.success) {
+          showNotification(data.message, 'success');
+          displayResults(data.results);
+          // Reset form after showing results
+          resetForm();
+        } else {
+          showNotification(data.message || 'Failed to send SMS', 'error');
+          // Show error in results modal if available
+          if (data.results) {
+            displayResults(data.results);
+          }
+          // Reset form even on error
+          resetForm();
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        // Remove progress indicator
+        if (progressIndicator.parentNode) {
+          progressIndicator.remove();
+        }
+        showNotification('An error occurred while sending SMS: ' + error.message, 'error');
+        // Reset form on error
+        resetForm();
+      })
+      .finally(() => {
+        sendBtn.innerHTML = originalText;
+        sendBtn.disabled = false;
+      });
+  }
+
+  // Display results
+  function displayResults(results) {
+    const resultsContent = document.getElementById('resultsContent');
+    const modal = new bootstrap.Modal(document.getElementById('resultsModal'));
+    
+    const successRate = results.total > 0 ? ((results.success.length / results.total) * 100).toFixed(1) : '0.0';
+    const failedRate = results.total > 0 ? ((results.failed.length / results.total) * 100).toFixed(1) : '0.0';
+    
+    resultsContent.innerHTML = `
+      <div class="results-summary">
+        <div class="result-stat success">
+          <div class="result-stat-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="result-stat-content">
+            <div class="result-stat-number">${results.success.length}</div>
+            <div class="result-stat-label">Successful</div>
+            <div class="result-stat-percentage">${successRate}%</div>
+          </div>
+        </div>
+        <div class="result-stat failed">
+          <div class="result-stat-icon">
+            <i class="fas fa-times-circle"></i>
+          </div>
+          <div class="result-stat-content">
+            <div class="result-stat-number">${results.failed.length}</div>
+            <div class="result-stat-label">Failed</div>
+            <div class="result-stat-percentage">${failedRate}%</div>
+          </div>
+        </div>
+        <div class="result-stat total">
+          <div class="result-stat-icon">
+            <i class="fas fa-paper-plane"></i>
+          </div>
+          <div class="result-stat-content">
+            <div class="result-stat-number">${results.total}</div>
+            <div class="result-stat-label">Total Messages</div>
+          </div>
+        </div>
+        <div class="result-stat rate">
+          <div class="result-stat-icon">
+            <i class="fas fa-percentage"></i>
+          </div>
+          <div class="result-stat-content">
+            <div class="result-stat-number">${successRate}%</div>
+            <div class="result-stat-label">Success Rate</div>
+          </div>
+        </div>
+      </div>
+      
+      ${results.failed.length > 0 ? `
+        <div class="failed-list">
+          <div class="failed-list-header">
+            <h6><i class="fas fa-exclamation-triangle"></i> Failed Messages (${results.failed.length})</h6>
+            <button type="button" class="btn-toggle-failed" onclick="toggleFailedList()">
+              <i class="fas fa-chevron-down" id="failedToggleIcon"></i>
+            </button>
+          </div>
+          <div class="failed-items" id="failedItemsList">
+            ${results.failed.map((item, index) => `
+              <div class="failed-item">
+                <div class="failed-item-number">${index + 1}</div>
+                <div class="failed-item-content">
+                  <div class="failed-item-info">
+                    <div class="failed-item-name">
+                      <i class="fas fa-user"></i>
+                      <strong>${item.name}</strong>
+                      <span class="failed-item-type">${item.type === 'student' ? 'Student' : 'Parent'}</span>
+                    </div>
+                    <div class="failed-item-phone">
+                      <i class="fas fa-phone"></i>
+                      ${item.phone}
+                    </div>
+                  </div>
+                  <div class="failed-item-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>${escapeHtml(item.error)}</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+      
+      ${results.success.length > 0 ? `
+        <div class="success-list">
+          <div class="success-list-header">
+            <h6><i class="fas fa-check-circle"></i> Successful Messages (${results.success.length})</h6>
+            <button type="button" class="btn-toggle-success" onclick="toggleSuccessList()">
+              <i class="fas fa-chevron-down" id="successToggleIcon"></i>
+            </button>
+          </div>
+          <div class="success-items" id="successItemsList" style="display: none;">
+            ${results.success.map((item, index) => `
+              <div class="success-item">
+                <div class="success-item-number">${index + 1}</div>
+                <div class="success-item-content">
+                  <div class="success-item-info">
+                    <div class="success-item-name">
+                      <i class="fas fa-user"></i>
+                      <strong>${item.name}</strong>
+                      <span class="success-item-type">${item.type === 'student' ? 'Student' : 'Parent'}</span>
+                    </div>
+                    <div class="success-item-phone">
+                      <i class="fas fa-phone"></i>
+                      ${item.phone}
+                    </div>
+                  </div>
+                  <div class="success-item-status">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Message sent successfully</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    `;
+    
+    modal.show();
+  }
+  
+  // Toggle failed list
+  function toggleFailedList() {
+    const failedList = document.getElementById('failedItemsList');
+    const toggleIcon = document.getElementById('failedToggleIcon');
+    if (failedList) {
+      if (failedList.style.display === 'none') {
+        failedList.style.display = 'block';
+        if (toggleIcon) toggleIcon.className = 'fas fa-chevron-up';
+      } else {
+        failedList.style.display = 'none';
+        if (toggleIcon) toggleIcon.className = 'fas fa-chevron-down';
+      }
+    }
+  }
+  
+  // Toggle success list
+  function toggleSuccessList() {
+    const successList = document.getElementById('successItemsList');
+    const toggleIcon = document.getElementById('successToggleIcon');
+    if (successList) {
+      if (successList.style.display === 'none') {
+        successList.style.display = 'block';
+        if (toggleIcon) toggleIcon.className = 'fas fa-chevron-up';
+      } else {
+        successList.style.display = 'none';
+        if (toggleIcon) toggleIcon.className = 'fas fa-chevron-down';
+      }
+    }
+  }
+  
+  // Escape HTML to prevent XSS
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Show notification
+  function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} alert-dismissible fade show`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '9999';
+    notification.style.minWidth = '300px';
+    
+    notification.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+</script>
+</body>
+</html>
+
