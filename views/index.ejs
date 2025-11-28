@@ -392,6 +392,132 @@
     border-color: #8B0000;
     color: #fff;
   }
+
+  /* Exam Options Styling - Matching University Options Design */
+  .exam-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .exam-option {
+    background: rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(30, 41, 59, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .exam-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(184, 1, 1, 0.05), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .exam-option:hover {
+    border-color: #B80101;
+    background: rgba(184, 1, 1, 0.05);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(184, 1, 1, 0.15);
+  }
+
+  .exam-option:hover::before {
+    left: 100%;
+  }
+
+  .exam-option.selected {
+    border-color: #B80101;
+    background: rgba(184, 1, 1, 0.1);
+    box-shadow: 0 10px 25px rgba(184, 1, 1, 0.2);
+  }
+
+  /* Exam option icon with image */
+  .exam-option .option-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 5px;
+    border: 1px solid rgba(30, 41, 59, 0.1);
+  }
+
+  .exam-option .option-icon .exam-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+
+  /* Exam option content */
+  .exam-option .option-content {
+    flex: 1;
+  }
+
+  .exam-option .option-content h4 {
+    color: #1e293b;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+
+  .exam-option .option-content p {
+    color: rgba(30, 41, 59, 0.7);
+    font-size: 0.9rem;
+    margin-bottom: 0;
+  }
+
+  /* Exam option check (radio button style) */
+  .exam-option .option-check {
+    width: 25px;
+    height: 25px;
+    border: 2px solid rgba(30, 41, 59, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    background: transparent;
+  }
+
+  .exam-option.selected .option-check {
+    background: #B80101;
+    border-color: #B80101;
+  }
+
+  .exam-option .option-check i {
+    color: white;
+    font-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .exam-option.selected .option-check i {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .exam-options {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+  }
 </style>
 
 <!-- Floating Math Elements -->
@@ -1868,7 +1994,7 @@
         </div>
         <div class="calculator-title-content">
           <h2 class="calculator-title">University Score Calculator</h2>
-          <p class="calculator-subtitle">Calculate your score in 3 simple steps</p>
+          <p class="calculator-subtitle">Calculate your score in 4 simple steps</p>
         </div>
       </div>
 
@@ -1881,10 +2007,14 @@
           </div>
           <div class="step-item" data-step="2">
             <div class="step-number">2</div>
-            <div class="step-label">Enter Scores</div>
+            <div class="step-label">Exam Type</div>
           </div>
           <div class="step-item" data-step="3">
             <div class="step-number">3</div>
+            <div class="step-label">Enter Scores</div>
+          </div>
+          <div class="step-item" data-step="4">
+            <div class="step-number">4</div>
             <div class="step-label">Results</div>
           </div>
         </div>
@@ -1914,10 +2044,7 @@
             <div class="option-content">
               <h4>Government University</h4>
               <p>جامعة حكومية</p>
-              <div class="option-requirements">
-                <span class="requirement">EST1: ≥ 1050</span>
-                <span class="requirement">EST2: ≥ 1100</span>
-              </div>
+             
             </div>
             <div class="option-check">
               <i class="fas fa-check"></i>
@@ -1931,10 +2058,7 @@
             <div class="option-content">
               <h4>Private University</h4>
               <p>جامعة خاصة</p>
-              <div class="option-requirements">
-                <span class="requirement">EST1: ≥ 800</span>
-                <span class="requirement">EST2: ≥ 900</span>
-              </div>
+           
             </div>
             <div class="option-check">
               <i class="fas fa-check"></i>
@@ -1948,10 +2072,7 @@
             <div class="option-content">
               <h4>Ahlia University</h4>
               <p>جامعة أهلية</p>
-              <div class="option-requirements">
-                <span class="requirement">EST1: ≥ 800</span>
-                <span class="requirement">EST2: ≥ 900</span>
-              </div>
+           
             </div>
             <div class="option-check">
               <i class="fas fa-check"></i>
@@ -1967,14 +2088,74 @@
         </div>
       </div>
 
-      <!-- Step 2: Score Inputs -->
+      <!-- Step 2: Exam Type Selection -->
       <div class="calculator-step" id="step2">
+        <div class="step-header">
+          <h3 class="step-title">
+            <i class="fas fa-clipboard-list"></i>
+            Select Exam Type
+          </h3>
+          <p class="step-description">Choose the exam type you took (EST, ACT, or SAT)</p>
+        </div>
+
+        <div class="exam-options">
+          <div class="exam-option" data-exam="EST">
+            <div class="option-icon">
+              <img src="/images/ESTLOGO.jpg" alt="EST Logo" class="exam-logo-img">
+            </div>
+            <div class="option-content">
+              <h4>EST</h4>
+            </div>
+            <div class="option-check">
+              <i class="fas fa-check"></i>
+            </div>
+          </div>
+
+          <div class="exam-option" data-exam="SAT">
+            <div class="option-icon">
+              <img src="/images/SATLOGO.jpg" alt="SAT Logo" class="exam-logo-img">
+            </div>
+            <div class="option-content">
+              <h4>D-SAT</h4>
+            </div>
+            <div class="option-check">
+              <i class="fas fa-check"></i>
+            </div>
+          </div>
+
+          <div class="exam-option" data-exam="ACT">
+            <div class="option-icon">
+              <img src="/images/ACTLOGO.jpg" alt="ACT Logo" class="exam-logo-img">
+            </div>
+            <div class="option-content">
+              <h4>ACT</h4>
+            </div>
+            <div class="option-check">
+              <i class="fas fa-check"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-actions">
+          <button class="btn-back" id="backStep2">
+            <i class="fas fa-arrow-left"></i>
+            Back
+          </button>
+          <button class="btn-next" id="nextStep2" disabled>
+            Next Step
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Score Inputs -->
+      <div class="calculator-step" id="step3">
         <div class="step-header">
           <h3 class="step-title">
             <i class="fas fa-edit"></i>
             Enter Your Scores
           </h3>
-          <p class="step-description">Input your EST scores and GPA</p>
+          <p class="step-description">Input your exam scores and GPA</p>
         </div>
 
         <div class="scores-form">
@@ -1984,11 +2165,11 @@
                 <i class="fas fa-chart-line"></i>
               </div>
               <div class="score-content">
-                <label for="est1Score" class="score-label">EST1 Score *</label>
-                <input type="number" id="est1Score" class="score-input" placeholder="Enter EST1 score" min="0" max="1600">
+                <label for="exam1Score" class="score-label" id="exam1Label">EST1 Score *</label>
+                <input type="number" id="exam1Score" class="score-input" placeholder="Enter score" min="0" max="1600">
                 <div class="score-info">
-                  <span class="score-range">Out of 1600</span>
-                  <span class="score-min" id="est1MinReq">Min: 1050</span>
+                  <span class="score-range" id="exam1Range">Out of 1600</span>
+                  <span class="score-min" id="exam1MinReq">Threshold: 1090 affects multiplier</span>
                 </div>
               </div>
             </div>
@@ -1997,14 +2178,34 @@
           <div class="score-input-group">
             <div class="score-input-card">
               <div class="score-icon">
+                <i class="fas fa-clipboard-check"></i>
+              </div>
+              <div class="score-content">
+                <label class="score-label">Exam 2 Selection *</label>
+                <select id="exam2Type" class="score-input" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
+                  <option value="">Select Exam 2 Type</option>
+                  <option value="EST">EST 2</option>
+                  <option value="ACT">ACT 2</option>
+                  <option value="NONE">None (No Exam 2)</option>
+                </select>
+                <div class="score-info">
+                  <span class="score-note">Choose if you took a second exam</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="score-input-group" id="exam2ScoreGroup" style="display: none;">
+            <div class="score-input-card">
+              <div class="score-icon">
                 <i class="fas fa-chart-bar"></i>
               </div>
               <div class="score-content">
-                <label for="est2Score" class="score-label">EST2 Score</label>
-                <input type="number" id="est2Score" class="score-input" placeholder="Enter EST2 score (optional)" min="0" max="1600">
+                <label for="exam2Score" class="score-label" id="exam2Label">Exam 2 Score</label>
+                <input type="number" id="exam2Score" class="score-input" placeholder="Enter exam 2 score (optional)" min="0" max="1600">
                 <div class="score-info">
-                  <span class="score-range">Out of 1600</span>
-                  <span class="score-min" id="est2MinReq">Min: 1100</span>
+                  <span class="score-range" id="exam2Range">Out of 1600</span>
+                  <span class="score-min" id="exam2MinReq"></span>
                 </div>
               </div>
             </div>
@@ -2028,19 +2229,19 @@
         </div>
 
         <div class="step-actions">
-          <button class="btn-back" id="backStep2">
+          <button class="btn-back" id="backStep3">
             <i class="fas fa-arrow-left"></i>
             Back
           </button>
-          <button class="btn-next" id="nextStep2" disabled>
+          <button class="btn-next" id="nextStep3" disabled>
             Calculate Score
             <i class="fas fa-calculator"></i>
           </button>
         </div>
       </div>
 
-      <!-- Step 3: Results -->
-      <div class="calculator-step" id="step3">
+      <!-- Step 4: Results -->
+      <div class="calculator-step" id="step4">
         <div class="step-header">
           <h3 class="step-title">
             <i class="fas fa-trophy"></i>
@@ -2074,12 +2275,12 @@
 
             <div class="score-breakdown">
               <div class="breakdown-item">
-                <span class="breakdown-label">EST1 Score:</span>
-                <span class="breakdown-value" id="est1Breakdown">0</span>
+                <span class="breakdown-label" id="exam1BreakdownLabel">Exam 1 Score:</span>
+                <span class="breakdown-value" id="exam1Breakdown">0</span>
               </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">EST2 Score:</span>
-                <span class="breakdown-value" id="est2Breakdown">0</span>
+              <div class="breakdown-item" id="exam2BreakdownItem" style="display: none;">
+                <span class="breakdown-label" id="exam2BreakdownLabel">Exam 2 Score:</span>
+                <span class="breakdown-value" id="exam2Breakdown">0</span>
               </div>
               <div class="breakdown-item">
                 <span class="breakdown-label">GPA Score:</span>
@@ -2116,7 +2317,7 @@
         </div>
 
         <div class="step-actions">
-          <button class="btn-back" id="backStep3">
+          <button class="btn-back" id="backStep4">
             <i class="fas fa-arrow-left"></i>
             Back
           </button>
@@ -2615,52 +2816,38 @@
     initCarousel();
   });
 
-  // Enhanced Score Calculator - 3-Step Design
+  // Enhanced Score Calculator - 4-Step Design
   document.addEventListener('DOMContentLoaded', function() {
     // University type configurations
     const universityTypes = {
       government: {
         name: 'Government University',
-        arabicName: 'جامعة حكومية',
-        est1Min: 0,
-        est2Min: 0,
-        bonusThreshold: null,
-        bonusPercentage: 0,
-        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 83.28×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA multiplied by 10.'
+        arabicName: 'جامعة حكومية'
       },
       private: {
         name: 'Private University',
-        arabicName: 'جامعة خاصة',
-        est1Min: 0,
-        est2Min: 0,
-        bonusThreshold: null,
-        bonusPercentage: 0,
-        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 75×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA multiplied by 10.'
+        arabicName: 'جامعة خاصة'
       },
       ahlia: {
         name: 'Ahlia University',
-        arabicName: 'جامعة أهلية',
-        est1Min: 0,
-        est2Min: 0,
-        bonusThreshold: null,
-        bonusPercentage: 0,
-        rules: 'EST1: if < 1090 ⇒ × (60/1600), if ≥ 1090 ⇒ 75×(EST1/1600). EST2 (optional): 49.91×(EST2/1600). GPA multiplied by 10.'
+        arabicName: 'جامعة أهلية'
       }
     };
 
     // Current step and state
     let currentStep = 1;
     let selectedUniversityType = null;
+    let selectedExamType = null; // EST, ACT, or SAT
+    let selectedExam2Type = null; // EST, ACT, or NONE
     let calculationData = {
-      est1: 0,
-      est2: 0,
+      exam1: 0,
+      exam2: 0,
       gpa: 0,
       finalScore: 0,
       breakdown: {
-        est1Score: 0,
-        est2Score: 0,
-        gpaScore: 0,
-        bonus: 0
+        exam1Score: 0,
+        exam2Score: 0,
+        gpaScore: 0
       }
     };
 
@@ -2673,25 +2860,38 @@
     const universityOptions = document.querySelectorAll('.university-option');
     const nextStep1Btn = document.getElementById('nextStep1');
 
-    // Step 2 elements
-    const est1Input = document.getElementById('est1Score');
-    const est2Input = document.getElementById('est2Score');
-    const gpaInput = document.getElementById('gpaScore');
-    const est1MinReq = document.getElementById('est1MinReq');
-    const est2MinReq = document.getElementById('est2MinReq');
+    // Step 2 elements (Exam Type Selection)
+    const examOptions = document.querySelectorAll('.exam-option');
     const nextStep2Btn = document.getElementById('nextStep2');
     const backStep2Btn = document.getElementById('backStep2');
 
-    // Step 3 elements
+    // Step 3 elements (Score Inputs)
+    const exam1Input = document.getElementById('exam1Score');
+    const exam1Label = document.getElementById('exam1Label');
+    const exam1Range = document.getElementById('exam1Range');
+    const exam1MinReq = document.getElementById('exam1MinReq');
+    const exam2TypeSelect = document.getElementById('exam2Type');
+    const exam2ScoreGroup = document.getElementById('exam2ScoreGroup');
+    const exam2Input = document.getElementById('exam2Score');
+    const exam2Label = document.getElementById('exam2Label');
+    const exam2Range = document.getElementById('exam2Range');
+    const exam2MinReq = document.getElementById('exam2MinReq');
+    const gpaInput = document.getElementById('gpaScore');
+    const nextStep3Btn = document.getElementById('nextStep3');
+    const backStep3Btn = document.getElementById('backStep3');
+
+    // Step 4 elements (Results)
     const selectedUniversityTypeEl = document.getElementById('selectedUniversityType');
     const calculatedValue = document.getElementById('calculatedValue');
     const scoreStatus = document.getElementById('scoreStatus');
-    const est1Breakdown = document.getElementById('est1Breakdown');
-    const est2Breakdown = document.getElementById('est2Breakdown');
+    const exam1Breakdown = document.getElementById('exam1Breakdown');
+    const exam1BreakdownLabel = document.getElementById('exam1BreakdownLabel');
+    const exam2Breakdown = document.getElementById('exam2Breakdown');
+    const exam2BreakdownLabel = document.getElementById('exam2BreakdownLabel');
+    const exam2BreakdownItem = document.getElementById('exam2BreakdownItem');
     const gpaBreakdown = document.getElementById('gpaBreakdown');
-    const bonusBreakdown = document.getElementById('bonusBreakdown');
     const ruleText = document.getElementById('ruleText');
-    const backStep3Btn = document.getElementById('backStep3');
+    const backStep4Btn = document.getElementById('backStep4');
     const finishBtn = document.getElementById('finishBtn');
     const recalculateBtn = document.getElementById('recalculateBtn');
     const shareBtn = document.getElementById('shareBtn');
@@ -2700,6 +2900,7 @@
     function initCalculator() {
       setupStepNavigation();
       setupUniversitySelection();
+      setupExamTypeSelection();
       setupScoreInputs();
       setupResultsActions();
       updateProgress();
@@ -2712,7 +2913,11 @@
       stepItems.forEach((item, index) => {
         item.addEventListener('click', () => {
           const stepNumber = parseInt(item.dataset.step);
-          if (stepNumber <= currentStep || (stepNumber === 2 && selectedUniversityType)) {
+          // Allow navigation if step is already completed or current step
+          if (stepNumber === 1 || 
+              (stepNumber === 2 && selectedUniversityType) ||
+              (stepNumber === 3 && selectedUniversityType && selectedExamType) ||
+              (stepNumber === 4 && selectedUniversityType && selectedExamType)) {
             showStep(stepNumber);
           }
         });
@@ -2739,31 +2944,114 @@
       });
     }
 
-    // Update minimum requirements based on selected university type
-    function updateMinimumRequirements() {
-      if (!selectedUniversityType) return;
+    // Setup exam type selection
+    function setupExamTypeSelection() {
+      examOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          // Remove previous selection
+          examOptions.forEach(opt => opt.classList.remove('selected'));
 
-      const config = universityTypes[selectedUniversityType];
-      // Display helpful hints reflecting the current calculation rules
-      est1MinReq.textContent = `Threshold: 1090 affects multiplier`;
-      est2MinReq.textContent = `If provided: multiplied by 15/1600`;
+          // Add selection to clicked option
+          option.classList.add('selected');
+          
+          selectedExamType = option.dataset.exam;
+          
+          // Enable next button
+          if (nextStep2Btn) nextStep2Btn.disabled = false;
+          
+          // Update score input labels when exam type is selected
+          updateScoreInputLabels();
+        });
+      });
+    }
+
+    // Update score input labels based on selected exam type
+    function updateScoreInputLabels() {
+      if (!selectedExamType) return;
+
+      const examNames = {
+        'EST': 'EST',
+        'SAT': 'SAT',
+        'ACT': 'ACT'
+      };
+
+      const examName = examNames[selectedExamType] || 'Exam';
+      
+      if (exam1Label) exam1Label.textContent = `${examName}1 Score *`;
+      if (exam1Input) exam1Input.placeholder = `Enter ${examName}1 score`;
+      if (exam1Range) exam1Range.textContent = 'Out of 1600';
+      if (exam1MinReq) exam1MinReq.textContent = 'Threshold: 1090 affects multiplier';
     }
 
     // Setup score inputs
     function setupScoreInputs() {
-      const inputs = [est1Input, est2Input, gpaInput];
-
-      inputs.forEach(input => {
-        input.addEventListener('input', () => {
-          // Remove error state
-          input.classList.remove('error');
-
-          // Validate and calculate
+      // Exam 1 input
+      if (exam1Input) {
+        exam1Input.addEventListener('input', () => {
+          exam1Input.classList.remove('error');
           validateInputs();
           calculateScore();
           updateNextButton();
         });
-      });
+      }
+
+      // Exam 2 type selection
+      if (exam2TypeSelect) {
+        exam2TypeSelect.addEventListener('change', () => {
+          selectedExam2Type = exam2TypeSelect.value;
+          
+          if (selectedExam2Type === 'NONE' || !selectedExam2Type) {
+            exam2ScoreGroup.style.display = 'none';
+            if (exam2Input) exam2Input.value = '';
+            selectedExam2Type = null;
+          } else {
+            exam2ScoreGroup.style.display = 'block';
+            updateExam2Labels();
+          }
+          
+          validateInputs();
+          calculateScore();
+          updateNextButton();
+        });
+      }
+
+      // Exam 2 input
+      if (exam2Input) {
+        exam2Input.addEventListener('input', () => {
+          exam2Input.classList.remove('error');
+          validateInputs();
+          calculateScore();
+          updateNextButton();
+        });
+      }
+
+      // GPA input
+      if (gpaInput) {
+        gpaInput.addEventListener('input', () => {
+          gpaInput.classList.remove('error');
+          validateInputs();
+          calculateScore();
+          updateNextButton();
+        });
+      }
+    }
+
+    // Update Exam 2 labels
+    function updateExam2Labels() {
+      if (!selectedExam2Type || selectedExam2Type === 'NONE') return;
+
+      const examNames = {
+        'EST': 'EST',
+        'SAT': 'SAT',
+        'ACT': 'ACT'
+      };
+
+      const examName = examNames[selectedExam2Type] || 'Exam';
+      
+      if (exam2Label) exam2Label.textContent = `${examName}2 Score`;
+      if (exam2Input) exam2Input.placeholder = `Enter ${examName}2 score (optional)`;
+      if (exam2Range) exam2Range.textContent = 'Out of 1600';
+      if (exam2MinReq) exam2MinReq.textContent = '';
     }
 
     // Setup results actions
@@ -2774,6 +3062,10 @@
 
       if (backStep3Btn) {
         backStep3Btn.addEventListener('click', () => showStep(2));
+      }
+
+      if (backStep4Btn) {
+        backStep4Btn.addEventListener('click', () => showStep(3));
       }
 
       if (finishBtn) {
@@ -2801,6 +3093,10 @@
       if (nextStep2Btn) {
         nextStep2Btn.addEventListener('click', () => showStep(3));
       }
+
+      if (nextStep3Btn) {
+        nextStep3Btn.addEventListener('click', () => showStep(4));
+      }
     }
 
     // Show specific step
@@ -2823,15 +3119,20 @@
       // Update step indicators
       updateStepIndicators();
 
-      // If showing step 3, calculate and display results
-      if (stepNumber === 3) {
+      // If showing step 4, calculate and display results
+      if (stepNumber === 4) {
         calculateAndDisplayResults();
+      }
+      
+      // Update labels when moving to step 3
+      if (stepNumber === 3) {
+        updateScoreInputLabels();
       }
     }
 
     // Update progress bar
     function updateProgress() {
-      const progressPercentage = ((currentStep - 1) / 2) * 100;
+      const progressPercentage = ((currentStep - 1) / 3) * 100;
       if (progressFill) {
         progressFill.style.width = `${progressPercentage}%`;
       }
@@ -2853,30 +3154,34 @@
 
     // Validate inputs
     function validateInputs() {
-      const est1 = parseFloat(est1Input.value) || 0;
-      const est2 = parseFloat(est2Input.value) || 0;
-      const gpa = parseFloat(gpaInput.value) || 0;
+      if (!selectedUniversityType || !selectedExamType) return false;
 
-      if (!selectedUniversityType) return false;
+      const exam1 = parseFloat(exam1Input?.value) || 0;
+      const exam2 = parseFloat(exam2Input?.value) || 0;
+      const gpa = parseFloat(gpaInput?.value) || 0;
 
       let hasErrors = false;
 
       // Remove previous error states
-      [est1Input, est2Input, gpaInput].forEach(input => {
-        input.classList.remove('error');
-      });
+      if (exam1Input) exam1Input.classList.remove('error');
+      if (exam2Input) exam2Input.classList.remove('error');
+      if (gpaInput) gpaInput.classList.remove('error');
 
-      // Validate ranges only
-      if (est1 < 0 || est1 > 1600) {
-        est1Input.classList.add('error');
+      // Validate ranges
+      if (exam1 < 0 || exam1 > 1600) {
+        if (exam1Input) exam1Input.classList.add('error');
         hasErrors = true;
       }
-      if (est2 < 0 || est2 > 1600) {
-        est2Input.classList.add('error');
-        hasErrors = true;
+      
+      if (selectedExam2Type && selectedExam2Type !== 'NONE') {
+        if (exam2 < 0 || exam2 > 1600) {
+          if (exam2Input) exam2Input.classList.add('error');
+          hasErrors = true;
+        }
       }
+      
       if (gpa < 0 || gpa > 4) {
-        gpaInput.classList.add('error');
+        if (gpaInput) gpaInput.classList.add('error');
         hasErrors = true;
       }
 
@@ -2885,100 +3190,100 @@
 
     // Update next button state
     function updateNextButton() {
-      const est1 = parseFloat(est1Input.value) || 0;
-      const gpa = parseFloat(gpaInput.value) || 0;
-      const isValid = validateInputs() && est1 > 0 && gpa > 0;
+      const exam1 = parseFloat(exam1Input?.value) || 0;
+      const gpa = parseFloat(gpaInput?.value) || 0;
+      const isValid = validateInputs() && exam1 > 0 && gpa > 0;
 
-      if (nextStep2Btn) {
-        nextStep2Btn.disabled = !isValid;
+      if (nextStep3Btn) {
+        nextStep3Btn.disabled = !isValid;
       }
     }
 
-// Calculate score
-// Calculate score
-function calculateScore() {
-  const est1 = parseFloat(est1Input.value) || 0;
-  const est2 = parseFloat(est2Input.value) || 0;
-  const gpa = parseFloat(gpaInput.value) || 0;
+    // Calculate score
+    function calculateScore() {
+      const exam1 = parseFloat(exam1Input?.value) || 0;
+      const exam2 = parseFloat(exam2Input?.value) || 0;
+      const gpa = parseFloat(gpaInput?.value) || 0;
 
-  if (!selectedUniversityType || est1 === 0 || gpa === 0) {
-    calculationData.finalScore = 0;
-    calculationData.breakdown = {
-      est1Score: 0,
-      est2Score: 0,
-      gpaScore: 0,
-      bonus: 0
-    };
-    if (calculatedValue) calculatedValue.textContent = '0.00';
-    return;
-  }
+      if (!selectedUniversityType || !selectedExamType || exam1 === 0 || gpa === 0) {
+        calculationData.finalScore = 0;
+        calculationData.breakdown = {
+          exam1Score: 0,
+          exam2Score: 0,
+          gpaScore: 0
+        };
+        if (calculatedValue) calculatedValue.textContent = '0.00';
+        return;
+      }
 
-  let finalScore = 0;
-  let est1Score = 0;
-  let est2Score = 0;
-  const uniType = selectedUniversityType;
+      let finalScore = 0;
+      let exam1Score = 0;
+      let exam2Score = 0;
+      const uniType = selectedUniversityType;
 
-  // ✅ EST1 contribution (Egyptian rules)
-  if (uniType === 'government') {
-    // Government universities
-    if (est1 < 1090) {
-      est1Score = est1 * (60 / 1600);
-    } else {
-      // For EST1 ≥ 1090
-      est1Score = est1 * (83.28 / 1600);
+      // ✅ Exam 1 contribution (EST1/SAT1/ACT1)
+      if (uniType === 'government') {
+        // Government universities: if >= 1090 then 69/1600, else 60/1600
+        if (exam1 >= 1090) {
+          exam1Score = exam1 * (69 / 1600);
+        } else {
+          exam1Score = exam1 * (60 / 1600);
+        }
+      } else {
+        // Private / Ahlia universities: if >= 1090 then 75/1600, else 60/1600
+        if (exam1 >= 1090) {
+          exam1Score = exam1 * (75 / 1600);
+        } else {
+          exam1Score = exam1 * (60 / 1600);
+        }
+      }
+
+      finalScore += exam1Score;
+
+      // ✅ Exam 2 contribution (if provided): 15/1600 for all university types
+      if (selectedExam2Type && selectedExam2Type !== 'NONE' && exam2 > 0) {
+        exam2Score = exam2 * (15 / 1600);
+        finalScore += exam2Score;
+      }
+
+      // ✅ GPA multiplied by 10
+      const gpaScore = gpa * 10;
+      finalScore += gpaScore;
+
+      // ✅ Save calculation data
+      calculationData.exam1 = exam1;
+      calculationData.exam2 = exam2;
+      calculationData.gpa = gpa;
+      calculationData.breakdown.exam1Score = exam1Score;
+      calculationData.breakdown.exam2Score = exam2Score;
+      calculationData.breakdown.gpaScore = gpaScore;
+      calculationData.finalScore = finalScore;
+
+      // Display rounded to 2 decimals
+      if (calculatedValue) {
+        calculatedValue.textContent = finalScore.toFixed(2);
+      }
     }
-  } else {
-    // Private / Ahlia universities
-    if (est1 < 1090) {
-      est1Score = est1 * (60 / 1600);
-    } else {
-      est1Score = est1 * (75 / 1600);
-    }
-  }
-
-  finalScore += est1Score;
-
-  // ✅ EST2 contribution (if provided)
-  if (est2 > 0) {
-    est2Score = est2 * (49.91 / 1600);
-    finalScore += est2Score;
-  }
-
-  // ✅ GPA multiplied by 10
-  const gpaScore = gpa * 10;
-  finalScore += gpaScore;
-
-  // ✅ Save calculation data
-  calculationData.est1 = est1;
-  calculationData.est2 = est2;
-  calculationData.gpa = gpa;
-  calculationData.breakdown.est1Score = est1Score;
-  calculationData.breakdown.est2Score = est2Score;
-  calculationData.breakdown.gpaScore = gpaScore;
-  calculationData.breakdown.bonus = 0;
-  calculationData.finalScore = finalScore;
-
-  // ✅ Convert to percentage and display rounded to 2 decimals
-  // Since the score is already on a scale close to 100, we'll simply use it as the percentage
-  
-  if (calculatedValue) {
-    calculatedValue.textContent = finalScore.toFixed(2);
-  }
-}
 
 
     // Calculate and display results
     function calculateAndDisplayResults() {
-      if (!selectedUniversityType) return;
+      if (!selectedUniversityType || !selectedExamType) return;
 
       const config = universityTypes[selectedUniversityType];
+      const examNames = {
+        'EST': 'EST',
+        'SAT': 'SAT',
+        'ACT': 'ACT'
+      };
+      const examName = examNames[selectedExamType] || 'Exam';
 
       // Update university type display
       if (selectedUniversityTypeEl) {
         selectedUniversityTypeEl.textContent = config.name;
       }
 
-      // Update calculated value as percentage
+      // Update calculated value
       if (calculatedValue) {
         calculatedValue.textContent = calculationData.finalScore.toFixed(2);
       }
@@ -3000,31 +3305,36 @@ function calculateScore() {
         }
       }
 
-      // Update breakdown as percentages
-      if (est1Breakdown) {
-        est1Breakdown.textContent = (calculationData.breakdown.est1Score * 100 / 100).toFixed(2) + '%';
+      // Update breakdown labels and values
+      if (exam1BreakdownLabel) {
+        exam1BreakdownLabel.textContent = `${examName}1 Score:`;
       }
-      if (est2Breakdown) {
-        est2Breakdown.textContent = (calculationData.breakdown.est2Score * 100 / 100).toFixed(2) + '%';
+      if (exam1Breakdown) {
+        exam1Breakdown.textContent = calculationData.breakdown.exam1Score.toFixed(2);
       }
-      if (gpaBreakdown) {
-        gpaBreakdown.textContent = (calculationData.breakdown.gpaScore * 100 / 100).toFixed(2) + '%';
-      }
-
-      // Show/hide bonus breakdown
-      if (bonusBreakdown) {
-        bonusBreakdown.style.display = 'none';
-      }
-
-      // Update rules text with more accurate calculation explanation
-      if (ruleText) {
-        if (selectedUniversityType === 'government') {
-          ruleText.textContent = 'Government University: EST1 ≥ 1090 → 83.28×(EST1/1600), EST2 → 49.91×(EST2/1600), GPA added directly';
-        } else if (selectedUniversityType === 'private') {
-          ruleText.textContent = 'Private University: EST1 ≥ 1090 → 75×(EST1/1600), EST2 → 49.91×(EST2/1600), GPA added directly';
-        } else {
-          ruleText.textContent = 'Ahlia University: EST1 ≥ 1090 → 75×(EST1/1600), EST2 → 49.91×(EST2/1600), GPA added directly';
+      
+      // Show/hide exam 2 breakdown
+      if (selectedExam2Type && selectedExam2Type !== 'NONE' && calculationData.exam2 > 0) {
+        if (exam2BreakdownItem) exam2BreakdownItem.style.display = 'flex';
+        const exam2Name = examNames[selectedExam2Type] || 'Exam';
+        if (exam2BreakdownLabel) {
+          exam2BreakdownLabel.textContent = `${exam2Name}2 Score:`;
         }
+        if (exam2Breakdown) {
+          exam2Breakdown.textContent = calculationData.breakdown.exam2Score.toFixed(2);
+        }
+      } else {
+        if (exam2BreakdownItem) exam2BreakdownItem.style.display = 'none';
+      }
+      
+      if (gpaBreakdown) {
+        gpaBreakdown.textContent = calculationData.breakdown.gpaScore.toFixed(2);
+      }
+
+      // Update rules text
+      if (ruleText) {
+        const multiplier = selectedUniversityType === 'government' ? '69' : '75';
+        ruleText.textContent = `${config.name}: ${examName}1 ≥ 1090 → ${multiplier}×(${examName}1/1600), ${examName}1 < 1090 → 60×(${examName}1/1600), Exam 2 → 15×(Exam2/1600), Final = Score1 + Score2 + (GPA×10)`;
       }
     }
 
@@ -3162,26 +3472,30 @@ function calculateScore() {
       ctx.roundRect(180, breakdownY, canvas.width - 360, 280, 12);
       ctx.fill();
 
-      // Breakdown items with proper spacing and styling (as percentages)
+      // Breakdown items with proper spacing and styling
+      const examNames = {
+        'EST': 'EST',
+        'SAT': 'SAT',
+        'ACT': 'ACT'
+      };
+      const examName = examNames[selectedExamType] || 'Exam';
+      
       const breakdownItems = [{
-          label: 'EST1 Score:',
-          value: (calculationData.breakdown.est1Score * 100 / 100).toFixed(2) + '%'
-        },
-        {
-          label: 'EST2 Score:',
-          value: (calculationData.breakdown.est2Score * 100 / 100).toFixed(2) + '%'
+          label: `${examName}1 Score:`,
+          value: calculationData.breakdown.exam1Score.toFixed(2)
         },
         {
           label: 'GPA Score:',
-          value: (calculationData.breakdown.gpaScore * 100 / 100).toFixed(2) + '%'
+          value: calculationData.breakdown.gpaScore.toFixed(2)
         }
       ];
 
-      if (calculationData.breakdown.bonus > 0) {
-        breakdownItems.push({
-          label: 'Bonus:',
-          value: `+${(calculationData.breakdown.bonus * 100 / 100).toFixed(2)}%`,
-          isBonus: true
+      // Add Exam 2 if selected
+      if (selectedExam2Type && selectedExam2Type !== 'NONE' && calculationData.exam2 > 0) {
+        const exam2Name = examNames[selectedExam2Type] || 'Exam';
+        breakdownItems.splice(1, 0, {
+          label: `${exam2Name}2 Score:`,
+          value: calculationData.breakdown.exam2Score.toFixed(2)
         });
       }
 
@@ -3260,31 +3574,51 @@ function calculateScore() {
 
     // Reset calculator
     function resetCalculator() {
-      // Reset selection
+      // Reset selections
       universityOptions.forEach(option => option.classList.remove('selected'));
       selectedUniversityType = null;
+      
+      examOptions.forEach(option => {
+        option.classList.remove('selected');
+      });
+      selectedExamType = null;
+      selectedExam2Type = null;
 
       // Clear inputs
-      [est1Input, est2Input, gpaInput].forEach(input => {
-        input.value = '';
-        input.classList.remove('error');
-      });
+      if (exam1Input) {
+        exam1Input.value = '';
+        exam1Input.classList.remove('error');
+      }
+      if (exam2Input) {
+        exam2Input.value = '';
+        exam2Input.classList.remove('error');
+      }
+      if (exam2TypeSelect) {
+        exam2TypeSelect.value = '';
+      }
+      if (exam2ScoreGroup) {
+        exam2ScoreGroup.style.display = 'none';
+      }
+      if (gpaInput) {
+        gpaInput.value = '';
+        gpaInput.classList.remove('error');
+      }
 
       // Reset buttons
       if (nextStep1Btn) nextStep1Btn.disabled = true;
       if (nextStep2Btn) nextStep2Btn.disabled = true;
+      if (nextStep3Btn) nextStep3Btn.disabled = true;
 
       // Reset calculation data
       calculationData = {
-        est1: 0,
-        est2: 0,
+        exam1: 0,
+        exam2: 0,
         gpa: 0,
         finalScore: 0,
         breakdown: {
-          est1Score: 0,
-          est2Score: 0,
-          gpaScore: 0,
-          bonus: 0
+          exam1Score: 0,
+          exam2Score: 0,
+          gpaScore: 0
         }
       };
     }

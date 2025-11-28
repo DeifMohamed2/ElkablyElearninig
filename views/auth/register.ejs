@@ -169,6 +169,10 @@
               </div>
               <div class="invalid-feedback-modern">Please enter your student number.</div>
               
+              <!-- Hidden inputs to preserve values when fields are disabled after OTP verification -->
+              <input type="hidden" id="hiddenStudentNumber" name="studentNumber" value="">
+              <input type="hidden" id="hiddenStudentCountryCode" name="studentCountryCode" value="">
+              
               <!-- Student OTP Verification -->
               <div class="otp-verification-section" id="studentOtpSection" style="display: none;">
                 <div class="otp-section-content">
@@ -2538,6 +2542,24 @@ document.addEventListener('DOMContentLoaded', function() {
     phoneInput.setAttribute('data-original-phone', originalPhone);
     countrySelect.setAttribute('data-locked', 'true');
     countrySelect.setAttribute('data-original-country', originalCountry);
+    
+    // Populate hidden inputs to ensure values are submitted (disabled fields don't submit)
+    if (type === 'student') {
+      const hiddenStudentNumber = document.getElementById('hiddenStudentNumber');
+      const hiddenStudentCountryCode = document.getElementById('hiddenStudentCountryCode');
+      if (hiddenStudentNumber) {
+        hiddenStudentNumber.value = originalPhone;
+      }
+      if (hiddenStudentCountryCode) {
+        hiddenStudentCountryCode.value = originalCountry;
+      }
+    }
+    // Note: Parent number doesn't need OTP verification, so no hidden inputs needed
+    
+    // Remove name attributes from visible inputs (they're disabled, so they won't submit anyway)
+    // This ensures only the hidden inputs with values are submitted
+    phoneInput.removeAttribute('name');
+    countrySelect.removeAttribute('name');
     
     // Disable inputs
     phoneInput.disabled = true;

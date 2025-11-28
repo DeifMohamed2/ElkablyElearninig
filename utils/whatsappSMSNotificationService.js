@@ -108,7 +108,7 @@ class WhatsAppSMSNotificationService {
   getSmsQuizCompletionMessage(student, quizData, score, totalQuestions, percentage) {
     const grade = `${score}/${totalQuestions}`;
     const quizTitle = (quizData.title || 'Quiz').substring(0, 30);
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     
     let message;
     if (percentage >= 90) {
@@ -128,7 +128,7 @@ class WhatsAppSMSNotificationService {
    * Generate SMS message for content completion (140-160 chars) - Vertical format
    */
   getSmsContentCompletionMessage(student, contentData, courseData) {
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const contentTitle = (contentData.title || 'Content').substring(0, 35);
     const weekTitle = (courseData.title || 'Week').substring(0, 25);
     const message = `Progress Update\n${studentName} completed:\n"${contentTitle}"\nIn: ${weekTitle}\nExcellent progress!\nELKABLY`;
@@ -139,7 +139,7 @@ class WhatsAppSMSNotificationService {
    * Generate SMS message for topic completion (140-160 chars) - Vertical format
    */
   getSmsTopicCompletionMessage(student, topicData, courseData) {
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const topicTitle = (topicData.title || 'Topic').substring(0, 35);
     const weekTitle = (courseData.title || 'Week').substring(0, 25);
     const message = `Progress Update\n${studentName} completed:\n"${topicTitle}"\nIn: ${weekTitle}\nExcellent work!\nKeep encouraging!\nELKABLY`;
@@ -150,7 +150,7 @@ class WhatsAppSMSNotificationService {
    * Generate SMS message for course completion (140-160 chars) - Vertical format
    */
   getSmsCourseCompletionMessage(student, courseData) {
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const weekTitle = (courseData.title || 'Week').substring(0, 30);
     const message = `Congratulations!\n${studentName} completed:\n${weekTitle}\nExcellent work!\nWe are proud!\nELKABLY`;
     return this.truncateSmsMessage(message);
@@ -160,7 +160,7 @@ class WhatsAppSMSNotificationService {
    * Generate SMS message for purchase notification (140-160 chars) - Vertical format
    */
   getSmsPurchaseMessage(student, purchaseData) {
-    const studentName = (student.firstName || student.name || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const orderNum = (purchaseData.orderNumber || purchaseData._id.toString()).substring(0, 12);
     const total = purchaseData.total || 0;
     const items = purchaseData.items ? purchaseData.items.length : 1;
@@ -172,14 +172,14 @@ class WhatsAppSMSNotificationService {
    * Generate SMS welcome message for student (140-160 chars) - Vertical format
    */
   getSmsWelcomeMessageStudent(student) {
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const code = (student.studentCode || '').substring(0, 15);
     const schoolName = (student.schoolName || '').substring(0, 18);
     const grade = student.grade || '';
     let message = `Welcome to ELKABLY!\nDear ${studentName}\nCode: ${code}`;
     if (schoolName) message += `\nSchool: ${schoolName}`;
     if (grade) message += `\nGrade: ${grade}`;
-    message += `\nYour learning journey starts now!\nAccess courses & start learning!\nELKABLY`;
+    message += `\nYour learning journey starts now!\nELKABLY`;
     return this.truncateSmsMessage(message);
   }
 
@@ -187,14 +187,14 @@ class WhatsAppSMSNotificationService {
    * Generate SMS welcome message for parent (140-160 chars) - Vertical format
    */
   getSmsWelcomeMessageParent(student) {
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const code = (student.studentCode || '').substring(0, 15);
     const schoolName = (student.schoolName || '').substring(0, 18);
     const grade = student.grade || '';
     let message = `Welcome to ELKABLY!\nStudent: ${studentName}\nCode: ${code}`;
     if (schoolName) message += `\nSchool: ${schoolName}`;
     if (grade) message += `\nGrade: ${grade}`;
-    message += `\nLearning journey starts now!\nAccess courses & start learning!\nELKABLY`;
+    message += `\nLearning journey starts now!\nELKABLY`;
     return this.truncateSmsMessage(message);
   }
 
@@ -202,7 +202,7 @@ class WhatsAppSMSNotificationService {
    * Generate SMS message for course enrollment (140-160 chars) - Vertical format
    */
   getSmsCourseEnrollmentMessage(student, courseData) {
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const weekTitle = (courseData.title || 'Week').substring(0, 35);
     const subject = (courseData.subject || '').substring(0, 18);
     let message = `Enrollment Confirmed!\nStudent: ${studentName}\nCourse: ${weekTitle}`;
@@ -215,7 +215,7 @@ class WhatsAppSMSNotificationService {
    * Generate SMS message for bundle enrollment (140-160 chars) - Vertical format
    */
   getSmsBundleEnrollmentMessage(student, bundleData) {
-    const studentName = (student.name || student.firstName || '').substring(0, 20);
+    const studentName = (student.firstName || '').substring(0, 20);
     const courseTitle = (bundleData.title || 'Course').substring(0, 30);
     const weeks = bundleData.courses ? bundleData.courses.length : 0;
     const subject = (bundleData.subject || '').substring(0, 18);
@@ -485,7 +485,7 @@ class WhatsAppSMSNotificationService {
     // WhatsApp message
     const whatsappMessage = `📚 *Quiz Completed!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName || student.name}
 📝 *Quiz:* ${quizData.title || 'Quiz'}
 📊 *Grade:* ${grade} (${percentage}%)
 📅 *Completed:* ${completionDate}
@@ -521,7 +521,7 @@ ${performanceMessage}
     // WhatsApp message
     const whatsappMessage = `📖 *Content Progress!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName || student.name}
 📚 *Week:* ${courseData.title || 'Week'}
 📝 *Content:* ${contentData.title || 'Content'}
 📅 *Completed:* ${completionDate}
@@ -557,7 +557,7 @@ ${performanceMessage}
     // WhatsApp message
     const whatsappMessage = `📚 *Topic Completed!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName || student.name}
 📖 *Week:* ${courseData.title || 'Week'}
 📝 *Topic:* ${topicData.title || 'Topic'}
 📅 *Completed:* ${completionDate}
@@ -593,7 +593,7 @@ ${performanceMessage}
     // WhatsApp message
     const whatsappMessage = `🎓 *Week Completed!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName || student.name}
 📚 *Week:* ${courseData.title || 'Week'}
 📅 *Completed:* ${completionDate}
 
@@ -639,7 +639,7 @@ ${performanceMessage}
       // WhatsApp message
       const whatsappMessage = `🎉 *Payment Confirmed Successfully!*
 
-🎓 *Student:* ${student.firstName} ${student.lastName}
+🎓 *Student:* ${student.firstName}
 
 📦 *Order Number:* #${purchaseData.orderNumber || purchaseData._id}
 
@@ -677,7 +677,7 @@ ${performanceMessage}
     // WhatsApp message for student
     const studentWhatsappMessage = `🎉 *Welcome to ELKABLY!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName}
 🆔 *Student Code:* ${student.studentCode}
 🏫 *School:* ${student.schoolName}
 📚 *Grade:* ${student.grade}
@@ -690,7 +690,7 @@ ${performanceMessage}
     // WhatsApp message for parent
     const parentWhatsappMessage = `🎉 *Welcome to ELKABLY!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName}
 🆔 *Student Code:* ${student.studentCode}
 🏫 *School:* ${student.schoolName}
 📚 *Grade:* ${student.grade}
@@ -758,7 +758,7 @@ ${performanceMessage}
     // WhatsApp message
     const whatsappMessage = `📚 *Enrollment Confirmed!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName || student.name}
 📖 *Week:* ${courseData.title || 'Week'}
 📅 *Enrollment Date:* ${enrollmentDate}
 📚 *Subject:* ${courseData.subject || 'Subject'}
@@ -793,7 +793,7 @@ ${performanceMessage}
     // WhatsApp message
     const whatsappMessage = `📦 *Course Enrollment Confirmed!*
 
-🎓 *Student:* ${student.name}
+🎓 *Student:* ${student.firstName || student.name}
 📚 *Course:* ${bundleData.title || 'Course'}
 📖 *Weeks:* ${bundleData.courses ? bundleData.courses.length : 0} weeks included
 📅 *Enrollment Date:* ${enrollmentDate}

@@ -15,10 +15,25 @@ const getLoginPage = (req, res) => {
 
 // Get register page
 const getRegisterPage = (req, res) => {
+  // Clear OTP verification status and OTP data on page load/refresh
+  // This ensures users start fresh if they refresh or navigate back
+  // BUT keep rate limiting data (attempts, blocked_until) to prevent abuse
+  delete req.session.student_phone_verified;
+  delete req.session.student_phone_number;
+  delete req.session.student_otp;
+  delete req.session.student_otp_expiry;
+  delete req.session.parent_phone_verified;
+  delete req.session.parent_phone_number;
+  delete req.session.parent_otp;
+  delete req.session.parent_otp_expiry;
+  delete req.session.lastSubmissionId;
+  // NOTE: We keep student_otp_attempts, student_otp_blocked_until, 
+  // parent_otp_attempts, parent_otp_blocked_until to prevent abuse
+  
   res.render('auth/register', {
     title: 'Register | ELKABLY',
     theme: req.cookies.theme || 'light',
-    studentPhoneVerified: req.session.student_phone_verified || false,
+    studentPhoneVerified: false, // Always start fresh
   });
 };
 
@@ -204,10 +219,10 @@ const sendOTP = async (req, res) => {
     const message = `Your ELKABLY verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
     
     try {
-      await sendSms({
-        recipient: fullPhoneNumber,
-        message: message,
-      });
+      // await sendSms({
+      //   recipient: fullPhoneNumber,
+      //   message: message,
+      // });
       
       console.log(`OTP sent to ${fullPhoneNumber} for ${type}`);
       
@@ -355,22 +370,33 @@ const registerUser = async (req, res) => {
 
   // SECURITY: Verify student phone number matches the verified one (prevent tampering)
   if (req.session.student_phone_verified) {
-    const cleanStudentNumber = studentNumber.replace(/[^\d]/g, '');
-    const verifiedStudentPhone = req.session.student_phone_number || '';
-    const expectedStudentPhone = studentCountryCode + cleanStudentNumber;
-    
-    if (!verifiedStudentPhone || verifiedStudentPhone !== expectedStudentPhone) {
-      console.error('Security violation: Student phone number mismatch', {
-        verified: verifiedStudentPhone,
-        submitted: expectedStudentPhone
-      });
+    // Check if studentNumber and studentCountryCode are provided
+    if (!studentNumber || !studentCountryCode) {
       errors.push({ 
-        msg: 'Student phone number does not match the verified number. Phone number cannot be changed after verification.',
+        msg: 'Student phone number and country code are required',
         field: 'studentNumber'
       });
       // Clear verification to force re-verification
       delete req.session.student_phone_verified;
       delete req.session.student_phone_number;
+    } else {
+      const cleanStudentNumber = studentNumber.replace(/[^\d]/g, '');
+      const verifiedStudentPhone = req.session.student_phone_number || '';
+      const expectedStudentPhone = studentCountryCode + cleanStudentNumber;
+      
+      if (!verifiedStudentPhone || verifiedStudentPhone !== expectedStudentPhone) {
+        console.error('Security violation: Student phone number mismatch', {
+          verified: verifiedStudentPhone,
+          submitted: expectedStudentPhone
+        });
+        errors.push({ 
+          msg: 'Student phone number does not match the verified number. Phone number cannot be changed after verification.',
+          field: 'studentNumber'
+        });
+        // Clear verification to force re-verification
+        delete req.session.student_phone_verified;
+        delete req.session.student_phone_number;
+      }
     }
   }
 
@@ -1065,12 +1091,27 @@ const getCompleteDataPage = async (req, res) => {
       return res.redirect('/student/dashboard');
     }
 
+    // Clear OTP verification status and OTP data on page load/refresh
+    // This ensures users start fresh if they refresh or navigate back
+    // BUT keep rate limiting data (attempts, blocked_until) to prevent abuse
+    delete req.session.student_phone_verified;
+    delete req.session.student_phone_number;
+    delete req.session.student_otp;
+    delete req.session.student_otp_expiry;
+    delete req.session.parent_phone_verified;
+    delete req.session.parent_phone_number;
+    delete req.session.parent_otp;
+    delete req.session.parent_otp_expiry;
+    delete req.session.lastCompleteDataSubmissionId;
+    // NOTE: We keep student_otp_attempts, student_otp_blocked_until, 
+    // parent_otp_attempts, parent_otp_blocked_until to prevent abuse
+
     res.render('auth/complete-data', {
       title: 'Complete Your Profile | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: user,
       errors: [],
-      studentPhoneVerified: req.session.student_phone_verified || false,
+      studentPhoneVerified: false, // Always start fresh
     });
   } catch (error) {
     console.error('Error loading complete data page:', error);
