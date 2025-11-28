@@ -2265,7 +2265,6 @@
             <div class="results-score">
               <div class="score-display">
                 <span class="score-value" id="calculatedValue">0.00</span>
-                <span class="score-label">%</span>
               </div>
               <div class="score-status" id="scoreStatus">
                 <i class="fas fa-check-circle"></i>
@@ -2913,11 +2912,21 @@
       stepItems.forEach((item, index) => {
         item.addEventListener('click', () => {
           const stepNumber = parseInt(item.dataset.step);
-          // Allow navigation if step is already completed or current step
-          if (stepNumber === 1 || 
-              (stepNumber === 2 && selectedUniversityType) ||
-              (stepNumber === 3 && selectedUniversityType && selectedExamType) ||
-              (stepNumber === 4 && selectedUniversityType && selectedExamType)) {
+          
+          // Check if step is disabled
+          if (item.classList.contains('disabled')) {
+            return; // Don't allow navigation to disabled steps
+          }
+          
+          // Allow navigation if step is already completed, current step, or next step
+          const canNavigate = 
+            stepNumber === 1 || 
+            (stepNumber === 2 && selectedUniversityType) ||
+            (stepNumber === 3 && selectedUniversityType && selectedExamType) ||
+            (stepNumber === 4 && selectedUniversityType && selectedExamType && 
+             parseFloat(exam1Input?.value) > 0 && parseFloat(gpaInput?.value) > 0);
+          
+          if (canNavigate) {
             showStep(stepNumber);
           }
         });
@@ -2940,6 +2949,9 @@
 
           // Update minimum requirements
           updateMinimumRequirements();
+          
+          // Update step indicators
+          updateStepIndicators();
         });
       });
     }
@@ -2961,6 +2973,9 @@
           
           // Update score input labels when exam type is selected
           updateScoreInputLabels();
+          
+          // Update step indicators
+          updateStepIndicators();
         });
       });
     }
@@ -2992,6 +3007,7 @@
           validateInputs();
           calculateScore();
           updateNextButton();
+          updateStepIndicators(); // Update step accessibility
         });
       }
 
@@ -3012,6 +3028,7 @@
           validateInputs();
           calculateScore();
           updateNextButton();
+          updateStepIndicators(); // Update step accessibility
         });
       }
 
@@ -3022,6 +3039,7 @@
           validateInputs();
           calculateScore();
           updateNextButton();
+          updateStepIndicators(); // Update step accessibility
         });
       }
 
@@ -3032,6 +3050,7 @@
           validateInputs();
           calculateScore();
           updateNextButton();
+          updateStepIndicators(); // Update step accessibility
         });
       }
     }
@@ -3101,6 +3120,18 @@
 
     // Show specific step
     function showStep(stepNumber) {
+      // Validate step accessibility
+      const canAccess = 
+        stepNumber === 1 || 
+        (stepNumber === 2 && selectedUniversityType) ||
+        (stepNumber === 3 && selectedUniversityType && selectedExamType) ||
+        (stepNumber === 4 && selectedUniversityType && selectedExamType && 
+         parseFloat(exam1Input?.value) > 0 && parseFloat(gpaInput?.value) > 0);
+      
+      if (!canAccess) {
+        return; // Don't allow navigation to inaccessible steps
+      }
+
       // Hide all steps
       calculatorSteps.forEach(step => step.classList.remove('active'));
 
@@ -3142,12 +3173,22 @@
     function updateStepIndicators() {
       stepItems.forEach((item, index) => {
         const stepNumber = index + 1;
-        item.classList.remove('active', 'completed');
+        item.classList.remove('active', 'completed', 'disabled');
+
+        // Determine if step is accessible
+        const isAccessible = 
+          stepNumber === 1 || 
+          (stepNumber === 2 && selectedUniversityType) ||
+          (stepNumber === 3 && selectedUniversityType && selectedExamType) ||
+          (stepNumber === 4 && selectedUniversityType && selectedExamType && 
+           parseFloat(exam1Input?.value) > 0 && parseFloat(gpaInput?.value) > 0);
 
         if (stepNumber === currentStep) {
           item.classList.add('active');
         } else if (stepNumber < currentStep) {
           item.classList.add('completed');
+        } else if (!isAccessible) {
+          item.classList.add('disabled');
         }
       });
     }
@@ -3363,99 +3404,146 @@
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Add subtle grid pattern
-      ctx.strokeStyle = 'rgba(184, 1, 1, 0.08)';
+      // Add subtle grid pattern with enhanced opacity
+      ctx.strokeStyle = 'rgba(184, 1, 1, 0.06)';
       ctx.lineWidth = 1;
-      for (let i = 0; i < canvas.width; i += 30) {
+      for (let i = 0; i < canvas.width; i += 40) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
         ctx.lineTo(i, canvas.height);
         ctx.stroke();
       }
-      for (let i = 0; i < canvas.height; i += 30) {
+      for (let i = 0; i < canvas.height; i += 40) {
         ctx.beginPath();
         ctx.moveTo(0, i);
         ctx.lineTo(canvas.width, i);
         ctx.stroke();
       }
 
-      // Logo background circle with red gradient
-      const logoGradient = ctx.createRadialGradient(100, 100, 0, 100, 100, 70);
-      logoGradient.addColorStop(0, '#B80101');
-      logoGradient.addColorStop(0.7, '#8B0000');
-      logoGradient.addColorStop(1, '#660000');
+      // Enhanced Elkably branding - centered and prominent
+      const brandX = canvas.width / 2;
+      const brandY = 60;
 
-      ctx.beginPath();
-      ctx.arc(100, 100, 70, 0, 2 * Math.PI);
-      ctx.fillStyle = logoGradient;
-      ctx.fill();
-
-      // Logo text "K" with white color
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 48px Arial';
+      // Main brand name with gradient effect
+      const brandGradient = ctx.createLinearGradient(brandX - 100, brandY - 20, brandX + 100, brandY + 20);
+      brandGradient.addColorStop(0, '#B80101');
+      brandGradient.addColorStop(0.5, '#8B0000');
+      brandGradient.addColorStop(1, '#B80101');
+      
+      ctx.fillStyle = brandGradient;
+      ctx.font = 'bold 42px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('K', 100, 100);
+      
+      // Add text shadow effect
+      ctx.shadowColor = 'rgba(184, 1, 1, 0.3)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText('Elkably', brandX, brandY);
+      
+      // Reset shadow
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
-      // Elkably branding with dark text for light background
-      ctx.fillStyle = '#1e293b';
-      ctx.font = 'bold 32px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText('Elkably', 200, 80);
-
+      // Subtitle with enhanced styling
       ctx.fillStyle = '#64748b';
-      ctx.font = '18px Arial';
-      ctx.fillText('University Score Calculator', 200, 110);
+      ctx.font = '20px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('University Score Calculator', brandX, brandY + 35);
 
-      // Main results card background (matching the CSS design)
-      const cardGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-      cardGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-      cardGradient.addColorStop(1, 'rgba(248, 250, 252, 0.8)');
+      // Enhanced main results card background
+      const cardGradient = ctx.createLinearGradient(150, 180, canvas.width - 150, 680);
+      cardGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      cardGradient.addColorStop(0.5, 'rgba(248, 250, 252, 0.9)');
+      cardGradient.addColorStop(1, 'rgba(255, 255, 255, 0.95)');
 
       ctx.fillStyle = cardGradient;
-      ctx.strokeStyle = 'rgba(30, 41, 59, 0.1)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(184, 1, 1, 0.15)';
+      ctx.lineWidth = 3;
 
-      // Draw main card with rounded corners
+      // Draw main card with rounded corners and shadow effect
       ctx.beginPath();
-      ctx.roundRect(150, 180, canvas.width - 300, 500, 20);
+      ctx.roundRect(150, 180, canvas.width - 300, 500, 24);
       ctx.fill();
+      
+      // Add subtle inner shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 5;
       ctx.stroke();
+      
+      // Reset shadow
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
 
-      // Results header section
+      // Enhanced results header section
       const config = universityTypes[selectedUniversityType];
+      const headerX = 200;
+      const headerY = 220;
 
-      // Medal icon (using text symbol)
+      // Medal icon with enhanced styling
       ctx.fillStyle = '#B80101';
-      ctx.font = 'bold 50px Arial';
+      ctx.font = 'bold 56px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('🏆', 200, 220);
+      
+      // Add glow to medal
+      ctx.shadowColor = 'rgba(184, 1, 1, 0.3)';
+      ctx.shadowBlur = 10;
+      ctx.fillText('🏆', headerX, headerY);
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
 
-      // Final Score title
+      // Final Score title with enhanced typography
       ctx.fillStyle = '#1e293b';
-      ctx.font = 'bold 24px Arial';
+      ctx.font = 'bold 28px Arial';
       ctx.textAlign = 'left';
-      ctx.fillText('Final Score', 250, 210);
+      ctx.fillText('Final Score', 260, 210);
 
-      // University type
-      ctx.fillStyle = 'rgba(30, 41, 59, 0.7)';
-      ctx.font = '16px Arial';
-      ctx.fillText(config.name, 250, 235);
+      // University type with better styling
+      ctx.fillStyle = '#64748b';
+      ctx.font = '18px Arial';
+      ctx.fillText(config.name, 260, 240);
 
-      // Score display section (centered)
+      // Score display section (centered) - Enhanced design
       const centerX = canvas.width / 2;
+      const scoreY = 320;
 
-      // Score value with red color and glow effect (as percentage)
-      ctx.fillStyle = '#B80101';
-      ctx.font = 'bold 80px Arial';
+      // Score background circle with gradient
+      const scoreCircleGradient = ctx.createRadialGradient(centerX, scoreY, 0, centerX, scoreY, 80);
+      scoreCircleGradient.addColorStop(0, 'rgba(184, 1, 1, 0.1)');
+      scoreCircleGradient.addColorStop(1, 'rgba(184, 1, 1, 0.02)');
+      
+      ctx.beginPath();
+      ctx.arc(centerX, scoreY, 80, 0, 2 * Math.PI);
+      ctx.fillStyle = scoreCircleGradient;
+      ctx.fill();
+
+      // Score value with enhanced gradient and larger size
+      const scoreGradient = ctx.createLinearGradient(centerX - 100, scoreY - 40, centerX + 100, scoreY + 40);
+      scoreGradient.addColorStop(0, '#B80101');
+      scoreGradient.addColorStop(0.5, '#8B0000');
+      scoreGradient.addColorStop(1, '#B80101');
+      
+      ctx.fillStyle = scoreGradient;
+      ctx.font = 'bold 90px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(calculationData.finalScore.toFixed(2), centerX, 320);
-
-      // Percentage label
-      ctx.fillStyle = 'rgba(30, 41, 59, 0.7)';
-      ctx.font = '20px Arial';
-      ctx.fillText('%', centerX, 350);
+      ctx.textBaseline = 'middle';
+      
+      // Add glow effect
+      ctx.shadowColor = 'rgba(184, 1, 1, 0.4)';
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillText(calculationData.finalScore.toFixed(2), centerX, scoreY);
+      
+      // Reset shadow
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
 
       // Eligibility status with icon
       const isEligible = calculationData.finalScore > 0;
@@ -3463,14 +3551,21 @@
       ctx.font = 'bold 18px Arial';
       ctx.fillText(isEligible ? '✓ Eligible' : '✗ Not Eligible', centerX, 380);
 
-      // Score breakdown section (matching the CSS design)
+      // Enhanced score breakdown section
       const breakdownY = 420;
 
-      // Breakdown background
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      // Breakdown background with gradient
+      const breakdownGradient = ctx.createLinearGradient(180, breakdownY, canvas.width - 180, breakdownY + 280);
+      breakdownGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+      breakdownGradient.addColorStop(1, 'rgba(248, 250, 252, 0.5)');
+      
+      ctx.fillStyle = breakdownGradient;
+      ctx.strokeStyle = 'rgba(184, 1, 1, 0.08)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(180, breakdownY, canvas.width - 360, 280, 12);
+      ctx.roundRect(180, breakdownY, canvas.width - 360, 280, 16);
       ctx.fill();
+      ctx.stroke();
 
       // Breakdown items with proper spacing and styling
       const examNames = {
@@ -3512,40 +3607,56 @@
           ctx.stroke();
         }
 
-        // Label
-        ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
-        ctx.font = '16px Arial';
+        // Enhanced label styling
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 17px Arial';
         ctx.textAlign = 'left';
         ctx.fillText(item.label, 200, itemY);
 
-        // Value
+        // Enhanced value styling
         ctx.fillStyle = item.isBonus ? '#B80101' : '#1e293b';
-        ctx.font = item.isBonus ? 'bold 16px Arial' : '16px Arial';
+        ctx.font = item.isBonus ? 'bold 18px Arial' : 'bold 17px Arial';
         ctx.textAlign = 'right';
         ctx.fillText(item.value, canvas.width - 200, itemY);
       });
 
-      // Decorative red lines
+      // Enhanced decorative elements
       ctx.strokeStyle = '#B80101';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
 
-      // Top decorative line
+      // Top decorative line with gradient effect
+      const topLineGradient = ctx.createLinearGradient(50, 150, canvas.width - 50, 150);
+      topLineGradient.addColorStop(0, 'rgba(184, 1, 1, 0.3)');
+      topLineGradient.addColorStop(0.5, '#B80101');
+      topLineGradient.addColorStop(1, 'rgba(184, 1, 1, 0.3)');
+      ctx.strokeStyle = topLineGradient;
+      
       ctx.beginPath();
       ctx.moveTo(50, 150);
       ctx.lineTo(canvas.width - 50, 150);
       ctx.stroke();
 
       // Bottom decorative line
+      const bottomLineGradient = ctx.createLinearGradient(50, canvas.height - 30, canvas.width - 50, canvas.height - 30);
+      bottomLineGradient.addColorStop(0, 'rgba(184, 1, 1, 0.3)');
+      bottomLineGradient.addColorStop(0.5, '#B80101');
+      bottomLineGradient.addColorStop(1, 'rgba(184, 1, 1, 0.3)');
+      ctx.strokeStyle = bottomLineGradient;
+      
       ctx.beginPath();
       ctx.moveTo(50, canvas.height - 30);
       ctx.lineTo(canvas.width - 50, canvas.height - 30);
       ctx.stroke();
+      
+      // Reset stroke style
+      ctx.strokeStyle = '#B80101';
 
-      // Footer with Elkably branding
-      ctx.fillStyle = '#64748b';
-      ctx.font = '14px Arial';
+      // Enhanced footer with Elkably branding
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'italic 15px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Generated by Elkably University Score Calculator', canvas.width / 2, canvas.height - 10);
+      ctx.fillText('Generated by Elkably', canvas.width / 2, canvas.height - 12);
 
       // Convert canvas to image and share
       canvas.toBlob((blob) => {
