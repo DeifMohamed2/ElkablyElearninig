@@ -219,10 +219,10 @@ const sendOTP = async (req, res) => {
     const message = `Your ELKABLY verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
     
     try {
-      // await sendSms({
-      //   recipient: fullPhoneNumber,
-      //   message: message,
-      // });
+      await sendSms({
+        recipient: fullPhoneNumber,
+        message: message,
+      });
       
       console.log(`OTP sent to ${fullPhoneNumber} for ${type}`);
       
