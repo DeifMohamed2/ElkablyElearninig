@@ -141,6 +141,20 @@
                 </label>
               </div>
 
+              <div class="checkout-payment-option kiosk-pay disabled d-none">
+                <input type="radio" id="kiosk" name="selectedPaymentMethod" value="kiosk" disabled>
+                <label for="kiosk" class="checkout-payment-label kiosk-pay-label disabled">
+                  <div class="checkout-payment-icon kiosk-icon">
+                    <i class="fas fa-store"></i>
+                  </div>
+                  <div class="checkout-payment-info">
+                    <span class="checkout-payment-name">Kiosk Payment</span>
+                    <span class="checkout-payment-desc">Pay at Aman, Masary, Fawry stores</span>
+                    <span class="checkout-payment-coming-soon">Available Soon</span>
+                  </div>
+                </label>
+              </div>
+
               <div class="checkout-payment-option apple-pay disabled">
                 <input type="radio" id="applePay" name="selectedPaymentMethod" value="apple_pay" disabled>
                 <label for="applePay" class="checkout-payment-label apple-pay-label disabled">
@@ -283,7 +297,7 @@
   document.addEventListener('DOMContentLoaded', function() {
     const checkoutForm = document.getElementById('checkoutForm');
     const processPaymentBtn = document.getElementById('processPaymentBtn');
-    
+
     // Promo code elements
     const promoCodeInput = document.getElementById('promoCodeInput');
     const applyPromoBtn = document.getElementById('applyPromoBtn');
@@ -293,15 +307,15 @@
     const promoCodeDiscountRow = document.getElementById('promoCodeDiscountRow');
     const promoDiscountValue = document.getElementById('promoDiscountValue');
     const totalValue = document.getElementById('totalValue');
-    
+
     // Original totals
     const originalSubtotal = <%= subtotal %>;
     const originalTotal = <%= total %>;
-    
+
     // Promo code functionality
     applyPromoBtn.addEventListener('click', applyPromoCode);
     removePromoBtn.addEventListener('click', removePromoCode);
-    
+
     // Allow Enter key to apply promo code
     promoCodeInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
@@ -309,29 +323,31 @@
         applyPromoCode();
       }
     });
-    
+
     async function applyPromoCode() {
       const promoCode = promoCodeInput.value.trim().toUpperCase();
-      
+
       if (!promoCode) {
         showPromoMessage('Please enter a promo code', 'error');
         return;
       }
-      
+
       applyPromoBtn.disabled = true;
       applyPromoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
-      
+
       try {
         const response = await fetch('/purchase/promo-code/validate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ promoCode })
+          body: JSON.stringify({
+            promoCode
+          })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
           showPromoMessage(`Promo code "${data.promoCode}" applied successfully!`, 'success');
           updateOrderSummary(data.originalAmount, data.discountAmount, data.finalAmount, data.promoCode);
@@ -348,7 +364,7 @@
         applyPromoBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
       }
     }
-    
+
     async function removePromoCode() {
       try {
         const response = await fetch('/purchase/promo-code/remove', {
@@ -357,9 +373,9 @@
             'Content-Type': 'application/json',
           }
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
           showPromoMessage('Promo code removed successfully', 'info');
           resetOrderSummary();
@@ -372,44 +388,44 @@
         showPromoMessage('Error removing promo code. Please try again.', 'error');
       }
     }
-    
+
     function showPromoMessage(message, type) {
       promoCodeMessage.textContent = message;
       promoCodeMessage.className = `promo-code-message ${type}`;
       promoCodeMessage.style.display = 'block';
-      
+
       setTimeout(() => {
         promoCodeMessage.style.display = 'none';
       }, 5000);
     }
-    
+
     function updateOrderSummary(originalAmount, discountAmount, finalAmount, promoCode) {
       // SECURITY: Use server-calculated amounts only
       promoDiscountValue.textContent = `-EGP ${discountAmount.toFixed(2)}`;
       totalValue.textContent = `EGP ${finalAmount.toFixed(2)}`;
       promoCodeDiscountRow.style.display = 'flex';
-      
+
       // Update the subtotal display to show original amount
       const subtotalValue = document.getElementById('subtotalValue');
       if (subtotalValue) {
         subtotalValue.textContent = `EGP ${originalAmount.toFixed(2)}`;
       }
     }
-    
+
     function resetOrderSummary() {
       totalValue.textContent = `EGP ${originalTotal.toFixed(2)}`;
       promoCodeDiscountRow.style.display = 'none';
     }
-    
+
     function showAppliedPromoCode(promoCode, discountAmount) {
       const promoCodeText = appliedPromoCode.querySelector('.promo-code-text');
       const promoDiscountAmount = appliedPromoCode.querySelector('.promo-discount-amount');
-      
+
       promoCodeText.textContent = promoCode;
       promoDiscountAmount.textContent = `-EGP ${discountAmount.toFixed(2)}`;
       appliedPromoCode.style.display = 'block';
     }
-    
+
     function hideAppliedPromoCode() {
       appliedPromoCode.style.display = 'none';
     }
@@ -420,7 +436,7 @@
       // SECURITY: Validate that frontend amounts match server expectations
       const currentTotal = parseFloat(totalValue.textContent.replace('EGP ', ''));
       const originalTotalAmount = <%= total %>;
-      
+
       // If promo code is applied, ensure the total is less than original
       const hasAppliedPromo = document.getElementById('appliedPromoCode').style.display !== 'none';
       if (hasAppliedPromo && currentTotal >= originalTotalAmount) {
@@ -1269,6 +1285,73 @@
 
     .promo-discount-amount {
       margin-left: 0;
+    }
+  }
+
+  /* Kiosk Payment Styles */
+  .kiosk-icon {
+    background: linear-gradient(135deg, #B80101, #dc2626) !important;
+    color: white;
+  }
+
+  .dark-theme .kiosk-icon {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  }
+
+  .checkout-payment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 1px solid #fbbf24;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #92400e;
+    white-space: nowrap;
+  }
+
+  .kiosk-badge {
+    background: linear-gradient(135deg, #ddd6fe, #c4b5fd);
+    border-color: #8b5cf6;
+    color: #5b21b6;
+  }
+
+  .dark-theme .kiosk-badge {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.15));
+    border-color: #8b5cf6;
+    color: #c4b5fd;
+  }
+
+  .checkout-payment-badge i {
+    font-size: 0.7rem;
+  }
+
+  .checkout-payment-option input[type="radio"]:checked+label .kiosk-icon {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+    transform: scale(1.1);
+  }
+
+  .dark-theme .checkout-payment-option input[type="radio"]:checked+label .kiosk-icon {
+    background: linear-gradient(135deg, #a78bfa, #8b5cf6) !important;
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+  }
+
+  /* Enhanced payment option styling */
+  .checkout-payment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  @media (max-width: 768px) {
+    .checkout-payment-badge {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      gap: 0.25rem;
     }
   }
 </style>

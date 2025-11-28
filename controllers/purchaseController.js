@@ -735,6 +735,12 @@ const getCheckout = async (req, res) => {
       tax: validatedCart.tax,
       total: validatedCart.total,
       user: req.session.user,
+      // Payment method availability
+      paymentMethods: {
+        card: !!process.env.PAYMOB_INTEGRATION_ID_CARD,
+        wallet: !!process.env.PAYMOB_INTEGRATION_ID_WALLET,
+        kiosk: !!process.env.PAYMOB_INTEGRATION_ID_KIOSK,
+      },
     });
   } catch (error) {
     console.error('Error fetching checkout:', error);

@@ -9,6 +9,7 @@ class PaymobService {
     this.iframeId = process.env.PAYMOB_IFRAME_ID;
     this.integrationIdCard = process.env.PAYMOB_INTEGRATION_ID_CARD;
     this.integrationIdWallet = process.env.PAYMOB_INTEGRATION_ID_WALLET;
+    this.integrationIdKiosk = process.env.PAYMOB_INTEGRATION_ID_KIOSK;
     this.webhookSecret = process.env.PAYMOB_WEBHOOK_SECRET;
 
     // Unified Checkout API credentials (new API)
@@ -41,6 +42,25 @@ class PaymobService {
         '⚠️ PAYMOB_HMAC_SECRET is not set - transaction verification may fail'
       );
     }
+
+    // Log available payment integrations
+    console.log('\n💳 Available Payment Integrations:');
+    if (this.integrationIdCard) {
+      console.log(`✅ Card: ${this.integrationIdCard}`);
+    } else {
+      console.log('❌ Card: Not configured');
+    }
+    if (this.integrationIdWallet) {
+      console.log(`✅ Wallet: ${this.integrationIdWallet}`);
+    } else {
+      console.log('❌ Wallet: Not configured');
+    }
+    if (this.integrationIdKiosk) {
+      console.log(`✅ Kiosk: ${this.integrationIdKiosk}`);
+    } else {
+      console.log('⚠️ Kiosk: Not configured (optional)');
+    }
+    console.log('');
   }
 
   /**
@@ -292,10 +312,12 @@ class PaymobService {
         methods.push(parseInt(this.integrationIdCard));
       if (this.integrationIdWallet)
         methods.push(parseInt(this.integrationIdWallet));
+      if (this.integrationIdKiosk)
+        methods.push(parseInt(this.integrationIdKiosk));
 
       if (methods.length === 0) {
         throw new Error(
-          'No payment integration IDs configured. Please check PAYMOB_INTEGRATION_ID_CARD and PAYMOB_INTEGRATION_ID_WALLET in .env'
+          'No payment integration IDs configured. Please check PAYMOB_INTEGRATION_ID_CARD, PAYMOB_INTEGRATION_ID_WALLET, and PAYMOB_INTEGRATION_ID_KIOSK in .env'
         );
       }
 
@@ -535,12 +557,38 @@ class PaymobService {
       let finalPaymentMethods = paymentMethods;
 
       if (!finalPaymentMethods) {
-        // Use wallet integration ID for mobile wallet payments
-        if (!this.integrationIdWallet) {
-          throw new Error('PAYMOB_INTEGRATION_ID_WALLET not configured');
+        // If no specific method provided, show only configured unified checkout methods
+        // (Wallet and Kiosk - Card uses old API)
+        const methods = [];
+
+        if (this.integrationIdWallet) {
+          methods.push(parseInt(this.integrationIdWallet));
+          console.log(
+            '✅ Including Wallet integration ID:',
+            this.integrationIdWallet
+          );
         }
-        finalPaymentMethods = [parseInt(this.integrationIdWallet)];
-        console.log('Using wallet integration ID:', finalPaymentMethods);
+        if (this.integrationIdKiosk) {
+          methods.push(parseInt(this.integrationIdKiosk));
+          console.log(
+            '✅ Including Kiosk integration ID:',
+            this.integrationIdKiosk
+          );
+        }
+
+        if (methods.length === 0) {
+          throw new Error(
+            'No payment integration IDs configured for unified checkout. Please configure PAYMOB_INTEGRATION_ID_WALLET or PAYMOB_INTEGRATION_ID_KIOSK in environment variables.'
+          );
+        }
+
+        finalPaymentMethods = methods;
+        console.log(
+          '⚙️ Total payment integration IDs being sent:',
+          finalPaymentMethods
+        );
+      } else {
+        console.log('✅ Using specified integration ID:', finalPaymentMethods);
       }
 
       // Create payment intention
@@ -583,13 +631,47 @@ class PaymobService {
    */
   async createPaymentSession(orderData, billingData, paymentMethod = 'card') {
     try {
-      // Use unified checkout API for mobile wallet payments
-      if (paymentMethod === 'wallet') {
-        // Use unified checkout - will automatically use integration ID if available
+      // Use unified checkout API for mobile wallet and kiosk payments
+      if (paymentMethod === 'wallet' || paymentMethod === 'kiosk') {
+        // Validate integration ID exists before proceeding
+        if (paymentMethod === 'wallet' && !this.integrationIdWallet) {
+          console.error(
+            '❌ Wallet payment selected but PAYMOB_INTEGRATION_ID_WALLET is not configured'
+          );
+          return {
+            success: false,
+            error:
+              'Mobile Wallet payment is not configured. Please contact support.',
+          };
+        }
+
+        if (paymentMethod === 'kiosk' && !this.integrationIdKiosk) {
+          console.error(
+            '❌ Kiosk payment selected but PAYMOB_INTEGRATION_ID_KIOSK is not configured'
+          );
+          return {
+            success: false,
+            error:
+              'Kiosk payment is not available at this time. Please use Card or Mobile Wallet.',
+          };
+        }
+
+        // Determine which integration ID to use based on payment method
+        let specificIntegrationId = null;
+
+        if (paymentMethod === 'wallet') {
+          specificIntegrationId = [parseInt(this.integrationIdWallet)];
+          console.log('🔵 Using Wallet integration ID:', specificIntegrationId);
+        } else if (paymentMethod === 'kiosk') {
+          specificIntegrationId = [parseInt(this.integrationIdKiosk)];
+          console.log('🟣 Using Kiosk integration ID:', specificIntegrationId);
+        }
+
+        // Use unified checkout with specific integration ID
         const unifiedSession = await this.createUnifiedCheckoutSession(
           orderData,
           billingData,
-          null // Will auto-detect: use integration ID if available, otherwise payment type ID
+          specificIntegrationId // Pass specific integration ID, not all methods
         );
 
         if (unifiedSession.success) {
@@ -602,6 +684,7 @@ class PaymobService {
             merchantOrderId: unifiedSession.merchantOrderId,
             amountCents: unifiedSession.amountCents,
             isUnifiedCheckout: true,
+            paymentMethod: paymentMethod, // Track which method was used
           };
         } else {
           return unifiedSession;

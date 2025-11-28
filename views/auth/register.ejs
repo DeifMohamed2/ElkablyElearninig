@@ -1341,6 +1341,7 @@ document.addEventListener('DOMContentLoaded', function() {
       rateLimitCountdown: 0
     }
   };
+  const otpStatusTimers = {};
 
   // ============================================
   // Validation Functions (must be defined first)
@@ -2373,23 +2374,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const otpStatus = document.getElementById(`${type}OtpStatus`);
     if (!otpStatus) return;
     
+    if (otpStatusTimers[type]) {
+      clearTimeout(otpStatusTimers[type]);
+      otpStatusTimers[type] = null;
+    }
+    
     otpStatus.textContent = message;
     otpStatus.className = `otp-status ${status}`;
     
-    // Don't clear "Verified" status - keep it permanently
-    if (status === 'success' && message !== '✓ Verified') {
-      setTimeout(() => {
-        otpStatus.textContent = '';
-        otpStatus.className = 'otp-status';
-      }, 5000);
-    }
-    
-    // Clear error messages after a longer duration (20 seconds)
-    if (status === 'error') {
-      setTimeout(() => {
-        otpStatus.textContent = '';
-        otpStatus.className = 'otp-status';
-      }, 20000);
+    const isPermanentSuccess = status === 'success' && message === '✓ Verified';
+    if (!isPermanentSuccess) {
+      if (status === 'success') {
+        otpStatusTimers[type] = setTimeout(() => {
+          otpStatus.textContent = '';
+          otpStatus.className = 'otp-status';
+          otpStatusTimers[type] = null;
+        }, 5000);
+      } else if (status === 'error') {
+        otpStatusTimers[type] = setTimeout(() => {
+          otpStatus.textContent = '';
+          otpStatus.className = 'otp-status';
+          otpStatusTimers[type] = null;
+        }, 20000);
+      }
     }
   }
 
