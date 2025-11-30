@@ -53,6 +53,10 @@
                 <i class="fas fa-download me-2"></i>
                 Export to Excel
               </button>
+              <button class="btn btn-danger me-2" onclick="deleteQuestionBank('<%= questionBank.bankCode %>', '<%= questionBank.name %>')">
+                <i class="fas fa-trash me-2"></i>
+                Delete Bank
+              </button>
               <button class="btn btn-primary admin-btn-primary" data-bs-toggle="modal" data-bs-target="#createQuestionModal">
                 <i class="fas fa-plus me-2"></i>
                 Add Question
@@ -157,6 +161,16 @@
                         <div class="info-content">
                           <label class="info-label">Bank Code</label>
                           <span class="info-value"><%= questionBank.bankCode %></span>
+                        </div>
+                      </div>
+
+                      <div class="info-item">
+                        <div class="info-icon">
+                          <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="info-content">
+                          <label class="info-label">Test Type</label>
+                          <span class="info-value"><%= questionBank.testType || 'Not specified' %></span>
                         </div>
                       </div>
 
@@ -347,7 +361,25 @@
 
               <div class="question-card-body">
                 <h6 class="question-text">
-                  <%= question.questionText.length > 120 ? question.questionText.substring(0, 120) + '...' : question.questionText %>
+                  <% 
+                    const questionTextDisplay = question.questionText.length > 120 ? question.questionText.substring(0, 120) + '...' : question.questionText;
+                    // Enhanced math detection - check for LaTeX markers and math patterns
+                    const hasMath = question.questionText && (
+                      question.questionText.includes('\\') || 
+                      question.questionText.includes('$') || 
+                      /[\^_\{\}]/.test(question.questionText) ||
+                      /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/.test(question.questionText)
+                    );
+                  %>
+                  <% if (hasMath) { %>
+                    <math-field readonly 
+                      style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px; display: block;"
+                      class="question-math-field">
+                      <%= questionTextDisplay %>
+                    </math-field>
+                  <% } else { %>
+                    <%= questionTextDisplay %>
+                  <% } %>
                 </h6>
 
                 <div class="question-meta">
@@ -503,9 +535,23 @@
             <textarea class="form-control admin-form-control" id="editDescription" name="description" rows="3"><%= questionBank.description %></textarea>
           </div>
 
-
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-6">
+              <div class="admin-form-group">
+                <label for="editTestType" class="admin-form-label">Test Type *</label>
+                <select class="form-select admin-form-control" id="editTestType" name="testType" required>
+                  <option value="">Select Test Type</option>
+                  <option value="EST" <%= questionBank.testType === 'EST' ? 'selected' : '' %>>EST</option>
+                  <option value="SAT" <%= questionBank.testType === 'SAT' ? 'selected' : '' %>>SAT</option>
+                  <option value="ACT" <%= questionBank.testType === 'ACT' ? 'selected' : '' %>>ACT</option>
+                  <option value="EST 2" <%= questionBank.testType === 'EST 2' ? 'selected' : '' %>>EST 2</option>
+                  <option value="ACT 2" <%= questionBank.testType === 'ACT 2' ? 'selected' : '' %>>ACT 2</option>
+                  <option value="Basics ACT" <%= questionBank.testType === 'Basics ACT' ? 'selected' : '' %>>Basics ACT</option>
+                  <option value="Basics SAT & EST" <%= questionBank.testType === 'Basics SAT & EST' ? 'selected' : '' %>>Basics SAT & EST</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
               <div class="admin-form-group">
                 <label for="editStatus" class="admin-form-label">Status</label>
                 <select class="form-select admin-form-control" id="editStatus" name="status">
@@ -1476,10 +1522,18 @@
     // Populate the preview modal
     document.getElementById('previewQuestionTitle').textContent = 'Question Preview';
 
+    // Enhanced math detection for question text
+    const questionHasMath = question.questionText && (
+      question.questionText.includes('\\') || 
+      question.questionText.includes('$') || 
+      /[\^_\{\}]/.test(question.questionText) ||
+      /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(question.questionText)
+    );
+    
     // Render math in question text
     const questionTextElement = document.getElementById('previewQuestionText');
-    if (question.questionText && question.questionText.includes('\\')) {
-      // If it contains LaTeX, render it with MathLive
+    if (questionHasMath) {
+      // If it contains math, render it with MathLive
       questionTextElement.innerHTML = `
       <math-field readonly 
         style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
@@ -1552,9 +1606,17 @@
             isMandatory = answer.isMandatory !== false; // Default to true if not specified
           }
 
-          // Check if answer contains LaTeX
+          // Enhanced math detection for answers
+          const hasMath = answerText && (
+            answerText.includes('\\') || 
+            answerText.includes('$') || 
+            /[\^_\{\}]/.test(answerText) ||
+            /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(answerText)
+          );
+          
+          // Check if answer contains math
           let answerTextHtml = '';
-          if (answerText && answerText.includes('\\')) {
+          if (hasMath) {
             // Render math for answer text
             answerTextHtml = `
             <math-field readonly 
@@ -1599,11 +1661,19 @@
         const letter = String.fromCharCode(65 + index);
         const isCorrect = option.isCorrect ? ' correct' : '';
 
-        console.log(`Option ${letter}:`, option.text, 'Contains LaTeX:', option.text && option.text.includes('\\'));
+        // Enhanced math detection - check for LaTeX markers and math patterns
+        const hasMath = option.text && (
+          option.text.includes('\\') || 
+          option.text.includes('$') || 
+          /[\^_\{\}]/.test(option.text) || // Check for ^, _, {, }
+          /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(option.text) // Check for Greek letters and math symbols
+        );
+        
+        console.log(`Option ${letter}:`, option.text, 'Contains Math:', hasMath);
 
-        // Check if option text contains LaTeX
+        // Check if option text contains math
         let optionTextHtml = '';
-        if (option.text && option.text.includes('\\')) {
+        if (hasMath) {
           // Render math for option text
           optionTextHtml = `
           <math-field readonly 
@@ -1634,8 +1704,16 @@
     const explanationText = document.getElementById('previewExplanationText');
 
     if (question.explanation && question.explanation.trim()) {
-      // Render math in explanation if it contains LaTeX
-      if (question.explanation.includes('\\')) {
+      // Enhanced math detection for explanation
+      const explanationHasMath = question.explanation && (
+        question.explanation.includes('\\') || 
+        question.explanation.includes('$') || 
+        /[\^_\{\}]/.test(question.explanation) ||
+        /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(question.explanation)
+      );
+      
+      // Render math in explanation if it contains math
+      if (explanationHasMath) {
         explanationText.innerHTML = `
         <math-field readonly 
           style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 6px;"
@@ -1651,8 +1729,16 @@
       explanationDiv.style.display = 'none';
     }
 
-    // Hide image section for now (in real implementation, you'd show if image exists)
-    document.getElementById('previewQuestionImage').style.display = 'none';
+    // Display question image if it exists
+    const previewImageContainer = document.getElementById('previewQuestionImage');
+    const previewImageSrc = document.getElementById('previewImageSrc');
+    if (question.questionImage && question.questionImage.trim()) {
+      previewImageSrc.src = question.questionImage;
+      previewImageSrc.alt = 'Question Image';
+      previewImageContainer.style.display = 'block';
+    } else {
+      previewImageContainer.style.display = 'none';
+    }
 
     // Show the modal
     const modal = new bootstrap.Modal(document.getElementById('questionPreviewModal'));
@@ -1688,8 +1774,16 @@
           const editQuestionTextElement = document.getElementById('editQuestionText');
           const editQuestionTextFallback = document.getElementById('editQuestionTextFallback');
 
-          // Check if question text contains LaTeX and populate accordingly
-          if (question.questionText.includes('\\')) {
+          // Enhanced math detection for question text
+          const questionHasMath = question.questionText && (
+            question.questionText.includes('\\') || 
+            question.questionText.includes('$') || 
+            /[\^_\{\}]/.test(question.questionText) ||
+            /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(question.questionText)
+          );
+          
+          // Check if question text contains math and populate accordingly
+          if (questionHasMath) {
             // Contains LaTeX, use math field
             editQuestionTextElement.value = question.questionText;
             editQuestionTextElement.style.display = 'block';
@@ -1714,11 +1808,60 @@
           document.getElementById('editDifficulty').value = question.difficulty;
           document.getElementById('editPoints').value = question.points;
           document.getElementById('editTags').value = question.tags ? question.tags.join(', ') : '';
-          document.getElementById('editQuestionImage').value = question.questionImage || '';
+          
+          // Populate and display question image
+          const editQuestionImageInput = document.getElementById('editQuestionImage');
+          const editQuestionImagePreview = document.getElementById('editQuestionImagePreview');
+          if (question.questionImage && question.questionImage.trim()) {
+            editQuestionImageInput.value = question.questionImage;
+            // Display the image preview
+            editQuestionImagePreview.innerHTML = `
+              <img src="${question.questionImage}" alt="Question Image" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+              <button type="button" class="btn btn-sm btn-danger mt-2" onclick="clearEditImagePreview()" style="width: 100%;">
+                <i class="fas fa-times"></i> Remove Image
+              </button>
+            `;
+            editQuestionImagePreview.style.display = 'block';
+          } else {
+            editQuestionImageInput.value = '';
+            editQuestionImagePreview.innerHTML = `
+              <div class="preview-overlay">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click or drag to upload image</p>
+                <small>JPG, PNG, GIF supported</small>
+              </div>
+            `;
+            editQuestionImagePreview.style.display = 'block';
+          }
+          
           document.getElementById('editExplanation').value = question.explanation || '';
 
           // Handle question type specific fields
           handleEditQuestionTypeChange();
+
+          // Populate options if MCQ or True/False
+          if (question.questionType === 'MCQ' || question.questionType === 'True/False') {
+            if (question.options && question.options.length > 0) {
+              const optionsContainer = document.getElementById('editOptionsContainer');
+              if (optionsContainer) {
+                // Wait a bit for the container to be created by handleEditQuestionTypeChange
+                setTimeout(() => {
+                  // If we have more than 2 options, we need to add them
+                  if (question.options.length > 2) {
+                    for (let i = 2; i < question.options.length; i++) {
+                      addEditOption();
+                    }
+                    // Wait a bit more for the new options to be created
+                    setTimeout(() => {
+                      populateEditOptions(question.options, optionsContainer);
+                    }, 100);
+                  } else {
+                    populateEditOptions(question.options, optionsContainer);
+                  }
+                }, 300);
+              }
+            }
+          }
 
           if (question.questionType === 'Written') {
             // Set answer multiplicity
@@ -1794,10 +1937,19 @@
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           }
         })
         .then(response => {
-          if (response.ok) {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.message || 'Failed to delete question');
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
             showNotification('Question deleted successfully!', 'success');
             // Remove the question card from the page
             const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
@@ -1806,14 +1958,115 @@
               // Update the questions count
               updateQuestionsCount();
             }
+            // Reload the page to refresh the question list
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
           } else {
-            throw new Error('Failed to delete question');
+            throw new Error(data.message || 'Failed to delete question');
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          showNotification('Error deleting question. Please try again.', 'error');
+          showNotification('Error deleting question: ' + error.message, 'error');
         });
+    }
+  }
+
+  // Delete question bank
+  function deleteQuestionBank(bankCode, bankName) {
+    if (confirm(`Are you sure you want to delete the question bank "${bankName}"?\n\nThis action cannot be undone and will delete:\n- The question bank itself\n- All questions in this bank\n\nDo you want to continue?`)) {
+      // Show loading state
+      showNotification('Deleting question bank...', 'info');
+
+      const deleteUrl = `/admin/question-banks/banks/${encodeURIComponent(bankCode)}`;
+      console.log('Attempting to delete question bank at:', deleteUrl);
+
+      // Use fetch API with method-override fallback
+      fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => {
+        console.log('Delete response status:', response.status);
+        console.log('Delete response URL:', response.url);
+        console.log('Delete response redirected:', response.redirected);
+        
+        // If we got redirected (404 or other), follow it
+        if (response.redirected) {
+          console.log('Response redirected to:', response.url);
+          window.location.href = response.url;
+          return { success: false, redirected: true };
+        }
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        console.log('Response content-type:', contentType);
+        
+        if (contentType && contentType.includes('application/json')) {
+          return response.json().then(data => {
+            console.log('JSON response data:', data);
+            if (!response.ok) {
+              throw new Error(data.message || `Failed to delete question bank (${response.status})`);
+            }
+            return data;
+          });
+        } else if (response.status === 404) {
+          throw new Error('Question bank not found (404). Please check the bank code.');
+        } else if (response.status >= 400) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        } else {
+          // Success but not JSON - redirect manually
+          return { success: true, redirect: true };
+        }
+      })
+      .then(data => {
+        if (data && data.redirected) {
+          // Already redirected above
+          return;
+        }
+        
+        if (data && data.redirect) {
+          // Manual redirect needed
+          showNotification('Question bank deleted successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = '/admin/question-banks/banks';
+          }, 1000);
+          return;
+        }
+        
+        if (data && data.success) {
+          showNotification('Question bank deleted successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = '/admin/question-banks/banks';
+          }, 1000);
+        }
+      })
+      .catch(error => {
+        console.error('Error deleting question bank:', error);
+        console.error('Error stack:', error.stack);
+        showNotification('Error deleting question bank: ' + error.message, 'error');
+        
+        // Fallback: try using form submission with method-override
+        console.log('Attempting fallback: form submission with method-override');
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = deleteUrl;
+        form.style.display = 'none';
+        
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+      });
     }
   }
 
@@ -2871,6 +3124,64 @@
     });
   }
 
+  // Helper function to populate edit options with values
+  function populateEditOptions(options, optionsContainer) {
+    options.forEach((option, index) => {
+      const optionItem = optionsContainer.querySelectorAll('.question-option-item')[index];
+      if (optionItem) {
+        const mathField = optionItem.querySelector('math-field');
+        const textField = optionItem.querySelector('textarea');
+        const textInput = optionItem.querySelector('input[type="text"]');
+        const radioInput = optionItem.querySelector('input[type="radio"]');
+        
+        // Check if option contains math - enhanced detection
+        const hasMath = option.text && (
+          option.text.includes('\\') || 
+          option.text.includes('$') || 
+          /[\^_\{\}]/.test(option.text) ||
+          /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(option.text)
+        );
+        
+        if (hasMath && mathField) {
+          // Use math field
+          mathField.value = option.text;
+          mathField.style.display = 'block';
+          if (textField) textField.style.display = 'none';
+          if (textInput) textInput.style.display = 'none';
+          
+          // Update button states
+          const mathModeBtn = optionItem.querySelector('[id*="MathModeBtn"]');
+          const textModeBtn = optionItem.querySelector('[id*="TextModeBtn"]');
+          if (mathModeBtn) mathModeBtn.style.display = 'none';
+          if (textModeBtn) textModeBtn.style.display = 'inline-block';
+          
+          // Update hidden field
+          const hiddenField = optionItem.querySelector('input[type="hidden"]');
+          if (hiddenField) {
+            hiddenField.value = option.text;
+          }
+        } else if (textField) {
+          // Use textarea
+          textField.value = option.text;
+          textField.style.display = 'block';
+          if (mathField) mathField.style.display = 'none';
+          if (textInput) textInput.style.display = 'none';
+        } else if (textInput) {
+          // Use text input
+          textInput.value = option.text;
+          textInput.style.display = 'block';
+          if (mathField) mathField.style.display = 'none';
+          if (textField) textField.style.display = 'none';
+        }
+        
+        // Set correct answer radio
+        if (option.isCorrect && radioInput) {
+          radioInput.checked = true;
+        }
+      }
+    });
+  }
+
   // Setup create modal event listeners
   function setupCreateModalEvents() {
     const createModal = document.getElementById('createQuestionModal');
@@ -2894,6 +3205,7 @@
           name: formData.get('name'),
           description: formData.get('description'),
           status: formData.get('status'),
+          testType: formData.get('testType'),
           tags: formData.get('tags')
         };
 
@@ -2973,6 +3285,15 @@
     if (breadcrumbSubtitle) {
       breadcrumbSubtitle.textContent = bankData.name;
     }
+
+    // Update test type in bank info card if it exists
+    const testTypeElements = document.querySelectorAll('.info-value');
+    testTypeElements.forEach(el => {
+      const label = el.previousElementSibling;
+      if (label && label.textContent.includes('Test Type')) {
+        el.textContent = bankData.testType || 'Not specified';
+      }
+    });
   }
 
   // Load previous tags from all questions in the bank (for edit modal)
@@ -3131,6 +3452,7 @@
 
     // Setup image upload functionality
     setupImageUpload();
+    setupEditImageUpload();
 
     // Setup create modal event listeners
     setupCreateModalEvents();
@@ -3580,6 +3902,180 @@
       </div>
     `;
         imageProgress.style.display = 'none';
+
+        // Show error message
+        showNotification('Error uploading image. Please try again.', 'error');
+      });
+  }
+
+  // Clear edit image preview
+  function clearEditImagePreview() {
+    const editQuestionImageInput = document.getElementById('editQuestionImage');
+    const editQuestionImagePreview = document.getElementById('editQuestionImagePreview');
+    const editUploadedImageUrl = document.getElementById('editUploadedImageUrl');
+    
+    if (editQuestionImageInput) editQuestionImageInput.value = '';
+    if (editUploadedImageUrl) editUploadedImageUrl.value = '';
+    if (editQuestionImagePreview) {
+      editQuestionImagePreview.innerHTML = `
+        <div class="preview-overlay">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p>Click or drag to upload image</p>
+          <small>JPG, PNG, GIF supported</small>
+        </div>
+      `;
+    }
+  }
+
+  // Setup edit image upload functionality
+  function setupEditImageUpload() {
+    const editImageFileInput = document.getElementById('editQuestionImageFile');
+    const editImagePreview = document.getElementById('editQuestionImagePreview');
+    const editImageProgress = document.getElementById('editQuestionImageProgress');
+    const editQuestionImageInput = document.getElementById('editQuestionImage');
+    const editUploadedImageUrl = document.getElementById('editUploadedImageUrl');
+
+    if (!editImageFileInput || !editImagePreview) {
+      return;
+    }
+
+    // File input change event
+    editImageFileInput.addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        uploadEditQuestionImage(this.files[0]);
+      }
+    });
+
+    // Drag and drop functionality
+    if (editImagePreview) {
+      editImagePreview.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+      });
+
+      editImagePreview.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+      });
+
+      editImagePreview.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type.startsWith('image/')) {
+          uploadEditQuestionImage(files[0]);
+        }
+      });
+    }
+  }
+
+  // Upload edit question image to Cloudinary
+  function uploadEditQuestionImage(file) {
+    const editImagePreview = document.getElementById('editQuestionImagePreview');
+    const editImageProgress = document.getElementById('editQuestionImageProgress');
+    const progressBar = editImageProgress ? editImageProgress.querySelector('.progress-bar') : null;
+    const progressText = editImageProgress ? editImageProgress.querySelector('.progress-text') : null;
+    const editQuestionImageInput = document.getElementById('editQuestionImage');
+    const editUploadedImageUrl = document.getElementById('editUploadedImageUrl');
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showNotification('Please select a valid image file', 'error');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showNotification('Image size must be less than 10MB', 'error');
+      return;
+    }
+
+    // Show progress
+    if (editImageProgress) {
+      editImageProgress.style.display = 'block';
+      if (progressBar) progressBar.style.width = '0%';
+      if (progressText) progressText.textContent = 'Uploading...';
+    }
+
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress > 90) progress = 90;
+      if (progressBar) progressBar.style.width = progress + '%';
+      if (progressText) progressText.textContent = `Uploading... ${Math.round(progress)}%`;
+    }, 200);
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'order_project');
+
+    // Upload to Cloudinary
+    fetch('https://api.cloudinary.com/v1_1/dusod9wxt/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Clear progress interval
+        clearInterval(progressInterval);
+
+        if (data.secure_url) {
+          // Complete progress bar
+          if (progressBar) progressBar.style.width = '100%';
+          if (progressText) progressText.textContent = 'Upload complete!';
+
+          setTimeout(() => {
+            // Update UI with uploaded image
+            if (editImagePreview) {
+              editImagePreview.innerHTML = `
+                <div class="preview-success">
+                  <img src="${data.secure_url}" alt="Uploaded image" class="preview-image">
+                  <div class="preview-overlay">
+                    <i class="fas fa-check-circle text-success"></i>
+                    <p>Image uploaded successfully!</p>
+                    <small>${file.name}</small>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-danger mt-2" onclick="clearEditImagePreview()" style="width: 100%;">
+                    <i class="fas fa-times"></i> Remove Image
+                  </button>
+                </div>
+              `;
+            }
+
+            // Update form inputs
+            if (editQuestionImageInput) editQuestionImageInput.value = data.secure_url;
+            if (editUploadedImageUrl) editUploadedImageUrl.value = data.secure_url;
+
+            // Hide progress
+            if (editImageProgress) editImageProgress.style.display = 'none';
+
+            // Show success message
+            showNotification('Image uploaded successfully!', 'success');
+          }, 500);
+        } else {
+          throw new Error('Upload failed');
+        }
+      })
+      .catch(error => {
+        // Clear progress interval
+        clearInterval(progressInterval);
+
+        console.error('Upload error:', error);
+
+        // Reset UI
+        if (editImagePreview) {
+          editImagePreview.innerHTML = `
+            <div class="preview-overlay">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>Click or drag to upload image</p>
+              <small>JPG, PNG, GIF supported</small>
+            </div>
+          `;
+        }
+        if (editImageProgress) editImageProgress.style.display = 'none';
 
         // Show error message
         showNotification('Error uploading image. Please try again.', 'error');

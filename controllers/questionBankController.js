@@ -10,6 +10,7 @@ const getQuestionBanks = async (req, res) => {
     const { 
       status, 
       search,
+      testType,
       sortBy = 'createdAt',
       sortOrder = 'desc',
       page = 1,
@@ -21,6 +22,10 @@ const getQuestionBanks = async (req, res) => {
     
     if (status && status !== 'all') {
       filter.status = status;
+    }
+    
+    if (testType && testType !== 'all') {
+      filter.testType = testType;
     }
     
     
@@ -64,7 +69,7 @@ const getQuestionBanks = async (req, res) => {
       questionBanks,
       stats,
       filterOptions,
-      currentFilters: { status, search, sortBy, sortOrder },
+      currentFilters: { status, search, testType, sortBy, sortOrder },
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -83,7 +88,7 @@ const getQuestionBanks = async (req, res) => {
 // Create new question bank
 const createQuestionBank = async (req, res) => {
   try {
-    const { name, description, tags } = req.body;
+    const { name, description, tags, testType } = req.body;
 
     // Check if bank with same name exists
     const existingBank = await QuestionBank.findOne({ 
@@ -95,11 +100,18 @@ const createQuestionBank = async (req, res) => {
       return res.redirect('/admin/question-banks/banks');
     }
 
+    // Validate testType
+    if (!testType) {
+      req.flash('error', 'Test type is required');
+      return res.redirect('/admin/question-banks/banks');
+    }
+
     // Create new question bank
     const questionBank = new QuestionBank({
       name,
       description,
       tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      testType,
       createdBy: req.session.user ? req.session.user._id : null
     });
 
@@ -200,7 +212,7 @@ const getQuestionBank = async (req, res) => {
 const updateQuestionBank = async (req, res) => {
   try {
     const { bankCode } = req.params;
-    const { name, description, status, tags } = req.body;
+    const { name, description, status, tags, testType } = req.body;
 
     const questionBank = await QuestionBank.findOne({ bankCode });
 
@@ -233,6 +245,9 @@ const updateQuestionBank = async (req, res) => {
     questionBank.description = description;
     questionBank.status = status;
     questionBank.tags = tags ? tags.split(',').map(tag => tag.trim()) : [];
+    if (testType) {
+      questionBank.testType = testType;
+    }
 
     await questionBank.save();
 
@@ -244,7 +259,8 @@ const updateQuestionBank = async (req, res) => {
           name: questionBank.name,
           description: questionBank.description,
           status: questionBank.status,
-          tags: questionBank.tags
+          tags: questionBank.tags,
+          testType: questionBank.testType
         }
       });
     }
@@ -267,13 +283,28 @@ const updateQuestionBank = async (req, res) => {
 const deleteQuestionBank = async (req, res) => {
   try {
     const { bankCode } = req.params;
+    console.log('Delete request received for bankCode:', bankCode);
+    console.log('Request method:', req.method);
+    console.log('Request headers:', req.headers);
+    
+    // Check if this is a JSON/AJAX request (check multiple headers)
+    const isJsonRequest = req.headers.accept && req.headers.accept.includes('application/json') ||
+                         req.headers['content-type'] && req.headers['content-type'].includes('application/json') ||
+                         req.xhr;
 
     const questionBank = await QuestionBank.findOne({ bankCode });
 
     if (!questionBank) {
+      console.log('Question bank not found for bankCode:', bankCode);
+      if (isJsonRequest) {
+        return res.status(404).json({ success: false, message: 'Question bank not found' });
+      }
       req.flash('error', 'Question bank not found');
       return res.redirect('/admin/question-banks/banks');
     }
+
+    console.log('Deleting question bank:', questionBank._id);
+    console.log('Deleting all questions in bank:', questionBank._id);
 
     // Delete all questions in this bank
     await Question.deleteMany({ bank: questionBank._id });
@@ -281,10 +312,32 @@ const deleteQuestionBank = async (req, res) => {
     // Delete the question bank
     await QuestionBank.findByIdAndDelete(questionBank._id);
 
+    console.log('Question bank deleted successfully');
+
+    if (isJsonRequest) {
+      return res.json({ 
+        success: true, 
+        message: 'Question bank and all its questions deleted successfully' 
+      });
+    }
+
     req.flash('success', 'Question bank and all its questions deleted successfully');
     return res.redirect('/admin/question-banks/banks');
   } catch (error) {
     console.error('Error deleting question bank:', error);
+    
+    // Check if this is a JSON/AJAX request
+    const isJsonRequest = req.headers.accept && req.headers.accept.includes('application/json') ||
+                         req.headers['content-type'] && req.headers['content-type'].includes('application/json') ||
+                         req.xhr;
+    
+    if (isJsonRequest) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to delete question bank: ' + error.message 
+      });
+    }
+    
     req.flash('error', 'Failed to delete question bank');
     return res.redirect('/admin/question-banks/banks');
   }
@@ -616,9 +669,11 @@ const getQuestion = async (req, res) => {
         question: {
           _id: question._id,
           questionText: question.questionText,
+          questionImage: question.questionImage || '',
           questionType: question.questionType,
           options: question.options,
           correctAnswers: question.correctAnswers,
+          answerMultiplicity: question.answerMultiplicity,
           explanation: question.explanation,
           difficulty: question.difficulty,
           tags: question.tags,
@@ -805,6 +860,10 @@ const deleteQuestion = async (req, res) => {
 
     const questionBank = await QuestionBank.findOne({ bankCode });
     if (!questionBank) {
+      // Check if this is an AJAX request
+      if (req.headers.accept && req.headers.accept.includes('application/json')) {
+        return res.status(404).json({ success: false, message: 'Question bank not found' });
+      }
       req.flash('error', 'Question bank not found');
       return res.redirect('/admin/question-banks/banks');
     }
@@ -815,6 +874,10 @@ const deleteQuestion = async (req, res) => {
     });
 
     if (!question) {
+      // Check if this is an AJAX request
+      if (req.headers.accept && req.headers.accept.includes('application/json')) {
+        return res.status(404).json({ success: false, message: 'Question not found' });
+      }
       req.flash('error', 'Question not found');
       return res.redirect(`/admin/question-banks/banks/${bankCode}`);
     }
@@ -828,10 +891,19 @@ const deleteQuestion = async (req, res) => {
     // Update question bank counts
     await questionBank.updateQuestionCounts();
 
+    // Check if this is an AJAX request
+    if (req.headers.accept && req.headers.accept.includes('application/json')) {
+      return res.json({ success: true, message: 'Question deleted successfully' });
+    }
+
     req.flash('success', 'Question deleted successfully');
     return res.redirect(`/admin/question-banks/banks/${bankCode}`);
   } catch (error) {
     console.error('Error deleting question:', error);
+    // Check if this is an AJAX request
+    if (req.headers.accept && req.headers.accept.includes('application/json')) {
+      return res.status(500).json({ success: false, message: 'Failed to delete question' });
+    }
     req.flash('error', 'Failed to delete question');
     return res.redirect(`/admin/question-banks/banks/${req.params.bankCode}`);
   }

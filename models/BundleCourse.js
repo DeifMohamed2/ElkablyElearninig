@@ -95,6 +95,22 @@ const BundleCourseSchema = new mongoose.Schema(
       type: Number, // Total duration in hours
       default: 0,
     },
+    // Book fields
+    hasBook: {
+      type: Boolean,
+      default: false,
+    },
+    bookName: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+      default: '',
+    },
+    bookPrice: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
   },
   { 
     timestamps: true,

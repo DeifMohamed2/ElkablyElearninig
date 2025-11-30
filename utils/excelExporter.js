@@ -1432,6 +1432,65 @@ class ExcelExporter {
     return this.workbook;
   }
 
+  // Export book orders
+  async exportBookOrders(bookOrders) {
+    const title = `Book Orders Report - ${bookOrders.length} Orders`;
+
+    const columns = [
+      { key: 'bookOrderNumber', header: 'Book Order #', width: 18 },
+      { key: 'mainOrderNumber', header: 'Main Order #', width: 18 },
+      { key: 'bookName', header: 'Book Name', width: 30 },
+      { key: 'bundleCode', header: 'Bundle Code', width: 15 },
+      { key: 'studentName', header: 'Student Name', width: 25 },
+      { key: 'studentEmail', header: 'Student Email', width: 30 },
+      { key: 'studentCode', header: 'Student Code', width: 15 },
+      {
+        key: 'bookPrice',
+        header: 'Price (EGP)',
+        width: 15,
+        type: 'currency',
+      },
+      { key: 'status', header: 'Status', width: 12 },
+      { key: 'trackingNumber', header: 'Tracking Number', width: 20 },
+      { key: 'shippingAddress', header: 'Shipping Address', width: 40 },
+      { key: 'shippingCity', header: 'City', width: 15 },
+      { key: 'shippingState', header: 'State', width: 15 },
+      { key: 'shippingCountry', header: 'Country', width: 15 },
+      { key: 'shippingPhone', header: 'Phone', width: 15 },
+      { key: 'paymentStatus', header: 'Payment Status', width: 15 },
+      { key: 'createdAt', header: 'Order Date', width: 18, type: 'date' },
+      { key: 'shippedAt', header: 'Shipped Date', width: 18, type: 'date' },
+      { key: 'deliveredAt', header: 'Delivered Date', width: 18, type: 'date' },
+    ];
+
+    const data = bookOrders.map((order) => ({
+      bookOrderNumber: order.orderNumber || '',
+      mainOrderNumber: order.purchase?.orderNumber || 'N/A',
+      bookName: order.bookName || '',
+      bundleCode: order.bundle?.bundleCode || 'N/A',
+      studentName: order.user
+        ? `${order.user.firstName || ''} ${order.user.lastName || ''}`.trim()
+        : 'Unknown',
+      studentEmail: order.user?.studentEmail || '',
+      studentCode: order.user?.studentCode || '',
+      bookPrice: order.bookPrice || 0,
+      status: order.status || '',
+      trackingNumber: order.trackingNumber || '',
+      shippingAddress: order.shippingAddress?.address || '',
+      shippingCity: order.shippingAddress?.city || '',
+      shippingState: order.shippingAddress?.state || '',
+      shippingCountry: order.shippingAddress?.country || '',
+      shippingPhone: order.shippingAddress?.phone || '',
+      paymentStatus: order.purchase?.paymentStatus || 'N/A',
+      createdAt: order.createdAt,
+      shippedAt: order.shippedAt || null,
+      deliveredAt: order.deliveredAt || null,
+    }));
+
+    this.createSummarySheet(title, data, columns, 'Book Orders');
+    return this.workbook;
+  }
+
   // Export quizzes
   async exportQuizzes(quizzes) {
     const title = `Quizzes Report - ${quizzes.length} Quizzes`;

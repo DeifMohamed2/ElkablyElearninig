@@ -450,6 +450,49 @@
                 </div>
               </div>
             </div>
+
+            <!-- Book Information Section -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <div class="admin-form-section">
+                  <h6 class="admin-form-section-title">
+                    <i class="fas fa-book me-2"></i>
+                    Book Information (Optional)
+                  </h6>
+
+                  <div class="admin-form-group">
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="editBundleHasBook" name="hasBook" <%= bundle.hasBook ? 'checked' : '' %>>
+                      <label class="form-check-label" for="editBundleHasBook">
+                        This bundle has an associated physical book
+                      </label>
+                    </div>
+                  </div>
+
+                  <div id="bookFields" style="display: <%= bundle.hasBook ? 'block' : 'none' %>;">
+                    <div class="admin-form-group">
+                      <label for="editBundleBookName" class="admin-form-label">
+                        <i class="fas fa-book-open me-2"></i>
+                        Book Name
+                      </label>
+                      <input type="text" class="admin-form-control" id="editBundleBookName" name="bookName" value="<%= bundle.bookName || '' %>" maxlength="200">
+                      <small class="admin-form-text">Enter the name of the physical book</small>
+                      <div class="invalid-feedback" id="editBundleBookNameError"></div>
+                    </div>
+
+                    <div class="admin-form-group">
+                      <label for="editBundleBookPrice" class="admin-form-label">
+                        <i class="fas fa-coins me-2"></i>
+                        Book Price (EGP)
+                      </label>
+                      <input type="number" class="admin-form-control" id="editBundleBookPrice" name="bookPrice" value="<%= bundle.bookPrice || '' %>" min="0" step="0.01">
+                      <small class="admin-form-text">Price of the physical book</small>
+                      <div class="invalid-feedback" id="editBundleBookPriceError"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -700,7 +743,25 @@
   // Setup form validation and initialization
   document.addEventListener('DOMContentLoaded', function() {
     setupEditBundleForm();
+    setupBookFields();
   });
+
+  // Toggle book fields visibility
+  function setupBookFields() {
+    const hasBookCheckbox = document.getElementById('editBundleHasBook');
+    const bookFields = document.getElementById('bookFields');
+
+    if (hasBookCheckbox && bookFields) {
+      hasBookCheckbox.addEventListener('change', function() {
+        bookFields.style.display = this.checked ? 'block' : 'none';
+        if (!this.checked) {
+          // Clear book fields when unchecked
+          document.getElementById('editBundleBookName').value = '';
+          document.getElementById('editBundleBookPrice').value = '';
+        }
+      });
+    }
+  }
 
 
 

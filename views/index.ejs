@@ -518,6 +518,248 @@
       gap: 15px;
     }
   }
+
+  /* Score Display with Percentage and Icon */
+  .results-score .score-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .results-score .score-icon-positive {
+    color: #B80101;
+    font-size: 1.5em;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+
+  .results-score .score-value {
+    font-size: 3.5em;
+    font-weight: bold;
+    color: #B80101;
+    line-height: 1;
+  }
+
+  .results-score .score-percentage {
+    font-size: 2em;
+    font-weight: bold;
+    color: #B80101;
+    line-height: 1;
+    margin-left: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .results-score .score-value {
+      font-size: 2.5em;
+    }
+    .results-score .score-percentage {
+      font-size: 1.5em;
+    }
+    .results-score .score-icon-positive {
+      font-size: 1.2em;
+    }
+  }
+
+  /* Compact Professional Progress Line Box */
+  .calculator-progress {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin: 20px auto 30px;
+    max-width: 800px;
+    box-shadow: 
+      0 4px 15px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(184, 1, 1, 0.1) inset;
+    border: 1px solid rgba(184, 1, 1, 0.15);
+    position: relative;
+  }
+
+  .progress-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    gap: 10px;
+  }
+
+  .progress-line {
+    position: absolute;
+    top: 32px;
+    left: 50px;
+    right: 50px;
+    height: 3px;
+    background: rgba(30, 41, 59, 0.1);
+    z-index: 1;
+    border-radius: 2px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #B80101 0%, #8B0000 100%);
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0%;
+    box-shadow: 0 2px 4px rgba(184, 1, 1, 0.3);
+  }
+
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+    position: relative;
+    z-index: 2;
+    padding: 5px;
+  }
+
+  .step-item.disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(30, 41, 59, 0.08);
+    border: 2px solid rgba(30, 41, 59, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(30, 41, 59, 0.5);
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 2;
+  }
+
+  .step-item.active .step-number {
+    background: linear-gradient(135deg, #B80101, #8B0000);
+    border-color: #B80101;
+    color: white;
+    box-shadow: 0 4px 12px rgba(184, 1, 1, 0.4);
+    transform: scale(1.1);
+  }
+
+  .step-item.completed .step-number {
+    background: linear-gradient(135deg, #10B981, #059669);
+    border-color: #10B981;
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Ensure step number content stays as number (no checkmark) */
+  .step-item.completed .step-number::before,
+  .step-item.completed .step-number::after {
+    display: none;
+    content: none;
+  }
+
+  .step-item.disabled .step-number {
+    background: rgba(30, 41, 59, 0.05);
+    border-color: rgba(30, 41, 59, 0.1);
+    color: rgba(30, 41, 59, 0.3);
+  }
+
+  .step-label {
+    color: rgba(30, 41, 59, 0.6);
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .step-item.active .step-label {
+    color: #B80101;
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  .step-item.completed .step-label {
+    color: #10B981;
+    font-weight: 600;
+  }
+
+  .step-item.disabled .step-label {
+    color: rgba(30, 41, 59, 0.3);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .calculator-progress {
+      padding: 12px 15px;
+      margin: 15px auto 20px;
+    }
+
+    .progress-steps {
+      gap: 5px;
+    }
+
+    .progress-line {
+      left: 40px;
+      right: 40px;
+      top: 28px;
+      height: 2px;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      font-size: 0.75rem;
+    }
+
+    .step-label {
+      font-size: 0.65rem;
+    }
+
+    .step-item.active .step-label {
+      font-size: 0.7rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .calculator-progress {
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+
+    .progress-steps {
+      gap: 3px;
+    }
+
+    .progress-line {
+      left: 35px;
+      right: 35px;
+      top: 26px;
+    }
+
+    .step-number {
+      width: 24px;
+      height: 24px;
+      font-size: 0.7rem;
+    }
+
+    .step-label {
+      font-size: 0.6rem;
+    }
+  }
 </style>
 
 <!-- Floating Math Elements -->
@@ -915,9 +1157,6 @@
     </div>
   </div>
 </section>
-
-
-
 
 <!-- Courses Section -->
 <section class="courses-section scroll-reveal" id="courses" data-aos="fade-up" style="padding: 80px 0;">
@@ -1839,8 +2078,6 @@
   });
 </script>
 
-
-
 <script>
   // Course Type Card Interactions
   document.addEventListener('DOMContentLoaded', function() {
@@ -1886,7 +2123,6 @@
     });
   });
 </script>
-
 
 <!-- Elkably Team Section - Enhanced Responsive Design -->
 <section class="elkably-team-section-new" id="elkably-team" data-aos="fade-up">
@@ -2264,11 +2500,9 @@
 
             <div class="results-score">
               <div class="score-display">
+                <i class="fas fa-trophy score-icon-positive" id="scoreIcon" style="color: #B80101; font-size: 1.2em; margin-right: 8px;"></i>
                 <span class="score-value" id="calculatedValue">0.00</span>
-              </div>
-              <div class="score-status" id="scoreStatus">
-                <i class="fas fa-check-circle"></i>
-                <span>Eligible</span>
+                <span class="score-percentage">%</span>
               </div>
             </div>
 
@@ -2882,7 +3116,6 @@
     // Step 4 elements (Results)
     const selectedUniversityTypeEl = document.getElementById('selectedUniversityType');
     const calculatedValue = document.getElementById('calculatedValue');
-    const scoreStatus = document.getElementById('scoreStatus');
     const exam1Breakdown = document.getElementById('exam1Breakdown');
     const exam1BreakdownLabel = document.getElementById('exam1BreakdownLabel');
     const exam2Breakdown = document.getElementById('exam2Breakdown');
@@ -2994,8 +3227,23 @@
       
       if (exam1Label) exam1Label.textContent = `${examName}1 Score *`;
       if (exam1Input) exam1Input.placeholder = `Enter ${examName}1 score`;
-      if (exam1Range) exam1Range.textContent = 'Out of 1600';
-      if (exam1MinReq) exam1MinReq.textContent = 'Threshold: 1090 affects multiplier';
+      
+      // Update max value and threshold based on exam type
+      if (selectedExamType === 'ACT') {
+        if (exam1Input) {
+          exam1Input.max = 36;
+          exam1Input.setAttribute('max', '36');
+        }
+        if (exam1Range) exam1Range.textContent = 'Out of 36';
+        if (exam1MinReq) exam1MinReq.textContent = 'Threshold: ~24.5 (equivalent to 1090) affects multiplier';
+      } else {
+        if (exam1Input) {
+          exam1Input.max = 1600;
+          exam1Input.setAttribute('max', '1600');
+        }
+        if (exam1Range) exam1Range.textContent = 'Out of 1600';
+        if (exam1MinReq) exam1MinReq.textContent = 'Threshold: 1090 affects multiplier';
+      }
     }
 
     // Setup score inputs
@@ -3069,7 +3317,22 @@
       
       if (exam2Label) exam2Label.textContent = `${examName}2 Score`;
       if (exam2Input) exam2Input.placeholder = `Enter ${examName}2 score (optional)`;
-      if (exam2Range) exam2Range.textContent = 'Out of 1600';
+      
+      // Update max value based on exam type
+      if (selectedExam2Type === 'ACT') {
+        if (exam2Input) {
+          exam2Input.max = 36;
+          exam2Input.setAttribute('max', '36');
+        }
+        if (exam2Range) exam2Range.textContent = 'Out of 36';
+      } else {
+        if (exam2Input) {
+          exam2Input.max = 1600;
+          exam2Input.setAttribute('max', '1600');
+        }
+        if (exam2Range) exam2Range.textContent = 'Out of 1600';
+      }
+      
       if (exam2MinReq) exam2MinReq.textContent = '';
     }
 
@@ -3208,14 +3471,18 @@
       if (exam2Input) exam2Input.classList.remove('error');
       if (gpaInput) gpaInput.classList.remove('error');
 
-      // Validate ranges
-      if (exam1 < 0 || exam1 > 1600) {
+      // Validate ranges based on exam type
+      // Exam 1 validation
+      const exam1Max = selectedExamType === 'ACT' ? 36 : 1600;
+      if (exam1 < 0 || exam1 > exam1Max) {
         if (exam1Input) exam1Input.classList.add('error');
         hasErrors = true;
       }
       
+      // Exam 2 validation
       if (selectedExam2Type && selectedExam2Type !== 'NONE') {
-        if (exam2 < 0 || exam2 > 1600) {
+        const exam2Max = selectedExam2Type === 'ACT' ? 36 : 1600;
+        if (exam2 < 0 || exam2 > exam2Max) {
           if (exam2Input) exam2Input.classList.add('error');
           hasErrors = true;
         }
@@ -3240,7 +3507,7 @@
       }
     }
 
-    // Calculate score
+    // Calculate score - Following exact rules
     function calculateScore() {
       const exam1 = parseFloat(exam1Input?.value) || 0;
       const exam2 = parseFloat(exam2Input?.value) || 0;
@@ -3261,37 +3528,61 @@
       let exam1Score = 0;
       let exam2Score = 0;
       const uniType = selectedUniversityType;
+      const isPublic = uniType === 'government';
+      const isPrivate = uniType === 'private' || uniType === 'ahlia';
 
-      // ✅ Exam 1 contribution (EST1/SAT1/ACT1)
-      if (uniType === 'government') {
-        // Government universities: if >= 1090 then 69/1600, else 60/1600
-        if (exam1 >= 1090) {
-          exam1Score = exam1 * (69 / 1600);
+      // Calculate Exam 1 Score (EST 1, SAT 1, or ACT 1)
+      // Handle ACT conversion first (ACT is out of 36, convert to 1600 scale)
+      let exam1Normalized = exam1;
+      if (selectedExamType === 'ACT') {
+        // Convert ACT score (0-36) to EST/SAT scale (0-1600)
+        // ACT 36 = 1600, so conversion: (ACT / 36) * 1600
+        exam1Normalized = (exam1 / 36) * 1600;
+      }
+      
+      // Rules:
+      // Public University: if >= 1090 then score * 69 / 1600, else score * 60 / 1600
+      // Private/Ahlia University: if >= 1090 then score * 75 / 1600, else score * 60 / 1600
+      if (isPublic) {
+        // Public University rules
+        if (exam1Normalized >= 1090) {
+          exam1Score = exam1Normalized * (69 / 1600);
         } else {
-          exam1Score = exam1 * (60 / 1600);
+          exam1Score = exam1Normalized * (60 / 1600);
         }
-      } else {
-        // Private / Ahlia universities: if >= 1090 then 75/1600, else 60/1600
-        if (exam1 >= 1090) {
-          exam1Score = exam1 * (75 / 1600);
+      } else if (isPrivate) {
+        // Private or Ahlia University rules
+        if (exam1Normalized >= 1090) {
+          exam1Score = exam1Normalized * (75 / 1600);
         } else {
-          exam1Score = exam1 * (60 / 1600);
+          exam1Score = exam1Normalized * (60 / 1600);
         }
       }
 
       finalScore += exam1Score;
 
-      // ✅ Exam 2 contribution (if provided): 15/1600 for all university types
+      // Calculate Exam 2 Score (EST 2, ACT 2, or SAT 2)
+      // Rule: Score * 15 / 1600 (same for all university types)
       if (selectedExam2Type && selectedExam2Type !== 'NONE' && exam2 > 0) {
-        exam2Score = exam2 * (15 / 1600);
+        // Handle ACT conversion (ACT is out of 36, convert to 1600 scale)
+        let exam2Normalized = exam2;
+        if (selectedExam2Type === 'ACT') {
+          // Convert ACT score (0-36) to EST/SAT scale (0-1600)
+          // ACT 36 = 1600, so conversion: (ACT / 36) * 1600
+          exam2Normalized = (exam2 / 36) * 1600;
+        }
+        exam2Score = exam2Normalized * (15 / 1600);
         finalScore += exam2Score;
       }
 
-      // ✅ GPA multiplied by 10
+      // Calculate GPA Score
+      // Rule: GPA * 10 (same for all university types)
       const gpaScore = gpa * 10;
       finalScore += gpaScore;
 
-      // ✅ Save calculation data
+      // Final Score = Score1 + Score2 + (GPA * 10)
+      
+      // Save calculation data
       calculationData.exam1 = exam1;
       calculationData.exam2 = exam2;
       calculationData.gpa = gpa;
@@ -3324,25 +3615,20 @@
         selectedUniversityTypeEl.textContent = config.name;
       }
 
-      // Update calculated value
+      // Update calculated value with percentage sign
       if (calculatedValue) {
         calculatedValue.textContent = calculationData.finalScore.toFixed(2);
       }
 
-      // Update score status
-      if (scoreStatus) {
-        const isEligible = calculationData.finalScore > 0;
-        const statusIcon = scoreStatus.querySelector('i');
-        const statusText = scoreStatus.querySelector('span');
-
-        if (isEligible) {
-          statusIcon.className = 'fas fa-check-circle';
-          statusText.textContent = 'Eligible';
-          scoreStatus.className = 'score-status';
+      // Update score icon to be positive (trophy icon)
+      const scoreIcon = document.getElementById('scoreIcon');
+      if (scoreIcon) {
+        if (calculationData.finalScore > 0) {
+          scoreIcon.className = 'fas fa-trophy score-icon-positive';
+          scoreIcon.style.color = '#B80101';
         } else {
-          statusIcon.className = 'fas fa-times-circle';
-          statusText.textContent = 'Not Eligible';
-          scoreStatus.className = 'score-status error';
+          scoreIcon.className = 'fas fa-calculator score-icon-positive';
+          scoreIcon.style.color = '#64748b';
         }
       }
 
@@ -3372,10 +3658,26 @@
         gpaBreakdown.textContent = calculationData.breakdown.gpaScore.toFixed(2);
       }
 
-      // Update rules text
+      // Update rules text with exact calculation rules
       if (ruleText) {
-        const multiplier = selectedUniversityType === 'government' ? '69' : '75';
-        ruleText.textContent = `${config.name}: ${examName}1 ≥ 1090 → ${multiplier}×(${examName}1/1600), ${examName}1 < 1090 → 60×(${examName}1/1600), Exam 2 → 15×(Exam2/1600), Final = Score1 + Score2 + (GPA×10)`;
+        const isPublic = selectedUniversityType === 'government';
+        const multiplier = isPublic ? '69' : '75';
+        let ruleMessage = '';
+        
+        if (isPublic) {
+          ruleMessage = `Public University: ${examName}1 ≥ 1090 → score × 69/1600, ${examName}1 < 1090 → score × 60/1600`;
+        } else {
+          ruleMessage = `${config.name}: ${examName}1 ≥ 1090 → score × 75/1600, ${examName}1 < 1090 → score × 60/1600`;
+        }
+        
+        if (selectedExam2Type && selectedExam2Type !== 'NONE' && calculationData.exam2 > 0) {
+          const exam2Name = examNames[selectedExam2Type] || 'Exam';
+          ruleMessage += ` | ${exam2Name}2 → score × 15/1600`;
+        }
+        
+        ruleMessage += ` | Final = Score1 + Score2 + (GPA × 10)`;
+        
+        ruleText.textContent = ruleMessage;
       }
     }
 
@@ -3523,6 +3825,13 @@
       ctx.fillStyle = scoreCircleGradient;
       ctx.fill();
 
+      // Trophy icon before score
+      ctx.fillStyle = '#B80101';
+      ctx.font = 'bold 60px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🏆', centerX - 80, scoreY - 10);
+
       // Score value with enhanced gradient and larger size
       const scoreGradient = ctx.createLinearGradient(centerX - 100, scoreY - 40, centerX + 100, scoreY + 40);
       scoreGradient.addColorStop(0, '#B80101');
@@ -3539,17 +3848,19 @@
       ctx.shadowBlur = 15;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
-      ctx.fillText(calculationData.finalScore.toFixed(2), centerX, scoreY);
+      
+      // Draw score with percentage sign
+      const scoreText = calculationData.finalScore.toFixed(2);
+      const scoreWidth = ctx.measureText(scoreText).width;
+      ctx.fillText(scoreText, centerX, scoreY);
+      
+      // Add percentage sign
+      ctx.font = 'bold 50px Arial';
+      ctx.fillText('%', centerX + scoreWidth / 2 + 15, scoreY);
       
       // Reset shadow
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
-
-      // Eligibility status with icon
-      const isEligible = calculationData.finalScore > 0;
-      ctx.fillStyle = isEligible ? '#059669' : '#dc2626';
-      ctx.font = 'bold 18px Arial';
-      ctx.fillText(isEligible ? '✓ Eligible' : '✗ Not Eligible', centerX, 380);
 
       // Enhanced score breakdown section
       const breakdownY = 420;

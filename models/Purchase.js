@@ -46,12 +46,6 @@ const PurchaseSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    tax: {
-      type: Number,
-      required: true,
-      min: 0,
-      default: 0,
-    },
     total: {
       type: Number,
       required: true,
@@ -203,6 +197,16 @@ const PurchaseSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Book orders reference
+    bookOrders: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BookOrder',
+    }],
+    booksSubtotal: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
@@ -293,8 +297,7 @@ PurchaseSchema.methods.calculateTotals = function () {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  this.tax = this.subtotal * 0.1; // 10% tax
-  this.total = this.subtotal + this.tax;
+  this.total = this.subtotal;
   return this;
 };
 

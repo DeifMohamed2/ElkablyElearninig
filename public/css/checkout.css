@@ -1417,3 +1417,361 @@
     align-self: center;
   }
 }
+
+/* ========================================
+   BOOK SELECTION STYLES
+   ======================================== */
+
+.checkout-books-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.checkout-book-item-wrapper {
+  position: relative;
+}
+
+.checkout-book-item-wrapper input[type="checkbox"] {
+  display: none;
+}
+
+.checkout-book-label {
+  display: block;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkout-book-item {
+  background: var(--checkout-bg-card, #ffffff);
+  border: 2px solid var(--checkout-border-color, #e5e7eb);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.checkout-book-item-wrapper:hover .checkout-book-item {
+  border-color: var(--checkout-primary, #b80101);
+  box-shadow: var(--checkout-shadow-md);
+  transform: translateY(-2px);
+}
+
+.checkout-book-content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  position: relative;
+  padding-left: 3rem;
+}
+
+.checkout-book-checkbox-indicator {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--checkout-border-color, #e5e7eb);
+  border-radius: 8px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.checkout-book-checkbox-indicator i {
+  opacity: 0;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: bold;
+  transition: opacity 0.2s ease;
+}
+
+.checkout-book-item-wrapper input[type="checkbox"]:checked + .checkout-book-label .checkout-book-checkbox-indicator {
+  background: var(--checkout-primary, #b80101);
+  border-color: var(--checkout-primary, #b80101);
+  box-shadow: 0 2px 8px rgba(184, 1, 1, 0.3);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.checkout-book-item-wrapper input[type="checkbox"]:checked + .checkout-book-label .checkout-book-checkbox-indicator i {
+  opacity: 1;
+}
+
+.checkout-book-item-wrapper input[type="checkbox"]:checked + .checkout-book-label .checkout-book-item {
+  border-color: var(--checkout-primary, #b80101);
+  background: linear-gradient(135deg, rgba(184, 1, 1, 0.05), rgba(184, 1, 1, 0.02));
+  box-shadow: 0 4px 12px rgba(184, 1, 1, 0.15);
+  transform: translateY(-2px);
+}
+
+.checkout-book-icon-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkout-book-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--checkout-primary, #b80101), #dc2626);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.75rem;
+  box-shadow: 0 4px 12px rgba(184, 1, 1, 0.2);
+  transition: all 0.3s ease;
+}
+
+.checkout-book-item-wrapper:hover .checkout-book-icon {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 16px rgba(184, 1, 1, 0.3);
+}
+
+.checkout-book-item-wrapper input[type="checkbox"]:checked + .checkout-book-label .checkout-book-icon {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  box-shadow: 0 6px 16px rgba(184, 1, 1, 0.4);
+}
+
+.checkout-book-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkout-book-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--checkout-text-primary, #1f2937);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.3;
+}
+
+.checkout-book-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.checkout-book-bundle-badge,
+.checkout-book-code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--checkout-bg-secondary, #f8fafc);
+  border: 1px solid var(--checkout-border-color, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: var(--checkout-text-secondary, #6b7280);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.checkout-book-bundle-badge i,
+.checkout-book-code-badge i {
+  font-size: 0.75rem;
+  color: var(--checkout-primary, #b80101);
+}
+
+.checkout-book-item-wrapper:hover .checkout-book-bundle-badge,
+.checkout-book-item-wrapper:hover .checkout-book-code-badge {
+  background: var(--checkout-primary-light, #fef2f2);
+  border-color: var(--checkout-primary, #b80101);
+  color: var(--checkout-text-primary, #1f2937);
+}
+
+.checkout-book-price {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.checkout-book-price-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--checkout-primary, #b80101);
+  display: block;
+  white-space: nowrap;
+}
+
+/* Selected Books Summary in Order Summary */
+.checkout-selected-books {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--checkout-border-color, #e5e7eb);
+}
+
+.checkout-books-summary-header {
+  margin-bottom: 1rem;
+}
+
+.checkout-books-summary-header h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--checkout-text-primary, #1f2937);
+  margin: 0;
+}
+
+.checkout-books-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checkout-book-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--checkout-bg-secondary, #f8fafc);
+  border-radius: 8px;
+}
+
+.checkout-book-summary-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.checkout-book-summary-price {
+  font-weight: 600;
+  color: var(--checkout-primary, #b80101);
+}
+
+/* Order Breakdown */
+.checkout-order-breakdown {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--checkout-border-color, #e5e7eb);
+}
+
+.checkout-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.checkout-breakdown-label {
+  color: var(--checkout-text-secondary, #6b7280);
+  font-weight: 500;
+}
+
+.checkout-breakdown-value {
+  color: var(--checkout-text-primary, #1f2937);
+  font-weight: 600;
+}
+
+.checkout-breakdown-total {
+  border-top: 1px solid var(--checkout-border-color, #e5e7eb);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.checkout-breakdown-total .checkout-breakdown-label {
+  font-weight: 700;
+  color: var(--checkout-text-primary, #1f2937);
+}
+
+.checkout-breakdown-total .checkout-breakdown-value {
+  font-weight: 700;
+  color: var(--checkout-primary, #b80101);
+  font-size: 1.2rem;
+}
+
+.checkout-section-subtitle {
+  color: var(--checkout-text-secondary, #6b7280);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+/* Dark theme support */
+.dark-theme .checkout-book-item {
+  background: var(--checkout-bg-card);
+  border-color: var(--checkout-border-color);
+}
+
+.dark-theme .checkout-book-item-wrapper:hover .checkout-book-item {
+  border-color: var(--checkout-primary);
+}
+
+.dark-theme .checkout-book-title {
+  color: var(--checkout-text-primary);
+}
+
+.dark-theme .checkout-book-bundle {
+  color: var(--checkout-text-secondary);
+}
+
+.dark-theme .checkout-book-code {
+  color: var(--checkout-text-muted);
+}
+
+.dark-theme .checkout-book-item-wrapper input[type="checkbox"]:checked + .checkout-book-label .checkout-book-item {
+  background: rgba(184, 1, 1, 0.1);
+  border-color: var(--checkout-primary);
+}
+
+.dark-theme .checkout-book-summary-item {
+  background: var(--checkout-bg-secondary);
+}
+
+.dark-theme .checkout-order-breakdown {
+  border-top-color: var(--checkout-border-color);
+}
+
+.dark-theme .checkout-breakdown-total {
+  border-top-color: var(--checkout-border-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .checkout-book-content {
+    flex-wrap: wrap;
+    padding-left: 2.5rem;
+    gap: 1rem;
+  }
+
+  .checkout-book-checkbox-indicator {
+    width: 24px;
+    height: 24px;
+    left: 0.75rem;
+  }
+
+  .checkout-book-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+  }
+
+  .checkout-book-title {
+    font-size: 1rem;
+  }
+
+  .checkout-book-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .checkout-book-price {
+    width: 100%;
+    margin-top: 0.5rem;
+    text-align: left;
+  }
+
+  .checkout-book-price-value {
+    font-size: 1.125rem;
+  }
+}

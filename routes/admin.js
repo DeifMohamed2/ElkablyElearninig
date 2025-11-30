@@ -84,6 +84,10 @@ const {
   getOrderDetails,
   generateInvoice,
   refundOrder,
+  getBookOrders,
+  updateBookOrderStatus,
+  bulkUpdateBookOrdersStatus,
+  exportBookOrders,
   // Brilliant Students Management
   getBrilliantStudents,
   getBrilliantStudentDetails,
@@ -345,6 +349,39 @@ router.get('/orders/export', isAdmin, exportOrders);
 router.get('/orders/:orderNumber', isAdmin, getOrderDetails);
 router.get('/orders/:orderNumber/invoice', isAdmin, generateInvoice);
 router.post('/orders/:orderNumber/refund', isAdmin, refundOrder);
+
+// Book Orders Management
+router.get('/book-orders', isAdmin, getBookOrders);
+router.get('/book-orders/export', isAdmin, exportBookOrders);
+router.get('/book-orders/:bookOrderId', isAdmin, async (req, res) => {
+  try {
+    const BookOrder = require('../models/BookOrder');
+    const bookOrder = await BookOrder.findById(req.params.bookOrderId)
+      .populate('user', 'firstName lastName studentEmail')
+      .populate('bundle', 'title bundleCode _id')
+      .lean();
+    
+    if (!bookOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Book order not found',
+      });
+    }
+
+    return res.json({
+      success: true,
+      bookOrder,
+    });
+  } catch (error) {
+    console.error('Error fetching book order:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching book order',
+    });
+  }
+});
+router.put('/book-orders/:bookOrderId/update', isAdmin, updateBookOrderStatus);
+router.put('/book-orders/bulk-update', isAdmin, bulkUpdateBookOrdersStatus);
 
 // Game Rooms Management Routes
 router.get('/game-rooms', isAdmin, getAdminGameRooms);

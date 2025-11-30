@@ -3222,6 +3222,14 @@ const getOrderDetails = async (req, res) => {
       },
     };
 
+    // Fetch book orders related to this purchase
+    const BookOrder = require('../models/BookOrder');
+    const bookOrders = await BookOrder.find({ purchase: order._id })
+      .populate('user', 'firstName lastName studentEmail studentCode')
+      .populate('bundle', 'title bundleCode thumbnail')
+      .sort({ createdAt: -1 })
+      .lean();
+
     return res.render('admin/order-details', {
       title: `Order ${order.orderNumber} | ELKABLY`,
       theme: req.cookies.theme || 'light',
@@ -3229,6 +3237,7 @@ const getOrderDetails = async (req, res) => {
       order,
       itemsSummary,
       summary,
+      bookOrders,
       pageTitle: `Order #${order.orderNumber} Details`,
     });
   } catch (error) {
@@ -3342,6 +3351,307 @@ const generateInvoice = async (req, res) => {
     console.error('Error generating invoice:', error);
     req.flash('error_msg', 'Error generating invoice');
     return res.redirect('/admin/orders');
+  }
+};
+
+// Get book orders page
+const getBookOrders = async (req, res) => {
+  try {
+    const {
+      status,
+      search,
+      dateFrom,
+      dateTo,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    const BookOrder = require('../models/BookOrder');
+    const User = require('../models/User');
+    const Purchase = require('../models/Purchase');
+    const filter = {};
+    
+    if (status && status !== 'all') filter.status = status;
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+    }
+    
+    // Enhanced search functionality - search across all fields
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      
+      // Search in direct BookOrder fields
+      const directSearchFields = [
+        { orderNumber: { $regex: searchTerm, $options: 'i' } },
+        { bookName: { $regex: searchTerm, $options: 'i' } },
+        { trackingNumber: { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.email': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.firstName': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.lastName': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.phone': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.city': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.address': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.zipCode': { $regex: searchTerm, $options: 'i' } },
+        { notes: { $regex: searchTerm, $options: 'i' } },
+      ];
+
+      // Search in populated User fields
+      const matchingUsers = await User.find({
+        $or: [
+          { studentEmail: { $regex: searchTerm, $options: 'i' } },
+          { firstName: { $regex: searchTerm, $options: 'i' } },
+          { lastName: { $regex: searchTerm, $options: 'i' } },
+          { studentCode: { $regex: searchTerm, $options: 'i' } },
+        ],
+      }).select('_id').lean();
+
+      // Search in populated Purchase fields (orderNumber)
+      const matchingPurchases = await Purchase.find({
+        orderNumber: { $regex: searchTerm, $options: 'i' },
+      }).select('_id').lean();
+
+      // Build combined filter with $or
+      filter.$or = [...directSearchFields];
+
+      // Add user ID filter if matches found
+      if (matchingUsers.length > 0) {
+        const userIds = matchingUsers.map(u => u._id);
+        filter.$or.push({ user: { $in: userIds } });
+      }
+
+      // Add purchase ID filter if matches found
+      if (matchingPurchases.length > 0) {
+        const purchaseIds = matchingPurchases.map(p => p._id);
+        filter.$or.push({ purchase: { $in: purchaseIds } });
+      }
+    }
+
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [bookOrders, totalOrders] = await Promise.all([
+      BookOrder.find(filter)
+        .populate('user', 'firstName lastName studentEmail studentCode')
+        .populate('bundle', 'title bundleCode thumbnail')
+        .populate('purchase', 'orderNumber paymentStatus status')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      BookOrder.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalOrders / parseInt(limit));
+
+    // Calculate statistics
+    const stats = await BookOrder.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: '$bookPrice' },
+          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+          processing: { $sum: { $cond: [{ $eq: ['$status', 'processing'] }, 1, 0] } },
+          shipped: { $sum: { $cond: [{ $eq: ['$status', 'shipped'] }, 1, 0] } },
+          delivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+        },
+      },
+    ]);
+
+    const analytics = stats[0] || {
+      totalOrders: 0,
+      totalRevenue: 0,
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+    };
+
+    return res.render('admin/book-orders', {
+      title: 'Book Orders | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      user: req.session.user,
+      bookOrders,
+      analytics,
+      currentFilters: {
+        status,
+        search,
+        dateFrom,
+        dateTo,
+        sortBy,
+        sortOrder,
+      },
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalOrders,
+        hasNext: parseInt(page) < totalPages,
+        hasPrev: parseInt(page) > 1,
+        limit: parseInt(limit),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching book orders:', error);
+    req.flash('error_msg', 'Error loading book orders');
+    return res.redirect('/admin/dashboard');
+  }
+};
+
+// Update book order status
+const updateBookOrderStatus = async (req, res) => {
+  try {
+    const { bookOrderId } = req.params;
+    const { status, trackingNumber, notes } = req.body;
+
+    const BookOrder = require('../models/BookOrder');
+    const bookOrder = await BookOrder.findById(bookOrderId);
+
+    if (!bookOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Book order not found',
+      });
+    }
+
+    bookOrder.status = status;
+    if (trackingNumber) bookOrder.trackingNumber = trackingNumber;
+    if (notes) bookOrder.notes = notes;
+
+    if (status === 'shipped' && !bookOrder.shippedAt) {
+      bookOrder.shippedAt = new Date();
+    }
+    if (status === 'delivered' && !bookOrder.deliveredAt) {
+      bookOrder.deliveredAt = new Date();
+    }
+
+    await bookOrder.save();
+
+    return res.json({
+      success: true,
+      message: 'Book order status updated successfully',
+      bookOrder,
+    });
+  } catch (error) {
+    console.error('Error updating book order status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating book order status',
+    });
+  }
+};
+
+// Bulk update book orders status
+const bulkUpdateBookOrdersStatus = async (req, res) => {
+  try {
+    const { orderIds, status, trackingNumber } = req.body;
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No order IDs provided',
+      });
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required',
+      });
+    }
+
+    const BookOrder = require('../models/BookOrder');
+    const updateData = { status };
+
+    if (trackingNumber) {
+      updateData.trackingNumber = trackingNumber;
+    }
+
+    // Set shippedAt or deliveredAt timestamps
+    if (status === 'shipped') {
+      updateData.shippedAt = new Date();
+    } else if (status === 'delivered') {
+      updateData.deliveredAt = new Date();
+    }
+
+    const result = await BookOrder.updateMany(
+      { _id: { $in: orderIds } },
+      { $set: updateData }
+    );
+
+    return res.json({
+      success: true,
+      message: `Successfully updated ${result.modifiedCount} book order(s)`,
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error('Error bulk updating book orders status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error bulk updating book orders status',
+    });
+  }
+};
+
+// Export book orders data
+const exportBookOrders = async (req, res) => {
+  try {
+    const {
+      status,
+      search,
+      dateFrom,
+      dateTo,
+    } = req.query;
+
+    const BookOrder = require('../models/BookOrder');
+    const filter = {};
+    
+    if (status && status !== 'all') filter.status = status;
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+    }
+    if (search) {
+      filter.$or = [
+        { orderNumber: { $regex: search, $options: 'i' } },
+        { bookName: { $regex: search, $options: 'i' } },
+        { 'shippingAddress.email': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.firstName': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.lastName': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const bookOrders = await BookOrder.find(filter)
+      .populate('user', 'firstName lastName studentEmail studentCode')
+      .populate('bundle', 'bundleCode')
+      .populate('purchase', 'orderNumber paymentStatus')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const exporter = new ExcelExporter();
+    const workbook = await exporter.exportBookOrders(bookOrders);
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `book-orders-report-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting book orders:', error);
+    return res.status(500).json({ success: false, message: 'Export failed' });
   }
 };
 
@@ -3953,6 +4263,9 @@ const createBundle = async (req, res) => {
       discountPrice,
       status = 'draft',
       thumbnail,
+      hasBook,
+      bookName,
+      bookPrice,
     } = req.body;
 
     console.log('Creating bundle with data:', {
@@ -3974,6 +4287,9 @@ const createBundle = async (req, res) => {
       createdBy: req.session.user.id,
       courses: [], // Start with empty courses array
       thumbnail: thumbnail || '',
+      hasBook: hasBook === 'on' || hasBook === true,
+      bookName: hasBook ? (bookName ? bookName.trim() : '') : '',
+      bookPrice: hasBook && bookPrice ? parseFloat(bookPrice) : 0,
     });
 
     console.log('Bundle object before save:', {
@@ -4255,6 +4571,9 @@ const updateBundle = async (req, res) => {
       discountPrice,
       status,
       thumbnail,
+      hasBook,
+      bookName,
+      bookPrice,
     } = req.body;
 
     // Check if request expects JSON response (AJAX request)
@@ -4284,6 +4603,9 @@ const updateBundle = async (req, res) => {
     bundle.discountPrice = discountPrice ? parseFloat(discountPrice) : null;
     bundle.status = status;
     if (thumbnail) bundle.thumbnail = thumbnail;
+    bundle.hasBook = hasBook === 'on' || hasBook === true;
+    bundle.bookName = bundle.hasBook ? (bookName ? bookName.trim() : '') : '';
+    bundle.bookPrice = bundle.hasBook && bookPrice ? parseFloat(bookPrice) : 0;
 
     await bundle.save();
 
@@ -12205,6 +12527,10 @@ module.exports = {
   getOrderDetails,
   generateInvoice,
   refundOrder,
+  getBookOrders,
+  updateBookOrderStatus,
+  bulkUpdateBookOrdersStatus,
+  exportBookOrders,
   // Brilliant Students Management
   getBrilliantStudents,
   getBrilliantStudentDetails,

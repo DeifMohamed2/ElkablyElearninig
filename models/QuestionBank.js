@@ -31,6 +31,13 @@ const QuestionBankSchema = new mongoose.Schema(
       enum: ['draft', 'active', 'archived'],
       default: 'draft',
     },
+    testType: {
+      type: String,
+      enum: ['EST', 'SAT', 'ACT', 'EST 2', 'ACT 2', 'Basics ACT', 'Basics SAT & EST'],
+      required: false,
+      trim: true,
+      default: null,
+    },
     isActive: {
       type: Boolean,
       default: true,

@@ -107,13 +107,27 @@
                   </button>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-2">
                 <div class="admin-filter-controls">
                   <select name="status" class="form-select admin-filter-select" onchange="this.form.submit()">
                     <option value="all" <%= currentFilters.status === 'all' ? 'selected' : '' %>>All Status</option>
                     <option value="active" <%= currentFilters.status === 'active' ? 'selected' : '' %>>Active</option>
                     <option value="draft" <%= currentFilters.status === 'draft' ? 'selected' : '' %>>Draft</option>
                     <option value="archived" <%= currentFilters.status === 'archived' ? 'selected' : '' %>>Archived</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="admin-filter-controls">
+                  <select name="testType" class="form-select admin-filter-select" onchange="this.form.submit()">
+                    <option value="all" <%= currentFilters.testType === 'all' || !currentFilters.testType ? 'selected' : '' %>>All Test Types</option>
+                    <option value="EST" <%= currentFilters.testType === 'EST' ? 'selected' : '' %>>EST</option>
+                    <option value="SAT" <%= currentFilters.testType === 'SAT' ? 'selected' : '' %>>SAT</option>
+                    <option value="ACT" <%= currentFilters.testType === 'ACT' ? 'selected' : '' %>>ACT</option>
+                    <option value="EST 2" <%= currentFilters.testType === 'EST 2' ? 'selected' : '' %>>EST 2</option>
+                    <option value="ACT 2" <%= currentFilters.testType === 'ACT 2' ? 'selected' : '' %>>ACT 2</option>
+                    <option value="Basics ACT" <%= currentFilters.testType === 'Basics ACT' ? 'selected' : '' %>>Basics ACT</option>
+                    <option value="Basics SAT & EST" <%= currentFilters.testType === 'Basics SAT & EST' ? 'selected' : '' %>>Basics SAT & EST</option>
                   </select>
                 </div>
               </div>
@@ -146,6 +160,9 @@
                         <div class="question-bank-title-section">
                           <h5 class="question-bank-title"><%= bank.name %></h5>
                           <p class="question-bank-code">ID: <%= bank.bankCode %></p>
+                          <% if (bank.testType) { %>
+                          <span class="badge bg-info mt-1"><%= bank.testType %></span>
+                          <% } %>
                         </div>
                         <div class="question-bank-action-btn">
                           <i class="fas fa-ellipsis-v"></i>
@@ -313,6 +330,21 @@
                       rows="3" placeholder="Describe the purpose and content of this question bank"></textarea>
           </div>
           
+          
+          <div class="admin-form-group">
+            <label for="testType" class="admin-form-label">Test Type *</label>
+            <select class="form-select admin-form-control" id="testType" name="testType" required>
+              <option value="">Select Test Type</option>
+              <option value="EST">EST</option>
+              <option value="SAT">SAT</option>
+              <option value="ACT">ACT</option>
+              <option value="EST 2">EST 2</option>
+              <option value="ACT 2">ACT 2</option>
+              <option value="Basics ACT">Basics ACT</option>
+              <option value="Basics SAT & EST">Basics SAT & EST</option>
+            </select>
+            <small class="admin-form-text">Select the test type for this question bank</small>
+          </div>
           
           <div class="admin-form-group">
             <label for="tags" class="admin-form-label">Tags</label>
