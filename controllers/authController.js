@@ -27,9 +27,9 @@ const getRegisterPage = (req, res) => {
   delete req.session.parent_otp;
   delete req.session.parent_otp_expiry;
   delete req.session.lastSubmissionId;
-  // NOTE: We keep student_otp_attempts, student_otp_blocked_until, 
+  // NOTE: We keep student_otp_attempts, student_otp_blocked_until,
   // parent_otp_attempts, parent_otp_blocked_until to prevent abuse
-  
+
   res.render('auth/register', {
     title: 'Register | ELKABLY',
     theme: req.cookies.theme || 'light',
@@ -101,7 +101,8 @@ const createAdmin = async (req, res) => {
     const admin = new Admin({
       userName: userName.trim(),
       phoneNumber: phoneNumber.trim(),
-      password,
+      // Trim password to avoid accidental leading/trailing whitespace
+      password: typeof password === 'string' ? password.trim() : password,
       email: email ? email.toLowerCase().trim() : undefined,
     });
     const saved = await admin.save();
@@ -138,20 +139,20 @@ const generateOTP = () => {
 const sendOTP = async (req, res) => {
   try {
     const { phoneNumber, countryCode, type } = req.body; // type: 'student' or 'parent'
-    
+
     if (!phoneNumber || !countryCode) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Phone number and country code are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number and country code are required',
       });
     }
 
     // Validate phone number format
     const cleanPhoneNumber = phoneNumber.replace(/[^\d]/g, '');
     if (!cleanPhoneNumber || cleanPhoneNumber.length < 8) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid phone number format' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format',
       });
     }
 
@@ -169,12 +170,14 @@ const sendOTP = async (req, res) => {
     // Check if user is currently blocked
     const blockedUntil = req.session[attemptsBlockedKey];
     if (blockedUntil && Date.now() < blockedUntil) {
-      const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / (60 * 1000));
+      const remainingMinutes = Math.ceil(
+        (blockedUntil - Date.now()) / (60 * 1000)
+      );
       return res.status(429).json({
         success: false,
         message: `Too many OTP requests. Please try again after ${remainingMinutes} minute(s).`,
         blockedUntil: blockedUntil,
-        retryAfter: remainingMinutes
+        retryAfter: remainingMinutes,
       });
     }
 
@@ -189,12 +192,12 @@ const sendOTP = async (req, res) => {
       const blockUntil = Date.now() + blockDuration;
       req.session[attemptsBlockedKey] = blockUntil;
       const remainingMinutes = Math.ceil(blockDuration / (60 * 1000));
-      
+
       return res.status(429).json({
         success: false,
         message: `You have exceeded the maximum number of OTP requests (${maxAttempts}). Please try again after ${remainingMinutes} minute(s).`,
         blockedUntil: blockUntil,
-        retryAfter: remainingMinutes
+        retryAfter: remainingMinutes,
       });
     }
 
@@ -209,36 +212,36 @@ const sendOTP = async (req, res) => {
     // Store OTP in session with expiration (5 minutes)
     const otpKey = `${type}_otp`;
     const otpExpiryKey = `${type}_otp_expiry`;
-    
+
     req.session[otpKey] = otp;
-    req.session[otpExpiryKey] = Date.now() + (5 * 60 * 1000); // 5 minutes
+    req.session[otpExpiryKey] = Date.now() + 5 * 60 * 1000; // 5 minutes
     req.session[`${type}_phone_verified`] = false;
     req.session[`${type}_phone_number`] = fullPhoneNumber;
 
     // Send OTP via SMS
     const message = `Your ELKABLY verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
-    
+
     try {
       await sendSms({
         recipient: fullPhoneNumber,
         message: message,
       });
-      
+
       console.log(`OTP sent to ${fullPhoneNumber} for ${type}`);
-      
+
       return res.json({
         success: true,
         message: 'OTP sent successfully',
         expiresIn: 300, // 5 minutes in seconds
-        attemptsRemaining: maxAttempts - req.session[attemptsKey]
+        attemptsRemaining: maxAttempts - req.session[attemptsKey],
       });
     } catch (smsError) {
       console.error('SMS sending error:', smsError);
-      
+
       // Clear session on SMS failure
       delete req.session[otpKey];
       delete req.session[otpExpiryKey];
-      
+
       return res.status(500).json({
         success: false,
         message: 'Failed to send OTP. Please try again.',
@@ -259,7 +262,7 @@ const sendOTP = async (req, res) => {
 const verifyOTP = async (req, res) => {
   try {
     const { otp, type } = req.body; // type: 'student' or 'parent'
-    
+
     if (!otp || !type) {
       return res.status(400).json({
         success: false,
@@ -300,11 +303,11 @@ const verifyOTP = async (req, res) => {
 
     // Mark phone as verified
     req.session[`${type}_phone_verified`] = true;
-    
+
     // Clear OTP from session (one-time use)
     delete req.session[otpKey];
     delete req.session[otpExpiryKey];
-    
+
     // Reset OTP attempts counter on successful verification
     const attemptsKey = `${type}_otp_attempts`;
     const attemptsBlockedKey = `${type}_otp_blocked_until`;
@@ -349,7 +352,10 @@ const registerUser = async (req, res) => {
   // Only check if submissionId is provided
   if (submissionId && req.session.lastSubmissionId === submissionId) {
     console.log('Duplicate form submission detected:', submissionId);
-    req.flash('error_msg', 'Your registration is already being processed. Please do not refresh or resubmit the form.');
+    req.flash(
+      'error_msg',
+      'Your registration is already being processed. Please do not refresh or resubmit the form.'
+    );
     return res.redirect('/auth/register');
   }
 
@@ -362,9 +368,9 @@ const registerUser = async (req, res) => {
 
   // Verify OTP for student phone number
   if (!req.session.student_phone_verified) {
-    errors.push({ 
+    errors.push({
       msg: 'Student phone number must be verified with OTP before registration',
-      field: 'studentNumber'
+      field: 'studentNumber',
     });
   }
 
@@ -372,9 +378,9 @@ const registerUser = async (req, res) => {
   if (req.session.student_phone_verified) {
     // Check if studentNumber and studentCountryCode are provided
     if (!studentNumber || !studentCountryCode) {
-      errors.push({ 
+      errors.push({
         msg: 'Student phone number and country code are required',
-        field: 'studentNumber'
+        field: 'studentNumber',
       });
       // Clear verification to force re-verification
       delete req.session.student_phone_verified;
@@ -383,15 +389,18 @@ const registerUser = async (req, res) => {
       const cleanStudentNumber = studentNumber.replace(/[^\d]/g, '');
       const verifiedStudentPhone = req.session.student_phone_number || '';
       const expectedStudentPhone = studentCountryCode + cleanStudentNumber;
-      
-      if (!verifiedStudentPhone || verifiedStudentPhone !== expectedStudentPhone) {
+
+      if (
+        !verifiedStudentPhone ||
+        verifiedStudentPhone !== expectedStudentPhone
+      ) {
         console.error('Security violation: Student phone number mismatch', {
           verified: verifiedStudentPhone,
-          submitted: expectedStudentPhone
+          submitted: expectedStudentPhone,
         });
-        errors.push({ 
+        errors.push({
           msg: 'Student phone number does not match the verified number. Phone number cannot be changed after verification.',
-          field: 'studentNumber'
+          field: 'studentNumber',
         });
         // Clear verification to force re-verification
         delete req.session.student_phone_verified;
@@ -454,7 +463,10 @@ const registerUser = async (req, res) => {
   }
 
   // Validate student number
-  if (studentNumber && (studentNumber.length < 1 || studentNumber.length > 20)) {
+  if (
+    studentNumber &&
+    (studentNumber.length < 1 || studentNumber.length > 20)
+  ) {
     errors.push({ msg: 'Student number must be between 1 and 20 characters' });
   }
 
@@ -472,7 +484,9 @@ const registerUser = async (req, res) => {
   // Validate username format (alphanumeric and underscores only)
   const usernameRegex = /^[a-zA-Z0-9_]+$/;
   if (username && !usernameRegex.test(username)) {
-    errors.push({ msg: 'Username can only contain letters, numbers, and underscores' });
+    errors.push({
+      msg: 'Username can only contain letters, numbers, and underscores',
+    });
   }
 
   // Check passwords match
@@ -488,24 +502,31 @@ const registerUser = async (req, res) => {
   // Validate country codes
   const validCountryCodes = ['+966', '+20', '+971', '+965'];
   if (studentCountryCode && !validCountryCodes.includes(studentCountryCode)) {
-    errors.push({ msg: 'Please select a valid country code for student number' });
+    errors.push({
+      msg: 'Please select a valid country code for student number',
+    });
   }
   if (parentCountryCode && !validCountryCodes.includes(parentCountryCode)) {
-    errors.push({ msg: 'Please select a valid country code for parent number' });
+    errors.push({
+      msg: 'Please select a valid country code for parent number',
+    });
   }
 
   // Phone number length standards by country code
   const phoneLengthStandards = {
-    '+966': 9,  // Saudi Arabia: 9 digits
-    '+20': 11,  // Egypt: 11 digits (including leading 0)
-    '+971': 9,  // UAE: 9 digits
-    '+965': 8   // Kuwait: 8 digits
+    '+966': 9, // Saudi Arabia: 9 digits
+    '+20': 11, // Egypt: 11 digits (including leading 0)
+    '+971': 9, // UAE: 9 digits
+    '+965': 8, // Kuwait: 8 digits
   };
 
   // Check if student and parent numbers are the same
-  if (studentNumber && parentNumber && 
-      studentNumber.trim() === parentNumber.trim() && 
-      studentCountryCode === parentCountryCode) {
+  if (
+    studentNumber &&
+    parentNumber &&
+    studentNumber.trim() === parentNumber.trim() &&
+    studentCountryCode === parentCountryCode
+  ) {
     errors.push({ msg: 'Student and parent phone numbers cannot be the same' });
   }
 
@@ -514,8 +535,8 @@ const registerUser = async (req, res) => {
     const cleanStudentNumber = studentNumber.replace(/[^\d]/g, '');
     const expectedLength = phoneLengthStandards[studentCountryCode];
     if (expectedLength && cleanStudentNumber.length !== expectedLength) {
-      errors.push({ 
-        msg: `Student number must be ${expectedLength} digits for the selected country` 
+      errors.push({
+        msg: `Student number must be ${expectedLength} digits for the selected country`,
       });
     }
   }
@@ -524,8 +545,8 @@ const registerUser = async (req, res) => {
     const cleanParentNumber = parentNumber.replace(/[^\d]/g, '');
     const expectedLength = phoneLengthStandards[parentCountryCode];
     if (expectedLength && cleanParentNumber.length !== expectedLength) {
-      errors.push({ 
-        msg: `Parent number must be ${expectedLength} digits for the selected country` 
+      errors.push({
+        msg: `Parent number must be ${expectedLength} digits for the selected country`,
       });
     }
   }
@@ -563,8 +584,13 @@ const registerUser = async (req, res) => {
   }
 
   // Validate English teacher name
-  if (englishTeacher && (englishTeacher.length < 2 || englishTeacher.length > 100)) {
-    errors.push({ msg: 'English teacher name must be between 2 and 100 characters' });
+  if (
+    englishTeacher &&
+    (englishTeacher.length < 2 || englishTeacher.length > 100)
+  ) {
+    errors.push({
+      msg: 'English teacher name must be between 2 and 100 characters',
+    });
   }
 
   // Validate how did you know response
@@ -572,7 +598,9 @@ const registerUser = async (req, res) => {
     errors.push({ msg: 'Response must be less than 500 characters' });
   }
   if (howDidYouKnow && howDidYouKnow.trim().length < 5) {
-    errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 5 characters)' });
+    errors.push({
+      msg: 'Please tell us how you heard about Mr Kably (at least 5 characters)',
+    });
   }
 
   if (errors.length > 0) {
@@ -598,31 +626,32 @@ const registerUser = async (req, res) => {
 
   try {
     // Check for existing user data in parallel for better performance
-    const [existingEmail, existingUsername, existingStudentNumber] = await Promise.all([
-      User.findOne({ studentEmail: studentEmail.toLowerCase() }),
-      User.findOne({ username: username.trim() }),
-      User.findOne({ studentNumber: studentNumber.trim() })
-    ]);
+    const [existingEmail, existingUsername, existingStudentNumber] =
+      await Promise.all([
+        User.findOne({ studentEmail: studentEmail.toLowerCase() }),
+        User.findOne({ username: username.trim() }),
+        User.findOne({ studentNumber: studentNumber.trim() }),
+      ]);
 
     // Collect all validation errors at once
     if (existingEmail) {
-      errors.push({ 
+      errors.push({
         msg: 'Student email is already registered',
-        field: 'studentEmail'
+        field: 'studentEmail',
       });
     }
 
     if (existingUsername) {
-      errors.push({ 
+      errors.push({
         msg: 'Username is already taken',
-        field: 'username'
+        field: 'username',
       });
     }
 
     if (existingStudentNumber) {
-      errors.push({ 
+      errors.push({
         msg: 'Student number is already registered',
-        field: 'studentNumber'
+        field: 'studentNumber',
       });
     }
 
@@ -668,7 +697,7 @@ const registerUser = async (req, res) => {
     });
 
     const savedUser = await newUser.save();
-    
+
     // Clear OTP verification flags after successful registration
     delete req.session.student_phone_verified;
     delete req.session.student_phone_number;
@@ -677,7 +706,7 @@ const registerUser = async (req, res) => {
     // Clear rate limiting counters after successful registration
     delete req.session.student_otp_attempts;
     delete req.session.student_otp_blocked_until;
-    
+
     // Send student data to online system API
     try {
       await sendStudentToOnlineSystem(savedUser);
@@ -711,12 +740,12 @@ const registerUser = async (req, res) => {
     if (err.name === 'ValidationError') {
       const validationErrors = Object.values(err.errors).map((e) => ({
         msg: e.message,
-        field: e.path
+        field: e.path,
       }));
       errors.push(...validationErrors);
-      
+
       console.log('Mongoose validation errors:', validationErrors);
-      
+
       return res.render('auth/register', {
         title: 'Register | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -740,14 +769,14 @@ const registerUser = async (req, res) => {
     if (err.code === 11000) {
       const field = Object.keys(err.keyValue)[0];
       const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
-      
+
       errors.push({
         msg: `${fieldName} is already in use`,
-        field: field
+        field: field,
       });
-      
+
       console.log('Duplicate key error:', field, err.keyValue[field]);
-      
+
       return res.render('auth/register', {
         title: 'Register | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -779,7 +808,7 @@ const registerUser = async (req, res) => {
 
     // Log the full error for debugging
     console.error('Unhandled registration error:', err);
-    
+
     // Generic error for other cases
     req.flash(
       'error_msg',
@@ -793,14 +822,17 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { email, password, rememberMe, submissionId } = req.body;
   let errors = [];
-  
+
   // Check if this is a duplicate submission (browser refresh or back button)
   if (req.session.lastLoginSubmissionId === submissionId) {
     console.log('Duplicate login submission detected:', submissionId);
-    req.flash('error_msg', 'Your login request is already being processed. Please do not refresh or resubmit the form.');
+    req.flash(
+      'error_msg',
+      'Your login request is already being processed. Please do not refresh or resubmit the form.'
+    );
     return res.redirect('/auth/login');
   }
-  
+
   // Store current submission ID in session
   req.session.lastLoginSubmissionId = submissionId;
 
@@ -812,7 +844,7 @@ const loginUser = async (req, res) => {
   if (errors.length > 0) {
     // Reset submission ID to allow retrying
     req.session.lastLoginSubmissionId = null;
-    
+
     return res.render('auth/login', {
       title: 'Login | ELKABLY',
       theme: req.cookies.theme || 'light',
@@ -834,23 +866,30 @@ const loginUser = async (req, res) => {
       }
     } else if (inputValue.match(/^[\d\s\-\(\)\+]+$/)) {
       // If input contains only digits, spaces, dashes, parentheses, or plus (phone number)
-      user = await User.findOne({ 
+      user = await User.findOne({
         $or: [
           { studentNumber: inputValue },
-          { $expr: { $eq: [{ $concat: ['$studentCountryCode', '$studentNumber'] }, inputValue] } },
-        ]
+          {
+            $expr: {
+              $eq: [
+                { $concat: ['$studentCountryCode', '$studentNumber'] },
+                inputValue,
+              ],
+            },
+          },
+        ],
       });
       if (!user) {
         user = await Admin.findOne({ phoneNumber: inputValue });
       }
     } else {
       // Otherwise treat as username
-      user = await User.findOne({ 
-        username: { $regex: new RegExp(`^${inputValue}$`, 'i') }
+      user = await User.findOne({
+        username: { $regex: new RegExp(`^${inputValue}$`, 'i') },
       });
       if (!user) {
-        user = await Admin.findOne({ 
-          userName: { $regex: new RegExp(`^${inputValue}$`, 'i') } 
+        user = await Admin.findOne({
+          userName: { $regex: new RegExp(`^${inputValue}$`, 'i') },
         });
       }
     }
@@ -893,18 +932,18 @@ const loginUser = async (req, res) => {
       });
     }
 
-      // Check if user is active (only for students)
-      if (user.role === 'student' && user.isActive === false) {
-        errors.push({
-          msg: 'Your account is pending approval. Please contact the administrator or wait for approval.',
-        });
-        return res.render('auth/login', {
-          title: 'Login | ELKABLY',
-          theme: req.cookies.theme || 'light',
-          errors,
-          email,
-        });
-      }
+    // Check if user is active (only for students)
+    if (user.role === 'student' && user.isActive === false) {
+      errors.push({
+        msg: 'Your account is pending approval. Please contact the administrator or wait for approval.',
+      });
+      return res.render('auth/login', {
+        title: 'Login | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        errors,
+        email,
+      });
+    }
 
     // Set session configuration based on remember me
     if (rememberMe) {
@@ -959,7 +998,9 @@ const loginUser = async (req, res) => {
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
-        errors.push({ msg: 'An error occurred during login. Please try again.' });
+        errors.push({
+          msg: 'An error occurred during login. Please try again.',
+        });
         return res.render('auth/login', {
           title: 'Login | ELKABLY',
           theme: req.cookies.theme || 'light',
@@ -974,7 +1015,10 @@ const loginUser = async (req, res) => {
       } else {
         // Check if student data is complete
         if (user.isCompleteData === false) {
-          req.flash('info_msg', 'Please complete your profile to access all features');
+          req.flash(
+            'info_msg',
+            'Please complete your profile to access all features'
+          );
           return res.redirect('/auth/complete-data');
         }
         return res.redirect('/student/dashboard');
@@ -982,29 +1026,35 @@ const loginUser = async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err);
-    
+
     // Reset submission ID to allow retrying
     req.session.lastLoginSubmissionId = null;
-    
+
     // Handle different types of errors
     if (err.name === 'MongoServerError') {
-      errors.push({ msg: 'Database connection error. Please try again later.' });
+      errors.push({
+        msg: 'Database connection error. Please try again later.',
+      });
     } else if (err.name === 'ValidationError') {
-      errors.push({ msg: 'Invalid login credentials. Please check your information.' });
+      errors.push({
+        msg: 'Invalid login credentials. Please check your information.',
+      });
     } else if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      errors.push({ msg: 'Network connection issue. Please check your internet connection and try again.' });
+      errors.push({
+        msg: 'Network connection issue. Please check your internet connection and try again.',
+      });
     } else {
       errors.push({ msg: 'An error occurred during login. Please try again.' });
     }
-    
+
     // Log detailed error for debugging
     console.error('Login error details:', {
       name: err.name,
       message: err.message,
       code: err.code,
-      stack: err.stack
+      stack: err.stack,
     });
-    
+
     return res.render('auth/login', {
       title: 'Login | ELKABLY',
       theme: req.cookies.theme || 'light',
@@ -1017,7 +1067,12 @@ const loginUser = async (req, res) => {
 // Logout user
 const logoutUser = async (req, res) => {
   // Clear session token from user document if student
-  if (req.session && req.session.user && req.session.user.role === 'student' && req.session.user.id) {
+  if (
+    req.session &&
+    req.session.user &&
+    req.session.user.role === 'student' &&
+    req.session.user.id
+  ) {
     try {
       const user = await User.findById(req.session.user.id);
       if (user) {
@@ -1041,12 +1096,13 @@ const logoutUser = async (req, res) => {
 // Function to send student data to the online system API
 const sendStudentToOnlineSystem = async (studentData) => {
   try {
-    const apiUrl = 'https://942dd72bdca3.ngrok-free.app/api/createOnlineStudent';
+    const apiUrl =
+      'https://942dd72bdca3.ngrok-free.app/api/createOnlineStudent';
     const apiKey = 'SNFIDNWL11SGNDWJD@##SSNWLSGNE!21121';
-    
+
     const payload = {
       Username: `${studentData.firstName} ${studentData.lastName}`,
-      phone: studentData.studentNumber,  
+      phone: studentData.studentNumber,
       parentPhone: studentData.parentNumber,
       phoneCountryCode: studentData.studentCountryCode.replace('+', ''),
       parentPhoneCountryCode: studentData.parentCountryCode.replace('+', ''),
@@ -1054,14 +1110,14 @@ const sendStudentToOnlineSystem = async (studentData) => {
       schoolName: studentData.schoolName,
       Grade: studentData.grade,
       GradeLevel: studentData.grade,
-      Code:"K"+studentData.studentCode,
-      apiKey: apiKey
+      Code: 'K' + studentData.studentCode,
+      apiKey: apiKey,
     };
 
     console.log('Sending student data to online system:', payload);
-    
+
     const response = await axios.post(apiUrl, payload);
-    
+
     console.log('Online system API response:', response.data);
     return response.data;
   } catch (error) {
@@ -1103,7 +1159,7 @@ const getCompleteDataPage = async (req, res) => {
     delete req.session.parent_otp;
     delete req.session.parent_otp_expiry;
     delete req.session.lastCompleteDataSubmissionId;
-    // NOTE: We keep student_otp_attempts, student_otp_blocked_until, 
+    // NOTE: We keep student_otp_attempts, student_otp_blocked_until,
     // parent_otp_attempts, parent_otp_blocked_until to prevent abuse
 
     res.render('auth/complete-data', {
@@ -1161,9 +1217,15 @@ const completeStudentData = async (req, res) => {
 
     // Check if this is a duplicate submission (browser refresh or back button)
     // Only check if submissionId is provided
-    if (submissionId && req.session.lastCompleteDataSubmissionId === submissionId) {
+    if (
+      submissionId &&
+      req.session.lastCompleteDataSubmissionId === submissionId
+    ) {
       console.log('Duplicate complete data submission detected:', submissionId);
-      req.flash('error_msg', 'Your profile completion is already being processed. Please do not refresh or resubmit the form.');
+      req.flash(
+        'error_msg',
+        'Your profile completion is already being processed. Please do not refresh or resubmit the form.'
+      );
       return res.redirect('/auth/complete-data');
     }
 
@@ -1201,38 +1263,47 @@ const completeStudentData = async (req, res) => {
     if (lastName && lastName.trim().length < 2) {
       errors.push({ msg: 'Last name must be at least 2 characters' });
     }
-    
+
     // Phone number length standards by country code
     const phoneLengthStandards = {
-      '+966': 9,  // Saudi Arabia: 9 digits
-      '+20': 11,  // Egypt: 11 digits (including leading 0)
-      '+971': 9,  // UAE: 9 digits
-      '+965': 8   // Kuwait: 8 digits
+      '+966': 9, // Saudi Arabia: 9 digits
+      '+20': 11, // Egypt: 11 digits (including leading 0)
+      '+971': 9, // UAE: 9 digits
+      '+965': 8, // Kuwait: 8 digits
     };
-    
+
     // Validate country codes
     const validCountryCodes = ['+966', '+20', '+971', '+965'];
     if (studentCountryCode && !validCountryCodes.includes(studentCountryCode)) {
-      errors.push({ msg: 'Please select a valid country code for student number' });
+      errors.push({
+        msg: 'Please select a valid country code for student number',
+      });
     }
     if (parentCountryCode && !validCountryCodes.includes(parentCountryCode)) {
-      errors.push({ msg: 'Please select a valid country code for parent number' });
+      errors.push({
+        msg: 'Please select a valid country code for parent number',
+      });
     }
-    
+
     // Check if student and parent numbers are the same
-    if (studentNumber && parentNumber && 
-        studentNumber.trim() === parentNumber.trim() && 
-        studentCountryCode === parentCountryCode) {
-      errors.push({ msg: 'Student and parent phone numbers cannot be the same' });
+    if (
+      studentNumber &&
+      parentNumber &&
+      studentNumber.trim() === parentNumber.trim() &&
+      studentCountryCode === parentCountryCode
+    ) {
+      errors.push({
+        msg: 'Student and parent phone numbers cannot be the same',
+      });
     }
-    
+
     // Validate phone number lengths based on country (only if both are present)
     if (studentNumber && studentCountryCode) {
       const cleanStudentNumber = studentNumber.replace(/[^\d]/g, '');
       const expectedLength = phoneLengthStandards[studentCountryCode];
       if (expectedLength && cleanStudentNumber.length !== expectedLength) {
-        errors.push({ 
-          msg: `Student number must be ${expectedLength} digits for the selected country` 
+        errors.push({
+          msg: `Student number must be ${expectedLength} digits for the selected country`,
         });
       }
     }
@@ -1241,12 +1312,12 @@ const completeStudentData = async (req, res) => {
       const cleanParentNumber = parentNumber.replace(/[^\d]/g, '');
       const expectedLength = phoneLengthStandards[parentCountryCode];
       if (expectedLength && cleanParentNumber.length !== expectedLength) {
-        errors.push({ 
-          msg: `Parent number must be ${expectedLength} digits for the selected country` 
+        errors.push({
+          msg: `Parent number must be ${expectedLength} digits for the selected country`,
         });
       }
     }
-    
+
     // Basic phone number format validation (digits, spaces, hyphens, parentheses only)
     const phoneRegex = /^[\d\s\-\(\)]+$/;
     if (parentNumber && !phoneRegex.test(parentNumber)) {
@@ -1272,7 +1343,9 @@ const completeStudentData = async (req, res) => {
       errors.push({ msg: 'Please select your grade' });
     }
     if (!englishTeacher || englishTeacher.trim().length < 2) {
-      errors.push({ msg: 'English teacher name must be at least 2 characters' });
+      errors.push({
+        msg: 'English teacher name must be at least 2 characters',
+      });
     }
     if (!password || password.length < 5) {
       errors.push({ msg: 'Password must be at least 5 characters' });
@@ -1281,43 +1354,57 @@ const completeStudentData = async (req, res) => {
       errors.push({ msg: 'Passwords do not match' });
     }
     if (!howDidYouKnow || howDidYouKnow.trim().length < 5) {
-      errors.push({ msg: 'Please tell us how you heard about Mr Kably (at least 5 characters)' });
+      errors.push({
+        msg: 'Please tell us how you heard about Mr Kably (at least 5 characters)',
+      });
     }
 
     // Check for duplicates
-    const existingEmail = await User.findOne({ studentEmail: studentEmail.toLowerCase() });
+    const existingEmail = await User.findOne({
+      studentEmail: studentEmail.toLowerCase(),
+    });
     if (existingEmail && existingEmail._id.toString() !== userId) {
       errors.push({ msg: 'Email is already registered' });
     }
 
-    const existingUsername = await User.findOne({ username: username.toLowerCase() });
+    const existingUsername = await User.findOne({
+      username: username.toLowerCase(),
+    });
     if (existingUsername && existingUsername._id.toString() !== userId) {
       errors.push({ msg: 'Username is already taken' });
     }
 
     // MANDATORY: Check if email is still the temporary one
     if (user.studentEmail && user.studentEmail.startsWith('temp_')) {
-      if (studentEmail.toLowerCase().trim() === user.studentEmail.toLowerCase()) {
-        errors.push({ msg: 'You must change your email address. The temporary email cannot be used.' });
+      if (
+        studentEmail.toLowerCase().trim() === user.studentEmail.toLowerCase()
+      ) {
+        errors.push({
+          msg: 'You must change your email address. The temporary email cannot be used.',
+        });
       }
     }
 
     // MANDATORY: Check if username is still the temporary one
     if (user.username && user.username.startsWith('student_')) {
       if (username.toLowerCase().trim() === user.username.toLowerCase()) {
-        errors.push({ msg: 'You must change your username. The temporary username cannot be used.' });
+        errors.push({
+          msg: 'You must change your username. The temporary username cannot be used.',
+        });
       }
     }
 
     // MANDATORY: Check if password is still the student code
     if (user.studentCode && password.trim() === user.studentCode) {
-      errors.push({ msg: 'You must create a new password. You cannot use your student code as your password.' });
+      errors.push({
+        msg: 'You must create a new password. You cannot use your student code as your password.',
+      });
     }
 
     if (errors.length > 0) {
       // Reset submission ID to allow retrying
       req.session.lastCompleteDataSubmissionId = null;
-      
+
       return res.render('auth/complete-data', {
         title: 'Complete Your Profile | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -1366,14 +1453,17 @@ const completeStudentData = async (req, res) => {
       isCompleteData: user.isCompleteData,
     };
 
-    req.flash('success_msg', 'Profile completed successfully! Welcome to Elkably.');
+    req.flash(
+      'success_msg',
+      'Profile completed successfully! Welcome to Elkably.'
+    );
     res.redirect('/student/dashboard');
   } catch (error) {
     console.error('Error completing student data:', error);
-    
+
     // Reset submission ID to allow retrying
     req.session.lastCompleteDataSubmissionId = null;
-    
+
     req.flash('error_msg', 'An error occurred. Please try again.');
     res.redirect('/auth/complete-data');
   }
@@ -1384,29 +1474,31 @@ const completeStudentData = async (req, res) => {
 // Create student from external system (similar to bulk import)
 const createStudentFromExternalSystem = async (req, res) => {
   try {
-    const {
-      studentName,
-      studentPhone,
-      parentPhone,
-      studentCode,
-      apiKey
-    } = req.body;
+    const { studentName, studentPhone, parentPhone, studentCode, apiKey } =
+      req.body;
 
     // Validate API key for security
-    const validApiKey = process.env.EXTERNAL_SYSTEM_API_KEY || 'SNFIDNWL11SGNDWJD@##SSNWLSGNE!21121';
+    const validApiKey =
+      process.env.EXTERNAL_SYSTEM_API_KEY ||
+      'SNFIDNWL11SGNDWJD@##SSNWLSGNE!21121';
     if (!apiKey || apiKey !== validApiKey) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Unauthorized: Invalid API key' 
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized: Invalid API key',
       });
     }
 
     // Validate required fields
     if (!studentName || !studentPhone || !parentPhone || !studentCode) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required fields', 
-        requiredFields: ['studentName', 'studentPhone', 'parentPhone', 'studentCode'] 
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields',
+        requiredFields: [
+          'studentName',
+          'studentPhone',
+          'parentPhone',
+          'studentCode',
+        ],
       });
     }
 
@@ -1470,30 +1562,32 @@ const createStudentFromExternalSystem = async (req, res) => {
     }
 
     // Check if student code already exists
-    const existingStudent = await User.findOne({ studentCode: studentCode.toString() });
+    const existingStudent = await User.findOne({
+      studentCode: studentCode.toString(),
+    });
     if (existingStudent) {
-      return res.status(409).json({ 
-        success: false, 
+      return res.status(409).json({
+        success: false,
         message: 'Student code already exists',
         existingStudent: {
           id: existingStudent._id,
           name: existingStudent.name,
-          code: existingStudent.studentCode
-        }
+          code: existingStudent.studentCode,
+        },
       });
     }
 
     // Check if phone number already exists
     const existingPhone = await User.findOne({ studentNumber: studentNumber });
     if (existingPhone) {
-      return res.status(409).json({ 
-        success: false, 
+      return res.status(409).json({
+        success: false,
         message: 'Phone number already registered',
         existingStudent: {
           id: existingPhone._id,
           name: existingPhone.name,
-          phone: existingPhone.studentNumber
-        }
+          phone: existingPhone.studentNumber,
+        },
       });
     }
 
@@ -1538,39 +1632,40 @@ const createStudentFromExternalSystem = async (req, res) => {
         username: savedStudent.username,
         isCompleteData: savedStudent.isCompleteData,
         isActive: savedStudent.isActive,
-        createdAt: savedStudent.createdAt
-      }
+        createdAt: savedStudent.createdAt,
+      },
     });
-
   } catch (error) {
     console.error('Error creating student from external system:', error);
-    
+
     // Handle duplicate key errors
     if (error.name === 'MongoServerError' && error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({ 
-        success: false, 
-        message: 'Duplicate entry', 
+      return res.status(409).json({
+        success: false,
+        message: 'Duplicate entry',
         field: field,
-        error: `The ${field} is already in use.`
+        error: `The ${field} is already in use.`,
       });
     }
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((e) => e.message);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Validation error', 
-        errors: validationErrors 
+      const validationErrors = Object.values(error.errors).map(
+        (e) => e.message
+      );
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: validationErrors,
       });
     }
-    
+
     // Handle other errors
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error', 
-      error: error.message 
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
     });
   }
 };
@@ -1588,7 +1683,7 @@ const getForgotPasswordPage = (req, res) => {
   delete req.session.forgot_password_otp_attempts;
   delete req.session.forgot_password_otp_blocked_until;
   delete req.session.lastResetPasswordSubmissionId;
-  
+
   res.render('auth/forgot-password', {
     title: 'Forgot Password | ELKABLY',
     theme: req.cookies.theme || 'light',
@@ -1603,11 +1698,11 @@ const getForgotPasswordPage = (req, res) => {
 const initiateForgotPassword = async (req, res) => {
   try {
     const { identifier } = req.body;
-    
+
     if (!identifier || identifier.trim().length < 3) {
       return res.status(400).json({
         success: false,
-        message: 'Please enter a valid phone number, username, or email'
+        message: 'Please enter a valid phone number, username, or email',
       });
     }
 
@@ -1624,21 +1719,29 @@ const initiateForgotPassword = async (req, res) => {
       user = await User.findOne({
         $or: [
           { studentNumber: inputValue.replace(/[^\d]/g, '') },
-          { $expr: { $eq: [{ $concat: ['$studentCountryCode', '$studentNumber'] }, inputValue] } }
-        ]
+          {
+            $expr: {
+              $eq: [
+                { $concat: ['$studentCountryCode', '$studentNumber'] },
+                inputValue,
+              ],
+            },
+          },
+        ],
       });
     }
     // Try to find by username
     else {
       user = await User.findOne({
-        username: { $regex: new RegExp(`^${inputValue}$`, 'i') }
+        username: { $regex: new RegExp(`^${inputValue}$`, 'i') },
       });
     }
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Account not found. Please check your phone number, username, or email.'
+        message:
+          'Account not found. Please check your phone number, username, or email.',
       });
     }
 
@@ -1653,13 +1756,14 @@ const initiateForgotPassword = async (req, res) => {
       userId: user._id.toString(),
       phoneNumber: user.studentNumber,
       countryCode: user.studentCountryCode,
-      message: 'Account found. OTP will be sent to your registered phone number.'
+      message:
+        'Account found. OTP will be sent to your registered phone number.',
     });
   } catch (error) {
     console.error('Initiate forgot password error:', error);
     return res.status(500).json({
       success: false,
-      message: 'An error occurred. Please try again.'
+      message: 'An error occurred. Please try again.',
     });
   }
 };
@@ -1668,11 +1772,11 @@ const initiateForgotPassword = async (req, res) => {
 const sendForgotPasswordOTP = async (req, res) => {
   try {
     const { phoneNumber, countryCode } = req.body;
-    
+
     if (!phoneNumber || !countryCode) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number and country code are required'
+        message: 'Phone number and country code are required',
       });
     }
 
@@ -1680,7 +1784,7 @@ const sendForgotPasswordOTP = async (req, res) => {
     if (!req.session.forgot_password_user_id) {
       return res.status(400).json({
         success: false,
-        message: 'Session expired. Please start over.'
+        message: 'Session expired. Please start over.',
       });
     }
 
@@ -1689,7 +1793,7 @@ const sendForgotPasswordOTP = async (req, res) => {
     if (cleanPhoneNumber !== req.session.forgot_password_phone_number) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number mismatch. Please start over.'
+        message: 'Phone number mismatch. Please start over.',
       });
     }
 
@@ -1705,12 +1809,14 @@ const sendForgotPasswordOTP = async (req, res) => {
 
     const blockedUntil = req.session[attemptsBlockedKey];
     if (blockedUntil && Date.now() < blockedUntil) {
-      const remainingMinutes = Math.ceil((blockedUntil - Date.now()) / (60 * 1000));
+      const remainingMinutes = Math.ceil(
+        (blockedUntil - Date.now()) / (60 * 1000)
+      );
       return res.status(429).json({
         success: false,
         message: `Too many OTP requests. Please try again after ${remainingMinutes} minute(s).`,
         blockedUntil: blockedUntil,
-        retryAfter: remainingMinutes
+        retryAfter: remainingMinutes,
       });
     }
 
@@ -1723,12 +1829,12 @@ const sendForgotPasswordOTP = async (req, res) => {
       const blockUntil = Date.now() + blockDuration;
       req.session[attemptsBlockedKey] = blockUntil;
       const remainingMinutes = Math.ceil(blockDuration / (60 * 1000));
-      
+
       return res.status(429).json({
         success: false,
         message: `You have exceeded the maximum number of OTP requests (${maxAttempts}). Please try again after ${remainingMinutes} minute(s).`,
         blockedUntil: blockUntil,
-        retryAfter: remainingMinutes
+        retryAfter: remainingMinutes,
       });
     }
 
@@ -1742,32 +1848,32 @@ const sendForgotPasswordOTP = async (req, res) => {
 
     // Store OTP in session with expiration (5 minutes)
     req.session.forgot_password_otp = otp;
-    req.session.forgot_password_otp_expiry = Date.now() + (5 * 60 * 1000);
+    req.session.forgot_password_otp_expiry = Date.now() + 5 * 60 * 1000;
     req.session.forgot_password_phone_verified = false;
 
     // Send OTP via SMS
     const message = `Your ELKABLY password reset code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
-    
+
     try {
       await sendSms({
         recipient: fullPhoneNumber,
         message: message,
       });
-      
+
       console.log(`Forgot password OTP sent to ${fullPhoneNumber}`);
-      
+
       return res.json({
         success: true,
         message: 'OTP sent successfully',
         expiresIn: 300,
-        attemptsRemaining: maxAttempts - req.session[attemptsKey]
+        attemptsRemaining: maxAttempts - req.session[attemptsKey],
       });
     } catch (smsError) {
       console.error('SMS sending error:', smsError);
-      
+
       delete req.session.forgot_password_otp;
       delete req.session.forgot_password_otp_expiry;
-      
+
       return res.status(500).json({
         success: false,
         message: 'Failed to send OTP. Please try again.',
@@ -1788,7 +1894,7 @@ const sendForgotPasswordOTP = async (req, res) => {
 const verifyForgotPasswordOTP = async (req, res) => {
   try {
     const { otp } = req.body;
-    
+
     if (!otp) {
       return res.status(400).json({
         success: false,
@@ -1800,7 +1906,7 @@ const verifyForgotPasswordOTP = async (req, res) => {
     if (!req.session.forgot_password_user_id) {
       return res.status(400).json({
         success: false,
-        message: 'Session expired. Please start over.'
+        message: 'Session expired. Please start over.',
       });
     }
 
@@ -1832,11 +1938,11 @@ const verifyForgotPasswordOTP = async (req, res) => {
 
     // Mark phone as verified
     req.session.forgot_password_phone_verified = true;
-    
+
     // Clear OTP from session (one-time use)
     delete req.session.forgot_password_otp;
     delete req.session.forgot_password_otp_expiry;
-    
+
     // Reset OTP attempts counter on successful verification
     delete req.session.forgot_password_otp_attempts;
     delete req.session.forgot_password_otp_blocked_until;
@@ -1861,9 +1967,18 @@ const resetPassword = async (req, res) => {
     const { userId, newPassword, confirmPassword, submissionId } = req.body;
 
     // Check duplicate submission
-    if (submissionId && req.session.lastResetPasswordSubmissionId === submissionId) {
-      console.log('Duplicate reset password submission detected:', submissionId);
-      req.flash('error_msg', 'Your password reset is already being processed. Please do not refresh or resubmit the form.');
+    if (
+      submissionId &&
+      req.session.lastResetPasswordSubmissionId === submissionId
+    ) {
+      console.log(
+        'Duplicate reset password submission detected:',
+        submissionId
+      );
+      req.flash(
+        'error_msg',
+        'Your password reset is already being processed. Please do not refresh or resubmit the form.'
+      );
       return res.redirect('/auth/forgot-password');
     }
 
@@ -1939,7 +2054,7 @@ const resetPassword = async (req, res) => {
       delete req.session.forgot_password_phone_verified;
       delete req.session.forgot_password_phone_number;
       delete req.session.forgot_password_country_code;
-      
+
       return res.render('auth/forgot-password', {
         title: 'Forgot Password | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -1963,14 +2078,17 @@ const resetPassword = async (req, res) => {
     delete req.session.forgot_password_otp_blocked_until;
     delete req.session.lastResetPasswordSubmissionId;
 
-    req.flash('success_msg', 'Password reset successfully! You can now log in with your new password.');
+    req.flash(
+      'success_msg',
+      'Password reset successfully! You can now log in with your new password.'
+    );
     res.redirect('/auth/login');
   } catch (error) {
     console.error('Reset password error:', error);
-    
+
     // Reset submission ID
     req.session.lastResetPasswordSubmissionId = null;
-    
+
     req.flash('error_msg', 'An error occurred. Please try again.');
     res.redirect('/auth/forgot-password');
   }
@@ -1998,4 +2116,3 @@ module.exports = {
   // External System API
   createStudentFromExternalSystem,
 };
-
