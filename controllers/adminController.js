@@ -11524,73 +11524,77 @@ const deleteAdmin = async (req, res) => {
   try {
     const { adminId } = req.params;
 
+    // Validate adminId
+    if (!mongoose.Types.ObjectId.isValid(adminId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid admin ID format',
+      });
+    }
+
     // Prevent deleting yourself
     if (!req.user || !req.user.id) {
-      req.flash('error', 'User session not found');
-      return res.redirect('/auth/login');
+      return res.status(401).json({
+        success: false,
+        message: 'User session not found',
+      });
     }
 
     if (adminId === req.user.id.toString()) {
-      const admins = await Admin.find({})
-        .select('-password')
-        .sort({ createdAt: -1 })
-        .lean();
-
-      return res.render('admin/create-admin-panel', {
-        title: 'Admin Management',
-        currentPage: 'create-admin',
-        theme: req.cookies.theme || 'light',
-        user: req.user,
-        errors: ['You cannot delete your own account!'],
-        admins: admins || [],
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account!',
       });
     }
 
-    const admin = await Admin.findByIdAndDelete(adminId);
+    const admin = await Admin.findById(adminId);
     if (!admin) {
-      const admins = await Admin.find({})
-        .select('-password')
-        .sort({ createdAt: -1 })
-        .lean();
-
-      return res.render('admin/create-admin-panel', {
-        title: 'Admin Management',
-        currentPage: 'create-admin',
-        theme: req.cookies.theme || 'light',
-        user: req.user,
-        errors: ['Admin not found'],
-        admins: admins || [],
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found',
       });
     }
 
-    // Fetch all admins for the list
-    const admins = await Admin.find({})
-      .select('-password')
-      .sort({ createdAt: -1 })
-      .lean();
+    // Store admin info for logging
+    const adminInfo = {
+      id: admin._id,
+      userName: admin.userName,
+      email: admin.email,
+    };
 
-    return res.render('admin/create-admin-panel', {
-      title: 'Admin Management',
-      currentPage: 'create-admin',
-      theme: req.cookies.theme || 'light',
-      user: req.user,
-      success: `Admin account deleted successfully!`,
-      admins: admins || [],
+    // Log the action before deletion
+    console.log(
+      `Admin ${req.session.user?.username || 'unknown'} deleting admin:`,
+      {
+        adminId: adminInfo.id,
+        adminUserName: adminInfo.userName,
+        adminEmail: adminInfo.email,
+        deletedAt: new Date().toISOString(),
+        deletedBy: req.session.user?.id || 'unknown',
+      }
+    );
+
+    // Delete the admin
+    await Admin.findByIdAndDelete(adminId);
+
+    console.log(
+      `Admin ${adminInfo.userName} (${adminInfo.id}) permanently deleted from database`
+    );
+
+    return res.json({
+      success: true,
+      message: 'Admin account deleted successfully!',
+      deletedAdmin: {
+        id: adminInfo.id,
+        userName: adminInfo.userName,
+        email: adminInfo.email,
+      },
     });
   } catch (error) {
     console.error('Error deleting admin:', error);
-    const admins = await Admin.find({})
-      .select('-password')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    return res.render('admin/create-admin-panel', {
-      title: 'Admin Management',
-      currentPage: 'create-admin',
-      theme: req.cookies.theme || 'light',
-      user: req.user,
-      errors: ['Failed to delete admin: ' + error.message],
-      admins: admins || [],
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete admin: ' + error.message,
     });
   }
 };

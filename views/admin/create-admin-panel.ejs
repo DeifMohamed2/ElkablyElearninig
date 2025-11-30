@@ -346,20 +346,31 @@
   }
 
   // Confirm and delete admin
-  function confirmDeleteAdmin(adminId, adminName) {
+  async function confirmDeleteAdmin(adminId, adminName) {
     if (confirm(`Are you sure you want to delete admin "${adminName}"?\n\nThis action cannot be undone!`)) {
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = `/admin/admins/${adminId}`;
-      
-      const methodInput = document.createElement('input');
-      methodInput.type = 'hidden';
-      methodInput.name = '_method';
-      methodInput.value = 'DELETE';
-      form.appendChild(methodInput);
-      
-      document.body.appendChild(form);
-      form.submit();
+      try {
+        const response = await fetch(`/admin/admins/${adminId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Show success message and reload the page
+          alert(data.message || 'Admin deleted successfully!');
+          window.location.reload();
+        } else {
+          // Show error message
+          alert(data.message || 'Error deleting admin. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting admin:', error);
+        alert('An error occurred while deleting the admin. Please try again.');
+      }
     }
   }
 </script>
