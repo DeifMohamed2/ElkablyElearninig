@@ -360,27 +360,39 @@
               </div>
 
               <div class="question-card-body">
-                <h6 class="question-text">
-                  <% 
-                    const questionTextDisplay = question.questionText.length > 120 ? question.questionText.substring(0, 120) + '...' : question.questionText;
-                    // Enhanced math detection - check for LaTeX markers and math patterns
-                    const hasMath = question.questionText && (
-                      question.questionText.includes('\\') || 
-                      question.questionText.includes('$') || 
-                      /[\^_\{\}]/.test(question.questionText) ||
-                      /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/.test(question.questionText)
-                    );
-                  %>
-                  <% if (hasMath) { %>
-                    <math-field readonly 
-                      style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px; display: block;"
-                      class="question-math-field">
-                      <%= questionTextDisplay %>
-                    </math-field>
-                  <% } else { %>
-                    <%= questionTextDisplay %>
-                  <% } %>
-                </h6>
+                <div class="question-text-wrapper">
+                  <h6 class="question-text-label">
+                    <i class="fas fa-question-circle me-2"></i>Question:
+                  </h6>
+                  <div class="question-text-content">
+                    <% 
+                      const questionTextDisplay = question.questionText.length > 120 ? question.questionText.substring(0, 120) + '...' : question.questionText;
+                      // Enhanced math detection - check for LaTeX markers and math patterns
+                      const hasMath = question.questionText && (
+                        question.questionText.includes('\\') || 
+                        question.questionText.includes('$') || 
+                        /[\^_\{\}]/.test(question.questionText) ||
+                        /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/.test(question.questionText)
+                      );
+                      // Escape HTML but preserve math content
+                      const escapedText = questionTextDisplay
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                    %>
+                    <% if (hasMath) { %>
+                      <math-field readonly 
+                        class="question-math-field"
+                        data-question-text="<%= escapedText %>">
+                        <%= questionTextDisplay %>
+                      </math-field>
+                    <% } else { %>
+                      <p class="question-text-plain"><%= questionTextDisplay %></p>
+                    <% } %>
+                  </div>
+                </div>
 
                 <div class="question-meta">
                   <div class="meta-item">
@@ -393,12 +405,6 @@
                     <span class="question-type-badge <%= question.questionType.toLowerCase().replace('/', '-') %>">
                       <i class="fas fa-<%= question.questionType === 'Written' ? 'edit' : question.questionType === 'MCQ' ? 'list' : 'check-square' %> me-1"></i>
                       <%= question.questionType %>
-                    </span>
-                  </div>
-                  <div class="meta-item">
-                    <span class="points-badge">
-                      <i class="fas fa-star me-1"></i>
-                      <%= question.points %> pts
                     </span>
                   </div>
                 </div>
@@ -417,33 +423,6 @@
 
               <div class="question-card-footer">
                 <div class="question-stats">
-                  <span class="stat-item">
-                    <% if (question.questionType === 'Written') { %>
-                    <i class="fas fa-edit me-1"></i>
-                    <%= question.correctAnswers ? question.correctAnswers.length : 0 %> answers
-                    <% if (question.correctAnswers && question.correctAnswers.length > 0) { %>
-                    <% 
-                              const mandatoryCount = question.correctAnswers.filter(answer => {
-                                if (typeof answer === 'string') return true;
-                                return answer.isMandatory !== false;
-                              }).length;
-                              const optionalCount = question.correctAnswers.length - mandatoryCount;
-                            %>
-                    <% if (mandatoryCount > 0) { %>
-                    <span class="text-success">(<%= mandatoryCount %> mandatory</span>
-                    <% } %>
-                    <% if (optionalCount > 0) { %>
-                    <span class="text-warning">, <%= optionalCount %> optional</span>
-                    <% } %>
-                    <% if (mandatoryCount > 0) { %>
-                    <span class="text-success">)</span>
-                    <% } %>
-                    <% } %>
-                    <% } else { %>
-                    <i class="fas fa-list me-1"></i>
-                    <%= question.options ? question.options.length : 0 %> options
-                    <% } %>
-                  </span>
                   <span class="stat-item">
                     <i class="fas fa-calendar me-1"></i>
                     <%= new Date(question.createdAt).toLocaleDateString() %>
@@ -3075,7 +3054,97 @@
     // Setup MathLive virtual keyboard z-index fix
     setupMathLiveKeyboardFix();
 
+    // Initialize math-fields in question cards
+    initializeQuestionCardMathFields();
+
   });
+
+  // Initialize math-fields in question cards
+  function initializeQuestionCardMathFields() {
+    const mathFields = document.querySelectorAll('.question-math-field');
+    mathFields.forEach((field) => {
+      try {
+        // Get the question text from data attribute or innerHTML
+        let questionText = '';
+        if (field.hasAttribute('data-question-text')) {
+          questionText = field.getAttribute('data-question-text');
+        } else if (field.textContent) {
+          questionText = field.textContent.trim();
+        } else if (field.innerHTML) {
+          questionText = field.innerHTML.trim();
+        }
+        
+        // Set the value if we have text
+        if (questionText) {
+          // Clean up the text - remove HTML entities if needed
+          questionText = questionText
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, '&');
+          
+          // Set the value
+          if (field.value !== undefined) {
+            field.value = questionText;
+          } else if (field.setValue) {
+            field.setValue(questionText);
+          } else {
+            // Fallback: set innerHTML
+            field.innerHTML = questionText;
+          }
+        }
+        
+        // Ensure the math-field is visible
+        field.style.display = 'block';
+        field.style.visibility = 'visible';
+        field.style.opacity = '1';
+        
+        // Force MathLive to render
+        if (typeof MathLive !== 'undefined') {
+          // Wait for MathLive to be ready
+          setTimeout(() => {
+            try {
+              // Trigger a re-render
+              if (field.updateValue) {
+                field.updateValue();
+              }
+              // Force update
+              const event = new Event('input', { bubbles: true });
+              field.dispatchEvent(event);
+            } catch (e) {
+              console.warn('MathLive update warning:', e);
+            }
+          }, 100);
+        }
+      } catch (e) {
+        console.warn('MathLive initialization warning:', e);
+      }
+    });
+  }
+  
+  // Re-initialize math fields when new cards are added (for dynamic content)
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.addedNodes.length > 0) {
+        const hasNewMathFields = Array.from(mutation.addedNodes).some(node => {
+          if (node.nodeType === 1) { // Element node
+            return node.querySelector && (node.querySelector('.question-math-field') || node.classList.contains('question-math-field'));
+          }
+          return false;
+        });
+        if (hasNewMathFields) {
+          setTimeout(initializeQuestionCardMathFields, 200);
+        }
+      }
+    });
+  });
+  
+  // Observe the questions container
+  const questionsContainer = document.getElementById('questionsContainer');
+  if (questionsContainer) {
+    observer.observe(questionsContainer, { childList: true, subtree: true });
+  }
 
   // Fix MathLive virtual keyboard z-index to appear above modals
   function setupMathLiveKeyboardFix() {
