@@ -468,39 +468,6 @@
             </div>
             <% } %>
           </div>
-
-          <!-- Pagination -->
-          <% if (pagination.totalPages > 1) { %>
-          <div class="admin-pagination">
-            <nav aria-label="Questions pagination">
-              <ul class="pagination justify-content-center">
-                <% if (pagination.hasPrev) { %>
-                <li class="page-item">
-                  <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&<%= new URLSearchParams(currentFilters).toString() %>">
-                    <i class="fas fa-chevron-left"></i>
-                  </a>
-                </li>
-                <% } %>
-
-                <% for (let i = Math.max(1, pagination.currentPage - 2); i <= Math.min(pagination.totalPages, pagination.currentPage + 2); i++) { %>
-                <li class="page-item <%= i === pagination.currentPage ? 'active' : '' %>">
-                  <a class="page-link" href="?page=<%= i %>&<%= new URLSearchParams(currentFilters).toString() %>">
-                    <%= i %>
-                  </a>
-                </li>
-                <% } %>
-
-                <% if (pagination.hasNext) { %>
-                <li class="page-item">
-                  <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&<%= new URLSearchParams(currentFilters).toString() %>">
-                    <i class="fas fa-chevron-right"></i>
-                  </a>
-                </li>
-                <% } %>
-              </ul>
-            </nav>
-          </div>
-          <% } %>
         </div>
       </div>
     </div>
@@ -603,32 +570,9 @@
             <div class="col-md-8">
               <div class="admin-form-group">
                 <label for="questionText" class="admin-form-label">Question Text *</label>
-                <div class="math-input-container">
-                  <div class="math-input-header">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="mathModeBtn" onclick="switchToMathMode('questionText')">
-                      <i class="fas fa-calculator me-1"></i>
-                      Math Mode
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="textModeBtn" onclick="switchToTextMode('questionText')" style="display: none;">
-                      <i class="fas fa-font me-1"></i>
-                      Text Mode
-                    </button>
-                    <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('questionText')">
-                      <i class="fas fa-keyboard me-1"></i>
-                      Show Symbols
-                    </button>
-                  </div>
-                  <math-field id="questionText" name="questionText" virtual-keyboard-mode="manual" style="width: 100%; min-height: 60px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #ffffff; z-index: 9999;" placeholder="Enter your question here... Use LaTeX for math: $x^2 + 1 = 0$"></math-field>
-                  <textarea class="form-control admin-form-control question-textarea" id="questionTextFallback" name="questionTextFallback" rows="3" placeholder="Enter your question here..." style="display: none;" maxlength="1000"></textarea>
-                  <div class="input-mode-indicator">
-                    <small class="text-muted">
-                      <span id="questionTextModeIndicator">Math Mode: Use LaTeX syntax for equations</span>
-                    </small>
-                  </div>
-                </div>
-                <small class="admin-form-text">Question must be between 10 and 1000 characters. Use the Math Symbols button for mathematical expressions.</small>
+                <textarea class="form-control admin-form-control" id="questionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math expressions, e.g., If $x^2 + 3 = 2x - 2$, what is the value of $x - 4$?" maxlength="1000" required></textarea>
+                <small class="admin-form-text">Question must be between 10 and 1000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$</small>
                 <div class="invalid-feedback" id="questionTextError"></div>
-
               </div>
 
               <div class="admin-form-group">
@@ -888,30 +832,8 @@
             <div class="col-md-8">
               <div class="admin-form-group">
                 <label for="editQuestionText" class="admin-form-label">Question Text *</label>
-                <div class="math-input-container">
-                  <div class="math-input-header">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="editMathModeBtn" onclick="switchToMathMode('editQuestionText')">
-                      <i class="fas fa-calculator me-1"></i>
-                      Math Mode
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="editTextModeBtn" onclick="switchToTextMode('editQuestionText')" style="display: none;">
-                      <i class="fas fa-font me-1"></i>
-                      Text Mode
-                    </button>
-                    <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editQuestionText')">
-                      <i class="fas fa-keyboard me-1"></i>
-                      Show Symbols
-                    </button>
-                  </div>
-                  <math-field id="editQuestionText" name="questionText" virtual-keyboard-mode="manual" style="width: 100%; min-height: 60px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #ffffff; z-index: 9999;" placeholder="Enter your question here... Use LaTeX for math: $x^2 + 1 = 0$"></math-field>
-                  <textarea class="form-control admin-form-control question-textarea" id="editQuestionTextFallback" name="questionTextFallback" rows="3" placeholder="Enter your question here..." style="display: none;" maxlength="1000"></textarea>
-                  <div class="input-mode-indicator">
-                    <small class="text-muted">
-                      <span id="editQuestionTextModeIndicator">Math Mode: Use LaTeX syntax for equations</span>
-                    </small>
-                  </div>
-                </div>
-                <small class="admin-form-text">Question must be between 10 and 1000 characters. Use the Math Symbols button for mathematical expressions.</small>
+                <textarea class="form-control admin-form-control" id="editQuestionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math expressions, e.g., If $x^2 + 3 = 2x - 2$, what is the value of $x - 4$?" maxlength="1000" required></textarea>
+                <small class="admin-form-text">Question must be between 10 and 1000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$</small>
                 <div class="invalid-feedback" id="editQuestionTextError"></div>
               </div>
 
@@ -1161,28 +1083,8 @@
             <input type="radio" name="correctAnswer" value="0" class="option-radio-input" id="optionA">
             <label for="optionA" class="option-radio-label">A</label>
           </div>
-          <div class="math-option-input-container">
-            <div class="math-option-header">
-              <button type="button" class="btn btn-outline-primary btn-sm" id="optionAMathModeBtn" onclick="switchToMathMode('optionText_A')">
-                <i class="fas fa-calculator me-1"></i>
-                Math
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" id="optionATextModeBtn" onclick="switchToTextMode('optionText_A')" style="display: none;">
-                <i class="fas fa-font me-1"></i>
-                Text
-              </button>
-              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('optionText_A')">
-                <i class="fas fa-keyboard me-1"></i>
-                Symbols
-              </button>
-            </div>
-            <math-field id="optionText_A" name="optionText" virtual-keyboard-mode="manual" 
-                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
-                        placeholder="Enter option A"></math-field>
-            <textarea class="form-control option-textarea" id="optionText_A_Fallback" name="optionTextFallback" 
-                      rows="2" placeholder="Enter option A" style="display: none;"></textarea>
-            <input type="hidden" name="optionText" id="optionTextHidden_A">
-          </div>
+          <input type="text" class="form-control option-text-input" name="optionText" 
+                 placeholder="Enter option A (use $...$ for math)" id="optionText_A">
           <button type="button" class="option-remove-btn" onclick="removeOption(this)" style="display: none;">
             <i class="fas fa-trash"></i>
           </button>
@@ -1194,52 +1096,14 @@
             <input type="radio" name="correctAnswer" value="1" class="option-radio-input" id="optionB">
             <label for="optionB" class="option-radio-label">B</label>
           </div>
-          <div class="math-option-input-container">
-            <div class="math-option-header">
-              <button type="button" class="btn btn-outline-primary btn-sm" id="optionBMathModeBtn" onclick="switchToMathMode('optionText_B')">
-                <i class="fas fa-calculator me-1"></i>
-                Math
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" id="optionBTextModeBtn" onclick="switchToTextMode('optionText_B')" style="display: none;">
-                <i class="fas fa-font me-1"></i>
-                Text
-              </button>
-              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('optionText_B')">
-                <i class="fas fa-keyboard me-1"></i>
-                Symbols
-              </button>
-            </div>
-            <math-field id="optionText_B" name="optionText" virtual-keyboard-mode="manual" 
-                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
-                        placeholder="Enter option B"></math-field>
-            <textarea class="form-control option-textarea" id="optionText_B_Fallback" name="optionTextFallback" 
-                      rows="2" placeholder="Enter option B" style="display: none;"></textarea>
-            <input type="hidden" name="optionText" id="optionTextHidden_B">
-          </div>
+          <input type="text" class="form-control option-text-input" name="optionText" 
+                 placeholder="Enter option B (use $...$ for math)" id="optionText_B">
           <button type="button" class="option-remove-btn" onclick="removeOption(this)" style="display: none;">
             <i class="fas fa-trash"></i>
           </button>
         </div>
       </div>
     `;
-
-      // Initialize MathLive for the initial option fields
-      setTimeout(() => {
-        const mathFieldA = document.getElementById('optionText_A');
-        const mathFieldB = document.getElementById('optionText_B');
-
-        if (mathFieldA) {
-          mathFieldA.addEventListener('input', () => {
-            document.getElementById('optionTextHidden_A').value = mathFieldA.value;
-          });
-        }
-
-        if (mathFieldB) {
-          mathFieldB.addEventListener('input', () => {
-            document.getElementById('optionTextHidden_B').value = mathFieldB.value;
-          });
-        }
-      }, 100);
 
       addOptionBtn.style.display = 'block';
       optionCount = 2;
@@ -1259,7 +1123,7 @@
             </label>
           </div>
           <input type="text" class="option-text-input" name="correctAnswers" 
-                 placeholder="Enter correct answer...">
+                 placeholder="Enter correct answer (use $...$ for math)...">
           <button type="button" class="option-remove-btn" onclick="removeCorrectAnswer(this)" style="display: none;">
             <i class="fas fa-trash"></i>
           </button>
@@ -1319,45 +1183,14 @@
         <input type="radio" name="correctAnswer" value="${optionCount}" class="option-radio-input" id="option${optionLetter}">
         <label for="option${optionLetter}" class="option-radio-label">${optionLetter}</label>
       </div>
-      <div class="math-option-input-container">
-        <div class="math-option-header">
-          <button type="button" class="btn btn-outline-primary btn-sm" id="option${optionLetter}MathModeBtn" onclick="switchToMathMode('optionText_${optionLetter}')">
-            <i class="fas fa-calculator me-1"></i>
-            Math
-          </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="option${optionLetter}TextModeBtn" onclick="switchToTextMode('optionText_${optionLetter}')" style="display: none;">
-            <i class="fas fa-font me-1"></i>
-            Text
-          </button>
-          <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('optionText_${optionLetter}')">
-            <i class="fas fa-keyboard me-1"></i>
-            Symbols
-          </button>
-        </div>
-        <math-field id="optionText_${optionLetter}" name="optionText" virtual-keyboard-mode="manual" 
-                    style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
-                    placeholder="Enter option ${optionLetter}"></math-field>
-        <textarea class="form-control option-textarea" id="optionText_${optionLetter}_Fallback" name="optionTextFallback" 
-                  rows="2" placeholder="Enter option ${optionLetter}" style="display: none;"></textarea>
-        <input type="hidden" name="optionText" id="optionTextHidden_${optionLetter}">
-      </div>
+      <input type="text" class="form-control option-text-input" name="optionText" 
+             placeholder="Enter option ${optionLetter} (use $...$ for math)" id="optionText_${optionLetter}">
       <button type="button" class="option-remove-btn" onclick="removeOption(this)">
         <i class="fas fa-trash"></i>
       </button>
     </div>
   `;
     container.appendChild(optionItem);
-
-    // Initialize MathLive for the new option field
-    setTimeout(() => {
-      const mathField = document.getElementById(`optionText_${optionLetter}`);
-      if (mathField) {
-        mathField.addEventListener('input', () => {
-          document.getElementById(`optionTextHidden_${optionLetter}`).value = mathField.value;
-        });
-      }
-    }, 100);
-
     optionCount++;
   }
 
@@ -1416,7 +1249,7 @@
         </label>
       </div>
       <input type="text" class="option-text-input" name="correctAnswers" 
-             placeholder="Enter correct answer...">
+             placeholder="Enter correct answer (use $...$ for math)...">
       <button type="button" class="option-remove-btn" onclick="removeCorrectAnswer(this)">
         <i class="fas fa-trash"></i>
       </button>
@@ -1515,6 +1348,71 @@
       });
   }
 
+  // Parse text and replace $...$ patterns with MathLive fields
+  function parseMathExpressions(text) {
+    if (!text) return '';
+    
+    // Regular expression to match $...$ patterns (non-greedy)
+    const mathPattern = /\$([^$]+)\$/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    let mathIndex = 0;
+    
+    while ((match = mathPattern.exec(text)) !== null) {
+      // Add text before the math expression
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: text.substring(lastIndex, match.index)
+        });
+      }
+      
+      // Add the math expression
+      parts.push({
+        type: 'math',
+        content: match[1], // Content inside $...$
+        index: mathIndex++
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text after the last math expression
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex)
+      });
+    }
+    
+    // If no math expressions found, return the original text
+    if (parts.length === 0) {
+      return text;
+    }
+    
+    // Build HTML with MathLive fields for math expressions
+    let html = '';
+    parts.forEach(part => {
+      if (part.type === 'text') {
+        html += escapeHtml(part.content);
+      } else {
+        // Create a unique ID for each math field
+        const mathId = `math-field-${Date.now()}-${part.index}`;
+        html += `<math-field id="${mathId}" readonly style="display: inline-block; min-height: 24px; font-size: 16px; border: none; background: transparent; padding: 2px 4px; vertical-align: middle;" class="preview-math-field">${escapeHtml(part.content)}</math-field>`;
+      }
+    });
+    
+    return html;
+  }
+  
+  // Escape HTML to prevent XSS
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   // Populate preview modal with question data
   function populatePreviewModal(question) {
     console.log('Populating preview modal with question:', question);
@@ -1522,28 +1420,9 @@
     // Populate the preview modal
     document.getElementById('previewQuestionTitle').textContent = 'Question Preview';
 
-    // Enhanced math detection for question text
-    const questionHasMath = question.questionText && (
-      question.questionText.includes('\\') || 
-      question.questionText.includes('$') || 
-      /[\^_\{\}]/.test(question.questionText) ||
-      /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(question.questionText)
-    );
-    
-    // Render math in question text
+    // Parse question text and render math expressions
     const questionTextElement = document.getElementById('previewQuestionText');
-    if (questionHasMath) {
-      // If it contains math, render it with MathLive
-      questionTextElement.innerHTML = `
-      <math-field readonly 
-        style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
-        class="preview-math-field">
-        ${question.questionText}
-      </math-field>
-    `;
-    } else {
-      questionTextElement.textContent = question.questionText;
-    }
+    questionTextElement.innerHTML = parseMathExpressions(question.questionText);
 
     document.getElementById('previewDifficulty').textContent = question.difficulty;
     document.getElementById('previewDifficulty').className = `question-preview-difficulty ${question.difficulty.toLowerCase()}`;
@@ -1606,28 +1485,8 @@
             isMandatory = answer.isMandatory !== false; // Default to true if not specified
           }
 
-          // Enhanced math detection for answers
-          const hasMath = answerText && (
-            answerText.includes('\\') || 
-            answerText.includes('$') || 
-            /[\^_\{\}]/.test(answerText) ||
-            /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(answerText)
-          );
-          
-          // Check if answer contains math
-          let answerTextHtml = '';
-          if (hasMath) {
-            // Render math for answer text
-            answerTextHtml = `
-            <math-field readonly 
-              style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
-              class="preview-math-field answer-math-field">
-              ${answerText}
-            </math-field>
-          `;
-          } else {
-            answerTextHtml = answerText;
-          }
+          // Parse answer text and render math expressions
+          const answerTextHtml = parseMathExpressions(answerText);
 
           const mandatoryClass = isMandatory ? 'mandatory' : 'optional';
           const mandatoryIcon = isMandatory ? 'fas fa-lock' : 'fas fa-unlock';
@@ -1661,30 +1520,8 @@
         const letter = String.fromCharCode(65 + index);
         const isCorrect = option.isCorrect ? ' correct' : '';
 
-        // Enhanced math detection - check for LaTeX markers and math patterns
-        const hasMath = option.text && (
-          option.text.includes('\\') || 
-          option.text.includes('$') || 
-          /[\^_\{\}]/.test(option.text) || // Check for ^, _, {, }
-          /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(option.text) // Check for Greek letters and math symbols
-        );
-        
-        console.log(`Option ${letter}:`, option.text, 'Contains Math:', hasMath);
-
-        // Check if option text contains math
-        let optionTextHtml = '';
-        if (hasMath) {
-          // Render math for option text
-          optionTextHtml = `
-          <math-field readonly 
-            style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
-            class="preview-math-field option-math-field">
-            ${option.text}
-          </math-field>
-        `;
-        } else {
-          optionTextHtml = option.text;
-        }
+        // Parse option text and render math expressions
+        const optionTextHtml = parseMathExpressions(option.text);
 
         return `
         <div class="question-preview-option${isCorrect}">
@@ -1704,26 +1541,8 @@
     const explanationText = document.getElementById('previewExplanationText');
 
     if (question.explanation && question.explanation.trim()) {
-      // Enhanced math detection for explanation
-      const explanationHasMath = question.explanation && (
-        question.explanation.includes('\\') || 
-        question.explanation.includes('$') || 
-        /[\^_\{\}]/.test(question.explanation) ||
-        /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(question.explanation)
-      );
-      
-      // Render math in explanation if it contains math
-      if (explanationHasMath) {
-        explanationText.innerHTML = `
-        <math-field readonly 
-          style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 6px;"
-          class="preview-math-field">
-          ${question.explanation}
-        </math-field>
-      `;
-      } else {
-        explanationText.textContent = question.explanation;
-      }
+      // Parse explanation and render math expressions
+      explanationText.innerHTML = parseMathExpressions(question.explanation);
       explanationDiv.style.display = 'block';
     } else {
       explanationDiv.style.display = 'none';
@@ -1772,36 +1591,7 @@
 
           // Populate the edit form
           const editQuestionTextElement = document.getElementById('editQuestionText');
-          const editQuestionTextFallback = document.getElementById('editQuestionTextFallback');
-
-          // Enhanced math detection for question text
-          const questionHasMath = question.questionText && (
-            question.questionText.includes('\\') || 
-            question.questionText.includes('$') || 
-            /[\^_\{\}]/.test(question.questionText) ||
-            /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(question.questionText)
-          );
-          
-          // Check if question text contains math and populate accordingly
-          if (questionHasMath) {
-            // Contains LaTeX, use math field
-            editQuestionTextElement.value = question.questionText;
-            editQuestionTextElement.style.display = 'block';
-            editQuestionTextFallback.style.display = 'none';
-
-            // Update button states
-            document.getElementById('editMathModeBtn').style.display = 'none';
-            document.getElementById('editTextModeBtn').style.display = 'inline-block';
-          } else {
-            // Plain text, use textarea
-            editQuestionTextFallback.value = question.questionText;
-            editQuestionTextElement.style.display = 'none';
-            editQuestionTextFallback.style.display = 'block';
-
-            // Update button states
-            document.getElementById('editMathModeBtn').style.display = 'inline-block';
-            document.getElementById('editTextModeBtn').style.display = 'none';
-          }
+          editQuestionTextElement.value = question.questionText || '';
 
           // Populate basic fields
           document.getElementById('editQuestionType').value = question.questionType;
@@ -2168,22 +1958,10 @@
         let hasErrors = false;
 
         // Basic validation - only check essential fields
-        // Check both math and text fields for question text
+        // Get question text from textarea
         const questionTextElement = document.getElementById('questionText');
-        const questionTextFallback = document.getElementById('questionTextFallback').value.trim();
-
-        // Get value from math-field or regular input
-        let questionTextMath = '';
-        if (questionTextElement.tagName === 'MATH-FIELD') {
-          questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
-          console.log('Math field value:', questionTextMath);
-        } else {
-          questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
-          console.log('Regular input value:', questionTextMath);
-        }
-
-        const finalQuestionText = questionTextMath || questionTextFallback;
-        console.log('Final question text:', finalQuestionText);
+        const finalQuestionText = questionTextElement ? questionTextElement.value.trim() : '';
+        console.log('Question text:', finalQuestionText);
 
         // Update the hidden field with the final question text
         const hiddenQuestionText = document.getElementById('hiddenQuestionText');
@@ -2333,30 +2111,16 @@
           // Check all option containers
           const optionContainers = document.querySelectorAll('.question-option-item');
           optionContainers.forEach((container, index) => {
-            const mathField = container.querySelector('math-field');
-            const textField = container.querySelector('textarea');
-            const textInput = container.querySelector('input[type="text"]');
+            const textInput = container.querySelector('input[type="text"].option-text-input');
             const radioInput = container.querySelector('input[type="radio"]');
-            const hiddenField = container.querySelector('input[name="optionText"]');
 
-            let optionText = '';
-            if (mathField && mathField.style.display !== 'none') {
-              optionText = mathField.value.trim();
-            } else if (textField && textField.style.display !== 'none') {
-              optionText = textField.value.trim();
-            } else if (textInput) {
-              optionText = textInput.value.trim();
-            }
-
-            if (optionText) {
-              optionsData.push({
-                text: optionText,
-                isCorrect: correctAnswer && index.toString() === correctAnswer.value
-              });
-
-              // Update hidden field
-              if (hiddenField) {
-                hiddenField.value = optionText;
+            if (textInput) {
+              const optionText = textInput.value.trim();
+              if (optionText) {
+                optionsData.push({
+                  text: optionText,
+                  isCorrect: correctAnswer && index.toString() === correctAnswer.value
+                });
               }
             }
           });
@@ -2465,22 +2229,10 @@
     const editForm = document.getElementById('editQuestionForm');
     if (editForm) {
       editForm.addEventListener('submit', function(e) {
-        // Get question text from math field or fallback
+        // Get question text from textarea
         const questionTextElement = document.getElementById('editQuestionText');
-        const questionTextFallback = document.getElementById('editQuestionTextFallback').value.trim();
-
-        // Get value from math-field or regular input
-        let questionTextMath = '';
-        if (questionTextElement.tagName === 'MATH-FIELD') {
-          questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
-          console.log('Edit Math field value:', questionTextMath);
-        } else {
-          questionTextMath = questionTextElement.value ? questionTextElement.value.trim() : '';
-          console.log('Edit Regular input value:', questionTextMath);
-        }
-
-        const finalQuestionText = questionTextMath || questionTextFallback;
-        console.log('Edit Final question text:', finalQuestionText);
+        const finalQuestionText = questionTextElement ? questionTextElement.value.trim() : '';
+        console.log('Edit Question text:', finalQuestionText);
 
         // Update the hidden field with the final question text
         const hiddenQuestionText = document.getElementById('editHiddenQuestionText');
@@ -2624,30 +2376,16 @@
           // Check all option containers
           const optionContainers = document.querySelectorAll('#editOptionsContainer .question-option-item');
           optionContainers.forEach((container, index) => {
-            const mathField = container.querySelector('math-field');
-            const textField = container.querySelector('textarea');
-            const textInput = container.querySelector('input[type="text"]');
+            const textInput = container.querySelector('input[type="text"].option-text-input');
             const radioInput = container.querySelector('input[type="radio"]');
-            const hiddenField = container.querySelector('input[name="editOptionText"]');
 
-            let optionText = '';
-            if (mathField && mathField.style.display !== 'none') {
-              optionText = mathField.value.trim();
-            } else if (textField && textField.style.display !== 'none') {
-              optionText = textField.value.trim();
-            } else if (textInput) {
-              optionText = textInput.value.trim();
-            }
-
-            if (optionText) {
-              optionsData.push({
-                text: optionText,
-                isCorrect: correctAnswer && index.toString() === correctAnswer.value
-              });
-
-              // Update hidden field
-              if (hiddenField) {
-                hiddenField.value = optionText;
+            if (textInput) {
+              const optionText = textInput.value.trim();
+              if (optionText) {
+                optionsData.push({
+                  text: optionText,
+                  isCorrect: correctAnswer && index.toString() === correctAnswer.value
+                });
               }
             }
           });
@@ -2852,28 +2590,8 @@
             <input type="radio" name="editCorrectAnswer" value="0" class="option-radio-input" id="editOptionA">
             <label for="editOptionA" class="option-radio-label">A</label>
           </div>
-          <div class="math-option-input-container">
-            <div class="math-option-header">
-              <button type="button" class="btn btn-outline-primary btn-sm" id="editOptionAMathModeBtn" onclick="switchToMathMode('editOptionText_A')">
-                <i class="fas fa-calculator me-1"></i>
-                Math
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" id="editOptionATextModeBtn" onclick="switchToTextMode('editOptionText_A')" style="display: none;">
-                <i class="fas fa-font me-1"></i>
-                Text
-              </button>
-              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editOptionText_A')">
-                <i class="fas fa-keyboard me-1"></i>
-                Symbols
-              </button>
-            </div>
-            <math-field id="editOptionText_A" name="editOptionText" virtual-keyboard-mode="manual" 
-                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
-                        placeholder="Enter option A"></math-field>
-            <textarea class="form-control option-textarea" id="editOptionText_A_Fallback" name="editOptionTextFallback" 
-                      rows="2" placeholder="Enter option A" style="display: none;"></textarea>
-            <input type="hidden" name="editOptionText" id="editOptionTextHidden_A">
-          </div>
+          <input type="text" class="form-control option-text-input" name="editOptionText" 
+                 placeholder="Enter option A (use $...$ for math)" id="editOptionText_A">
           <button type="button" class="option-remove-btn" onclick="removeEditOption(this)" style="display: none;">
             <i class="fas fa-trash"></i>
           </button>
@@ -2885,52 +2603,14 @@
             <input type="radio" name="editCorrectAnswer" value="1" class="option-radio-input" id="editOptionB">
             <label for="editOptionB" class="option-radio-label">B</label>
           </div>
-          <div class="math-option-input-container">
-            <div class="math-option-header">
-              <button type="button" class="btn btn-outline-primary btn-sm" id="editOptionBMathModeBtn" onclick="switchToMathMode('editOptionText_B')">
-                <i class="fas fa-calculator me-1"></i>
-                Math
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" id="editOptionBTextModeBtn" onclick="switchToTextMode('editOptionText_B')" style="display: none;">
-                <i class="fas fa-font me-1"></i>
-                Text
-              </button>
-              <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editOptionText_B')">
-                <i class="fas fa-keyboard me-1"></i>
-                Symbols
-              </button>
-            </div>
-            <math-field id="editOptionText_B" name="editOptionText" virtual-keyboard-mode="manual" 
-                        style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
-                        placeholder="Enter option B"></math-field>
-            <textarea class="form-control option-textarea" id="editOptionText_B_Fallback" name="editOptionTextFallback" 
-                      rows="2" placeholder="Enter option B" style="display: none;"></textarea>
-            <input type="hidden" name="editOptionText" id="editOptionTextHidden_B">
-          </div>
+          <input type="text" class="form-control option-text-input" name="editOptionText" 
+                 placeholder="Enter option B (use $...$ for math)" id="editOptionText_B">
           <button type="button" class="option-remove-btn" onclick="removeEditOption(this)" style="display: none;">
             <i class="fas fa-trash"></i>
           </button>
         </div>
       </div>
     `;
-
-      // Initialize MathLive for the initial option fields
-      setTimeout(() => {
-        const mathFieldA = document.getElementById('editOptionText_A');
-        const mathFieldB = document.getElementById('editOptionText_B');
-
-        if (mathFieldA) {
-          mathFieldA.addEventListener('input', () => {
-            document.getElementById('editOptionTextHidden_A').value = mathFieldA.value;
-          });
-        }
-
-        if (mathFieldB) {
-          mathFieldB.addEventListener('input', () => {
-            document.getElementById('editOptionTextHidden_B').value = mathFieldB.value;
-          });
-        }
-      }, 100);
       addOptionBtn.style.display = 'block';
       editOptionCount = 2;
     } else if (questionType === 'Written') {
@@ -2949,7 +2629,7 @@
             </label>
           </div>
           <input type="text" class="option-text-input" name="editCorrectAnswers" 
-                 placeholder="Enter correct answer...">
+                 placeholder="Enter correct answer (use $...$ for math)...">
           <button type="button" class="option-remove-btn" onclick="removeEditCorrectAnswer(this)" style="display: none;">
             <i class="fas fa-trash"></i>
           </button>
@@ -3009,45 +2689,14 @@
         <input type="radio" name="editCorrectAnswer" value="${editOptionCount}" class="option-radio-input" id="editOption${optionLetter}">
         <label for="editOption${optionLetter}" class="option-radio-label">${optionLetter}</label>
       </div>
-      <div class="math-option-input-container">
-        <div class="math-option-header">
-          <button type="button" class="btn btn-outline-primary btn-sm" id="editOption${optionLetter}MathModeBtn" onclick="switchToMathMode('editOptionText_${optionLetter}')">
-            <i class="fas fa-calculator me-1"></i>
-            Math
-          </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="editOption${optionLetter}TextModeBtn" onclick="switchToTextMode('editOptionText_${optionLetter}')" style="display: none;">
-            <i class="fas fa-font me-1"></i>
-            Text
-          </button>
-          <button type="button" class="btn btn-outline-info btn-sm" onclick="showMathKeyboard('editOptionText_${optionLetter}')">
-            <i class="fas fa-keyboard me-1"></i>
-            Symbols
-          </button>
-        </div>
-        <math-field id="editOptionText_${optionLetter}" name="editOptionText" virtual-keyboard-mode="manual" 
-                    style="width: 100%; min-height: 40px; font-size: 14px; border: 2px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #ffffff; z-index: 9999;"
-                    placeholder="Enter option ${optionLetter}"></math-field>
-        <textarea class="form-control option-textarea" id="editOptionText_${optionLetter}_Fallback" name="editOptionTextFallback" 
-                  rows="2" placeholder="Enter option ${optionLetter}" style="display: none;"></textarea>
-        <input type="hidden" name="editOptionText" id="editOptionTextHidden_${optionLetter}">
-      </div>
+      <input type="text" class="form-control option-text-input" name="editOptionText" 
+             placeholder="Enter option ${optionLetter} (use $...$ for math)" id="editOptionText_${optionLetter}">
       <button type="button" class="option-remove-btn" onclick="removeEditOption(this)">
         <i class="fas fa-trash"></i>
       </button>
     </div>
   `;
     container.appendChild(optionItem);
-
-    // Initialize MathLive for the new option field
-    setTimeout(() => {
-      const mathField = document.getElementById(`editOptionText_${optionLetter}`);
-      if (mathField) {
-        mathField.addEventListener('input', () => {
-          document.getElementById(`editOptionTextHidden_${optionLetter}`).value = mathField.value;
-        });
-      }
-    }, 100);
-
     editOptionCount++;
   }
 
@@ -3085,7 +2734,7 @@
         </label>
       </div>
       <input type="text" class="option-text-input" name="editCorrectAnswers" 
-             placeholder="Enter correct answer...">
+             placeholder="Enter correct answer (use $...$ for math)...">
       <button type="button" class="option-remove-btn" onclick="removeEditCorrectAnswer(this)">
         <i class="fas fa-trash"></i>
       </button>
@@ -3129,49 +2778,12 @@
     options.forEach((option, index) => {
       const optionItem = optionsContainer.querySelectorAll('.question-option-item')[index];
       if (optionItem) {
-        const mathField = optionItem.querySelector('math-field');
-        const textField = optionItem.querySelector('textarea');
-        const textInput = optionItem.querySelector('input[type="text"]');
+        const textInput = optionItem.querySelector('input[type="text"].option-text-input');
         const radioInput = optionItem.querySelector('input[type="radio"]');
         
-        // Check if option contains math - enhanced detection
-        const hasMath = option.text && (
-          option.text.includes('\\') || 
-          option.text.includes('$') || 
-          /[\^_\{\}]/.test(option.text) ||
-          /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/u.test(option.text)
-        );
-        
-        if (hasMath && mathField) {
-          // Use math field
-          mathField.value = option.text;
-          mathField.style.display = 'block';
-          if (textField) textField.style.display = 'none';
-          if (textInput) textInput.style.display = 'none';
-          
-          // Update button states
-          const mathModeBtn = optionItem.querySelector('[id*="MathModeBtn"]');
-          const textModeBtn = optionItem.querySelector('[id*="TextModeBtn"]');
-          if (mathModeBtn) mathModeBtn.style.display = 'none';
-          if (textModeBtn) textModeBtn.style.display = 'inline-block';
-          
-          // Update hidden field
-          const hiddenField = optionItem.querySelector('input[type="hidden"]');
-          if (hiddenField) {
-            hiddenField.value = option.text;
-          }
-        } else if (textField) {
-          // Use textarea
-          textField.value = option.text;
-          textField.style.display = 'block';
-          if (mathField) mathField.style.display = 'none';
-          if (textInput) textInput.style.display = 'none';
-        } else if (textInput) {
-          // Use text input
-          textInput.value = option.text;
-          textInput.style.display = 'block';
-          if (mathField) mathField.style.display = 'none';
-          if (textField) textField.style.display = 'none';
+        // Populate text input
+        if (textInput) {
+          textInput.value = option.text || '';
         }
         
         // Set correct answer radio
@@ -3650,7 +3262,7 @@
           return b.points - a.points;
         case 'createdAt':
         default:
-          return b.createdAt - a.createdAt;
+          return a.createdAt - b.createdAt;
       }
     });
   }

@@ -38,10 +38,24 @@ const gameRoomSchema = new mongoose.Schema(
       type: Number, // in minutes
       required: true,
     },
-    questions: [
+    // Support for multiple question banks
+    questionBanks: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Question',
+        ref: 'QuestionBank',
+      },
+    ],
+    // Question with source bank tracking
+    questions: [
+      {
+        question: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Question',
+        },
+        sourceBank: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'QuestionBank',
+        },
       },
     ],
     thumbnail: {

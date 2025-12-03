@@ -3880,6 +3880,83 @@ const getQuestionsFromBankForContent = async (req, res) => {
   }
 };
 
+// Get questions from multiple banks for content creation
+const getQuestionsFromMultipleBanksForContent = async (req, res) => {
+  try {
+    const { courseCode, topicId } = req.params;
+    const { bankIds } = req.body; // Array of bank IDs
+    const { difficulty, type, search } = req.query;
+
+    // Verify topic exists
+    const topic = await Topic.findById(topicId);
+    if (!topic) {
+      return res.status(404).json({
+        success: false,
+        message: 'Topic not found',
+      });
+    }
+
+    if (!Array.isArray(bankIds) || bankIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide at least one question bank',
+      });
+    }
+
+    // Build filter
+    const filter = { bank: { $in: bankIds } };
+    if (difficulty && difficulty !== 'all') filter.difficulty = difficulty;
+    if (type && type !== 'all') filter.questionType = type;
+    if (search) {
+      filter.$or = [
+        { questionText: { $regex: search, $options: 'i' } },
+        { explanation: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Get all questions from selected banks
+    const questions = await Question.find(filter)
+      .populate('bank', 'name bankCode')
+      .select(
+        'questionText questionType difficulty options correctAnswers explanation questionImage points tags bank'
+      )
+      .sort({ bank: 1, createdAt: -1 })
+      .lean();
+
+    // Group questions by bank for better organization
+    const questionsByBank = {};
+    questions.forEach((q) => {
+      const bankId = q.bank._id.toString();
+      if (!questionsByBank[bankId]) {
+        questionsByBank[bankId] = {
+          bankInfo: {
+            _id: q.bank._id,
+            name: q.bank.name,
+            bankCode: q.bank.bankCode,
+          },
+          questions: [],
+        };
+      }
+      questionsByBank[bankId].questions.push(q);
+    });
+
+    return res.json({
+      success: true,
+      questionsByBank,
+      totalQuestions: questions.length,
+    });
+  } catch (error) {
+    console.error(
+      'Error fetching questions from multiple banks for content:',
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch questions from multiple banks',
+    });
+  }
+};
+
 // Get question preview for content creation
 const getQuestionPreviewForContent = async (req, res) => {
   try {
@@ -3926,6 +4003,7 @@ const addQuizContent = async (req, res) => {
       title,
       description,
       questionBank,
+      questionBanks, // NEW: Support for multiple banks
       selectedQuestions,
       duration,
       passingScore,
@@ -3944,6 +4022,7 @@ const addQuizContent = async (req, res) => {
     console.log('Adding quiz content:', {
       title,
       questionBank,
+      questionBanks,
       selectedQuestions,
     });
 
@@ -3955,12 +4034,31 @@ const addQuizContent = async (req, res) => {
       });
     }
 
-    // Validate question bank exists
-    const bank = await QuestionBank.findById(questionBank);
-    if (!bank) {
+    // Determine which banks to use
+    let selectedBankIds = [];
+    if (questionBanks) {
+      // Multiple banks selected
+      selectedBankIds = Array.isArray(questionBanks)
+        ? questionBanks
+        : [questionBanks];
+    } else if (questionBank) {
+      // Single bank selected (backward compatibility)
+      selectedBankIds = [questionBank];
+    }
+
+    if (selectedBankIds.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Question bank not found',
+        message: 'At least one question bank must be selected',
+      });
+    }
+
+    // Validate question banks exist
+    const banks = await QuestionBank.find({ _id: { $in: selectedBankIds } });
+    if (banks.length !== selectedBankIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more question banks not found',
       });
     }
 
@@ -3987,20 +4085,33 @@ const addQuizContent = async (req, res) => {
       });
     }
 
-    // Validate that selected questions exist in the question bank
+    // Validate that selected questions exist in the selected banks
     const questionIds = parsedQuestions.map((q) => q.question);
     const existingQuestions = await Question.find({
       _id: { $in: questionIds },
-      bank: questionBank,
-    });
+      bank: { $in: selectedBankIds },
+    }).select('_id bank');
 
     if (existingQuestions.length !== questionIds.length) {
       return res.status(400).json({
         success: false,
         message:
-          'Some selected questions do not exist in the chosen question bank',
+          'Some selected questions do not exist in the chosen question banks',
       });
     }
+
+    // Add sourceBank to each question if not present
+    parsedQuestions = parsedQuestions.map((q) => {
+      if (!q.sourceBank) {
+        const questionDoc = existingQuestions.find(
+          (eq) => eq._id.toString() === q.question.toString()
+        );
+        if (questionDoc) {
+          q.sourceBank = questionDoc.bank;
+        }
+      }
+      return q;
+    });
 
     // Get the next order number for content
     const contentCount = topic.content ? topic.content.length : 0;
@@ -4014,9 +4125,11 @@ const addQuizContent = async (req, res) => {
       type: 'quiz',
       title: title.trim(),
       description: description ? description.trim() : '',
-      questionBank,
+      questionBank: selectedBankIds[0], // For backward compatibility
+      questionBanks: selectedBankIds, // Store all selected banks
       selectedQuestions: parsedQuestions.map((q, index) => ({
         question: q.question,
+        sourceBank: q.sourceBank,
         points: q.points || 1,
         order: index + 1,
       })),
@@ -4068,6 +4181,7 @@ const addHomeworkContent = async (req, res) => {
       title,
       description,
       questionBank,
+      questionBanks, // NEW: Support for multiple banks
       selectedQuestions,
       passingScore,
       maxAttempts,
@@ -4084,6 +4198,7 @@ const addHomeworkContent = async (req, res) => {
     console.log('Adding homework content:', {
       title,
       questionBank,
+      questionBanks,
       selectedQuestions,
     });
 
@@ -4095,12 +4210,31 @@ const addHomeworkContent = async (req, res) => {
       });
     }
 
-    // Validate question bank exists
-    const bank = await QuestionBank.findById(questionBank);
-    if (!bank) {
+    // Determine which banks to use
+    let selectedBankIds = [];
+    if (questionBanks) {
+      // Multiple banks selected
+      selectedBankIds = Array.isArray(questionBanks)
+        ? questionBanks
+        : [questionBanks];
+    } else if (questionBank) {
+      // Single bank selected (backward compatibility)
+      selectedBankIds = [questionBank];
+    }
+
+    if (selectedBankIds.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Question bank not found',
+        message: 'At least one question bank must be selected',
+      });
+    }
+
+    // Validate question banks exist
+    const banks = await QuestionBank.find({ _id: { $in: selectedBankIds } });
+    if (banks.length !== selectedBankIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more question banks not found',
       });
     }
 
@@ -4127,20 +4261,33 @@ const addHomeworkContent = async (req, res) => {
       });
     }
 
-    // Validate that selected questions exist in the question bank
+    // Validate that selected questions exist in the selected banks
     const questionIds = parsedQuestions.map((q) => q.question);
     const existingQuestions = await Question.find({
       _id: { $in: questionIds },
-      bank: questionBank,
-    });
+      bank: { $in: selectedBankIds },
+    }).select('_id bank');
 
     if (existingQuestions.length !== questionIds.length) {
       return res.status(400).json({
         success: false,
         message:
-          'Some selected questions do not exist in the chosen question bank',
+          'Some selected questions do not exist in the chosen question banks',
       });
     }
+
+    // Add sourceBank to each question if not present
+    parsedQuestions = parsedQuestions.map((q) => {
+      if (!q.sourceBank) {
+        const questionDoc = existingQuestions.find(
+          (eq) => eq._id.toString() === q.question.toString()
+        );
+        if (questionDoc) {
+          q.sourceBank = questionDoc.bank;
+        }
+      }
+      return q;
+    });
 
     // Get the next order number for content
     const contentCount = topic.content ? topic.content.length : 0;
@@ -4154,9 +4301,11 @@ const addHomeworkContent = async (req, res) => {
       type: 'homework',
       title: title.trim(),
       description: description ? description.trim() : '',
-      questionBank,
+      questionBank: selectedBankIds[0], // For backward compatibility
+      questionBanks: selectedBankIds, // Store all selected banks
       selectedQuestions: parsedQuestions.map((q, index) => ({
         question: q.question,
+        sourceBank: q.sourceBank,
         points: q.points || 1,
         order: index + 1,
       })),
@@ -12578,6 +12727,7 @@ module.exports = {
   // Quiz/Homework Content Controllers
   getQuestionBanksForContent,
   getQuestionsFromBankForContent,
+  getQuestionsFromMultipleBanksForContent,
   getQuestionPreviewForContent,
   addQuizContent,
   addHomeworkContent,

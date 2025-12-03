@@ -10,12 +10,12 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, 'bulk-import-' + uniqueSuffix + path.extname(file.originalname));
-  }
+  },
 });
 
-const uploadFile = multer({ 
+const uploadFile = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: function (req, file, cb) {
@@ -26,7 +26,7 @@ const uploadFile = multer({
     } else {
       cb(new Error('Only Excel files (.xlsx, .xls) are allowed'));
     }
-  }
+  },
 });
 
 const {
@@ -74,6 +74,7 @@ const {
   // Quiz/Homework Content Controllers
   getQuestionBanksForContent,
   getQuestionsFromBankForContent,
+  getQuestionsFromMultipleBanksForContent,
   getQuestionPreviewForContent,
   addQuizContent,
   addHomeworkContent,
@@ -195,7 +196,7 @@ const {
   getBundlesForMessaging,
   getSessionStatus,
   getSessionDetails,
-  testInvoiceGeneration
+  testInvoiceGeneration,
 } = require('../controllers/whatsappController');
 
 // Admin Dashboard
@@ -220,7 +221,11 @@ router.get(
 );
 router.post('/courses/:courseCode/topics/create', isAdmin, createTopic);
 router.put('/courses/:courseCode/topics/reorder', isAdmin, reorderTopics);
-router.put('/courses/:courseCode/topics/:topicId/content/reorder', isAdmin, reorderContent);
+router.put(
+  '/courses/:courseCode/topics/:topicId/content/reorder',
+  isAdmin,
+  reorderContent
+);
 router.put(
   '/courses/:courseCode/topics/:topicId/visibility',
   isAdmin,
@@ -275,6 +280,11 @@ router.get(
   isAdmin,
   getQuestionsFromBankForContent
 );
+router.post(
+  '/courses/:courseCode/topics/:topicId/question-banks/multiple/questions',
+  isAdmin,
+  getQuestionsFromMultipleBanksForContent
+);
 router.get(
   '/courses/:courseCode/topics/:topicId/questions/:questionId/preview',
   isAdmin,
@@ -290,7 +300,6 @@ router.post(
   isAdmin,
   addHomeworkContent
 );
-
 
 // Bundle Course Routes
 router.get('/bundles', isAdmin, getBundles);
@@ -322,9 +331,19 @@ router.get('/api/bundles', isAdmin, getBundlesAPI);
 // Student Management Routes
 router.get('/students', isAdmin, getStudents);
 router.get('/students/export', isAdmin, exportStudentData);
-router.post('/students/bulk-import', isAdmin, uploadFile.single('excelFile'), bulkImportStudents);
+router.post(
+  '/students/bulk-import',
+  isAdmin,
+  uploadFile.single('excelFile'),
+  bulkImportStudents
+);
 router.get('/students/:studentId/edit', isAdmin, getStudentEditPage);
-router.post('/students/:studentId/update', isAdmin, uploadFile.single('profilePicture'), updateStudent);
+router.post(
+  '/students/:studentId/update',
+  isAdmin,
+  uploadFile.single('profilePicture'),
+  updateStudent
+);
 router.get('/students/:studentId', isAdmin, getStudentDetails);
 router.get('/students/:studentId/export', isAdmin, exportStudentData);
 router.put('/students/:studentId/status', isAdmin, toggleStudentStatus);
@@ -334,11 +353,29 @@ router.delete('/students/:studentId', isAdmin, deleteStudent);
 // Student Enrollment Routes
 router.get('/api/students-for-enrollment', isAdmin, getStudentsForEnrollment);
 router.post('/courses/:courseId/enroll', isAdmin, enrollStudentsToCourse);
-router.post('/courses/:courseId/bulk-enroll', isAdmin, uploadFile.single('excelFile'), bulkEnrollStudentsToCourse);
-router.delete('/courses/:courseId/students/:studentId', isAdmin, removeStudentFromCourse);
+router.post(
+  '/courses/:courseId/bulk-enroll',
+  isAdmin,
+  uploadFile.single('excelFile'),
+  bulkEnrollStudentsToCourse
+);
+router.delete(
+  '/courses/:courseId/students/:studentId',
+  isAdmin,
+  removeStudentFromCourse
+);
 router.post('/bundles/:bundleId/enroll', isAdmin, enrollStudentsToBundle);
-router.post('/bundles/:bundleId/bulk-enroll', isAdmin, uploadFile.single('excelFile'), bulkEnrollStudentsToBundle);
-router.delete('/bundles/:bundleId/students/:studentId', isAdmin, removeStudentFromBundle);
+router.post(
+  '/bundles/:bundleId/bulk-enroll',
+  isAdmin,
+  uploadFile.single('excelFile'),
+  bulkEnrollStudentsToBundle
+);
+router.delete(
+  '/bundles/:bundleId/students/:studentId',
+  isAdmin,
+  removeStudentFromBundle
+);
 
 // Question Bank Routes
 router.use('/question-banks', questionBankRoutes);
@@ -360,7 +397,7 @@ router.get('/book-orders/:bookOrderId', isAdmin, async (req, res) => {
       .populate('user', 'firstName lastName studentEmail')
       .populate('bundle', 'title bundleCode _id')
       .lean();
-    
+
     if (!bookOrder) {
       return res.status(404).json({
         success: false,
@@ -453,10 +490,26 @@ router.delete('/promo-codes/:id/delete', isAdmin, deletePromoCode);
 // Bulk Promo Codes Management Routes
 router.post('/promo-codes/bulk/create', isAdmin, createBulkPromoCodes);
 router.get('/promo-codes/bulk/collections', isAdmin, getBulkCollections);
-router.get('/promo-codes/bulk/collections/:bulkCollectionId', isAdmin, getBulkCollectionDetails);
-router.get('/promo-codes/bulk/collections/:bulkCollectionId/export', isAdmin, exportBulkCollection);
-router.delete('/promo-codes/bulk/collections/:bulkCollectionId', isAdmin, deleteBulkCollection);
-router.put('/promo-codes/bulk/collections/:bulkCollectionId/status', isAdmin, toggleBulkCollectionStatus);
+router.get(
+  '/promo-codes/bulk/collections/:bulkCollectionId',
+  isAdmin,
+  getBulkCollectionDetails
+);
+router.get(
+  '/promo-codes/bulk/collections/:bulkCollectionId/export',
+  isAdmin,
+  exportBulkCollection
+);
+router.delete(
+  '/promo-codes/bulk/collections/:bulkCollectionId',
+  isAdmin,
+  deleteBulkCollection
+);
+router.put(
+  '/promo-codes/bulk/collections/:bulkCollectionId/status',
+  isAdmin,
+  toggleBulkCollectionStatus
+);
 
 // WhatsApp Management Routes
 router.get('/whatsapp', isAdmin, getWhatsAppDashboard);
@@ -464,7 +517,11 @@ router.get('/whatsapp/sessions', isAdmin, getSessionManagement);
 router.post('/whatsapp/sessions', isAdmin, createSession);
 router.post('/whatsapp/sessions/:sessionId/connect', isAdmin, connectSession);
 router.get('/whatsapp/sessions/:sessionId/qrcode', isAdmin, getQRCode);
-router.post('/whatsapp/sessions/:sessionId/disconnect', isAdmin, disconnectSession);
+router.post(
+  '/whatsapp/sessions/:sessionId/disconnect',
+  isAdmin,
+  disconnectSession
+);
 router.delete('/whatsapp/sessions/:sessionId', isAdmin, deleteSession);
 router.post('/whatsapp/bulk-message', isAdmin, sendBulkMessage);
 router.post('/whatsapp/test-message', isAdmin, sendTestMessage);
@@ -479,8 +536,16 @@ router.get('/bulk-sms', isAdmin, getBulkSMSPage);
 router.get('/bulk-sms/students', isAdmin, getStudentsForSMS);
 router.get('/bulk-sms/courses', isAdmin, getCoursesForSMS);
 router.get('/bulk-sms/bundles', isAdmin, getBundlesForSMS);
-router.get('/bulk-sms/course-students-count/:courseId', isAdmin, getCourseStudentsCount);
-router.get('/bulk-sms/bundle-students-count/:bundleId', isAdmin, getBundleStudentsCount);
+router.get(
+  '/bulk-sms/course-students-count/:courseId',
+  isAdmin,
+  getCourseStudentsCount
+);
+router.get(
+  '/bulk-sms/bundle-students-count/:bundleId',
+  isAdmin,
+  getBundleStudentsCount
+);
 router.post('/bulk-sms/send', isAdmin, sendBulkSMS);
 router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
 

@@ -140,7 +140,7 @@ const getQuestionsFromBank = async (req, res) => {
         .select(
           'questionText questionType difficulty points options correctAnswer correctAnswers explanation tags'
         )
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .lean();
 
       total = questions.length;
@@ -151,7 +151,7 @@ const getQuestionsFromBank = async (req, res) => {
         .select(
           'questionText questionType difficulty points options correctAnswer correctAnswers explanation tags'
         )
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
@@ -183,6 +183,75 @@ const getQuestionsFromBank = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch questions',
+    });
+  }
+};
+
+// Get questions from multiple question banks
+const getQuestionsFromMultipleBanks = async (req, res) => {
+  try {
+    const { bankIds } = req.body; // Array of bank IDs
+    const { difficulty, type, search } = req.query;
+
+    console.log('=== GET QUESTIONS FROM MULTIPLE BANKS ===');
+    console.log('Received bankIds:', bankIds);
+
+    if (!Array.isArray(bankIds) || bankIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide at least one question bank',
+      });
+    }
+
+    // Build filter
+    const filter = { bank: { $in: bankIds } };
+    if (difficulty) filter.difficulty = difficulty;
+    if (type) filter.questionType = type;
+    if (search) {
+      filter.$or = [
+        { questionText: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } },
+      ];
+    }
+
+    console.log('Filter:', JSON.stringify(filter));
+
+    // Get all questions from selected banks
+    const questions = await Question.find(filter)
+      .populate('bank', 'name bankCode')
+      .select(
+        'questionText questionType difficulty points options correctAnswer correctAnswers explanation tags bank'
+      )
+      .sort({ bank: 1, createdAt: 1 })
+      .lean();
+
+    console.log(`Found ${questions.length} total questions`);
+
+    // Group questions by bank - simple format for frontend
+    const questionsByBank = {};
+    questions.forEach((q) => {
+      const bankId = q.bank._id.toString();
+      if (!questionsByBank[bankId]) {
+        questionsByBank[bankId] = [];
+      }
+      questionsByBank[bankId].push(q);
+    });
+
+    console.log(
+      `Grouped questions into ${Object.keys(questionsByBank).length} banks`
+    );
+
+    res.json({
+      success: true,
+      questions: questionsByBank, // Match frontend expectation
+      totalQuestions: questions.length,
+    });
+  } catch (error) {
+    console.error('Error fetching questions from multiple banks:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch questions from multiple banks',
+      error: error.message,
     });
   }
 };
@@ -274,6 +343,7 @@ const createQuiz = async (req, res) => {
       description,
       code,
       questionBank,
+      questionBanks, // NEW: Support for multiple banks
       testType,
       duration,
       difficulty,
@@ -286,6 +356,11 @@ const createQuiz = async (req, res) => {
       description: description ? 'present' : 'missing',
       code: code ? 'present' : 'missing',
       questionBank: questionBank ? `present (${questionBank})` : 'missing',
+      questionBanks: questionBanks
+        ? `present (${
+            Array.isArray(questionBanks) ? questionBanks.length : 'not array'
+          })`
+        : 'missing',
       duration:
         duration !== undefined && duration !== null
           ? `present (${duration})`
@@ -300,10 +375,18 @@ const createQuiz = async (req, res) => {
         : 'missing',
     });
 
+    // Check if at least one bank is selected (either single or multiple)
+    const hasQuestionBank =
+      questionBank ||
+      (questionBanks &&
+        (Array.isArray(questionBanks)
+          ? questionBanks.length > 0
+          : questionBanks));
+
     if (
       !title ||
       !code ||
-      !questionBank ||
+      !hasQuestionBank ||
       duration === undefined ||
       duration === null ||
       !difficulty
@@ -367,12 +450,29 @@ const createQuiz = async (req, res) => {
       }
     }
 
-    // Validate question bank exists
-    const bank = await QuestionBank.findById(questionBank);
-    if (!bank) {
+    // Determine which banks to use
+    let selectedBankIds = [];
+    if (questionBanks) {
+      // Multiple banks selected
+      selectedBankIds = Array.isArray(questionBanks)
+        ? questionBanks
+        : [questionBanks];
+    } else if (questionBank) {
+      // Single bank selected (backward compatibility)
+      selectedBankIds = [questionBank];
+    }
+
+    // Validate question banks exist
+    const banks = await QuestionBank.find({ _id: { $in: selectedBankIds } });
+    if (banks.length !== selectedBankIds.length) {
       const errorMessage =
-        'Selected question bank not found. Please select a valid question bank.';
-      console.log('Question bank not found for ID:', questionBank);
+        'One or more selected question banks not found. Please select valid question banks.';
+      console.log(
+        'Question banks not found. Selected:',
+        selectedBankIds.length,
+        'Found:',
+        banks.length
+      );
       if (isAjax) {
         return res.status(400).json({
           success: false,
@@ -383,24 +483,24 @@ const createQuiz = async (req, res) => {
       return res.redirect('/admin/quizzes/create');
     }
 
-    console.log('Question bank found:', bank.name);
+    console.log('Question banks found:', banks.map((b) => b.name).join(', '));
 
-    // Validate that selected questions exist in the question bank
+    // Validate that selected questions exist in the selected banks
     if (parsedQuestions.length > 0) {
       const questionIds = parsedQuestions.map((q) => q.question);
       const existingQuestions = await Question.find({
         _id: { $in: questionIds },
-        bank: questionBank,
-      }).select('_id');
+        bank: { $in: selectedBankIds },
+      }).select('_id bank');
 
       if (existingQuestions.length !== questionIds.length) {
         const missingQuestions = questionIds.filter(
           (id) =>
             !existingQuestions.some((eq) => eq._id.toString() === id.toString())
         );
-        
-        const errorMessage = `Some selected questions do not exist in the selected question bank. Missing: ${missingQuestions.length} questions. Please refresh the page and select questions again.`;
- 
+
+        const errorMessage = `Some selected questions do not exist in the selected question banks. Missing: ${missingQuestions.length} questions. Please refresh the page and select questions again.`;
+
         if (isAjax) {
           return res.status(400).json({
             success: false,
@@ -410,6 +510,19 @@ const createQuiz = async (req, res) => {
         req.flash('error', errorMessage);
         return res.redirect('/admin/quizzes/create');
       }
+
+      // Add sourceBank to each question if not present
+      parsedQuestions = parsedQuestions.map((q) => {
+        if (!q.sourceBank) {
+          const questionDoc = existingQuestions.find(
+            (eq) => eq._id.toString() === q.question.toString()
+          );
+          if (questionDoc) {
+            q.sourceBank = questionDoc.bank;
+          }
+        }
+        return q;
+      });
     }
 
     // Create quiz
@@ -417,7 +530,8 @@ const createQuiz = async (req, res) => {
       title,
       description,
       code,
-      questionBank,
+      questionBank: selectedBankIds[0], // For backward compatibility, store first bank
+      questionBanks: selectedBankIds, // Store all selected banks
       testType,
       selectedQuestions: parsedQuestions,
       duration: parseInt(duration),
@@ -520,6 +634,7 @@ const getEditQuiz = async (req, res) => {
 
     const quiz = await Quiz.findById(id)
       .populate('questionBank', 'name bankCode description totalQuestions')
+      .populate('questionBanks', 'name bankCode description totalQuestions')
       .populate(
         'selectedQuestions.question',
         'questionText questionType difficulty points options correctAnswer explanation tags'
@@ -531,9 +646,15 @@ const getEditQuiz = async (req, res) => {
       return res.redirect('/admin/quizzes');
     }
 
+    // Get all active question banks
     const questionBanks = await QuestionBank.find({ status: 'active' })
       .select('name bankCode description totalQuestions tags')
       .sort({ name: 1 });
+
+    // Determine selected banks - prefer questionBanks array, fallback to questionBank
+    const selectedBankIds = quiz.questionBanks && quiz.questionBanks.length > 0 
+      ? quiz.questionBanks.map(b => b._id.toString())
+      : (quiz.questionBank ? [quiz.questionBank._id.toString()] : []);
 
     res.render('admin/edit-quiz', {
       title: 'Edit Quiz | ELKABLY',
@@ -541,6 +662,7 @@ const getEditQuiz = async (req, res) => {
       currentPage: 'quizzes',
       quiz,
       questionBanks,
+      selectedBankIds,
     });
   } catch (error) {
     console.error('Error fetching quiz for edit:', error);
@@ -592,6 +714,7 @@ const updateQuiz = async (req, res) => {
       description,
       code,
       questionBank,
+      questionBanks,
       duration,
       difficulty,
       instructions,
@@ -611,22 +734,53 @@ const updateQuiz = async (req, res) => {
       description: description ? 'present' : 'missing',
       code: code ? 'present' : 'missing',
       questionBank: questionBank ? `present (${questionBank})` : 'missing',
-      duration: duration !== undefined && duration !== null ? `present (${duration})` : 'missing',
+      duration:
+        duration !== undefined && duration !== null
+          ? `present (${duration})`
+          : 'missing',
       difficulty: difficulty ? `present (${difficulty})` : 'missing',
-      selectedQuestions: selectedQuestions ? `present (${Array.isArray(selectedQuestions) ? selectedQuestions.length : 'not array'})` : 'missing',
+      selectedQuestions: selectedQuestions
+        ? `present (${
+            Array.isArray(selectedQuestions)
+              ? selectedQuestions.length
+              : 'not array'
+          })`
+        : 'missing',
     });
+
+    // Handle questionBanks - support both single and multiple banks
+    let bankIds = [];
+    if (questionBanks) {
+      // If questionBanks is provided (array or JSON string)
+      if (Array.isArray(questionBanks)) {
+        bankIds = questionBanks;
+      } else if (typeof questionBanks === 'string') {
+        try {
+          bankIds = JSON.parse(questionBanks);
+        } catch (e) {
+          bankIds = [questionBanks];
+        }
+      } else {
+        bankIds = [questionBanks];
+      }
+    } else if (questionBank) {
+      // Fallback to single questionBank for backward compatibility
+      bankIds = [questionBank];
+    }
 
     // Basic validation with specific error messages
     const missingFields = [];
     if (!title) missingFields.push('title');
-    if (!description) missingFields.push('description');
     if (!code) missingFields.push('code');
-    if (!questionBank) missingFields.push('questionBank');
-    if (duration === undefined || duration === null) missingFields.push('duration');
+    if (bankIds.length === 0) missingFields.push('questionBank(s)');
+    if (duration === undefined || duration === null)
+      missingFields.push('duration');
     if (!difficulty) missingFields.push('difficulty');
 
     if (missingFields.length > 0) {
-      const errorMessage = `Missing required fields: ${missingFields.join(', ')}`;
+      const errorMessage = `Missing required fields: ${missingFields.join(
+        ', '
+      )}`;
       console.log('Validation failed:', errorMessage);
       if (isAjax) {
         return res.status(400).json({
@@ -674,10 +828,13 @@ const updateQuiz = async (req, res) => {
       }
     }
 
-    // Validate question bank exists
-    const bank = await QuestionBank.findById(questionBank);
-    if (!bank) {
-      const errorMessage = 'Selected question bank not found';
+    // Validate question banks exist
+    const banks = await QuestionBank.find({
+      _id: { $in: bankIds }
+    }).select('_id');
+
+    if (banks.length !== bankIds.length) {
+      const errorMessage = 'One or more selected question banks not found';
       if (isAjax) {
         return res.status(400).json({
           success: false,
@@ -688,14 +845,14 @@ const updateQuiz = async (req, res) => {
       return res.redirect(`/admin/quizzes/${id}/edit`);
     }
 
-    // Validate that selected questions exist in the question bank
+    // Validate that selected questions exist in the selected banks
     if (parsedQuestions.length > 0) {
       const questionIds = parsedQuestions.map((q) => q.question);
 
       const existingQuestions = await Question.find({
         _id: { $in: questionIds },
-        bank: questionBank,
-      }).select('_id');
+        bank: { $in: bankIds },
+      }).select('_id bank');
 
       if (existingQuestions.length !== questionIds.length) {
         const missingQuestions = questionIds.filter(
@@ -703,7 +860,7 @@ const updateQuiz = async (req, res) => {
             !existingQuestions.some((eq) => eq._id.toString() === id.toString())
         );
 
-        const errorMessage = `Some selected questions do not exist in the selected question bank. Missing: ${missingQuestions.length} questions`;
+        const errorMessage = `Some selected questions do not exist in the selected question banks. Missing: ${missingQuestions.length} questions`;
         if (isAjax) {
           return res.status(400).json({
             success: false,
@@ -730,9 +887,11 @@ const updateQuiz = async (req, res) => {
 
     // Update quiz fields
     quiz.title = title;
-    quiz.description = description;
+    quiz.description = description || '';
     quiz.code = code;
-    quiz.questionBank = questionBank;
+    // Update question banks - set both for backward compatibility
+    quiz.questionBanks = bankIds;
+    quiz.questionBank = bankIds[0] || null; // Keep first bank for backward compatibility
     quiz.selectedQuestions = parsedQuestions;
     quiz.duration = parseInt(duration);
     quiz.difficulty = difficulty;
@@ -861,13 +1020,15 @@ const getQuizDetails = async (req, res) => {
         const bestScore = attempts.length
           ? Math.max(...attempts.map((a) => a.score || 0))
           : 0;
-        const lastAttempt = attempts.length ? attempts[attempts.length - 1] : null;
+        const lastAttempt = attempts.length
+          ? attempts[attempts.length - 1]
+          : null;
         return {
           studentId: u._id,
           name:
-            (u.firstName && u.lastName)
+            u.firstName && u.lastName
               ? `${u.firstName} ${u.lastName}`
-              : (u.userName || 'Unknown'),
+              : u.userName || 'Unknown',
           email: u.studentEmail || '',
           attemptsCount: attempts.length,
           bestScore,
@@ -909,8 +1070,10 @@ const deleteQuiz = async (req, res) => {
       // Use direct database query to bypass pre-hook
       const mongoose = require('mongoose');
       const db = mongoose.connection.db;
-      const quizData = await db.collection('quizzes').findOne({ _id: new mongoose.Types.ObjectId(id) });
-      
+      const quizData = await db
+        .collection('quizzes')
+        .findOne({ _id: new mongoose.Types.ObjectId(id) });
+
       console.log('Found quiz data:', quizData ? 'Yes' : 'No');
       if (quizData) {
         // Create a Quiz instance from the raw data
@@ -922,12 +1085,12 @@ const deleteQuiz = async (req, res) => {
       // For soft delete, use normal find (will exclude soft-deleted)
       quiz = await Quiz.findById(id);
     }
-    
+
     if (!quiz) {
       if (isAjax) {
         return res.status(404).json({
           success: false,
-          message: 'Quiz not found'
+          message: 'Quiz not found',
         });
       }
       req.flash('error', 'Quiz not found');
@@ -938,22 +1101,22 @@ const deleteQuiz = async (req, res) => {
       // Hard delete - immediate deletion
       console.log('Performing hard delete for quiz:', id);
       await quiz.hardDelete();
-      
+
       if (isAjax) {
         return res.json({
           success: true,
-          message: 'Quiz permanently deleted successfully'
+          message: 'Quiz permanently deleted successfully',
         });
       }
       req.flash('success', 'Quiz permanently deleted successfully');
     } else {
       // Soft delete - mark as deleted
       await quiz.softDelete(req.session.user.id, reason);
-      
+
       if (isAjax) {
         return res.json({
           success: true,
-          message: 'Quiz moved to trash successfully'
+          message: 'Quiz moved to trash successfully',
         });
       }
       req.flash('success', 'Quiz moved to trash successfully');
@@ -964,14 +1127,14 @@ const deleteQuiz = async (req, res) => {
     }
   } catch (error) {
     console.error('Error deleting quiz:', error);
-    
+
     if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
       return res.status(500).json({
         success: false,
-        message: 'Failed to delete quiz'
+        message: 'Failed to delete quiz',
       });
     }
-    
+
     req.flash('error', 'Failed to delete quiz');
     res.redirect('/admin/quizzes');
   }
@@ -1037,7 +1200,7 @@ const resetStudentQuizAttempts = async (req, res) => {
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: 'Quiz not found'
+        message: 'Quiz not found',
       });
     }
 
@@ -1046,13 +1209,13 @@ const resetStudentQuizAttempts = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Student not found'
+        message: 'Student not found',
       });
     }
 
     // Reset the student's quiz attempts
     const result = await student.resetQuizAttempts(quizId);
-    
+
     if (result.success) {
       res.json({
         success: true,
@@ -1060,20 +1223,20 @@ const resetStudentQuizAttempts = async (req, res) => {
         student: {
           id: student._id,
           name: `${student.firstName} ${student.lastName}`,
-          studentCode: student.studentCode
-        }
+          studentCode: student.studentCode,
+        },
       });
     } else {
       res.status(400).json({
         success: false,
-        message: result.message
+        message: result.message,
       });
     }
   } catch (error) {
     console.error('Error resetting student quiz attempts:', error);
     res.status(500).json({
       success: false,
-      message: 'Error resetting student quiz attempts'
+      message: 'Error resetting student quiz attempts',
     });
   }
 };
@@ -1206,7 +1369,10 @@ const getQuizStudentReview = async (req, res) => {
 
     const quiz = await Quiz.findById(quizId)
       .populate('questionBank', 'name bankCode')
-      .populate('selectedQuestions.question', 'questionText questionType difficulty points options correctAnswer explanation')
+      .populate(
+        'selectedQuestions.question',
+        'questionText questionType difficulty points options correctAnswer explanation'
+      )
       .lean();
 
     if (!quiz) {
@@ -1214,7 +1380,9 @@ const getQuizStudentReview = async (req, res) => {
       return res.redirect('/admin/quizzes');
     }
 
-    const student = await User.findById(studentId).select('firstName lastName userName studentEmail quizAttempts');
+    const student = await User.findById(studentId).select(
+      'firstName lastName userName studentEmail quizAttempts'
+    );
     if (!student) {
       req.flash('error', 'Student not found');
       return res.redirect(`/admin/quizzes/${quizId}`);
@@ -1247,14 +1415,21 @@ const getQuizStudentReview = async (req, res) => {
     });
 
     // Filter quiz questions to only show questions that the student actually attempted
-    const attemptedQuestionIds = new Set((attemptToShow.answers || []).map(answer => answer.questionId.toString()));
-    const attemptedQuestions = (quiz.selectedQuestions || []).filter(sq => 
+    const attemptedQuestionIds = new Set(
+      (attemptToShow.answers || []).map((answer) =>
+        answer.questionId.toString()
+      )
+    );
+    const attemptedQuestions = (quiz.selectedQuestions || []).filter((sq) =>
       attemptedQuestionIds.has(sq.question._id.toString())
     );
 
     // Debug logging
     console.log('Quiz Review Debug:');
-    console.log('- Total quiz questions:', (quiz.selectedQuestions || []).length);
+    console.log(
+      '- Total quiz questions:',
+      (quiz.selectedQuestions || []).length
+    );
     console.log('- Student attempted questions:', attemptedQuestionIds.size);
     console.log('- Attempted question IDs:', Array.from(attemptedQuestionIds));
     console.log('- Filtered questions for review:', attemptedQuestions.length);
@@ -1262,7 +1437,7 @@ const getQuizStudentReview = async (req, res) => {
     // Create a new quiz object with only attempted questions for the review
     const reviewQuiz = {
       ...quiz,
-      selectedQuestions: attemptedQuestions
+      selectedQuestions: attemptedQuestions,
     };
 
     // For admin, always allow showing answers
@@ -1296,7 +1471,7 @@ const restoreQuiz = async (req, res) => {
       if (isAjax) {
         return res.status(404).json({
           success: false,
-          message: 'Deleted quiz not found'
+          message: 'Deleted quiz not found',
         });
       }
       req.flash('error', 'Deleted quiz not found');
@@ -1314,7 +1489,7 @@ const restoreQuiz = async (req, res) => {
     if (isAjax) {
       return res.json({
         success: true,
-        message: 'Quiz restored successfully'
+        message: 'Quiz restored successfully',
       });
     }
 
@@ -1322,14 +1497,14 @@ const restoreQuiz = async (req, res) => {
     res.redirect('/admin/quizzes');
   } catch (error) {
     console.error('Error restoring quiz:', error);
-    
+
     if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
       return res.status(500).json({
         success: false,
-        message: 'Failed to restore quiz'
+        message: 'Failed to restore quiz',
       });
     }
-    
+
     req.flash('error', 'Failed to restore quiz');
     res.redirect('/admin/quizzes');
   }
@@ -1350,9 +1525,16 @@ const getTrashQuizzes = async (req, res) => {
           foreignField: '_id',
           as: 'questionBank',
           pipeline: [
-            { $project: { name: 1, bankCode: 1, description: 1, totalQuestions: 1 } }
-          ]
-        }
+            {
+              $project: {
+                name: 1,
+                bankCode: 1,
+                description: 1,
+                totalQuestions: 1,
+              },
+            },
+          ],
+        },
       },
       {
         $lookup: {
@@ -1360,10 +1542,8 @@ const getTrashQuizzes = async (req, res) => {
           localField: 'createdBy',
           foreignField: '_id',
           as: 'createdBy',
-          pipeline: [
-            { $project: { userName: 1, email: 1 } }
-          ]
-        }
+          pipeline: [{ $project: { userName: 1, email: 1 } }],
+        },
       },
       {
         $lookup: {
@@ -1371,30 +1551,28 @@ const getTrashQuizzes = async (req, res) => {
           localField: 'deletedBy',
           foreignField: '_id',
           as: 'deletedBy',
-          pipeline: [
-            { $project: { userName: 1, email: 1 } }
-          ]
-        }
+          pipeline: [{ $project: { userName: 1, email: 1 } }],
+        },
       },
       {
         $addFields: {
           questionBank: { $arrayElemAt: ['$questionBank', 0] },
           createdBy: { $arrayElemAt: ['$createdBy', 0] },
-          deletedBy: { $arrayElemAt: ['$deletedBy', 0] }
-        }
-      }
+          deletedBy: { $arrayElemAt: ['$deletedBy', 0] },
+        },
+      },
     ]);
 
     console.log('Found trash quizzes:', quizzes.length);
     res.json({
       success: true,
-      quizzes: quizzes
+      quizzes: quizzes,
     });
   } catch (error) {
     console.error('Error getting trash quizzes:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get trash quizzes'
+      message: 'Failed to get trash quizzes',
     });
   }
 };
@@ -1405,13 +1583,13 @@ const getQuizStatsAPI = async (req, res) => {
     const stats = await Quiz.getQuizStats();
     res.json({
       success: true,
-      stats: stats
+      stats: stats,
     });
   } catch (error) {
     console.error('Error getting quiz stats:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get quiz statistics'
+      message: 'Failed to get quiz statistics',
     });
   }
 };
@@ -1420,6 +1598,7 @@ module.exports = {
   getAllQuizzes,
   getCreateQuiz,
   getQuestionsFromBank,
+  getQuestionsFromMultipleBanks,
   getQuestionPreview,
   createQuiz,
   getEditQuiz,

@@ -7,6 +7,12 @@ const QuestionSelectionSchema = new mongoose.Schema({
     ref: 'Question',
     required: true,
   },
+  // Track which bank this question came from
+  sourceBank: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'QuestionBank',
+    required: true,
+  },
   points: {
     type: Number,
     default: 1,
@@ -103,15 +109,7 @@ const ContentItemSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: [
-        'video',
-        'pdf',
-        'homework',
-        'quiz',
-        'reading',
-        'link',
-        'zoom',
-      ],
+      enum: ['video', 'pdf', 'homework', 'quiz', 'reading', 'link', 'zoom'],
       required: true,
     },
     title: {
@@ -140,12 +138,17 @@ const ContentItemSchema = new mongoose.Schema(
     },
 
     // Quiz/Homework specific fields
+    // Support for multiple question banks
+    questionBanks: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'QuestionBank',
+      },
+    ],
+    // Legacy field - kept for backward compatibility
     questionBank: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'QuestionBank',
-      required: function () {
-        return ['quiz', 'homework'].includes(this.type);
-      },
     },
     selectedQuestions: {
       type: [QuestionSelectionSchema],
@@ -225,11 +228,7 @@ const ContentItemSchema = new mongoose.Schema(
     },
     unlockConditions: {
       type: String,
-      enum: [
-        'immediate',
-        'previous_completed',
-        'quiz_passed',
-      ],
+      enum: ['immediate', 'previous_completed', 'quiz_passed'],
       default: 'immediate',
     },
   },
@@ -289,11 +288,7 @@ const TopicSchema = new mongoose.Schema(
     ],
     unlockConditions: {
       type: String,
-      enum: [
-        'immediate',
-        'previous_completed',
-        'quiz_passed',
-      ],
+      enum: ['immediate', 'previous_completed', 'quiz_passed'],
       default: 'immediate',
     },
     createdBy: {

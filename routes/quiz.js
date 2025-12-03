@@ -30,6 +30,7 @@ const {
   getAllQuizzes,
   getCreateQuiz,
   getQuestionsFromBank,
+  getQuestionsFromMultipleBanks,
   getQuestionPreview,
   createQuiz,
   getEditQuiz,
@@ -58,10 +59,17 @@ const quizValidation = [
     .isLength({ min: 3, max: 200 })
     .withMessage('Title must be between 3 and 200 characters'),
   body('description')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
-    .isLength({ min: 10, max: 1000 })
-    .withMessage('Description must be between 10 and 1000 characters'),
+    .custom((value) => {
+      // If description is provided, it must be between 10 and 1000 characters
+      if (value && value.length > 0) {
+        if (value.length < 10 || value.length > 1000) {
+          throw new Error('Description must be between 10 and 1000 characters if provided');
+        }
+      }
+      return true;
+    }),
   body('code')
     .trim()
     .isLength({ min: 3, max: 20 })
@@ -70,8 +78,39 @@ const quizValidation = [
       'Code must be 3-20 characters, uppercase letters, numbers, and hyphens only'
     ),
   body('questionBank')
+    .optional()
     .isMongoId()
     .withMessage('Valid question bank is required'),
+  body('questionBanks')
+    .optional()
+    .custom((value) => {
+      // If questionBanks is provided, it must be an array of MongoDB ObjectIds
+      if (value) {
+        if (Array.isArray(value)) {
+          if (value.length === 0) {
+            throw new Error('At least one question bank is required');
+          }
+          // Validate each ID
+          const mongoose = require('mongoose');
+          for (const id of value) {
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+              throw new Error('Invalid question bank ID in questionBanks array');
+            }
+          }
+        } else {
+          throw new Error('questionBanks must be an array');
+        }
+      }
+      return true;
+    }),
+  body('questionBank')
+    .custom((value, { req }) => {
+      // At least one of questionBank or questionBanks must be provided
+      if (!value && (!req.body.questionBanks || req.body.questionBanks.length === 0)) {
+        throw new Error('At least one question bank is required');
+      }
+      return true;
+    }),
   body('duration')
     .isInt({ min: 0, max: 480 })
     .withMessage(
@@ -113,6 +152,7 @@ router.get('/stats', getQuizStatsAPI);
 
 // API routes for question bank operations
 router.get('/api/banks/:bankId/questions', getQuestionsFromBank);
+router.post('/api/banks/multiple/questions', getQuestionsFromMultipleBanks);
 router.get('/api/questions/:questionId/preview', getQuestionPreview);
 
 // Statistics

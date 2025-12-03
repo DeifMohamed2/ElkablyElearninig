@@ -140,15 +140,13 @@ const getQuestionBank = async (req, res) => {
       return res.redirect('/admin/question-banks/banks');
     }
 
-    // Get questions with pagination
+    // Get all questions (no pagination - scroll only)
     const { 
       difficulty, 
       tags, 
       search,
       sortBy = 'createdAt',
-      sortOrder = 'desc',
-      page = 1,
-      limit = 10
+      sortOrder = 'asc'
     } = req.query;
 
     const questionFilter = { bank: questionBank._id };
@@ -171,16 +169,12 @@ const getQuestionBank = async (req, res) => {
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
+    // Fetch all questions without pagination
     const questions = await Question.find(questionFilter)
       .populate('createdBy', 'name email')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
+      .sort(sort);
 
-    const totalQuestions = await Question.countDocuments(questionFilter);
-    const totalPages = Math.ceil(totalQuestions / parseInt(limit));
+    const totalQuestions = questions.length;
 
     // Get question statistics for this bank
     const questionStats = await getQuestionStatsForBank(questionBank._id);
@@ -194,11 +188,7 @@ const getQuestionBank = async (req, res) => {
       questionStats,
       currentFilters: { difficulty, tags, search, sortBy, sortOrder },
       pagination: {
-        currentPage: parseInt(page),
-        totalPages,
-        totalQuestions,
-        hasNext: parseInt(page) < totalPages,
-        hasPrev: parseInt(page) > 1
+        totalQuestions
       }
     });
   } catch (error) {

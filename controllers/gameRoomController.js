@@ -121,6 +121,7 @@ exports.createGameRoom = async (req, res) => {
       maxPlayers,
       totalTime,
       selectedQuestions,
+      questionBanks, // NEW: Array of selected bank IDs
     } = req.body || {};
 
     // Normalize and coerce inputs
@@ -134,11 +135,16 @@ exports.createGameRoom = async (req, res) => {
       ? normalizedDifficulty
       : 'medium';
 
+    // Parse selected questions - expecting array of objects with question and sourceBank
     let selectedQuestionsArray = [];
     if (Array.isArray(selectedQuestions)) {
       selectedQuestionsArray = selectedQuestions.filter(Boolean);
     } else if (typeof selectedQuestions === 'string') {
-      selectedQuestionsArray = [selectedQuestions];
+      try {
+        selectedQuestionsArray = JSON.parse(selectedQuestions);
+      } catch (e) {
+        selectedQuestionsArray = [selectedQuestions];
+      }
     } else if (
       selectedQuestions &&
       typeof selectedQuestions === 'object' &&
@@ -187,6 +193,40 @@ exports.createGameRoom = async (req, res) => {
       });
     }
 
+    // Process questions to include sourceBank
+    const processedQuestions = selectedQuestionsArray
+      .map((q) => {
+        if (typeof q === 'object' && q.question) {
+          return {
+            question: q.question,
+            sourceBank: q.sourceBank || null,
+          };
+        } else if (typeof q === 'string') {
+          return {
+            question: q,
+            sourceBank: null,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    // Parse questionBanks if provided
+    let bankIds = [];
+    if (questionBanks) {
+      if (Array.isArray(questionBanks)) {
+        bankIds = questionBanks;
+      } else if (typeof questionBanks === 'string') {
+        try {
+          bankIds = JSON.parse(questionBanks);
+        } catch (e) {
+          bankIds = [questionBanks];
+        }
+      } else {
+        bankIds = [questionBanks];
+      }
+    }
+
     // Create game room
     const gameRoom = new GameRoom({
       title: normalizedTitle,
@@ -195,7 +235,8 @@ exports.createGameRoom = async (req, res) => {
       category,
       maxPlayers: maxPlayersNum,
       totalTime: totalTimeMinutes,
-      questions: selectedQuestionsArray,
+      questions: processedQuestions,
+      questionBanks: bankIds,
       createdBy: req.session.user.id,
     });
 

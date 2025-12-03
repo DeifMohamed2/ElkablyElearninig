@@ -1,243 +1,10 @@
 <%- include('./partials/admin-header', { pageCSS: 'quizzes' }) %>
 
+<!-- MathLive for professional math input -->
+<script src="https://unpkg.com/mathlive"></script>
+
 <style>
-/* Circular Question Selection Styles (Like Create Quiz) */
-.questions-grid-container {
-  margin-bottom: 2rem;
-}
-
-.questions-grid-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding: 0 0.5rem;
-}
-
-.questions-grid-header h5 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.questions-count {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.questions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.question-circle {
-  width: 80px;
-  height: 80px;
-  border: 2px solid #e2e8f0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: #ffffff;
-  position: relative;
-  font-weight: 600;
-  color: #374151;
-}
-
-.question-circle:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-  transform: translateY(-2px);
-}
-
-.question-circle:focus {
-  outline: 3px solid #3b82f6;
-  outline-offset: 2px;
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-}
-
-.question-circle.selected {
-  border-color: #10b981;
-  background: #10b981;
-  color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-  transform: scale(1.05);
-  border-width: 3px;
-}
-
-.question-circle.selected:focus {
-  outline: 3px solid #059669;
-  outline-offset: 2px;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-  transform: scale(1.1);
-}
-
-.question-circle.selected .question-circle-number {
-  color: white;
-  font-weight: 900;
-}
-
-.question-circle.selected .question-circle-selected {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.95);
-  color: #10b981;
-}
-
-.question-circle-number {
-  font-size: 1.5rem;
-  font-weight: 700;
-  z-index: 2;
-}
-
-.question-circle.selected .question-circle-number {
-  color: white;
-}
-
-.question-circle-meta {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  display: flex;
-  gap: 2px;
-}
-
-.question-circle-difficulty {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-}
-
-.question-circle-difficulty.easy {
-  background: #28a745;
-}
-
-.question-circle-difficulty.medium {
-  background: #ffc107;
-}
-
-.question-circle-difficulty.hard {
-  background: #dc3545;
-}
-
-.question-circle-type {
-  width: 12px;
-  height: 12px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 700;
-  color: #374151;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.question-circle.selected .question-circle-type {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.question-circle-preview {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  width: 16px;
-  height: 16px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: all 0.2s ease;
-  font-size: 8px;
-  color: #6b7280;
-}
-
-.question-circle:hover .question-circle-preview {
-  opacity: 1;
-}
-
-.question-circle-preview:hover {
-  background: #3b82f6;
-  color: white;
-}
-
-.question-circle-selected {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 24px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: all 0.2s ease;
-  font-size: 12px;
-  color: #10b981;
-}
-
-.question-circle.selected .question-circle-selected {
-  opacity: 1;
-}
-
-/* Selection Summary Enhancements */
-.question-selection-summary {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 16px;
-  margin-top: 16px;
-}
-
-.question-selection-summary-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.question-selection-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.question-selection-stat {
-  text-align: center;
-}
-
-.question-selection-stat-number {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4px;
-}
-
-.question-selection-stat-label {
-  font-size: 12px;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+/* Styles are now in quizzes.css - keeping only edit-quiz specific styles here */
 
 /* Notification Styles */
 .notification {
@@ -803,127 +570,189 @@
     <!-- Question Bank Selection -->
     <div class="quiz-form-section-full-width">
       <div class="question-bank-selection-full-width">
-      <div class="question-bank-selection-title">
-        <i class="fas fa-database"></i>
-        Current Question Bank
-      </div>
+        <div class="quiz-form-group">
+          <label class="quiz-form-label">
+            <i class="fas fa-database"></i>
+            Question Banks * <span id="selectedBanksCount" class="text-muted">(0 selected)</span>
+          </label>
 
-      <!-- Current Bank Info -->
-      <div class="bank-selection-card selected">
-        <div class="bank-selection-title"><%= quiz.questionBank?.name || 'No Bank' %></div>
-        <div class="bank-selection-code"><%= quiz.questionBank?.bankCode || 'N/A' %></div>
-        <div class="bank-selection-stats">
-          <div class="bank-selection-stat">
-            <i class="fas fa-question-circle"></i>
-            <span><%= quiz.questionBank?.totalQuestions || 0 %> questions</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Change Bank Section -->
-      <div class="question-bank-selection-title" style="margin-top: 24px;">
-        <i class="fas fa-exchange-alt"></i>
-        Change Question Bank
-      </div>
-
-      <% if (questionBanks && questionBanks.length > 0) { %>
-        <% questionBanks.forEach(bank => { %>
-          <% if (bank._id.toString() !== quiz.questionBank._id.toString()) { %>
-            <div class="bank-selection-card" data-bank-id="<%= bank._id %>" onclick="selectQuestionBank('<%= bank._id %>')">
-              <div class="bank-selection-title"><%= bank.name %></div>
-              <div class="bank-selection-code"><%= bank.bankCode %></div>
-              <div class="bank-selection-stats">
-                <div class="bank-selection-stat">
-                  <i class="fas fa-question-circle"></i>
-                  <span><%= bank.totalQuestions || 0 %> questions</span>
+          <% if (questionBanks && questionBanks.length > 0) { %>
+          <!-- Multi-Select Bank Cards Grid -->
+          <div class="bank-cards-grid" id="bankCardsGrid">
+            <% questionBanks.forEach(bank => { %>
+            <% 
+              const isSelected = selectedBankIds && selectedBankIds.includes(bank._id.toString());
+            %>
+            <div class="bank-card-enhanced <%= isSelected ? 'selected' : '' %>" 
+                 data-bank-id="<%= bank._id %>" 
+                 data-questions="<%= bank.totalQuestions || 0 %>" 
+                 data-title="<%= bank.name %>" 
+                 data-code="<%= bank.bankCode %>" 
+                 data-description="<%= bank.description || '' %>" 
+                 onclick="toggleBankSelection('<%= bank._id %>')">
+              <div class="bank-card-enhanced-content">
+                <div class="bank-card-enhanced-header">
+                  <div class="bank-card-enhanced-icon">
+                    <i class="fas fa-database"></i>
+                  </div>
+                  <div class="bank-card-enhanced-title-section">
+                    <h5 class="bank-card-enhanced-title"><%= bank.name %></h5>
+                    <span class="bank-card-enhanced-code"><%= bank.bankCode %></span>
+                  </div>
+                </div>
+                <p class="bank-card-enhanced-description"><%= bank.description || 'No description available' %></p>
+                <div class="bank-card-enhanced-footer">
+                  <div class="bank-card-enhanced-questions">
+                    <i class="fas fa-question-circle"></i>
+                    <span><%= bank.totalQuestions || 0 %> questions</span>
+                  </div>
+                  <div class="bank-card-enhanced-select-indicator">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Select</span>
+                  </div>
                 </div>
               </div>
+              <input type="checkbox" id="bank_<%= bank._id %>" value="<%= bank._id %>" <%= isSelected ? 'checked' : '' %> style="display: none;">
             </div>
+            <% }) %>
+          </div>
+
+          <!-- Hidden input to store selected banks -->
+          <input type="hidden" id="questionBank" name="questionBank" value="">
+          <input type="hidden" id="questionBanks" name="questionBanks" value="">
+
+          <% } else { %>
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            No question banks available - Please create a question bank first
+          </div>
           <% } %>
-        <% }) %>
-      <% } else { %>
-        <div class="alert alert-warning">
-          <i class="fas fa-exclamation-triangle"></i>
-          No other question banks available.
-        </div>
-      <% } %>
-
-      <!-- Question Selection Container -->
-      <div id="questionSelectionContainer" class="question-selection-container">
-        <div class="question-selection-header">
-          <div class="question-selection-title">
-            <i class="fas fa-list-check"></i>
-            Question Selection
-          </div>
-          <div class="question-selection-actions">
-            <button class="question-selection-btn" onclick="selectAllQuestions()">
-              <i class="fas fa-check-double"></i>
-              Select All
-            </button>
-            <button class="question-selection-btn" onclick="clearSelection()">
-              <i class="fas fa-times"></i>
-              Clear All
-            </button>
-          </div>
         </div>
 
-        <!-- Question Filters -->
-        <div class="question-filters">
-          <div class="question-filter-group">
-            <label class="question-filter-label">Difficulty</label>
-            <select class="question-filter-select" id="difficultyFilter" onchange="filterQuestions()">
-              <option value="">All</option>
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-          </div>
-          <div class="question-filter-group">
-            <label class="question-filter-label">Type</label>
-            <select class="question-filter-select" id="typeFilter" onchange="filterQuestions()">
-              <option value="">All</option>
-              <option value="multiple_choice">Multiple Choice</option>
-              <option value="true_false">True/False</option>
-              <option value="fill_blank">Fill in the Blank</option>
-              <option value="short_answer">Short Answer</option>
-            </select>
-          </div>
-          <div class="question-filter-group">
-            <label class="question-filter-label">Search</label>
-            <input type="text" class="question-filter-select" id="searchFilter" 
-                   placeholder="Search questions..." onkeyup="filterQuestions()">
-          </div>
-        </div>
-
-        <!-- Questions Grid with Circular Selection -->
-        <div class="questions-grid-container">
-          <div class="questions-grid-header">
-            <h5>Available Questions</h5>
-            <span class="questions-count" id="questionsCount">(0 questions)</span>
-          </div>
-          <div id="questionsList" class="questions-grid">
-            <!-- Questions will be loaded here with circular selection -->
-          </div>
-        </div>
-
-        <!-- Selection Summary -->
-        <div class="question-selection-summary">
-          <div class="question-selection-summary-title">
-            <i class="fas fa-chart-bar"></i>
-            Selection Summary
-          </div>
-          <div class="question-selection-stats">
-            <div class="question-selection-stat">
-              <span class="question-selection-stat-number" id="selectedCount">0</span>
-              <span class="question-selection-stat-label">Selected</span>
+        <!-- Question Selection Container -->
+        <div id="questionSelectionContainer" class="question-selection-container" style="margin-top: 2rem;">
+          <!-- Bank Filter Section -->
+          <div class="question-bank-filter-section">
+            <div class="filter-section-header">
+              <i class="fas fa-database"></i>
+              <span>Filter by Question Bank</span>
             </div>
-            <div class="question-selection-stat">
-              <span class="question-selection-stat-number" id="totalPoints">0</span>
-              <span class="question-selection-stat-label">Total Points</span>
+            <div class="bank-filter-buttons" id="bankFilterButtons">
+              <button type="button" class="bank-filter-btn active" data-bank-id="all" onclick="filterByBank('all')">
+                <i class="fas fa-th"></i>
+                All Banks
+              </button>
+              <!-- Bank filter buttons will be dynamically added here -->
             </div>
-            <div class="question-selection-stat">
-              <span class="question-selection-stat-number" id="avgDifficulty">-</span>
-              <span class="question-selection-stat-label">Avg Difficulty</span>
+          </div>
+
+          <!-- Question Filters Section -->
+          <div class="question-filters-section">
+            <div class="filters-row">
+              <div class="filter-item">
+                <label class="filter-label">
+                  <i class="fas fa-signal"></i>
+                  Difficulty
+                </label>
+                <select class="filter-select" id="difficultyFilter" onchange="filterQuestions()">
+                  <option value="">All Difficulties</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label class="filter-label">
+                  <i class="fas fa-tag"></i>
+                  Type
+                </label>
+                <select class="filter-select" id="typeFilter" onchange="filterQuestions()">
+                  <option value="">All Types</option>
+                  <option value="MCQ">Multiple Choice</option>
+                  <option value="True/False">True/False</option>
+                  <option value="Written">Written</option>
+                </select>
+              </div>
+
+              <div class="filter-item filter-search">
+                <label class="filter-label">
+                  <i class="fas fa-search"></i>
+                  Search
+                </label>
+                <input type="text" class="filter-search-input" id="searchFilter" placeholder="Search questions..." onkeyup="filterQuestions()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Selection Tools -->
+          <div class="quick-selection-tools">
+            <div class="selection-tools-left">
+              <input type="text" class="range-input" id="rangeInput" placeholder="Range: 1-5, 8, 10-12">
+              <button type="button" class="tool-btn" onclick="selectRange()">
+                <i class="fas fa-list-ol"></i>
+                Select Range
+              </button>
+            </div>
+            <div class="selection-tools-right">
+              <button type="button" class="tool-btn" onclick="selectAllQuestions()">
+                <i class="fas fa-check-double"></i>
+                Select All
+              </button>
+              <button type="button" class="tool-btn" onclick="clearSelection()">
+                <i class="fas fa-times"></i>
+                Clear
+              </button>
+              <button type="button" class="tool-btn" onclick="selectEvenQuestions()">
+                <i class="fas fa-sort-numeric-down"></i>
+                Even
+              </button>
+              <button type="button" class="tool-btn" onclick="selectOddQuestions()">
+                <i class="fas fa-sort-numeric-up"></i>
+                Odd
+              </button>
+              <button type="button" class="tool-btn" onclick="selectRandomQuestions()">
+                <i class="fas fa-random"></i>
+                Random 30%
+              </button>
+            </div>
+          </div>
+
+          <!-- Questions List Container -->
+          <div class="questions-list-container">
+            <div class="questions-list" id="questionsList">
+              <!-- Questions will be loaded here -->
+            </div>
+            <div id="noQuestionsMessage" class="no-questions-message">
+              <i class="fas fa-question-circle"></i>
+              <p>No Questions Loaded</p>
+              <small>Please select question banks to load questions.</small>
+            </div>
+          </div>
+
+          <!-- Selection Summary -->
+          <div class="selection-summary" id="selectionSummary">
+            <div class="summary-item">
+              <span class="summary-label">Selected Questions:</span>
+              <span class="summary-value" id="selectedCount">0</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Total Points:</span>
+              <span class="summary-value" id="totalPoints">0</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Difficulty Distribution:</span>
+              <div class="difficulty-distribution" id="difficultyDistribution">
+                <div class="difficulty-item">
+                  <span class="badge bg-success">Easy: <span id="easyCount">0</span></span>
+                </div>
+                <div class="difficulty-item">
+                  <span class="badge bg-warning">Medium: <span id="mediumCount">0</span></span>
+                </div>
+                <div class="difficulty-item">
+                  <span class="badge bg-danger">Hard: <span id="hardCount">0</span></span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1111,9 +940,9 @@
 
 
 
-<!-- Question Preview Modal -->
+<!-- Enhanced Question Preview Modal -->
 <div class="modal fade question-preview-modal" id="questionPreviewModal" tabindex="-1" aria-labelledby="questionPreviewModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content admin-modal-content">
       <div class="modal-header admin-modal-header">
         <h5 class="modal-title" id="questionPreviewModalLabel">
@@ -1123,8 +952,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body admin-modal-body">
-        <div id="questionPreviewContent" class="question-preview-content">
-          <!-- Question preview will be loaded here -->
+        <div id="questionPreviewContent" class="enhanced-question-preview-content">
+          <!-- Enhanced question preview will be loaded here -->
         </div>
       </div>
     </div>
@@ -1133,10 +962,17 @@
 
 <script>
 // Fix the JSON parsing issues by properly escaping the data
-let selectedBankId = '<%= quiz.questionBank._id %>';
+let selectedBankIds = <%- JSON.stringify(selectedBankIds || []) %>;
 let selectedQuestions = <%- JSON.stringify(quiz.selectedQuestions || []) %>;
 let allQuestions = [];
+let bankInfoMap = {};
 let quizId = '<%= quiz._id %>';
+window.currentBankFilter = 'all';
+
+// Ensure selectedBankIds is always an array
+if (!Array.isArray(selectedBankIds)) {
+  selectedBankIds = [];
+}
 
 // Ensure selectedQuestions is always an array
 if (!Array.isArray(selectedQuestions)) {
@@ -1150,6 +986,7 @@ selectedQuestions = selectedQuestions.map(sq => {
     // If question is a populated object, extract just the ID
     return {
       question: sq.question._id.toString(),
+      sourceBank: sq.sourceBank?.toString() || sq.sourceBank,
       order: sq.order || 1,
       points: sq.points || 1
     };
@@ -1157,19 +994,76 @@ selectedQuestions = selectedQuestions.map(sq => {
   // If question is already just an ID, ensure it's a string
   return {
     question: sq.question?.toString() || sq.question,
+    sourceBank: sq.sourceBank?.toString() || sq.sourceBank,
     order: sq.order || 1,
     points: sq.points || 1
   };
 });
 
+// Toggle Bank Selection
+function toggleBankSelection(bankId) {
+  const bankCard = document.querySelector(`[data-bank-id="${bankId}"]`);
+  const checkbox = bankCard.querySelector('input[type="checkbox"]');
+  const isCurrentlySelected = selectedBankIds.includes(bankId);
+
+  if (isCurrentlySelected) {
+    // Remove bank from selection
+    const index = selectedBankIds.indexOf(bankId);
+    if (index > -1) {
+      selectedBankIds.splice(index, 1);
+      bankCard.classList.remove('selected');
+      checkbox.checked = false;
+
+      // Remove questions from this bank
+      selectedQuestions = selectedQuestions.filter(sq => sq.sourceBank !== bankId);
+      allQuestions = allQuestions.filter(q => q.sourceBank !== bankId);
+    }
+  } else {
+    // Add bank to selection
+    selectedBankIds.push(bankId);
+    bankCard.classList.add('selected');
+    checkbox.checked = true;
+  }
+
+  updateBanksCount();
+  updateHiddenInputs();
+
+  // Reload questions if banks changed
+  if (selectedBankIds.length > 0) {
+    loadQuestions();
+  } else {
+    document.getElementById('questionsList').innerHTML = '';
+    document.getElementById('noQuestionsMessage').style.display = 'flex';
+  }
+}
+
+function updateBanksCount() {
+  const count = selectedBankIds.length;
+  const countElement = document.getElementById('selectedBanksCount');
+  if (countElement) countElement.textContent = `(${count} selected)`;
+}
+
+function updateHiddenInputs() {
+  const questionBankInput = document.getElementById('questionBank');
+  const questionBanksInput = document.getElementById('questionBanks');
+  if (questionBankInput) questionBankInput.value = selectedBankIds[0] || '';
+  if (questionBanksInput) questionBanksInput.value = JSON.stringify(selectedBankIds);
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-  loadQuestions(selectedBankId);
-  updateSelectionSummary();
+  // Initialize bank selection state
+  updateBanksCount();
+  updateHiddenInputs();
+
+  // Load questions if banks are already selected
+  if (selectedBankIds.length > 0) {
+    loadQuestions();
+  }
   
   // Ensure selection state is correct after page loads
   setTimeout(() => {
-    refreshSelectionState();
+    restoreQuestionSelection();
     updateSelectionSummary();
   }, 500);
   
@@ -1180,215 +1074,441 @@ document.addEventListener('DOMContentLoaded', function() {
       selectStatusOption(newStatus);
     });
   });
-  
-  // Add loading state management
-  const loadingIndicator = document.createElement('div');
-  loadingIndicator.id = 'loadingIndicator';
-  loadingIndicator.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.8);
-    color: white;
-    padding: 20px;
-    border-radius: 8px;
-    z-index: 10000;
-    display: none;
-  `;
-  loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-  document.body.appendChild(loadingIndicator);
 });
 
-// Load Questions from Bank
-async function loadQuestions(bankId) {
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  
+// Load Questions from Multiple Banks
+async function loadQuestions() {
+  if (selectedBankIds.length === 0) {
+    showNotification('No banks selected', 'error');
+    return;
+  }
+
   try {
-    if (loadingIndicator) loadingIndicator.style.display = 'block';
-    
-    const response = await fetch(`/admin/quizzes/api/banks/${bankId}/questions?all=true`);
-    const data = await response.json();
-    
-    if (data.success) {
-      allQuestions = data.questions;
-      displayQuestions(data.questions);
+    const response = await fetch('/admin/quizzes/api/banks/multiple/questions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        bankIds: selectedBankIds
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success && result.questions) {
+      // result.questions is grouped by bank: { bankId: [...questions] }
+      allQuestions = [];
+      bankInfoMap = {};
+
+      // Flatten and add sourceBank to each question
+      Object.entries(result.questions).forEach(([bankId, questions]) => {
+        if (Array.isArray(questions)) {
+          const bankCard = document.querySelector(`[data-bank-id="${bankId}"]`);
+          const bankName = bankCard ? bankCard.dataset.title : 'Unknown Bank';
+          const bankCode = bankCard ? bankCard.dataset.code : '';
+
+          bankInfoMap[bankId] = {
+            name: bankName,
+            code: bankCode
+          };
+
+          questions.forEach(q => {
+            allQuestions.push({
+              ...q,
+              sourceBank: bankId
+            });
+          });
+        }
+      });
+
+      displayQuestions(result.questions);
+      showNotification(`Loaded ${allQuestions.length} questions from ${selectedBankIds.length} bank(s)`, 'success');
     } else {
-      showNotification('Failed to load questions', 'error');
+      showNotification(result.message || 'Failed to load questions', 'error');
     }
   } catch (error) {
-    showNotification('Error loading questions', 'error');
-  } finally {
-    if (loadingIndicator) loadingIndicator.style.display = 'none';
+    console.error('Error loading questions:', error);
+    showNotification('An error occurred while loading questions', 'error');
   }
 }
 
-// Display Questions with Circular Selection (Like Create Quiz)
-function displayQuestions(questions) {
+// Display Questions - All together, no grouping (Like Create Quiz)
+function displayQuestions(questionsByBank) {
   const questionsList = document.getElementById('questionsList');
-  const questionsCount = document.getElementById('questionsCount');
-  
-  questionsList.innerHTML = '';
-  questionsCount.textContent = `(${questions.length} questions)`;
-  
-  questions.forEach((question, index) => {
-    const questionCircle = document.createElement('div');
-    questionCircle.className = 'question-circle';
-    questionCircle.dataset.questionId = question._id;
-    questionCircle.dataset.questionIndex = index;
-    questionCircle.tabIndex = 0; // Make focusable
-    questionCircle.setAttribute('role', 'button');
-    questionCircle.setAttribute('aria-label', `Question ${index + 1}: ${question.questionText.substring(0, 50)}...`);
-    
-    // Check if this question is selected - handle different data structures
-    const isSelected = selectedQuestions.some(sq => {
-      // Handle both string IDs and ObjectId comparisons
-      const selectedQuestionId = sq.question?.toString() || sq.question;
-      const currentQuestionId = question._id?.toString() || question._id;
-      return selectedQuestionId === currentQuestionId;
-    });
-    
-    if (isSelected) {
-      questionCircle.classList.add('selected');
+  const noQuestionsMessage = document.getElementById('noQuestionsMessage');
+
+  // Safety checks
+  if (!questionsList || !noQuestionsMessage) return;
+
+  if (!questionsByBank || typeof questionsByBank !== 'object' || Object.keys(questionsByBank).length === 0) {
+    questionsList.innerHTML = '';
+    noQuestionsMessage.style.display = 'flex';
+    return;
+  }
+
+  noQuestionsMessage.style.display = 'none';
+
+  // Reset all questions array
+  allQuestions = [];
+
+  // Flatten all questions and store bank info
+  let questionHTML = '';
+  let globalIndex = 0;
+
+  Object.entries(questionsByBank).forEach(([bankId, questions]) => {
+    const bankCard = document.querySelector(`[data-bank-id="${bankId}"]`);
+    const bankName = bankCard ? bankCard.dataset.title : 'Unknown Bank';
+
+    // Store bank info
+    if (!bankInfoMap[bankId]) {
+      bankInfoMap[bankId] = {
+        name: bankName,
+        code: bankCard ? bankCard.dataset.code : ''
+      };
     }
-    
-    // Map difficulty to lowercase for CSS classes
-    const difficultyClass = question.difficulty ? question.difficulty.toLowerCase() : 'medium';
-    
-    questionCircle.innerHTML = `
-      <div class="question-circle-number">${index + 1}</div>
-      <div class="question-circle-meta">
-        <div class="question-circle-difficulty ${difficultyClass}"></div>
-        <div class="question-circle-type">${question.questionType.charAt(0).toUpperCase()}</div>
-      </div>
-      <div class="question-circle-preview" onclick="event.stopPropagation(); previewQuestion('${question._id}')">
-        <i class="fas fa-eye"></i>
-      </div>
-      <div class="question-circle-selected">
-        <i class="fas fa-check"></i>
-      </div>
-    `;
-    
-    questionCircle.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleQuestionSelection(question._id, questionCircle);
+
+    // Add questions to allQuestions array
+    questions.forEach((question) => {
+      allQuestions.push({
+        ...question,
+        sourceBank: bankId
+      });
+
+      const difficultyClass = question.difficulty || 'medium';
+
+      questionHTML += `
+        <div class="question-item ${difficultyClass}" 
+             onclick="toggleQuestionSelection(${globalIndex})" 
+             data-question-index="${globalIndex}"
+             data-bank-id="${bankId}"
+             data-question-id="${question._id}">
+          <div class="question-item-top">
+            <div class="question-item-number">${globalIndex + 1}</div>
+            <button type="button" class="question-preview-btn" onclick="event.stopPropagation(); previewQuestion('${question._id}')" title="Preview Question">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="question-item-content">
+            <div class="question-item-header">
+              <div class="question-item-bank">
+                <i class="fas fa-database"></i>
+                <span>${bankName}</span>
+              </div>
+            </div>
+            <div class="question-item-footer">
+              <span class="question-badge type-badge">${question.questionType || 'MCQ'}</span>
+            </div>
+          </div>
+          <div class="question-check-indicator">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      `;
+      globalIndex++;
     });
-    
-    // Add keyboard support
-    questionCircle.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleQuestionSelection(question._id, questionCircle);
-      }
-    });
-    
-    questionsList.appendChild(questionCircle);
   });
-  
-  // Force refresh selection state after a short delay to ensure DOM is ready
-  setTimeout(() => {
-    refreshSelectionState();
-  }, 100);
-  
+
+  questionsList.innerHTML = questionHTML;
+
+  // Update bank filter buttons
+  updateBankFilterButtons();
+
+  // Reset bank filter to 'all' when questions are loaded
+  window.currentBankFilter = 'all';
+  const allBanksBtn = document.querySelector('.bank-filter-btn[data-bank-id="all"]');
+  if (allBanksBtn) {
+    document.querySelectorAll('.bank-filter-btn').forEach(btn => btn.classList.remove('active'));
+    allBanksBtn.classList.add('active');
+  }
+
+  // Restore visual state of selected questions
+  restoreQuestionSelection();
   updateSelectionSummary();
 }
 
-// Function to refresh selection state based on selectedQuestions array
-function refreshSelectionState() {
-  document.querySelectorAll('.question-circle').forEach(circle => {
-    const questionId = circle.dataset.questionId;
-    
-    // Check if this question should be selected
-    const shouldBeSelected = selectedQuestions.some(sq => {
-      const selectedQuestionId = sq.question?.toString() || sq.question;
-      const currentQuestionId = questionId?.toString() || questionId;
-      return selectedQuestionId === currentQuestionId;
-    });
-    
-    if (shouldBeSelected) {
-      circle.classList.add('selected');
-    } else {
-      circle.classList.remove('selected');
-    }
+// Update Bank Filter Buttons
+function updateBankFilterButtons() {
+  const bankFilterButtons = document.getElementById('bankFilterButtons');
+  if (!bankFilterButtons) return;
+
+  // Get the "All Banks" button HTML first
+  const allBanksBtn = bankFilterButtons.querySelector('[data-bank-id="all"]');
+  let buttonsHTML = '';
+  
+  if (allBanksBtn) {
+    buttonsHTML = allBanksBtn.outerHTML;
+  } else {
+    buttonsHTML = `
+      <button type="button" class="bank-filter-btn active" data-bank-id="all" onclick="filterByBank('all')">
+        <i class="fas fa-th"></i>
+        All Banks
+      </button>
+    `;
+  }
+
+  // Add individual bank buttons
+  Object.entries(bankInfoMap).forEach(([bankId, bankInfo]) => {
+    buttonsHTML += `
+      <button type="button" class="bank-filter-btn" data-bank-id="${bankId}" onclick="filterByBank('${bankId}')">
+        <i class="fas fa-database"></i>
+        ${bankInfo.name}
+      </button>
+    `;
   });
+
+  bankFilterButtons.innerHTML = buttonsHTML;
 }
 
+// Filter by Bank
+function filterByBank(bankId) {
+  // Update active button
+  document.querySelectorAll('.bank-filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  const activeBtn = document.querySelector(`.bank-filter-btn[data-bank-id="${bankId}"]`);
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
 
-// Select Question Bank
-function selectQuestionBank(bankId) {
-  selectedBankId = bankId;
-  
-  // Update UI
-  document.querySelectorAll('.bank-selection-card').forEach(card => {
-    card.classList.remove('selected');
+  // Store current bank filter
+  window.currentBankFilter = bankId;
+
+  // Filter questions
+  const questionItems = document.querySelectorAll('.question-item');
+  questionItems.forEach(item => {
+    if (bankId === 'all') {
+      item.style.display = '';
+    } else {
+      const itemBankId = item.dataset.bankId;
+      item.style.display = itemBankId === bankId ? '' : 'none';
+    }
   });
-  document.querySelector(`[data-bank-id="${bankId}"]`).classList.add('selected');
-  
-  // Clear current selection when switching banks
-  selectedQuestions = [];
-  
-  // Clear all selected states in UI
-  document.querySelectorAll('.question-circle').forEach(circle => {
-    circle.classList.remove('selected');
+
+  // Also apply other active filters
+  filterQuestions();
+}
+
+// Restore Question Selection
+function restoreQuestionSelection() {
+  // Clear all selections first
+  document.querySelectorAll('.question-item').forEach(item => {
+    item.classList.remove('selected');
   });
-  
-  // Load questions from new bank
-  loadQuestions(bankId);
-  
-  showNotification('Question bank changed. Previous selections cleared.', 'info');
+
+  // Restore selections based on selectedQuestions array
+  selectedQuestions.forEach(selection => {
+    const questionIndex = allQuestions.findIndex(q => {
+      const qId = q._id?.toString() || q._id;
+      const sId = selection.question?.toString() || selection.question;
+      return qId === sId;
+    });
+    if (questionIndex !== -1) {
+      const questionElement = document.querySelector(`[data-question-index="${questionIndex}"]`);
+      if (questionElement) {
+        questionElement.classList.add('selected');
+      }
+    }
+  });
 }
 
 // Toggle Question Selection
-function toggleQuestionSelection(questionId, circleElement) {
-  const existingIndex = selectedQuestions.findIndex(sq => sq.question === questionId);
-  
+function toggleQuestionSelection(index) {
+  const questionElement = document.querySelector(`[data-question-index="${index}"]`);
+  const question = allQuestions[index];
+  const questionId = question._id;
+  const sourceBank = question.sourceBank;
+  const existingIndex = selectedQuestions.findIndex(sq => {
+    const qId = sq.question?.toString() || sq.question;
+    const currentId = questionId?.toString() || questionId;
+    return qId === currentId;
+  });
+
   if (existingIndex > -1) {
     // Remove from selection
     selectedQuestions.splice(existingIndex, 1);
-    circleElement.classList.remove('selected');
+    questionElement.classList.remove('selected');
   } else {
-    // Add to selection
-    const question = allQuestions.find(q => q._id === questionId);
-    if (question) {
-      selectedQuestions.push({
-        question: questionId,
-        order: selectedQuestions.length + 1,
-        points: question.points || 1
-      });
-      circleElement.classList.add('selected');
-    } else {
-      showNotification('Question not found', 'error');
-    }
+    // Add to selection with sourceBank
+    selectedQuestions.push({
+      question: questionId,
+      sourceBank: sourceBank,
+      order: selectedQuestions.length + 1,
+      points: question.points || 1
+    });
+    questionElement.classList.add('selected');
   }
-  
+
   updateSelectionSummary();
 }
 
 // Select All Questions
 function selectAllQuestions() {
-  const visibleCircles = Array.from(document.querySelectorAll('.question-circle:not([style*="display: none"])'));
-  visibleCircles.forEach(circle => {
-    const questionId = circle.dataset.questionId;
-    if (!selectedQuestions.some(sq => sq.question === questionId)) {
-      const question = allQuestions.find(q => q._id === questionId);
-      selectedQuestions.push({
-        question: questionId,
-        order: selectedQuestions.length + 1,
-        points: question.points || 1
-      });
-      circle.classList.add('selected');
+  // Only select visible questions
+  const visibleQuestions = Array.from(document.querySelectorAll('.question-item'))
+    .filter(item => item.style.display !== 'none')
+    .map(item => {
+      const index = parseInt(item.dataset.questionIndex);
+      return allQuestions[index];
+    })
+    .filter(q => q);
+
+  selectedQuestions = visibleQuestions.map(question => ({
+    question: question._id,
+    sourceBank: question.sourceBank,
+    order: selectedQuestions.length + 1,
+    points: question.points || 1
+  }));
+
+  document.querySelectorAll('.question-item').forEach((item) => {
+    if (item.style.display !== 'none') {
+      item.classList.add('selected');
     }
   });
+
   updateSelectionSummary();
+  showNotification(`Selected ${visibleQuestions.length} visible questions`, 'success');
 }
 
 // Clear Selection
 function clearSelection() {
   selectedQuestions = [];
-  document.querySelectorAll('.question-circle').forEach(circle => {
-    circle.classList.remove('selected');
+  document.querySelectorAll('.question-item').forEach(item => {
+    item.classList.remove('selected');
   });
   updateSelectionSummary();
+  showNotification('Cleared all selections', 'info');
+}
+
+// Range Selection
+function selectRange() {
+  const rangeInput = document.getElementById('rangeInput').value.trim();
+  if (!rangeInput) {
+    showNotification('Please enter a range (e.g., 1-5, 3, 7-10)', 'error');
+    return;
+  }
+
+  clearSelection();
+
+  const ranges = rangeInput.split(',');
+  let selectedCount = 0;
+
+  ranges.forEach(rangeStr => {
+    const trimmed = rangeStr.trim();
+    if (trimmed.includes('-')) {
+      // Range (e.g., "1-5")
+      const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()) - 1);
+      for (let i = start; i <= end && i < allQuestions.length; i++) {
+        if (i >= 0) {
+          const question = allQuestions[i];
+          selectedQuestions.push({
+            question: question._id,
+            sourceBank: question.sourceBank,
+            order: selectedQuestions.length + 1,
+            points: question.points || 1
+          });
+          const questionElement = document.querySelector(`[data-question-index="${i}"]`);
+          if (questionElement) questionElement.classList.add('selected');
+          selectedCount++;
+        }
+      }
+    } else {
+      // Single number (e.g., "3")
+      const index = parseInt(trimmed) - 1;
+      if (index >= 0 && index < allQuestions.length) {
+        const question = allQuestions[index];
+        selectedQuestions.push({
+          question: question._id,
+          sourceBank: question.sourceBank,
+          order: selectedQuestions.length + 1,
+          points: question.points || 1
+        });
+        document.querySelector(`[data-question-index="${index}"]`).classList.add('selected');
+        selectedCount++;
+      }
+    }
+  });
+
+  updateSelectionSummary();
+
+  if (selectedCount > 0) {
+    showNotification(`Selected ${selectedCount} questions from range`, 'success');
+  } else {
+    showNotification('No valid questions found in the specified range', 'warning');
+  }
+
+  // Clear the input
+  document.getElementById('rangeInput').value = '';
+}
+
+// Select Even Questions
+function selectEvenQuestions() {
+  clearSelection();
+  let selectedCount = 0;
+
+  for (let i = 1; i < allQuestions.length; i += 2) {
+    const question = allQuestions[i];
+    selectedQuestions.push({
+      question: question._id,
+      sourceBank: question.sourceBank,
+      order: selectedQuestions.length + 1,
+      points: question.points || 1
+    });
+    document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
+    selectedCount++;
+  }
+
+  updateSelectionSummary();
+  showNotification(`Selected ${selectedCount} even-numbered questions`, 'success');
+}
+
+// Select Odd Questions
+function selectOddQuestions() {
+  clearSelection();
+  let selectedCount = 0;
+
+  for (let i = 0; i < allQuestions.length; i += 2) {
+    const question = allQuestions[i];
+    selectedQuestions.push({
+      question: question._id,
+      sourceBank: question.sourceBank,
+      order: selectedQuestions.length + 1,
+      points: question.points || 1
+    });
+    document.querySelector(`[data-question-index="${i}"]`).classList.add('selected');
+    selectedCount++;
+  }
+
+  updateSelectionSummary();
+  showNotification(`Selected ${selectedCount} odd-numbered questions`, 'success');
+}
+
+// Select Random Questions
+function selectRandomQuestions() {
+  clearSelection();
+  const count = Math.ceil(allQuestions.length * 0.3);
+  const randomIndices = [];
+
+  while (randomIndices.length < count) {
+    const randomIndex = Math.floor(Math.random() * allQuestions.length);
+    if (!randomIndices.includes(randomIndex)) {
+      randomIndices.push(randomIndex);
+    }
+  }
+
+  randomIndices.forEach(index => {
+    const question = allQuestions[index];
+    selectedQuestions.push({
+      question: question._id,
+      sourceBank: question.sourceBank,
+      order: selectedQuestions.length + 1,
+      points: question.points || 1
+    });
+    document.querySelector(`[data-question-index="${index}"]`).classList.add('selected');
+  });
+
+  updateSelectionSummary();
+  showNotification(`Randomly selected ${count} questions`, 'success');
 }
 
 // Filter Questions
@@ -1396,79 +1516,77 @@ function filterQuestions() {
   const difficultyFilter = document.getElementById('difficultyFilter').value;
   const typeFilter = document.getElementById('typeFilter').value;
   const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-  
-  document.querySelectorAll('.question-circle').forEach(circle => {
-    const questionId = circle.dataset.questionId;
-    const question = allQuestions.find(q => q._id === questionId);
-    
+  const activeBankFilter = window.currentBankFilter || document.querySelector('.bank-filter-btn.active')?.dataset.bankId || 'all';
+
+  // Filter question items
+  const questionElements = document.querySelectorAll('.question-item');
+
+  questionElements.forEach(element => {
+    const questionIndex = parseInt(element.dataset.questionIndex);
+    const question = allQuestions[questionIndex];
+
+    if (!question) return;
+
     let show = true;
-    
-    // Map difficulty filter to match question difficulty format
-    if (difficultyFilter) {
-      const questionDifficulty = question.difficulty ? question.difficulty.toLowerCase() : 'medium';
-      if (questionDifficulty !== difficultyFilter) {
-        show = false;
-      }
-    }
-    
-    // Map type filter to match question type format
-    if (typeFilter) {
-      let questionType = question.questionType ? question.questionType.toLowerCase() : 'mcq';
-      if (questionType === 'mcq') questionType = 'multiple_choice';
-      if (questionType === 'true/false') questionType = 'true_false';
-      
-      if (questionType !== typeFilter) {
-        show = false;
-      }
-    }
-    
-    if (searchFilter && !question.questionText.toLowerCase().includes(searchFilter)) {
+
+    // Check bank filter first
+    if (activeBankFilter !== 'all' && element.dataset.bankId !== activeBankFilter) {
       show = false;
     }
-    
-    circle.style.display = show ? 'flex' : 'none';
+
+    // Check difficulty filter
+    if (show && difficultyFilter && question.difficulty && question.difficulty.toLowerCase() !== difficultyFilter.toLowerCase()) {
+      show = false;
+    }
+
+    // Check type filter
+    if (show && typeFilter && question.questionType !== typeFilter) {
+      show = false;
+    }
+
+    // Check search filter
+    if (show && searchFilter && question.questionText && !question.questionText.toLowerCase().includes(searchFilter)) {
+      show = false;
+    }
+
+    // Show/hide the element
+    element.style.display = show ? '' : 'none';
   });
-  
-  // Update visible questions count
-  const visibleQuestions = document.querySelectorAll('.question-circle:not([style*="display: none"])').length;
-  document.getElementById('questionsCount').textContent = `(${visibleQuestions} questions)`;
 }
 
 // Update Selection Summary
 function updateSelectionSummary() {
-  document.getElementById('selectedCount').textContent = selectedQuestions.length;
-  
-  const totalPoints = selectedQuestions.reduce((sum, sq) => {
-    const question = allQuestions.find(q => q._id === sq.question);
-    return sum + (question ? question.points : 1);
-  }, 0);
-  document.getElementById('totalPoints').textContent = totalPoints;
-  
-  // Calculate average difficulty
-  if (selectedQuestions.length > 0) {
-    const difficulties = selectedQuestions.map(sq => {
-      const question = allQuestions.find(q => q._id === sq.question);
-      return question ? question.difficulty.toLowerCase() : 'medium';
+  const selectedCount = document.getElementById('selectedCount');
+  const totalPoints = document.getElementById('totalPoints');
+  const easyCount = document.getElementById('easyCount');
+  const mediumCount = document.getElementById('mediumCount');
+  const hardCount = document.getElementById('hardCount');
+
+  if (selectedCount) selectedCount.textContent = selectedQuestions.length;
+
+  let points = 0;
+  let easy = 0, medium = 0, hard = 0;
+
+  selectedQuestions.forEach(selection => {
+    const question = allQuestions.find(q => {
+      const qId = q._id?.toString() || q._id;
+      const sId = selection.question?.toString() || selection.question;
+      return qId === sId;
     });
-    
-    const difficultyCounts = difficulties.reduce((acc, diff) => {
-      acc[diff] = (acc[diff] || 0) + 1;
-      return acc;
-    }, {});
-    
-    const total = difficulties.length;
-    const easyRatio = (difficultyCounts.easy || 0) / total;
-    const hardRatio = (difficultyCounts.hard || 0) / total;
-    
-    let avgDifficulty = 'medium';
-    if (hardRatio > 0.4) avgDifficulty = 'hard';
-    else if (easyRatio > 0.6) avgDifficulty = 'easy';
-    
-    document.getElementById('avgDifficulty').textContent = avgDifficulty;
-  } else {
-    document.getElementById('avgDifficulty').textContent = '-';
-  }
-  
+    if (question) {
+      points += question.points || 1;
+
+      const difficulty = question.difficulty || 'medium';
+      if (difficulty.toLowerCase() === 'easy') easy++;
+      else if (difficulty.toLowerCase() === 'hard') hard++;
+      else medium++;
+    }
+  });
+
+  if (totalPoints) totalPoints.textContent = points;
+  if (easyCount) easyCount.textContent = easy;
+  if (mediumCount) mediumCount.textContent = medium;
+  if (hardCount) hardCount.textContent = hard;
 }
 
 // Preview Question
@@ -1489,60 +1607,220 @@ async function previewQuestion(questionId) {
   }
 }
 
-// Display Question Preview
+// Enhanced Display Question Preview with MathLive Support and Written Question Answers
 function displayQuestionPreview(question) {
   const content = document.getElementById('questionPreviewContent');
-  
-  let optionsHtml = '';
-  if (question.options && question.options.length > 0) {
-    optionsHtml = `
-      <div class="question-preview-options">
-        <div class="question-preview-options-title">Options:</div>
-        ${question.options.map((option, index) => `
-          <div class="question-preview-option ${option.isCorrect ? 'correct' : ''}">
-            <span class="question-preview-option-label">${String.fromCharCode(65 + index)}.</span>
-            ${option.text}
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-  
-  let explanationHtml = '';
-  if (question.explanation) {
-    explanationHtml = `
-      <div class="question-preview-explanation">
-        <div class="question-preview-explanation-title">
-          <i class="fas fa-lightbulb"></i>
-          Explanation
-        </div>
-        <div class="question-preview-explanation-text">${question.explanation}</div>
-      </div>
-    `;
-  }
-  
-  content.innerHTML = `
-    <div class="question-preview-header">
-      <h3 class="question-preview-title">${question.questionText}</h3>
-      <div class="question-preview-meta">
-        <div class="question-preview-meta-item">
+
+  // Enhanced question header with better styling
+  const questionHeader = `
+    <div class="enhanced-question-preview-header">
+      <div class="question-meta-badges">
+        <div class="meta-badge difficulty-${question.difficulty.toLowerCase()}">
           <i class="fas fa-signal"></i>
-          <span>${question.difficulty}</span>
+          ${question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1)}
         </div>
-        <div class="question-preview-meta-item">
+        <div class="meta-badge type-${question.questionType.toLowerCase().replace('/', '-')}">
           <i class="fas fa-tag"></i>
-          <span>${question.questionType}</span>
+          ${question.questionType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
         </div>
-        <div class="question-preview-meta-item">
+        <div class="meta-badge points">
           <i class="fas fa-star"></i>
-          <span>${question.points} points</span>
+          ${question.points} points
         </div>
       </div>
     </div>
-    <div class="question-preview-text">${question.questionText}</div>
-    ${optionsHtml}
+  `;
+
+  // Enhanced question text with MathLive support
+  let questionTextHtml = '';
+  if (question.questionText && question.questionText.includes('\\')) {
+    // If it contains LaTeX, render it with MathLive
+    questionTextHtml = `
+      <div class="enhanced-question-preview-text">
+        <math-field readonly 
+          style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+          class="preview-math-field">
+          ${question.questionText}
+        </math-field>
+      </div>
+    `;
+  } else {
+    questionTextHtml = `
+      <div class="enhanced-question-preview-text">
+        ${question.questionText}
+      </div>
+    `;
+  }
+
+  // Enhanced options/answers with MathLive support
+  let answersHtml = '';
+
+  if (question.questionType === 'Written') {
+    // For written questions, show correct answers with mandatory/optional status
+    const correctAnswers = question.correctAnswers || [];
+    if (correctAnswers.length > 0) {
+      const answersList = correctAnswers.map((answer, index) => {
+        // Handle both old string format and new object format
+        let answerText = '';
+        let isMandatory = true;
+
+        if (typeof answer === 'string') {
+          answerText = answer;
+        } else if (typeof answer === 'object' && answer.text) {
+          answerText = answer.text;
+          isMandatory = answer.isMandatory !== false; // Default to true if not specified
+        }
+
+        // Check if answer contains LaTeX
+        let answerTextHtml = '';
+        if (answerText && answerText.includes('\\')) {
+          // Render math for answer text
+          answerTextHtml = `
+            <math-field readonly 
+              style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+              class="preview-math-field answer-math-field">
+              ${answerText}
+            </math-field>
+          `;
+        } else {
+          answerTextHtml = answerText;
+        }
+
+        const mandatoryClass = isMandatory ? 'mandatory' : 'optional';
+        const mandatoryIcon = isMandatory ? 'fas fa-lock' : 'fas fa-unlock';
+        const mandatoryText = isMandatory ? 'Mandatory' : 'Optional';
+
+        return `
+          <div class="enhanced-written-answer-item ${mandatoryClass}">
+            <div class="written-answer-header">
+              <div class="written-answer-number">${index + 1}</div>
+              <div class="written-answer-mandatory ${mandatoryClass}">
+                <i class="${mandatoryIcon}"></i>
+                <span>${mandatoryText}</span>
+              </div>
+            </div>
+            <div class="written-answer-content">${answerTextHtml}</div>
+          </div>
+        `;
+      }).join('');
+
+      answersHtml = `
+        <div class="enhanced-question-preview-answers">
+          <div class="answers-title">
+            <i class="fas fa-edit"></i>
+            Correct Answers
+            <span class="answers-count">(${correctAnswers.length} answer${correctAnswers.length !== 1 ? 's' : ''})</span>
+          </div>
+          <div class="written-answers-list">
+            ${answersList}
+          </div>
+        </div>
+      `;
+    } else {
+      answersHtml = `
+        <div class="enhanced-question-preview-answers">
+          <div class="answers-title">
+            <i class="fas fa-edit"></i>
+            Correct Answers
+          </div>
+          <div class="no-answers-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>No correct answers defined for this written question.</span>
+          </div>
+        </div>
+      `;
+    }
+  } else if (question.options && question.options.length > 0) {
+    // For MCQ and True/False questions, show options
+    answersHtml = `
+      <div class="enhanced-question-preview-options">
+        <div class="options-title">
+          <i class="fas fa-list"></i>
+          Answer Options
+          <span class="options-count">(${question.options.length} option${question.options.length !== 1 ? 's' : ''})</span>
+        </div>
+        <div class="options-list">
+          ${question.options.map((option, index) => {
+            const optionLetter = String.fromCharCode(65 + index);
+            let optionTextHtml = '';
+            
+            if (option.text && option.text.includes('\\')) {
+              // If option contains LaTeX, render it with MathLive
+              optionTextHtml = `
+                <math-field readonly 
+                  style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+                  class="option-math-field">
+            ${option.text}
+                </math-field>
+              `;
+            } else {
+              optionTextHtml = option.text;
+            }
+            
+            return `
+            <div class="enhanced-option-item ${option.isCorrect ? 'correct' : ''}">
+              <div class="option-letter ${option.isCorrect ? 'correct' : 'default'}">${optionLetter}</div>
+              <div class="option-content">${optionTextHtml}</div>
+              ${option.isCorrect ? '<div class="correct-indicator"><i class="fas fa-check"></i></div>' : ''}
+            </div>
+          `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Enhanced explanation with MathLive support
+  let explanationHtml = '';
+  if (question.explanation) {
+    let explanationTextHtml = '';
+    if (question.explanation.includes('\\')) {
+      // If explanation contains LaTeX, render it with MathLive
+      explanationTextHtml = `
+        <math-field readonly 
+          style="width: 100%; min-height: 30px; font-size: 14px; border: none; background: transparent; padding: 4px;"
+          class="explanation-math-field">
+          ${question.explanation}
+        </math-field>
+      `;
+    } else {
+      explanationTextHtml = question.explanation;
+    }
+
+    explanationHtml = `
+      <div class="enhanced-question-preview-explanation">
+        <div class="explanation-title">
+          <i class="fas fa-lightbulb"></i>
+          Explanation
+        </div>
+        <div class="explanation-content">${explanationTextHtml}</div>
+      </div>
+    `;
+  }
+
+  content.innerHTML = `
+    ${questionHeader}
+    ${questionTextHtml}
+    ${answersHtml}
     ${explanationHtml}
   `;
+
+  // Initialize MathLive fields after content is loaded
+  setTimeout(() => {
+    initializeMathLiveFields();
+  }, 100);
+}
+
+// MathLive Functions
+function initializeMathLiveFields() {
+  // Initialize all math-field elements in the preview
+  const mathFields = document.querySelectorAll('math-field');
+  mathFields.forEach(field => {
+    if (field && !field.hasAttribute('data-initialized')) {
+      field.setAttribute('data-initialized', 'true');
+      // MathLive will automatically initialize math-field elements
+    }
+  });
 }
 
 // AJAX Form Submission
@@ -1590,8 +1868,8 @@ document.getElementById('quizEditForm').addEventListener('submit', async functio
     difficulty.classList.remove('is-invalid');
   }
   
-  if (!selectedBankId) {
-    errors.push('Please select a question bank');
+  if (selectedBankIds.length === 0) {
+    errors.push('Please select at least one question bank');
   }
   
   if (selectedQuestions.length === 0) {
@@ -1602,15 +1880,15 @@ document.getElementById('quizEditForm').addEventListener('submit', async functio
     showNotification('Please fix the following errors:\n• ' + errors.join('\n• '), 'error');
     return;
   }
-  
-  
+
   // Get form data
   const formData = {
     title: document.getElementById('title').value,
     description: document.getElementById('description').value,
     code: document.getElementById('code').value,
-    questionBank: selectedBankId,
-    selectedQuestions: selectedQuestions,
+    questionBank: selectedBankIds[0] || '', // For backward compatibility
+    questionBanks: selectedBankIds, // New multi-bank field
+    selectedQuestions: selectedQuestions, // Each includes sourceBank
     duration: parseInt(document.getElementById('duration').value),
     difficulty: document.getElementById('difficulty').value,
     instructions: document.getElementById('instructions').value,
