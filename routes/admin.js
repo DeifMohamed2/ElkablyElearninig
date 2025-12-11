@@ -153,6 +153,7 @@ const {
   deleteZoomMeeting,
   // Bulk Import
   bulkImportStudents,
+  downloadBulkImportSample,
   // Student Enrollment
   enrollStudentsToCourse,
   enrollStudentsToBundle,
@@ -371,6 +372,7 @@ router.get('/api/bundles', isAdmin, getBundlesAPI);
 // Student Management Routes
 router.get('/students', isAdmin, getStudents);
 router.get('/students/export', isAdmin, exportStudentData);
+router.get('/students/bulk-import/sample', isAdmin, downloadBulkImportSample);
 router.post(
   '/students/bulk-import',
   isAdmin,

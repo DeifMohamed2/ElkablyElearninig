@@ -692,7 +692,7 @@ const registerUser = async (req, res) => {
       englishTeacher: englishTeacher.trim(),
       password,
       howDidYouKnow: howDidYouKnow.trim(),
-      isActive: true, // Students are active by default
+      isActive: false, // Require admin activation before login
       isCompleteData: true, // Normal registration provides all required data
     });
 
@@ -1612,7 +1612,7 @@ const createStudentFromExternalSystem = async (req, res) => {
       howDidYouKnow: 'External System Import',
       studentCode: studentCode.toString(),
       isCompleteData: false,
-      isActive: true,
+      isActive: false, // External imports still require admin activation
     });
 
     const savedStudent = await newStudent.save();

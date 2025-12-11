@@ -22,15 +22,43 @@ const UserSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      minlength: 1,
-      maxlength: 20,
+      validate: {
+        validator: function (value) {
+          if (!value || !this.studentCountryCode) return false;
+          const phoneLengthStandards = {
+            '+966': 9, // Saudi Arabia
+            '+20': 11, // Egypt
+            '+971': 9, // UAE
+            '+965': 8, // Kuwait
+          };
+          const expected = phoneLengthStandards[this.studentCountryCode];
+          if (!expected) return value.length >= 8 && value.length <= 15; // fallback
+          return value.length === expected;
+        },
+        message: (props) =>
+          `Student number length is invalid for country code ${props.instance.studentCountryCode}`,
+      },
     },
     parentNumber: {
       type: String,
       required: true,
       trim: true,
-      minlength: 10,
-      maxlength: 15,
+      validate: {
+        validator: function (value) {
+          if (!value || !this.parentCountryCode) return false;
+          const phoneLengthStandards = {
+            '+966': 9, // Saudi Arabia
+            '+20': 11, // Egypt
+            '+971': 9, // UAE
+            '+965': 8, // Kuwait
+          };
+          const expected = phoneLengthStandards[this.parentCountryCode];
+          if (!expected) return value.length >= 8 && value.length <= 15; // fallback
+          return value.length === expected;
+        },
+        message: (props) =>
+          `Parent number length is invalid for country code ${props.instance.parentCountryCode}`,
+      },
     },
     parentCountryCode: {
       type: String,
@@ -113,7 +141,7 @@ const UserSchema = new mongoose.Schema(
     },
     isActive: {
       type: Boolean,
-      default: true, // New users need admin approval
+      default: false, // New users must be approved before access
     },
     isCompleteData: {
       type: Boolean,

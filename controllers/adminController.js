@@ -17,6 +17,7 @@ const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
 const zoomService = require('../utils/zoomService');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+const { sendSms, sendBulkSms } = require('../utils/sms');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -6409,6 +6410,21 @@ const toggleStudentStatus = async (req, res) => {
     student.isActive = isActive;
     await student.save();
 
+    // Notify student via SMS about status change (non-blocking)
+    if (student.studentNumber && student.studentCountryCode) {
+      const recipient = `${student.studentCountryCode}${student.studentNumber}`.replace(
+        /[^\d+]/g,
+        ''
+      );
+      const contactLink = ' https://wa.me/201050994880';
+      const message = isActive
+        ? `Your Elkably account has been activated. You can now log in and start learning.${contactLink}`
+        : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.${contactLink}`;
+      sendSms({ recipient, message }).catch((err) =>
+        console.error('SMS send error (toggle status):', err?.message || err)
+      );
+    }
+
     // Log the action
     console.log(
       `Admin ${req.session.user.username || 'admin'} ${
@@ -7140,6 +7156,9 @@ const updateStudent = async (req, res) => {
       );
     }
 
+    // Track previous activation status to notify on change
+    const previousIsActive = student.isActive;
+
     // Handle password update if provided
     if (updateData.newPassword && updateData.newPassword.trim() !== '') {
       if (updateData.newPassword !== updateData.confirmPassword) {
@@ -7183,6 +7202,26 @@ const updateStudent = async (req, res) => {
 
     // Save the student (this will trigger validation and password hashing if password was changed)
     await student.save();
+
+    // If activation status changed, notify student via SMS (non-blocking)
+    if (previousIsActive !== student.isActive) {
+      const phone =
+        student.studentCountryCode && student.studentNumber
+          ? `${student.studentCountryCode}${student.studentNumber}`.replace(
+              /[^\d+]/g,
+              ''
+            )
+          : null;
+      if (phone) {
+        const contactLink = ' https://wa.me/201050994880';
+        const message = student.isActive
+          ? `Your Elkably account has been activated. You can now log in and start learning.${contactLink}`
+          : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.${contactLink}`;
+        sendSms({ recipient: phone, message }).catch((err) =>
+          console.error('SMS send error (update student status):', err?.message || err)
+        );
+      }
+    }
 
     // Redirect back to edit page with success message
     return res.redirect(
@@ -7250,6 +7289,10 @@ const deleteStudent = async (req, res) => {
       name: `${student.firstName} ${student.lastName}`,
       email: student.studentEmail,
       username: student.username,
+      phone: `${student.studentCountryCode}${student.studentNumber}`.replace(
+        /[^\d+]/g,
+        ''
+      ),
     };
 
     // Log the action with detailed information BEFORE deletion
@@ -7266,6 +7309,15 @@ const deleteStudent = async (req, res) => {
 
     // Permanently delete the student from database
     await User.findByIdAndDelete(studentId);
+
+    // Notify student via SMS about deletion (non-blocking)
+    if (studentInfo.phone) {
+      const message =
+        'Your Elkably account has been deleted. If this was unexpected, please contact support. https://wa.me/201050994880';
+      sendSms({ recipient: studentInfo.phone, message }).catch((err) =>
+        console.error('SMS send error (delete student):', err?.message || err)
+      );
+    }
 
     console.log(
       `Student ${studentInfo.name} (${studentInfo.id}) permanently deleted from database`
@@ -10726,6 +10778,83 @@ const bulkImportStudents = async (req, res) => {
           }
         }
 
+        // Validate phone lengths similar to registration rules
+        const phoneLengthStandards = {
+          '+966': 9, // Saudi Arabia
+          '+20': 11, // Egypt
+          '+971': 9, // UAE
+          '+965': 8, // Kuwait
+        };
+
+        const normalizePhone = (numberOnly, countryCode, label) => {
+          const expected = phoneLengthStandards[countryCode];
+          if (!expected) {
+            return { fixed: numberOnly, error: null };
+          }
+
+          let digits = numberOnly;
+
+          // If longer than expected, trim leading zeros until we hit expected length (only trim zeros)
+          while (digits.length > expected && digits.startsWith('0')) {
+            digits = digits.substring(1);
+          }
+
+          // Egypt: ensure leading 0 is present after removing country code
+          if (countryCode === '+20') {
+            if (digits.length === expected - 1) {
+              digits = `0${digits}`;
+            } else if (digits.length === expected && !digits.startsWith('0')) {
+              digits = `0${digits.slice(1)}`;
+            }
+          }
+
+          // If still longer than expected, reject
+          if (digits.length > expected) {
+            return {
+              fixed: null,
+              error: `${label} must be ${expected} digits for ${countryCode} (got ${digits.length})`,
+            };
+          }
+
+          // If one digit short, pad a leading zero (handles cases where leading 0 was dropped)
+          if (digits.length === expected - 1) {
+            digits = `0${digits}`;
+          }
+
+          // Final length check
+          if (digits.length !== expected) {
+            return {
+              fixed: null,
+              error: `${label} must be ${expected} digits for ${countryCode} (got ${digits.length})`,
+            };
+          }
+
+          return { fixed: digits, error: null };
+        };
+
+        const studentLenCheck = normalizePhone(
+          studentNumber,
+          studentCountryCode,
+          'Student number'
+        );
+        const parentLenCheck = normalizePhone(
+          parentNumber,
+          parentCountryCode,
+          'Parent number'
+        );
+
+        if (studentLenCheck.error || parentLenCheck.error) {
+          results.failed.push({
+            row: rowNumber,
+            studentName: studentName,
+            reason: studentLenCheck.error || parentLenCheck.error,
+          });
+          continue;
+        }
+
+        studentNumber = studentLenCheck.fixed;
+        parentNumber = parentLenCheck.fixed;
+
         // Check if student code already exists
         const existingStudent = await User.findOne({
           studentCode: studentCode.toString(),
@@ -10773,7 +10902,7 @@ const bulkImportStudents = async (req, res) => {
           howDidYouKnow: 'Bulk Import',
           studentCode: studentCode.toString(),
           isCompleteData: false,
-          isActive: true,
+          isActive: false,
         });
 
         await newStudent.save();
@@ -10810,6 +10939,65 @@ const bulkImportStudents = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || 'Failed to import students',
+    });
+  }
+};
+
+/**
+ * Download sample Excel for bulk student import
+ * Provides 4 example students covering all supported countries
+ */
+const downloadBulkImportSample = async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    const sampleRows = [
+      {
+        'Student Name': 'Ali Saudi',
+        'Student Phone Number': '+966512345678',
+        'Parent Phone Number': '+966512345679',
+        'Student Code': 'KSA1001',
+      },
+      {
+        'Student Name': 'Mona Egypt',
+        'Student Phone Number': '+201126012078',
+        'Parent Phone Number': '+201055200152',
+        'Student Code': 'EGY2001',
+      },
+      {
+        'Student Name': 'Omar UAE',
+        'Student Phone Number': '+971512345678',
+        'Parent Phone Number': '+971512345679',
+        'Student Code': 'UAE3001',
+      },
+      {
+        'Student Name': 'Laila Kuwait',
+        'Student Phone Number': '+96512345678',
+        'Parent Phone Number': '+96512345679',
+        'Student Code': 'KWT4001',
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students Sample');
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="bulk-import-students-sample.xlsx"'
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error generating bulk import sample:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate sample file',
     });
   }
 };
@@ -12974,7 +13162,6 @@ const exportTeamMembers = async (req, res) => {
 
 // ==================== BULK SMS MESSAGING ====================
 
-const { sendSms, sendBulkSms } = require('../utils/sms');
 
 // Get Bulk SMS Page
 const getBulkSMSPage = async (req, res) => {
@@ -13704,6 +13891,7 @@ module.exports = {
   deleteZoomMeeting,
   // Bulk Import
   bulkImportStudents,
+  downloadBulkImportSample,
   // Student Enrollment
   enrollStudentsToCourse,
   enrollStudentsToBundle,
