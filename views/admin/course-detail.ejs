@@ -1279,6 +1279,10 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enrolling...';
 
+      // Get starting order from select
+      const startingOrderSelect = document.getElementById('startingOrderSelect');
+      const startingOrder = startingOrderSelect.value === '' ? null : parseInt(startingOrderSelect.value);
+
       const response = await fetch(`/admin/courses/<%= course._id %>/enroll`, {
         method: 'POST',
         headers: {
@@ -1286,6 +1290,7 @@
         },
         body: JSON.stringify({
           studentIds: Array.from(selectedStudents),
+          startingOrder: startingOrder,
         }),
       });
 
@@ -1439,6 +1444,20 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div class="mb-3">
+          <label for="startingOrderSelect" class="form-label">
+            <i class="fas fa-calendar-week me-1"></i>Enroll From Week/Order
+          </label>
+          <select id="startingOrderSelect" class="form-select">
+            <option value="">From Beginning (Week 1)</option>
+            <% if (course.order !== undefined && course.order !== null) { %>
+            <option value="<%= course.order %>" selected>From This Course's Week (<%= course.order + 1 %>)</option>
+            <% } %>
+          </select>
+          <small class="form-text text-muted">
+            Select the week/order from which students should have access. They will be able to access this week and all subsequent weeks. The default is this course's week.
+          </small>
+        </div>
         <div class="mb-3">
           <input type="text" id="studentSearchInput" class="form-control" placeholder="Search by name, email, or code..." oninput="searchStudentsForEnrollment()">
         </div>

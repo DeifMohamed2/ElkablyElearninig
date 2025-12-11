@@ -104,6 +104,8 @@ router.get('/homework-attempts', studentController.homeworkAttempts);
 router.get('/profile', studentController.profile);
 router.put('/profile/update', studentController.updateProfile);
 router.post('/profile/update-picture', profilePictureUpload.single('profilePicture'), studentController.updateProfilePicture);
+router.post('/profile/send-otp', studentController.sendProfileOTP);
+router.post('/profile/verify-otp', studentController.verifyProfileOTP);
 
 // Settings
 router.get('/settings', studentController.settings);

@@ -495,6 +495,7 @@ const getBundleContent = async (req, res) => {
 
     // Get user with purchase information if logged in
     let user = null;
+    let coursesWithUnlockStatus = [];
     if (req.session.user) {
       user = await User.findById(req.session.user.id);
       // .populate('wishlist.courses')
@@ -502,6 +503,24 @@ const getBundleContent = async (req, res) => {
       // .populate('purchasedBundles.bundle')
       // .populate('purchasedCourses.course')
       // .populate('enrolledCourses.course');
+      
+      // Check unlock status for each course in the bundle
+      if (bundle.courses && bundle.courses.length > 0) {
+        const Course = require('../models/Course');
+        coursesWithUnlockStatus = await Promise.all(
+          bundle.courses.map(async (course) => {
+            const unlockStatus = await Course.isCourseUnlocked(user._id, course._id);
+            return {
+              ...course.toObject(),
+              isUnlocked: unlockStatus.unlocked,
+              unlockReason: unlockStatus.reason,
+            };
+          })
+        );
+      }
+    } else {
+      // If not logged in, just use courses as-is
+      coursesWithUnlockStatus = bundle.courses || [];
     }
 
     res.render('bundle-content', {
@@ -511,6 +530,7 @@ const getBundleContent = async (req, res) => {
       relatedBundles,
       user,
       cart: req.session.cart || [],
+      coursesWithUnlockStatus: coursesWithUnlockStatus.length > 0 ? coursesWithUnlockStatus : bundle.courses,
     });
   } catch (error) {
     console.error('Error fetching bundle content:', error);

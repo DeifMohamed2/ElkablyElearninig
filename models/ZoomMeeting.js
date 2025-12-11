@@ -131,6 +131,29 @@ const zoomMeetingSchema = new mongoose.Schema({
     type: String,
   },
 
+  // Students who watched the recording (after session ended)
+  studentsWatchedRecording: [
+    {
+      student: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      watchedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      completedWatching: {
+        type: Boolean,
+        default: false,
+      },
+      watchDuration: {
+        type: Number, // in minutes
+        default: 0,
+      },
+    },
+  ],
+
   // Attendance Tracking
   studentsAttended: [
     {
@@ -286,12 +309,16 @@ zoomMeetingSchema.methods.calculateAttendanceStats = function () {
 
     if (student.totalTimeSpent > 0) {
       // Calculate attendance percentage based on actual meeting duration
+      // Use exact calculation with one decimal place for accuracy
       const rawPercentage =
         (student.totalTimeSpent / this.actualDuration) * 100;
-      student.attendancePercentage = Math.min(100, Math.round(rawPercentage));
+      // Round to 1 decimal place for accuracy (e.g., 88.5% instead of 88% or 89%)
+      // But if it's a whole number, keep it as whole number (e.g., 88% not 88.0%)
+      const calculatedPercentage = Math.min(100, Math.round(rawPercentage * 10) / 10);
+      student.attendancePercentage = calculatedPercentage;
 
       console.log(
-        `📈 Attendance percentage: ${student.attendancePercentage}% (${student.totalTimeSpent}/${this.actualDuration})`
+        `📈 Attendance percentage: ${student.attendancePercentage}% (${student.totalTimeSpent}/${this.actualDuration} minutes)`
       );
 
       totalAttendancePercentage += student.attendancePercentage;
@@ -441,9 +468,10 @@ zoomMeetingSchema.methods.updateStudentAttendance = function (studentData) {
         const joinTimeMs = new Date(lastJoinEvent.joinTime).getTime();
         const leaveTimeMs = new Date(studentData.leaveTime).getTime();
         const durationMs = leaveTimeMs - joinTimeMs;
+        // Calculate duration in minutes with precision (round to 1 decimal place)
         const durationMinutes = Math.max(
           0,
-          Math.round(durationMs / (1000 * 60))
+          Math.round((durationMs / (1000 * 60)) * 10) / 10
         );
 
         lastJoinEvent.duration = durationMinutes;
@@ -464,10 +492,19 @@ zoomMeetingSchema.methods.updateStudentAttendance = function (studentData) {
           action: 'leave',
         });
 
-        // Update total time spent - recalculate from all sessions
-        existingStudent.totalTimeSpent = existingStudent.joinEvents
-          .filter((event) => event.duration && event.duration > 0)
-          .reduce((total, event) => total + event.duration, 0);
+        // Update total time spent - recalculate from all sessions with precision
+        let totalSeconds = 0;
+        existingStudent.joinEvents.forEach((event) => {
+          if (event.duration && event.duration > 0) {
+            totalSeconds += event.duration * 60; // Convert minutes to seconds
+          } else if (event.joinTime && event.leaveTime) {
+            // Calculate if duration not set
+            const durationMs = new Date(event.leaveTime) - new Date(event.joinTime);
+            totalSeconds += durationMs / 1000;
+          }
+        });
+        // Convert back to minutes with precision (round to 1 decimal)
+        existingStudent.totalTimeSpent = Math.round((totalSeconds / 60) * 10) / 10;
 
         existingStudent.lastLeaveTime = studentData.leaveTime;
         existingStudent.isCurrentlyInMeeting = false;
@@ -510,6 +547,7 @@ zoomMeetingSchema.methods.updateStudentAttendance = function (studentData) {
       newStudent.joinEvents.push(newJoinEvent);
       newStudent.firstJoinTime = studentData.joinTime;
       newStudent.isCurrentlyInMeeting = true;
+      newStudent.totalTimeSpent = 0; // Will be calculated when they leave
     }
 
     this.studentsAttended.push(newStudent);
@@ -624,9 +662,38 @@ zoomMeetingSchema.methods.endMeeting = function () {
   this.status = 'ended';
   this.actualEndTime = new Date();
 
-  if (this.actualStartTime) {
-    const durationMs = this.actualEndTime - this.actualStartTime;
-    this.actualDuration = Math.round(durationMs / (1000 * 60));
+  // Calculate actual duration - use actualStartTime if available, otherwise use first student join time
+  let startTime = this.actualStartTime;
+  
+  if (!startTime && this.studentsAttended && this.studentsAttended.length > 0) {
+    // Find the earliest join time from all students
+    const earliestJoinTimes = this.studentsAttended
+      .map(student => {
+        if (student.joinEvents && student.joinEvents.length > 0) {
+          return student.joinEvents
+            .map(event => new Date(event.joinTime))
+            .filter(time => !isNaN(time.getTime()));
+        }
+        return [];
+      })
+      .flat();
+    
+    if (earliestJoinTimes.length > 0) {
+      startTime = new Date(Math.min(...earliestJoinTimes.map(t => t.getTime())));
+      this.actualStartTime = startTime; // Set it for future reference
+      console.log(`📅 Using earliest student join time as meeting start: ${startTime.toLocaleString()}`);
+    }
+  }
+
+  if (startTime) {
+    const durationMs = this.actualEndTime - startTime;
+    // Calculate duration in minutes with precision (round to 1 decimal place)
+    const durationMinutes = durationMs / (1000 * 60);
+    this.actualDuration = Math.round(durationMinutes * 10) / 10; // Round to 1 decimal place
+    console.log(`⏱️ Meeting duration: ${this.actualDuration} minutes (${durationMs}ms)`);
+    console.log(`📅 Start: ${startTime.toLocaleString()}, End: ${this.actualEndTime.toLocaleString()}`);
+  } else {
+    console.warn('⚠️ Cannot calculate meeting duration: no start time available');
   }
 
   console.log(
@@ -653,21 +720,34 @@ zoomMeetingSchema.methods.endMeeting = function () {
       openJoinEvents.forEach((joinEvent, eventIndex) => {
         joinEvent.leaveTime = this.actualEndTime;
         const durationMs = this.actualEndTime - new Date(joinEvent.joinTime);
-        const eventDuration = Math.max(0, Math.round(durationMs / (1000 * 60)));
-        joinEvent.duration = eventDuration;
+        // Use more precise calculation (in seconds, then convert to minutes with decimals)
+        const eventDurationSeconds = Math.max(0, durationMs / 1000);
+        const eventDurationMinutes = eventDurationSeconds / 60;
+        // Store duration in minutes with precision
+        joinEvent.duration = Math.round(eventDurationMinutes * 10) / 10; // Round to 1 decimal
 
         console.log(
           `⏱️ Closed join event ${eventIndex + 1} for ${
             student.name
-          }, duration: ${eventDuration} minutes`
+          }, duration: ${joinEvent.duration} minutes`
         );
       });
     }
 
-    // Recalculate total time spent for this student
-    student.totalTimeSpent = student.joinEvents.reduce((total, event) => {
-      return total + (event.duration || 0);
-    }, 0);
+    // Recalculate total time spent for this student (sum all durations)
+    // Use more precise calculation
+    let totalSeconds = 0;
+    student.joinEvents.forEach((event) => {
+      if (event.duration) {
+        totalSeconds += event.duration * 60; // Convert minutes to seconds
+      } else if (event.joinTime && event.leaveTime) {
+        // Calculate if duration not set
+        const durationMs = new Date(event.leaveTime) - new Date(event.joinTime);
+        totalSeconds += durationMs / 1000;
+      }
+    });
+    // Convert back to minutes with precision
+    student.totalTimeSpent = Math.round((totalSeconds / 60) * 10) / 10; // Round to 1 decimal
 
     // Update student status
     student.isCurrentlyInMeeting = false;

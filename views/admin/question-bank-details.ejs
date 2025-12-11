@@ -1,6 +1,6 @@
 <%- include('./partials/admin-header', { pageCSS: 'question-banks', additionalJS: ['/js/question-bank.js'] }) %>
 
-<!-- Chart.js CDN - UMD version for compatibility -->
+<!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 <!-- MathLive for professional math input -->
@@ -209,7 +209,7 @@
                   </div>
 
                   <% if (questionBank.tags && questionBank.tags.length > 0) { %>
-                  <div class="info-tags-section">
+                  <div class="info-tags-section" data-bank-tags="<%= questionBank.tags.join(',') %>">
                     <label class="info-label">
                       <i class="fas fa-tags me-2"></i>
                       Tags
@@ -548,44 +548,62 @@
           <div class="row">
             <div class="col-md-8">
               <div class="admin-form-group">
-                <label for="questionText" class="admin-form-label">Question Text *</label>
+                <label for="questionText" class="admin-form-label">
+                  Question Text *
+                  <button type="button" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="collapse" data-bs-target="#mathEditorCollapse-questionText" aria-expanded="false" aria-controls="mathEditorCollapse-questionText" onclick="initMathEditor('questionText')" title="Toggle Math Editor with Virtual Keyboard">
+                    <i class="fas fa-calculator"></i> Math Editor
+                  </button>
+                </label>
+                <!-- Collapsible Math Editor -->
+                <div class="collapse mt-2 mb-3" id="mathEditorCollapse-questionText">
+                  <div class="card card-body" style="background: #f8f9fa; border: 1px solid #dee2e6;">
+                    <div class="admin-form-group mb-3">
+                      <label class="admin-form-label">Enter Math Expression</label>
+                      <math-field 
+                        id="mathEditorField-questionText" 
+                        virtual-keyboard-mode="manual"
+                        style="width: 100%; min-height: 80px; font-size: 16px; border: 1px solid #ced4da; border-radius: 4px; padding: 10px; background: #fff;">
+                      </math-field>
+                      <small class="admin-form-text">Use the keyboard icon on the right to open the virtual keyboard with all math symbols.</small>
+                    </div>
+                    <div class="admin-form-group mb-3">
+                      <label class="admin-form-label">Preview</label>
+                      <div id="mathEditorPreview-questionText" style="padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; min-height: 50px;">
+                        Preview will appear here...
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="insertMathExpression('questionText')">
+                      <i class="fas fa-plus me-2"></i>Insert Math Expression
+                    </button>
+                  </div>
+                </div>
                 <textarea class="form-control admin-form-control" id="questionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math expressions, e.g., If $x^2 + 3 = 2x - 2$, what is the value of $x - 4$?" maxlength="1000" required></textarea>
-                <small class="admin-form-text">Question must be between 10 and 1000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$</small>
+                <small class="admin-form-text">Question must be between 10 and 1000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$. Click "Math Editor" for a full virtual keyboard.</small>
                 <div class="invalid-feedback" id="questionTextError"></div>
               </div>
 
-              <div class="admin-form-group">
-                <label class="admin-form-label">Question Image (Optional)</label>
-                <input type="url" class="form-control admin-form-control" id="questionImage" name="questionImage" placeholder="Enter image URL or upload below">
-              </div>
-
-              <!-- Image Upload Section -->
+              <!-- Question Image Upload Section -->
               <div class="admin-form-group">
                 <label class="admin-form-label">
-                  <i class="fas fa-cloud-upload-alt me-2"></i>
-                  Upload Question Image
+                  <i class="fas fa-image me-2"></i>
+                  Question Image (Optional)
                 </label>
                 <div class="upload-section">
                   <input type="file" id="questionImageFile" class="upload-input" accept="image/*">
                   <label for="questionImageFile" class="upload-label">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    Choose Image
+                    Choose Question Image
                   </label>
                   <div id="questionImagePreview" class="upload-preview">
                     <div class="preview-overlay">
                       <i class="fas fa-cloud-upload-alt"></i>
-                      <p>Click or drag to upload image</p>
-                      <small>JPG, PNG, GIF supported</small>
+                      <p>Click or drag to upload</p>
+                      <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
                     </div>
                   </div>
-                  <div id="questionImageProgress" class="progress-container" style="display: none;">
-                    <div class="progress">
-                      <div class="progress-bar" role="progressbar" style="width: 0%"></div>
-                    </div>
-                    <small class="progress-text">Uploading...</small>
-                  </div>
+                  <div id="questionImageProgress" class="progress-container" style="display: none;"></div>
                 </div>
-                <input type="hidden" name="uploadedImageUrl" id="uploadedImageUrl">
+                <input type="hidden" name="questionImage" id="questionImageUrl">
               </div>
 
               <div class="admin-form-group">
@@ -655,7 +673,7 @@
                   <div id="correctAnswersContainer" class="correct-answers-container">
                     <!-- Correct answers will be populated dynamically -->
                   </div>
-                  <button type="button" class="btn btn-outline-primary btn-sm" id="addAnswerBtn" onclick="addCorrectAnswer()">
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="addAnswerBtn" onclick="addCorrectAnswer()" style="display: none;">
                     <i class="fas fa-plus me-1"></i>
                     Add Answer
                   </button>
@@ -810,44 +828,62 @@
           <div class="row">
             <div class="col-md-8">
               <div class="admin-form-group">
-                <label for="editQuestionText" class="admin-form-label">Question Text *</label>
+                <label for="editQuestionText" class="admin-form-label">
+                  Question Text *
+                  <button type="button" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="collapse" data-bs-target="#mathEditorCollapse-editQuestionText" aria-expanded="false" aria-controls="mathEditorCollapse-editQuestionText" onclick="initMathEditor('editQuestionText')" title="Toggle Math Editor with Virtual Keyboard">
+                    <i class="fas fa-calculator"></i> Math Editor
+                  </button>
+                </label>
+                <!-- Collapsible Math Editor -->
+                <div class="collapse mt-2 mb-3" id="mathEditorCollapse-editQuestionText">
+                  <div class="card card-body" style="background: #f8f9fa; border: 1px solid #dee2e6;">
+                    <div class="admin-form-group mb-3">
+                      <label class="admin-form-label">Enter Math Expression</label>
+                      <math-field 
+                        id="mathEditorField-editQuestionText" 
+                        virtual-keyboard-mode="manual"
+                        style="width: 100%; min-height: 80px; font-size: 16px; border: 1px solid #ced4da; border-radius: 4px; padding: 10px; background: #fff;">
+                      </math-field>
+                      <small class="admin-form-text">Use the keyboard icon on the right to open the virtual keyboard with all math symbols.</small>
+                    </div>
+                    <div class="admin-form-group mb-3">
+                      <label class="admin-form-label">Preview</label>
+                      <div id="mathEditorPreview-editQuestionText" style="padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; min-height: 50px;">
+                        Preview will appear here...
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="insertMathExpression('editQuestionText')">
+                      <i class="fas fa-plus me-2"></i>Insert Math Expression
+                    </button>
+                  </div>
+                </div>
                 <textarea class="form-control admin-form-control" id="editQuestionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math expressions, e.g., If $x^2 + 3 = 2x - 2$, what is the value of $x - 4$?" maxlength="1000" required></textarea>
-                <small class="admin-form-text">Question must be between 10 and 1000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$</small>
+                <small class="admin-form-text">Question must be between 10 and 1000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$. Click "Math Editor" for a full virtual keyboard.</small>
                 <div class="invalid-feedback" id="editQuestionTextError"></div>
               </div>
 
-              <div class="admin-form-group">
-                <label class="admin-form-label">Question Image (Optional)</label>
-                <input type="url" class="form-control admin-form-control" id="editQuestionImage" name="questionImage" placeholder="Enter image URL or upload below">
-              </div>
-
-              <!-- Edit Image Upload Section -->
+              <!-- Edit Question Image Upload Section -->
               <div class="admin-form-group">
                 <label class="admin-form-label">
-                  <i class="fas fa-cloud-upload-alt me-2"></i>
-                  Upload Question Image
+                  <i class="fas fa-image me-2"></i>
+                  Question Image (Optional)
                 </label>
                 <div class="upload-section">
                   <input type="file" id="editQuestionImageFile" class="upload-input" accept="image/*">
                   <label for="editQuestionImageFile" class="upload-label">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    Choose Image
+                    Choose Question Image
                   </label>
                   <div id="editQuestionImagePreview" class="upload-preview">
                     <div class="preview-overlay">
                       <i class="fas fa-cloud-upload-alt"></i>
-                      <p>Click or drag to upload image</p>
-                      <small>JPG, PNG, GIF supported</small>
+                      <p>Click or drag to upload</p>
+                      <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
                     </div>
                   </div>
-                  <div id="editQuestionImageProgress" class="progress-container" style="display: none;">
-                    <div class="progress">
-                      <div class="progress-bar" role="progressbar" style="width: 0%"></div>
-                    </div>
-                    <small class="progress-text">Uploading...</small>
-                  </div>
+                  <div id="editQuestionImageProgress" class="progress-container" style="display: none;"></div>
                 </div>
-                <input type="hidden" name="uploadedImageUrl" id="editUploadedImageUrl">
+                <input type="hidden" name="questionImage" id="editQuestionImageUrl">
               </div>
 
               <div class="admin-form-group">
@@ -917,7 +953,7 @@
                   <div id="editCorrectAnswersContainer" class="correct-answers-container">
                     <!-- Correct answers will be populated dynamically -->
                   </div>
-                  <button type="button" class="btn btn-outline-primary btn-sm" id="editAddAnswerBtn" onclick="addEditCorrectAnswer()">
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="editAddAnswerBtn" onclick="addEditCorrectAnswer()" style="display: none;">
                     <i class="fas fa-plus me-1"></i>
                     Add Answer
                   </button>
@@ -1119,6 +1155,13 @@
       const addAnswerBtn = document.getElementById('addAnswerBtn');
 
       if (singleAnswerRadio && multipleAnswersRadio && addAnswerBtn) {
+        // Set initial state based on selected radio button
+        if (singleAnswerRadio.checked) {
+          addAnswerBtn.style.display = 'none';
+        } else if (multipleAnswersRadio.checked) {
+          addAnswerBtn.style.display = 'block';
+        }
+
         singleAnswerRadio.addEventListener('change', function() {
           if (this.checked) {
             // For single answer, hide the add button and ensure only one answer
@@ -1576,31 +1619,43 @@
           document.getElementById('editQuestionType').value = question.questionType;
           document.getElementById('editDifficulty').value = question.difficulty;
           document.getElementById('editPoints').value = question.points;
-          document.getElementById('editTags').value = question.tags ? question.tags.join(', ') : '';
+          
+          // Populate tags - ensure they're properly set
+          const editTagsInput = document.getElementById('editTags');
+          if (editTagsInput) {
+            if (question.tags && Array.isArray(question.tags) && question.tags.length > 0) {
+              editTagsInput.value = question.tags.join(', ');
+              console.log('Tags populated in edit form:', question.tags.join(', '));
+            } else {
+              editTagsInput.value = '';
+              console.log('No tags found for this question');
+            }
+          } else {
+            console.error('editTags input not found');
+          }
           
           // Populate and display question image
-          const editQuestionImageInput = document.getElementById('editQuestionImage');
+          const editQuestionImageUrl = document.getElementById('editQuestionImageUrl');
           const editQuestionImagePreview = document.getElementById('editQuestionImagePreview');
           if (question.questionImage && question.questionImage.trim()) {
-            editQuestionImageInput.value = question.questionImage;
+            if (editQuestionImageUrl) editQuestionImageUrl.value = question.questionImage;
             // Display the image preview
-            editQuestionImagePreview.innerHTML = `
-              <img src="${question.questionImage}" alt="Question Image" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
-              <button type="button" class="btn btn-sm btn-danger mt-2" onclick="clearEditImagePreview()" style="width: 100%;">
-                <i class="fas fa-times"></i> Remove Image
-              </button>
-            `;
-            editQuestionImagePreview.style.display = 'block';
+            if (editQuestionImagePreview) {
+              editQuestionImagePreview.innerHTML = `
+                <img src="${question.questionImage}" alt="Question Image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+              `;
+            }
           } else {
-            editQuestionImageInput.value = '';
-            editQuestionImagePreview.innerHTML = `
-              <div class="preview-overlay">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Click or drag to upload image</p>
-                <small>JPG, PNG, GIF supported</small>
-              </div>
-            `;
-            editQuestionImagePreview.style.display = 'block';
+            if (editQuestionImageUrl) editQuestionImageUrl.value = '';
+            if (editQuestionImagePreview) {
+              editQuestionImagePreview.innerHTML = `
+                <div class="preview-overlay">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <p>Click or drag to upload</p>
+                  <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
+                </div>
+              `;
+            }
           }
           
           document.getElementById('editExplanation').value = question.explanation || '';
@@ -1681,8 +1736,11 @@
           const editForm = document.getElementById('editQuestionForm');
           editForm.action = `/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`;
 
-          // Load previous tags
-          loadPreviousTags();
+          // Load previous tags with a delay to ensure modal is ready
+          // Pass the current question's tags so they're included in the previous tags list
+          setTimeout(function() {
+            loadPreviousTags(question.tags || []);
+          }, 200);
 
         } else {
           showNotification('Failed to load question data', 'error');
@@ -2406,12 +2464,26 @@
           }
         }
 
+        // Explicitly ensure tags are included from the input field
+        const tagsInput = document.getElementById('editTags');
+        if (tagsInput) {
+          const tagsValue = tagsInput.value.trim();
+          // Always include tags field, even if empty (so server knows to preserve/clear tags)
+          jsonData.tags = tagsValue;
+          console.log('Tags from input field:', tagsValue);
+        } else {
+          // If input not found, set empty string to preserve existing behavior
+          jsonData.tags = '';
+          console.warn('editTags input not found, setting tags to empty string');
+        }
+
         // Debug logging
         console.log('Sending update data to server:', {
           questionType: jsonData.questionType,
           correctAnswers: jsonData.correctAnswers,
           answerMandatory: jsonData.answerMandatory,
           answerMultiplicity: jsonData.answerMultiplicity,
+          tags: jsonData.tags,
           allKeys: Object.keys(jsonData)
         });
 
@@ -2625,6 +2697,13 @@
       const editAddAnswerBtn = document.getElementById('editAddAnswerBtn');
 
       if (editSingleAnswerRadio && editMultipleAnswersRadio && editAddAnswerBtn) {
+        // Set initial state based on selected radio button
+        if (editSingleAnswerRadio.checked) {
+          editAddAnswerBtn.style.display = 'none';
+        } else if (editMultipleAnswersRadio.checked) {
+          editAddAnswerBtn.style.display = 'block';
+        }
+
         editSingleAnswerRadio.addEventListener('change', function() {
           if (this.checked) {
             // For single answer, hide the add button and ensure only one answer
@@ -2777,10 +2856,42 @@
   function setupCreateModalEvents() {
     const createModal = document.getElementById('createQuestionModal');
     if (createModal) {
-      createModal.addEventListener('show.bs.modal', function() {
-        loadPreviousTagsForCreate();
+      // Use 'shown.bs.modal' to ensure modal is fully visible
+      createModal.addEventListener('shown.bs.modal', function() {
+        // Clear tags input
+        const tagsInput = document.getElementById('tags');
+        if (tagsInput) {
+          tagsInput.value = '';
+        }
+        // Load previous tags with a small delay to ensure DOM is ready
+        setTimeout(function() {
+          loadPreviousTagsForCreate();
+        }, 100);
       });
     }
+  }
+
+  // Setup edit modal tag input handlers
+  function setupEditModalTagHandlers() {
+    // Use event delegation since the modal might not be in DOM initially
+    document.addEventListener('focus', function(e) {
+      if (e.target && e.target.id === 'editTags') {
+        // Ensure previous tags are loaded when user focuses on tags input
+        setTimeout(function() {
+          loadPreviousTags();
+        }, 100);
+      }
+    }, true); // Use capture phase to catch the event early
+
+    // Also handle click events
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'editTags') {
+        // Ensure previous tags are loaded when user clicks on tags input
+        setTimeout(function() {
+          loadPreviousTags();
+        }, 100);
+      }
+    });
   }
 
   // Setup edit bank form
@@ -2801,7 +2912,7 @@
         };
 
         // Validate form
-        if (!bankData.name || !bankData.description) {
+        if (!bankData.name) {
           showNotification('Please fill in all required fields', 'error');
           return;
         }
@@ -2888,37 +2999,82 @@
   }
 
   // Load previous tags from all questions in the bank (for edit modal)
-  function loadPreviousTags() {
+  // currentQuestionTags: array of tags from the question being edited
+  function loadPreviousTags(currentQuestionTags = []) {
     const allTags = new Set();
 
-    // Collect all tags from existing questions
-    document.querySelectorAll('.question-card-modern').forEach(card => {
-      const tags = card.dataset.tags;
-      if (tags) {
+    // First, add the current question's tags (so they appear in the list)
+    if (currentQuestionTags && Array.isArray(currentQuestionTags)) {
+      currentQuestionTags.forEach(tag => {
+        if (tag && tag.trim()) {
+          allTags.add(tag.trim());
+        }
+      });
+    }
+
+    // Collect all tags from existing questions in the DOM
+    const questionCards = document.querySelectorAll('.question-card-modern');
+    
+    questionCards.forEach(card => {
+      const tags = card.getAttribute('data-tags');
+      if (tags && tags.trim()) {
+        // Split by comma and add each tag
         tags.split(',').forEach(tag => {
-          if (tag.trim()) {
-            allTags.add(tag.trim());
+          const trimmedTag = tag.trim();
+          if (trimmedTag) {
+            allTags.add(trimmedTag);
           }
         });
       }
     });
 
+    // Also check if there are tags in the question bank itself
+    const bankTagsElement = document.querySelector('.info-tags-section[data-bank-tags]');
+    if (bankTagsElement) {
+      const bankTags = bankTagsElement.getAttribute('data-bank-tags');
+      if (bankTags && bankTags.trim()) {
+        bankTags.split(',').forEach(tag => {
+          const trimmedTag = tag.trim();
+          if (trimmedTag) {
+            allTags.add(trimmedTag);
+          }
+        });
+      }
+    }
+
     // Display previous tags
     const previousTagsContainer = document.getElementById('previousTagsContainer');
     const previousTagsSection = document.getElementById('previousTagsSection');
 
+    if (!previousTagsContainer || !previousTagsSection) {
+      console.error('Previous tags container elements not found for edit modal');
+      return;
+    }
+
     if (allTags.size > 0) {
       previousTagsContainer.innerHTML = '';
-      allTags.forEach(tag => {
+      // Sort tags alphabetically for better UX
+      const sortedTags = Array.from(allTags).sort();
+      
+      sortedTags.forEach(tag => {
         const tagElement = document.createElement('span');
         tagElement.className = 'previous-tag';
         tagElement.textContent = tag;
-        tagElement.onclick = () => addTagToInput(tag);
+        tagElement.style.cursor = 'pointer';
+        tagElement.title = 'Click to add this tag';
+        // Use arrow function to preserve tag value in closure
+        tagElement.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          addTagToInput(tag, this);
+        });
         previousTagsContainer.appendChild(tagElement);
       });
       previousTagsSection.style.display = 'block';
+      console.log('Previous tags loaded:', sortedTags.length, 'tags');
     } else {
       previousTagsSection.style.display = 'none';
+      console.log('No previous tags found');
     }
   }
 
@@ -2927,28 +3083,54 @@
     const allTags = new Set();
 
     // Collect all tags from existing questions
-    document.querySelectorAll('.question-card-modern').forEach(card => {
-      const tags = card.dataset.tags;
-      if (tags) {
+    const questionCards = document.querySelectorAll('.question-card-modern');
+    
+    questionCards.forEach(card => {
+      const tags = card.getAttribute('data-tags');
+      if (tags && tags.trim()) {
+        // Split by comma and add each tag
         tags.split(',').forEach(tag => {
-          if (tag.trim()) {
-            allTags.add(tag.trim());
+          const trimmedTag = tag.trim();
+          if (trimmedTag) {
+            allTags.add(trimmedTag);
           }
         });
       }
     });
 
+    // Also check if there are tags in the question bank itself
+    const bankTagsElement = document.querySelector('.info-tags-section[data-bank-tags]');
+    if (bankTagsElement) {
+      const bankTags = bankTagsElement.getAttribute('data-bank-tags');
+      if (bankTags && bankTags.trim()) {
+        bankTags.split(',').forEach(tag => {
+          const trimmedTag = tag.trim();
+          if (trimmedTag) {
+            allTags.add(trimmedTag);
+          }
+        });
+      }
+    }
+
     // Display previous tags
     const previousTagsContainer = document.getElementById('createPreviousTagsContainer');
     const previousTagsSection = document.getElementById('createPreviousTagsSection');
 
+    if (!previousTagsContainer || !previousTagsSection) {
+      console.error('Previous tags container elements not found');
+      return;
+    }
+
     if (allTags.size > 0) {
       previousTagsContainer.innerHTML = '';
-      allTags.forEach(tag => {
+      // Sort tags alphabetically for better UX
+      const sortedTags = Array.from(allTags).sort();
+      
+      sortedTags.forEach(tag => {
         const tagElement = document.createElement('span');
         tagElement.className = 'previous-tag';
         tagElement.textContent = tag;
-        tagElement.onclick = () => addTagToCreateInput(tag);
+        tagElement.onclick = function() { addTagToCreateInput(tag, this); };
         previousTagsContainer.appendChild(tagElement);
       });
       previousTagsSection.style.display = 'block';
@@ -2958,45 +3140,90 @@
   }
 
   // Add tag to input field (for edit modal)
-  function addTagToInput(tag) {
+  function addTagToInput(tag, element) {
+    console.log('addTagToInput called with tag:', tag);
     const tagsInput = document.getElementById('editTags');
-    const currentTags = tagsInput.value.trim();
-
-    if (currentTags) {
-      const tags = currentTags.split(',').map(t => t.trim());
-      if (!tags.includes(tag)) {
-        tagsInput.value = currentTags + ', ' + tag;
-      }
-    } else {
-      tagsInput.value = tag;
+    if (!tagsInput) {
+      console.error('editTags input not found');
+      return;
     }
 
+    const currentTags = tagsInput.value.trim();
+    const trimmedTag = tag.trim();
+
+    if (!trimmedTag) {
+      console.warn('Empty tag provided');
+      return;
+    }
+
+    if (currentTags) {
+      const tags = currentTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      // Case-insensitive check to avoid duplicates
+      const tagExists = tags.some(t => t.toLowerCase() === trimmedTag.toLowerCase());
+      if (!tagExists) {
+        tagsInput.value = currentTags + ', ' + trimmedTag;
+        console.log('Tag added. New value:', tagsInput.value);
+        // Trigger input event to ensure form validation works
+        tagsInput.dispatchEvent(new Event('input', { bubbles: true }));
+        tagsInput.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        console.log('Tag already exists, skipping');
+      }
+    } else {
+      tagsInput.value = trimmedTag;
+      console.log('Tag set as first tag. New value:', tagsInput.value);
+      // Trigger input event to ensure form validation works
+      tagsInput.dispatchEvent(new Event('input', { bubbles: true }));
+      tagsInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Focus the input field
+    tagsInput.focus();
+
     // Highlight the clicked tag
-    event.target.classList.add('tag-selected');
-    setTimeout(() => {
-      event.target.classList.remove('tag-selected');
-    }, 1000);
+    if (element) {
+      element.classList.add('tag-selected');
+      setTimeout(() => {
+        element.classList.remove('tag-selected');
+      }, 1000);
+    }
   }
 
   // Add tag to create input field
-  function addTagToCreateInput(tag) {
+  function addTagToCreateInput(tag, element) {
     const tagsInput = document.getElementById('tags');
+    if (!tagsInput) {
+      console.error('tags input not found');
+      return;
+    }
+
     const currentTags = tagsInput.value.trim();
 
     if (currentTags) {
       const tags = currentTags.split(',').map(t => t.trim());
-      if (!tags.includes(tag)) {
+      // Case-insensitive check to avoid duplicates
+      const tagExists = tags.some(t => t.toLowerCase() === tag.toLowerCase());
+      if (!tagExists) {
         tagsInput.value = currentTags + ', ' + tag;
+        // Trigger input event to ensure form validation works
+        tagsInput.dispatchEvent(new Event('input', { bubbles: true }));
       }
     } else {
       tagsInput.value = tag;
+      // Trigger input event to ensure form validation works
+      tagsInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
+    // Focus the input field
+    tagsInput.focus();
+
     // Highlight the clicked tag
-    event.target.classList.add('tag-selected');
-    setTimeout(() => {
-      event.target.classList.remove('tag-selected');
-    }, 1000);
+    if (element) {
+      element.classList.add('tag-selected');
+      setTimeout(() => {
+        element.classList.remove('tag-selected');
+      }, 1000);
+    }
   }
 
   // Update questions count after deletion
@@ -3030,23 +3257,36 @@
 
     filteredQuestions = [...allQuestions];
 
-    // Initialize Chart.js only if Chart is available and canvas exists
-    if (typeof Chart !== 'undefined') {
-      const chartCanvas = document.getElementById('questionDistributionChart');
-      if (chartCanvas) {
-        initializeChart();
+    // Initialize Chart.js - wait for Chart.js to be fully loaded
+    function initChartWhenReady() {
+      if (typeof Chart !== 'undefined') {
+        const chartCanvas = document.getElementById('questionDistributionChart');
+        if (chartCanvas) {
+          try {
+            initializeChart();
+          } catch (error) {
+            console.error('Error initializing chart:', error);
+          }
+        }
+      } else {
+        // Retry after a short delay if Chart.js isn't loaded yet
+        setTimeout(initChartWhenReady, 100);
       }
     }
+    
+    // Start initialization
+    initChartWhenReady();
 
     // Setup search and filter event listeners
     setupSearchAndFilters();
 
-    // Setup image upload functionality
-    setupImageUpload();
-    setupEditImageUpload();
+    // Image upload functionality is handled by CloudinaryUploader (initialized when modals are shown)
 
     // Setup create modal event listeners
     setupCreateModalEvents();
+
+    // Setup edit modal tag input focus handlers
+    setupEditModalTagHandlers();
 
     // Setup edit bank form
     setupEditBankForm();
@@ -3057,6 +3297,18 @@
     // Initialize math-fields in question cards
     initializeQuestionCardMathFields();
 
+  });
+
+  // Also try to initialize chart on window load (fallback)
+  window.addEventListener('load', function() {
+    const chartCanvas = document.getElementById('questionDistributionChart');
+    if (chartCanvas && typeof Chart !== 'undefined' && !window.questionDistributionChartInstance) {
+      try {
+        initializeChart();
+      } catch (error) {
+        console.error('Error initializing chart on window load:', error);
+      }
+    }
   });
 
   // Initialize math-fields in question cards
@@ -3184,12 +3436,31 @@
   // Initialize the question distribution chart
   function initializeChart() {
     const ctx = document.getElementById('questionDistributionChart');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('Chart canvas not found');
+      return;
+    }
+
+    // Get data values with fallback to 0
+    const easyQuestions = <%= questionStats.easyQuestions || 0 %>;
+    const mediumQuestions = <%= questionStats.mediumQuestions || 0 %>;
+    const hardQuestions = <%= questionStats.hardQuestions || 0 %>;
+
+    // Check if Chart.js is available
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js is not loaded');
+      return;
+    }
+
+    // Destroy existing chart if it exists
+    if (window.questionDistributionChartInstance) {
+      window.questionDistributionChartInstance.destroy();
+    }
 
     const chartData = {
       labels: ['Easy', 'Medium', 'Hard'],
       datasets: [{
-        data: [<%= questionStats.easyQuestions %>, <%= questionStats.mediumQuestions %>, <%= questionStats.hardQuestions %>],
+        data: [easyQuestions, mediumQuestions, hardQuestions],
         backgroundColor: [
           '#10b981',
           '#f59e0b',
@@ -3205,29 +3476,34 @@
       }]
     };
 
-    new Chart(ctx, {
-      type: 'doughnut',
-      data: chartData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                return `${context.label}: ${context.parsed} (${percentage}%)`;
+    try {
+      window.questionDistributionChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: chartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                  return `${context.label}: ${context.parsed} (${percentage}%)`;
+                }
               }
             }
-          }
-        },
-        cutout: '60%'
-      }
-    });
+          },
+          cutout: '60%'
+        }
+      });
+      console.log('Question distribution chart initialized successfully');
+    } catch (error) {
+      console.error('Error creating chart:', error);
+    }
   }
 
   // Setup search and filter event listeners
@@ -3443,325 +3719,61 @@
   }
 
   // ==================== IMAGE UPLOAD FUNCTIONALITY ====================
+  // Using CloudinaryUploader class (same as bundles)
 
-  // Setup image upload functionality
-  function setupImageUpload() {
-    const imageFileInput = document.getElementById('questionImageFile');
-    const imagePreview = document.getElementById('questionImagePreview');
-    const imageProgress = document.getElementById('questionImageProgress');
-    const questionImageInput = document.getElementById('questionImage');
-    const uploadedImageUrl = document.getElementById('uploadedImageUrl');
+  // Initialize CloudinaryUploader for question forms when modals are shown
+  let questionUploader = null;
 
-    if (!imageFileInput || !imagePreview || !imageProgress) {
-      console.warn('Image upload elements not found');
-      return;
+  // Initialize uploader for create question modal
+  document.getElementById('createQuestionModal')?.addEventListener('shown.bs.modal', function() {
+    if (!questionUploader) {
+      questionUploader = new CloudinaryUploader();
     }
-
-    // File input change event
-    imageFileInput.addEventListener('change', function() {
-      if (this.files && this.files[0]) {
-        uploadQuestionImage(this.files[0]);
-      }
-    });
-
-    // Drag and drop functionality
-    imagePreview.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      this.classList.add('drag-over');
-    });
-
-    imagePreview.addEventListener('dragleave', function(e) {
-      e.preventDefault();
-      this.classList.remove('drag-over');
-    });
-
-    imagePreview.addEventListener('drop', function(e) {
-      e.preventDefault();
-      this.classList.remove('drag-over');
-
-      const files = e.dataTransfer.files;
-      if (files.length > 0 && files[0].type.startsWith('image/')) {
-        uploadQuestionImage(files[0]);
-      }
-    });
-  }
-
-  // Upload question image to Cloudinary
-  function uploadQuestionImage(file) {
-    const imagePreview = document.getElementById('questionImagePreview');
-    const imageProgress = document.getElementById('questionImageProgress');
-    const progressBar = imageProgress.querySelector('.progress-bar');
-    const progressText = imageProgress.querySelector('.progress-text');
-    const questionImageInput = document.getElementById('questionImage');
-    const uploadedImageUrl = document.getElementById('uploadedImageUrl');
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      showNotification('Please select a valid image file', 'error');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      showNotification('Image size must be less than 10MB', 'error');
-      return;
-    }
-
-    // Show progress
-    imageProgress.style.display = 'block';
-    progressBar.style.width = '0%';
-    progressText.textContent = 'Uploading...';
-
-    // Simulate progress
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress > 90) progress = 90;
-      progressBar.style.width = progress + '%';
-      progressText.textContent = `Uploading... ${Math.round(progress)}%`;
-    }, 200);
-
-    // Create FormData
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'order_project'); // Using existing preset
-
-    // Upload to Cloudinary
-    fetch('https://api.cloudinary.com/v1_1/dusod9wxt/upload', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Clear progress interval
-        clearInterval(progressInterval);
-
-        if (data.secure_url) {
-          // Complete progress bar
-          progressBar.style.width = '100%';
-          progressText.textContent = 'Upload complete!';
-
-          setTimeout(() => {
-            // Update UI with uploaded image
-            imagePreview.innerHTML = `
-          <div class="preview-success">
-            <img src="${data.secure_url}" alt="Uploaded image" class="preview-image">
-            <div class="preview-overlay">
-              <i class="fas fa-check-circle text-success"></i>
-              <p>Image uploaded successfully!</p>
-              <small>${file.name}</small>
-            </div>
-          </div>
-        `;
-
-            // Update form inputs
-            questionImageInput.value = data.secure_url;
-            uploadedImageUrl.value = data.secure_url;
-
-            // Hide progress
-            imageProgress.style.display = 'none';
-
-            // Show success message
-            showNotification('Image uploaded successfully!', 'success');
-          }, 500);
-        } else {
-          throw new Error('Upload failed');
-        }
-      })
-      .catch(error => {
-        // Clear progress interval
-        clearInterval(progressInterval);
-
-        console.error('Upload error:', error);
-
-        // Reset UI
-        imagePreview.innerHTML = `
-      <div class="preview-overlay">
-        <i class="fas fa-cloud-upload-alt"></i>
-        <p>Click or drag to upload image</p>
-        <small>JPG, PNG, GIF supported</small>
-      </div>
-    `;
-        imageProgress.style.display = 'none';
-
-        // Show error message
-        showNotification('Error uploading image. Please try again.', 'error');
-      });
-  }
-
-  // Clear edit image preview
-  function clearEditImagePreview() {
-    const editQuestionImageInput = document.getElementById('editQuestionImage');
-    const editQuestionImagePreview = document.getElementById('editQuestionImagePreview');
-    const editUploadedImageUrl = document.getElementById('editUploadedImageUrl');
     
-    if (editQuestionImageInput) editQuestionImageInput.value = '';
-    if (editUploadedImageUrl) editUploadedImageUrl.value = '';
-    if (editQuestionImagePreview) {
-      editQuestionImagePreview.innerHTML = `
-        <div class="preview-overlay">
-          <i class="fas fa-cloud-upload-alt"></i>
-          <p>Click or drag to upload image</p>
-          <small>JPG, PNG, GIF supported</small>
-        </div>
-      `;
+    // Initialize for create question form (using 'questionImage' as field name)
+    if (document.querySelector('#createQuestionForm')) {
+      questionUploader.init(
+        '#createQuestionForm',
+        '#questionImageFile',
+        '#questionImagePreview',
+        '#questionImageProgress',
+        'questionImage' // Field name for hidden input
+      );
     }
-  }
-
-  // Setup edit image upload functionality
-  function setupEditImageUpload() {
-    const editImageFileInput = document.getElementById('editQuestionImageFile');
-    const editImagePreview = document.getElementById('editQuestionImagePreview');
-    const editImageProgress = document.getElementById('editQuestionImageProgress');
-    const editQuestionImageInput = document.getElementById('editQuestionImage');
-    const editUploadedImageUrl = document.getElementById('editUploadedImageUrl');
-
-    if (!editImageFileInput || !editImagePreview) {
-      return;
+    
+    // Clear tags input and load previous tags
+    const tagsInput = document.getElementById('tags');
+    if (tagsInput) {
+      tagsInput.value = '';
     }
+    // Load previous tags with a small delay to ensure DOM is ready
+    setTimeout(function() {
+      loadPreviousTagsForCreate();
+    }, 150);
+  });
 
-    // File input change event
-    editImageFileInput.addEventListener('change', function() {
-      if (this.files && this.files[0]) {
-        uploadEditQuestionImage(this.files[0]);
-      }
-    });
-
-    // Drag and drop functionality
-    if (editImagePreview) {
-      editImagePreview.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('drag-over');
-      });
-
-      editImagePreview.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        this.classList.remove('drag-over');
-      });
-
-      editImagePreview.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.classList.remove('drag-over');
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0 && files[0].type.startsWith('image/')) {
-          uploadEditQuestionImage(files[0]);
-        }
-      });
+  // Initialize uploader for edit question modal
+  document.getElementById('editQuestionModal')?.addEventListener('shown.bs.modal', function() {
+    if (!questionUploader) {
+      questionUploader = new CloudinaryUploader();
     }
-  }
-
-  // Upload edit question image to Cloudinary
-  function uploadEditQuestionImage(file) {
-    const editImagePreview = document.getElementById('editQuestionImagePreview');
-    const editImageProgress = document.getElementById('editQuestionImageProgress');
-    const progressBar = editImageProgress ? editImageProgress.querySelector('.progress-bar') : null;
-    const progressText = editImageProgress ? editImageProgress.querySelector('.progress-text') : null;
-    const editQuestionImageInput = document.getElementById('editQuestionImage');
-    const editUploadedImageUrl = document.getElementById('editUploadedImageUrl');
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      showNotification('Please select a valid image file', 'error');
-      return;
+    
+    // Initialize for edit question form (using 'questionImage' as field name)
+    if (document.querySelector('#editQuestionForm')) {
+      questionUploader.init(
+        '#editQuestionForm',
+        '#editQuestionImageFile',
+        '#editQuestionImagePreview',
+        '#editQuestionImageProgress',
+        'questionImage' // Field name for hidden input
+      );
     }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      showNotification('Image size must be less than 10MB', 'error');
-      return;
-    }
-
-    // Show progress
-    if (editImageProgress) {
-      editImageProgress.style.display = 'block';
-      if (progressBar) progressBar.style.width = '0%';
-      if (progressText) progressText.textContent = 'Uploading...';
-    }
-
-    // Simulate progress
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress > 90) progress = 90;
-      if (progressBar) progressBar.style.width = progress + '%';
-      if (progressText) progressText.textContent = `Uploading... ${Math.round(progress)}%`;
-    }, 200);
-
-    // Create FormData
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'order_project');
-
-    // Upload to Cloudinary
-    fetch('https://api.cloudinary.com/v1_1/dusod9wxt/upload', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Clear progress interval
-        clearInterval(progressInterval);
-
-        if (data.secure_url) {
-          // Complete progress bar
-          if (progressBar) progressBar.style.width = '100%';
-          if (progressText) progressText.textContent = 'Upload complete!';
-
-          setTimeout(() => {
-            // Update UI with uploaded image
-            if (editImagePreview) {
-              editImagePreview.innerHTML = `
-                <div class="preview-success">
-                  <img src="${data.secure_url}" alt="Uploaded image" class="preview-image">
-                  <div class="preview-overlay">
-                    <i class="fas fa-check-circle text-success"></i>
-                    <p>Image uploaded successfully!</p>
-                    <small>${file.name}</small>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-danger mt-2" onclick="clearEditImagePreview()" style="width: 100%;">
-                    <i class="fas fa-times"></i> Remove Image
-                  </button>
-                </div>
-              `;
-            }
-
-            // Update form inputs
-            if (editQuestionImageInput) editQuestionImageInput.value = data.secure_url;
-            if (editUploadedImageUrl) editUploadedImageUrl.value = data.secure_url;
-
-            // Hide progress
-            if (editImageProgress) editImageProgress.style.display = 'none';
-
-            // Show success message
-            showNotification('Image uploaded successfully!', 'success');
-          }, 500);
-        } else {
-          throw new Error('Upload failed');
-        }
-      })
-      .catch(error => {
-        // Clear progress interval
-        clearInterval(progressInterval);
-
-        console.error('Upload error:', error);
-
-        // Reset UI
-        if (editImagePreview) {
-          editImagePreview.innerHTML = `
-            <div class="preview-overlay">
-              <i class="fas fa-cloud-upload-alt"></i>
-              <p>Click or drag to upload image</p>
-              <small>JPG, PNG, GIF supported</small>
-            </div>
-          `;
-        }
-        if (editImageProgress) editImageProgress.style.display = 'none';
-
-        // Show error message
-        showNotification('Error uploading image. Please try again.', 'error');
-      });
-  }
+    
+    // Load previous tags with a small delay to ensure DOM is ready
+    setTimeout(function() {
+      loadPreviousTags();
+    }, 150);
+  });
 
   // Show notification function
   function showNotification(message, type = 'info') {
@@ -4776,4 +4788,245 @@
     overflow-x: hidden;
     overflow-y: auto;
   }
+
+  /* Math Symbol Keyboard Styles */
+  .math-keyboard-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .math-keyboard-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 8px;
+  }
+
+  .math-keyboard-tab {
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6c757d;
+    transition: all 0.2s ease;
+  }
+
+  .math-keyboard-tab:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+  }
+
+  .math-keyboard-tab.active {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+  }
+
+  .math-keyboard-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .math-symbol-btn {
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.2s ease;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .math-symbol-btn:hover {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,123,255,0.3);
+  }
+
+  .math-symbol-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Previous Tags Styles */
+  .previous-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+  }
+
+  .previous-tag {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .previous-tag:hover {
+    background: #007bff;
+    border-color: #007bff;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  }
+
+  .previous-tag.tag-selected {
+    background: #28a745;
+    border-color: #28a745;
+    color: #ffffff;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+  }
 </style>
+
+<script>
+  // MathLive Editor Functions for Collapsible Sections
+  const mathEditorFields = {};
+
+  function initMathEditor(fieldId) {
+    // Wait a bit for the collapse animation to start
+    setTimeout(() => {
+      const mathFieldId = `mathEditorField-${fieldId}`;
+      const mathField = document.getElementById(mathFieldId);
+      
+      if (mathField && typeof MathLive !== 'undefined' && !mathEditorFields[fieldId]) {
+        // Store reference
+        mathEditorFields[fieldId] = mathField;
+        
+        // Update preview when math changes
+        mathField.addEventListener('input', function() {
+          updateMathPreview(fieldId);
+        });
+        
+        // Set initial value if there's selected text in the textarea
+        const textarea = document.getElementById(fieldId);
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const selectedText = textarea.value.substring(start, end);
+          
+          // If there's selected text and it looks like math, extract it
+          if (selectedText && selectedText.includes('$')) {
+            const mathMatch = selectedText.match(/\$([^$]+)\$/);
+            if (mathMatch) {
+              mathField.value = mathMatch[1];
+            }
+          }
+        }
+        
+        updateMathPreview(fieldId);
+      }
+    }, 100);
+  }
+
+  function updateMathPreview(fieldId) {
+    const previewId = `mathEditorPreview-${fieldId}`;
+    const preview = document.getElementById(previewId);
+    const mathField = mathEditorFields[fieldId];
+    
+    if (mathField && preview) {
+      try {
+        const latex = mathField.value;
+        if (latex) {
+          preview.innerHTML = `<math-field readonly style="display: inline-block; font-size: 16px; border: none; background: transparent; padding: 4px;">${latex}</math-field>`;
+        } else {
+          preview.innerHTML = '<span style="color: #6c757d;">Preview will appear here...</span>';
+        }
+      } catch (e) {
+        preview.innerHTML = '<span style="color: #dc3545;">Error rendering preview</span>';
+      }
+    }
+  }
+
+  function insertMathExpression(fieldId) {
+    const mathField = mathEditorFields[fieldId];
+    const textarea = document.getElementById(fieldId);
+    
+    if (mathField && textarea) {
+      const latex = mathField.value;
+      if (latex) {
+        // Get cursor position
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+
+        // Wrap in $$ and insert
+        const mathExpression = `$${latex}$`;
+        const newText = text.substring(0, start) + mathExpression + text.substring(end);
+        textarea.value = newText;
+
+        // Set cursor position after inserted expression
+        const newCursorPos = start + mathExpression.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+
+        // Trigger input event
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Clear math editor (but keep it open)
+        mathField.value = '';
+        updateMathPreview(fieldId);
+      }
+    }
+  }
+
+  // Clean up when collapsible is hidden
+  document.addEventListener('DOMContentLoaded', function() {
+    // For create question modal
+    const createCollapse = document.getElementById('mathEditorCollapse-questionText');
+    if (createCollapse) {
+      createCollapse.addEventListener('hidden.bs.collapse', function() {
+        const mathField = mathEditorFields['questionText'];
+        if (mathField) {
+          mathField.value = '';
+        }
+        const preview = document.getElementById('mathEditorPreview-questionText');
+        if (preview) {
+          preview.innerHTML = 'Preview will appear here...';
+        }
+      });
+    }
+
+    // For edit question modal
+    const editCollapse = document.getElementById('mathEditorCollapse-editQuestionText');
+    if (editCollapse) {
+      editCollapse.addEventListener('hidden.bs.collapse', function() {
+        const mathField = mathEditorFields['editQuestionText'];
+        if (mathField) {
+          mathField.value = '';
+        }
+        const preview = document.getElementById('mathEditorPreview-editQuestionText');
+        if (preview) {
+          preview.innerHTML = 'Preview will appear here...';
+        }
+      });
+    }
+  });
+</script>

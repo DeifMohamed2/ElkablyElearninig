@@ -124,6 +124,97 @@
                 max-height: 500px;
             }
         }
+        
+        /* Professional Learning Path Grouped Styles */
+        .learning-path-group {
+            margin-bottom: var(--spacing-xl);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: var(--transition-normal);
+        }
+        
+        .learning-path-group:hover {
+            box-shadow: var(--shadow-sm);
+            border-color: var(--primary-color);
+        }
+        
+        .learning-path-header {
+            padding: var(--spacing-lg) var(--spacing-xl);
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .learning-path-header i {
+            color: var(--primary-color);
+        }
+        
+        .learning-path-weeks {
+            padding: var(--spacing-md);
+        }
+        
+        .learning-path-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md) var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            transition: var(--transition-normal);
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .learning-path-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .learning-path-item:hover {
+            background: var(--bg-secondary);
+            transform: translateX(4px);
+            box-shadow: var(--shadow-xs);
+        }
+        
+        .learning-path-name {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.6;
+            flex: 1;
+            margin-right: var(--spacing-md);
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .learning-path-header {
+                padding: var(--spacing-md) var(--spacing-lg);
+                font-size: 1rem;
+            }
+            
+            .learning-path-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-md);
+                padding: var(--spacing-md);
+            }
+            
+            .learning-path-name {
+                margin-right: 0;
+                width: 100%;
+            }
+            
+            .learning-path-item .btn {
+                width: 100%;
+            }
+        }
     </style>
     
     <!-- Meta Tags -->
@@ -223,44 +314,41 @@
                             <div class="card-body">
                                 <% if (activeCourses && activeCourses.length > 0) { %>
                                     <div class="courses-list">
-                                        <% activeCourses.forEach(course => { %>
-                                            <div class="course-card enhanced">
-                                                <div class="course-header">
-                                                    <div class="course-info">
-                                                        <h4 class="course-title"><%= course.title %></h4>
-                                                        <div class="course-meta">
-                                                            <span class="course-level">Intermediate</span>
-                                                            <span class="course-duration">4h 30m</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="course-progress-badge">
-                                                        <span class="progress-percentage"><%= course.progress %>%</span>
-                                                        <div class="progress-circle">
-                                                            <svg viewBox="0 0 36 36" class="progress-ring">
-                                                                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                                                                <path class="circle" stroke-dasharray="<%= course.progress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                                                            </svg>
-                                                        </div>
-                                                    </div>
+                                        <% 
+                                        // Group courses by bundle/course name
+                                        const groupedCourses = {};
+                                        activeCourses.forEach(course => {
+                                            const bundleName = course.bundle ? (course.bundle.title || 'Course') : 'Standalone Courses';
+                                            const bundleId = course.bundle ? course.bundle._id.toString() : 'standalone';
+                                            
+                                            if (!groupedCourses[bundleId]) {
+                                                groupedCourses[bundleId] = {
+                                                    name: bundleName,
+                                                    courses: []
+                                                };
+                                            }
+                                            groupedCourses[bundleId].courses.push(course);
+                                        });
+                                        
+                                        // Display grouped courses
+                                        Object.values(groupedCourses).forEach(group => { %>
+                                            <div class="learning-path-group">
+                                                <div class="learning-path-header">
+                                                    <i class="fas fa-book"></i>
+                                                    <%= group.name %>
                                                 </div>
-                                                
-                                                <div class="course-progress-bar">
-                                                    <div class="progress-track">
-                                                        <div class="progress-fill" style="width: <%= course.progress %>%"></div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="course-footer">
-                                                    <div class="course-stats">
-                                                        <span class="last-accessed">
-                                                            <i class="fas fa-clock"></i>
-                                                            <%= new Date(course.lastAccessed).toLocaleDateString() %>
-                                                        </span>
-                                                    </div>
-                                                    <a href="/student/course/<%= course._id %>/content" class="btn btn-primary btn-sm enhanced">
-                                                        <i class="fas fa-play"></i>
-                                                        Continue
-                                                    </a>
+                                                <div class="learning-path-weeks">
+                                                    <% group.courses.forEach(course => { 
+                                                        const weekName = course.title || 'Week';
+                                                    %>
+                                                        <div class="learning-path-item">
+                                                            <div class="learning-path-name"><%= weekName %></div>
+                                                            <a href="/student/course/<%= course._id %>/content" class="btn btn-primary btn-sm">
+                                                                <i class="fas fa-play"></i>
+                                                                Continue Learning
+                                                            </a>
+                                                        </div>
+                                                    <% }); %>
                                                 </div>
                                             </div>
                                         <% }); %>

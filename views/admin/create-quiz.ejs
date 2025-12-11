@@ -499,6 +499,17 @@
                   </select>
                 </div>
 
+                <div class="filter-item">
+                  <label class="filter-label">
+                    <i class="fas fa-tags"></i>
+                    Tags
+                  </label>
+                  <select class="filter-select" id="tagsFilter" onchange="filterQuestions()">
+                    <option value="">All Tags</option>
+                    <!-- Tags will be populated dynamically -->
+                  </select>
+                </div>
+
                 <div class="filter-item filter-search">
                   <label class="filter-label">
                     <i class="fas fa-search"></i>
@@ -913,13 +924,16 @@
             });
 
             const difficultyClass = question.difficulty || 'medium';
+            const questionTags = question.tags || [];
+            const tagsJson = JSON.stringify(questionTags);
 
             questionHTML += `
               <div class="question-item ${difficultyClass}" 
                    onclick="toggleQuestionSelection(${globalIndex})" 
                    data-question-index="${globalIndex}"
                    data-bank-id="${bankId}"
-                   data-question-id="${question._id}">
+                   data-question-id="${question._id}"
+                   data-tags='${tagsJson}'>
                 <div class="question-item-top">
                   <div class="question-item-number">${globalIndex + 1}</div>
                   <button type="button" class="question-preview-btn" onclick="event.stopPropagation(); previewQuestion('${question._id}')" title="Preview Question">
@@ -962,6 +976,9 @@
         // Restore visual state of selected questions
         restoreQuestionSelection();
         updateSelectionSummary();
+        
+        // Populate tags filter
+        populateTagsFilter('tagsFilter', allQuestions);
       }
 
       // Update Bank Filter Buttons
@@ -1253,6 +1270,7 @@
       function filterQuestions() {
         const difficultyFilter = document.getElementById('difficultyFilter').value;
         const typeFilter = document.getElementById('typeFilter').value;
+        const tagsFilter = document.getElementById('tagsFilter').value;
         const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
         const activeBankFilter = window.currentBankFilter || document.querySelector('.bank-filter-btn.active')?.dataset.bankId || 'all';
 
@@ -1280,6 +1298,17 @@
           // Check type filter
           if (show && typeFilter && question.questionType !== typeFilter) {
             show = false;
+          }
+
+          // Check tags filter
+          if (show && tagsFilter) {
+            const questionTags = question.tags || [];
+            const hasTag = questionTags.some(tag => 
+              tag && tag.toString().toLowerCase() === tagsFilter.toLowerCase()
+            );
+            if (!hasTag) {
+              show = false;
+            }
           }
 
           // Check search filter
@@ -1699,6 +1728,46 @@
       }
 
       // Quiz code is now generated on the server side
+
+      // Populate Tags Filter Dropdown
+      function populateTagsFilter(filterId, questionsArray) {
+        const filterSelect = document.getElementById(filterId);
+        if (!filterSelect || !questionsArray || !Array.isArray(questionsArray)) return;
+
+        // Extract all unique tags from questions
+        const allTags = new Set();
+        questionsArray.forEach(question => {
+          if (question.tags && Array.isArray(question.tags)) {
+            question.tags.forEach(tag => {
+              if (tag && tag.toString().trim()) {
+                allTags.add(tag.toString().trim());
+              }
+            });
+          }
+        });
+
+        // Sort tags alphabetically
+        const sortedTags = Array.from(allTags).sort();
+
+        // Get current selected value
+        const currentValue = filterSelect.value;
+
+        // Clear existing options except "All Tags"
+        filterSelect.innerHTML = '<option value="">All Tags</option>';
+
+        // Add tag options
+        sortedTags.forEach(tag => {
+          const option = document.createElement('option');
+          option.value = tag;
+          option.textContent = tag;
+          filterSelect.appendChild(option);
+        });
+
+        // Restore previous selection if it still exists
+        if (currentValue && sortedTags.includes(currentValue)) {
+          filterSelect.value = currentValue;
+        }
+      }
 
       // Notification function
       function showNotification(message, type = 'info') {

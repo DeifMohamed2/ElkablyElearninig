@@ -7,6 +7,7 @@ const BookOrder = require('../models/BookOrder');
 const crypto = require('crypto');
 const paymobService = require('../utils/paymobService');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+const wasender = require('../utils/wasender');
 
 // Simple UUID v4 generator
 function generateUUID() {
@@ -15,6 +16,460 @@ function generateUUID() {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+// Helper function to get the effective starting order for a student in a bundle
+async function getStudentStartingOrderInBundle(userId, bundleId) {
+  try {
+    const user = await User.findById(userId);
+    if (!user) return null;
+
+    const bundleCourses = await Course.find({ bundle: bundleId })
+      .select('_id order')
+      .sort({ order: 1 });
+
+    let bundleStartingOrder = null;
+    for (const bundleCourse of bundleCourses) {
+      const enrollment = user.enrolledCourses.find(
+        (e) => e.course && e.course.toString() === bundleCourse._id.toString()
+      );
+      if (enrollment && enrollment.startingOrder !== null && enrollment.startingOrder !== undefined) {
+        // Use the minimum startingOrder found in the bundle
+        if (bundleStartingOrder === null || enrollment.startingOrder < bundleStartingOrder) {
+          bundleStartingOrder = enrollment.startingOrder;
+        }
+      }
+    }
+
+    return bundleStartingOrder;
+  } catch (error) {
+    console.error('Error getting student starting order:', error);
+    return null;
+  }
+}
+
+// Helper function to send WhatsApp notification to library for book orders
+async function sendLibraryBookOrderNotification(bookOrders, user) {
+  try {
+    if (!bookOrders || bookOrders.length === 0) {
+      return { success: false, message: 'No book orders to notify' };
+    }
+
+    // Get session API key
+    const SESSION_API_KEY = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
+    if (!SESSION_API_KEY) {
+      console.error('❌ WhatsApp session API key not configured');
+      return { success: false, message: 'WhatsApp session API key not configured' };
+    }
+
+    // Determine library phone number based on country
+    // Check the first book order's shipping address country
+    const firstBookOrder = Array.isArray(bookOrders) ? bookOrders[0] : bookOrders;
+    const country = firstBookOrder.shippingAddress?.country || '';
+    const isEgypt = country.toLowerCase().includes('egypt') || country.toLowerCase().includes('مصر') || country === 'EG' || country === 'Egypt';
+    
+    // Library phone numbers (local Egyptian format, will be converted to international format)
+    const egyptLibraryPhone = '01156012078'; // Egypt library
+    const internationalLibraryPhone = '01003202768'; // International library
+    const libraryPhone = isEgypt ? egyptLibraryPhone : internationalLibraryPhone;
+
+    // Format phone number for WhatsApp (ensure it has country code format)
+    const formatPhoneForWhatsApp = (phone) => {
+      // Remove all non-digit characters
+      const cleaned = phone.replace(/\D/g, '');
+      // If starts with 0, replace with country code 20 (Egypt)
+      if (cleaned.startsWith('0')) {
+        return `20${cleaned.substring(1)}`;
+      }
+      // If doesn't start with country code, add 20 (default to Egypt format)
+      if (!cleaned.startsWith('20') && !cleaned.startsWith('+')) {
+        return `20${cleaned}`;
+      }
+      return cleaned.replace(/^\+/, ''); // Remove + if present
+    };
+
+    const formattedLibraryPhone = formatPhoneForWhatsApp(libraryPhone);
+    const libraryJid = `${formattedLibraryPhone}@s.whatsapp.net`;
+
+    // Format professional Arabic message
+    let message = '📚 *طلب جديد*\n\n';
+    message += '═══════════════════\n\n';
+    
+    // Add order details for each book
+    for (const bookOrder of Array.isArray(bookOrders) ? bookOrders : [bookOrders]) {
+      message += `*رقم الطلب:* ${bookOrder.orderNumber || 'N/A'}\n`;
+      message += `*معرف الطلب:* ${bookOrder._id}\n`;
+      message += `*اسم الكتاب:* ${bookOrder.bookName || 'N/A'}\n`;
+      message += `*اسم الكورس:* ${bookOrder.bundle?.title || 'N/A'}\n`;
+      message += `*سعر الكتاب:* ${bookOrder.bookPrice || 0} جنيه\n\n`;
+    }
+
+    // Add shipping address details
+    if (firstBookOrder.shippingAddress) {
+      const address = firstBookOrder.shippingAddress;
+      message += '*عنوان الشحن:*\n';
+      message += `*الاسم:* ${address.firstName || ''} ${address.lastName || ''}\n`;
+      message += `*رقم الهاتف:* ${address.phone || 'N/A'}\n`;
+      message += `*العنوان:* ${address.address || 'N/A'}\n`;
+      message += `*المدينة:* ${address.city || 'N/A'}\n`;
+      message += `*المحافظة:* ${address.state || 'N/A'}\n`;
+      message += `*البلد:* ${address.country || 'N/A'}\n\n`;
+    }
+
+    // Add student and parent contact information
+    if (user) {
+      message += '*معلومات الطالب والوالد:*\n';
+      message += `*اسم الطالب:* ${user.firstName || ''} ${user.lastName || ''}\n`;
+      message += `*رقم هاتف الطالب:* ${user.studentCountryCode || ''}${user.studentNumber || 'N/A'}\n`;
+      message += `*رقم هاتف الوالد:* ${user.parentCountryCode || ''}${user.parentNumber || 'N/A'}\n`;
+    }
+
+    message += '═══════════════════\n';
+    message += `*التاريخ:* ${new Date().toLocaleDateString('ar-EG', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}\n`;
+
+    // Send WhatsApp message
+    console.log(`📱 Sending book order notification to library (${isEgypt ? 'Egypt' : 'International'}): ${libraryJid}`);
+    const result = await wasender.sendTextMessage(SESSION_API_KEY, libraryJid, message);
+
+    if (result.success) {
+      console.log(`✅ Library notification sent successfully to ${isEgypt ? 'Egypt' : 'International'} library`);
+      return { success: true, message: 'Library notification sent successfully', libraryPhone: formattedLibraryPhone };
+    } else {
+      console.error('❌ Failed to send library notification:', result.message);
+      return { success: false, message: result.message || 'Failed to send library notification' };
+    }
+  } catch (error) {
+    console.error('❌ Error sending library book order notification:', error);
+    return { success: false, message: error.message || 'Error sending library notification' };
+  }
+}
+
+// Helper function to validate course ordering when adding to cart
+async function validateCourseOrdering(courseId, userId, cartItems = []) {
+  try {
+    const course = await Course.findById(courseId).select('order bundle requiresSequential');
+    if (!course) {
+      return { valid: false, message: 'Course not found' };
+    }
+
+    // If sequential requirement is disabled, allow any order
+    if (!course.requiresSequential) {
+      return { valid: true };
+    }
+
+    // Get all courses in the same bundle, sorted by order
+    const bundleCourses = await Course.find({ bundle: course.bundle })
+      .select('_id title order')
+      .sort({ order: 1 });
+
+    // Find current course index
+    const currentIndex = bundleCourses.findIndex(
+      (c) => c._id.toString() === courseId.toString()
+    );
+
+    // First course (order 0 or lowest order) is always valid
+    if (currentIndex === 0) {
+      return { valid: true };
+    }
+
+    // Get user's purchased courses
+    const user = await User.findById(userId)
+      .populate('purchasedCourses.course')
+      .populate('enrolledCourses.course');
+    
+    if (!user) {
+      return { valid: false, message: 'User not found' };
+    }
+
+    // Check if student has a startingOrder set for this bundle (manual enrollment)
+    const startingOrder = await getStudentStartingOrderInBundle(userId, course.bundle);
+    
+    // If student has a startingOrder, check if this course is at or after that order
+    if (startingOrder !== null) {
+      if (course.order >= startingOrder) {
+        // Student can access this course and all courses after their starting order
+        return { valid: true };
+      }
+      // If course is before startingOrder, continue with validation below
+    }
+
+    // Find the highest order course the student has access to in this bundle
+    let highestPurchasedOrder = -1;
+    for (const bundleCourse of bundleCourses) {
+      const hasAccess = user.hasAccessToCourse(bundleCourse._id.toString());
+      if (hasAccess) {
+        if (bundleCourse.order > highestPurchasedOrder) {
+          highestPurchasedOrder = bundleCourse.order;
+        }
+      }
+    }
+
+    // Also check cart for highest order
+    for (const cartItem of cartItems) {
+      if (cartItem.type === 'course') {
+        const cartCourse = bundleCourses.find(
+          c => c._id.toString() === cartItem.id
+        );
+        if (cartCourse && cartCourse.order > highestPurchasedOrder) {
+          highestPurchasedOrder = cartCourse.order;
+        }
+      }
+    }
+
+    // If student has purchased any course in this bundle, they can purchase courses
+    // that come after their highest purchased course without needing earlier ones
+    if (highestPurchasedOrder >= 0 && course.order > highestPurchasedOrder) {
+      // Student can purchase this course (it's after their highest purchased)
+      return { valid: true };
+    }
+
+    // Check all previous courses (with lower order)
+    const previousCourses = bundleCourses.slice(0, currentIndex);
+    const missingCourses = [];
+
+    for (const prevCourse of previousCourses) {
+      // Skip if this previous course is before or equal to the student's highest purchased order
+      if (highestPurchasedOrder >= 0 && prevCourse.order <= highestPurchasedOrder) {
+        continue; // Student already has access to courses up to highestPurchasedOrder
+      }
+
+      // Check if user has purchased/enrolled in this course
+      const hasPurchased = user.hasAccessToCourse(prevCourse._id.toString());
+      
+      // Check if course is in cart
+      const inCart = cartItems.some(
+        (item) => item.type === 'course' && item.id === prevCourse._id.toString()
+      );
+
+      if (!hasPurchased && !inCart) {
+        missingCourses.push({
+          id: prevCourse._id.toString(),
+          title: prevCourse.title,
+          order: prevCourse.order
+        });
+      }
+    }
+
+    if (missingCourses.length > 0) {
+      // Sort by order and get the first missing course
+      missingCourses.sort((a, b) => a.order - b.order);
+      const firstMissing = missingCourses[0];
+      
+      return {
+        valid: false,
+        message: `Please purchase "${firstMissing.title}" (Order ${firstMissing.order}) first. Courses must be added in sequential order.`,
+        missingCourse: firstMissing
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    console.error('Error validating course ordering:', error);
+    return { valid: false, message: 'Error validating course order' };
+  }
+}
+
+// Helper function to validate course ordering when removing from cart
+async function validateCourseRemoval(courseId, userId, cartItems = []) {
+  try {
+    const course = await Course.findById(courseId).select('order bundle requiresSequential');
+    if (!course) {
+      return { valid: true }; // If course not found, allow removal
+    }
+
+    // If sequential requirement is disabled, allow removal
+    if (!course.requiresSequential) {
+      return { valid: true };
+    }
+
+    // Get all courses in the same bundle, sorted by order
+    const bundleCourses = await Course.find({ bundle: course.bundle })
+      .select('_id title order')
+      .sort({ order: 1 });
+
+    // Find current course index
+    const currentIndex = bundleCourses.findIndex(
+      (c) => c._id.toString() === courseId.toString()
+    );
+
+    // Check if any courses with higher order depend on this course
+    const dependentCourses = bundleCourses.slice(currentIndex + 1);
+    const blockingCourses = [];
+
+    for (const depCourse of dependentCourses) {
+      // Check if dependent course is in cart
+      const inCart = cartItems.some(
+        (item) => item.type === 'course' && item.id === depCourse._id.toString()
+      );
+
+      if (inCart) {
+        blockingCourses.push({
+          id: depCourse._id.toString(),
+          title: depCourse.title,
+          order: depCourse.order
+        });
+      }
+    }
+
+    if (blockingCourses.length > 0) {
+      // Sort by order and get the first blocking course
+      blockingCourses.sort((a, b) => a.order - b.order);
+      const firstBlocking = blockingCourses[0];
+      
+      return {
+        valid: false,
+        message: `Cannot remove. "${firstBlocking.title}" (Order ${firstBlocking.order}) requires this course. Remove courses in reverse order.`,
+        blockingCourse: firstBlocking
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    console.error('Error validating course removal:', error);
+    return { valid: true }; // On error, allow removal to avoid blocking user
+  }
+}
+
+// Helper function to validate all courses in cart have proper ordering
+async function validateCartOrdering(cartItems, userId) {
+  try {
+    const courseItems = cartItems.filter(item => item.type === 'course');
+    
+    if (courseItems.length === 0) {
+      return { valid: true };
+    }
+
+    // Group courses by bundle
+    const bundleGroups = {};
+    for (const item of courseItems) {
+      const course = await Course.findById(item.id).select('bundle order');
+      if (course && course.bundle) {
+        const bundleId = course.bundle.toString();
+        if (!bundleGroups[bundleId]) {
+          bundleGroups[bundleId] = [];
+        }
+        bundleGroups[bundleId].push({
+          id: item.id,
+          order: course.order || 0
+        });
+      }
+    }
+
+    // Validate each bundle group
+    for (const [bundleId, courses] of Object.entries(bundleGroups)) {
+      // Sort by order
+      courses.sort((a, b) => a.order - b.order);
+      
+      // Get all courses in this bundle
+      const bundleCourses = await Course.find({ bundle: bundleId })
+        .select('_id title order requiresSequential')
+        .sort({ order: 1 });
+
+      // Get user's purchased courses
+      const user = await User.findById(userId)
+        .populate('purchasedCourses.course')
+        .populate('enrolledCourses.course');
+
+      if (!user) {
+        return { valid: false, message: 'User not found' };
+      }
+
+      // Check if student has a startingOrder set for this bundle (manual enrollment)
+      const startingOrder = await getStudentStartingOrderInBundle(userId, bundleId);
+
+      // Check ordering for each course in cart
+      for (let i = 0; i < courses.length; i++) {
+        const cartCourse = courses[i];
+        const courseIndex = bundleCourses.findIndex(
+          c => c._id.toString() === cartCourse.id
+        );
+
+        if (courseIndex === -1) continue;
+
+        const course = bundleCourses[courseIndex];
+        
+        // Skip if sequential requirement is disabled
+        if (!course.requiresSequential) continue;
+
+        // If student has a startingOrder, check if this course is at or after that order
+        if (startingOrder !== null) {
+          if (course.order >= startingOrder) {
+            // Student can access this course - skip further validation
+            continue;
+          }
+          // If course is before startingOrder, they might still want to buy it (catch up)
+          // Allow it but continue with normal validation
+        }
+
+        // Find the highest order course the student has access to in this bundle
+        let highestPurchasedOrder = -1;
+        for (const bundleCourse of bundleCourses) {
+          if (user.hasAccessToCourse(bundleCourse._id.toString())) {
+            if (bundleCourse.order > highestPurchasedOrder) {
+              highestPurchasedOrder = bundleCourse.order;
+            }
+          }
+        }
+
+        // Also check cart for highest order
+        for (const cartCourse of courses) {
+          const bundleCourse = bundleCourses.find(
+            c => c._id.toString() === cartCourse.id
+          );
+          if (bundleCourse && bundleCourse.order > highestPurchasedOrder) {
+            highestPurchasedOrder = bundleCourse.order;
+          }
+        }
+
+        // If student has purchased any course in this bundle, they can purchase courses
+        // that come after their highest purchased course without needing earlier ones
+        if (highestPurchasedOrder >= 0 && course.order > highestPurchasedOrder) {
+          // Student can purchase this course (it's after their highest purchased)
+          continue;
+        }
+
+        // Check all previous courses
+        const previousCourses = bundleCourses.slice(0, courseIndex);
+        for (const prevCourse of previousCourses) {
+          // Skip if prevCourse is before startingOrder (student doesn't need it)
+          if (startingOrder !== null && prevCourse.order < startingOrder) {
+            continue;
+          }
+
+          // Skip if this previous course is before the student's highest purchased order
+          if (highestPurchasedOrder >= 0 && prevCourse.order <= highestPurchasedOrder) {
+            continue; // Student already has access to courses up to highestPurchasedOrder
+          }
+
+          const hasPurchased = user.hasAccessToCourse(prevCourse._id.toString());
+          const inCart = courses.some(c => c.id === prevCourse._id.toString());
+
+          if (!hasPurchased && !inCart) {
+            return {
+              valid: false,
+              message: `Invalid order. Purchase "${prevCourse.title}" (Order ${prevCourse.order}) before "${course.title}" (Order ${course.order}).`,
+              missingCourse: {
+                id: prevCourse._id.toString(),
+                title: prevCourse.title,
+                order: prevCourse.order
+              }
+            };
+          }
+        }
+      }
+    }
+
+    return { valid: true };
+  } catch (error) {
+    console.error('Error validating cart ordering:', error);
+    return { valid: false, message: 'Error validating course order in cart' };
+  }
 }
 
 // Helper function to recalculate cart totals from database
@@ -440,14 +895,7 @@ const addToCart = async (req, res) => {
   try {
     const { itemId, itemType } = req.body;
 
-    console.log('Add to cart request:', {
-      itemId,
-      itemType,
-    });
-    console.log('Session user:', req.session.user);
-
     if (!req.session.user) {
-      console.log('No user in session, returning 401');
       return res.status(401).json({
         success: false,
         message: 'Please login to add items to cart',
@@ -540,6 +988,21 @@ const addToCart = async (req, res) => {
 
     // Check for bundle/course conflicts
     if (itemType === 'course') {
+      // Validate course ordering before adding to cart
+      const orderValidation = await validateCourseOrdering(
+        itemId,
+        req.session.user.id,
+        req.session.cart
+      );
+
+      if (!orderValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: orderValidation.message,
+          missingCourse: orderValidation.missingCourse
+        });
+      }
+
       // Check if this course is already in a bundle that's in the cart
       for (const cartItem of req.session.cart) {
         if (cartItem.type === 'bundle') {
@@ -632,6 +1095,23 @@ const removeFromCart = async (req, res) => {
       });
     }
 
+    // Validate course ordering when removing from cart
+    if (itemType === 'course' && req.session.user) {
+      const removalValidation = await validateCourseRemoval(
+        itemId,
+        req.session.user.id,
+        req.session.cart
+      );
+
+      if (!removalValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: removalValidation.message,
+          blockingCourse: removalValidation.blockingCourse
+        });
+      }
+    }
+
     req.session.cart = req.session.cart.filter(
       (item) => !(item.id === itemId && item.type === itemType)
     );
@@ -714,12 +1194,213 @@ const getCheckout = async (req, res) => {
       return res.redirect('/auth/login');
     }
 
-    // Use validated cart data from middleware
-    const validatedCart = req.validatedCart;
+    // Check if bundle or course query parameter is present (for "Buy Now" functionality)
+    const bundleId = req.query.bundle;
+    const courseId = req.query.course;
+
+    if (bundleId) {
+      // Initialize cart if not exists
+      if (!req.session.cart) {
+        req.session.cart = [];
+      }
+
+      // Check if bundle is already in cart
+      const existingBundle = req.session.cart.find(
+        (cartItem) => cartItem.id === bundleId && cartItem.type === 'bundle'
+      );
+
+      if (!existingBundle) {
+        // Add bundle to cart - fetch with courses populated for conflict check
+        const bundle = await BundleCourse.findById(bundleId)
+          .select('title price discountPrice thumbnail status isActive')
+          .populate('courses');
+
+        if (!bundle) {
+          req.flash('error_msg', 'Bundle not found');
+          return res.redirect('/');
+        }
+
+        // Validate bundle is available for purchase
+        if (!bundle.isActive || bundle.status !== 'published') {
+          req.flash('error_msg', 'This bundle is not available for purchase');
+          return res.redirect('/');
+        }
+
+        // Check if user already purchased this bundle
+        const user = await User.findById(req.session.user.id);
+        if (user && user.hasPurchasedBundle(bundleId)) {
+          req.flash('error_msg', 'You have already purchased this bundle');
+          return res.redirect('/');
+        }
+
+        // Check for bundle/course conflicts
+        if (bundle.courses && bundle.courses.length > 0) {
+          const conflictingCourses = [];
+          for (const course of bundle.courses) {
+            const existingCourse = req.session.cart.find(
+              (cartItem) =>
+                cartItem.type === 'course' &&
+                cartItem.id === course._id.toString()
+            );
+            if (existingCourse) {
+              conflictingCourses.push(course.title);
+            }
+          }
+
+          if (conflictingCourses.length > 0) {
+            req.flash('error_msg', `This bundle contains courses that are already in your cart: ${conflictingCourses.join(', ')}. Please remove those individual courses first if you want to purchase the bundle.`);
+            return res.redirect('back');
+          }
+        }
+
+        // Calculate final price
+        const originalPrice = bundle.price || 0;
+        const discountPercentage = bundle.discountPrice || 0;
+        let finalPrice = originalPrice;
+
+        if (discountPercentage > 0) {
+          finalPrice = originalPrice - originalPrice * (discountPercentage / 100);
+        }
+
+        // Add bundle to cart
+        const cartItem = {
+          id: bundleId,
+          type: 'bundle',
+          title: bundle.title,
+          originalPrice: originalPrice,
+          discountPrice: discountPercentage,
+          price: finalPrice,
+          image: bundle.thumbnail || '/images/adad.png',
+          addedAt: new Date(),
+        };
+
+        req.session.cart.push(cartItem);
+      }
+    } else if (courseId) {
+      // Initialize cart if not exists
+      if (!req.session.cart) {
+        req.session.cart = [];
+      }
+
+      // Check if course is already in cart
+      const existingCourse = req.session.cart.find(
+        (cartItem) => cartItem.id === courseId && cartItem.type === 'course'
+      );
+
+      if (!existingCourse) {
+        // Add course to cart
+        const course = await Course.findById(courseId).select(
+          'title price discountPrice thumbnail status isActive'
+        );
+
+        if (!course) {
+          req.flash('error_msg', 'Course not found');
+          return res.redirect('/');
+        }
+
+        // Validate course is available for purchase
+        if (!course.isActive || course.status !== 'published') {
+          req.flash('error_msg', 'This course is not available for purchase');
+          return res.redirect('/');
+        }
+
+        // Check if user already has access to this course
+        const user = await User.findById(req.session.user.id);
+        if (user && user.hasAccessToCourse(courseId)) {
+          req.flash('error_msg', 'You already have access to this course');
+          return res.redirect('/');
+        }
+
+        // Validate course ordering
+        const orderValidation = await validateCourseOrdering(
+          courseId,
+          req.session.user.id,
+          req.session.cart
+        );
+
+        if (!orderValidation.valid) {
+          req.flash('error_msg', orderValidation.message);
+          return res.redirect('back');
+        }
+
+        // Check if this course is already in a bundle that's in the cart
+        for (const cartItem of req.session.cart) {
+          if (cartItem.type === 'bundle') {
+            const bundle = await BundleCourse.findById(cartItem.id).populate('courses');
+            if (
+              bundle &&
+              bundle.courses.some((c) => c._id.toString() === courseId)
+            ) {
+              req.flash('error_msg', `This course is already included in the "${bundle.title}" bundle in your cart. Please remove the bundle first if you want to purchase this course individually.`);
+              return res.redirect('back');
+            }
+          }
+        }
+
+        // Calculate final price
+        const originalPrice = course.price || 0;
+        const discountPercentage = course.discountPrice || 0;
+        let finalPrice = originalPrice;
+
+        if (discountPercentage > 0) {
+          finalPrice = originalPrice - originalPrice * (discountPercentage / 100);
+        }
+
+        // Add course to cart
+        const cartItem = {
+          id: courseId,
+          type: 'course',
+          title: course.title,
+          originalPrice: originalPrice,
+          discountPrice: discountPercentage,
+          price: finalPrice,
+          image: course.thumbnail || '/images/adad.png',
+          addedAt: new Date(),
+        };
+
+        req.session.cart.push(cartItem);
+      }
+    }
+
+    // If we added items from query params, we need to re-validate the cart
+    // since validateCartMiddleware already ran before getCheckout
+    let validatedCart = req.validatedCart;
+    
+    if (bundleId || courseId) {
+      // Recalculate cart from database to include newly added items
+      const recalculatedCart = await recalculateCartFromDB(
+        req.session.cart,
+        req.session.user.id
+      );
+
+      // Update session cart with validated items
+      req.session.cart = recalculatedCart.validItems;
+
+      // Update validatedCart with new data
+      validatedCart = {
+        items: recalculatedCart.items,
+        subtotal: recalculatedCart.subtotal,
+        total: recalculatedCart.total,
+        cartCount: recalculatedCart.items.length,
+      };
+    }
 
     if (validatedCart.cartCount === 0) {
       req.flash('error_msg', 'Your cart is empty or contains invalid items');
       return res.redirect('/');
+    }
+
+    // Validate course ordering at checkout page
+    if (req.session.user) {
+      const cartOrderValidation = await validateCartOrdering(
+        validatedCart.items,
+        req.session.user.id
+      );
+
+      if (!cartOrderValidation.valid) {
+        req.flash('error_msg', cartOrderValidation.message);
+        return res.redirect('back');
+      }
     }
 
     // Get available books for bundles in cart (both direct bundles and courses from bundles)
@@ -819,6 +1500,22 @@ const directCheckout = async (req, res) => {
         success: false,
         message: 'Cart is empty or contains invalid items',
       });
+    }
+
+    // Validate course ordering at checkout
+    if (req.session.user) {
+      const cartOrderValidation = await validateCartOrdering(
+        validatedCart.items,
+        req.session.user.id
+      );
+
+      if (!cartOrderValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: cartOrderValidation.message,
+          missingCourse: cartOrderValidation.missingCourse
+        });
+      }
     }
 
     const { paymentMethod = 'credit_card', billingAddress } = req.body;
@@ -989,6 +1686,20 @@ const processPayment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Cart is empty or contains invalid items',
+      });
+    }
+
+    // Validate course ordering at checkout
+    const cartOrderValidation = await validateCartOrdering(
+      validatedCart.items,
+      req.session.user.id
+    );
+
+    if (!cartOrderValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: cartOrderValidation.message,
+        missingCourse: cartOrderValidation.missingCourse
       });
     }
 
@@ -1684,6 +2395,22 @@ const handlePaymentSuccess = async (req, res) => {
           .populate('bundle', 'title bundleCode')
           .lean();
         purchaseObj.bookOrders = bookOrders || [];
+
+        // Send library notification for book orders
+        try {
+          console.log(
+            '📚 Sending library notification for book orders (already completed purchase):',
+            purchase.orderNumber
+          );
+          const libraryUser = await User.findById(purchase.user._id || purchase.user);
+          if (libraryUser) {
+            await sendLibraryBookOrderNotification(bookOrders, libraryUser);
+            console.log('✅ Library notification sent successfully');
+          }
+        } catch (libraryError) {
+          console.error('❌ Library notification error:', libraryError);
+          // Don't fail the payment success if library notification fails
+        }
       } else {
         purchaseObj.bookOrders = [];
       }
@@ -1811,6 +2538,19 @@ const handlePaymentSuccess = async (req, res) => {
         .populate('bundle', 'title bundleCode')
         .lean();
       purchaseObj.bookOrders = bookOrders || [];
+
+      // Send library notification for book orders
+      try {
+        console.log(
+          '📚 Sending library notification for book orders:',
+          purchase.orderNumber
+        );
+        await sendLibraryBookOrderNotification(bookOrders, user);
+        console.log('✅ Library notification sent successfully');
+      } catch (libraryError) {
+        console.error('❌ Library notification error:', libraryError);
+        // Don't fail the payment success if library notification fails
+      }
     } else {
       purchaseObj.bookOrders = [];
     }
@@ -2119,6 +2859,26 @@ const handlePaymobWebhook = async (req, res) => {
       //   console.error(`[Webhook] ❌ WhatsApp notification exception for webhook payment: ${purchase.orderNumber}`, whatsappError);
       //   // Don't fail the webhook if WhatsApp fails
       // }
+
+      // Send library notification for book orders if they exist
+      if (purchase.bookOrders && purchase.bookOrders.length > 0) {
+        try {
+          console.log(
+            `[Webhook] 📚 Sending library notification for book orders: ${purchase.orderNumber}`
+          );
+          const bookOrders = await BookOrder.find({ _id: { $in: purchase.bookOrders } })
+            .populate('bundle', 'title bundleCode')
+            .lean();
+          
+          if (bookOrders && bookOrders.length > 0 && user) {
+            await sendLibraryBookOrderNotification(bookOrders, user);
+            console.log(`[Webhook] ✅ Library notification sent successfully`);
+          }
+        } catch (libraryError) {
+          console.error(`[Webhook] ❌ Library notification error:`, libraryError);
+          // Don't fail the webhook if library notification fails
+        }
+      }
     } else if (webhookData.isFailed) {
       purchase.status = 'failed';
       purchase.paymentStatus = 'failed';
@@ -2385,6 +3145,26 @@ const handlePaymobWebhookRedirect = async (req, res) => {
           } catch (error) {
             console.error('Error tracking promo code usage:', error);
           }
+        }
+      }
+
+      // Send library notification for book orders if they exist
+      if (purchase.bookOrders && purchase.bookOrders.length > 0 && user) {
+        try {
+          console.log(
+            `[Webhook Redirect] 📚 Sending library notification for book orders: ${purchase.orderNumber}`
+          );
+          const bookOrders = await BookOrder.find({ _id: { $in: purchase.bookOrders } })
+            .populate('bundle', 'title bundleCode')
+            .lean();
+          
+          if (bookOrders && bookOrders.length > 0) {
+            await sendLibraryBookOrderNotification(bookOrders, user);
+            console.log(`[Webhook Redirect] ✅ Library notification sent successfully`);
+          }
+        } catch (libraryError) {
+          console.error(`[Webhook Redirect] ❌ Library notification error:`, libraryError);
+          // Don't fail the webhook if library notification fails
         }
       }
 

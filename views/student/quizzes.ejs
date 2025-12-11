@@ -39,149 +39,171 @@
                         Available Quizzes
                     </h2>
                     <p style="color: var(--text-secondary);">
-                        Test your knowledge and track your learning progress with our interactive quizzes.
+                        Test your knowledge and track your learning progress with our interactive quizzes organized by test type.
                     </p>
                 </div>
 
-                <!-- Quizzes Grid -->
-                <% if (quizzes && quizzes.length > 0) { %>
-                    <div class="quizzes-grid">
-                        <% quizzes.forEach(quiz => { 
-                            const studentAttempt = studentQuizAttempts.find(attempt => attempt.quiz.toString() === quiz._id.toString());
-                            const canAttempt = !studentAttempt || studentAttempt.attempts.length < quiz.maxAttempts;
-                        %>
-                            <div class="quiz-card">
-                                <!-- Quiz Thumbnail -->
-                                <div class="quiz-thumbnail">
-                                    <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
-                                        <img src="<%= quiz.thumbnail.url %>" alt="<%= quiz.title %>" class="quiz-thumbnail-img">
-                                    <% } else { %>
-                                        <div class="quiz-thumbnail-placeholder">
-                                            <i class="fas fa-question-circle"></i>
-                                        </div>
-                                    <% } %>
-                                    <div class="quiz-difficulty-badge <%= quiz.difficulty %>">
-                                        <%= quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) %>
-                                    </div>
-                                </div>
+                <!-- Test Type Groups -->
+                <% 
+                    const testTypes = [
+                        { key: 'EST', name: 'EST Exams', logo: '/images/ESTLOGO.jpg', fullName: 'Egyptian Scholastic Test' },
+                        { key: 'SAT', name: 'D-SAT Exams', logo: '/images/SATLOGO.jpg', fullName: 'Digital Scholastic Assessment Test' },
+                        { key: 'ACT', name: 'ACT Exams', logo: '/images/ACTLOGO.jpg', fullName: 'American College Testing' }
+                    ];
+                    let hasAnyQuizzes = false;
+                    const safeGroupedQuizzes = groupedQuizzes || { EST: [], SAT: [], ACT: [] };
+                    const safeTestTypeCounts = testTypeCounts || { EST: 0, SAT: 0, ACT: 0 };
+                %>
 
-                                <!-- Quiz Header -->
-                                <div class="quiz-header">
-                                    <div>
-                                        <h3 class="quiz-title"><%= quiz.title %></h3>
+                <% testTypes.forEach((testType, index) => { 
+                    const quizzes = safeGroupedQuizzes[testType.key] || [];
+                    const count = safeTestTypeCounts[testType.key] || 0;
+                    if (quizzes.length > 0) hasAnyQuizzes = true;
+                %>
+                    <% if (quizzes.length > 0) { %>
+                        <!-- Test Type Header (Collapsible) -->
+                        <div class="test-type-header" 
+                             style="margin: var(--spacing-xl) 0 var(--spacing-lg) 0; padding: var(--spacing-lg) var(--spacing-xl); background: var(--bg-secondary); border-left: 5px solid var(--primary-color); border-radius: 0 12px 12px 0; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.08);"
+                             onclick="toggleTestType('test-type-<%= index %>')">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg);">
+                                <div style="display: flex; align-items: center; gap: var(--spacing-lg); flex: 1;">
+                                    <!-- Test Type Logo -->
+                                    <div style="width: 100px; height: 100px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; padding: 10px;">
+                                        <img src="<%= testType.logo %>" alt="<%= testType.name %>" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
                                     </div>
-                                    <div class="quiz-status">
-                                        <span class="quiz-status-badge active">Active</span>
-                                    </div>
-                                </div>
-
-                                <!-- Quiz Description -->
-                                <div style="padding: 0 var(--spacing-lg); margin-bottom: var(--spacing-md);">
-                                    <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5;">
-                                        <%= quiz.description.substring(0, 120) + (quiz.description.length > 120 ? '...' : '') %>
-                                    </p>
-                                </div>
-
-                                <!-- Quiz Info -->
-                                <div class="quiz-info">
-                                    <div class="quiz-stat">
-                                        <div class="quiz-stat-value"><%= quiz.selectedQuestions.length %></div>
-                                        <div class="quiz-stat-label">Questions</div>
-                                    </div>
-                                    <div class="quiz-stat">
-                                        <div class="quiz-stat-value">
-                                            <% if (quiz.duration && quiz.duration > 0) { %>
-                                                <%= quiz.duration %>m
-                                            <% } else { %>
-                                                No limit
-                                            <% } %>
-                                        </div>
-                                        <div class="quiz-stat-label">Duration</div>
-                                    </div>
-                                    <div class="quiz-stat">
-                                        <div class="quiz-stat-value"><%= quiz.passingScore %>%</div>
-                                        <div class="quiz-stat-label">Passing</div>
-                                    </div>
-                                </div>
-
-                                <!-- Student Attempts Info -->
-                                <% if (studentAttempt) { %>
-                                    <div class="quiz-attempts" style="background-color: var(--bg-secondary); padding: var(--spacing-sm); border-radius: var(--radius-md); margin-bottom: var(--spacing-md);">
-                                        <div class="attempt-info">
-                                            <span style="font-size: 0.75rem; color: var(--text-muted);">
-                                                Attempts: <%= studentAttempt.attempts.length %>/<%= quiz.maxAttempts %>
-                                            </span>
-                                            <% if (studentAttempt.bestScore > 0) { %>
-                                                <span class="best-score">
-                                                    Best: 
-                                                    <% 
-                                                        // Find the attempt with the best score to get correctAnswers and totalQuestions
-                                                        const bestAttempt = studentAttempt.attempts.find(attempt => attempt.score === studentAttempt.bestScore);
-                                                        if (bestAttempt && bestAttempt.correctAnswers !== undefined && bestAttempt.totalQuestions !== undefined) {
-                                                    %>
-                                                        <%= bestAttempt.correctAnswers %>/<%= bestAttempt.totalQuestions %>
-                                                    <% } else { %>
-                                                        <%= studentAttempt.bestScore %>%
-                                                    <% } %>
-                                                </span>
-                                            <% } %>
-                                        </div>
-                                        <div class="last-attempt">
-                                            Last: <%= new Date(studentAttempt.lastAttempt).toLocaleDateString() %>
-                                        </div>
-                                    </div>
-                                <% } else { %>
-                                    <div style="background-color: var(--bg-secondary); padding: var(--spacing-sm); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); text-align: center;">
-                                        <span style="font-size: 0.75rem; color: var(--text-muted);">
-                                            No attempts yet
-                                        </span>
-                                    </div>
-                                <% } %>
-
-
-
-                                <!-- Quiz Footer -->
-                                <div class="quiz-footer">
-                                   
                                     
-                                    <button class="btn btn-primary btn-lg" style="background: linear-gradient(135deg, #dc2626, #b91c1c); border: none; border-radius: 8px; padding: 12px 20px; font-weight: 600; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); transition: all 0.3s ease;" onclick="window.location.href='/student/quiz/<%= quiz._id %>/details'">
-                                        <% if (studentAttempt && studentAttempt.attempts.length > 0) { %>
-                                            <i class="fas fa-eye" style="margin-right: 8px;"></i>View Details
-                                        <% } else { %>
-                                            <i class="fas fa-play" style="margin-right: 8px;"></i>Start Quiz
-                                        <% } %>
-                                    </button>
+                                    <!-- Test Type Info -->
+                                    <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1;">
+                                        <i class="fas fa-chevron-down test-type-toggle-icon" id="icon-test-type-<%= index %>" style="color: var(--primary-color); font-size: 1.2rem; transition: transform 0.3s ease; flex-shrink: 0;"></i>
+                                        <div style="flex: 1;">
+                                            <h3 style="margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                                                <%= testType.name %>
+                                            </h3>
+                                            <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;">
+                                                <span style="font-size: 0.95rem; color: var(--text-muted); background: var(--bg-primary); padding: 4px 12px; border-radius: 16px; font-weight: 500;">
+                                                    <i class="fas fa-clipboard-list" style="margin-right: 4px;"></i>
+                                                    <%= count %> quiz<%= count !== 1 ? 'zes' : '' %>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        <% }); %>
-                    </div>
+                        </div>
+                        
+                        <!-- Quizzes Grid for this Test Type (Collapsible Content) -->
+                        <div class="quizzes-grid test-type-content" 
+                             id="test-type-<%= index %>"
+                             style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl); overflow: hidden; transition: all 0.3s ease;">
+                            <% quizzes.forEach(quiz => { 
+                                const studentAttempt = studentQuizAttempts.find(attempt => attempt.quiz.toString() === quiz._id.toString());
+                                const canAttempt = !studentAttempt || studentAttempt.attempts.length < quiz.maxAttempts;
+                            %>
+                                <div class="quiz-card">
+                                    <!-- Quiz Thumbnail -->
+                                    <div class="quiz-thumbnail">
+                                        <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
+                                            <img src="<%= quiz.thumbnail.url %>" alt="<%= quiz.title %>" class="quiz-thumbnail-img">
+                                        <% } else { %>
+                                            <div class="quiz-thumbnail-placeholder">
+                                                <i class="fas fa-question-circle"></i>
+                                            </div>
+                                        <% } %>
+                                        <div class="quiz-difficulty-badge <%= quiz.difficulty %>">
+                                            <%= quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) %>
+                                        </div>
+                                    </div>
 
-                    <!-- Pagination -->
-                    <% if (pagination.totalPages > 1) { %>
-                        <div class="pagination">
-                            <% if (pagination.hasPrev) { %>
-                                <a href="?page=<%= pagination.prevPage %>" class="pagination-item">
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                            <% } %>
+                                    <!-- Quiz Header -->
+                                    <div class="quiz-header">
+                                        <div>
+                                            <h3 class="quiz-title"><%= quiz.title %></h3>
+                                        </div>
+                                        <div class="quiz-status">
+                                            <span class="quiz-status-badge active">Active</span>
+                                        </div>
+                                    </div>
 
-                            <% for (let i = 1; i <= pagination.totalPages; i++) { %>
-                                <% if (i === pagination.currentPage) { %>
-                                    <span class="pagination-item active"><%= i %></span>
-                                <% } else { %>
-                                    <a href="?page=<%= i %>" class="pagination-item"><%= i %></a>
-                                <% } %>
-                            <% } %>
+                                    <!-- Quiz Description -->
+                                    <div style="padding: 0 var(--spacing-lg); margin-bottom: var(--spacing-md);">
+                                        <p style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5;">
+                                            <%= quiz.description ? (quiz.description.substring(0, 120) + (quiz.description.length > 120 ? '...' : '')) : 'No description available' %>
+                                        </p>
+                                    </div>
 
-                            <% if (pagination.hasNext) { %>
-                                <a href="?page=<%= pagination.nextPage %>" class="pagination-item">
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
-                            <% } %>
+                                    <!-- Quiz Info -->
+                                    <div class="quiz-info">
+                                        <div class="quiz-stat">
+                                            <div class="quiz-stat-value"><%= quiz.selectedQuestions ? quiz.selectedQuestions.length : 0 %></div>
+                                            <div class="quiz-stat-label">Questions</div>
+                                        </div>
+                                        <div class="quiz-stat">
+                                            <div class="quiz-stat-value">
+                                                <% if (quiz.duration && quiz.duration > 0) { %>
+                                                    <%= quiz.duration %>m
+                                                <% } else { %>
+                                                    No limit
+                                                <% } %>
+                                            </div>
+                                            <div class="quiz-stat-label">Duration</div>
+                                        </div>
+                                        <div class="quiz-stat">
+                                            <div class="quiz-stat-value"><%= quiz.passingScore || 0 %>%</div>
+                                            <div class="quiz-stat-label">Passing</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Student Attempts Info -->
+                                    <% if (studentAttempt) { %>
+                                        <div class="quiz-attempts" style="background-color: var(--bg-secondary); padding: var(--spacing-sm); border-radius: var(--radius-md); margin-bottom: var(--spacing-md);">
+                                            <div class="attempt-info">
+                                                <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                                    Attempts: <%= studentAttempt.attempts.length %>/<%= quiz.maxAttempts || '∞' %>
+                                                </span>
+                                                <% if (studentAttempt.bestScore > 0) { %>
+                                                    <span class="best-score">
+                                                        Best: 
+                                                        <% 
+                                                            // Find the attempt with the best score to get correctAnswers and totalQuestions
+                                                            const bestAttempt = studentAttempt.attempts.find(attempt => attempt.score === studentAttempt.bestScore);
+                                                            if (bestAttempt && bestAttempt.correctAnswers !== undefined && bestAttempt.totalQuestions !== undefined) {
+                                                        %>
+                                                            <%= bestAttempt.correctAnswers %>/<%= bestAttempt.totalQuestions %>
+                                                        <% } else { %>
+                                                            <%= studentAttempt.bestScore %>%
+                                                        <% } %>
+                                                    </span>
+                                                <% } %>
+                                            </div>
+                                            <div class="last-attempt">
+                                                Last: <%= new Date(studentAttempt.lastAttempt).toLocaleDateString() %>
+                                            </div>
+                                        </div>
+                                    <% } else { %>
+                                        <div style="background-color: var(--bg-secondary); padding: var(--spacing-sm); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); text-align: center;">
+                                            <span style="font-size: 0.75rem; color: var(--text-muted);">
+                                                No attempts yet
+                                            </span>
+                                        </div>
+                                    <% } %>
+
+                                    <!-- Quiz Footer -->
+                                    <div class="quiz-footer">
+                                        <button class="btn btn-primary btn-lg" style="background: linear-gradient(135deg, #dc2626, #b91c1c); border: none; border-radius: 8px; padding: 12px 20px; font-weight: 600; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); transition: all 0.3s ease; width: 100%;" onclick="window.location.href='/student/quiz/<%= quiz._id %>/details'">
+                                            <% if (studentAttempt && studentAttempt.attempts.length > 0) { %>
+                                                <i class="fas fa-eye" style="margin-right: 8px;"></i>View Details
+                                            <% } else { %>
+                                                <i class="fas fa-play" style="margin-right: 8px;"></i>Start Quiz
+                                            <% } %>
+                                        </button>
+                                    </div>
+                                </div>
+                            <% }); %>
                         </div>
                     <% } %>
+                <% }); %>
 
-                <% } else { %>
+                <% if (!hasAnyQuizzes) { %>
                     <!-- Empty State -->
                     <div class="empty-state" style="text-align: center; padding: var(--spacing-2xl);">
                         <div style="width: 200px; height: 200px; margin: 0 auto var(--spacing-xl); background-color: var(--bg-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
@@ -209,54 +231,191 @@
         </main>
     </div>
 
+    <!-- Additional Styles -->
+    <style>
+        .test-type-header:hover {
+            background: var(--bg-primary) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+        }
+        
+        .quiz-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        /* Ensure logos display properly */
+        .test-type-header img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .test-type-header {
+                padding: var(--spacing-md) !important;
+                text-align: center;
+            }
+            
+            .test-type-header > div {
+                justify-content: center !important;
+            }
+            
+            .test-type-header > div > div:first-child {
+                flex-direction: column;
+                align-items: center !important;
+                gap: var(--spacing-md) !important;
+                width: 100%;
+            }
+            
+            .test-type-header > div > div:first-child > div:first-child {
+                width: 80px !important;
+                height: 80px !important;
+                margin: 0 auto;
+            }
+            
+            .test-type-header > div > div:first-child > div:last-child {
+                width: 100%;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: var(--spacing-sm) !important;
+            }
+            
+            .test-type-header > div > div:first-child > div:last-child > i {
+                order: 3;
+                margin-top: var(--spacing-xs);
+            }
+            
+            .test-type-header > div > div:first-child > div:last-child > div {
+                width: 100%;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .test-type-header h3 {
+                font-size: 1.1rem !important;
+                text-align: center;
+                width: 100%;
+            }
+            
+            .test-type-header > div > div:first-child > div:last-child > div > div {
+                justify-content: center !important;
+                width: 100%;
+            }
+            
+            .quizzes-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+
     <!-- JavaScript -->
     <script>
+        // Toggle test type collapse/expand
+        function toggleTestType(testTypeId) {
+            const testTypeContent = document.getElementById(testTypeId);
+            const icon = document.getElementById('icon-' + testTypeId);
+            
+            if (!testTypeContent || !icon) return;
+            
+            if (testTypeContent.style.display === 'none' || testTypeContent.style.display === '') {
+                testTypeContent.style.display = 'grid';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                testTypeContent.style.display = 'none';
+                icon.style.transform = 'rotate(-90deg)';
+            }
+        }
+
         // Enhanced quiz card interactions
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all test type icons to collapsed state
+            const testTypeIcons = document.querySelectorAll('.test-type-toggle-icon');
+            if (testTypeIcons && testTypeIcons.length > 0) {
+                testTypeIcons.forEach(icon => {
+                    if (icon) {
+                        icon.style.transform = 'rotate(-90deg)';
+                    }
+                });
+            }
+
             const quizCards = document.querySelectorAll('.quiz-card');
             const quizButtons = document.querySelectorAll('.quiz-card button');
             
             // Enhanced button hover effects
-            quizButtons.forEach(button => {
-                button.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-2px)';
-                    this.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.4)';
-                    this.style.background = 'linear-gradient(135deg, #b91c1c, #991b1b)';
+            if (quizButtons && quizButtons.length > 0) {
+                quizButtons.forEach(button => {
+                    if (!button) return;
+                    
+                    button.addEventListener('mouseenter', function() {
+                        this.style.transform = 'translateY(-2px)';
+                        this.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.4)';
+                        this.style.background = 'linear-gradient(135deg, #b91c1c, #991b1b)';
+                    });
+                    
+                    button.addEventListener('mouseleave', function() {
+                        this.style.transform = 'translateY(0)';
+                        this.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)';
+                        this.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+                    });
+                    
+                    button.addEventListener('mousedown', function() {
+                        this.style.transform = 'scale(0.95)';
+                    });
+                    
+                    button.addEventListener('mouseup', function() {
+                        this.style.transform = 'translateY(-2px)';
+                    });
                 });
-                
-                button.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)';
-                    this.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-                });
-                
-                button.addEventListener('mousedown', function() {
-                    this.style.transform = 'scale(0.95)';
-                });
-                
-                button.addEventListener('mouseup', function() {
-                    this.style.transform = 'translateY(-2px)';
-                });
-            });
+            }
             
             // Animate cards on load
-            quizCards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                
-                setTimeout(() => {
-                    card.style.transition = 'all 0.5s ease-out';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
+            if (quizCards && quizCards.length > 0) {
+                quizCards.forEach((card, index) => {
+                    if (!card) return;
+                    
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    
+                    setTimeout(() => {
+                        if (card) {
+                            card.style.transition = 'all 0.5s ease-out';
+                            card.style.opacity = '1';
+                            card.style.transform = 'translateY(0)';
+                        }
+                    }, index * 100);
+                });
+            }
+
+            // Add hover effect to test type headers
+            const testTypeHeaders = document.querySelectorAll('.test-type-header');
+            if (testTypeHeaders && testTypeHeaders.length > 0) {
+                testTypeHeaders.forEach(header => {
+                    if (!header) return;
+                    
+                    header.addEventListener('mouseenter', function() {
+                        this.style.background = 'var(--bg-primary)';
+                    });
+                    
+                    header.addEventListener('mouseleave', function() {
+                        this.style.background = 'var(--bg-secondary)';
+                    });
+                });
+            }
         });
 
         // Quiz difficulty color coding
         function updateDifficultyColors() {
             const difficulties = document.querySelectorAll('.quiz-difficulty-badge');
             
+            if (!difficulties || difficulties.length === 0) return;
+            
             difficulties.forEach(diff => {
+                if (!diff || !diff.className) return;
+                
                 const difficulty = diff.className.split(' ').find(cls => 
                     cls === 'easy' || cls === 'medium' || cls === 'hard'
                 );

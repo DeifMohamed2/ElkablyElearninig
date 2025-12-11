@@ -93,25 +93,26 @@
           </div>
         </div>
 
-        <!-- Enhanced Filters -->
-        <div class="admin-filters-section">
+        <!-- Enhanced Filters - Simplified Design -->
+        <div class="admin-filters-section" style="margin-bottom: 25px;">
           <div class="admin-filters-card">
-            <div class="admin-filters-header">
-              <h5><i class="fas fa-filter me-2"></i>Course Filters</h5>
-              <div class="admin-active-filters">
-                <% if (currentFilters.level || currentFilters.bundle || currentFilters.status !== 'all' || currentFilters.search) { %>
-                <span class="badge bg-primary me-1">Active Filters</span>
-                <% } %>
-              </div>
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+              <h5 class="admin-filters-title mb-0">
+                <i class="fas fa-filter me-2 filter-icon"></i>Course Filters
+              </h5>
+              <% if (currentFilters.level || currentFilters.bundle || currentFilters.status !== 'all' || currentFilters.search) { %>
+              <span class="badge filter-active-badge">
+                <i class="fas fa-check-circle me-1"></i>Active Filters
+              </span>
+              <% } %>
             </div>
             <form method="GET" action="/admin/courses" class="admin-filters-form">
               <div class="row g-3">
-                
-                <div class="col-md-3">
-                  <label class="form-label">
-                    <i class="fas fa-box me-1"></i>Bundle
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label filter-label">
+                    <i class="fas fa-box me-1 filter-icon"></i>Bundle
                   </label>
-                  <select name="bundle" class="form-select">
+                  <select name="bundle" class="form-select filter-select">
                     <option value="">All Bundles</option>
                     <% if (filterOptions && filterOptions.bundles) { %>
                     <% filterOptions.bundles.forEach(bundle => { %>
@@ -122,59 +123,60 @@
                     <% } %>
                   </select>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label">
-                    <i class="fas fa-layer-group me-1"></i>Level
+                <div class="col-12 col-sm-6 col-md-2">
+                  <label class="form-label filter-label">
+                    <i class="fas fa-layer-group me-1 filter-icon"></i>Level
                   </label>
-                  <select name="level" class="form-select">
+                  <select name="level" class="form-select filter-select">
                     <option value="">All Levels</option>
                     <option value="Beginner" <%= currentFilters.level === 'Beginner' ? 'selected' : '' %>>Beginner</option>
                     <option value="Intermediate" <%= currentFilters.level === 'Intermediate' ? 'selected' : '' %>>Intermediate</option>
                     <option value="Advanced" <%= currentFilters.level === 'Advanced' ? 'selected' : '' %>>Advanced</option>
                   </select>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label">
-                    <i class="fas fa-toggle-on me-1"></i>Status
+                <div class="col-12 col-sm-6 col-md-2">
+                  <label class="form-label filter-label">
+                    <i class="fas fa-toggle-on me-1 filter-icon"></i>Status
                   </label>
-                  <select name="status" class="form-select">
+                  <select name="status" class="form-select filter-select">
                     <option value="all" <%= currentFilters.status === 'all' ? 'selected' : '' %>>All Status</option>
                     <option value="published" <%= currentFilters.status === 'published' ? 'selected' : '' %>>Published</option>
                     <option value="draft" <%= currentFilters.status === 'draft' ? 'selected' : '' %>>Draft</option>
                     <option value="archived" <%= currentFilters.status === 'archived' ? 'selected' : '' %>>Archived</option>
                   </select>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label">
-                    <i class="fas fa-search me-1"></i>Search
+                <div class="col-12 col-sm-6 col-md-3">
+                  <label class="form-label filter-label">
+                    <i class="fas fa-search me-1 filter-icon"></i>Search
                   </label>
-                  <input type="text" name="search" class="form-control" placeholder="Search courses..." value="<%= currentFilters.search || '' %>">
+                  <input type="text" name="search" class="form-control filter-input" placeholder="Search courses..." value="<%= currentFilters.search || '' %>">
+                </div>
+                <div class="col-12 col-md-2 d-flex align-items-end">
+                  <div class="w-100">
+                    <label class="form-label filter-label">
+                      <i class="fas fa-sort me-1 filter-icon"></i>Sort
+                    </label>
+                    <select name="sortBy" class="form-select filter-select mb-2">
+                      <option value="createdAt" <%= currentFilters.sortBy === 'createdAt' ? 'selected' : '' %>>Date</option>
+                      <option value="title" <%= currentFilters.sortBy === 'title' ? 'selected' : '' %>>Title</option>
+                      <option value="duration" <%= currentFilters.sortBy === 'duration' ? 'selected' : '' %>>Duration</option>
+                    </select>
+                    <select name="sortOrder" class="form-select filter-select">
+                      <option value="desc" <%= currentFilters.sortOrder === 'desc' ? 'selected' : '' %>>Desc</option>
+                      <option value="asc" <%= currentFilters.sortOrder === 'asc' ? 'selected' : '' %>>Asc</option>
+                    </select>
+                  </div>
                 </div>
               </div>
               <div class="row mt-3">
-                <div class="col-md-6">
-                  <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm">
+                <div class="col-12">
+                  <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn filter-apply-btn">
                       <i class="fas fa-search me-1"></i>Apply Filters
                     </button>
-                    <a href="/admin/courses" class="btn btn-outline-secondary btn-sm">
+                    <a href="/admin/courses" class="btn filter-clear-btn">
                       <i class="fas fa-times me-1"></i>Clear All
                     </a>
-                  </div>
-                </div>
-                <div class="col-md-6 text-end">
-                  <div class="admin-sort-controls">
-                    <label class="form-label me-2">Sort by:</label>
-                    <select name="sortBy" class="form-select d-inline-block w-auto">
-                      <option value="createdAt" <%= currentFilters.sortBy === 'createdAt' ? 'selected' : '' %>>Date Created</option>
-                      <option value="title" <%= currentFilters.sortBy === 'title' ? 'selected' : '' %>>Title</option>
-                      
-                      <option value="duration" <%= currentFilters.sortBy === 'duration' ? 'selected' : '' %>>Duration</option>
-                    </select>
-                    <select name="sortOrder" class="form-select d-inline-block w-auto ms-2">
-                      <option value="desc" <%= currentFilters.sortOrder === 'desc' ? 'selected' : '' %>>Descending</option>
-                      <option value="asc" <%= currentFilters.sortOrder === 'asc' ? 'selected' : '' %>>Ascending</option>
-                    </select>
                   </div>
                 </div>
               </div>
@@ -193,95 +195,225 @@
             </div>
           </div>
 
-          <div class="admin-courses-grid">
-            <% if (courses && courses.length > 0) { %>
-            <% courses.forEach(course => { %>
-            <div class="admin-course-card" data-status="<%= course.status %>">
-              <div class="admin-course-thumbnail">
-                <img src="<%= course.thumbnail || '/images/course-placeholder.jpg' %>" alt="Course Thumbnail">
-                <div class="admin-course-badges">
-                  <div class="admin-course-status <%= course.status %>"><%= course.status.charAt(0).toUpperCase() + course.status.slice(1) %></div>
-
+          <!-- Bulk Actions Toolbar -->
+          <% if (courses && courses.length > 0) { %>
+          <div class="bulk-actions-toolbar" id="bulkActionsToolbar" style="display: none;">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-4">
+                <div class="bulk-selected-count">
+                  <i class="fas fa-check-circle"></i>
+                  <span id="selectedCount">
+                    <strong>0</strong> course(s) selected
+                  </span>
                 </div>
-              </div>
-
-              <div class="admin-course-content">
-                <div class="admin-course-header">
-                  <h4 class="admin-course-title"><%= course.title %></h4>
-                  <span class="admin-course-code"><%= course.courseCode %></span>
-                </div>
-
-                <p class="admin-course-description"><%= course.shortDescription %></p>
-
-                <div class="admin-course-meta">
-                  
-                  <div class="admin-course-meta-item">
-                    <i class="fas fa-layer-group"></i>
-                    <span><%= course.level %></span>
-                  </div>
-                  <div class="admin-course-meta-item">
-                    <i class="fas fa-certificate"></i>
-                    <span><%= course.bundle ? course.bundle.testType : 'N/A' %></span>
-                  </div>
-                  <div class="admin-course-meta-item">
-                    <i class="fas fa-book"></i>
-                    <span><%= course.bundle ? course.bundle.subject : 'N/A' %></span>
-                  </div>
-                  <div class="admin-course-meta-item">
-                    <i class="fas fa-clock"></i>
-                    <span><%= course.duration %> hours</span>
-                  </div>
-                  <div class="admin-course-meta-item">
-                    <i class="fas fa-coins"></i>
-                    <% if (course.discountPrice) { %>
-                    <span class="text-decoration-line-through">EGP <%= course.price %></span>
-                    <span class="text-success fw-bold">EGP <%= course.finalPrice.toFixed(2) %></span>
-                    <small class="text-muted">(<%= course.savingsPercentage %>% off)</small>
-                    <% } else { %>
-                    <span>EGP <%= course.price %></span>
-                    <% } %>
-                  </div>
-                </div>
-
-                <% if (course.bundle) { %>
-                <div class="admin-bundle-info">
-                  <small class="text-muted">
-                    <i class="fas fa-box me-1"></i>
-                    Bundle: <strong><%= course.bundle.title %></strong>
-                  </small>
-                </div>
-                <% } %>
-
-                <div class="admin-course-actions">
-                  <a href="/admin/courses/<%= course.courseCode %>/details" class="btn btn-sm btn-info">
-                    <i class="fas fa-chart-line me-1"></i>
-                    Course Details
-                  </a>
-                  <a href="/admin/courses/<%= course.courseCode %>/content" class="btn btn-sm btn-primary">
-                    <i class="fas fa-edit me-1"></i>
-                    Manage Content
-                  </a>
-                  <button class="btn btn-sm btn-outline-danger" onclick="deleteCourse('<%= course.courseCode %>', event)">
-                    <i class="fas fa-trash"></i>
+                <div class="btn-group bulk-select-buttons">
+                  <button type="button" class="btn btn-sm bulk-select-btn" onclick="selectAllCourses()">
+                    <i class="fas fa-check-double me-1"></i>Select All
+                  </button>
+                  <button type="button" class="btn btn-sm bulk-deselect-btn" onclick="deselectAllCourses()">
+                    <i class="fas fa-times me-1"></i>Deselect All
                   </button>
                 </div>
               </div>
-            </div>
-            <% }); %>
-            <% } else { %>
-            <div class="admin-empty-state">
-              <div class="admin-empty-icon">
-                <i class="fas fa-book"></i>
+              <div class="d-flex align-items-center gap-3">
+                <label class="form-label mb-0 bulk-action-label">
+                  <i class="fas fa-tasks me-1"></i>Bulk Action:
+                </label>
+                <select class="form-select form-select-sm bulk-status-select" id="bulkStatusSelect">
+                  <option value="">Choose action...</option>
+                  <option value="published">
+                    <i class="fas fa-eye"></i> Publish Selected
+                  </option>
+                  <option value="draft">Move to Draft</option>
+                  <option value="archived">Archive Selected</option>
+                </select>
+                <button type="button" class="btn btn-sm bulk-apply-btn" onclick="applyBulkStatus()" id="applyBulkBtn" disabled>
+                  <i class="fas fa-check-circle me-1"></i>Apply
+                </button>
               </div>
-              <h4>No courses found</h4>
-              <p>Create your first course to get started</p>
-              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCourseModal">
-                <i class="fas fa-plus me-2"></i>
-                Create Course
-              </button>
             </div>
-            <% } %>
           </div>
+          <% } %>
+
+          <% if (courses && courses.length > 0) { %>
+          <%
+            // Group courses by bundle for better organization
+            const groupedCourses = {};
+            courses.forEach(course => {
+              if (!course) return;
+              
+              const bundleId = course.bundle ? course.bundle._id || course.bundle : 'individual';
+              const bundleName = course.bundle ? course.bundle.title || 'Bundle Course' : 'Individual Courses';
+              const bundleThumbnail = course.bundle ? (course.bundle.thumbnail || '') : '';
+              
+              if (!groupedCourses[bundleId]) {
+                groupedCourses[bundleId] = {
+                  bundleName: bundleName,
+                  bundleId: bundleId,
+                  bundleCode: course.bundle ? course.bundle.bundleCode : null,
+                  bundleThumbnail: bundleThumbnail,
+                  courses: []
+                };
+              }
+              
+              groupedCourses[bundleId].courses.push(course);
+            });
+            
+            // Sort courses within each bundle by order
+            Object.keys(groupedCourses).forEach(bundleId => {
+              groupedCourses[bundleId].courses.sort((a, b) => {
+                const orderA = a.order || 0;
+                const orderB = b.order || 0;
+                return orderA - orderB;
+              });
+            });
+          %>
+          
+          <% Object.values(groupedCourses).forEach((bundleGroup, index) => { %>
+            <!-- Bundle Name Display (Collapsible Header) - Enhanced with Image -->
+            <div class="admin-bundle-header bundle-name-display" 
+                 style="margin: var(--spacing-xl) 0 var(--spacing-lg) 0; padding: var(--spacing-lg) var(--spacing-xl); background: var(--bg-secondary); border-left: 5px solid var(--primary-color); border-radius: 0 12px 12px 0; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.08);"
+                 onclick="toggleAdminBundle('admin-bundle-<%= index %>')">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-lg); flex: 1;">
+                  <!-- Bundle Thumbnail -->
+                  <div style="width: 80px; height: 80px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, var(--primary-color), #dc2626); box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <% if (bundleGroup.bundleThumbnail) { %>
+                      <img src="<%= bundleGroup.bundleThumbnail %>" alt="<%= bundleGroup.bundleName %>" style="width: 100%; height: 100%; object-fit: cover;">
+                    <% } else { %>
+                      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-layer-group" style="font-size: 2rem; color: white; opacity: 0.9;"></i>
+                      </div>
+                    <% } %>
+                  </div>
+                  
+                  <!-- Bundle Info -->
+                  <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1;">
+                    <i class="fas fa-chevron-down admin-bundle-toggle-icon bundle-toggle-icon" id="admin-icon-bundle-<%= index %>" style="color: var(--primary-color); font-size: 1.2rem; transition: transform 0.3s ease; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                      <h3 style="margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                        <%= bundleGroup.bundleName %>
+                        <% if (bundleGroup.bundleCode) { %>
+                          <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500; margin-left: 8px;">
+                            (<%= bundleGroup.bundleCode %>)
+                          </span>
+                        <% } %>
+                      </h3>
+                      <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;">
+                        <span style="font-size: 0.95rem; color: var(--text-muted); background: var(--bg-primary); padding: 4px 12px; border-radius: 16px; font-weight: 500;">
+                          <i class="fas fa-book" style="margin-right: 4px;"></i>
+                          <%= bundleGroup.courses.length %> course<%= bundleGroup.courses.length !== 1 ? 's' : '' %>
+                        </span>
+                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">
+                          <i class="fas fa-eye" style="margin-right: 4px; color: var(--primary-color);"></i>
+                          <%= bundleGroup.courses.filter(c => c.status === 'published').length %> published
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Courses in this Bundle (Collapsible Content) -->
+            <div class="admin-courses-grid admin-bundle-content" 
+                 id="admin-bundle-<%= index %>"
+                 style="display: none; margin-bottom: 30px; overflow: hidden; transition: all 0.3s ease;">
+              <% bundleGroup.courses.forEach(course => { %>
+              <div class="admin-course-card" data-status="<%= course.status %>" data-course-code="<%= course.courseCode %>" style="position: relative;">
+                <div class="admin-course-thumbnail" style="position: relative;">
+                  <img src="<%= course.thumbnail || '/images/course-placeholder.jpg' %>" alt="Course Thumbnail">
+                  <div class="admin-course-badges">
+                    <div class="admin-course-status <%= course.status %>"><%= course.status.charAt(0).toUpperCase() + course.status.slice(1) %></div>
+                  </div>
+                  <!-- Week Order Badge -->
+                  <% if (course.order && course.order > 0) { %>
+                  <div style="position: absolute; top: 12px; left: 12px; background: rgba(59, 130, 246, 0.9); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: white; z-index: 5;">
+                    <i class="fas fa-book" style="margin-right: 4px;"></i>
+                    Week <%= course.order %>
+                  </div>
+                  <% } %>
+                </div>
+
+                <div class="admin-course-content" style="position: relative;">
+                  <!-- Bulk Selection Checkbox - Positioned to avoid course ID overlap -->
+                  <div class="course-checkbox-wrapper" style="position: absolute; top: 8px; left: 12px; z-index: 15;" onclick="event.stopPropagation();">
+                    <label class="custom-checkbox-label" style="cursor: pointer; margin: 0; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: white; border: 2px solid #dc2626; border-radius: 6px; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.1); position: relative;">
+                      <input type="checkbox" class="course-checkbox" 
+                             data-course-code="<%= course.courseCode %>" 
+                             onchange="updateBulkActionsToolbar(); event.stopPropagation(); toggleCheckboxIcon(this);"
+                             onclick="event.stopPropagation();"
+                             style="position: absolute; opacity: 0; width: 0; height: 0; margin: 0;">
+                      <i class="fas fa-check checkbox-icon" style="color: white; font-size: 14px; opacity: 0; transition: opacity 0.2s ease; pointer-events: none; position: absolute; z-index: 1;"></i>
+                    </label>
+                  </div>
+                  <div class="admin-course-header" style="padding-left: 48px; padding-right: 12px;">
+                    <h4 class="admin-course-title"><%= course.title %></h4>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                      <span class="admin-course-code"><%= course.courseCode %></span>
+                      <% if (course.requiresSequential !== false) { %>
+                      <span style="font-size: 0.7rem; color: #6b7280; font-weight: 500;">
+                        <i class="fas fa-lock" style="margin-right: 2px;"></i>
+                        Sequential
+                      </span>
+                      <% } %>
+                    </div>
+                  </div>
+
+                  <p class="admin-course-description"><%= course.shortDescription %></p>
+
+                  <div class="admin-course-meta">
+                    <div class="admin-course-meta-item">
+                      <i class="fas fa-layer-group"></i>
+                      <span><%= course.level %></span>
+                    </div>
+                    <div class="admin-course-meta-item">
+                      <i class="fas fa-clock"></i>
+                      <span><%= course.duration %> hours</span>
+                    </div>
+                    <div class="admin-course-meta-item">
+                      <i class="fas fa-coins"></i>
+                      <% if (course.discountPrice) { %>
+                      <span class="text-decoration-line-through">EGP <%= course.price %></span>
+                      <span class="text-success fw-bold">EGP <%= course.finalPrice.toFixed(2) %></span>
+                      <small class="text-muted">(<%= course.savingsPercentage %>% off)</small>
+                      <% } else { %>
+                      <span>EGP <%= course.price %></span>
+                      <% } %>
+                    </div>
+                  </div>
+
+                  <div class="admin-course-actions">
+                    <a href="/admin/courses/<%= course.courseCode %>/details" class="btn btn-sm btn-info">
+                      <i class="fas fa-chart-line me-1"></i>
+                      Course Details
+                    </a>
+                    <a href="/admin/courses/<%= course.courseCode %>/content" class="btn btn-sm btn-primary">
+                      <i class="fas fa-edit me-1"></i>
+                      Manage Content
+                    </a>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCourse('<%= course.courseCode %>', event)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <% }); %>
+            </div>
+          <% }); %>
+          <% } else { %>
+          <div class="admin-empty-state">
+            <div class="admin-empty-icon">
+              <i class="fas fa-book"></i>
+            </div>
+            <h4>No courses found</h4>
+            <p>Create your first course to get started</p>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+              <i class="fas fa-plus me-2"></i>
+              Create Course
+            </button>
+          </div>
+          <% } %>
         </div>
 
       </div>
@@ -441,6 +573,27 @@
                   <small class="admin-form-text">Optional: Set a discount percentage (0-100)</small>
                   <div class="invalid-feedback" id="courseDiscountPriceError"></div>
                 </div>
+
+                <div class="admin-form-group">
+                  <label for="courseOrder" class="admin-form-label">
+                    <i class="fas fa-list-ol me-2"></i>
+                    Week Order (Optional)
+                  </label>
+                  <input type="number" class="admin-form-control" id="courseOrder" name="order" min="1" step="1">
+                  <small class="admin-form-text">Leave empty to auto-assign next available order in bundle</small>
+                  <div class="invalid-feedback" id="courseOrderError"></div>
+                </div>
+
+                <div class="admin-form-group">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="requiresSequential" name="requiresSequential" value="on" checked>
+                    <label class="form-check-label admin-form-label" for="requiresSequential">
+                      <i class="fas fa-lock me-2"></i>
+                      Requires Sequential Completion
+                    </label>
+                    <small class="admin-form-text d-block mt-1">Students must complete previous courses in order</small>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -462,6 +615,510 @@
 
 <!-- Toast Container -->
 <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+<!-- Bundle Header Styles to Match Student View -->
+<style>
+  /* CSS Variables for Bundle Headers - Matching Student View */
+  :root {
+    --primary-color: #dc2626;
+    --bg-secondary: #f8fafc;
+    --bg-primary: #ffffff;
+    --text-primary: #1f2937;
+    --text-muted: #9ca3af;
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    /* Admin CSS Variables for Filters */
+    --admin-card-light: #ffffff;
+    --admin-card-dark: #2d3748;
+    --admin-text-light: #1f2937;
+    --admin-text-dark: #f7fafc;
+    --admin-border-light: #e5e7eb;
+    --admin-border-dark: #4a5568;
+    --admin-bg-light: #f3f4f6;
+    --admin-bg-dark: #374151;
+  }
+  
+  .dark-theme {
+    --bg-secondary: #1e293b;
+    --bg-primary: #2d3748;
+    --text-primary: #f7fafc;
+    --text-muted: #9ca3af;
+    /* Admin CSS Variables for Filters - Dark Mode */
+    --admin-card-light: #2d3748;
+    --admin-card-dark: #1e293b;
+    --admin-text-light: #f7fafc;
+    --admin-text-dark: #e2e8f0;
+    --admin-border-light: #4a5568;
+    --admin-border-dark: #2d3748;
+    --admin-bg-light: #374151;
+    --admin-bg-dark: #1f2937;
+  }
+
+  /* Course Filters Styles */
+  .admin-filters-card {
+    background: var(--admin-card-light);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid var(--admin-border-light);
+    transition: all 0.3s ease;
+  }
+
+  .dark-theme .admin-filters-card {
+    background: var(--admin-card-dark);
+    border-color: var(--admin-border-dark);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .admin-filters-title {
+    font-weight: 600;
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .admin-filters-title {
+    color: var(--admin-text-dark);
+  }
+
+  .filter-icon {
+    color: #dc2626;
+  }
+
+  .filter-active-badge {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+
+  .filter-label {
+    font-weight: 500;
+    color: var(--admin-text-light);
+    font-size: 0.875rem;
+    margin-bottom: 6px;
+  }
+
+  .dark-theme .filter-label {
+    color: var(--admin-text-dark);
+  }
+
+  .filter-select,
+  .filter-input {
+    border: 1.5px solid var(--admin-border-light);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background: var(--admin-card-light);
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .filter-select,
+  .dark-theme .filter-input {
+    border-color: var(--admin-border-dark);
+    background: var(--admin-card-dark);
+    color: var(--admin-text-dark);
+  }
+
+  .filter-select:hover,
+  .filter-input:hover {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+
+  .filter-select:focus,
+  .filter-input:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    outline: none;
+    background: var(--admin-card-light);
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .filter-select:focus,
+  .dark-theme .filter-input:focus {
+    background: var(--admin-card-dark);
+    color: var(--admin-text-dark);
+  }
+
+  .filter-select option {
+    background: var(--admin-card-light);
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .filter-select option {
+    background: var(--admin-card-dark);
+    color: var(--admin-text-dark);
+  }
+
+  .filter-apply-btn {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .filter-apply-btn:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    color: white;
+  }
+
+  .filter-clear-btn {
+    background: var(--admin-bg-light);
+    color: var(--admin-text-light);
+    border: 1px solid var(--admin-border-light);
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .dark-theme .filter-clear-btn {
+    background: var(--admin-bg-dark);
+    color: var(--admin-text-dark);
+    border-color: var(--admin-border-dark);
+  }
+
+  .filter-clear-btn:hover {
+    background: var(--admin-border-light);
+    border-color: var(--admin-border-light);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .filter-clear-btn:hover {
+    background: var(--admin-border-dark);
+    border-color: var(--admin-border-dark);
+    color: var(--admin-text-dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Bulk Actions Toolbar Styles */
+  .bulk-actions-toolbar {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--admin-card-light) 0%, var(--admin-bg-light) 100%);
+    border-radius: 12px;
+    border: 2px solid #dc2626;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  }
+
+  .dark-theme .bulk-actions-toolbar {
+    background: linear-gradient(135deg, var(--admin-card-dark) 0%, var(--admin-bg-dark) 100%);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  }
+
+  .bulk-selected-count {
+    padding: 8px 16px;
+    background: #dc2626;
+    border-radius: 8px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bulk-selected-count i {
+    font-size: 1.1rem;
+  }
+
+  .bulk-selected-count span {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .bulk-select-buttons {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .dark-theme .bulk-select-buttons {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .bulk-select-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-radius: 0;
+  }
+
+  .bulk-deselect-btn {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-radius: 0;
+  }
+
+  .bulk-action-label {
+    font-weight: 600;
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .bulk-action-label {
+    color: var(--admin-text-dark);
+  }
+
+  .bulk-status-select {
+    width: 180px;
+    border: 2px solid var(--admin-border-light);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: var(--admin-card-light);
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .bulk-status-select {
+    border-color: var(--admin-border-dark);
+    background: var(--admin-card-dark);
+    color: var(--admin-text-dark);
+  }
+
+  .bulk-status-select:hover {
+    border-color: #dc2626;
+  }
+
+  .bulk-status-select:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    outline: none;
+    background: var(--admin-card-light);
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .bulk-status-select:focus {
+    background: var(--admin-card-dark);
+    color: var(--admin-text-dark);
+  }
+
+  .bulk-status-select option {
+    background: var(--admin-card-light);
+    color: var(--admin-text-light);
+  }
+
+  .dark-theme .bulk-status-select option {
+    background: var(--admin-card-dark);
+    color: var(--admin-text-dark);
+  }
+
+  .bulk-apply-btn {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+  }
+
+  .bulk-apply-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+  }
+
+  .bulk-apply-btn:not(:disabled):hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
+  }
+  
+  /* Bundle Header Hover Effect - Matching Student View */
+  .bundle-name-display:hover {
+    background: var(--bg-primary) !important;
+  }
+  
+  /* Responsive Styles for Bundle Header */
+  @media (max-width: 768px) {
+    .bundle-name-display {
+      padding: var(--spacing-md) !important;
+    }
+    
+    .bundle-name-display > div > div:first-child {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: var(--spacing-md) !important;
+    }
+    
+    .bundle-name-display > div > div:first-child > div:first-child {
+      width: 60px !important;
+      height: 60px !important;
+    }
+    
+    .bundle-name-display h3 {
+      font-size: 1.1rem !important;
+    }
+    
+    .bundle-name-display > div > div:first-child > div:last-child {
+      width: 100%;
+    }
+  }
+
+  /* Enhanced Checkbox Styling */
+  .course-checkbox-wrapper {
+    transition: transform 0.2s ease;
+  }
+
+  .course-checkbox-wrapper:hover {
+    transform: scale(1.1);
+  }
+
+  .custom-checkbox-label {
+    position: relative;
+  }
+
+  .custom-checkbox-label:hover {
+    background: #fee2e2 !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2) !important;
+  }
+
+  /* Checkbox checked state */
+  .course-checkbox:checked ~ .checkbox-icon {
+    opacity: 1 !important;
+  }
+
+  .custom-checkbox-label:has(.course-checkbox:checked) {
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+  }
+
+  .custom-checkbox-label:has(.course-checkbox:checked) .checkbox-icon {
+    opacity: 1 !important;
+    color: white !important;
+  }
+
+  /* Fallback for browsers that don't support :has() */
+  .course-checkbox-wrapper input[type="checkbox"]:checked + .checkbox-icon {
+    opacity: 1 !important;
+  }
+
+  /* Bulk Actions Toolbar Enhancements */
+  .bulk-actions-toolbar button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  }
+
+  .bulk-select-buttons .bulk-select-btn:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+  }
+
+  .bulk-select-buttons .bulk-deselect-btn:hover {
+    background: linear-gradient(135deg, #4b5563, #374151) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3) !important;
+  }
+
+  .bulk-actions-toolbar #applyBulkBtn:disabled {
+    background: #9ca3af !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none !important;
+  }
+
+  .bulk-actions-toolbar #applyBulkBtn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4) !important;
+  }
+
+  .bulk-actions-toolbar select:hover {
+    border-color: #dc2626 !important;
+  }
+
+  .bulk-actions-toolbar select:focus {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+    outline: none;
+  }
+
+  /* Responsive Bulk Actions */
+  @media (max-width: 768px) {
+    .bulk-actions-toolbar > div {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+
+    .bulk-actions-toolbar > div > div {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .bulk-actions-toolbar select {
+      width: 100% !important;
+    }
+  }
+
+  /* Enhanced Filter Styles - Removed duplicates, using CSS variables above */
+
+  /* Mobile Responsive Filters */
+  @media (max-width: 768px) {
+    .admin-filters-card {
+      padding: 15px !important;
+    }
+
+    .admin-filters-card h5 {
+      font-size: 1rem !important;
+    }
+
+    .filter-select,
+    .filter-input {
+      font-size: 0.875rem;
+      padding: 10px 12px;
+    }
+
+    .filter-apply-btn,
+    .filter-clear-btn {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .admin-filters-form .row > div {
+      margin-bottom: 0;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .admin-filters-card {
+      padding: 12px !important;
+      border-radius: 8px !important;
+    }
+
+    .filter-apply-btn,
+    .filter-clear-btn {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .filter-apply-btn:last-child,
+    .filter-clear-btn:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+</style>
 
 <!-- Cloudinary Upload Script -->
 <script src="/js/cloudinary-upload.js"></script>
@@ -510,6 +1167,64 @@
   document.addEventListener('DOMContentLoaded', function() {
     loadAvailableBundles();
     setupFormValidation();
+    
+    // Initialize bundle collapse state
+    const bundleIcons = document.querySelectorAll('.admin-bundle-toggle-icon');
+    bundleIcons.forEach(icon => {
+      icon.style.transform = 'rotate(-90deg)';
+    });
+
+    // Add hover effect to bundle headers - Matching Student View
+    const bundleHeaders = document.querySelectorAll('.bundle-name-display');
+    bundleHeaders.forEach(header => {
+      header.addEventListener('mouseenter', function() {
+        this.style.background = 'var(--bg-primary)';
+      });
+      
+      header.addEventListener('mouseleave', function() {
+        this.style.background = 'var(--bg-secondary)';
+      });
+    });
+
+    // Initialize order field visibility based on bundle selection
+    const bundleSelect = document.getElementById('courseBundle');
+    const orderFieldGroup = document.getElementById('courseOrder').closest('.admin-form-group');
+    
+    // Hide order field initially
+    if (orderFieldGroup) {
+      orderFieldGroup.style.display = 'none';
+    }
+
+    // Show/hide order field when bundle is selected
+    if (bundleSelect) {
+      bundleSelect.addEventListener('change', function() {
+        if (this.value && orderFieldGroup) {
+          orderFieldGroup.style.display = 'block';
+        } else if (orderFieldGroup) {
+          orderFieldGroup.style.display = 'none';
+        }
+      });
+    }
+
+    // Reset form when modal is closed
+    const createCourseModal = document.getElementById('createCourseModal');
+    if (createCourseModal) {
+      createCourseModal.addEventListener('hidden.bs.modal', function() {
+        const form = document.getElementById('createCourseForm');
+        if (form) {
+          form.reset();
+          // Reset order field visibility
+          if (orderFieldGroup) {
+            orderFieldGroup.style.display = 'none';
+          }
+          // Reset requiresSequential checkbox to checked
+          const requiresSequentialCheckbox = document.getElementById('requiresSequential');
+          if (requiresSequentialCheckbox) {
+            requiresSequentialCheckbox.checked = true;
+          }
+        }
+      });
+    }
   });
 
   function loadAvailableBundles() {
@@ -525,12 +1240,34 @@
           option.textContent = `${bundle.title} (${bundle.bundleCode})`;
           bundleSelect.appendChild(option);
         });
+
+        // Add event listener for bundle selection change
+        bundleSelect.addEventListener('change', function() {
+          const orderField = document.getElementById('courseOrder');
+          const orderLabel = orderField.closest('.admin-form-group');
+          
+          if (this.value) {
+            // Bundle selected - show order field
+            orderLabel.style.display = 'block';
+            // Fetch current max order for this bundle
+            fetchCurrentBundleOrder(this.value);
+          } else {
+            // No bundle selected - hide order field
+            orderLabel.style.display = 'none';
+          }
+        });
       })
       .catch(error => {
         console.error('Error loading bundles:', error);
         const bundleSelect = document.getElementById('courseBundle');
         bundleSelect.innerHTML = '<option value="">Error loading bundles</option>';
       });
+  }
+
+  // Fetch current max order for selected bundle to show hint
+  function fetchCurrentBundleOrder(bundleId) {
+    // This is optional - just a nice-to-have feature
+    // The order will be auto-assigned on server side if not provided
   }
 
   function setupFormValidation() {
@@ -640,7 +1377,8 @@
       'category': 'Category',
       'duration': 'Duration',
       'price': 'Price',
-      'discountPrice': 'Discount Percentage'
+      'discountPrice': 'Discount Percentage',
+      'order': 'Week Order'
     };
     return labels[fieldName] || fieldName;
   }
@@ -667,6 +1405,163 @@
       block: 'center'
     });
   }
+
+  // Toggle bundle collapse/expand
+  function toggleAdminBundle(bundleId) {
+    const bundleContent = document.getElementById(bundleId);
+    const iconId = bundleId.replace('admin-bundle-', 'admin-icon-bundle-');
+    const icon = document.getElementById(iconId);
+    
+    if (bundleContent && bundleContent.style.display === 'none') {
+      bundleContent.style.display = 'grid';
+      if (icon) {
+        icon.style.transform = 'rotate(0deg)';
+      }
+    } else if (bundleContent) {
+      bundleContent.style.display = 'none';
+      if (icon) {
+        icon.style.transform = 'rotate(-90deg)';
+      }
+    }
+  }
+
+  // Toggle checkbox icon visibility
+  function toggleCheckboxIcon(checkbox) {
+    const icon = checkbox.nextElementSibling;
+    if (checkbox.checked) {
+      if (icon) icon.style.opacity = '1';
+      checkbox.closest('.custom-checkbox-label').style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+      checkbox.closest('.custom-checkbox-label').style.borderColor = '#dc2626';
+      checkbox.closest('.custom-checkbox-label').style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)';
+    } else {
+      if (icon) icon.style.opacity = '0';
+      checkbox.closest('.custom-checkbox-label').style.background = 'white';
+      checkbox.closest('.custom-checkbox-label').style.borderColor = '#dc2626';
+      checkbox.closest('.custom-checkbox-label').style.boxShadow = '0 2px 6px rgba(0,0,0,0.1)';
+    }
+  }
+
+  // Initialize checkbox states on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.course-checkbox');
+    checkboxes.forEach(checkbox => {
+      toggleCheckboxIcon(checkbox);
+    });
+  });
+
+  // Bulk selection functions
+  function updateBulkActionsToolbar() {
+    const checkboxes = document.querySelectorAll('.course-checkbox:checked');
+    const toolbar = document.getElementById('bulkActionsToolbar');
+    const selectedCount = document.getElementById('selectedCount');
+    const applyBtn = document.getElementById('applyBulkBtn');
+    const statusSelect = document.getElementById('bulkStatusSelect');
+    
+    if (checkboxes.length > 0) {
+      toolbar.style.display = 'block';
+      selectedCount.innerHTML = `<strong>${checkboxes.length}</strong> course(s) selected`;
+      applyBtn.disabled = !statusSelect.value;
+    } else {
+      toolbar.style.display = 'none';
+    }
+  }
+
+  function selectAllCourses() {
+    const checkboxes = document.querySelectorAll('.course-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = true;
+      toggleCheckboxIcon(checkbox);
+    });
+    updateBulkActionsToolbar();
+  }
+
+  function deselectAllCourses() {
+    const checkboxes = document.querySelectorAll('.course-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = false;
+      toggleCheckboxIcon(checkbox);
+    });
+    updateBulkActionsToolbar();
+  }
+
+  function applyBulkStatus() {
+    const checkboxes = document.querySelectorAll('.course-checkbox:checked');
+    const statusSelect = document.getElementById('bulkStatusSelect');
+    
+    if (checkboxes.length === 0) {
+      showToast('Please select at least one course', 'error');
+      return;
+    }
+    
+    if (!statusSelect.value) {
+      showToast('Please select a status action', 'error');
+      return;
+    }
+    
+    const courseCodes = Array.from(checkboxes).map(cb => cb.dataset.courseCode);
+    const newStatus = statusSelect.value;
+    
+    const statusLabels = {
+      'published': 'Published',
+      'draft': 'Draft',
+      'archived': 'Archived'
+    };
+    
+    if (!confirm(`Are you sure you want to change the status of ${courseCodes.length} course(s) to "${statusLabels[newStatus]}"?`)) {
+      return;
+    }
+    
+    // Show loading state
+    const applyBtn = document.getElementById('applyBulkBtn');
+    const originalText = applyBtn.innerHTML;
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Applying...';
+    
+    // Send bulk update request
+    fetch('/admin/courses/bulk-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        courseCodes: courseCodes,
+        status: newStatus
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showToast(data.message || `Successfully updated ${courseCodes.length} course(s)`, 'success');
+        // Reload page after a short delay
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      } else {
+        showToast(data.message || 'Error updating courses', 'error');
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = originalText;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showToast('Error updating courses', 'error');
+      applyBtn.disabled = false;
+      applyBtn.innerHTML = originalText;
+    });
+  }
+
+  // Enable/disable apply button based on status selection
+  document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('bulkStatusSelect');
+    const applyBtn = document.getElementById('applyBulkBtn');
+    
+    if (statusSelect && applyBtn) {
+      statusSelect.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.course-checkbox:checked');
+        applyBtn.disabled = checkboxes.length === 0 || !this.value;
+      });
+    }
+  });
 
   // Course management functions
   function editCourse(courseCode) {

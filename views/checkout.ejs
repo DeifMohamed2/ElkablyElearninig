@@ -117,6 +117,14 @@
             <p class="checkout-section-subtitle" style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;">
               Add physical books for your bundles (shipping address required)
             </p>
+            <div class="checkout-shipping-note" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px 16px; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 10px;">
+              <i class="fas fa-info-circle" style="color: #856404; font-size: 1.1rem; margin-top: 2px;"></i>
+              <p style="color: #856404; font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                <strong>ملاحظة:</strong> سعر الكتاب لا يشمل رسوم الشحن. يتم تحديد رسوم الشحن لاحقاً.
+                <br>
+                <strong>Note:</strong> Book price does not include shipping fees. Shipping fees will be determined later.
+              </p>
+            </div>
 
             <div class="checkout-books-list">
               <% availableBooks.forEach(book => { %>
@@ -319,6 +327,12 @@
                 <span class="checkout-breakdown-label">Books:</span>
                 <span class="checkout-breakdown-value" id="booksSubtotalDisplay">EGP 0.00</span>
               </div>
+              <div id="shippingNoteRow" class="checkout-shipping-note-row" style="display: none; padding: 8px 0; margin-top: 4px;">
+                <p style="color: #856404; font-size: 0.8rem; margin: 0; font-style: italic; line-height: 1.4;">
+                  <i class="fas fa-info-circle" style="font-size: 0.75rem; margin-left: 4px;"></i>
+                  <span>ملاحظة: سعر الكتاب لا يشمل رسوم الشحن. يتم تحديد رسوم الشحن لاحقاً. | <strong>Note:</strong> Book price does not include shipping fees. Shipping fees will be determined later.</span>
+                </p>
+              </div>
               <div class="checkout-breakdown-row checkout-breakdown-total">
                 <span class="checkout-breakdown-label">Total:</span>
                 <span class="checkout-breakdown-value" id="orderTotalDisplay">EGP <%= total.toFixed(2) %></span>
@@ -463,6 +477,7 @@
       const booksBreakdownRow = document.getElementById('booksBreakdownRow');
       const booksSubtotalDisplay = document.getElementById('booksSubtotalDisplay');
       const orderTotalDisplay = document.getElementById('orderTotalDisplay');
+      const shippingNoteRow = document.getElementById('shippingNoteRow');
 
       if (booksSubtotal > 0) {
         // Show books summary
@@ -471,6 +486,9 @@
         }
         if (booksBreakdownRow) {
           booksBreakdownRow.style.display = 'flex';
+        }
+        if (shippingNoteRow) {
+          shippingNoteRow.style.display = 'block';
         }
 
         // Update books list
@@ -510,6 +528,9 @@
         }
         if (booksBreakdownRow) {
           booksBreakdownRow.style.display = 'none';
+        }
+        if (shippingNoteRow) {
+          shippingNoteRow.style.display = 'none';
         }
         if (selectedBooksList) {
           selectedBooksList.innerHTML = '';

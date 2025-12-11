@@ -33,9 +33,9 @@ const { exportQuestionBankDetails } = require('../controllers/adminController');
 // Question Bank Routes
 router.get('/banks', isAdmin, getQuestionBanks);
 router.post('/banks/create', isAdmin, createQuestionBank);
-router.get('/banks/:bankCode', isAdmin, getQuestionBank);
 router.put('/banks/:bankCode', isAdmin, updateQuestionBank);
 router.delete('/banks/:bankCode', isAdmin, deleteQuestionBank);
+router.get('/banks/:bankCode', isAdmin, getQuestionBank);
 
 // Question Routes within a Bank
 router.get('/banks/:bankCode/questions', isAdmin, getQuestions);

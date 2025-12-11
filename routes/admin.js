@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { isAdmin } = require('../middlewares/auth');
 
 // Configure multer for file uploads
@@ -29,6 +30,36 @@ const uploadFile = multer({
   },
 });
 
+// Configure multer for PDF uploads
+const pdfStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(__dirname, '../public/uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename with timestamp and original extension
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, 'pdf-' + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const uploadPDFMiddleware = multer({
+  storage: pdfStorage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for PDFs
+  fileFilter: function (req, file, cb) {
+    // Only allow PDF files
+    if (file.mimetype === 'application/pdf' || path.extname(file.originalname).toLowerCase() === '.pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'));
+    }
+  },
+});
+
 const {
   getAdminDashboard,
   getDashboardChartData,
@@ -39,6 +70,7 @@ const {
   getCourseData,
   updateCourse,
   deleteCourse,
+  bulkUpdateCourseStatus,
   getCourseContent,
   createTopic,
   updateTopic,
@@ -62,6 +94,7 @@ const {
   addCourseToBundle,
   removeCourseFromBundle,
   createCourseForBundle,
+  updateCourseOrder,
   getBundlesAPI,
   // Student Management Controllers
   getStudents,
@@ -160,6 +193,7 @@ const {
   getCourseStudentsCount,
   getBundleStudentsCount,
   sendBulkSMS,
+  uploadPDF,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -211,6 +245,7 @@ router.get('/courses/:courseCode/details', isAdmin, getCourseDetails);
 router.get('/courses/:courseCode/data', isAdmin, getCourseData);
 router.put('/courses/:courseCode', isAdmin, updateCourse);
 router.delete('/courses/:courseCode', isAdmin, deleteCourse);
+router.post('/courses/bulk-status', isAdmin, bulkUpdateCourseStatus);
 
 // Course Content Management
 router.get('/courses/:courseCode/content', isAdmin, getCourseContent);
@@ -323,6 +358,11 @@ router.post(
   '/bundles/:bundleCode/courses/create',
   isAdmin,
   createCourseForBundle
+);
+router.put(
+  '/bundles/:bundleCode/courses/reorder',
+  isAdmin,
+  updateCourseOrder
 );
 
 // API Routes
@@ -547,6 +587,31 @@ router.get(
   getBundleStudentsCount
 );
 router.post('/bulk-sms/send', isAdmin, sendBulkSMS);
+
+// PDF Upload Route
+router.post('/upload/pdf', isAdmin, uploadPDFMiddleware.single('pdf'), (err, req, res, next) => {
+  // Handle multer errors
+  if (err) {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          success: false,
+          message: 'File too large. Maximum file size is 50MB.',
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'File upload error: ' + err.message,
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'File upload error',
+    });
+  }
+  next();
+}, uploadPDF);
+
 router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
 
 // Duplicate cleanup routes

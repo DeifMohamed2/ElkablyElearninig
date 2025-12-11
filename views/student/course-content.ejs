@@ -399,6 +399,7 @@
                         </div>
                         <% } %>
                         <% } else if (contentItem.actualProgress > 0) { %>
+                        <!-- Content with Progress (Same for ALL content types including zoom) -->
                         <div class="content-actions-in-progress">
                           <div class="content-progress-info">
                             <div class="content-progress-circle">
@@ -417,38 +418,21 @@
                             </span>
                           </div>
                           <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
-                            <i class="fas fa-<%= contentItem.actualProgress === 100 ? 'redo' : 'play' %>"></i>
-                            <%= contentItem.actualProgress === 100 ? 'Review' : 'Continue' %>
+                            <i class="fas fa-<%= contentItem.actualProgress === 100 ? 'redo' : (contentItem.type === 'zoom' ? 'video' : 'play') %>"></i>
+                            <%= contentItem.actualProgress === 100 ? 'View Details' : (contentItem.type === 'zoom' ? 'Join' : 'Continue') %>
                           </a>
                         </div>
                         <% } else { %>
-                        <!-- Content Start Button -->
-                        <% if (contentItem.type === 'zoom') { %>
-                        <% if (contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'active') { %>
-                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-success btn-sm">
-                          <i class="fas fa-video"></i>
-                          Join Meeting
-                        </a>
-                        <% } else if (contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'scheduled') { %>
+                        <!-- Content Start Button (Same for ALL content types including zoom) -->
+                        <% if (contentItem.type === 'zoom' && contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'scheduled') { %>
                         <button class="btn btn-secondary btn-sm" disabled>
                           <i class="fas fa-clock"></i>
                           Scheduled
                         </button>
-                        <% } else if (contentItem.zoomMeeting && contentItem.zoomMeeting.status === 'ended') { %>
-                        <a href="/student/content/<%= contentItem._id %>" class="btn btn-outline-primary btn-sm">
-                          <i class="fas fa-history"></i>
-                          View Details
-                        </a>
-                        <% } else { %>
-                        <button class="btn btn-secondary btn-sm" disabled>
-                          <i class="fas fa-video"></i>
-                          Unavailable
-                        </button>
-                        <% } %>
                         <% } else { %>
                         <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
-                          <i class="fas fa-play"></i>
-                          Start
+                          <i class="fas fa-<%= contentItem.type === 'zoom' ? 'video' : 'play' %>"></i>
+                          <%= contentItem.type === 'zoom' ? 'Join' : 'Start' %>
                         </a>
                         <% } %>
                         <% } %>

@@ -112,13 +112,13 @@ class WhatsAppSMSNotificationService {
     
     let message;
     if (percentage >= 90) {
-      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nOutstanding! Keep it up!\nELKABLY`;
+      message = `Quiz Update\n${studentName} completed: "${quizTitle}"\nScore: ${grade} (${percentage}%)\nOutstanding! Keep it up!\nELKABLY`;
     } else if (percentage >= 70) {
-      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nGood job! Great progress!\nELKABLY`;
+      message = `Quiz Update\n${studentName} completed: "${quizTitle}"\nScore: ${grade} (${percentage}%)\nGood job! Great progress!\nELKABLY`;
     } else if (percentage >= 50) {
-      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nKeep encouraging them!\nELKABLY`;
+      message = `Quiz Update\n${studentName} completed: "${quizTitle}"\nScore: ${grade} (${percentage}%)\nKeep encouraging them!\nELKABLY`;
     } else {
-      message = `Quiz Update\n${studentName} completed:\n"${quizTitle}"\nScore: ${grade} (${percentage}%)\nMore practice needed.\nPlease support!\nELKABLY`;
+      message = `Quiz Update\n${studentName} completed: "${quizTitle}"\nScore: ${grade} (${percentage}%)\nMore practice needed.\nPlease support!\nELKABLY`;
     }
     
     return this.truncateSmsMessage(message);
@@ -131,7 +131,7 @@ class WhatsAppSMSNotificationService {
     const studentName = (student.firstName || '').substring(0, 20);
     const contentTitle = (contentData.title || 'Content').substring(0, 35);
     const weekTitle = (courseData.title || 'Week').substring(0, 25);
-    const message = `Progress Update\n${studentName} completed:\n"${contentTitle}"\nIn: ${weekTitle}\nExcellent progress!\nELKABLY`;
+    const message = `Progress Update\n${studentName} completed: "${contentTitle}"\nIn: ${weekTitle}\nExcellent progress!\nELKABLY`;
     return this.truncateSmsMessage(message);
   }
 
@@ -142,7 +142,7 @@ class WhatsAppSMSNotificationService {
     const studentName = (student.firstName || '').substring(0, 20);
     const topicTitle = (topicData.title || 'Topic').substring(0, 35);
     const weekTitle = (courseData.title || 'Week').substring(0, 25);
-    const message = `Progress Update\n${studentName} completed:\n"${topicTitle}"\nIn: ${weekTitle}\nExcellent work!\nKeep encouraging!\nELKABLY`;
+    const message = `Progress Update\n${studentName} completed: "${topicTitle}"\nIn: ${weekTitle}\nExcellent work!\nKeep encouraging!\nELKABLY`;
     return this.truncateSmsMessage(message);
   }
 
@@ -152,7 +152,7 @@ class WhatsAppSMSNotificationService {
   getSmsCourseCompletionMessage(student, courseData) {
     const studentName = (student.firstName || '').substring(0, 20);
     const weekTitle = (courseData.title || 'Week').substring(0, 30);
-    const message = `Congratulations!\n${studentName} completed:\n${weekTitle}\nExcellent work!\nWe are proud!\nELKABLY`;
+    const message = `Congratulations!\n${studentName} completed: "${weekTitle}"\nExcellent work!\nWe are proud!\nELKABLY`;
     return this.truncateSmsMessage(message);
   }
 
@@ -222,6 +222,92 @@ class WhatsAppSMSNotificationService {
     let message = `Enrollment Confirmed!\nStudent: ${studentName}\nCourse: ${courseTitle}`;
     if (subject) message += `\nSubject: ${subject}`;
     message += `\nWeeks: ${weeks} included\nAccess all materials!\nELKABLY`;
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Format time spent in human-readable format (e.g., "4.7 minutes" or "1 hour")
+   */
+  formatTimeSpent(minutes) {
+    if (!minutes || minutes === 0) return '0 minutes';
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (hours > 0) {
+      if (remainingMinutes > 0) {
+        // Format remaining minutes with 1 decimal if needed
+        const minsFormatted = remainingMinutes % 1 === 0 
+          ? remainingMinutes.toString() 
+          : remainingMinutes.toFixed(1);
+        return `${hours} hour${hours > 1 ? 's' : ''} ${minsFormatted} minute${remainingMinutes !== 1 ? 's' : ''}`;
+      } else {
+        return `${hours} hour${hours > 1 ? 's' : ''}`;
+      }
+    } else {
+      // Format minutes with 1 decimal if needed
+      const minsFormatted = minutes % 1 === 0 
+        ? minutes.toString() 
+        : minutes.toFixed(1);
+      return `${minsFormatted} minute${minutes !== 1 ? 's' : ''}`;
+    }
+  }
+
+  /**
+   * Generate SMS message for zoom meeting completion (140-160 chars) - Vertical format
+   * Includes exact attendance percentage, camera status, and time spent
+   */
+  getSmsZoomMeetingMessage(student, meetingData) {
+    const studentName = (student.firstName || '').substring(0, 20);
+    const meetingName = (meetingData.meetingName || 'Live Session').substring(0, 25);
+    // Format attendance percentage - show exact value (e.g., 88.5% or 88%)
+    const attendancePercent = meetingData.attendancePercentage || 0;
+    const attendancePercentFormatted = attendancePercent % 1 === 0 
+      ? attendancePercent.toString() 
+      : attendancePercent.toFixed(1);
+    const courseTitle = (meetingData.courseTitle || 'Course').substring(0, 20);
+    
+    // Check camera status - if student opened camera for 80%+ of attendance time
+    const cameraOpened = meetingData.cameraOpened || false;
+    const cameraStatus = cameraOpened ? 'Camera: ON' : 'Camera: OFF';
+    
+    // Format time spent
+    const timeSpent = meetingData.timeSpent || 0;
+    const timeSpentFormatted = this.formatTimeSpent(timeSpent);
+    
+    let message = `Live Session Update\nStudent: ${studentName}\nSession: ${meetingName}`;
+    message += `\nCourse: ${courseTitle}`;
+    message += `\nAttendance: ${attendancePercentFormatted}%`;
+    message += `\nTime: ${timeSpentFormatted}`;
+    // message += `\n${cameraStatus}`;
+    console.log(cameraStatus);
+    if (attendancePercent >= 50) {
+      message += `\nCompleted! Great job!\nELKABLY`;
+    } else {
+      message += `\nMore attendance needed\nELKABLY`;
+    }
+    return this.truncateSmsMessage(message);
+  }
+
+  /**
+   * Generate SMS message for students who did NOT attend live session
+   * Different message if they watched recording vs didn't watch at all
+   */
+  getSmsZoomMeetingNonAttendanceMessage(student, meetingData) {
+    const studentName = (student.firstName || '').substring(0, 20);
+    const meetingName = (meetingData.meetingName || 'Live Session').substring(0, 25);
+    const courseTitle = (meetingData.courseTitle || 'Course').substring(0, 20);
+    const watchedRecording = meetingData.watchedRecording || false;
+    
+    let message = `Live Session Update\nStudent: ${studentName}\nSession: ${meetingName}`;
+    message += `\nCourse: ${courseTitle}`;
+    
+    if (watchedRecording) {
+      message += `\nAttended recording\nsession (not live)\nELKABLY`;
+    } else {
+      message += `\nDid not attend\nlive session\nELKABLY`;
+    }
+    
     return this.truncateSmsMessage(message);
   }
 
@@ -883,6 +969,76 @@ ${performanceMessage}
     } catch (error) {
       console.error('Error sending message to all students:', error);
       return { success: false, message: 'Failed to send message to all students' };
+    }
+  }
+
+  /**
+   * Send document/file via WhatsApp
+   */
+  async sendDocumentViaWhatsApp(phoneNumber, documentUrl, fileName, caption = '') {
+    try {
+      // Check if session API key is available
+      if (!this.sessionApiKey) {
+        console.error('Session API key is not configured');
+        return { success: false, message: 'Session API key not configured' };
+      }
+
+      // Format phone number for WhatsApp (same as book shipping code)
+      // Remove all non-digit characters
+      let cleaned = phoneNumber.replace(/\D/g, '');
+      
+      // If starts with 0, replace with country code 20 (Egypt)
+      if (cleaned.startsWith('0')) {
+        cleaned = '20' + cleaned.substring(1);
+      }
+      
+      // If doesn't start with country code, add 20 (default to Egypt format)
+      if (!cleaned.startsWith('20') && !cleaned.startsWith('+')) {
+        cleaned = '20' + cleaned;
+      }
+      
+      // Remove + if present
+      cleaned = cleaned.replace(/^\+/, '');
+      
+      // Format as WhatsApp JID: countrycode@s.whatsapp.net (same format as book shipping)
+      const whatsappJid = `${cleaned}@s.whatsapp.net`;
+
+      console.log(`📎 Sending document via WhatsApp to: ${whatsappJid}`);
+      console.log(`📄 File: ${fileName}`);
+      console.log(`🔗 URL: ${documentUrl}`);
+
+      // Send document via WhatsApp using wasender
+      const wasender = require('./wasender');
+      const result = await wasender.sendDocumentMessage(
+        this.sessionApiKey,
+        whatsappJid,
+        documentUrl,
+        fileName
+      );
+
+      if (result.success) {
+        console.log(`✅ Document sent successfully via WhatsApp to ${whatsappJid}`);
+        return { 
+          success: true, 
+          message: 'Document sent successfully',
+          method: 'WhatsApp'
+        };
+      } else {
+        console.error('❌ Failed to send document via WhatsApp:', result.message);
+        return { 
+          success: false, 
+          message: result.message || 'Failed to send document via WhatsApp',
+          method: 'WhatsApp'
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error sending document via WhatsApp:', error);
+      return { 
+        success: false, 
+        message: `WhatsApp failed: ${error.message || 'Unknown error'}`,
+        method: 'WhatsApp',
+        error: error.message
+      };
     }
   }
 

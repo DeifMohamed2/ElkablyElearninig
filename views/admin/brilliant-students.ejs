@@ -811,7 +811,6 @@
 
               // Fill form fields
               document.querySelector('input[name="name"]').value = student.data.name;
-              document.querySelector('select[name="testType"]').value = student.data.testType;
               document.querySelector('input[name="score"]').value = student.data.score;
               document.querySelector('input[name="maxScore"]').value = student.data.maxScore;
               document.querySelector('input[name="fallbackInitials"]').value = student.data.fallbackInitials;
@@ -850,6 +849,20 @@
                   console.log('Fallback modal shown for edit');
                 }
               }
+
+              // Set test type and update score limits after modal is shown
+              setTimeout(() => {
+                // Set test type using ID selector for reliability (after modal is shown)
+                const testTypeSelect = document.getElementById('testTypeSelect');
+                if (testTypeSelect && student.data.testType) {
+                  testTypeSelect.value = student.data.testType;
+                  console.log('Test type set to:', student.data.testType);
+                }
+                
+                // Update score limits based on the selected test type
+                console.log('Modal shown, calling updateScoreLimits for edit');
+                updateScoreLimits();
+              }, 100);
             } else {
               showNotification('Failed to load student data', 'error');
             }

@@ -17,6 +17,9 @@ const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
 const zoomService = require('../utils/zoomService');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // Admin Dashboard with Real Data
 const getAdminDashboard = async (req, res) => {
@@ -504,7 +507,7 @@ const getCourses = async (req, res) => {
     // Get courses with pagination
     const courses = await Course.find(filter)
       .populate('topics')
-      .populate('bundle', 'title bundleCode')
+      .populate('bundle', 'title bundleCode thumbnail')
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -557,6 +560,8 @@ const createCourse = async (req, res) => {
       bundleId,
       category,
       thumbnail,
+      order,
+      requiresSequential,
     } = req.body;
 
     console.log('Creating course with data:', {
@@ -564,6 +569,8 @@ const createCourse = async (req, res) => {
       thumbnail,
       bundleId,
       category,
+      order,
+      requiresSequential,
     });
 
     // Validate bundle exists
@@ -572,6 +579,25 @@ const createCourse = async (req, res) => {
       req.flash('error_msg', 'Please select a valid bundle');
       return res.redirect('/admin/courses');
     }
+
+    // Determine order - use provided order or auto-assign
+    let courseOrder = 0;
+    if (order && !isNaN(parseInt(order)) && parseInt(order) > 0) {
+      courseOrder = parseInt(order);
+    } else {
+      // Auto-assign next available order in bundle
+      const existingCourses = await Course.find({ bundle: bundleId })
+        .sort({ order: -1 })
+        .limit(1);
+      courseOrder =
+        existingCourses.length > 0 ? (existingCourses[0].order || 0) + 1 : 1;
+    }
+
+    // Handle requiresSequential checkbox (will be 'on' if checked, undefined if not)
+    const requiresSequentialFlag =
+      requiresSequential === 'on' ||
+      requiresSequential === true ||
+      requiresSequential === 'true';
 
     // Create new course
     const course = new Course({
@@ -587,6 +613,8 @@ const createCourse = async (req, res) => {
       createdBy: req.session.user.id,
       bundle: bundleId,
       thumbnail: thumbnail || '',
+      order: courseOrder,
+      requiresSequential: requiresSequentialFlag,
     });
 
     console.log('Course object before save:', {
@@ -1160,6 +1188,71 @@ const deleteCourse = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error deleting course',
+    });
+  }
+};
+
+// Bulk update course status
+const bulkUpdateCourseStatus = async (req, res) => {
+  try {
+    const { courseCodes, status } = req.body;
+
+    // Validate input
+    if (
+      !courseCodes ||
+      !Array.isArray(courseCodes) ||
+      courseCodes.length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide at least one course code',
+      });
+    }
+
+    if (!status || !['published', 'draft', 'archived'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Must be one of: published, draft, archived',
+      });
+    }
+
+    // Find all courses by course codes
+    const courses = await Course.find({ courseCode: { $in: courseCodes } });
+
+    if (courses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No courses found with the provided course codes',
+      });
+    }
+
+    // Update status for all found courses
+    const updateResult = await Course.updateMany(
+      { courseCode: { $in: courseCodes } },
+      {
+        status: status,
+        // If archiving, also set isActive to false
+        ...(status === 'archived' ? { isActive: false } : {}),
+      }
+    );
+
+    const statusLabels = {
+      published: 'Published',
+      draft: 'Draft',
+      archived: 'Archived',
+    };
+
+    return res.json({
+      success: true,
+      message: `Successfully updated ${updateResult.modifiedCount} course(s) to ${statusLabels[status]}`,
+      updatedCount: updateResult.modifiedCount,
+      totalRequested: courseCodes.length,
+    });
+  } catch (error) {
+    console.error('Error bulk updating course status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating course status',
     });
   }
 };
@@ -2628,8 +2721,26 @@ const updateTopicContent = async (req, res) => {
       difficulty,
       tags,
       prerequisites,
-      quizData,
-      homeworkData,
+      // Quiz fields (direct, not nested)
+      questionBank,
+      questionBanks,
+      selectedQuestions,
+      quizDuration,
+      quizPassingScore,
+      quizMaxAttempts,
+      quizShuffleQuestions,
+      quizShuffleOptions,
+      quizShowCorrectAnswers,
+      quizShowResults,
+      quizInstructions,
+      // Homework fields (direct, not nested)
+      homeworkPassingScore,
+      homeworkMaxAttempts,
+      homeworkShuffleQuestions,
+      homeworkShuffleOptions,
+      homeworkShowCorrectAnswers,
+      homeworkInstructions,
+      // Zoom fields
       zoomMeetingName,
       zoomMeetingTopic,
       scheduledStartTime,
@@ -2641,6 +2752,9 @@ const updateTopicContent = async (req, res) => {
       participantVideo,
       muteUponEntry,
       enableRecording,
+      // Legacy nested data support (for backward compatibility)
+      quizData,
+      homeworkData,
     } = req.body;
 
     const topic = await Topic.findById(topicId);
@@ -2663,40 +2777,272 @@ const updateTopicContent = async (req, res) => {
     contentItem.type = type;
     contentItem.title = title.trim();
     contentItem.description = description ? description.trim() : '';
-    contentItem.content = content.trim();
-    contentItem.duration = duration ? parseInt(duration) : 0;
+
+    // For quiz/homework, content should be empty or type name
+    if (type === 'quiz' || type === 'homework' || type === 'zoom') {
+      contentItem.content = type;
+    } else {
+      contentItem.content = content ? content.trim() : '';
+    }
+
+    // Only update duration if it's explicitly provided (not empty string)
+    if (duration !== undefined && duration !== null && duration !== '') {
+      const parsedDuration = parseInt(duration);
+      if (!isNaN(parsedDuration)) {
+        contentItem.duration = parsedDuration;
+      }
+      // If duration is provided but invalid, keep existing value (don't change it)
+    }
+    // If duration is not provided (undefined/null/empty), keep the existing value
     contentItem.isRequired = isRequired === 'on' || isRequired === true;
     contentItem.difficulty = difficulty || 'beginner';
     contentItem.order = order ? parseInt(order) : contentItem.order;
-    contentItem.tags = tags ? tags.split(',').map((tag) => tag.trim()) : [];
-    contentItem.prerequisites = prerequisites || [];
+    contentItem.tags = tags
+      ? Array.isArray(tags)
+        ? tags
+        : tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter((tag) => tag)
+      : [];
+    contentItem.prerequisites = prerequisites
+      ? Array.isArray(prerequisites)
+        ? prerequisites
+        : [prerequisites]
+      : [];
 
-    // Handle content type specific updates
-    if (type === 'quiz' && quizData) {
+    // Handle Quiz content updates with multiple banks support
+    if (type === 'quiz') {
+      // Determine which banks to use
+      let selectedBankIds = [];
+      if (questionBanks) {
+        selectedBankIds = Array.isArray(questionBanks)
+          ? questionBanks
+          : [questionBanks];
+      } else if (questionBank) {
+        selectedBankIds = [questionBank];
+      } else if (quizData?.questionBankId) {
+        // Legacy support
+        selectedBankIds = [quizData.questionBankId];
+      } else if (
+        contentItem.questionBanks &&
+        contentItem.questionBanks.length > 0
+      ) {
+        // Keep existing banks if none provided
+        selectedBankIds = contentItem.questionBanks;
+      } else if (contentItem.questionBank) {
+        // Keep existing single bank if none provided
+        selectedBankIds = [contentItem.questionBank];
+      }
+
+      // Parse selected questions
+      let parsedQuestions = [];
+      if (selectedQuestions) {
+        try {
+          parsedQuestions =
+            typeof selectedQuestions === 'string'
+              ? JSON.parse(selectedQuestions)
+              : selectedQuestions;
+        } catch (e) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid selected questions format',
+          });
+        }
+      } else if (quizData?.selectedQuestions) {
+        // Legacy support
+        parsedQuestions = Array.isArray(quizData.selectedQuestions)
+          ? quizData.selectedQuestions
+          : [];
+      } else if (contentItem.selectedQuestions) {
+        // Keep existing questions if none provided
+        parsedQuestions = contentItem.selectedQuestions;
+      }
+
+      // Validate banks and questions if provided
+      if (selectedBankIds.length > 0) {
+        const banks = await QuestionBank.find({
+          _id: { $in: selectedBankIds },
+        });
+        if (banks.length !== selectedBankIds.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'One or more question banks not found',
+          });
+        }
+
+        // Update question banks
+        contentItem.questionBank = selectedBankIds[0]; // Backward compatibility
+        contentItem.questionBanks = selectedBankIds;
+      }
+
+      // Update selected questions if provided
+      if (parsedQuestions.length > 0) {
+        contentItem.selectedQuestions = parsedQuestions.map((q, index) => ({
+          question: q.question || q,
+          sourceBank: q.sourceBank || selectedBankIds[0],
+          points: q.points || 1,
+          order: index + 1,
+        }));
+      }
+
+      // Update quiz settings
       contentItem.quizSettings = {
-        questionBankId: quizData.questionBankId,
-        selectedQuestions: quizData.selectedQuestions || [],
-        duration: parseInt(quizData.duration) || 30,
-        passingScore: parseInt(quizData.passingScore) || 60,
-        maxAttempts: parseInt(quizData.maxAttempts) || 3,
-        shuffleQuestions: quizData.shuffleQuestions || false,
-        shuffleOptions: quizData.shuffleOptions || false,
-        showCorrectAnswers: quizData.showCorrectAnswers !== false,
-        showResults: quizData.showResults !== false,
-        instructions: quizData.instructions || '',
+        duration: quizDuration
+          ? parseInt(quizDuration)
+          : quizData?.duration
+          ? parseInt(quizData.duration)
+          : contentItem.quizSettings?.duration || 30,
+        passingScore: quizPassingScore
+          ? parseInt(quizPassingScore)
+          : quizData?.passingScore
+          ? parseInt(quizData.passingScore)
+          : contentItem.quizSettings?.passingScore || 60,
+        maxAttempts: quizMaxAttempts
+          ? parseInt(quizMaxAttempts)
+          : quizData?.maxAttempts
+          ? parseInt(quizData.maxAttempts)
+          : contentItem.quizSettings?.maxAttempts || 3,
+        shuffleQuestions:
+          quizShuffleQuestions === true ||
+          quizShuffleQuestions === 'on' ||
+          quizData?.shuffleQuestions ||
+          contentItem.quizSettings?.shuffleQuestions ||
+          false,
+        shuffleOptions:
+          quizShuffleOptions === true ||
+          quizShuffleOptions === 'on' ||
+          quizData?.shuffleOptions ||
+          contentItem.quizSettings?.shuffleOptions ||
+          false,
+        showCorrectAnswers:
+          quizShowCorrectAnswers !== false &&
+          quizShowCorrectAnswers !== 'off' &&
+          quizData?.showCorrectAnswers !== false &&
+          contentItem.quizSettings?.showCorrectAnswers !== false,
+        showResults:
+          quizShowResults !== false &&
+          quizShowResults !== 'off' &&
+          quizData?.showResults !== false &&
+          contentItem.quizSettings?.showResults !== false,
+        instructions:
+          quizInstructions ||
+          quizData?.instructions ||
+          contentItem.quizSettings?.instructions ||
+          '',
       };
     }
 
-    if (type === 'homework' && homeworkData) {
+    // Handle Homework content updates with multiple banks support
+    if (type === 'homework') {
+      // Determine which banks to use
+      let selectedBankIds = [];
+      if (questionBanks) {
+        selectedBankIds = Array.isArray(questionBanks)
+          ? questionBanks
+          : [questionBanks];
+      } else if (questionBank) {
+        selectedBankIds = [questionBank];
+      } else if (homeworkData?.questionBankId) {
+        // Legacy support
+        selectedBankIds = [homeworkData.questionBankId];
+      } else if (
+        contentItem.questionBanks &&
+        contentItem.questionBanks.length > 0
+      ) {
+        // Keep existing banks if none provided
+        selectedBankIds = contentItem.questionBanks;
+      } else if (contentItem.questionBank) {
+        // Keep existing single bank if none provided
+        selectedBankIds = [contentItem.questionBank];
+      }
+
+      // Parse selected questions
+      let parsedQuestions = [];
+      if (selectedQuestions) {
+        try {
+          parsedQuestions =
+            typeof selectedQuestions === 'string'
+              ? JSON.parse(selectedQuestions)
+              : selectedQuestions;
+        } catch (e) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid selected questions format',
+          });
+        }
+      } else if (homeworkData?.selectedQuestions) {
+        // Legacy support
+        parsedQuestions = Array.isArray(homeworkData.selectedQuestions)
+          ? homeworkData.selectedQuestions
+          : [];
+      } else if (contentItem.selectedQuestions) {
+        // Keep existing questions if none provided
+        parsedQuestions = contentItem.selectedQuestions;
+      }
+
+      // Validate banks and questions if provided
+      if (selectedBankIds.length > 0) {
+        const banks = await QuestionBank.find({
+          _id: { $in: selectedBankIds },
+        });
+        if (banks.length !== selectedBankIds.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'One or more question banks not found',
+          });
+        }
+
+        // Update question banks
+        contentItem.questionBank = selectedBankIds[0]; // Backward compatibility
+        contentItem.questionBanks = selectedBankIds;
+      }
+
+      // Update selected questions if provided
+      if (parsedQuestions.length > 0) {
+        contentItem.selectedQuestions = parsedQuestions.map((q, index) => ({
+          question: q.question || q,
+          sourceBank: q.sourceBank || selectedBankIds[0],
+          points: q.points || 1,
+          order: index + 1,
+        }));
+      }
+
+      // Update homework settings
       contentItem.homeworkSettings = {
-        questionBankId: homeworkData.questionBankId,
-        selectedQuestions: homeworkData.selectedQuestions || [],
-        passingScore: parseInt(homeworkData.passingScore) || 60,
-        maxAttempts: parseInt(homeworkData.maxAttempts) || 1,
-        shuffleQuestions: homeworkData.shuffleQuestions || false,
-        shuffleOptions: homeworkData.shuffleOptions || false,
-        showCorrectAnswers: homeworkData.showCorrectAnswers || false,
-        instructions: homeworkData.instructions || '',
+        passingScore: homeworkPassingScore
+          ? parseInt(homeworkPassingScore)
+          : homeworkData?.passingScore
+          ? parseInt(homeworkData.passingScore)
+          : contentItem.homeworkSettings?.passingScore || 60,
+        maxAttempts: homeworkMaxAttempts
+          ? parseInt(homeworkMaxAttempts)
+          : homeworkData?.maxAttempts
+          ? parseInt(homeworkData.maxAttempts)
+          : contentItem.homeworkSettings?.maxAttempts || 1,
+        shuffleQuestions:
+          homeworkShuffleQuestions === true ||
+          homeworkShuffleQuestions === 'on' ||
+          homeworkData?.shuffleQuestions ||
+          contentItem.homeworkSettings?.shuffleQuestions ||
+          false,
+        shuffleOptions:
+          homeworkShuffleOptions === true ||
+          homeworkShuffleOptions === 'on' ||
+          homeworkData?.shuffleOptions ||
+          contentItem.homeworkSettings?.shuffleOptions ||
+          false,
+        showCorrectAnswers:
+          homeworkShowCorrectAnswers === true ||
+          homeworkShowCorrectAnswers === 'on' ||
+          homeworkData?.showCorrectAnswers ||
+          contentItem.homeworkSettings?.showCorrectAnswers ||
+          false,
+        instructions:
+          homeworkInstructions ||
+          homeworkData?.instructions ||
+          contentItem.homeworkSettings?.instructions ||
+          '',
       };
     }
 
@@ -2713,8 +3059,10 @@ const updateTopicContent = async (req, res) => {
         contentItem.zoomMeeting.timezone =
           timezone || contentItem.zoomMeeting.timezone;
         contentItem.zoomMeeting.password = password || '';
-        contentItem.zoomMeeting.joinBeforeHost = joinBeforeHost !== false;
-        contentItem.zoomMeeting.waitingRoom = waitingRoom || false;
+        const finalJoinBeforeHost = joinBeforeHost !== false;
+        const finalWaitingRoom = finalJoinBeforeHost ? false : (waitingRoom || false);
+        contentItem.zoomMeeting.joinBeforeHost = finalJoinBeforeHost;
+        contentItem.zoomMeeting.waitingRoom = finalWaitingRoom;
         contentItem.zoomMeeting.hostVideo = hostVideo !== false;
         contentItem.zoomMeeting.participantVideo = participantVideo !== false;
         contentItem.zoomMeeting.muteUponEntry = muteUponEntry || false;
@@ -2787,22 +3135,50 @@ const getContentDetailsForEdit = async (req, res) => {
       prerequisites: contentItem.prerequisites || [],
     };
 
-    // Add Quiz/Homework specific data with populated question bank and questions
+    // Add Quiz/Homework specific data with populated question banks and questions
     if (contentItem.type === 'quiz' || contentItem.type === 'homework') {
       const settingsKey =
         contentItem.type === 'quiz' ? 'quizSettings' : 'homeworkSettings';
       const settings = contentItem[settingsKey];
 
-      contentData.questionBank = contentItem.questionBank
-        ? {
-            _id: contentItem.questionBank._id,
-            name: contentItem.questionBank.name,
-            bankCode: contentItem.questionBank.bankCode,
-            description: contentItem.questionBank.description,
-            totalQuestions: contentItem.questionBank.totalQuestions,
-          }
-        : null;
+      // Support multiple banks - get all banks
+      const bankIds =
+        contentItem.questionBanks && contentItem.questionBanks.length > 0
+          ? contentItem.questionBanks
+          : contentItem.questionBank
+          ? [contentItem.questionBank]
+          : [];
 
+      // Populate all question banks
+      if (bankIds.length > 0) {
+        const banks = await QuestionBank.find({ _id: { $in: bankIds } }).select(
+          'name bankCode description tags totalQuestions'
+        );
+
+        contentData.questionBanks = banks.map((bank) => ({
+          _id: bank._id,
+          name: bank.name,
+          bankCode: bank.bankCode,
+          description: bank.description,
+          totalQuestions: bank.totalQuestions,
+        }));
+
+        // Backward compatibility - keep single questionBank
+        contentData.questionBank = banks[0]
+          ? {
+              _id: banks[0]._id,
+              name: banks[0].name,
+              bankCode: banks[0].bankCode,
+              description: banks[0].description,
+              totalQuestions: banks[0].totalQuestions,
+            }
+          : null;
+      } else {
+        contentData.questionBanks = [];
+        contentData.questionBank = null;
+      }
+
+      // Get selected questions with sourceBank info
       contentData.selectedQuestions = contentItem.selectedQuestions
         ? contentItem.selectedQuestions.map((sq) => ({
             question: sq.question
@@ -2815,6 +3191,7 @@ const getContentDetailsForEdit = async (req, res) => {
                   points: sq.question.points || 1,
                 }
               : null,
+            sourceBank: sq.sourceBank || bankIds[0] || null,
             points: sq.points || 1,
             order: sq.order || 0,
           }))
@@ -4015,6 +4392,7 @@ const addQuizContent = async (req, res) => {
       instructions,
       difficulty,
       tags,
+      prerequisites,
       isRequired,
       order,
     } = req.body;
@@ -4150,6 +4528,11 @@ const addQuizContent = async (req, res) => {
       order: order ? parseInt(order) : contentCount + 1,
       difficulty: difficulty || 'beginner',
       tags: contentTags,
+      prerequisites: prerequisites
+        ? Array.isArray(prerequisites)
+          ? prerequisites
+          : [prerequisites]
+        : [],
     };
 
     if (!topic.content) {
@@ -4191,6 +4574,7 @@ const addHomeworkContent = async (req, res) => {
       instructions,
       difficulty,
       tags,
+      prerequisites,
       isRequired,
       order,
     } = req.body;
@@ -4325,6 +4709,11 @@ const addHomeworkContent = async (req, res) => {
       order: order ? parseInt(order) : contentCount + 1,
       difficulty: difficulty || 'beginner',
       tags: contentTags,
+      prerequisites: prerequisites
+        ? Array.isArray(prerequisites)
+          ? prerequisites
+          : [prerequisites]
+        : [],
     };
 
     if (!topic.content) {
@@ -4484,7 +4873,10 @@ const getBundleManage = async (req, res) => {
     const { bundleCode } = req.params;
 
     const bundle = await BundleCourse.findOne({ bundleCode })
-      .populate('courses')
+      .populate({
+        path: 'courses',
+        options: { sort: { order: 1 } }, // Sort courses by order field
+      })
       .populate('createdBy', 'userName');
 
     if (!bundle) {
@@ -4533,6 +4925,17 @@ const addCourseToBundle = async (req, res) => {
       req.flash('error_msg', 'Course is already in this bundle');
       return res.redirect(`/admin/bundles/${bundleCode}/manage`);
     }
+
+    // Get current max order in bundle to assign next order
+    const existingCourses = await Course.find({ bundle: bundle._id })
+      .sort({ order: -1 })
+      .limit(1);
+    const nextOrder =
+      existingCourses.length > 0 ? (existingCourses[0].order || 0) + 1 : 1;
+
+    // Update course order and bundle reference
+    course.order = nextOrder;
+    await course.save();
 
     // Add course to bundle
     bundle.courses.push(courseId);
@@ -4586,6 +4989,8 @@ const createCourseForBundle = async (req, res) => {
       duration,
       price = 0,
       status = 'draft',
+      order,
+      requiresSequential,
     } = req.body;
 
     const bundle = await BundleCourse.findOne({ bundleCode });
@@ -4593,6 +4998,25 @@ const createCourseForBundle = async (req, res) => {
       req.flash('error_msg', 'Bundle not found');
       return res.redirect('/admin/bundles');
     }
+
+    // Determine order - use provided order or auto-assign
+    let courseOrder = 0;
+    if (order && !isNaN(parseInt(order)) && parseInt(order) > 0) {
+      courseOrder = parseInt(order);
+    } else {
+      // Auto-assign next available order in bundle
+      const existingCourses = await Course.find({ bundle: bundle._id })
+        .sort({ order: -1 })
+        .limit(1);
+      courseOrder =
+        existingCourses.length > 0 ? (existingCourses[0].order || 0) + 1 : 1;
+    }
+
+    // Handle requiresSequential checkbox
+    const requiresSequentialFlag =
+      requiresSequential === 'on' ||
+      requiresSequential === true ||
+      requiresSequential === 'true';
 
     // Create new course without year coupling
     const course = new Course({
@@ -4608,6 +5032,8 @@ const createCourseForBundle = async (req, res) => {
       status,
       createdBy: req.session.user.id,
       bundle: bundle._id,
+      order: courseOrder,
+      requiresSequential: requiresSequentialFlag,
     });
 
     await course.save();
@@ -4625,6 +5051,52 @@ const createCourseForBundle = async (req, res) => {
     console.error('Error creating course for bundle:', error);
     req.flash('error_msg', 'Error creating course');
     res.redirect(`/admin/bundles/${req.params.bundleCode}/manage`);
+  }
+};
+
+// Update course order in bundle
+const updateCourseOrder = async (req, res) => {
+  try {
+    const { bundleCode } = req.params;
+    const { courseOrders } = req.body; // Array of { courseId, order }
+
+    if (!courseOrders || !Array.isArray(courseOrders)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid course orders data',
+      });
+    }
+
+    // Verify bundle exists
+    const bundle = await BundleCourse.findOne({ bundleCode });
+    if (!bundle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bundle not found',
+      });
+    }
+
+    // Update all courses' order
+    const updatePromises = courseOrders.map(({ courseId, order }) => {
+      return Course.findByIdAndUpdate(
+        courseId,
+        { order: parseInt(order) },
+        { new: true }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    return res.json({
+      success: true,
+      message: 'Course order updated successfully',
+    });
+  } catch (error) {
+    console.error('Error updating course order:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating course order',
+    });
   }
 };
 
@@ -5517,14 +5989,24 @@ const getStudentDetails = async (req, res) => {
         )
       : 0;
 
+    // Fetch Purchase records for this student (used for both analytics and display)
+    const studentPurchases = await Purchase.find({ user: studentId })
+      .populate({
+        path: 'items.item',
+        select: 'title bundleCode courseCode',
+      })
+      .populate('appliedPromoCode', 'code discountPercentage')
+      .sort({ createdAt: -1 })
+      .lean();
+
     // Build analytics for the header card section
     const analytics = {
       totalEnrolledCourses: student.enrolledCourses
         ? student.enrolledCourses.length
         : 0,
-      totalPurchasedBundles: student.purchasedBundles
-        ? student.purchasedBundles.length
-        : 0,
+      totalPurchasedBundles:
+        studentPurchases.length ||
+        (student.purchasedBundles ? student.purchasedBundles.length : 0),
       totalQuizAttempts: totalQuizAttempts,
       averageQuizScore: calculateAverageQuizScore(student),
       totalTimeSpent: calculateTotalTimeSpent(student, progressData),
@@ -5899,6 +6381,7 @@ const getStudentDetails = async (req, res) => {
       detailedQuizPerformance,
       recentActivity,
       progressData,
+      studentPurchases,
       getContentTypeIcon,
       getScoreBadgeClass,
       formatTimeSpent,
@@ -9464,7 +9947,8 @@ const createZoomMeeting = async (req, res) => {
       password: zoomMeetingData.password,
       settings: {
         joinBeforeHost: joinBeforeHost === 'true' || joinBeforeHost === true,
-        waitingRoom: waitingRoom === 'true' || waitingRoom === true,
+        // If joinBeforeHost is enabled, waitingRoom must be disabled
+        waitingRoom: (joinBeforeHost === 'true' || joinBeforeHost === true) ? false : (waitingRoom === 'true' || waitingRoom === true),
         muteUponEntry: muteUponEntry === 'true' || muteUponEntry === true,
         hostVideo: hostVideo === 'true' || hostVideo === true,
         participantVideo:
@@ -9565,6 +10049,7 @@ const startZoomMeeting = async (req, res) => {
 const endZoomMeeting = async (req, res) => {
   try {
     const { meetingId } = req.params;
+    const { recordingUrl } = req.body; // Get recording URL from request body
 
     // Double-check admin permissions (additional safety)
     if (!req.session.user || req.session.user.role !== 'admin') {
@@ -9606,14 +10091,387 @@ const endZoomMeeting = async (req, res) => {
       }
     }
 
+    // Update recording URL if provided
+    if (recordingUrl && recordingUrl.trim()) {
+      zoomMeeting.recordingUrl = recordingUrl.trim();
+      zoomMeeting.recordingStatus = 'completed';
+      console.log('📹 Recording URL added:', recordingUrl);
+    }
+
     // Update meeting status to ended in our database
     await zoomMeeting.endMeeting();
+
+    // Mark content as completed for students who attended 50% or more
+    // and send SMS notifications to parents
+    try {
+
+      // Get topic and course IDs
+      const topicId = zoomMeeting.topic._id || zoomMeeting.topic;
+      const courseId = zoomMeeting.course._id || zoomMeeting.course;
+
+      const topic = await Topic.findById(topicId);
+      if (topic && topic.content) {
+        const zoomContentItem = topic.content.find(
+          (item) =>
+            item.type === 'zoom' &&
+            item.zoomMeeting &&
+            item.zoomMeeting.toString() === zoomMeeting._id.toString()
+        );
+
+        if (zoomContentItem) {
+          // Process each student who attended
+          // Refresh zoomMeeting to get latest calculated attendance percentages after endMeeting
+          await zoomMeeting.populate('course topic');
+          const refreshedMeeting = await ZoomMeeting.findById(zoomMeeting._id);
+          
+          for (const attendance of refreshedMeeting.studentsAttended) {
+            const studentId = attendance.student;
+            // Get exact attendance percentage (already calculated with precision in calculateAttendanceStats)
+            const attendancePercentage = attendance.attendancePercentage || 0;
+
+            // Only mark as completed if student attended 50% or more
+            if (attendancePercentage >= 50) {
+              try {
+                const student = await User.findById(studentId);
+                if (student) {
+                  // Mark content as completed
+                  await student.updateContentProgress(
+                    courseId,
+                    topicId,
+                    zoomContentItem._id,
+                    'zoom',
+                    {
+                      completionStatus: 'completed',
+                      progressPercentage: 100,
+                      lastAccessed: new Date(),
+                      completedAt: new Date(),
+                    }
+                  );
+
+                  console.log(
+                    `✅ Marked zoom content as completed for student ${student.firstName} ${student.lastName} (${attendancePercentage}% attendance)`
+                  );
+
+                  // Send SMS notification to parent
+                  const course = await Course.findById(courseId);
+                  const meetingDate = zoomMeeting.actualStartTime
+                    ? new Date(zoomMeeting.actualStartTime).toLocaleDateString(
+                        'en-US',
+                        {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }
+                      )
+                    : 'N/A';
+
+                  const meetingDuration = zoomMeeting.actualDuration || 0;
+                  const timeSpent = attendance.totalTimeSpent || 0;
+
+                  // Calculate camera status based on 80% threshold of attendance time
+                  // Camera is ON if it was on for 80% or more of the student's attendance time
+                  let cameraOnPercentage = 0;
+                  let cameraOpened = false;
+                  
+                  if (attendance.joinEvents && attendance.joinEvents.length > 0 && timeSpent > 0) {
+                    let totalCameraOnTime = 0; // in minutes
+                    
+                    for (const joinEvent of attendance.joinEvents) {
+                      const eventDuration = joinEvent.duration || 0;
+                      if (eventDuration <= 0) continue;
+                      
+                      const joinTime = new Date(joinEvent.joinTime);
+                      const leaveTime = joinEvent.leaveTime 
+                        ? new Date(joinEvent.leaveTime)
+                        : new Date(zoomMeeting.actualEndTime || Date.now());
+                      
+                      // Get initial camera status from the first timeline entry (join action) or joinEvent
+                      let initialCameraStatus = 'off';
+                      if (joinEvent.statusTimeline && joinEvent.statusTimeline.length > 0) {
+                        // Find the join action to get initial status
+                        const joinAction = joinEvent.statusTimeline.find(s => s.action === 'join');
+                        if (joinAction && joinAction.cameraStatus && joinAction.cameraStatus !== 'unknown') {
+                          initialCameraStatus = joinAction.cameraStatus;
+                        } else {
+                          // Use joinEvent camera status as fallback
+                          initialCameraStatus = joinEvent.cameraStatus || 'off';
+                        }
+                      } else {
+                        // No timeline - use joinEvent camera status
+                        initialCameraStatus = joinEvent.cameraStatus || 'off';
+                      }
+                      
+                      // Analyze status timeline to calculate camera ON time
+                      if (joinEvent.statusTimeline && joinEvent.statusTimeline.length > 0) {
+                        // Sort timeline by timestamp
+                        const sortedTimeline = [...joinEvent.statusTimeline].sort(
+                          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+                        );
+                        
+                        // Start with initial camera status
+                        let currentCameraStatus = initialCameraStatus;
+                        let lastTimestamp = joinTime;
+                        
+                        for (const status of sortedTimeline) {
+                          const statusTime = new Date(status.timestamp);
+                          const timeSegment = (statusTime - lastTimestamp) / (1000 * 60); // in minutes
+                          
+                          // If camera was ON during this segment, add to total
+                          if (currentCameraStatus === 'on') {
+                            totalCameraOnTime += timeSegment;
+                          }
+                          
+                          // Update current status from timeline entry (only if not unknown)
+                          if (status.cameraStatus && status.cameraStatus !== 'unknown') {
+                            currentCameraStatus = status.cameraStatus;
+                          } else if (status.action === 'camera_on') {
+                            currentCameraStatus = 'on';
+                          } else if (status.action === 'camera_off') {
+                            currentCameraStatus = 'off';
+                          }
+                          
+                          lastTimestamp = statusTime;
+                        }
+                        
+                        // Calculate remaining time after last status change
+                        const remainingTime = (leaveTime - lastTimestamp) / (1000 * 60);
+                        
+                        if (currentCameraStatus === 'on') {
+                          totalCameraOnTime += remainingTime;
+                        }
+                      } else {
+                        // No timeline - use initial camera status for entire duration
+                        if (initialCameraStatus === 'on') {
+                          totalCameraOnTime += eventDuration;
+                        }
+                      }
+                    }
+                    
+                    // Calculate percentage
+                    cameraOnPercentage = timeSpent > 0 
+                      ? (totalCameraOnTime / timeSpent) * 100 
+                      : 0;
+                    
+                    // Camera is ON if it was on for 80% or more
+                    cameraOpened = cameraOnPercentage >= 80;
+                    
+                    console.log(
+                      `📹 Camera status for ${student.firstName}: ${cameraOnPercentage.toFixed(1)}% ON (${totalCameraOnTime.toFixed(1)}/${timeSpent.toFixed(1)} min) - Status: ${cameraOpened ? 'ON' : 'OFF'}`
+                    );
+                  }
+
+                  // Generate SMS message for zoom meeting completion
+                  const smsMessage = whatsappSMSNotificationService.getSmsZoomMeetingMessage(
+                    student,
+                    {
+                      meetingName: zoomMeeting.meetingName,
+                      meetingTopic: zoomMeeting.meetingTopic,
+                      attendancePercentage: attendancePercentage, // This is already calculated with precision
+                      meetingDate: meetingDate,
+                      duration: meetingDuration,
+                      timeSpent: timeSpent, // Time student spent in meeting
+                      courseTitle: course ? course.title : 'Course',
+                      cameraOpened: cameraOpened,
+                    }
+                  );
+
+                  // Send notification to parent
+                  await whatsappSMSNotificationService.sendToParent(
+                    studentId,
+                    smsMessage,
+                    smsMessage
+                  );
+
+                  console.log(
+                    `📱 Sent zoom meeting completion SMS to parent of ${student.firstName} ${student.lastName}`
+                  );
+                }
+              } catch (studentError) {
+                console.error(
+                  `❌ Error processing student ${studentId}:`,
+                  studentError.message
+                );
+                // Continue with other students even if one fails
+              }
+            } else {
+              console.log(
+                `⚠️ Student ${attendance.name} attended only ${attendancePercentage}% - not marking as completed (minimum 50% required)`
+              );
+            }
+          }
+
+          // Send SMS to parents of students who did NOT attend the live session
+          try {
+            // Get course (already populated)
+            const course = await Course.findById(courseId);
+            
+            // Get all enrolled students in the course
+            const enrolledStudents = await User.find({
+              'enrolledCourses.course': courseId,
+              role: 'student',
+            })
+              .select('firstName lastName studentEmail studentCode parentNumber parentCountryCode')
+              .lean();
+
+            // Get list of student IDs who attended live session
+            const attendedStudentIds = new Set(
+              refreshedMeeting.studentsAttended.map(a => a.student.toString())
+            );
+
+            // Get list of student IDs who watched recording
+            const watchedRecordingStudentIds = new Set(
+              (refreshedMeeting.studentsWatchedRecording || [])
+                .filter(r => r.completedWatching)
+                .map(r => r.student.toString())
+            );
+
+            console.log(`📊 Processing non-attendance notifications:`);
+            console.log(`   Total enrolled: ${enrolledStudents.length}`);
+            console.log(`   Attended live: ${attendedStudentIds.size}`);
+            console.log(`   Watched recording: ${watchedRecordingStudentIds.size}`);
+
+            // Find students who didn't attend live session
+            for (const enrolledStudent of enrolledStudents) {
+              const studentIdStr = enrolledStudent._id.toString();
+              
+              // Skip if student attended live session
+              if (attendedStudentIds.has(studentIdStr)) {
+                continue;
+              }
+
+              // Check if student watched recording
+              const watchedRecording = watchedRecordingStudentIds.has(studentIdStr);
+
+              try {
+                // Generate SMS message for non-attendance
+                const smsMessage = whatsappSMSNotificationService.getSmsZoomMeetingNonAttendanceMessage(
+                  enrolledStudent,
+                  {
+                    meetingName: zoomMeeting.meetingName,
+                    meetingTopic: zoomMeeting.meetingTopic,
+                    courseTitle: course ? course.title : 'Course',
+                    watchedRecording: watchedRecording,
+                  }
+                );
+
+                // Send notification to parent
+                await whatsappSMSNotificationService.sendToParent(
+                  enrolledStudent._id,
+                  smsMessage,
+                  smsMessage
+                );
+
+                console.log(
+                  `📱 Sent non-attendance SMS to parent of ${enrolledStudent.firstName} ${enrolledStudent.lastName} (${watchedRecording ? 'watched recording' : 'did not attend'})`
+                );
+              } catch (smsError) {
+                console.error(
+                  `❌ Error sending non-attendance SMS to parent of ${enrolledStudent.firstName} ${enrolledStudent.lastName}:`,
+                  smsError.message
+                );
+                // Continue with other students even if one fails
+              }
+            }
+          } catch (nonAttendanceError) {
+            console.error(
+              '⚠️ Error sending non-attendance notifications:',
+              nonAttendanceError.message
+            );
+            // Don't fail the request if non-attendance notifications fail
+          }
+        }
+      }
+    } catch (completionError) {
+      console.error(
+        '⚠️ Error marking content as completed or sending notifications:',
+        completionError.message
+      );
+      // Don't fail the request if completion marking fails
+    }
+
+    // Generate and send Excel attendance report via WhatsApp
+    try {
+      // Ensure course is populated
+      await zoomMeeting.populate('course');
+      const course = zoomMeeting.course;
+
+      // Get all enrolled students in the course
+      // Students are stored in User.enrolledCourses, not Course.enrolledStudents
+      const enrolledStudents = await User.find({
+        'enrolledCourses.course': course._id,
+        role: 'student',
+      })
+        .select('firstName lastName studentEmail studentCode grade schoolName parentNumber parentCountryCode studentNumber studentCountryCode isActive enrolledCourses')
+        .lean();
+
+      console.log(`📊 Generating Excel attendance report for meeting: ${zoomMeeting.meetingName}`);
+      console.log(`📚 Course: ${course.title}`);
+      console.log(`👥 Total enrolled students: ${enrolledStudents.length}`);
+
+      // Generate Excel report
+      const ExcelExporter = require('../utils/excelExporter');
+      const excelExporter = new ExcelExporter();
+      await excelExporter.createZoomAttendanceReport(
+        zoomMeeting,
+        course,
+        enrolledStudents
+      );
+
+      // Generate Excel buffer
+      const excelBuffer = await excelExporter.generateBuffer();
+
+      // Upload Excel file to Cloudinary
+      const cloudinary = require('../utils/cloudinary');
+      const fileName = `Zoom_Attendance_${zoomMeeting.meetingName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.xlsx`;
+      
+      console.log('📤 Uploading Excel file to Cloudinary...');
+      const uploadResult = await cloudinary.uploadDocument(excelBuffer, fileName, {
+        resource_type: 'raw',
+        folder: 'zoom-reports',
+      });
+
+      console.log('✅ Excel file uploaded to Cloudinary:', uploadResult.url);
+
+      // Send Excel file via WhatsApp to admin number
+      const adminPhoneNumber = '01156012078'; // Admin WhatsApp number
+      const caption = `📊 Zoom Meeting Attendance Report\n\n` +
+        `Meeting: ${zoomMeeting.meetingName}\n` +
+        `Course: ${course.title}\n` +
+        `Date: ${zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleDateString() : 'N/A'}\n` +
+        `Total Enrolled: ${enrolledStudents.length}\n` +
+        `Attended: ${zoomMeeting.studentsAttended ? zoomMeeting.studentsAttended.length : 0}\n` +
+        `Not Attended: ${enrolledStudents.length - (zoomMeeting.studentsAttended ? zoomMeeting.studentsAttended.length : 0)}`;
+
+      console.log(`📱 Sending Excel report via WhatsApp to: ${adminPhoneNumber}`);
+      const whatsappResult = await whatsappSMSNotificationService.sendDocumentViaWhatsApp(
+        adminPhoneNumber,
+        uploadResult.url,
+        fileName,
+        caption
+      );
+
+      if (whatsappResult.success) {
+        console.log('✅ Excel attendance report sent successfully via WhatsApp');
+      } else {
+        console.error('❌ Failed to send Excel report via WhatsApp:', whatsappResult.message);
+      }
+    } catch (excelError) {
+      console.error(
+        '⚠️ Error generating or sending Excel attendance report:',
+        excelError.message
+      );
+      // Don't fail the request if Excel generation/sending fails
+    }
 
     console.log('✅ Zoom meeting ended successfully by admin');
 
     res.json({
       success: true,
-      message: 'Zoom meeting ended',
+      message: recordingUrl
+        ? 'Zoom meeting ended and recording URL saved'
+        : 'Zoom meeting ended',
       zoomMeeting: zoomMeeting,
     });
   } catch (error) {
@@ -9962,7 +10820,7 @@ const bulkImportStudents = async (req, res) => {
 const enrollStudentsToCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { studentIds } = req.body; // Array of student IDs
+    const { studentIds, startingOrder } = req.body; // Array of student IDs and optional startingOrder
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
       return res.status(400).json({
@@ -10012,10 +10870,19 @@ const enrollStudentsToCourse = async (req, res) => {
       });
     }
 
-    // Enroll all students using safe enrollment
+    // Determine startingOrder: use provided value, or course's order, or null (from beginning)
+    let finalStartingOrder = null;
+    if (startingOrder !== undefined && startingOrder !== null) {
+      finalStartingOrder = parseInt(startingOrder);
+    } else if (course.order !== undefined && course.order !== null) {
+      // If no startingOrder provided, use the course's order (enroll from this week)
+      finalStartingOrder = course.order;
+    }
+
+    // Enroll all students using safe enrollment with startingOrder
     const enrolledStudents = [];
     for (const student of students) {
-      await student.safeEnrollInCourse(courseId);
+      await student.safeEnrollInCourse(courseId, finalStartingOrder);
       enrolledStudents.push(
         student.name || `${student.firstName} ${student.lastName}`
       );
@@ -10032,10 +10899,18 @@ const enrollStudentsToCourse = async (req, res) => {
       }
     }
 
+    const message =
+      finalStartingOrder !== null
+        ? `Successfully enrolled ${
+            enrolledStudents.length
+          } student(s) from week ${finalStartingOrder + 1}`
+        : `Successfully enrolled ${enrolledStudents.length} student(s)`;
+
     res.json({
       success: true,
-      message: `Successfully enrolled ${enrolledStudents.length} student(s)`,
+      message: message,
       enrolled: enrolledStudents,
+      startingOrder: finalStartingOrder,
     });
   } catch (error) {
     console.error('Error enrolling students to course:', error);
@@ -12680,6 +13555,58 @@ const sendBulkSMS = async (req, res) => {
   }
 };
 
+// Simple PDF Upload Handler
+const uploadPDF = async (req, res) => {
+  try {
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    // Check if file is PDF
+    if (req.file.mimetype !== 'application/pdf') {
+      // Delete the uploaded file if it's not a PDF
+      if (req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Only PDF files are allowed',
+      });
+    }
+
+    // Generate public URL for the uploaded file
+    const fileUrl = `/uploads/${req.file.filename}`;
+
+    // Return success with file URL
+    return res.json({
+      success: true,
+      message: 'PDF uploaded successfully',
+      fileUrl: fileUrl,
+      fileName: req.file.originalname,
+    });
+  } catch (error) {
+    console.error('Error uploading PDF:', error);
+    
+    // Delete file if it was uploaded but error occurred
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('Error deleting file:', unlinkError);
+      }
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Error uploading PDF: ' + error.message,
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -12692,6 +13619,7 @@ module.exports = {
   getCourseData,
   updateCourse,
   deleteCourse,
+  bulkUpdateCourseStatus,
   getCourseContent,
   createTopic,
   updateTopic,
@@ -12715,6 +13643,7 @@ module.exports = {
   addCourseToBundle,
   removeCourseFromBundle,
   createCourseForBundle,
+  updateCourseOrder,
   getBundlesAPI,
   // Student Management Controllers
   getStudents,
@@ -12815,4 +13744,6 @@ module.exports = {
   getCourseStudentsCount,
   getBundleStudentsCount,
   sendBulkSMS,
+  // Simple PDF Upload
+  uploadPDF,
 };

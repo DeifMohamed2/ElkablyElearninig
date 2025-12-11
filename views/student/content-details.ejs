@@ -912,6 +912,203 @@
     .dark-theme .swal2-content-custom {
       color: #d1d5db !important;
     }
+
+    /* Notification Container - Top Right, Above Header */
+    .notification-container-top {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 400px;
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+      .notification-container-top {
+        top: 70px;
+        right: 10px;
+        max-width: calc(100% - 20px);
+      }
+    }
+
+    /* Enhanced Notification Styles */
+    .enhanced-notification {
+      position: relative;
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 300px;
+      max-width: 400px;
+      pointer-events: auto;
+      transform: translateX(450px);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      border-left: 4px solid;
+      animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(450px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .enhanced-notification.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .enhanced-notification.hide {
+      animation: slideOutRight 0.3s ease-in forwards;
+    }
+
+    @keyframes slideOutRight {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(450px);
+        opacity: 0;
+      }
+    }
+
+    .enhanced-notification.success {
+      border-left-color: #10b981;
+      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+    }
+
+    .enhanced-notification.info {
+      border-left-color: #3b82f6;
+      background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    }
+
+    .enhanced-notification.warning {
+      border-left-color: #f59e0b;
+      background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+    }
+
+    .enhanced-notification.error {
+      border-left-color: #ef4444;
+      background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    }
+
+    .enhanced-notification-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .enhanced-notification.success .enhanced-notification-icon {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+
+    .enhanced-notification.info .enhanced-notification-icon {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+    }
+
+    .enhanced-notification.warning .enhanced-notification-icon {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+
+    .enhanced-notification.error .enhanced-notification-icon {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+    }
+
+    .enhanced-notification-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .enhanced-notification-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: #1f2937;
+      margin: 0 0 4px 0;
+      line-height: 1.3;
+    }
+
+    .enhanced-notification-message {
+      font-size: 13px;
+      color: #6b7280;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .enhanced-notification-close {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .enhanced-notification-close:hover {
+      color: #6b7280;
+    }
+
+    /* Dark theme support for notifications */
+    .dark-theme .enhanced-notification {
+      background: #1f2937;
+      border-color: #374151;
+    }
+
+    .dark-theme .enhanced-notification.success {
+      background: linear-gradient(135deg, #1f2937 0%, #064e3b 100%);
+    }
+
+    .dark-theme .enhanced-notification.info {
+      background: linear-gradient(135deg, #1f2937 0%, #1e3a8a 100%);
+    }
+
+    .dark-theme .enhanced-notification.warning {
+      background: linear-gradient(135deg, #1f2937 0%, #78350f 100%);
+    }
+
+    .dark-theme .enhanced-notification.error {
+      background: linear-gradient(135deg, #1f2937 0%, #7f1d1d 100%);
+    }
+
+    .dark-theme .enhanced-notification-title {
+      color: #f9fafb;
+    }
+
+    .dark-theme .enhanced-notification-message {
+      color: #d1d5db;
+    }
+
+    .dark-theme .enhanced-notification-close {
+      color: #9ca3af;
+    }
+
+    .dark-theme .enhanced-notification-close:hover {
+      color: #d1d5db;
+    }
   </style>
 
   <!-- Meta Tags -->
@@ -929,6 +1126,9 @@
     <main class="student-main">
       <!-- Include Header -->
       <%- include('partials/student-header', { title: 'Content', student: student, theme: theme, currentPage: 'content' }) %>
+
+      <!-- Notification Container (Top Right, Above Header) -->
+      <div id="notification-container" class="notification-container-top"></div>
 
       <!-- Content Details -->
       <div class="student-content">
@@ -1025,7 +1225,7 @@
                   <i class="fas fa-download"></i>
                   Download PDF
                 </a>
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
                   <i class="fas fa-check"></i>
                   I have read this PDF
                 </button>
@@ -1277,7 +1477,7 @@
               </div>
               <% if (!contentProgress.isCompleted) { %>
               <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
                   <i class="fas fa-check"></i>
                   I have read this content
                 </button>
@@ -1310,7 +1510,7 @@
               </a>
               <% if (!contentProgress.isCompleted) { %>
               <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
                   <i class="fas fa-check"></i>
                   I have visited/read
                 </button>
@@ -1336,7 +1536,7 @@
                   Download Assignment
                 </a>
                 <% if (!contentProgress.isCompleted) { %>
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete()">
+                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
                   <i class="fas fa-check"></i>
                   I have read/completed
                 </button>
@@ -1353,15 +1553,14 @@
           <% } %>
 
           <% if (contentItem.type === 'zoom') { %>
-          <!-- Zoom Meeting Content -->
+          <!-- Zoom Meeting Content - Simplified like other content types -->
           <% 
-                          // Populate zoomMeeting if it exists
-                          const zoomMeeting = contentItem.zoomMeeting;
-                        %>
+            const zoomMeeting = contentItem.zoomMeeting;
+          %>
 
           <% if (zoomMeeting) { %>
           <div class="zoom-meeting-container">
-            <!-- Meeting Info Header -->
+            <!-- Meeting Info Header Card -->
             <div class="meeting-info-card">
               <div class="meeting-status-badge status-<%= zoomMeeting.status %>">
                 <i class="fas fa-<%= zoomMeeting.status === 'scheduled' ? 'clock' : zoomMeeting.status === 'active' ? 'video' : 'check-circle' %>"></i>
@@ -1374,7 +1573,7 @@
               </h4>
 
               <p class="meeting-topic">
-                <%= zoomMeeting.meetingTopic %>
+                <%= zoomMeeting.meetingTopic || contentItem.description || 'Live Zoom session' %>
               </p>
 
               <div class="meeting-meta">
@@ -1427,19 +1626,21 @@
               <p>Join the live Zoom session now!</p>
 
               <div class="join-options mt-4">
-                <!-- Join Meeting Button -->
+                <!-- Join Meeting Button - Marks as completed and shows modal -->
+                <% if (!contentProgress.isCompleted) { %>
                 <button class="btn btn-primary btn-lg" onclick="joinZoomMeeting()">
                   <i class="fas fa-video me-2"></i>
                   Join Meeting
                 </button>
-
-                <!-- Meeting Status -->
-                <div class="meeting-status mt-3">
-                  <i class="fas fa-clock"></i> Ready to join
-                </div>
-                <i class="fas fa-external-link-alt me-2"></i>
-                Open in Zoom App
-                </a>
+                <p class="text-muted mt-2" style="font-size: 13px;">
+                  <i class="fas fa-info-circle"></i> Click to join the meeting and mark content as completed.
+                </p>
+                <% } else { %>
+                <button class="btn btn-outline-primary btn-lg" onclick="joinZoomMeeting()">
+                  <i class="fas fa-video me-2"></i>
+                  Join Meeting Again
+                </button>
+                <% } %>
               </div>
 
               <!-- Meeting Details -->
@@ -1466,10 +1667,41 @@
               <% if (zoomMeeting.recordingUrl) { %>
               <div class="recording-available mt-4">
                 <h6><i class="fas fa-play-circle me-2"></i>Recording Available</h6>
-                <a href="<%= zoomMeeting.recordingUrl %>" target="_blank" class="btn btn-success">
-                  <i class="fas fa-download me-2"></i>
-                  Watch Recording
-                </a>
+                <p class="text-muted mb-3">Watch the recorded session below. Once you finish watching, you'll be able to proceed to the next content.</p>
+
+                <!-- Video Player Container -->
+                <div class="video-player-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #000;">
+                  <iframe id="recordingPlayer" src="<%= zoomMeeting.recordingUrl %>" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+                </div>
+
+                <!-- Mark as Watched Button -->
+                <% if (!contentProgress.isCompleted) { %>
+                <div class="text-center mt-3">
+                  <button class="btn btn-success btn-lg" onclick="markRecordingAsWatched(event)">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Mark Recording as Watched
+                  </button>
+                  <p class="text-muted mt-2" style="font-size: 13px;">
+                    <i class="fas fa-info-circle"></i> Click this button after finishing the recording to proceed to next content
+                  </p>
+                </div>
+                <% } %>
+              </div>
+              <% } else { %>
+              <!-- Waiting for recording message -->
+              <div class="recording-waiting mt-4" style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; border-radius: 8px;">
+                <div style="font-size: 3rem; color: #f59e0b; margin-bottom: 1rem;">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <h6 style="color: #92400e; font-weight: 600; margin-bottom: 0.5rem;">
+                  <i class="fas fa-hourglass-half me-2"></i>Waiting for Recording
+                </h6>
+                <p class="text-muted" style="margin-bottom: 0;">
+                  The instructor is preparing the recording. Once it's uploaded, you'll be able to watch it here and mark it as completed to proceed to the next content.
+                </p>
+                <p class="text-muted mt-2" style="font-size: 0.9rem;">
+                  <i class="fas fa-info-circle"></i> Please check back later or contact your instructor if you have questions.
+                </p>
               </div>
               <% } %>
             </div>
@@ -1579,7 +1811,7 @@
 
   <!-- PlayerJS Library -->
   <script src="https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js"></script>
-  
+
   <!-- SweetAlert2 Library -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -1628,8 +1860,58 @@
         });
     }
 
+    // Helper function to disable all completion buttons
+    function disableCompletionButtons() {
+      // Find all completion-related buttons
+      const buttons = document.querySelectorAll(
+        'button[onclick*="acknowledgeAndComplete"], ' +
+        'button[onclick*="markRecordingAsWatched"], ' +
+        'button[onclick*="joinZoomMeeting"], ' +
+        '.btn-success, .btn-primary'
+      );
+      
+      buttons.forEach(btn => {
+        if (!btn.disabled && (btn.textContent.includes('Complete') || 
+            btn.textContent.includes('Watched') || 
+            btn.textContent.includes('Join') ||
+            btn.textContent.includes('Acknowledge'))) {
+          btn.dataset.originalText = btn.innerHTML;
+          btn.disabled = true;
+          btn.style.opacity = '0.6';
+          btn.style.cursor = 'not-allowed';
+          // Add loading spinner
+          if (!btn.innerHTML.includes('fa-spinner')) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+          }
+        }
+      });
+    }
+
+    // Helper function to re-enable all completion buttons
+    function enableCompletionButtons() {
+      const buttons = document.querySelectorAll(
+        'button[onclick*="acknowledgeAndComplete"], ' +
+        'button[onclick*="markRecordingAsWatched"], ' +
+        'button[onclick*="joinZoomMeeting"], ' +
+        '.btn-success, .btn-primary'
+      );
+      
+      buttons.forEach(btn => {
+        if (btn.dataset.originalText) {
+          btn.innerHTML = btn.dataset.originalText;
+          delete btn.dataset.originalText;
+        }
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+      });
+    }
+
     // Smooth update content progress - no page reload
     function updateContentProgressSmooth(status, percentage) {
+      // Disable all completion buttons immediately
+      disableCompletionButtons();
+
       const progressData = {
         completionStatus: status,
         progressPercentage: percentage,
@@ -1656,112 +1938,29 @@
             // Update UI elements smoothly without reload
             updateUIAfterCompletion();
             showSmoothSuccessMessage('🎉 Great! You\'ve watched enough of the video. Content marked as completed!');
+            // Buttons stay disabled since content is completed
           } else {
+            // Re-enable buttons on error
+            enableCompletionButtons();
             showMessage('Error updating progress: ' + data.message, 'error');
           }
         })
         .catch(error => {
           console.error('Error:', error);
+          // Re-enable buttons on error
+          enableCompletionButtons();
           showMessage('Error updating progress', 'error');
         });
     }
 
-    // Show message function
+    // Show message function - Enhanced with notification container
     function showMessage(message, type) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
-      messageDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-      document.body.insertBefore(messageDiv, document.body.firstChild);
-      setTimeout(() => messageDiv.remove(), 3000);
+      showEnhancedNotification(message, type === 'success' ? 'success' : 'error', 'Notification');
     }
 
-    // Show smooth success message with animation
+    // Show smooth success message with animation - Enhanced
     function showSmoothSuccessMessage(message) {
-      // Create a beautiful success notification
-      const notification = document.createElement('div');
-      notification.className = 'smooth-success-notification';
-      notification.innerHTML = `
-                <div class="success-content">
-                    <div class="success-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="success-text">
-                        <h4>Content Completed!</h4>
-                        <p>${message}</p>
-                    </div>
-                </div>
-            `;
-
-      // Add styles for the notification
-      notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #10b981, #059669);
-                color: white;
-                padding: 20px;
-                border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
-                z-index: 10000;
-                transform: translateX(400px);
-                transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-                max-width: 350px;
-                font-family: 'Inter', sans-serif;
-            `;
-
-      // Add styles for content
-      const style = document.createElement('style');
-      style.textContent = `
-                .smooth-success-notification .success-content {
-                    display: flex;
-                    align-items: center;
-                    gap: 15px;
-                }
-                .smooth-success-notification .success-icon {
-                    font-size: 24px;
-                    animation: bounce 0.6s ease-in-out;
-                }
-                .smooth-success-notification .success-text h4 {
-                    margin: 0 0 5px 0;
-                    font-size: 16px;
-                    font-weight: 600;
-                }
-                .smooth-success-notification .success-text p {
-                    margin: 0;
-                    font-size: 14px;
-                    opacity: 0.9;
-                    line-height: 1.4;
-                }
-                @keyframes bounce {
-                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                    40% { transform: translateY(-10px); }
-                    60% { transform: translateY(-5px); }
-                }
-            `;
-      document.head.appendChild(style);
-
-      document.body.appendChild(notification);
-
-      // Animate in
-      setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-      }, 100);
-
-      // Auto remove after 5 seconds
-      setTimeout(() => {
-        notification.style.transform = 'translateX(400px)';
-        setTimeout(() => {
-          if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-          }
-          if (style.parentNode) {
-            style.parentNode.removeChild(style);
-          }
-        }, 400);
-      }, 5000);
+      showEnhancedNotification(message, 'success', 'Content Completed!');
     }
 
     // Update UI elements after completion
@@ -1799,48 +1998,68 @@
       }
 
       // Update navigation section - enable next content button
-      const nextNavButton = document.querySelector('.nav-button.nav-next');
-      if (nextNavButton && nextNavButton.classList.contains('disabled')) {
-        // Get the next content ID from the current page data
-        const nextContentId = '<%= navigation.nextContent ? navigation.nextContent._id : "" %>';
+      try {
+        const nextNavButton = document.querySelector('.nav-button.nav-next');
+        if (nextNavButton && nextNavButton.classList && nextNavButton.classList.contains('disabled')) {
+          // Get the next content ID from the current page data
+          const nextContentId = '<%= navigation.nextContent ? navigation.nextContent._id : "" %>';
 
-        if (nextContentId) {
-          // Create a new anchor element to replace the disabled div
-          const newLink = document.createElement('a');
-          newLink.href = '/student/content/' + nextContentId;
-          newLink.className = 'nav-button nav-next enabled';
-          newLink.style.transition = 'all 0.3s ease-in-out';
+          if (nextContentId) {
+            // Create a new anchor element to replace the disabled div
+            const newLink = document.createElement('a');
+            newLink.href = '/student/content/' + nextContentId;
+            newLink.className = 'nav-button nav-next enabled';
+            newLink.style.transition = 'all 0.3s ease-in-out';
 
-          // Copy the content from the disabled button
-          newLink.innerHTML = nextNavButton.innerHTML;
+            // Copy the content from the disabled button
+            newLink.innerHTML = nextNavButton.innerHTML;
 
-          // Update the icon from lock to chevron-right
-          const navIcon = newLink.querySelector('.nav-icon i');
-          if (navIcon) {
-            navIcon.className = 'fas fa-chevron-right';
+            // Update the icon from lock to chevron-right
+            const navIcon = newLink.querySelector('.nav-icon i');
+            if (navIcon) {
+              navIcon.className = 'fas fa-chevron-right';
+            }
+
+            // Remove the subtitle about completing current content
+            const navSubtitle = newLink.querySelector('.nav-subtitle');
+            if (navSubtitle) {
+              navSubtitle.remove();
+            }
+
+            // Replace the disabled div with the new link
+            if (nextNavButton.parentNode) {
+              nextNavButton.parentNode.replaceChild(newLink, nextNavButton);
+            }
+
+            // Remove the enabled animation class after animation completes
+            setTimeout(() => {
+              if (newLink.classList) {
+                newLink.classList.remove('enabled');
+              }
+            }, 600);
           }
-
-          // Remove the subtitle about completing current content
-          const navSubtitle = newLink.querySelector('.nav-subtitle');
-          if (navSubtitle) {
-            navSubtitle.remove();
-          }
-
-          // Replace the disabled div with the new link
-          nextNavButton.parentNode.replaceChild(newLink, nextNavButton);
-
-          // Remove the enabled animation class after animation completes
-          setTimeout(() => {
-            newLink.classList.remove('enabled');
-          }, 600);
         }
+      } catch (navError) {
+        console.warn('Could not update navigation:', navError);
+        // Don't fail the completion update if navigation update fails
       }
     }
 
     // Start Quiz/Homework with SweetAlert2 confirmation
     function startQuiz(contentId, contentType) {
+      // Disable all quiz start buttons immediately to prevent multiple clicks
+      const quizButtons = document.querySelectorAll('button[onclick*="startQuiz"]');
+      quizButtons.forEach(btn => {
+        if (!btn.disabled) {
+          btn.dataset.originalText = btn.innerHTML;
+          btn.disabled = true;
+          btn.style.opacity = '0.6';
+          btn.style.cursor = 'not-allowed';
+        }
+      });
+
       const quizType = contentType === 'quiz' ? 'Quiz' : 'Homework';
-      
+
       Swal.fire({
         title: `Start ${quizType}?`,
         html: `
@@ -1881,96 +2100,100 @@
         if (result.isConfirmed) {
           confirmStartQuiz(contentId, quizType);
         } else {
-          // User cancelled - no action needed
+          // User cancelled - re-enable buttons
+          const quizButtons = document.querySelectorAll('button[onclick*="startQuiz"]');
+          quizButtons.forEach(btn => {
+            if (btn.dataset.originalText) {
+              btn.innerHTML = btn.dataset.originalText;
+              delete btn.dataset.originalText;
+            }
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+          });
           console.log(`${quizType} start cancelled by user`);
         }
       });
     }
 
     function confirmStartQuiz(contentId, quizType) {
-      showToast(`Starting ${quizType.toLowerCase()}...`, 'success');
+      const isQuiz = quizType.toLowerCase() === 'quiz';
+      const icon = isQuiz ? 'fa-question-circle' : 'fa-tasks';
+      showEnhancedNotification(
+        `Opening ${quizType.toLowerCase()}... Get ready!`,
+        'info',
+        `${quizType} Starting`
+      );
       setTimeout(() => {
         window.location.href = '/student/content/' + contentId + '/take';
       }, 1000);
     }
 
-    // Toast notification function
+    // Toast notification function - Enhanced
     function showToast(message, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `
-                <div class="toast-header">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} toast-icon"></i>
-                    <span class="toast-title">${type === 'success' ? 'Success' : 'Error'}</span>
-                </div>
-                <div class="toast-message">${message}</div>
-            `;
+      const title = type === 'success' ? 'Success' : 'Error';
+      showEnhancedNotification(message, type, title);
+    }
 
-      // Add toast styles if not already added
-      if (!document.querySelector('#toast-styles')) {
-        const style = document.createElement('style');
-        style.id = 'toast-styles';
-        style.textContent = `
-                    .toast {
-                        position: fixed;
-                        top: 20px;
-                        right: 20px;
-                        background: white;
-                        border: 1px solid #e5e7eb;
-                        border-radius: 12px;
-                        padding: 1rem 1.5rem;
-                        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-                        z-index: 1000;
-                        transform: translateX(400px);
-                        transition: transform 0.3s ease;
-                        max-width: 350px;
-                    }
-                    .toast.show {
-                        transform: translateX(0);
-                    }
-                    .toast.success {
-                        border-left: 4px solid #10b981;
-                    }
-                    .toast.error {
-                        border-left: 4px solid #ef4444;
-                    }
-                    .toast-header {
-                        display: flex;
-                        align-items: center;
-                        gap: 0.5rem;
-                        margin-bottom: 0.5rem;
-                    }
-                    .toast-icon {
-                        font-size: 1.2rem;
-                    }
-                    .toast.success .toast-icon {
-                        color: #10b981;
-                    }
-                    .toast.error .toast-icon {
-                        color: #ef4444;
-                    }
-                    .toast-title {
-                        font-weight: 600;
-                        color: #1f2937;
-                    }
-                    .toast-message {
-                        color: #6b7280;
-                        font-size: 0.9rem;
-                    }
-                `;
-        document.head.appendChild(style);
+    // Enhanced notification function - Unified notification system
+    function showEnhancedNotification(message, type = 'success', title = 'Notification') {
+      const container = document.getElementById('notification-container');
+      if (!container) {
+        console.error('Notification container not found');
+        return;
       }
 
-      document.body.appendChild(toast);
+      // Determine icon based on type
+      let iconClass = 'fa-check-circle';
+      if (type === 'error') iconClass = 'fa-exclamation-circle';
+      else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
+      else if (type === 'info') iconClass = 'fa-info-circle';
 
-      // Show toast
-      setTimeout(() => toast.classList.add('show'), 100);
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.className = `enhanced-notification ${type}`;
+      notification.innerHTML = `
+        <div class="enhanced-notification-icon">
+          <i class="fas ${iconClass}"></i>
+        </div>
+        <div class="enhanced-notification-content">
+          <div class="enhanced-notification-title">${title}</div>
+          <div class="enhanced-notification-message">${message}</div>
+        </div>
+        <button class="enhanced-notification-close" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
 
-      // Hide toast
+      // Add close button event listener
+      const closeBtn = notification.querySelector('.enhanced-notification-close');
+      closeBtn.addEventListener('click', () => {
+        notification.classList.add('hide');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 300);
+      });
+
+      // Add to container
+      container.appendChild(notification);
+
+      // Trigger animation
       setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+        notification.classList.add('show');
+      }, 10);
+
+      // Auto remove after 5 seconds (or 3 seconds for simple toasts)
+      const duration = type === 'success' && title === 'Success' ? 3000 : 5000;
+      setTimeout(() => {
+        notification.classList.add('hide');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 300);
+      }, duration);
     }
 
 
@@ -2007,12 +2230,39 @@
       }, 30000);
     }
 
-    // Initialize progress bar width
+    // Initialize progress bar width and check for URL parameters
     document.addEventListener('DOMContentLoaded', function() {
       const progressFill = document.querySelector('.progress-fill[data-width]');
       if (progressFill) {
         const width = progressFill.getAttribute('data-width');
         progressFill.style.width = width + '%';
+      }
+
+      // Check URL parameters for notifications
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      // Show notification if content was just completed
+      if (urlParams.get('completed') === 'true') {
+        showEnhancedNotification(
+          'Great job! Your progress has been saved.',
+          'success',
+          'Content Completed!'
+        );
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // Show notification if quiz/HW was just started
+      if (urlParams.get('quizStarted') === 'true') {
+        const contentType = urlParams.get('type') || 'quiz';
+        const typeName = contentType === 'quiz' ? 'Quiz' : 'Homework';
+        showEnhancedNotification(
+          `${typeName} is now open. Good luck!`,
+          'info',
+          `${typeName} Started`
+        );
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     });
 
@@ -2104,7 +2354,18 @@
     });
 
     // Acknowledgment helpers (download/link/read)
-    function acknowledgeAndComplete() {
+    function acknowledgeAndComplete(event) {
+      // Disable button immediately to prevent multiple clicks
+      const button = (event && event.target) || document.querySelector('button[onclick*="acknowledgeAndComplete"]');
+      if (button && !button.disabled) {
+        button.disabled = true;
+        button.style.opacity = '0.6';
+        button.style.cursor = 'not-allowed';
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        button.dataset.originalText = originalText;
+      }
+      
       updateContentProgressSmooth('completed', 100);
     }
 
@@ -2125,6 +2386,7 @@
 
     // ==================== ZOOM MEETING FUNCTIONS ====================
 
+    // Join Zoom Meeting - Works exactly like acknowledgeAndComplete for other content
     async function joinZoomMeeting() {
       try {
         const meetingId = '<%= contentItem.zoomMeeting ? contentItem.zoomMeeting._id : "" %>';
@@ -2134,59 +2396,88 @@
           return;
         }
 
-        // Show loading state
-        const joinButton = document.querySelector('.btn-primary');
-        const originalText = joinButton.textContent;
-        joinButton.textContent = 'Joining...';
-        joinButton.disabled = true;
-
-        // Get join URL from server
-        const response = await fetch(`/zoom/student/zoom/${meetingId}/join`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        // Show loading state - disable all join buttons
+        const joinButtons = document.querySelectorAll('button[onclick*="joinZoomMeeting"], .btn-primary, .btn-outline-primary');
+        joinButtons.forEach(btn => {
+          if (!btn.disabled && (btn.textContent.includes('Join') || btn.onclick)) {
+            btn.dataset.originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'not-allowed';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Joining...';
+          }
         });
 
-        const data = await response.json();
+        // NOTE: Content will be marked as completed ONLY when admin ends the meeting
+        // AND student attended 50% or more of the session
+        // Do NOT mark as completed here - wait for meeting to end
 
-        // Reset button state
-        joinButton.textContent = originalText;
-        joinButton.disabled = false;
+        // THEN: Get join URL and open meeting
+        try {
+          const response = await fetch(`/zoom/student/zoom/${meetingId}/join`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (!data.success) {
-          alert(data.message || 'Failed to join meeting');
-          return;
+          const data = await response.json();
+
+          if (data.success) {
+            // Record that the student attempted to join
+            recordMeetingJoinAttempt(meetingId);
+
+            // Show modal with meeting details instead of popup (browsers may block popups)
+            // Modal stays open until user closes it manually
+            showMeetingInfoModal(data.meeting, data.student);
+
+            // Don't auto-reload - let user close modal and navigate manually
+            // The content is already marked as completed, so next content will be unlocked
+          } else {
+            console.warn('Could not get join URL:', data.message);
+            // Re-enable buttons on error
+            const joinButtons = document.querySelectorAll('button[onclick*="joinZoomMeeting"], .btn-primary, .btn-outline-primary');
+            joinButtons.forEach(btn => {
+              if (btn.dataset.originalText) {
+                btn.innerHTML = btn.dataset.originalText;
+                delete btn.dataset.originalText;
+              }
+              btn.disabled = false;
+              btn.style.opacity = '1';
+              btn.style.cursor = 'pointer';
+            });
+            alert('Could not get meeting details. Content is already marked as completed. Please refresh the page.');
+          }
+        } catch (joinError) {
+          console.warn('Error getting join URL:', joinError);
+          // Re-enable buttons on error
+          const joinButtons = document.querySelectorAll('button[onclick*="joinZoomMeeting"], .btn-primary, .btn-outline-primary');
+          joinButtons.forEach(btn => {
+            if (btn.dataset.originalText) {
+              btn.innerHTML = btn.dataset.originalText;
+              delete btn.dataset.originalText;
+            }
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+          });
+          alert('Could not get meeting details. Content is already marked as completed. Please refresh the page to see updated navigation.');
         }
 
-        console.log('📋 Meeting join response:', data);
-
-        // Show success message
-        showToast('Redirecting to Zoom meeting...', 'success');
-
-        // Record that the student attempted to join
-        recordMeetingJoinAttempt(meetingId);
-
-        // Small delay to show the message, then redirect
-        setTimeout(() => {
-          // Open Zoom meeting in new tab/window
-          window.open(data.meeting.joinUrl, '_blank');
-
-          // Update UI to show that student is joining
-          updateMeetingStatus('joining');
-
-          // Optional: Show meeting info modal
-          showMeetingInfoModal(data.meeting, data.student);
-        }, 1000);
-
       } catch (error) {
-        console.error('❌ Error joining meeting:', error);
+        console.error('❌ Error in joinZoomMeeting:', error);
+        // Re-enable buttons on error
+        const joinButtons = document.querySelectorAll('button[onclick*="joinZoomMeeting"], .btn-primary, .btn-outline-primary');
+        joinButtons.forEach(btn => {
+          if (btn.dataset.originalText) {
+            btn.innerHTML = btn.dataset.originalText;
+            delete btn.dataset.originalText;
+          }
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+        });
         alert('Failed to join meeting. Please try again.');
-
-        // Reset button state
-        const joinButton = document.querySelector('.btn-primary');
-        joinButton.textContent = 'Join Meeting';
-        joinButton.disabled = false;
       }
     }
 
@@ -2202,6 +2493,28 @@
       } catch (error) {
         console.log('Could not record join attempt:', error);
       }
+    }
+
+    // Mark recording as watched and complete the content (same as acknowledgeAndComplete)
+    async function markRecordingAsWatched(event) {
+      // Disable button immediately to prevent multiple clicks
+      const button = (event && event.target) || document.querySelector('button[onclick*="markRecordingAsWatched"]');
+      if (button && !button.disabled) {
+        button.disabled = true;
+        button.style.opacity = '0.6';
+        button.style.cursor = 'not-allowed';
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        button.dataset.originalText = originalText;
+      }
+      
+      // Use the same function as other content types - this will update contentProgress
+      acknowledgeAndComplete(event);
+      
+      // Reload after completion to update navigation
+      setTimeout(() => {
+        location.reload();
+      }, 2000);
     }
 
     // Update meeting status in UI
@@ -2227,54 +2540,50 @@
     // Show meeting info modal (without Bootstrap dependency)
     function showMeetingInfoModal(meeting, student) {
       const modalHtml = `
-        <div class="modal-overlay" id="meetingInfoModal" onclick="closeMeetingModal()">
-          <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-              <h5 class="modal-title">
-                <i class="fas fa-video text-primary"></i>
-                Meeting Information
+        <div class="modal-overlay" id="meetingInfoModal" onclick="closeMeetingModal()" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease;">
+          <div class="modal-content" onclick="event.stopPropagation()" style="background: white; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); animation: slideUp 0.3s ease;">
+            <div class="modal-header" style="padding: 20px; border-bottom: 2px solid #dc2626; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #dc2626, #b91c1c); border-radius: 15px 15px 0 0;">
+              <h5 class="modal-title" style="margin: 0; color: white; font-weight: 700; font-size: 20px;">
+                <i class="fas fa-video me-2"></i>
+                Zoom Meeting Details
               </h5>
-              <button type="button" class="btn-close" onclick="closeMeetingModal()">
+              <button type="button" class="btn-close" onclick="closeMeetingModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: white; padding: 5px 10px;">
                 <i class="fas fa-times"></i>
               </button>
             </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <strong>Meeting:</strong> ${meeting.meetingName}
+            <div class="modal-body" style="padding: 30px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <div style="font-size: 64px; color: #dc2626; margin-bottom: 15px;">
+                  <i class="fas fa-video"></i>
+                </div>
+                <h4 style="color: #dc2626; margin-bottom: 8px; font-weight: 700; font-size: 24px;">${meeting.meetingName}</h4>
+                <p style="color: #666; margin: 0; font-size: 16px;">${meeting.meetingTopic || 'Live Zoom Session'}</p>
               </div>
-              <div class="mb-3">
-                <strong>Topic:</strong> ${meeting.meetingTopic}
+
+              <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 20px; border-radius: 10px; border-left: 4px solid #2196f3; margin-bottom: 25px;">
+                <div style="display: flex; align-items: start; gap: 12px;">
+                  <i class="fas fa-info-circle" style="color: #2196f3; font-size: 22px; margin-top: 2px;"></i>
+                  <div>
+                    <strong style="color: #1976d2; display: block; margin-bottom: 8px; font-size: 15px;">Ready to Join:</strong>
+                    <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.7;">
+                      Click the "Join Meeting" button below to join the live session. The meeting will open in a new window.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div class="mb-3">
-                <strong>Meeting ID:</strong> 
-                <code>${meeting.meetingId}</code>
-                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('${meeting.meetingId}')">
-                  <i class="fas fa-copy"></i>
-                </button>
-              </div>
-              ${meeting.password ? `
-              <div class="mb-3">
-                <strong>Password:</strong> 
-                <code>${meeting.password}</code>
-                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('${meeting.password}')">
-                  <i class="fas fa-copy"></i>
-                </button>
-              </div>
-              ` : ''}
-              <div class="mb-3">
-                <strong>Joining as:</strong> ${student.name} (${student.email})
-              </div>
-              <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                The meeting will open in a new tab. If it doesn't open automatically, 
-                <a href="${meeting.joinUrl}" target="_blank">click here</a>.
+
+              <div style="text-align: center; color: #666; font-size: 14px; padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
+                <i class="fas fa-user" style="margin-right: 8px;"></i>
+                Joining as: <strong style="color: #333;">${student.name}</strong>
               </div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" onclick="closeMeetingModal()">Close</button>
-              <a href="${meeting.joinUrl}" target="_blank" class="btn btn-primary">
-                <i class="fas fa-external-link-alt"></i>
-                Open Meeting
+            <div class="modal-footer" style="padding: 25px; border-top: 2px solid #dc2626; display: flex; justify-content: center; gap: 15px; background: #f8f9fa;">
+              <button type="button" class="btn btn-secondary" onclick="closeMeetingModal()" style="padding: 12px 25px; border-radius: 8px; border: 1px solid #ccc; background: white; cursor: pointer; color: #666; font-weight: 500;">
+                Cancel
+              </button>
+              <a href="${meeting.joinUrl}" target="_blank" class="btn btn-primary" style="padding: 15px 40px; border-radius: 8px; background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4); font-size: 16px; transition: transform 0.2s;">
+                <i class="fas fa-video" style="font-size: 18px;"></i>
+                Join Meeting
               </a>
             </div>
           </div>
@@ -2302,9 +2611,11 @@
     function closeMeetingModal() {
       const modal = document.getElementById('meetingInfoModal');
       if (modal) {
-        modal.classList.remove('show');
+        modal.style.opacity = '0';
         setTimeout(() => {
           modal.remove();
+          // Reload page after closing modal to show updated navigation (next content unlocked)
+          location.reload();
         }, 300);
       }
     }
@@ -2312,9 +2623,23 @@
     // Copy to clipboard helper
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
-        showToast('Copied to clipboard!', 'success');
+        // Show temporary success message on button
+        const btn = event.target.closest('button');
+        if (btn) {
+          const originalHtml = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+          btn.style.background = '#10b981';
+          btn.style.color = 'white';
+          btn.style.borderColor = '#10b981';
+          setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+          }, 2000);
+        }
       }).catch(() => {
-        showToast('Could not copy to clipboard', 'error');
+        alert('Could not copy to clipboard. Please copy manually.');
       });
     }
   </script>
@@ -2486,6 +2811,26 @@
       50% {
         opacity: 0.8;
         transform: scale(1.05);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
       }
     }
 

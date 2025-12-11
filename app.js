@@ -115,15 +115,6 @@ app.use(
   })
 );
 
-// Session debugging middleware (commented out for production)
-app.use((req, res, next) => {
-  if (req.path.includes('/purchase/cart/add')) {
-    console.log('Cart Add Request - Session ID:', req.sessionID);
-    console.log('Cart Add Request - User in session:', req.session.user);
-    console.log('Cart Add Request - Cart in session:', req.session.cart);
-  }
-  next();
-});
 app.use(flash());
 
 // Static files
@@ -201,7 +192,7 @@ console.log('Socket.IO initialized', io.engine.clientsCount);
 
 // Database connection and server startup
 const dbURI =
-  'mongodb+srv://deif:1qaz2wsx@3devway.aa4i6ga.mongodb.net/Elkably-Elearning?retryWrites=true&w=majority&appName=Cluster0';
+  'mongodb+srv://deif:1qaz2wsx@3devway.aa4i6ga.mongodb.net/Elkably-Elearning3?retryWrites=true&w=majority&appName=Cluster0';
   // 'mongodb://localhost:27017/Elkably-Elearning';
 const PORT = process.env.PORT || 4091;
 

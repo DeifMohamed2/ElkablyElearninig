@@ -1552,6 +1552,246 @@ class ExcelExporter {
   reset() {
     this.workbook = new ExcelJS.Workbook();
     this.setupWorkbook();
+    this.setupColors();
+  }
+
+  // Create Zoom meeting attendance report
+  async createZoomAttendanceReport(zoomMeeting, course, enrolledStudents) {
+    this.reset();
+
+    const worksheet = this.workbook.addWorksheet('Attendance Report');
+
+    // Title
+    worksheet.mergeCells('A1:H1');
+    worksheet.getCell('A1').value = `Zoom Meeting Attendance Report - ${zoomMeeting.meetingName}`;
+    worksheet.getCell('A1').style = this.getTitleStyle();
+    worksheet.getRow(1).height = 30;
+
+    // Meeting Information
+    worksheet.getCell('A2').value = `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
+    worksheet.getCell('A2').font = { name: 'Calibri', size: 10, italic: true };
+    worksheet.getRow(2).height = 20;
+
+    let currentRow = 4;
+
+    // Meeting Details Section
+    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+    worksheet.getCell(`A${currentRow}`).value = 'Meeting Information';
+    worksheet.getCell(`A${currentRow}`).style = this.getSectionTitleStyle();
+    currentRow++;
+
+    const meetingInfo = [
+      ['Meeting Name', zoomMeeting.meetingName || 'N/A'],
+      ['Meeting Topic', zoomMeeting.meetingTopic || 'N/A'],
+      ['Course', course ? course.title : 'N/A'],
+      ['Course Code', course ? course.courseCode : 'N/A'],
+      ['Scheduled Time', zoomMeeting.scheduledStartTime ? new Date(zoomMeeting.scheduledStartTime).toLocaleString() : 'N/A'],
+      ['Actual Start Time', zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleString() : 'N/A'],
+      ['Actual End Time', zoomMeeting.actualEndTime ? new Date(zoomMeeting.actualEndTime).toLocaleString() : 'N/A'],
+      ['Duration (minutes)', zoomMeeting.actualDuration || 0],
+    ];
+
+    meetingInfo.forEach((info, index) => {
+      const cell1 = worksheet.getCell(currentRow, 1);
+      const cell2 = worksheet.getCell(currentRow, 2);
+      cell1.value = info[0];
+      cell2.value = info[1];
+      cell1.style = this.getSubHeaderStyle();
+      cell2.style = this.getAlternatingRowStyle(index % 2 === 0);
+      currentRow++;
+    });
+
+    currentRow += 2;
+
+    // Statistics Summary
+    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+    worksheet.getCell(`A${currentRow}`).value = 'Attendance Statistics';
+    worksheet.getCell(`A${currentRow}`).style = this.getSectionTitleStyle();
+    currentRow++;
+
+    const totalEnrolled = enrolledStudents ? enrolledStudents.length : 0;
+    const totalAttended = zoomMeeting.studentsAttended ? zoomMeeting.studentsAttended.length : 0;
+    // Ensure totalNotAttended is never negative (in case of data inconsistencies)
+    const totalNotAttended = Math.max(0, totalEnrolled - totalAttended);
+    const attendanceRate = totalEnrolled > 0 ? ((totalAttended / totalEnrolled) * 100).toFixed(2) : 0;
+
+    const statsInfo = [
+      ['Total Enrolled Students', totalEnrolled],
+      ['Students Who Attended', totalAttended],
+      ['Students Who Did Not Attend', totalNotAttended],
+      ['Attendance Rate (%)', `${attendanceRate}%`],
+      ['Average Attendance Percentage', `${zoomMeeting.averageAttendancePercentage || 0}%`],
+      ['Max Concurrent Participants', zoomMeeting.maxConcurrentParticipants || 0],
+    ];
+
+    statsInfo.forEach((info, index) => {
+      const cell1 = worksheet.getCell(currentRow, 1);
+      const cell2 = worksheet.getCell(currentRow, 2);
+      cell1.value = info[0];
+      cell2.value = info[1];
+      cell1.style = this.getSubHeaderStyle();
+      
+      if (index === 3 || index === 4) {
+        // Attendance rate columns
+        const value = parseFloat(info[1]) || 0;
+        cell2.style = this.getPerformanceStyle(value, 100);
+      } else {
+        cell2.style = this.getAlternatingRowStyle(index % 2 === 0);
+      }
+      currentRow++;
+    });
+
+    currentRow += 2;
+
+    // Students Who Attended
+    if (zoomMeeting.studentsAttended && zoomMeeting.studentsAttended.length > 0) {
+      worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+      worksheet.getCell(`A${currentRow}`).value = 'Students Who Attended';
+      worksheet.getCell(`A${currentRow}`).style = this.getSectionTitleStyle();
+      currentRow++;
+
+      const attendedHeaders = [
+        'Student Code',
+        'Student Name',
+        'Email',
+        'Attendance %',
+        'Time Spent (min)',
+        'First Join Time',
+        'Last Leave Time',
+        'Join Events',
+      ];
+      attendedHeaders.forEach((header, index) => {
+        const cell = worksheet.getCell(currentRow, index + 1);
+        cell.value = header;
+        cell.style = this.getHeaderStyle();
+      });
+      worksheet.getRow(currentRow).height = 25;
+      currentRow++;
+
+      // Get student details for attended students
+      const User = require('../models/User');
+      const attendedStudentsData = await Promise.all(
+        zoomMeeting.studentsAttended.map(async (attendance) => {
+          const student = await User.findById(attendance.student);
+          return {
+            studentCode: student ? student.studentCode : 'N/A',
+            name: attendance.name,
+            email: attendance.email,
+            attendancePercentage: attendance.attendancePercentage || 0,
+            totalTimeSpent: attendance.totalTimeSpent || 0,
+            firstJoinTime: attendance.firstJoinTime ? new Date(attendance.firstJoinTime).toLocaleString() : 'N/A',
+            lastLeaveTime: attendance.lastLeaveTime ? new Date(attendance.lastLeaveTime).toLocaleString() : 'N/A',
+            joinEvents: attendance.joinEvents ? attendance.joinEvents.length : 0,
+          };
+        })
+      );
+
+      attendedStudentsData.forEach((student, index) => {
+        const values = [
+          student.studentCode,
+          student.name,
+          student.email,
+          `${student.attendancePercentage}%`,
+          student.totalTimeSpent,
+          student.firstJoinTime,
+          student.lastLeaveTime,
+          student.joinEvents,
+        ];
+
+        values.forEach((value, colIndex) => {
+          const cell = worksheet.getCell(currentRow, colIndex + 1);
+          cell.value = value;
+          
+          if (colIndex === 3) {
+            // Attendance percentage
+            cell.style = this.getPerformanceStyle(student.attendancePercentage, 100);
+          } else {
+            cell.style = this.getAlternatingRowStyle(index % 2 === 0);
+          }
+        });
+        worksheet.getRow(currentRow).height = 20;
+        currentRow++;
+      });
+    }
+
+    currentRow += 2;
+
+    // Students Who Did Not Attend
+    if (enrolledStudents && enrolledStudents.length > 0) {
+      const attendedStudentIds = zoomMeeting.studentsAttended 
+        ? zoomMeeting.studentsAttended.map(a => a.student.toString())
+        : [];
+      
+      const notAttendedStudents = enrolledStudents.filter(
+        student => !attendedStudentIds.includes(student._id.toString())
+      );
+
+      if (notAttendedStudents.length > 0) {
+        worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+        worksheet.getCell(`A${currentRow}`).value = 'Students Who Did Not Attend';
+        worksheet.getCell(`A${currentRow}`).style = this.getSectionTitleStyle();
+        currentRow++;
+
+        const notAttendedHeaders = [
+          'Student Code',
+          'Student Name',
+          'Email',
+          'Grade',
+          'School',
+          'Parent Phone',
+          'Student Phone',
+          'Status',
+        ];
+        notAttendedHeaders.forEach((header, index) => {
+          const cell = worksheet.getCell(currentRow, index + 1);
+          cell.value = header;
+          cell.style = this.getHeaderStyle();
+        });
+        worksheet.getRow(currentRow).height = 25;
+        currentRow++;
+
+        notAttendedStudents.forEach((student, index) => {
+          // Format parent phone with country code if available
+          const parentPhone = student.parentCountryCode && student.parentNumber
+            ? `${student.parentCountryCode}${student.parentNumber}`
+            : student.parentNumber || 'N/A';
+          
+          // Format student phone with country code if available
+          const studentPhone = student.studentCountryCode && student.studentNumber
+            ? `${student.studentCountryCode}${student.studentNumber}`
+            : student.studentNumber || 'N/A';
+          
+          const values = [
+            student.studentCode || 'N/A',
+            `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'N/A',
+            student.studentEmail || student.email || 'N/A',
+            student.grade || 'N/A',
+            student.schoolName || 'N/A',
+            parentPhone,
+            studentPhone,
+            student.isActive ? 'Active' : 'Inactive',
+          ];
+
+          values.forEach((value, colIndex) => {
+            const cell = worksheet.getCell(currentRow, colIndex + 1);
+            cell.value = value;
+            cell.style = this.getAlternatingRowStyle(index % 2 === 0);
+          });
+          worksheet.getRow(currentRow).height = 20;
+          currentRow++;
+        });
+      }
+    }
+
+    // Auto-fit columns
+    worksheet.columns.forEach((column, index) => {
+      column.width = [15, 25, 30, 15, 15, 20, 20, 12][index] || 15;
+    });
+
+    // Add freeze panes
+    worksheet.views = [{ state: 'frozen', ySplit: 4 }];
+
+    return this.workbook;
   }
 
   // Create comprehensive course details report

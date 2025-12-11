@@ -141,6 +141,7 @@
             
             const bundleId = course.bundle ? course.bundle._id || course.bundle : 'individual';
             const bundleName = course.bundle ? course.bundle.title || 'Bundle Course' : 'Individual Weeks';
+            const bundleThumbnail = course.bundle ? (course.bundle.thumbnail || '') : '';
             
             // Debug: Log bundle information (server-side only)
             // console.log('Debug - Course:', course.title, 'Bundle:', course.bundle, 'BundleName:', bundleName);
@@ -149,32 +150,61 @@
               groupedCourses[bundleId] = {
                 bundleName: bundleName,
                 bundleId: bundleId,
+                bundleThumbnail: bundleThumbnail,
                 courses: []
               };
             }
             
             groupedCourses[bundleId].courses.push(enrollment);
           });
+          
+          // Sort courses within each bundle by order
+          Object.keys(groupedCourses).forEach(bundleId => {
+            groupedCourses[bundleId].courses.sort((a, b) => {
+              const orderA = a.course.order || 0;
+              const orderB = b.course.order || 0;
+              return orderA - orderB;
+            });
+          });
         %>
         
         <% Object.values(groupedCourses).forEach((bundleGroup, index) => { %>
-          <!-- Small Bundle Name Display (Collapsible Header) -->
+          <!-- Bundle Name Display (Collapsible Header) - Enhanced with Image -->
           <div class="bundle-name-display" 
-               style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; padding: var(--spacing-sm) var(--spacing-md); background: var(--bg-secondary); border-left: 4px solid var(--primary-color); border-radius: 0 8px 8px 0; cursor: pointer; transition: all 0.3s ease;"
+               style="margin: var(--spacing-xl) 0 var(--spacing-lg) 0; padding: var(--spacing-lg) var(--spacing-xl); background: var(--bg-secondary); border-left: 5px solid var(--primary-color); border-radius: 0 12px 12px 0; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.08);"
                onclick="toggleBundle('bundle-<%= index %>')">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                <i class="fas fa-chevron-down bundle-toggle-icon" id="icon-bundle-<%= index %>" style="color: var(--primary-color); font-size: 0.9rem; transition: transform 0.3s ease;"></i>
-                <i class="fas fa-layer-group" style="color: var(--primary-color); font-size: 0.9rem;"></i>
-                <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-                  <%= bundleGroup.bundleName %>
-                </h4>
-                <span style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-primary); padding: 2px 8px; border-radius: 12px;">
-                  <%= bundleGroup.courses.length %> week<%= bundleGroup.courses.length !== 1 ? 's' : '' %>
-                </span>
-              </div>
-              <div style="font-size: 0.8rem; color: var(--text-muted);">
-                Avg. Progress: <%= Math.round(bundleGroup.courses.reduce((sum, c) => sum + (c.progress || 0), 0) / bundleGroup.courses.length) %>%
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg);">
+              <div style="display: flex; align-items: center; gap: var(--spacing-lg); flex: 1;">
+                <!-- Bundle Thumbnail -->
+                <div style="width: 80px; height: 80px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, var(--primary-color), #dc2626); box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                  <% if (bundleGroup.bundleThumbnail) { %>
+                    <img src="<%= bundleGroup.bundleThumbnail %>" alt="<%= bundleGroup.bundleName %>" style="width: 100%; height: 100%; object-fit: cover;">
+                  <% } else { %>
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                      <i class="fas fa-layer-group" style="font-size: 2rem; color: white; opacity: 0.9;"></i>
+                    </div>
+                  <% } %>
+                </div>
+                
+                <!-- Bundle Info -->
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1;">
+                  <i class="fas fa-chevron-down bundle-toggle-icon" id="icon-bundle-<%= index %>" style="color: var(--primary-color); font-size: 1.2rem; transition: transform 0.3s ease; flex-shrink: 0;"></i>
+                  <div style="flex: 1;">
+                    <h3 style="margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                      <%= bundleGroup.bundleName %>
+                    </h3>
+                    <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;">
+                      <span style="font-size: 0.95rem; color: var(--text-muted); background: var(--bg-primary); padding: 4px 12px; border-radius: 16px; font-weight: 500;">
+                        <i class="fas fa-book" style="margin-right: 4px;"></i>
+                        <%= bundleGroup.courses.length %> week<%= bundleGroup.courses.length !== 1 ? 's' : '' %>
+                      </span>
+                      <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">
+                        <i class="fas fa-chart-line" style="margin-right: 4px; color: var(--primary-color);"></i>
+                        Avg. Progress: <%= Math.round(bundleGroup.courses.reduce((sum, c) => sum + (c.progress || 0), 0) / bundleGroup.courses.length) %>%
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -187,11 +217,16 @@
                             const course = enrollment.course;
                             const progress = enrollment.progress;
                             const status = enrollment.status;
+                            const isUnlocked = enrollment.isUnlocked !== false; // Default to true if not set
+                            const unlockReason = enrollment.unlockReason || '';
+                            const previousCourse = enrollment.previousCourse;
                             
                             // Skip if course is null or undefined
                             if (!course) return;
                         %>
-          <div class="course-card" onclick="window.location.href='/student/course/<%= course._id %>/content'" style="cursor: pointer; transition: all 0.3s ease; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <div class="course-card <%= isUnlocked ? '' : 'locked-course' %>" 
+               onclick="<%= isUnlocked ? `window.location.href='/student/course/${course._id}/content'` : 'void(0)' %>" 
+               style="cursor: <%= isUnlocked ? 'pointer' : 'not-allowed' %>; transition: all 0.3s ease; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; <%= !isUnlocked ? 'opacity: 0.6; filter: grayscale(30%);' : '' %>">
             <!-- Course Thumbnail -->
             <div class="course-thumbnail" style="position: relative; height: 160px; background: linear-gradient(135deg, var(--primary-color), #dc2626); display: flex; align-items: center; justify-content: center;">
               <% if (course.thumbnail) { %>
@@ -208,8 +243,27 @@
               <!-- Week Badge -->
               <div style="position: absolute; top: 12px; left: 12px; background: rgba(59, 130, 246, 0.9); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: white;">
                 <i class="fas fa-book" style="margin-right: 4px;"></i>
-                Week
+                Week <%= course.order || '' %>
               </div>
+              
+              <!-- Lock Overlay -->
+              <% if (!isUnlocked) { %>
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;">
+                <i class="fas fa-lock" style="font-size: 3rem; color: white; margin-bottom: 1rem;"></i>
+                <p style="color: white; text-align: center; padding: 0 1rem; font-weight: 600; font-size: 0.9rem;">
+                  Locked
+                </p>
+                <% if (previousCourse) { %>
+                <p style="color: rgba(255, 255, 255, 0.9); text-align: center; padding: 0 1rem; font-size: 0.8rem; margin-top: 0.5rem;">
+                  Complete "<%= previousCourse.title %>" first
+                </p>
+                <% } else { %>
+                <p style="color: rgba(255, 255, 255, 0.9); text-align: center; padding: 0 1rem; font-size: 0.8rem; margin-top: 0.5rem;">
+                  <%= unlockReason %>
+                </p>
+                <% } %>
+              </div>
+              <% } %>
             </div>
 
             <!-- Course Content -->
@@ -271,6 +325,7 @@
                     <%= course.topics ? course.topics.length : 0 %> topics
                   </span>
                 </div>
+                <% if (isUnlocked) { %>
                 <a href="/student/course/<%= course._id %>/content" class="btn btn-primary btn-sm">
                   <% if (progress === 100) { %>
                   Review
@@ -280,6 +335,12 @@
                   Start
                   <% } %>
                 </a>
+                <% } else { %>
+                <button class="btn btn-secondary btn-sm" disabled style="cursor: not-allowed;">
+                  <i class="fas fa-lock me-1"></i>
+                  Locked
+                </button>
+                <% } %>
               </div>
             </div>
           </div>
@@ -395,6 +456,29 @@
       
       .filter-actions {
         justify-content: center;
+      }
+      
+      .bundle-name-display {
+        padding: var(--spacing-md) !important;
+      }
+      
+      .bundle-name-display > div > div:first-child {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: var(--spacing-md) !important;
+      }
+      
+      .bundle-name-display > div > div:first-child > div:first-child {
+        width: 60px !important;
+        height: 60px !important;
+      }
+      
+      .bundle-name-display h3 {
+        font-size: 1.1rem !important;
+      }
+      
+      .bundle-name-display > div > div:first-child > div:last-child {
+        width: 100%;
       }
     }
   </style>

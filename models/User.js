@@ -150,6 +150,12 @@ const UserSchema = new mongoose.Schema(
           enum: ['active', 'completed', 'paused', 'dropped'],
           default: 'active',
         },
+        // Starting order/week when student was enrolled (for admin enrollments from specific week)
+        startingOrder: {
+          type: Number,
+          default: null, // null means enrolled from the beginning (order 0)
+          min: 0,
+        },
         // Embedded progress tracking for content items
         contentProgress: [
           {
@@ -172,6 +178,7 @@ const UserSchema = new mongoose.Schema(
                 'assignment',
                 'reading',
                 'link',
+                'zoom',
               ],
               required: true,
             },
@@ -290,6 +297,16 @@ const UserSchema = new mongoose.Schema(
                 passingScore: {
                   type: Number,
                   default: 60,
+                },
+                // Store shuffled order for this attempt
+                shuffledQuestionOrder: {
+                  type: [Number], // Array of original indices in shuffled order
+                  default: [],
+                },
+                shuffledOptionOrders: {
+                  type: Map,
+                  of: [Number], // Map of questionId to shuffled option indices
+                  default: {},
                 },
               },
             ],
@@ -467,6 +484,16 @@ const UserSchema = new mongoose.Schema(
               type: Number,
               default: 60,
             },
+            // Store shuffled order for this attempt
+            shuffledQuestionOrder: {
+              type: [Number], // Array of original indices in shuffled order
+              default: [],
+            },
+            shuffledOptionOrders: {
+              type: Map,
+              of: [Number], // Map of questionId to shuffled option indices
+              default: {},
+            },
           },
         ],
         bestScore: {
@@ -534,7 +561,7 @@ UserSchema.pre('save', async function (next) {
   if (this.isModified('enrolledCourses')) {
     // Remove duplicate course enrollments
     const seenCourses = new Set();
-    this.enrolledCourses = this.enrolledCourses.filter(enrollment => {
+    this.enrolledCourses = this.enrolledCourses.filter((enrollment) => {
       if (!enrollment.course) return false;
       const courseId = enrollment.course.toString();
       if (seenCourses.has(courseId)) {
@@ -553,7 +580,7 @@ UserSchema.pre('save', async function (next) {
   if (this.isModified('purchasedCourses')) {
     // Remove duplicate course purchases
     const seenCourses = new Set();
-    this.purchasedCourses = this.purchasedCourses.filter(purchase => {
+    this.purchasedCourses = this.purchasedCourses.filter((purchase) => {
       if (!purchase.course) return false;
       const courseId = purchase.course.toString();
       if (seenCourses.has(courseId)) {
@@ -564,11 +591,11 @@ UserSchema.pre('save', async function (next) {
       return true;
     });
   }
-  
+
   if (this.isModified('purchasedBundles')) {
     // Remove duplicate bundle purchases
     const seenBundles = new Set();
-    this.purchasedBundles = this.purchasedBundles.filter(purchase => {
+    this.purchasedBundles = this.purchasedBundles.filter((purchase) => {
       if (!purchase.bundle) return false;
       const bundleId = purchase.bundle.toString();
       if (seenBundles.has(bundleId)) {
@@ -579,7 +606,7 @@ UserSchema.pre('save', async function (next) {
       return true;
     });
   }
-  
+
   next();
 });
 
@@ -589,7 +616,10 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 // Method to authenticate by phone number and student code
-UserSchema.statics.findByPhoneAndCode = async function (phoneNumber, studentCode) {
+UserSchema.statics.findByPhoneAndCode = async function (
+  phoneNumber,
+  studentCode
+) {
   const user = await this.findOne({
     studentNumber: phoneNumber,
     studentCode: studentCode,
@@ -723,6 +753,21 @@ UserSchema.methods.isContentCompleted = async function (courseId, contentId) {
   });
 
   return !!completion;
+};
+
+// Instance method to check if a course is completed
+UserSchema.methods.isCourseCompleted = async function (courseId) {
+  const enrollment = this.enrolledCourses.find(
+    (enrollment) =>
+      enrollment.course && enrollment.course.toString() === courseId.toString()
+  );
+
+  if (!enrollment) {
+    return false;
+  }
+
+  // Course is completed if status is 'completed' OR progress is 100%
+  return enrollment.status === 'completed' || enrollment.progress >= 100;
 };
 
 // Instance method to get all completed content for a course
@@ -1063,11 +1108,20 @@ UserSchema.methods.isInWishlist = function (itemId, itemType = 'course') {
 
 // Instance method to get enrollment status
 UserSchema.methods.isEnrolled = function (courseId) {
+  // Normalize courseId to string for comparison
+  const courseIdStr = courseId.toString();
+
   // Then check if any enrollment matches the courseId
-  const isEnrolled = this.enrolledCourses.some(
-    (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
-  );
+  const isEnrolled = this.enrolledCourses.some((enrollment) => {
+    if (!enrollment.course) return false;
+
+    // Handle both populated (object with _id) and non-populated (ObjectId) cases
+    const enrollmentCourseId = enrollment.course._id
+      ? enrollment.course._id.toString()
+      : enrollment.course.toString();
+
+    return enrollmentCourseId === courseIdStr;
+  });
 
   return isEnrolled;
 };
@@ -1094,18 +1148,16 @@ UserSchema.methods.hasPurchasedBundle = function (bundleId) {
 
 // Instance method to check if user has access to a course (either through individual purchase or bundle purchase)
 UserSchema.methods.hasAccessToCourse = function (courseId) {
-  console.log('Checking if user has access to course:', courseId);
+  // Normalize courseId to string for comparison
+  const courseIdStr = courseId.toString();
+
   // Check if user has purchased the course individually
-  if (this.hasPurchasedCourse(courseId)) {
-    console.log('User has purchased the course individually');
+  if (this.hasPurchasedCourse(courseIdStr)) {
     return true;
   }
 
-  // Check if user has access through any purchased bundle
-  // This would require checking if the course is part of any bundle the user has purchased
-  // For now, we'll check if the user is enrolled in the course (which happens when they purchase a bundle)
-  console.log('User is enrolled in the course');
-  return this.isEnrolled(courseId);
+  // Check if user is enrolled in the course (includes manual enrollments and bundle purchases)
+  return this.isEnrolled(courseIdStr);
 };
 
 // Instance method to check if user has access to a course through a specific bundle
@@ -1182,12 +1234,29 @@ UserSchema.methods.addPurchasedBundle = async function (
 };
 
 // Instance method to safely enroll in a course (prevents duplicates)
-UserSchema.methods.safeEnrollInCourse = async function (courseId) {
+UserSchema.methods.safeEnrollInCourse = async function (
+  courseId,
+  startingOrder = null
+) {
   // Check if already enrolled
   const isAlreadyEnrolled = this.isEnrolled(courseId);
-  
+
   if (isAlreadyEnrolled) {
     console.log('Course already enrolled, skipping duplicate:', courseId);
+    // Update startingOrder if provided and not already set
+    if (startingOrder !== null) {
+      const enrollment = this.enrolledCourses.find(
+        (e) => e.course && e.course.toString() === courseId.toString()
+      );
+      if (
+        enrollment &&
+        (enrollment.startingOrder === null ||
+          enrollment.startingOrder === undefined)
+      ) {
+        enrollment.startingOrder = startingOrder;
+        await this.save();
+      }
+    }
     return this;
   }
 
@@ -1198,7 +1267,8 @@ UserSchema.methods.safeEnrollInCourse = async function (courseId) {
     lastAccessed: new Date(),
     completedTopics: [],
     status: 'active',
-    contentProgress: []
+    startingOrder: startingOrder, // Store the starting order/week
+    contentProgress: [],
   });
 
   return await this.save();
@@ -1268,9 +1338,9 @@ UserSchema.methods.addPromoCodeUsage = async function (
     discountAmount,
     originalAmount,
     finalAmount,
-    usedAt: new Date()
+    usedAt: new Date(),
   });
-  
+
   await this.save();
   return this;
 };
@@ -1313,6 +1383,11 @@ UserSchema.methods.updateContentProgress = async function (
     (cp) => cp.contentId.toString() === contentId.toString()
   );
 
+  // Track if this is a NEW completion (wasn't completed before)
+  const wasAlreadyCompleted = contentProgress && contentProgress.completionStatus === 'completed';
+  const isNowCompleted = progressData && progressData.completionStatus === 'completed';
+  const isNewCompletion = isNowCompleted && !wasAlreadyCompleted;
+
   if (!contentProgress) {
     // Create new content progress entry
     contentProgress = {
@@ -1336,7 +1411,7 @@ UserSchema.methods.updateContentProgress = async function (
   // Update topic completion - check against ALL content in the topic, not just tracked content
   const Topic = require('./Topic');
   const topic = await Topic.findById(topicId);
-  
+
   if (topic && topic.content && topic.content.length > 0) {
     const topicProgress = enrollment.contentProgress.filter(
       (cp) => cp.topicId.toString() === topicId.toString()
@@ -1350,29 +1425,35 @@ UserSchema.methods.updateContentProgress = async function (
       topicCompletedContent === topic.content.length &&
       topic.content.length > 0
     ) {
-      if (!enrollment.completedTopics.includes(topicId)) {
-      enrollment.completedTopics.push(topicId);
+      // Only send notification if this is a NEW topic completion
+      const wasAlreadyCompleted = enrollment.completedTopics.includes(topicId);
       
-      // Send WhatsApp notification for topic completion
-      try {
-        const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
-        const Course = require('./Course');
-        const Topic = require('./Topic');
-        
-        const course = await Course.findById(courseId);
-        const topic = await Topic.findById(topicId);
-        
-        if (course && topic) {
-          await whatsappSMSNotificationService.sendTopicCompletionNotification(
-            this._id,
-            topic,
-            course
+      if (!wasAlreadyCompleted) {
+        enrollment.completedTopics.push(topicId);
+
+        // Send WhatsApp notification for topic completion (only for NEW completions)
+        try {
+          const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+          const Course = require('./Course');
+          const Topic = require('./Topic');
+
+          const course = await Course.findById(courseId);
+          const topic = await Topic.findById(topicId);
+
+          if (course && topic) {
+            await whatsappSMSNotificationService.sendTopicCompletionNotification(
+              this._id,
+              topic,
+              course
+            );
+          }
+        } catch (whatsappError) {
+          console.error(
+            'WhatsApp topic completion notification error:',
+            whatsappError
           );
+          // Don't fail the progress update if WhatsApp fails
         }
-      } catch (whatsappError) {
-        console.error('WhatsApp topic completion notification error:', whatsappError);
-        // Don't fail the progress update if WhatsApp fails
-      }
       }
     }
   }
@@ -1506,6 +1587,30 @@ UserSchema.methods.isContentUnlocked = function (
   }
 
   return { unlocked: true, reason: 'All prerequisites completed' };
+};
+
+// Helper method to check if student completed a Zoom content (attended live OR watched recording)
+UserSchema.methods.hasCompletedZoomContent = function (zoomMeeting) {
+  if (!zoomMeeting) return false;
+
+  const studentIdStr = this._id.toString();
+
+  // Check if student attended the live session
+  const attendedLive =
+    zoomMeeting.studentsAttended &&
+    zoomMeeting.studentsAttended.some(
+      (attendance) => attendance.student.toString() === studentIdStr
+    );
+
+  // Check if student watched the recording
+  const watchedRecording =
+    zoomMeeting.studentsWatchedRecording &&
+    zoomMeeting.studentsWatchedRecording.some(
+      (record) =>
+        record.student.toString() === studentIdStr && record.completedWatching
+    );
+
+  return attendedLive || watchedRecording;
 };
 
 // Instance method to recalculate all progress for debugging
@@ -1715,25 +1820,39 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
   enrollment.progress = averageProgress;
 
   // Mark course as completed if ALL content is completed OR if progress is 100%
-  if (completedContentCount === contentCount && contentCount > 0 || averageProgress >= 100) {
-    enrollment.status = 'completed';
-    
-    // Send WhatsApp notification for course completion
-    try {
-      const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
-      const Course = require('./Course');
-      
-      const course = await Course.findById(courseId);
-      
-      if (course) {
-        await whatsappSMSNotificationService.sendCourseCompletionNotification(
-          this._id,
-          course
+  const wasAlreadyCompleted = enrollment.status === 'completed';
+  
+  if (
+    (completedContentCount === contentCount && contentCount > 0) ||
+    averageProgress >= 100
+  ) {
+    // Only send notification if this is a NEW course completion
+    if (!wasAlreadyCompleted) {
+      enrollment.status = 'completed';
+
+      // Send WhatsApp notification for course completion (only for NEW completions)
+      try {
+        const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+        const Course = require('./Course');
+
+        const course = await Course.findById(courseId);
+
+        if (course) {
+          await whatsappSMSNotificationService.sendCourseCompletionNotification(
+            this._id,
+            course
+          );
+        }
+      } catch (whatsappError) {
+        console.error(
+          'WhatsApp course completion notification error:',
+          whatsappError
         );
+        // Don't fail the progress update if WhatsApp fails
       }
-    } catch (whatsappError) {
-      console.error('WhatsApp course completion notification error:', whatsappError);
-      // Don't fail the progress update if WhatsApp fails
+    } else {
+      // Already completed, just ensure status is set
+      enrollment.status = 'completed';
     }
   } else if (enrollment.status === 'completed' && averageProgress < 100) {
     enrollment.status = 'active';
@@ -1832,10 +1951,10 @@ UserSchema.methods.canAttemptQuiz = function (
 
   // Check if user has already passed the quiz/homework
   if (contentProgress.completionStatus === 'completed') {
-    return { 
-      canAttempt: false, 
-      reason: 'You have already passed this quiz', 
-      attemptsLeft: 0 
+    return {
+      canAttempt: false,
+      reason: 'You have already passed this quiz',
+      attemptsLeft: 0,
     };
   }
 
@@ -1879,12 +1998,12 @@ UserSchema.methods.resetQuizAttempts = async function (quizId) {
 // Instance method to clean up duplicate enrollments and purchases
 UserSchema.methods.cleanupDuplicates = async function () {
   let duplicatesRemoved = 0;
-  
+
   // Clean up duplicate course enrollments
   const seenEnrollments = new Set();
   const originalEnrollmentsLength = this.enrolledCourses.length;
-  
-  this.enrolledCourses = this.enrolledCourses.filter(enrollment => {
+
+  this.enrolledCourses = this.enrolledCourses.filter((enrollment) => {
     if (!enrollment.course) return false;
     const courseId = enrollment.course.toString();
     if (seenEnrollments.has(courseId)) {
@@ -1894,12 +2013,12 @@ UserSchema.methods.cleanupDuplicates = async function () {
     seenEnrollments.add(courseId);
     return true;
   });
-  
+
   // Clean up duplicate course purchases
   const seenCoursePurchases = new Set();
   const originalCoursePurchasesLength = this.purchasedCourses.length;
-  
-  this.purchasedCourses = this.purchasedCourses.filter(purchase => {
+
+  this.purchasedCourses = this.purchasedCourses.filter((purchase) => {
     if (!purchase.course) return false;
     const courseId = purchase.course.toString();
     if (seenCoursePurchases.has(courseId)) {
@@ -1909,12 +2028,12 @@ UserSchema.methods.cleanupDuplicates = async function () {
     seenCoursePurchases.add(courseId);
     return true;
   });
-  
+
   // Clean up duplicate bundle purchases
   const seenBundlePurchases = new Set();
   const originalBundlePurchasesLength = this.purchasedBundles.length;
-  
-  this.purchasedBundles = this.purchasedBundles.filter(purchase => {
+
+  this.purchasedBundles = this.purchasedBundles.filter((purchase) => {
     if (!purchase.bundle) return false;
     const bundleId = purchase.bundle.toString();
     if (seenBundlePurchases.has(bundleId)) {
@@ -1924,18 +2043,22 @@ UserSchema.methods.cleanupDuplicates = async function () {
     seenBundlePurchases.add(bundleId);
     return true;
   });
-  
+
   if (duplicatesRemoved > 0) {
     await this.save();
-    console.log(`Cleaned up ${duplicatesRemoved} duplicates for user ${this._id}`);
+    console.log(
+      `Cleaned up ${duplicatesRemoved} duplicates for user ${this._id}`
+    );
   }
-  
+
   return {
     success: true,
     duplicatesRemoved,
     enrollmentsRemoved: originalEnrollmentsLength - this.enrolledCourses.length,
-    coursePurchasesRemoved: originalCoursePurchasesLength - this.purchasedCourses.length,
-    bundlePurchasesRemoved: originalBundlePurchasesLength - this.purchasedBundles.length
+    coursePurchasesRemoved:
+      originalCoursePurchasesLength - this.purchasedCourses.length,
+    bundlePurchasesRemoved:
+      originalBundlePurchasesLength - this.purchasedBundles.length,
   };
 };
 

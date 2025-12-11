@@ -3,6 +3,9 @@
 <!-- MathLive for professional math input -->
 <script src="https://unpkg.com/mathlive"></script>
 
+<!-- SweetAlert2 for beautiful modals -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <!-- Admin Layout -->
 <div class="admin-layout">
 
@@ -218,7 +221,7 @@
                       <div class="zoom-meeting-controls mb-2">
                         <small class="text-muted d-block mb-1">🔒 Admin Controls Only</small>
                         <% if (contentItem.zoomMeeting.status === 'scheduled') { %>
-                        <button class="btn btn-sm btn-success me-2" onclick="startZoomMeeting('<%= contentItem.zoomMeeting._id %>')" title="Start Meeting for Students">
+                        <button class="btn btn-sm btn-success me-2" onclick="event.stopPropagation(); startZoomMeeting('<%= contentItem.zoomMeeting._id %>')" title="Start Meeting for Students">
                           <i class="fas fa-play"></i>
                           Start Meeting
                         </button>
@@ -228,7 +231,7 @@
                           <i class="fas fa-user-crown"></i>
                           Join as Host
                         </a>
-                        <button class="btn btn-sm btn-warning me-2" onclick="endZoomMeeting('<%= contentItem.zoomMeeting._id %>')" title="End Meeting for All Participants">
+                        <button class="btn btn-sm btn-warning me-2" onclick="event.stopPropagation(); endZoomMeeting('<%= contentItem.zoomMeeting._id %>')" title="End Meeting for All Participants">
                           <i class="fas fa-stop"></i>
                           End Meeting
                         </button>
@@ -246,6 +249,11 @@
                           <i class="fas fa-video"></i>
                           View Recording
                         </a>
+                        <% } else { %>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="event.stopPropagation(); addRecordingUrl('<%= contentItem.zoomMeeting._id %>')" title="Add Recording Link">
+                          <i class="fas fa-video"></i>
+                          Add Recording
+                        </button>
                         <% } %>
                         <% } %>
                       </div>
@@ -505,16 +513,16 @@
                     Upload File
                   </label>
                   <div class="upload-section">
-                    <input type="file" id="contentFile" class="upload-input" accept="*/*">
+                    <input type="file" id="contentFile" class="upload-input" accept=".pdf,application/pdf">
                     <label for="contentFile" class="upload-label">
-                      <i class="fas fa-cloud-upload-alt"></i>
-                      Choose File
+                      <i class="fas fa-file-pdf"></i>
+                      Choose PDF File
                     </label>
                     <div id="contentFilePreview" class="upload-preview">
                       <div class="preview-overlay">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Click or drag to upload</p>
-                        <small>All file types supported</small>
+                        <i class="fas fa-file-pdf"></i>
+                        <p>Click or drag to upload PDF</p>
+                        <small>PDF files only (max 50MB)</small>
                       </div>
                     </div>
                     <div id="contentFileProgress" class="progress-container" style="display: none;"></div>
@@ -676,6 +684,17 @@
                           <option value="MCQ">Multiple Choice</option>
                           <option value="True/False">True/False</option>
                           <option value="Written">Written</option>
+                        </select>
+                      </div>
+
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-tags"></i>
+                          Tags
+                        </label>
+                        <select class="filter-select" id="quizTagsFilter" onchange="filterQuizQuestions()">
+                          <option value="">All Tags</option>
+                          <!-- Tags will be populated dynamically -->
                         </select>
                       </div>
 
@@ -940,6 +959,17 @@
                         </select>
                       </div>
 
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-tags"></i>
+                          Tags
+                        </label>
+                        <select class="filter-select" id="homeworkTagsFilter" onchange="filterHomeworkQuestions()">
+                          <option value="">All Tags</option>
+                          <!-- Tags will be populated dynamically -->
+                        </select>
+                      </div>
+
                       <div class="filter-item filter-search">
                         <label class="filter-label">
                           <i class="fas fa-search"></i>
@@ -1017,40 +1047,6 @@
                           </div>
                           <div class="difficulty-item">
                             <span class="badge bg-danger">Hard: <span id="homeworkHardCount">0</span></span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                    <div class="col-md-4">
-                      <div class="admin-form-group">
-                        <label class="admin-form-label">
-                          <i class="fas fa-check-circle me-2"></i>
-                          Selection Summary
-                        </label>
-                        <div class="selection-summary" id="homeworkSelectionSummary">
-                          <div class="summary-item">
-                            <span class="summary-label">Selected Questions:</span>
-                            <span class="summary-value" id="homeworkSelectedCount">0</span>
-                          </div>
-                          <div class="summary-item">
-                            <span class="summary-label">Total Points:</span>
-                            <span class="summary-value" id="homeworkTotalPoints">0</span>
-                          </div>
-                          <div class="summary-item">
-                            <span class="summary-label">Difficulty Distribution:</span>
-                            <div class="difficulty-distribution" id="homeworkDifficultyDistribution">
-                              <div class="difficulty-item">
-                                <span class="badge bg-success">Easy: <span id="homeworkEasyCount">0</span></span>
-                              </div>
-                              <div class="difficulty-item">
-                                <span class="badge bg-warning">Medium: <span id="homeworkMediumCount">0</span></span>
-                              </div>
-                              <div class="difficulty-item">
-                                <span class="badge bg-danger">Hard: <span id="homeworkHardCount">0</span></span>
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -1299,9 +1295,12 @@
           </div>
         </div>
 
-        <div class="modal-footer admin-modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary admin-btn-primary" id="addContentSubmitBtn">
+        <div class="modal-footer admin-modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width: 120px; padding: 0.75rem 1.5rem; font-weight: 500; border-radius: 8px; transition: all 0.3s ease;">
+            <i class="fas fa-times me-2"></i>
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary admin-btn-primary" id="addContentSubmitBtn" style="min-width: 150px; padding: 0.75rem 1.75rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3); transition: all 0.3s ease;">
             <i class="fas fa-plus me-2" id="addContentBtnIcon"></i>
             <span id="addContentBtnText">Add Content</span>
           </button>
@@ -1382,16 +1381,16 @@
                     Upload New File
                   </label>
                   <div class="upload-section">
-                    <input type="file" id="editContentFile" class="upload-input" accept="*/*">
+                    <input type="file" id="editContentFile" class="upload-input" accept=".pdf,application/pdf">
                     <label for="editContentFile" class="upload-label">
-                      <i class="fas fa-cloud-upload-alt"></i>
-                      Choose New File
+                      <i class="fas fa-file-pdf"></i>
+                      Choose PDF File
                     </label>
                     <div id="editContentFilePreview" class="upload-preview">
                       <div class="preview-overlay">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Click or drag to upload new file</p>
-                        <small id="editCurrentFileText">All file types supported</small>
+                        <i class="fas fa-file-pdf"></i>
+                        <p>Click or drag to upload PDF</p>
+                        <small id="editCurrentFileText">PDF files only (max 50MB)</small>
                       </div>
                     </div>
                     <div id="editContentFileProgress" class="progress-container" style="display: none;"></div>
@@ -1480,18 +1479,196 @@
             </div>
           </div>
 
-          <!-- Quiz Content Section -->
+          <!-- Quiz Content Section - Full Editing with Multiple Banks -->
           <div class="row mt-4" id="editQuizContentSection" style="display: none;">
             <div class="col-12">
               <div class="admin-form-section">
                 <h6 class="admin-form-section-title">
                   <i class="fas fa-clipboard-question me-2"></i>
-                  Quiz Settings
+                  Quiz Configuration
                 </h6>
 
-                <!-- Quiz Settings (Step 1 & 2 hidden when editing) -->
-                <!-- Quiz Settings (editable) -->
-                <div class="edit-quiz-settings-only">
+                <!-- Quiz Progress Steps -->
+                <div class="quiz-progress-steps mb-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="quiz-step active" data-step="1">
+                      <span class="step-number">1</span>
+                      <span class="quiz-step-label">Bank</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="quiz-step" data-step="2">
+                      <span class="step-number">2</span>
+                      <span class="quiz-step-label">Questions</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="quiz-step" data-step="3">
+                      <span class="step-number">3</span>
+                      <span class="quiz-step-label">Settings</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 1: Question Bank Selection -->
+                <div class="quiz-step-content" id="editQuizStep1">
+                  <div class="admin-form-group">
+                    <label class="admin-form-label">
+                      <i class="fas fa-database me-2"></i>
+                      Select Question Banks * <span id="editQuizSelectedBanksCount" class="text-muted">(0 selected)</span>
+                    </label>
+                    <div class="bank-cards-grid" id="editQuizQuestionBanksGrid">
+                      <!-- Question banks will be loaded here -->
+                    </div>
+                    <div id="editNoQuizQuestionBanksMessage" class="text-center py-4" style="display: none;">
+                      <i class="fas fa-database fa-2x text-muted mb-2"></i>
+                      <p class="text-muted mb-0">No Question Banks Available</p>
+                      <small class="text-muted">Create question banks first to add quiz content.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 2: Question Selection -->
+                <div class="quiz-step-content" id="editQuizStep2" style="display: none;">
+                  <!-- Bank Filter Section -->
+                  <div class="question-bank-filter-section">
+                    <div class="filter-section-header">
+                      <i class="fas fa-database"></i>
+                      <span>Filter by Question Bank</span>
+                    </div>
+                    <div class="bank-filter-buttons" id="editQuizBankFilterButtons">
+                      <button type="button" class="bank-filter-btn active" data-bank-id="all" onclick="filterEditQuizByBank('all')">
+                        <i class="fas fa-th"></i>
+                        All Banks
+                      </button>
+                      <!-- Bank filter buttons will be dynamically added here -->
+                    </div>
+                  </div>
+
+                  <!-- Question Filters Section -->
+                  <div class="question-filters-section">
+                    <div class="filters-row">
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-signal"></i>
+                          Difficulty
+                        </label>
+                        <select class="filter-select" id="editQuizDifficultyFilter" onchange="filterEditQuizQuestions()">
+                          <option value="">All Difficulties</option>
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </div>
+
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-tag"></i>
+                          Type
+                        </label>
+                        <select class="filter-select" id="editQuizTypeFilter" onchange="filterEditQuizQuestions()">
+                          <option value="">All Types</option>
+                          <option value="MCQ">Multiple Choice</option>
+                          <option value="True/False">True/False</option>
+                          <option value="Written">Written</option>
+                        </select>
+                      </div>
+
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-tags"></i>
+                          Tags
+                        </label>
+                        <select class="filter-select" id="editQuizTagsFilter" onchange="filterEditQuizQuestions()">
+                          <option value="">All Tags</option>
+                          <!-- Tags will be populated dynamically -->
+                        </select>
+                      </div>
+
+                      <div class="filter-item filter-search">
+                        <label class="filter-label">
+                          <i class="fas fa-search"></i>
+                          Search
+                        </label>
+                        <input type="text" class="filter-search-input" id="editQuizSearchFilter" placeholder="Search questions..." onkeyup="filterEditQuizQuestions()">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Quick Selection Tools -->
+                  <div class="quick-selection-tools">
+                    <div class="selection-tools-left">
+                      <input type="text" class="range-input" id="editQuizRangeInput" placeholder="Range: 1-5, 8, 10-12">
+                      <button type="button" class="tool-btn" onclick="selectEditQuizRange()">
+                        <i class="fas fa-list-ol"></i>
+                        Select Range
+                      </button>
+                    </div>
+                    <div class="selection-tools-right">
+                      <button type="button" class="tool-btn" onclick="selectAllEditQuizQuestions()">
+                        <i class="fas fa-check-double"></i>
+                        Select All
+                      </button>
+                      <button type="button" class="tool-btn" onclick="clearEditQuizSelection()">
+                        <i class="fas fa-times"></i>
+                        Clear
+                      </button>
+                      <button type="button" class="tool-btn" onclick="selectEvenEditQuizQuestions()">
+                        <i class="fas fa-sort-numeric-down"></i>
+                        Even
+                      </button>
+                      <button type="button" class="tool-btn" onclick="selectOddEditQuizQuestions()">
+                        <i class="fas fa-sort-numeric-up"></i>
+                        Odd
+                      </button>
+                      <button type="button" class="tool-btn" onclick="selectRandomEditQuizQuestions()">
+                        <i class="fas fa-random"></i>
+                        Random 30%
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Questions List Container -->
+                  <div class="questions-list-container">
+                    <div class="questions-list" id="editQuizQuestionsGrid">
+                      <!-- Questions will be loaded here -->
+                    </div>
+                    <div id="editNoQuizQuestionsMessage" class="no-questions-message">
+                      <i class="fas fa-question-circle"></i>
+                      <p>No Questions Loaded</p>
+                      <small>Please select question banks in Step 1 to load questions.</small>
+                    </div>
+                  </div>
+
+                  <!-- Selection Summary -->
+                  <div class="selection-summary-container">
+                    <div class="selection-summary" id="editQuizSelectionSummary">
+                      <div class="summary-item">
+                        <span class="summary-label">Selected Questions:</span>
+                        <span class="summary-value" id="editQuizSelectedCount">0</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Total Points:</span>
+                        <span class="summary-value" id="editQuizTotalPoints">0</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Difficulty Distribution:</span>
+                        <div class="difficulty-distribution" id="editQuizDifficultyDistribution">
+                          <div class="difficulty-item">
+                            <span class="badge bg-success">Easy: <span id="editQuizEasyCount">0</span></span>
+                          </div>
+                          <div class="difficulty-item">
+                            <span class="badge bg-warning">Medium: <span id="editQuizMediumCount">0</span></span>
+                          </div>
+                          <div class="difficulty-item">
+                            <span class="badge bg-danger">Hard: <span id="editQuizHardCount">0</span></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 3: Quiz Settings -->
+                <div class="quiz-step-content" id="editQuizStep3" style="display: none;">
                   <div class="row">
                     <div class="col-md-6">
                       <div class="admin-form-group">
@@ -1555,22 +1732,215 @@
                     <textarea class="admin-form-control" id="editQuizInstructions" name="quizInstructions" rows="3" placeholder="Enter quiz instructions for students..."></textarea>
                   </div>
                 </div>
+
+                <!-- Quiz Navigation -->
+                <div class="quiz-navigation mt-4">
+                  <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" id="editQuizPrevBtn" onclick="prevEditQuizStep()" disabled>
+                      <i class="fas fa-arrow-left me-1"></i> Previous
+                    </button>
+                    <div class="quiz-step-indicator">
+                      Step <span id="editQuizCurrentStepNumber">1</span> of 3
+                    </div>
+                    <button type="button" class="btn btn-primary" id="editQuizNextBtn" onclick="nextEditQuizStep()">
+                      Next <i class="fas fa-arrow-right ms-1"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Homework Content Section -->
+          <!-- Homework Content Section - Full Editing with Multiple Banks -->
           <div class="row mt-4" id="editHomeworkContentSection" style="display: none;">
             <div class="col-12">
               <div class="admin-form-section">
                 <h6 class="admin-form-section-title">
                   <i class="fas fa-tasks me-2"></i>
-                  Homework Settings
+                  Homework Configuration
                 </h6>
 
-                <!-- Homework Settings (Step 1 & 2 hidden when editing) -->
-                <!-- Homework Settings (editable) -->
-                <div class="edit-homework-settings-only">
+                <!-- Homework Progress Steps -->
+                <div class="homework-progress-steps mb-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="homework-step active" data-step="1">
+                      <span class="step-number">1</span>
+                      <span class="homework-step-label">Bank</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="homework-step" data-step="2">
+                      <span class="step-number">2</span>
+                      <span class="homework-step-label">Questions</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="homework-step" data-step="3">
+                      <span class="step-number">3</span>
+                      <span class="homework-step-label">Settings</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 1: Question Bank Selection -->
+                <div class="homework-step-content" id="editHomeworkStep1">
+                  <div class="admin-form-group">
+                    <label class="admin-form-label">
+                      <i class="fas fa-database me-2"></i>
+                      Select Question Banks * <span id="editHomeworkSelectedBanksCount" class="text-muted">(0 selected)</span>
+                    </label>
+                    <div class="bank-cards-grid" id="editHomeworkQuestionBanksGrid">
+                      <!-- Question banks will be loaded here -->
+                    </div>
+                    <div id="editNoHomeworkQuestionBanksMessage" class="text-center py-4" style="display: none;">
+                      <i class="fas fa-database fa-2x text-muted mb-2"></i>
+                      <p class="text-muted mb-0">No Question Banks Available</p>
+                      <small class="text-muted">Create question banks first to add homework content.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 2: Question Selection -->
+                <div class="homework-step-content" id="editHomeworkStep2" style="display: none;">
+                  <!-- Bank Filter Section -->
+                  <div class="question-bank-filter-section">
+                    <div class="filter-section-header">
+                      <i class="fas fa-database"></i>
+                      <span>Filter by Question Bank</span>
+                    </div>
+                    <div class="bank-filter-buttons" id="editHomeworkBankFilterButtons">
+                      <button type="button" class="bank-filter-btn active" data-bank-id="all" onclick="filterEditHomeworkByBank('all')">
+                        <i class="fas fa-th"></i>
+                        All Banks
+                      </button>
+                      <!-- Bank filter buttons will be dynamically added here -->
+                    </div>
+                  </div>
+
+                  <!-- Question Filters Section -->
+                  <div class="question-filters-section">
+                    <div class="filters-row">
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-signal"></i>
+                          Difficulty
+                        </label>
+                        <select class="filter-select" id="editHomeworkDifficultyFilter" onchange="filterEditHomeworkQuestions()">
+                          <option value="">All Difficulties</option>
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </div>
+
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-tag"></i>
+                          Type
+                        </label>
+                        <select class="filter-select" id="editHomeworkTypeFilter" onchange="filterEditHomeworkQuestions()">
+                          <option value="">All Types</option>
+                          <option value="MCQ">Multiple Choice</option>
+                          <option value="True/False">True/False</option>
+                          <option value="Written">Written</option>
+                        </select>
+                      </div>
+
+                      <div class="filter-item">
+                        <label class="filter-label">
+                          <i class="fas fa-tags"></i>
+                          Tags
+                        </label>
+                        <select class="filter-select" id="editHomeworkTagsFilter" onchange="filterEditHomeworkQuestions()">
+                          <option value="">All Tags</option>
+                          <!-- Tags will be populated dynamically -->
+                        </select>
+                      </div>
+
+                      <div class="filter-item filter-search">
+                        <label class="filter-label">
+                          <i class="fas fa-search"></i>
+                          Search
+                        </label>
+                        <input type="text" class="filter-search-input" id="editHomeworkSearchFilter" placeholder="Search questions..." onkeyup="filterEditHomeworkQuestions()">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Quick Selection Tools -->
+                  <div class="quick-selection-tools">
+                    <div class="selection-tools-left">
+                      <input type="text" class="range-input" id="editHomeworkRangeInput" placeholder="Range: 1-5, 8, 10-12">
+                      <button type="button" class="tool-btn" onclick="selectEditHomeworkRange()">
+                        <i class="fas fa-list-ol"></i>
+                        Select Range
+                      </button>
+                    </div>
+                    <div class="selection-tools-right">
+                      <button type="button" class="tool-btn" onclick="selectAllEditHomeworkQuestions()">
+                        <i class="fas fa-check-double"></i>
+                        Select All
+                      </button>
+                      <button type="button" class="tool-btn" onclick="clearEditHomeworkSelection()">
+                        <i class="fas fa-times"></i>
+                        Clear
+                      </button>
+                      <button type="button" class="tool-btn" onclick="selectEvenEditHomeworkQuestions()">
+                        <i class="fas fa-sort-numeric-down"></i>
+                        Even
+                      </button>
+                      <button type="button" class="tool-btn" onclick="selectOddEditHomeworkQuestions()">
+                        <i class="fas fa-sort-numeric-up"></i>
+                        Odd
+                      </button>
+                      <button type="button" class="tool-btn" onclick="selectRandomEditHomeworkQuestions()">
+                        <i class="fas fa-random"></i>
+                        Random 30%
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Questions List Container -->
+                  <div class="questions-list-container">
+                    <div class="questions-list" id="editHomeworkQuestionsGrid">
+                      <!-- Questions will be loaded here -->
+                    </div>
+                    <div id="editNoHomeworkQuestionsMessage" class="no-questions-message">
+                      <i class="fas fa-question-circle"></i>
+                      <p>No Questions Loaded</p>
+                      <small>Please select question banks in Step 1 to load questions.</small>
+                    </div>
+                  </div>
+
+                  <!-- Selection Summary -->
+                  <div class="selection-summary-container">
+                    <div class="selection-summary" id="editHomeworkSelectionSummary">
+                      <div class="summary-item">
+                        <span class="summary-label">Selected Questions:</span>
+                        <span class="summary-value" id="editHomeworkSelectedCount">0</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Total Points:</span>
+                        <span class="summary-value" id="editHomeworkTotalPoints">0</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Difficulty Distribution:</span>
+                        <div class="difficulty-distribution" id="editHomeworkDifficultyDistribution">
+                          <div class="difficulty-item">
+                            <span class="badge bg-success">Easy: <span id="editHomeworkEasyCount">0</span></span>
+                          </div>
+                          <div class="difficulty-item">
+                            <span class="badge bg-warning">Medium: <span id="editHomeworkMediumCount">0</span></span>
+                          </div>
+                          <div class="difficulty-item">
+                            <span class="badge bg-danger">Hard: <span id="editHomeworkHardCount">0</span></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 3: Homework Settings -->
+                <div class="homework-step-content" id="editHomeworkStep3" style="display: none;">
                   <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
                     Homework has no time limit and uses pass/fail grading only.
@@ -1619,6 +1989,21 @@
                       Instructions
                     </label>
                     <textarea class="admin-form-control" id="editHomeworkInstructions" name="homeworkInstructions" rows="3" placeholder="Enter homework instructions for students..."></textarea>
+                  </div>
+                </div>
+
+                <!-- Homework Navigation -->
+                <div class="homework-navigation mt-4">
+                  <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" id="editHomeworkPrevBtn" onclick="prevEditHomeworkStep()" disabled>
+                      <i class="fas fa-arrow-left me-1"></i> Previous
+                    </button>
+                    <div class="homework-step-indicator">
+                      Step <span id="editHomeworkCurrentStepNumber">1</span> of 3
+                    </div>
+                    <button type="button" class="btn btn-success" id="editHomeworkNextBtn" onclick="nextEditHomeworkStep()">
+                      Next <i class="fas fa-arrow-right ms-1"></i>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2097,6 +2482,15 @@ function getContentIcon(type) {
     document.getElementById('fileUploadSection').style.display = 'none';
     document.getElementById('uploadedFileUrl').value = '';
 
+    // Reset quiz and homework steps
+    resetQuizSteps();
+    resetHomeworkSteps();
+
+    // Hide all content type sections
+    document.getElementById('quizContentSection').style.display = 'none';
+    document.getElementById('homeworkContentSection').style.display = 'none';
+    document.getElementById('zoomContentSection').style.display = 'none';
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('addContentModal'));
     modal.show();
@@ -2134,6 +2528,21 @@ function getContentIcon(type) {
   }
 
   function showEditTopicModal(topicId, topicData) {
+    // Helper function to escape template literal special characters
+    const escapeTemplate = (text) => {
+      if (!text) return '';
+      return String(text)
+        .replace(/\\/g, '\\\\')  // Escape backslashes
+        .replace(/`/g, '\\`')    // Escape backticks
+        .replace(/\${/g, '\\${')  // Escape template expressions
+        .replace(/\n/g, '\\n')    // Preserve newlines
+        .replace(/\r/g, '\\r');   // Preserve carriage returns
+    };
+
+    // Escape all text fields to prevent template literal issues
+    const safeTitle = escapeTemplate(topicData.title || '');
+    const safeDescription = escapeTemplate(topicData.description || '');
+    
     const modalHtml = `
     <div class="modal fade" id="editTopicModal" tabindex="-1">
       <div class="modal-dialog modal-xl">
@@ -2168,7 +2577,7 @@ function getContentIcon(type) {
                           <i class="fas fa-heading"></i>
                           <span>Topic Title</span>
                         </label>
-                        <input type="text" class="form-control form-control-lg" name="title" value="${topicData.title}" required minlength="3" maxlength="100" placeholder="Enter topic title">
+                        <input type="text" class="form-control form-control-lg" name="title" value="${safeTitle}" required minlength="3" maxlength="100" placeholder="Enter topic title">
                         <div class="form-hint">Title must be between 3-100 characters</div>
                       </div>
                     </div>
@@ -2188,8 +2597,8 @@ function getContentIcon(type) {
                       <i class="fas fa-align-left"></i>
                       <span>Description</span>
                     </label>
-                    <textarea class="form-control form-control-lg" name="description" rows="4" maxlength="500" placeholder="Enter detailed topic description">${topicData.description}</textarea>
-                    <div class="form-hint">Description is optional (max 500 characters)</div>
+                    <textarea class="form-control form-control-lg" name="description" rows="4" maxlength="500" placeholder="Enter detailed topic description">${safeDescription}</textarea>
+                    <div class="form-hint">Description is optional (max 500 characters, minimum 10 if provided)</div>
                   </div>
                 </div>
               </div>
@@ -2318,11 +2727,34 @@ function getContentIcon(type) {
       // Clear previous validation errors
       clearValidationErrors();
 
+      // Get submit button reference early
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+
       const formData = new FormData(this);
       const data = Object.fromEntries(formData.entries());
 
       // Convert checkbox to boolean
       data.isPublished = data.isPublished === 'on';
+
+      // Handle description - trim and validate
+      if (data.description) {
+        data.description = data.description.trim();
+        // If description is provided but less than 10 characters, show error
+        if (data.description.length > 0 && data.description.length < 10) {
+          showNotification('Description must be at least 10 characters long if provided', 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+          return;
+        }
+        // If trimmed description is empty, remove it from data
+        if (data.description.length === 0) {
+          delete data.description;
+        }
+      } else {
+        // If description is empty, remove it from data so backend doesn't validate it
+        delete data.description;
+      }
 
       // Convert tags string to array
       if (data.tags) {
@@ -2330,10 +2762,19 @@ function getContentIcon(type) {
       }
 
       // Show loading state
-      const submitBtn = this.querySelector('button[type="submit"]');
-      const originalText = submitBtn.innerHTML;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
       submitBtn.disabled = true;
+
+      // Validate topicId
+      if (!topicId || topicId === 'undefined' || topicId === 'null') {
+        showNotification('Error: Invalid topic ID', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+      }
+
+      // Log the data being sent for debugging (remove in production)
+      console.log('Updating topic:', topicId, 'Data:', data);
 
       fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}`, {
           method: 'PUT',
@@ -2343,9 +2784,28 @@ function getContentIcon(type) {
           },
           body: JSON.stringify(data)
         })
-        .then(response => response.json())
+        .then(async response => {
+          // Check if response is ok before parsing JSON
+          if (!response.ok) {
+            let errorMessage = `Server error: ${response.status}`;
+            try {
+              const errData = await response.json();
+              errorMessage = errData.message || errorMessage;
+              // If there are validation errors, show them
+              if (errData.errors) {
+                showValidationErrors(errData.errors);
+                return; // Don't throw, let the user see the validation errors
+              }
+            } catch (e) {
+              // Response is not JSON, use status text
+              errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
+          }
+          return response.json();
+        })
         .then(data => {
-          if (data.success) {
+          if (data && data.success) {
             modal.hide();
             showNotification('Topic updated successfully!', 'success');
 
@@ -2353,16 +2813,16 @@ function getContentIcon(type) {
             updateTopicCard(topicId, data.topic);
           } else {
             // Handle validation errors
-            if (data.errors) {
+            if (data && data.errors) {
               showValidationErrors(data.errors);
             } else {
-              showNotification('Error: ' + (data.message || 'Failed to update topic'), 'error');
+              showNotification('Error: ' + (data?.message || 'Failed to update topic'), 'error');
             }
           }
         })
         .catch(error => {
-          console.error('Error:', error);
-          showNotification('Error updating topic: ' + error.message, 'error');
+          console.error('Error updating topic:', error);
+          showNotification('Error updating topic: ' + (error.message || 'Unknown error occurred'), 'error');
         })
         .finally(() => {
           // Restore button state
@@ -2683,7 +3143,13 @@ function getContentIcon(type) {
     document.getElementById('editContentTitle').value = contentData.title || '';
     document.getElementById('editContentDescription').value = contentData.description || '';
     document.getElementById('editContentUrl').value = contentData.content || '';
-    document.getElementById('editContentDuration').value = contentData.duration || 0;
+    // Preserve duration value - only set if it exists and is a number, otherwise leave empty
+    const durationInput = document.getElementById('editContentDuration');
+    if (contentData.duration !== undefined && contentData.duration !== null && contentData.duration !== '') {
+      durationInput.value = contentData.duration;
+    } else {
+      durationInput.value = ''; // Leave empty if not set
+    }
     document.getElementById('editContentOrder').value = contentData.order || 1;
     document.getElementById('editContentDifficulty').value = contentData.difficulty || 'beginner';
     document.getElementById('editIsRequired').checked = contentData.isRequired !== false;
@@ -2695,11 +3161,98 @@ function getContentIcon(type) {
     typeSelect.style.backgroundColor = '#e9ecef';
     typeSelect.style.cursor = 'not-allowed';
 
-    // Set prerequisites
+    // Remove current content item from prerequisites dropdown to prevent self-reference
     const prerequisitesSelect = document.getElementById('editContentPrerequisites');
+    if (prerequisitesSelect && contentId) {
+      // Convert contentId to string for comparison
+      const currentContentIdStr = String(contentId);
+
+      // Find and remove the option that matches the current content ID
+      let wasRemoved = false;
+      Array.from(prerequisitesSelect.options).forEach(option => {
+        if (String(option.value) === currentContentIdStr) {
+          option.remove();
+          wasRemoved = true;
+          console.log('Edit Content - Removed current content from prerequisites:', currentContentIdStr);
+        }
+      });
+
+      // If the current content was removed and it was set as prerequisite, clear it
+      if (wasRemoved && contentData.prerequisites) {
+        let prerequisiteId = '';
+
+        // Handle prerequisites - can be array, single value, or object with _id
+        if (Array.isArray(contentData.prerequisites)) {
+          if (contentData.prerequisites.length > 0) {
+            prerequisiteId = contentData.prerequisites[0];
+          }
+        } else if (typeof contentData.prerequisites === 'object' && contentData.prerequisites._id) {
+          prerequisiteId = contentData.prerequisites._id;
+        } else {
+          prerequisiteId = contentData.prerequisites;
+        }
+
+        // Convert to string for comparison
+        if (prerequisiteId && typeof prerequisiteId === 'object' && prerequisiteId.toString) {
+          prerequisiteId = prerequisiteId.toString();
+        } else {
+          prerequisiteId = String(prerequisiteId || '');
+        }
+
+        // If the prerequisite matches the current content ID, clear it
+        if (prerequisiteId === currentContentIdStr) {
+          console.warn('Edit Content - Current content was set as its own prerequisite. Clearing prerequisite.');
+          contentData.prerequisites = null; // Clear it so it won't be set
+        }
+      }
+    }
+
+    // Set prerequisites - handle MongoDB ObjectId conversion
     if (prerequisitesSelect && contentData.prerequisites) {
-      const prerequisiteId = Array.isArray(contentData.prerequisites) ? contentData.prerequisites[0] : contentData.prerequisites;
-      prerequisitesSelect.value = prerequisiteId || '';
+      let prerequisiteId = '';
+
+      // Handle prerequisites - can be array, single value, or object with _id
+      if (Array.isArray(contentData.prerequisites)) {
+        // If it's an array, get the first one
+        if (contentData.prerequisites.length > 0) {
+          prerequisiteId = contentData.prerequisites[0];
+        }
+      } else if (typeof contentData.prerequisites === 'object' && contentData.prerequisites._id) {
+        // If it's an object with _id property
+        prerequisiteId = contentData.prerequisites._id;
+      } else {
+        // It's a single value
+        prerequisiteId = contentData.prerequisites;
+      }
+
+      // Convert to string for matching with select option values
+      // Handle MongoDB ObjectId objects
+      if (prerequisiteId && typeof prerequisiteId === 'object' && prerequisiteId.toString) {
+        prerequisiteId = prerequisiteId.toString();
+      } else {
+        prerequisiteId = String(prerequisiteId || '');
+      }
+
+      // Use setTimeout to ensure select options are loaded before setting value
+      setTimeout(() => {
+        // Check if the option exists in the select
+        const optionExists = Array.from(prerequisitesSelect.options).some(
+          option => String(option.value) === prerequisiteId
+        );
+
+        if (prerequisiteId && optionExists) {
+          prerequisitesSelect.value = prerequisiteId;
+          console.log('Edit Content - Prerequisite set successfully:', prerequisiteId);
+        } else if (prerequisiteId) {
+          // Option doesn't exist, log for debugging
+          console.warn('Edit Content - Prerequisite ID not found in options:', prerequisiteId);
+          console.log('Edit Content - Available options:', Array.from(prerequisitesSelect.options).map(opt => opt.value));
+          prerequisitesSelect.value = ''; // Set to empty if not found
+        } else {
+          prerequisitesSelect.value = '';
+        }
+      }, 100);
+
       // Make prerequisites look disabled but keep enabled for submission
       prerequisitesSelect.style.pointerEvents = 'none';
       prerequisitesSelect.style.backgroundColor = '#e9ecef';
@@ -2877,66 +3430,168 @@ function getContentIcon(type) {
     const preview = document.getElementById('editContentFilePreview');
     const progressContainer = document.getElementById('editContentFileProgress');
     const uploadedUrlInput = document.getElementById('editUploadedFileUrl');
+    const contentUrlInput = document.getElementById('editContentUrl');
 
     if (fileInput && preview) {
       fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-          // Show file info
-          preview.innerHTML = `
-            <div class="file-info">
-              <i class="fas fa-file"></i>
-              <div class="file-details">
-                <strong>${file.name}</strong>
-                <small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-              </div>
-            </div>
-          `;
-
-          // File upload functionality removed
-          console.log('File upload functionality has been removed');
+          uploadEditFile(file, progressContainer, uploadedUrlInput, contentUrlInput, preview);
         }
       });
     }
   }
 
-  function uploadEditFile(file, progressContainer, uploadedUrlInput) {
-    const formData = new FormData();
-    formData.append('file', file);
+  function uploadEditFile(file, progressContainer, uploadedUrlInput, contentUrlInput, preview) {
+    // Validate file type
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      showNotification('Only PDF files are allowed', 'error');
+      return;
+    }
+
+    // Validate file size (50MB limit)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      showNotification('File size must be less than 50MB', 'error');
+      return;
+    }
+
+    // Show file info in preview
+    if (preview) {
+      preview.innerHTML = `
+        <div class="file-info">
+          <i class="fas fa-file-pdf" style="font-size: 3rem; color: #dc2626;"></i>
+          <div class="file-details">
+            <strong>${file.name}</strong>
+            <small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+          </div>
+        </div>
+      `;
+    }
 
     // Show progress
-    progressContainer.style.display = 'block';
-    progressContainer.innerHTML = '<div class="progress"><div class="progress-bar" style="width: 0%"></div></div>';
+    if (progressContainer) {
+      progressContainer.style.display = 'block';
+      progressContainer.innerHTML = `
+        <div class="progress">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+        </div>
+        <small class="d-block mt-2 text-center">Uploading PDF...</small>
+      `;
+    }
 
-    // S3 upload functionality removed
-    console.log('S3 upload functionality has been removed');
+    // Create FormData
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    // Upload PDF
+    fetch('/admin/upload/pdf', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update hidden input and URL input
+        if (uploadedUrlInput) {
+          uploadedUrlInput.value = data.fileUrl;
+        }
+        if (contentUrlInput) {
+          contentUrlInput.value = data.fileUrl;
+        }
+
+        // Show success
+        if (progressContainer) {
+          progressContainer.innerHTML = `
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle"></i>
+              PDF uploaded successfully!
+            </div>
+          `;
+        }
+
+        if (preview) {
+          preview.innerHTML = `
+            <div class="file-info">
+              <i class="fas fa-file-pdf" style="font-size: 3rem; color: #10b981;"></i>
+              <div class="file-details">
+                <strong>${data.fileName}</strong>
+                <small class="text-success">Uploaded successfully</small>
+              </div>
+            </div>
+          `;
+        }
+
+        showNotification('PDF uploaded successfully!', 'success');
+
+        // Hide progress after 3 seconds
+        setTimeout(() => {
+          if (progressContainer) {
+            progressContainer.style.display = 'none';
+          }
+        }, 3000);
+      } else {
+        throw new Error(data.message || 'Upload failed');
+      }
+    })
+    .catch(error => {
+      console.error('Upload error:', error);
+      showNotification('Error uploading PDF: ' + error.message, 'error');
+      
+      if (progressContainer) {
+        progressContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i>
+            Upload failed: ${error.message}
+          </div>
+        `;
+      }
+
+      if (preview) {
+        preview.innerHTML = `
+          <div class="preview-overlay">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Click or drag to upload new file</p>
+            <small>PDF files only</small>
+          </div>
+        `;
+      }
+    });
   }
 
-  function handleEditContentSubmission(topicId, contentId, modal) {
+  // Handle edit content submission - Updated to support all content types properly
+  async function handleEditContentSubmission(topicId, contentId, modal) {
+    const contentType = document.getElementById('editContentType').value;
+
+    // Handle quiz content with AJAX
+    if (contentType === 'quiz') {
+      await submitEditQuizContent(topicId, contentId, modal);
+      return;
+    }
+
+    // Handle homework content with AJAX
+    if (contentType === 'homework') {
+      await submitEditHomeworkContent(topicId, contentId, modal);
+      return;
+    }
+
+    // Handle other content types with regular form submission
     const form = document.getElementById('editContentForm');
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
-
-    // For quiz/homework/zoom, the content field should be set to a placeholder or left empty
-    // The backend should handle this appropriately
-    if (data.type === 'quiz' || data.type === 'homework') {
-      // Set content to 'quiz' or 'homework' as placeholder since it's required in schema
-      data.content = data.type;
+    
+    // Handle duration - only include if it has a value
+    const durationValue = document.getElementById('editContentDuration')?.value;
+    if (durationValue && durationValue.trim() !== '') {
+      data.duration = parseInt(durationValue) || 0;
+    } else {
+      // Remove duration from data if empty, so backend keeps existing value
+      delete data.duration;
     }
 
+    // For zoom, set content to type name
     if (data.type === 'zoom') {
-      // Set content to 'zoom' as placeholder
       data.content = 'zoom';
-    }
-
-    // Collect quiz data if it's a quiz
-    if (data.type === 'quiz') {
-      data.quizData = collectEditQuizData();
-    }
-
-    // Collect homework data if it's homework
-    if (data.type === 'homework') {
-      data.homeworkData = collectEditHomeworkData();
     }
 
     // Show loading state
@@ -2945,153 +3600,505 @@ function getContentIcon(type) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
     submitBtn.disabled = true;
 
-    fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/content/${contentId}`, {
+    try {
+      const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/content/${contentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data)
-      })
-      .then(response => response.json())
-      .then(result => {
-        if (result.success) {
-          modal.hide();
-          showNotification('Content updated successfully!', 'success');
-          setTimeout(() => {
-            location.reload();
-          }, 1000);
-        } else {
-          throw new Error(result.message || 'Failed to update content');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error updating content: ' + error.message, 'error');
-      })
-      .finally(() => {
-        // Restore button state
-        submitBtn.innerHTML = originalText;
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        modal.hide();
+        showNotification('Content updated successfully!', 'success');
+        setTimeout(() => {
+          location.reload();
+        }, 1000);
+      } else {
+        throw new Error(result.message || 'Failed to update content');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('Error updating content: ' + error.message, 'error');
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    }
+  }
+
+  // Submit Edit Quiz Content with multiple banks support
+  async function submitEditQuizContent(topicId, contentId, modal) {
+    try {
+      const courseCode = '<%= course.courseCode %>';
+
+      // Get current selections - use edit quiz variables
+      const selectedBankIds = selectedEditQuizQuestionBankIds.length > 0 ? selectedEditQuizQuestionBankIds : (window.editContentData?.contentData?.questionBanks?.map(b => b._id) || []);
+      const selectedQuestions = selectedEditQuizQuestions.length > 0 ? selectedEditQuizQuestions : (window.editContentData?.contentData?.selectedQuestions?.map(sq => ({
+        question: sq.question?._id || sq.question,
+        sourceBank: sq.sourceBank || selectedBankIds[0],
+        points: sq.points || 1,
+        order: sq.order || 1
+      })) || []);
+
+      // If no new selections, keep existing (don't require validation)
+      const title = document.getElementById('editContentTitle').value.trim();
+      if (!title) {
+        showNotification('Please enter a title', 'error');
+        return;
+      }
+
+      const prerequisitesValue = document.getElementById('editContentPrerequisites')?.value || '';
+
+      const formData = {
+        type: 'quiz',
+        title: title,
+        description: document.getElementById('editContentDescription').value.trim(),
+        content: 'quiz',
+        questionBanks: selectedBankIds.length > 0 ? selectedBankIds : undefined, // Only send if changed
+        selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : undefined, // Only send if changed
+        quizDuration: parseInt(document.getElementById('editQuizDuration')?.value) || 30,
+        quizPassingScore: parseInt(document.getElementById('editQuizPassingScore')?.value) || 60,
+        quizMaxAttempts: parseInt(document.getElementById('editQuizMaxAttempts')?.value) || 3,
+        quizShuffleQuestions: document.getElementById('editQuizShuffleQuestions')?.checked || false,
+        quizShuffleOptions: document.getElementById('editQuizShuffleOptions')?.checked || false,
+        quizShowCorrectAnswers: document.getElementById('editQuizShowCorrectAnswers')?.checked || false,
+        quizShowResults: document.getElementById('editQuizShowResults')?.checked || false,
+        quizInstructions: document.getElementById('editQuizInstructions')?.value.trim() || '',
+        difficulty: document.getElementById('editContentDifficulty')?.value || 'beginner',
+        tags: document.getElementById('editContentTags')?.value.split(',').map(t => t.trim()).filter(t => t) || [],
+        prerequisites: prerequisitesValue || null,
+        isRequired: document.getElementById('editIsRequired')?.checked || true,
+        order: parseInt(document.getElementById('editContentOrder')?.value) || 1,
+      };
+
+      // Show loading
+      showNotification('Updating quiz content...', 'info');
+      const submitBtn = document.getElementById('editContentSubmitBtn');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+
+      const response = await fetch(`/admin/courses/${courseCode}/topics/${topicId}/content/${contentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification('Quiz content updated successfully!', 'success');
+        modal.hide();
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      } else {
+        showNotification(data.message || 'Failed to update quiz content', 'error');
         submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    } catch (error) {
+      console.error('Error updating quiz content:', error);
+      showNotification('Error updating quiz content: ' + error.message, 'error');
+      const submitBtn = document.getElementById('editContentSubmitBtn');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Content';
+    }
+  }
+
+  // Submit Edit Homework Content with multiple banks support
+  async function submitEditHomeworkContent(topicId, contentId, modal) {
+    try {
+      const courseCode = '<%= course.courseCode %>';
+
+      // Get current selections - use edit homework variables
+      const selectedBankIds = selectedEditHomeworkQuestionBankIds.length > 0 ? selectedEditHomeworkQuestionBankIds : (window.editContentData?.contentData?.questionBanks?.map(b => b._id) || []);
+      const selectedQuestions = selectedEditHomeworkQuestions.length > 0 ? selectedEditHomeworkQuestions : (window.editContentData?.contentData?.selectedQuestions?.map(sq => ({
+        question: sq.question?._id || sq.question,
+        sourceBank: sq.sourceBank || selectedBankIds[0],
+        points: sq.points || 1,
+        order: sq.order || 1
+      })) || []);
+
+      // If no new selections, keep existing (don't require validation)
+      const title = document.getElementById('editContentTitle').value.trim();
+      if (!title) {
+        showNotification('Please enter a title', 'error');
+        return;
+      }
+
+      const prerequisitesValue = document.getElementById('editContentPrerequisites')?.value || '';
+
+      const formData = {
+        type: 'homework',
+        title: title,
+        description: document.getElementById('editContentDescription').value.trim(),
+        content: 'homework',
+        questionBanks: selectedBankIds.length > 0 ? selectedBankIds : undefined, // Only send if changed
+        selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : undefined, // Only send if changed
+        homeworkPassingScore: parseInt(document.getElementById('editHomeworkPassingScore')?.value) || 60,
+        homeworkMaxAttempts: parseInt(document.getElementById('editHomeworkMaxAttempts')?.value) || 1,
+        homeworkShuffleQuestions: document.getElementById('editHomeworkShuffleQuestions')?.checked || false,
+        homeworkShuffleOptions: document.getElementById('editHomeworkShuffleOptions')?.checked || false,
+        homeworkShowCorrectAnswers: document.getElementById('editHomeworkShowCorrectAnswers')?.checked || false,
+        homeworkInstructions: document.getElementById('editHomeworkInstructions')?.value.trim() || '',
+        difficulty: document.getElementById('editContentDifficulty')?.value || 'beginner',
+        tags: document.getElementById('editContentTags')?.value.split(',').map(t => t.trim()).filter(t => t) || [],
+        prerequisites: prerequisitesValue || null,
+        isRequired: document.getElementById('editIsRequired')?.checked || true,
+        order: parseInt(document.getElementById('editContentOrder')?.value) || 1,
+      };
+
+      // Show loading
+      showNotification('Updating homework content...', 'info');
+      const submitBtn = document.getElementById('editContentSubmitBtn');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+
+      const response = await fetch(`/admin/courses/${courseCode}/topics/${topicId}/content/${contentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification('Homework content updated successfully!', 'success');
+        modal.hide();
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      } else {
+        showNotification(data.message || 'Failed to update homework content', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    } catch (error) {
+      console.error('Error updating homework content:', error);
+      showNotification('Error updating homework content: ' + error.message, 'error');
+      const submitBtn = document.getElementById('editContentSubmitBtn');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Update Content';
+    }
   }
 
-  function collectEditQuizData() {
-    return {
-      selectedQuestions: window.editQuizSelectedQuestions || [],
-      questionBankId: window.editQuizSelectedBankId || null,
-      duration: document.getElementById('editQuizDuration')?.value || 30,
-      passingScore: document.getElementById('editQuizPassingScore')?.value || 60,
-      maxAttempts: document.getElementById('editQuizMaxAttempts')?.value || 3,
-      shuffleQuestions: document.getElementById('editQuizShuffleQuestions')?.checked || false,
-      shuffleOptions: document.getElementById('editQuizShuffleOptions')?.checked || false,
-      showCorrectAnswers: document.getElementById('editQuizShowCorrectAnswers')?.checked || true,
-      showResults: document.getElementById('editQuizShowResults')?.checked || true,
-      instructions: document.getElementById('editQuizInstructions')?.value || ''
-    };
-  }
+  // Edit Quiz and Homework Variables
+  let currentEditQuizStep = 1;
+  let currentEditHomeworkStep = 1;
+  let selectedEditQuizQuestionBankIds = [];
+  let selectedEditHomeworkQuestionBankIds = [];
+  let editQuizQuestions = [];
+  let editHomeworkQuestions = [];
+  let selectedEditQuizQuestions = [];
+  let selectedEditHomeworkQuestions = [];
+  let editQuizBankInfoMap = {};
+  let editHomeworkBankInfoMap = {};
+  window.currentEditQuizBankFilter = 'all';
+  window.currentEditHomeworkBankFilter = 'all';
 
-  function collectEditHomeworkData() {
-    return {
-      selectedQuestions: window.editHomeworkSelectedQuestions || [],
-      questionBankId: window.editHomeworkSelectedBankId || null,
-      passingScore: document.getElementById('editHomeworkPassingScore')?.value || 60,
-      maxAttempts: document.getElementById('editHomeworkMaxAttempts')?.value || 1,
-      shuffleQuestions: document.getElementById('editHomeworkShuffleQuestions')?.checked || false,
-      shuffleOptions: document.getElementById('editHomeworkShuffleOptions')?.checked || false,
-      showCorrectAnswers: document.getElementById('editHomeworkShowCorrectAnswers')?.checked || false,
-      instructions: document.getElementById('editHomeworkInstructions')?.value || ''
-    };
-  }
-
+  // Initialize Edit Quiz Functionality with full editing support
   function initializeEditQuizFunctionality(contentData) {
-    // When editing, we don't allow changing question bank or questions
-    // Only settings are editable, so no need to load banks or questions
-    // Quiz/Homework configuration (question bank and questions) is locked when editing
+    // Initialize edit quiz variables
+    currentEditQuizStep = 1;
+    selectedEditQuizQuestionBankIds = [];
+    editQuizQuestions = [];
+    selectedEditQuizQuestions = [];
+    editQuizBankInfoMap = {};
+    window.currentEditQuizBankFilter = 'all';
+
+    // Get existing question banks - convert IDs to strings for proper comparison
+    if (contentData.questionBanks && contentData.questionBanks.length > 0) {
+      selectedEditQuizQuestionBankIds = contentData.questionBanks.map(b => String(b._id));
+    } else if (contentData.questionBank) {
+      selectedEditQuizQuestionBankIds = [String(contentData.questionBank._id)];
+    }
+
+    console.log('Edit Quiz - Selected Bank IDs:', selectedEditQuizQuestionBankIds);
+
+    // Get existing selected questions - convert IDs to strings
+    if (contentData.selectedQuestions && contentData.selectedQuestions.length > 0) {
+      selectedEditQuizQuestions = contentData.selectedQuestions.map(sq => ({
+        question: String(sq.question?._id || sq.question),
+        sourceBank: String(sq.sourceBank || selectedEditQuizQuestionBankIds[0] || ''),
+        points: sq.points || 1,
+        order: sq.order || 1
+      }));
+      console.log('Edit Quiz - Selected Questions:', selectedEditQuizQuestions);
+    }
+
+    // Load question banks and initialize
+    loadEditQuizQuestionBanks(contentData).then(() => {
+      // After banks are loaded, automatically load questions if banks exist
+      if (selectedEditQuizQuestionBankIds.length > 0) {
+        setTimeout(() => {
+          loadEditQuizQuestions();
+        }, 500); // Small delay to ensure UI is updated
+      }
+    });
+
+    // Update step display
+    updateEditQuizStepDisplay();
   }
 
+  // Initialize Edit Homework Functionality with full editing support
   function initializeEditHomeworkFunctionality(contentData) {
-    // When editing, we don't allow changing question bank or questions
-    // Only settings are editable, so no need to load banks or questions
-    // Quiz/Homework configuration (question bank and questions) is locked when editing
+    // Initialize edit homework variables
+    currentEditHomeworkStep = 1;
+    selectedEditHomeworkQuestionBankIds = [];
+    editHomeworkQuestions = [];
+    selectedEditHomeworkQuestions = [];
+    editHomeworkBankInfoMap = {};
+    window.currentEditHomeworkBankFilter = 'all';
+
+    // Get existing question banks - convert IDs to strings for proper comparison
+    if (contentData.questionBanks && contentData.questionBanks.length > 0) {
+      selectedEditHomeworkQuestionBankIds = contentData.questionBanks.map(b => String(b._id));
+    } else if (contentData.questionBank) {
+      selectedEditHomeworkQuestionBankIds = [String(contentData.questionBank._id)];
+    }
+
+    console.log('Edit Homework - Selected Bank IDs:', selectedEditHomeworkQuestionBankIds);
+
+    // Get existing selected questions - convert IDs to strings
+    if (contentData.selectedQuestions && contentData.selectedQuestions.length > 0) {
+      selectedEditHomeworkQuestions = contentData.selectedQuestions.map(sq => ({
+        question: String(sq.question?._id || sq.question),
+        sourceBank: String(sq.sourceBank || selectedEditHomeworkQuestionBankIds[0] || ''),
+        points: sq.points || 1,
+        order: sq.order || 1
+      }));
+      console.log('Edit Homework - Selected Questions:', selectedEditHomeworkQuestions);
+    }
+
+    // Load question banks and initialize
+    loadEditHomeworkQuestionBanks(contentData).then(() => {
+      // After banks are loaded, automatically load questions if banks exist
+      if (selectedEditHomeworkQuestionBankIds.length > 0) {
+        setTimeout(() => {
+          loadEditHomeworkQuestions();
+        }, 500); // Small delay to ensure UI is updated
+      }
+    });
+
+    // Update step display
+    updateEditHomeworkStepDisplay();
   }
 
-  function loadEditQuizQuestionBanks() {
-    return fetch('/admin/question-banks/api')
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const grid = document.getElementById('editQuizQuestionBanksGrid');
-          if (grid && data.questionBanks.length > 0) {
-            grid.innerHTML = data.questionBanks.map(bank => `
-              <div class="col-md-4 mb-3">
-                <div class="question-bank-card" onclick="selectEditQuizQuestionBank('${bank._id}')">
-                  <div class="bank-header">
+  // Load Edit Quiz Question Banks with multiple selection support
+  async function loadEditQuizQuestionBanks(contentData) {
+    try {
+      // Get topicId from editContentData
+      const topicId = window.editContentData?.topicId;
+      if (!topicId) {
+        console.error('Topic ID not found in editContentData');
+        return;
+      }
+
+      const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/question-banks`);
+      const data = await response.json();
+
+      if (data.success && data.questionBanks) {
+        const grid = document.getElementById('editQuizQuestionBanksGrid');
+        const noBanksMsg = document.getElementById('editNoQuizQuestionBanksMessage');
+
+        if (grid && data.questionBanks.length > 0) {
+          grid.innerHTML = data.questionBanks.map(bank => {
+            // Convert both IDs to strings for comparison
+            const bankIdStr = String(bank._id);
+            const isSelected = selectedEditQuizQuestionBankIds.includes(bankIdStr);
+            console.log(`Bank ${bank.name} (${bankIdStr}): isSelected = ${isSelected}`, selectedEditQuizQuestionBankIds);
+            return `
+              <div class="bank-card-enhanced ${isSelected ? 'selected' : ''}" 
+                   data-bank-id="${bankIdStr}" 
+                   data-questions="${bank.totalQuestions || 0}" 
+                   onclick="toggleEditQuizBankSelection('${bankIdStr}')">
+                <div class="bank-card-enhanced-content">
+                  <div class="bank-card-checkbox">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleEditQuizBankSelection('${bankIdStr}')">
+                  </div>
+                  <div class="bank-card-body">
                     <h6>${bank.name}</h6>
                     <span class="bank-code">${bank.bankCode}</span>
-                  </div>
                   <p class="bank-description">${bank.description || 'No description'}</p>
                   <div class="bank-stats">
-                    <span class="badge bg-primary">${bank.totalQuestions} questions</span>
-                    <span class="badge bg-secondary">${bank.tags ? bank.tags.length : 0} tags</span>
+                      <span class="badge bg-primary">${bank.totalQuestions || 0} questions</span>
                   </div>
                 </div>
               </div>
-            `).join('');
-          } else {
-            document.getElementById('editNoQuizQuestionBanksMessage').style.display = 'block';
-          }
+              </div>
+            `;
+          }).join('');
+
+          updateEditQuizSelectedBanksCount();
+          if (noBanksMsg) noBanksMsg.style.display = 'none';
+        } else {
+          if (noBanksMsg) noBanksMsg.style.display = 'block';
         }
-      })
-      .catch(error => {
-        console.error('Error loading question banks:', error);
-        document.getElementById('editNoQuizQuestionBanksMessage').style.display = 'block';
-      });
+      } else {
+        if (noBanksMsg) noBanksMsg.style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Error loading question banks:', error);
+      const noBanksMsg = document.getElementById('editNoQuizQuestionBanksMessage');
+      if (noBanksMsg) noBanksMsg.style.display = 'block';
+    }
   }
 
-  function loadEditHomeworkQuestionBanks() {
-    return fetch('/admin/question-banks/api')
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const grid = document.getElementById('editHomeworkQuestionBanksGrid');
-          if (grid && data.questionBanks.length > 0) {
-            grid.innerHTML = data.questionBanks.map(bank => `
-              <div class="col-md-4 mb-3">
-                <div class="question-bank-card" onclick="selectEditHomeworkQuestionBank('${bank._id}')">
-                  <div class="bank-header">
+  // Toggle Edit Quiz Bank Selection
+  function toggleEditQuizBankSelection(bankId) {
+    const bankIdStr = String(bankId);
+    const index = selectedEditQuizQuestionBankIds.indexOf(bankIdStr);
+    if (index > -1) {
+      selectedEditQuizQuestionBankIds.splice(index, 1);
+    } else {
+      selectedEditQuizQuestionBankIds.push(bankIdStr);
+    }
+
+    // Update UI
+    const bankCard = document.querySelector(`#editQuizQuestionBanksGrid [data-bank-id="${bankIdStr}"]`);
+    if (bankCard) {
+      bankCard.classList.toggle('selected');
+      const checkbox = bankCard.querySelector('input[type="checkbox"]');
+      if (checkbox) checkbox.checked = !checkbox.checked;
+    }
+
+    updateEditQuizSelectedBanksCount();
+
+    // Automatically load questions when banks are selected
+    if (selectedEditQuizQuestionBankIds.length > 0) {
+      loadEditQuizQuestions();
+    } else {
+      // Clear questions if no banks selected
+      editQuizQuestions = [];
+      displayEditQuizQuestions({});
+    }
+  }
+
+  // Update Edit Quiz Selected Banks Count
+  function updateEditQuizSelectedBanksCount() {
+    const countElement = document.getElementById('editQuizSelectedBanksCount');
+    if (countElement) {
+      countElement.textContent = `(${selectedEditQuizQuestionBankIds.length} selected)`;
+    }
+  }
+
+  // Load Edit Homework Question Banks with multiple selection support
+  async function loadEditHomeworkQuestionBanks(contentData) {
+    try {
+      // Get topicId from editContentData
+      const topicId = window.editContentData?.topicId;
+      if (!topicId) {
+        console.error('Topic ID not found in editContentData');
+        return;
+      }
+
+      const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/question-banks`);
+      const data = await response.json();
+
+      if (data.success && data.questionBanks) {
+        const grid = document.getElementById('editHomeworkQuestionBanksGrid');
+        const noBanksMsg = document.getElementById('editNoHomeworkQuestionBanksMessage');
+
+        if (grid && data.questionBanks.length > 0) {
+          grid.innerHTML = data.questionBanks.map(bank => {
+            // Convert both IDs to strings for comparison
+            const bankIdStr = String(bank._id);
+            const isSelected = selectedEditHomeworkQuestionBankIds.includes(bankIdStr);
+            console.log(`Bank ${bank.name} (${bankIdStr}): isSelected = ${isSelected}`, selectedEditHomeworkQuestionBankIds);
+            return `
+              <div class="bank-card-enhanced ${isSelected ? 'selected' : ''}" 
+                   data-bank-id="${bankIdStr}" 
+                   data-questions="${bank.totalQuestions || 0}" 
+                   onclick="toggleEditHomeworkBankSelection('${bankIdStr}')">
+                <div class="bank-card-enhanced-content">
+                  <div class="bank-card-checkbox">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleEditHomeworkBankSelection('${bankIdStr}')">
+                  </div>
+                  <div class="bank-card-body">
                     <h6>${bank.name}</h6>
                     <span class="bank-code">${bank.bankCode}</span>
-                  </div>
                   <p class="bank-description">${bank.description || 'No description'}</p>
                   <div class="bank-stats">
-                    <span class="badge bg-primary">${bank.totalQuestions} questions</span>
-                    <span class="badge bg-secondary">${bank.tags ? bank.tags.length : 0} tags</span>
+                      <span class="badge bg-primary">${bank.totalQuestions || 0} questions</span>
                   </div>
                 </div>
               </div>
-            `).join('');
-          } else {
-            document.getElementById('editNoHomeworkQuestionBanksMessage').style.display = 'block';
-          }
+              </div>
+            `;
+          }).join('');
+
+          updateEditHomeworkSelectedBanksCount();
+          if (noBanksMsg) noBanksMsg.style.display = 'none';
+        } else {
+          if (noBanksMsg) noBanksMsg.style.display = 'block';
         }
-      })
-      .catch(error => {
-        console.error('Error loading question banks:', error);
-        document.getElementById('editNoHomeworkQuestionBanksMessage').style.display = 'block';
-      });
+      } else {
+        if (noBanksMsg) noBanksMsg.style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Error loading question banks:', error);
+      const noBanksMsg = document.getElementById('editNoHomeworkQuestionBanksMessage');
+      if (noBanksMsg) noBanksMsg.style.display = 'block';
+    }
+  }
+
+  // Toggle Edit Homework Bank Selection
+  function toggleEditHomeworkBankSelection(bankId) {
+    const bankIdStr = String(bankId);
+    const index = selectedEditHomeworkQuestionBankIds.indexOf(bankIdStr);
+    if (index > -1) {
+      selectedEditHomeworkQuestionBankIds.splice(index, 1);
+    } else {
+      selectedEditHomeworkQuestionBankIds.push(bankIdStr);
+    }
+
+    // Update UI
+    const bankCard = document.querySelector(`#editHomeworkQuestionBanksGrid [data-bank-id="${bankIdStr}"]`);
+    if (bankCard) {
+      bankCard.classList.toggle('selected');
+      const checkbox = bankCard.querySelector('input[type="checkbox"]');
+      if (checkbox) checkbox.checked = !checkbox.checked;
+    }
+
+    updateEditHomeworkSelectedBanksCount();
+
+    // Automatically load questions when banks are selected
+    if (selectedEditHomeworkQuestionBankIds.length > 0) {
+      loadEditHomeworkQuestions();
+    } else {
+      // Clear questions if no banks selected
+      editHomeworkQuestions = [];
+      displayEditHomeworkQuestions({});
+    }
+  }
+
+  // Update Edit Homework Selected Banks Count
+  function updateEditHomeworkSelectedBanksCount() {
+    const countElement = document.getElementById('editHomeworkSelectedBanksCount');
+    if (countElement) {
+      countElement.textContent = `(${selectedEditHomeworkQuestionBankIds.length} selected)`;
+    }
   }
 
   // Edit Quiz Step Navigation Functions
   function nextEditQuizStep() {
-    if (window.editQuizCurrentStep < 3) {
-      window.editQuizCurrentStep++;
+    if (currentEditQuizStep < 3) {
+      currentEditQuizStep++;
       updateEditQuizStepDisplay();
     }
   }
 
   function prevEditQuizStep() {
-    if (window.editQuizCurrentStep > 1) {
-      window.editQuizCurrentStep--;
+    if (currentEditQuizStep > 1) {
+      currentEditQuizStep--;
       updateEditQuizStepDisplay();
     }
   }
@@ -3099,7 +4106,7 @@ function getContentIcon(type) {
   function updateEditQuizStepDisplay() {
     // Update step indicators
     document.querySelectorAll('#editQuizContentSection .quiz-step').forEach((step, index) => {
-      if (index + 1 <= window.editQuizCurrentStep) {
+      if (index + 1 <= currentEditQuizStep) {
         step.classList.add('active');
       } else {
         step.classList.remove('active');
@@ -3108,7 +4115,7 @@ function getContentIcon(type) {
 
     // Update step content visibility
     document.querySelectorAll('#editQuizContentSection .quiz-step-content').forEach((content, index) => {
-      content.style.display = index + 1 === window.editQuizCurrentStep ? 'block' : 'none';
+      content.style.display = index + 1 === currentEditQuizStep ? 'block' : 'none';
     });
 
     // Update navigation buttons
@@ -3116,22 +4123,22 @@ function getContentIcon(type) {
     const nextBtn = document.getElementById('editQuizNextBtn');
     const stepNumber = document.getElementById('editQuizCurrentStepNumber');
 
-    if (prevBtn) prevBtn.disabled = window.editQuizCurrentStep === 1;
-    if (nextBtn) nextBtn.disabled = window.editQuizCurrentStep === 3;
-    if (stepNumber) stepNumber.textContent = window.editQuizCurrentStep;
+    if (prevBtn) prevBtn.disabled = currentEditQuizStep === 1;
+    if (nextBtn) nextBtn.disabled = currentEditQuizStep === 3;
+    if (stepNumber) stepNumber.textContent = currentEditQuizStep;
   }
 
   // Edit Homework Step Navigation Functions
   function nextEditHomeworkStep() {
-    if (window.editHomeworkCurrentStep < 3) {
-      window.editHomeworkCurrentStep++;
+    if (currentEditHomeworkStep < 3) {
+      currentEditHomeworkStep++;
       updateEditHomeworkStepDisplay();
     }
   }
 
   function prevEditHomeworkStep() {
-    if (window.editHomeworkCurrentStep > 1) {
-      window.editHomeworkCurrentStep--;
+    if (currentEditHomeworkStep > 1) {
+      currentEditHomeworkStep--;
       updateEditHomeworkStepDisplay();
     }
   }
@@ -3139,7 +4146,7 @@ function getContentIcon(type) {
   function updateEditHomeworkStepDisplay() {
     // Update step indicators
     document.querySelectorAll('#editHomeworkContentSection .homework-step').forEach((step, index) => {
-      if (index + 1 <= window.editHomeworkCurrentStep) {
+      if (index + 1 <= currentEditHomeworkStep) {
         step.classList.add('active');
       } else {
         step.classList.remove('active');
@@ -3148,7 +4155,7 @@ function getContentIcon(type) {
 
     // Update step content visibility
     document.querySelectorAll('#editHomeworkContentSection .homework-step-content').forEach((content, index) => {
-      content.style.display = index + 1 === window.editHomeworkCurrentStep ? 'block' : 'none';
+      content.style.display = index + 1 === currentEditHomeworkStep ? 'block' : 'none';
     });
 
     // Update navigation buttons
@@ -3156,9 +4163,1129 @@ function getContentIcon(type) {
     const nextBtn = document.getElementById('editHomeworkNextBtn');
     const stepNumber = document.getElementById('editHomeworkCurrentStepNumber');
 
-    if (prevBtn) prevBtn.disabled = window.editHomeworkCurrentStep === 1;
-    if (nextBtn) nextBtn.disabled = window.editHomeworkCurrentStep === 3;
-    if (stepNumber) stepNumber.textContent = window.editHomeworkCurrentStep;
+    if (prevBtn) prevBtn.disabled = currentEditHomeworkStep === 1;
+    if (nextBtn) nextBtn.disabled = currentEditHomeworkStep === 3;
+    if (stepNumber) stepNumber.textContent = currentEditHomeworkStep;
+  }
+
+  // Load Edit Quiz Questions from Multiple Banks
+  async function loadEditQuizQuestions() {
+    if (selectedEditQuizQuestionBankIds.length === 0) {
+      editQuizQuestions = [];
+      displayEditQuizQuestions({});
+      return;
+    }
+
+    try {
+      // Show loading state
+      const questionsGrid = document.getElementById('editQuizQuestionsGrid');
+      if (questionsGrid) {
+        questionsGrid.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading questions...</p></div>';
+      }
+
+      // Get topicId from editContentData
+      const topicId = window.editContentData?.topicId;
+      if (!topicId) {
+        showNotification('Topic ID not found', 'error');
+        return;
+      }
+
+      const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/question-banks/multiple/questions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bankIds: selectedEditQuizQuestionBankIds
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Edit Quiz - Non-JSON response:', text);
+        throw new Error('Server returned non-JSON response');
+      }
+
+      const result = await response.json();
+      console.log('Edit Quiz - Questions API Response:', result);
+
+      if (result.success && result.questionsByBank) {
+        editQuizQuestions = [];
+        editQuizBankInfoMap = {};
+
+        // Handle the nested structure: { bankId: { bankInfo: {...}, questions: [...] } }
+        Object.entries(result.questionsByBank).forEach(([bankId, bankData]) => {
+          // Handle both nested structure { bankInfo: {...}, questions: [...] } and flat structure { questions: [...] }
+          let bankInfo = {};
+          let questions = [];
+
+          if (bankData.bankInfo) {
+            // Nested structure
+            bankInfo = bankData.bankInfo || {};
+            questions = bankData.questions || [];
+          } else if (Array.isArray(bankData)) {
+            // Flat structure - just array of questions
+            questions = bankData;
+            // Try to get bank info from the bank card or use bankId
+            const bankCard = document.querySelector(`#editQuizQuestionBanksGrid [data-bank-id="${bankId}"]`);
+            if (bankCard) {
+              bankInfo = {
+                name: bankCard.querySelector('h6')?.textContent || 'Unknown Bank',
+                bankCode: bankCard.querySelector('.bank-code')?.textContent || bankId
+              };
+            }
+          }
+
+          editQuizBankInfoMap[bankId] = {
+            name: bankInfo.name || 'Unknown Bank',
+            code: bankInfo.bankCode || bankId
+          };
+
+          questions.forEach(q => {
+            if (q && q._id) {
+              editQuizQuestions.push({
+                ...q,
+                _id: q._id,
+                sourceBank: bankId
+              });
+            }
+          });
+        });
+
+        console.log('Edit Quiz - Processed Questions:', editQuizQuestions.length);
+        console.log('Edit Quiz - Loaded Questions:', editQuizQuestions.length);
+        console.log('Edit Quiz - Selected Questions:', selectedEditQuizQuestions.length);
+
+        // Ensure questions are in the array before displaying
+        if (editQuizQuestions.length === 0) {
+          console.warn('Edit Quiz - No questions were added to the array!');
+          showNotification('No questions found in selected banks', 'warning');
+          const questionsGrid = document.getElementById('editQuizQuestionsGrid');
+          if (questionsGrid) {
+            questionsGrid.innerHTML = '';
+          }
+          const noQuestionsMsg = document.getElementById('editNoQuizQuestionsMessage');
+          if (noQuestionsMsg) noQuestionsMsg.style.display = 'block';
+          return;
+        }
+
+        // Create a flat structure for display (for compatibility)
+        const flatQuestionsByBank = {};
+        Object.entries(result.questionsByBank).forEach(([bankId, bankData]) => {
+          const questions = bankData.questions || (Array.isArray(bankData) ? bankData : []);
+          flatQuestionsByBank[bankId] = questions;
+        });
+
+        // Display questions - use the populated editQuizQuestions array directly
+        console.log('Edit Quiz - About to display questions. Array length:', editQuizQuestions.length);
+        displayEditQuizQuestions(flatQuestionsByBank);
+
+        // Immediately verify and update UI
+        const questionsGrid = document.getElementById('editQuizQuestionsGrid');
+        const noQuestionsMsg = document.getElementById('editNoQuizQuestionsMessage');
+
+        // Force hide loading and no questions message
+        if (questionsGrid) {
+          // Remove any loading spinner
+          const loadingDiv = questionsGrid.querySelector('.fa-spinner');
+          if (loadingDiv) {
+            loadingDiv.closest('div').remove();
+          }
+        }
+
+        if (noQuestionsMsg) {
+          noQuestionsMsg.style.display = 'none';
+        }
+
+        // Verify questions were displayed and update UI
+        setTimeout(() => {
+          const displayedQuestions = questionsGrid ? questionsGrid.querySelectorAll('.question-item').length : 0;
+          console.log('Edit Quiz - Questions displayed in UI:', displayedQuestions);
+
+          if (displayedQuestions === 0 && editQuizQuestions.length > 0) {
+            console.error('Edit Quiz - Questions not displayed! Forcing display...');
+            // Force display again
+            displayEditQuizQuestions(flatQuestionsByBank);
+          }
+
+          updateEditQuizSelectionSummary();
+
+          // If we're on step 1 and questions loaded, automatically move to step 2
+          if (currentEditQuizStep === 1 && editQuizQuestions.length > 0) {
+            currentEditQuizStep = 2;
+            updateEditQuizStepDisplay();
+          }
+        }, 200);
+
+        showNotification(`Loaded ${editQuizQuestions.length} questions from ${selectedEditQuizQuestionBankIds.length} bank(s)`, 'success');
+      } else {
+        console.error('Edit Quiz - Failed to load questions:', result);
+        showNotification(result.message || 'Failed to load questions', 'error');
+        editQuizQuestions = [];
+        displayEditQuizQuestions({});
+        updateEditQuizSelectionSummary();
+      }
+    } catch (error) {
+      console.error('Error loading questions:', error);
+      showNotification('An error occurred while loading questions', 'error');
+      editQuizQuestions = [];
+      displayEditQuizQuestions({});
+    }
+  }
+
+  // Load Edit Homework Questions from Multiple Banks
+  async function loadEditHomeworkQuestions() {
+    if (selectedEditHomeworkQuestionBankIds.length === 0) {
+      editHomeworkQuestions = [];
+      displayEditHomeworkQuestions({});
+      return;
+    }
+
+    try {
+      // Show loading state
+      const questionsGrid = document.getElementById('editHomeworkQuestionsGrid');
+      if (questionsGrid) {
+        questionsGrid.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading questions...</p></div>';
+      }
+
+      // Get topicId from editContentData
+      const topicId = window.editContentData?.topicId;
+      if (!topicId) {
+        showNotification('Topic ID not found', 'error');
+        return;
+      }
+
+      const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/question-banks/multiple/questions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bankIds: selectedEditHomeworkQuestionBankIds
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Edit Homework - Non-JSON response:', text);
+        throw new Error('Server returned non-JSON response');
+      }
+
+      const result = await response.json();
+      console.log('Edit Homework - Questions API Response:', result);
+
+      if (result.success && result.questionsByBank) {
+        editHomeworkQuestions = [];
+        editHomeworkBankInfoMap = {};
+
+        // Handle the nested structure: { bankId: { bankInfo: {...}, questions: [...] } }
+        Object.entries(result.questionsByBank).forEach(([bankId, bankData]) => {
+          // Handle both nested structure { bankInfo: {...}, questions: [...] } and flat structure { questions: [...] }
+          let bankInfo = {};
+          let questions = [];
+
+          if (bankData.bankInfo) {
+            // Nested structure
+            bankInfo = bankData.bankInfo || {};
+            questions = bankData.questions || [];
+          } else if (Array.isArray(bankData)) {
+            // Flat structure - just array of questions
+            questions = bankData;
+            // Try to get bank info from the bank card or use bankId
+            const bankCard = document.querySelector(`#editHomeworkQuestionBanksGrid [data-bank-id="${bankId}"]`);
+            if (bankCard) {
+              bankInfo = {
+                name: bankCard.querySelector('h6')?.textContent || 'Unknown Bank',
+                bankCode: bankCard.querySelector('.bank-code')?.textContent || bankId
+              };
+            }
+          }
+
+          editHomeworkBankInfoMap[bankId] = {
+            name: bankInfo.name || 'Unknown Bank',
+            code: bankInfo.bankCode || bankId
+          };
+
+          questions.forEach(q => {
+            if (q && q._id) {
+              editHomeworkQuestions.push({
+                ...q,
+                _id: q._id,
+                sourceBank: bankId
+              });
+            }
+          });
+        });
+
+        console.log('Edit Homework - Processed Questions:', editHomeworkQuestions.length);
+        console.log('Edit Homework - Loaded Questions:', editHomeworkQuestions.length);
+        console.log('Edit Homework - Selected Questions:', selectedEditHomeworkQuestions.length);
+
+        // Ensure questions are in the array before displaying
+        if (editHomeworkQuestions.length === 0) {
+          console.warn('Edit Homework - No questions were added to the array!');
+          showNotification('No questions found in selected banks', 'warning');
+          const questionsGrid = document.getElementById('editHomeworkQuestionsGrid');
+          if (questionsGrid) {
+            questionsGrid.innerHTML = '';
+          }
+          const noQuestionsMsg = document.getElementById('editNoHomeworkQuestionsMessage');
+          if (noQuestionsMsg) noQuestionsMsg.style.display = 'block';
+          return;
+        }
+
+        // Create a flat structure for display (for compatibility)
+        const flatQuestionsByBank = {};
+        Object.entries(result.questionsByBank).forEach(([bankId, bankData]) => {
+          const questions = bankData.questions || (Array.isArray(bankData) ? bankData : []);
+          flatQuestionsByBank[bankId] = questions;
+        });
+
+        // Display questions - use the populated editHomeworkQuestions array directly
+        console.log('Edit Homework - About to display questions. Array length:', editHomeworkQuestions.length);
+        console.log('Edit Homework - Questions array before display:', editHomeworkQuestions.slice(0, 3));
+
+        // Call display function - it will use editHomeworkQuestions array
+        displayEditHomeworkQuestions(flatQuestionsByBank);
+
+        // Immediately verify and update UI
+        const questionsGrid = document.getElementById('editHomeworkQuestionsGrid');
+        const noQuestionsMsg = document.getElementById('editNoHomeworkQuestionsMessage');
+
+        // Force hide loading and no questions message
+        if (questionsGrid) {
+          // Remove any loading spinner
+          const loadingDiv = questionsGrid.querySelector('.fa-spinner');
+          if (loadingDiv) {
+            loadingDiv.closest('div').remove();
+          }
+        }
+
+        if (noQuestionsMsg) {
+          noQuestionsMsg.style.display = 'none';
+        }
+
+        // Verify questions were displayed and update UI
+        setTimeout(() => {
+          const displayedQuestions = questionsGrid ? questionsGrid.querySelectorAll('.question-item').length : 0;
+          console.log('Edit Homework - Questions displayed in UI:', displayedQuestions);
+
+          if (displayedQuestions === 0 && editHomeworkQuestions.length > 0) {
+            console.error('Edit Homework - Questions not displayed! Forcing display...');
+            // Force display again
+            displayEditHomeworkQuestions(flatQuestionsByBank);
+          }
+
+          updateEditHomeworkSelectionSummary();
+
+          // If we're on step 1 and questions loaded, automatically move to step 2
+          if (currentEditHomeworkStep === 1 && editHomeworkQuestions.length > 0) {
+            currentEditHomeworkStep = 2;
+            updateEditHomeworkStepDisplay();
+          }
+        }, 200);
+
+        showNotification(`Loaded ${editHomeworkQuestions.length} questions from ${selectedEditHomeworkQuestionBankIds.length} bank(s)`, 'success');
+      } else {
+        console.error('Edit Homework - Failed to load questions:', result);
+        showNotification(result.message || 'Failed to load questions', 'error');
+        editHomeworkQuestions = [];
+        displayEditHomeworkQuestions({});
+        updateEditHomeworkSelectionSummary();
+      }
+    } catch (error) {
+      console.error('Error loading questions:', error);
+      showNotification('An error occurred while loading questions', 'error');
+      editHomeworkQuestions = [];
+      displayEditHomeworkQuestions({});
+    }
+  }
+
+  // Display Edit Quiz Questions
+  function displayEditQuizQuestions(questionsByBank) {
+    const questionsGrid = document.getElementById('editQuizQuestionsGrid');
+    const noQuestionsMsg = document.getElementById('editNoQuizQuestionsMessage');
+
+    if (!questionsGrid) {
+      console.error('Edit Quiz Questions Grid not found');
+      return;
+    }
+
+    // Ensure arrays are initialized
+    if (!editQuizQuestions || !Array.isArray(editQuizQuestions)) {
+      editQuizQuestions = [];
+    }
+    if (!selectedEditQuizQuestions || !Array.isArray(selectedEditQuizQuestions)) {
+      selectedEditQuizQuestions = [];
+    }
+
+    if (editQuizQuestions.length === 0) {
+      questionsGrid.innerHTML = '';
+      if (noQuestionsMsg) noQuestionsMsg.style.display = 'block';
+      updateEditQuizSelectionSummary();
+      return;
+    }
+
+    // Hide loading state and no questions message
+    if (noQuestionsMsg) {
+      noQuestionsMsg.style.display = 'none';
+    }
+
+    // Clear any loading spinner or existing content
+    questionsGrid.innerHTML = '';
+
+    // Get selected question IDs for marking - handle both object and string formats
+    const selectedQuestionIds = selectedEditQuizQuestions.map(sq => {
+      if (!sq) return null;
+      // Handle both { question: "id" } and { question: { _id: "id" } } formats
+      if (typeof sq.question === 'string') {
+        return sq.question;
+      } else if (sq.question && sq.question._id) {
+        return String(sq.question._id);
+      } else if (sq.question) {
+        return String(sq.question);
+      }
+      return null;
+    }).filter(id => id !== null);
+
+    console.log('Edit Quiz - Displaying questions. Total:', editQuizQuestions.length, 'Selected IDs:', selectedQuestionIds.length);
+    console.log('Edit Quiz - First few questions:', editQuizQuestions.slice(0, 3));
+
+    // Render questions using the same structure as create modal
+    let questionHTML = '';
+    editQuizQuestions.forEach((question, index) => {
+      const questionIdStr = String(question._id);
+      const isSelected = selectedQuestionIds.includes(questionIdStr);
+      const bankInfo = editQuizBankInfoMap[question.sourceBank] || {
+        name: 'Unknown Bank',
+        code: ''
+      };
+      const difficultyClass = (question.difficulty || 'medium').toLowerCase();
+
+      const questionTags = question.tags || [];
+      const tagsJson = JSON.stringify(questionTags);
+      
+      questionHTML += `
+        <div class="question-item ${difficultyClass} ${isSelected ? 'selected' : ''}" 
+             onclick="toggleEditQuizQuestionSelection('${questionIdStr}')" 
+             data-question-index="${index}"
+             data-bank-id="${question.sourceBank}"
+             data-question-id="${questionIdStr}"
+             data-tags='${tagsJson}'>
+          <div class="question-item-top">
+            <div class="question-item-number">${index + 1}</div>
+            <button type="button" class="question-preview-btn" onclick="event.stopPropagation(); previewEditQuizQuestion(${index})" title="Preview Question">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="question-item-content">
+            <div class="question-item-header">
+              <div class="question-item-bank">
+                <i class="fas fa-database"></i>
+                <span>${bankInfo.name || bankInfo.code || 'Unknown Bank'}</span>
+              </div>
+            </div>
+            <div class="question-item-footer">
+              <span class="question-badge type-badge">${question.questionType || question.type || 'MCQ'}</span>
+            </div>
+          </div>
+          <div class="question-check-indicator">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      `;
+    });
+
+    // Set the HTML
+    questionsGrid.innerHTML = questionHTML;
+
+    console.log('Edit Quiz - Questions HTML generated. Length:', questionHTML.length);
+    console.log('Edit Quiz - Questions in DOM:', questionsGrid.querySelectorAll('.question-item').length);
+
+    // Ensure no questions message is hidden
+    if (noQuestionsMsg) {
+      noQuestionsMsg.style.display = 'none';
+    }
+
+    // Update bank filter buttons
+    updateEditQuizBankFilterButtons();
+    
+    // Populate tags filter
+    populateTagsFilter('editQuizTagsFilter', editQuizQuestions);
+
+    // Update selection summary after displaying questions
+    updateEditQuizSelectionSummary();
+
+    // Force a reflow to ensure UI updates
+    questionsGrid.offsetHeight;
+  }
+
+  // Display Edit Homework Questions
+  function displayEditHomeworkQuestions(questionsByBank) {
+    const questionsGrid = document.getElementById('editHomeworkQuestionsGrid');
+    const noQuestionsMsg = document.getElementById('editNoHomeworkQuestionsMessage');
+
+    if (!questionsGrid) {
+      console.error('Edit Homework Questions Grid not found');
+      return;
+    }
+
+    // Ensure arrays are initialized
+    if (!editHomeworkQuestions || !Array.isArray(editHomeworkQuestions)) {
+      editHomeworkQuestions = [];
+    }
+    if (!selectedEditHomeworkQuestions || !Array.isArray(selectedEditHomeworkQuestions)) {
+      selectedEditHomeworkQuestions = [];
+    }
+
+    console.log('Edit Homework - Display function called. Questions array length:', editHomeworkQuestions.length);
+    console.log('Edit Homework - Questions array:', editHomeworkQuestions);
+
+    if (editHomeworkQuestions.length === 0) {
+      console.warn('Edit Homework - No questions in array, showing empty message');
+      questionsGrid.innerHTML = '';
+      if (noQuestionsMsg) noQuestionsMsg.style.display = 'block';
+      updateEditHomeworkSelectionSummary();
+      return;
+    }
+
+    // Hide loading state and no questions message
+    if (noQuestionsMsg) {
+      noQuestionsMsg.style.display = 'none';
+    }
+
+    // Clear any loading spinner or existing content
+    questionsGrid.innerHTML = '';
+
+    // Get selected question IDs for marking - handle both object and string formats
+    const selectedQuestionIds = selectedEditHomeworkQuestions.map(sq => {
+      if (!sq) return null;
+      // Handle both { question: "id" } and { question: { _id: "id" } } formats
+      if (typeof sq.question === 'string') {
+        return sq.question;
+      } else if (sq.question && sq.question._id) {
+        return String(sq.question._id);
+      } else if (sq.question) {
+        return String(sq.question);
+      }
+      return null;
+    }).filter(id => id !== null);
+
+    console.log('Edit Homework - Displaying questions. Total:', editHomeworkQuestions.length, 'Selected IDs:', selectedQuestionIds.length);
+    console.log('Edit Homework - First few questions:', editHomeworkQuestions.slice(0, 3));
+
+    // Render questions using the same structure as create modal
+    let questionHTML = '';
+    editHomeworkQuestions.forEach((question, index) => {
+      const questionIdStr = String(question._id);
+      const isSelected = selectedQuestionIds.includes(questionIdStr);
+      const bankInfo = editHomeworkBankInfoMap[question.sourceBank] || {
+        name: 'Unknown Bank',
+        code: ''
+      };
+      const difficultyClass = (question.difficulty || 'medium').toLowerCase();
+
+      const questionTags = question.tags || [];
+      const tagsJson = JSON.stringify(questionTags);
+      
+      questionHTML += `
+        <div class="question-item ${difficultyClass} ${isSelected ? 'selected' : ''}" 
+             onclick="toggleEditHomeworkQuestionSelection('${questionIdStr}')" 
+             data-question-index="${index}"
+             data-bank-id="${question.sourceBank}"
+             data-question-id="${questionIdStr}"
+             data-tags='${tagsJson}'>
+          <div class="question-item-top">
+            <div class="question-item-number">${index + 1}</div>
+            <button type="button" class="question-preview-btn" onclick="event.stopPropagation(); previewEditHomeworkQuestion(${index})" title="Preview Question">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="question-item-content">
+            <div class="question-item-header">
+              <div class="question-item-bank">
+                <i class="fas fa-database"></i>
+                <span>${bankInfo.name || bankInfo.code || 'Unknown Bank'}</span>
+              </div>
+            </div>
+            <div class="question-item-footer">
+              <span class="question-badge type-badge">${question.questionType || question.type || 'MCQ'}</span>
+            </div>
+          </div>
+          <div class="question-check-indicator">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      `;
+    });
+
+    // Set the HTML
+    questionsGrid.innerHTML = questionHTML;
+
+    console.log('Edit Homework - Questions HTML generated. Length:', questionHTML.length);
+    console.log('Edit Homework - Questions in DOM:', questionsGrid.querySelectorAll('.question-item').length);
+
+    // Ensure no questions message is hidden
+    if (noQuestionsMsg) {
+      noQuestionsMsg.style.display = 'none';
+    }
+
+    // Update bank filter buttons
+    updateEditHomeworkBankFilterButtons();
+    
+    // Populate tags filter
+    populateTagsFilter('editHomeworkTagsFilter', editHomeworkQuestions);
+
+    // Update selection summary after displaying questions
+    updateEditHomeworkSelectionSummary();
+
+    // Force a reflow to ensure UI updates
+    questionsGrid.offsetHeight;
+  }
+
+  // Update Edit Quiz Selection Summary
+  function updateEditQuizSelectionSummary() {
+    try {
+      // Check if selectedEditQuizQuestions is defined and is an array
+      if (!selectedEditQuizQuestions || !Array.isArray(selectedEditQuizQuestions)) {
+        selectedEditQuizQuestions = [];
+      }
+
+      // Use the length directly for count - this is the actual number of selected questions
+      const count = selectedEditQuizQuestions.length;
+
+      // For points and difficulty, try to find questions in editQuizQuestions, but use stored values as fallback
+      let totalPoints = 0;
+      let easyCount = 0;
+      let mediumCount = 0;
+      let hardCount = 0;
+
+      // Check if editQuizQuestions is defined and is an array
+      if (editQuizQuestions && Array.isArray(editQuizQuestions) && editQuizQuestions.length > 0) {
+        const selectedQuestionIds = selectedEditQuizQuestions.map(sq => {
+          if (!sq || !sq.question) return null;
+          return String(sq.question);
+        }).filter(id => id !== null);
+
+        const selectedQuestions = editQuizQuestions.filter(q => {
+          if (!q || !q._id) return false;
+          return selectedQuestionIds.includes(String(q._id));
+        });
+
+        // Calculate from matched questions
+        totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.points || 1), 0);
+        easyCount = selectedQuestions.filter(q => {
+          const diff = (q.difficulty || '').toLowerCase();
+          return diff === 'easy';
+        }).length;
+        mediumCount = selectedQuestions.filter(q => {
+          const diff = (q.difficulty || '').toLowerCase();
+          return diff === 'medium';
+        }).length;
+        hardCount = selectedQuestions.filter(q => {
+          const diff = (q.difficulty || '').toLowerCase();
+          return diff === 'hard';
+        }).length;
+      } else {
+        // Fallback: use stored values from selectedEditQuizQuestions
+        totalPoints = selectedEditQuizQuestions.reduce((sum, sq) => sum + (sq.points || 1), 0);
+        // For difficulty, we'd need to store it in selectedEditQuizQuestions, but for now just use 0
+      }
+
+      const countElement = document.getElementById('editQuizSelectedCount');
+      const pointsElement = document.getElementById('editQuizTotalPoints');
+      const easyElement = document.getElementById('editQuizEasyCount');
+      const mediumElement = document.getElementById('editQuizMediumCount');
+      const hardElement = document.getElementById('editQuizHardCount');
+
+      if (countElement) countElement.textContent = count;
+      if (pointsElement) pointsElement.textContent = totalPoints;
+      if (easyElement) easyElement.textContent = easyCount;
+      if (mediumElement) mediumElement.textContent = mediumCount;
+      if (hardElement) hardElement.textContent = hardCount;
+    } catch (error) {
+      console.error('Error updating edit quiz selection summary:', error);
+      console.error('Error stack:', error.stack);
+      // Set defaults on error
+      const countElement = document.getElementById('editQuizSelectedCount');
+      const pointsElement = document.getElementById('editQuizTotalPoints');
+      if (countElement) countElement.textContent = '0';
+      if (pointsElement) pointsElement.textContent = '0';
+    }
+  }
+
+  // Update Edit Homework Selection Summary
+  function updateEditHomeworkSelectionSummary() {
+    try {
+      // Check if selectedEditHomeworkQuestions is defined and is an array
+      if (!selectedEditHomeworkQuestions || !Array.isArray(selectedEditHomeworkQuestions)) {
+        selectedEditHomeworkQuestions = [];
+      }
+
+      // Use the length directly for count - this is the actual number of selected questions
+      const count = selectedEditHomeworkQuestions.length;
+
+      // For points and difficulty, try to find questions in editHomeworkQuestions, but use stored values as fallback
+      let totalPoints = 0;
+      let easyCount = 0;
+      let mediumCount = 0;
+      let hardCount = 0;
+
+      // Check if editHomeworkQuestions is defined and is an array
+      if (editHomeworkQuestions && Array.isArray(editHomeworkQuestions)) {
+        const selectedQuestionIds = selectedEditHomeworkQuestions.map(sq => {
+          if (!sq || !sq.question) return null;
+          return String(sq.question);
+        }).filter(id => id !== null);
+
+        const selectedQuestions = editHomeworkQuestions.filter(q => {
+          if (!q || !q._id) return false;
+          return selectedQuestionIds.includes(String(q._id));
+        });
+
+        // Calculate from matched questions
+        totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.points || 1), 0);
+        easyCount = selectedQuestions.filter(q => {
+          const diff = (q.difficulty || '').toLowerCase();
+          return diff === 'easy';
+        }).length;
+        mediumCount = selectedQuestions.filter(q => {
+          const diff = (q.difficulty || '').toLowerCase();
+          return diff === 'medium';
+        }).length;
+        hardCount = selectedQuestions.filter(q => {
+          const diff = (q.difficulty || '').toLowerCase();
+          return diff === 'hard';
+        }).length;
+      } else {
+        // Fallback: use stored values from selectedEditHomeworkQuestions
+        totalPoints = selectedEditHomeworkQuestions.reduce((sum, sq) => sum + (sq.points || 1), 0);
+        // For difficulty, we'd need to store it in selectedEditHomeworkQuestions, but for now just use 0
+      }
+
+      const countElement = document.getElementById('editHomeworkSelectedCount');
+      const pointsElement = document.getElementById('editHomeworkTotalPoints');
+      const easyElement = document.getElementById('editHomeworkEasyCount');
+      const mediumElement = document.getElementById('editHomeworkMediumCount');
+      const hardElement = document.getElementById('editHomeworkHardCount');
+
+      if (countElement) countElement.textContent = count;
+      if (pointsElement) pointsElement.textContent = totalPoints;
+      if (easyElement) easyElement.textContent = easyCount;
+      if (mediumElement) mediumElement.textContent = mediumCount;
+      if (hardElement) hardElement.textContent = hardCount;
+    } catch (error) {
+      console.error('Error updating edit homework selection summary:', error);
+      // Set defaults on error
+      const countElement = document.getElementById('editHomeworkSelectedCount');
+      const pointsElement = document.getElementById('editHomeworkTotalPoints');
+      if (countElement) countElement.textContent = '0';
+      if (pointsElement) pointsElement.textContent = '0';
+    }
+  }
+
+  // Toggle Edit Quiz Question Selection
+  function toggleEditQuizQuestionSelection(questionId) {
+    // Ensure selectedEditQuizQuestions is initialized
+    if (!selectedEditQuizQuestions || !Array.isArray(selectedEditQuizQuestions)) {
+      selectedEditQuizQuestions = [];
+    }
+
+    const questionIdStr = String(questionId);
+    const existingIndex = selectedEditQuizQuestions.findIndex(sq => String(sq.question) === questionIdStr);
+
+    if (existingIndex > -1) {
+      selectedEditQuizQuestions.splice(existingIndex, 1);
+    } else {
+      const question = editQuizQuestions.find(q => String(q._id) === questionIdStr);
+      if (question) {
+        selectedEditQuizQuestions.push({
+          question: questionIdStr,
+          sourceBank: question.sourceBank,
+          points: question.points || 1,
+          order: selectedEditQuizQuestions.length + 1
+        });
+      }
+    }
+
+    // Update UI - use selected class on question-item
+    const questionElement = document.querySelector(`#editQuizQuestionsGrid [data-question-id="${questionIdStr}"]`);
+    if (questionElement) {
+      if (existingIndex > -1) {
+        questionElement.classList.remove('selected');
+      } else {
+        questionElement.classList.add('selected');
+      }
+    }
+
+    // Force update the summary immediately
+    updateEditQuizSelectionSummary();
+  }
+
+  // Toggle Edit Homework Question Selection
+  function toggleEditHomeworkQuestionSelection(questionId) {
+    const questionIdStr = String(questionId);
+    const existingIndex = selectedEditHomeworkQuestions.findIndex(sq => String(sq.question) === questionIdStr);
+
+    if (existingIndex > -1) {
+      selectedEditHomeworkQuestions.splice(existingIndex, 1);
+    } else {
+      const question = editHomeworkQuestions.find(q => String(q._id) === questionIdStr);
+      if (question) {
+        selectedEditHomeworkQuestions.push({
+          question: questionIdStr,
+          sourceBank: question.sourceBank,
+          points: question.points || 1,
+          order: selectedEditHomeworkQuestions.length + 1
+        });
+      }
+    }
+
+    // Update UI - use selected class on question-item
+    const questionElement = document.querySelector(`#editHomeworkQuestionsGrid [data-question-id="${questionIdStr}"]`);
+    if (questionElement) {
+      if (existingIndex > -1) {
+        questionElement.classList.remove('selected');
+      } else {
+        questionElement.classList.add('selected');
+      }
+    }
+
+    updateEditHomeworkSelectionSummary();
+  }
+
+  // Update Edit Quiz Bank Filter Buttons
+  function updateEditQuizBankFilterButtons() {
+    const filterButtons = document.getElementById('editQuizBankFilterButtons');
+    if (!filterButtons) return;
+
+    const buttons = `
+      <button type="button" class="bank-filter-btn ${window.currentEditQuizBankFilter === 'all' ? 'active' : ''}" 
+              data-bank-id="all" onclick="filterEditQuizByBank('all')">
+        <i class="fas fa-th"></i>
+        All Banks
+      </button>
+      ${selectedEditQuizQuestionBankIds.map(bankId => {
+        const bankInfo = editQuizBankInfoMap[bankId] || { name: 'Bank', code: bankId };
+        return `<button type="button" class="bank-filter-btn ${window.currentEditQuizBankFilter === bankId ? 'active' : ''}" data-bank-id="${bankId}" onclick="filterEditQuizByBank('${bankId}')">
+        <i class="fas fa-database"></i>
+        ${bankInfo.code || bankInfo.name}
+      </button>`;
+      }).join('')}
+    `;
+    filterButtons.innerHTML = buttons;
+  }
+
+  // Update Edit Homework Bank Filter Buttons
+  function updateEditHomeworkBankFilterButtons() {
+    const filterButtons = document.getElementById('editHomeworkBankFilterButtons');
+    if (!filterButtons) return;
+
+    const buttons = `
+      <button type="button" class="bank-filter-btn ${window.currentEditHomeworkBankFilter === 'all' ? 'active' : ''}" 
+              data-bank-id="all" onclick="filterEditHomeworkByBank('all')">
+        <i class="fas fa-th"></i>
+        All Banks
+      </button>
+      ${selectedEditHomeworkQuestionBankIds.map(bankId => {
+        const bankInfo = editHomeworkBankInfoMap[bankId] || { name: 'Bank', code: bankId };
+        return `<button type="button" class="bank-filter-btn ${window.currentEditHomeworkBankFilter === bankId ? 'active' : ''}" data-bank-id="${bankId}" onclick="filterEditHomeworkByBank('${bankId}')">
+        <i class="fas fa-database"></i>
+        ${bankInfo.code || bankInfo.name}
+      </button>`;
+      }).join('')}
+    `;
+    filterButtons.innerHTML = buttons;
+  }
+
+  // Filter Edit Quiz Questions by Bank
+  function filterEditQuizByBank(bankId) {
+    window.currentEditQuizBankFilter = bankId;
+    updateEditQuizBankFilterButtons();
+    filterEditQuizQuestions();
+  }
+
+  // Filter Edit Homework Questions by Bank
+  function filterEditHomeworkByBank(bankId) {
+    window.currentEditHomeworkBankFilter = bankId;
+    updateEditHomeworkBankFilterButtons();
+    filterEditHomeworkQuestions();
+  }
+
+  // Filter Edit Quiz Questions
+  function filterEditQuizQuestions() {
+    const difficultyFilter = document.getElementById('editQuizDifficultyFilter')?.value || '';
+    const typeFilter = document.getElementById('editQuizTypeFilter')?.value || '';
+    const tagsFilter = document.getElementById('editQuizTagsFilter')?.value || '';
+    const searchFilter = document.getElementById('editQuizSearchFilter')?.value.toLowerCase() || '';
+    const bankFilter = window.currentEditQuizBankFilter || 'all';
+
+    document.querySelectorAll('#editQuizQuestionsGrid .question-item').forEach(item => {
+      const difficulty = (item.className.match(/\b(easy|medium|hard)\b/) || [''])[0] || '';
+      const typeElement = item.querySelector('.type-badge');
+      const type = typeElement ? typeElement.textContent.trim() : '';
+      const bankId = item.dataset.bankId || '';
+      const questionText = item.textContent.toLowerCase();
+      const questionTags = item.dataset.tags ? JSON.parse(item.dataset.tags) : [];
+
+      const matchesDifficulty = !difficultyFilter || difficulty === difficultyFilter.toLowerCase();
+      const matchesType = !typeFilter || type === typeFilter;
+      const matchesBank = bankFilter === 'all' || bankId === bankFilter;
+      const matchesTags = !tagsFilter || questionTags.some(tag => tag && tag.toString().toLowerCase() === tagsFilter.toLowerCase());
+      const matchesSearch = !searchFilter || questionText.includes(searchFilter);
+
+      item.style.display = (matchesDifficulty && matchesType && matchesBank && matchesTags && matchesSearch) ? 'block' : 'none';
+    });
+  }
+
+  // Filter Edit Homework Questions
+  function filterEditHomeworkQuestions() {
+    const difficultyFilter = document.getElementById('editHomeworkDifficultyFilter')?.value || '';
+    const typeFilter = document.getElementById('editHomeworkTypeFilter')?.value || '';
+    const tagsFilter = document.getElementById('editHomeworkTagsFilter')?.value || '';
+    const searchFilter = document.getElementById('editHomeworkSearchFilter')?.value.toLowerCase() || '';
+    const bankFilter = window.currentEditHomeworkBankFilter || 'all';
+
+    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item').forEach(item => {
+      const difficulty = (item.className.match(/\b(easy|medium|hard)\b/) || [''])[0] || '';
+      const typeElement = item.querySelector('.type-badge');
+      const type = typeElement ? typeElement.textContent.trim() : '';
+      const bankId = item.dataset.bankId || '';
+      const questionText = item.textContent.toLowerCase();
+      const questionTags = item.dataset.tags ? JSON.parse(item.dataset.tags) : [];
+
+      const matchesDifficulty = !difficultyFilter || difficulty === difficultyFilter.toLowerCase();
+      const matchesType = !typeFilter || type === typeFilter;
+      const matchesBank = bankFilter === 'all' || bankId === bankFilter;
+      const matchesTags = !tagsFilter || questionTags.some(tag => tag && tag.toString().toLowerCase() === tagsFilter.toLowerCase());
+      const matchesSearch = !searchFilter || questionText.includes(searchFilter);
+
+      item.style.display = (matchesDifficulty && matchesType && matchesBank && matchesTags && matchesSearch) ? 'block' : 'none';
+    });
+  }
+
+  // Populate Tags Filter Dropdown
+  function populateTagsFilter(filterId, questionsArray) {
+    const filterSelect = document.getElementById(filterId);
+    if (!filterSelect || !questionsArray || !Array.isArray(questionsArray)) return;
+
+    // Extract all unique tags from questions
+    const allTags = new Set();
+    questionsArray.forEach(question => {
+      if (question.tags && Array.isArray(question.tags)) {
+        question.tags.forEach(tag => {
+          if (tag && tag.toString().trim()) {
+            allTags.add(tag.toString().trim());
+          }
+        });
+      }
+    });
+
+    // Sort tags alphabetically
+    const sortedTags = Array.from(allTags).sort();
+
+    // Get current selected value
+    const currentValue = filterSelect.value;
+
+    // Clear existing options except "All Tags"
+    filterSelect.innerHTML = '<option value="">All Tags</option>';
+
+    // Add tag options
+    sortedTags.forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      filterSelect.appendChild(option);
+    });
+
+    // Restore previous selection if it still exists
+    if (currentValue && sortedTags.includes(currentValue)) {
+      filterSelect.value = currentValue;
+    }
+  }
+
+  // Edit Quiz Question Selection Tools
+  function selectAllEditQuizQuestions() {
+    document.querySelectorAll('#editQuizQuestionsGrid .question-item:not([style*="display: none"])').forEach(item => {
+      const questionId = item.dataset.questionId;
+      if (questionId && !selectedEditQuizQuestions.find(sq => String(sq.question) === questionId)) {
+        toggleEditQuizQuestionSelection(questionId);
+      }
+    });
+  }
+
+  function clearEditQuizSelection() {
+    selectedEditQuizQuestions = [];
+    document.querySelectorAll('#editQuizQuestionsGrid .question-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    updateEditQuizSelectionSummary();
+  }
+
+  function selectEvenEditQuizQuestions() {
+    document.querySelectorAll('#editQuizQuestionsGrid .question-item:not([style*="display: none"])').forEach((item, index) => {
+      if (index % 2 === 1) {
+        const questionId = item.dataset.questionId;
+        if (questionId && !selectedEditQuizQuestions.find(sq => String(sq.question) === questionId)) {
+          toggleEditQuizQuestionSelection(questionId);
+        }
+      }
+    });
+  }
+
+  function selectOddEditQuizQuestions() {
+    document.querySelectorAll('#editQuizQuestionsGrid .question-item:not([style*="display: none"])').forEach((item, index) => {
+      if (index % 2 === 0) {
+        const questionId = item.dataset.questionId;
+        if (questionId && !selectedEditQuizQuestions.find(sq => String(sq.question) === questionId)) {
+          toggleEditQuizQuestionSelection(questionId);
+        }
+      }
+    });
+  }
+
+  function selectRandomEditQuizQuestions() {
+    const visibleQuestions = Array.from(document.querySelectorAll('#editQuizQuestionsGrid .question-item:not([style*="display: none"])'));
+    const randomCount = Math.ceil(visibleQuestions.length * 0.3);
+    const shuffled = visibleQuestions.sort(() => 0.5 - Math.random());
+    shuffled.slice(0, randomCount).forEach(item => {
+      const questionId = item.dataset.questionId;
+      if (questionId && !selectedEditQuizQuestions.find(sq => String(sq.question) === questionId)) {
+        toggleEditQuizQuestionSelection(questionId);
+      }
+    });
+  }
+
+  function selectEditQuizRange() {
+    const rangeInput = document.getElementById('editQuizRangeInput');
+    if (!rangeInput) return;
+
+    const rangeText = rangeInput.value.trim();
+    if (!rangeText) return;
+
+    const ranges = rangeText.split(',').map(r => r.trim());
+    const visibleQuestions = Array.from(document.querySelectorAll('#editQuizQuestionsGrid .question-item:not([style*="display: none"])'));
+
+    ranges.forEach(range => {
+      if (range.includes('-')) {
+        const [start, end] = range.split('-').map(n => parseInt(n.trim()) - 1);
+        if (!isNaN(start) && !isNaN(end)) {
+          for (let i = Math.max(0, start); i <= Math.min(visibleQuestions.length - 1, end); i++) {
+            const questionId = visibleQuestions[i]?.dataset.questionId;
+            if (questionId && !selectedEditQuizQuestions.find(sq => String(sq.question) === questionId)) {
+              toggleEditQuizQuestionSelection(questionId);
+            }
+          }
+        }
+      } else {
+        const index = parseInt(range.trim()) - 1;
+        if (!isNaN(index) && index >= 0 && index < visibleQuestions.length) {
+          const questionId = visibleQuestions[index]?.dataset.questionId;
+          if (questionId && !selectedEditQuizQuestions.find(sq => String(sq.question) === questionId)) {
+            toggleEditQuizQuestionSelection(questionId);
+          }
+        }
+      }
+    });
+
+    rangeInput.value = '';
+  }
+
+  // Edit Homework Question Selection Tools
+  function selectAllEditHomeworkQuestions() {
+    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])').forEach(item => {
+      const questionId = item.dataset.questionId;
+      if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+        toggleEditHomeworkQuestionSelection(questionId);
+      }
+    });
+  }
+
+  function clearEditHomeworkSelection() {
+    selectedEditHomeworkQuestions = [];
+    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    updateEditHomeworkSelectionSummary();
+  }
+
+  function selectEvenEditHomeworkQuestions() {
+    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])').forEach((item, index) => {
+      if (index % 2 === 1) {
+        const questionId = item.dataset.questionId;
+        if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+          toggleEditHomeworkQuestionSelection(questionId);
+        }
+      }
+    });
+  }
+
+  function selectOddEditHomeworkQuestions() {
+    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])').forEach((item, index) => {
+      if (index % 2 === 0) {
+        const questionId = item.dataset.questionId;
+        if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+          toggleEditHomeworkQuestionSelection(questionId);
+        }
+      }
+    });
+  }
+
+  function selectRandomEditHomeworkQuestions() {
+    const visibleQuestions = Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])'));
+    const randomCount = Math.ceil(visibleQuestions.length * 0.3);
+    const shuffled = visibleQuestions.sort(() => 0.5 - Math.random());
+    shuffled.slice(0, randomCount).forEach(item => {
+      const questionId = item.dataset.questionId;
+      if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+        toggleEditHomeworkQuestionSelection(questionId);
+      }
+    });
+  }
+
+  function selectEditHomeworkRange() {
+    const rangeInput = document.getElementById('editHomeworkRangeInput');
+    if (!rangeInput) return;
+
+    const rangeText = rangeInput.value.trim();
+    if (!rangeText) return;
+
+    const ranges = rangeText.split(',').map(r => r.trim());
+    const visibleQuestions = Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])'));
+
+    ranges.forEach(range => {
+      if (range.includes('-')) {
+        const [start, end] = range.split('-').map(n => parseInt(n.trim()) - 1);
+        if (!isNaN(start) && !isNaN(end)) {
+          for (let i = Math.max(0, start); i <= Math.min(visibleQuestions.length - 1, end); i++) {
+            const questionId = visibleQuestions[i]?.dataset.questionId;
+            if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+              toggleEditHomeworkQuestionSelection(questionId);
+            }
+          }
+        }
+      } else {
+        const index = parseInt(range.trim()) - 1;
+        if (!isNaN(index) && index >= 0 && index < visibleQuestions.length) {
+          const questionId = visibleQuestions[index]?.dataset.questionId;
+          if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+            toggleEditHomeworkQuestionSelection(questionId);
+          }
+        }
+      }
+    });
+
+    rangeInput.value = '';
   }
 
   // Edit Quiz Question Bank Selection
@@ -3225,45 +5352,9 @@ function getContentIcon(type) {
       });
   }
 
-  // Display questions for edit quiz
-  function displayEditQuizQuestions(questions) {
-    const grid = document.getElementById('editQuizQuestionsGrid');
-    const countElement = document.getElementById('editQuizQuestionsCount');
+  // OLD FUNCTION REMOVED - Using the new displayEditQuizQuestions function above
 
-    if (countElement) {
-      countElement.textContent = `(${questions.length} questions)`;
-    }
-
-    if (grid && questions.length > 0) {
-      grid.innerHTML = questions.map((question, index) => `
-        <div class="question-circle" data-question-id="${question._id}" onclick="toggleEditQuizQuestion(${index})">
-          ${index + 1}
-        </div>
-      `).join('');
-    } else {
-      document.getElementById('editNoQuizQuestionsMessage').style.display = 'block';
-    }
-  }
-
-  // Display questions for edit homework
-  function displayEditHomeworkQuestions(questions) {
-    const grid = document.getElementById('editHomeworkQuestionsGrid');
-    const countElement = document.getElementById('editHomeworkQuestionsCount');
-
-    if (countElement) {
-      countElement.textContent = `(${questions.length} questions)`;
-    }
-
-    if (grid && questions.length > 0) {
-      grid.innerHTML = questions.map((question, index) => `
-        <div class="question-circle" data-question-id="${question._id}" onclick="toggleEditHomeworkQuestion(${index})">
-          ${index + 1}
-        </div>
-      `).join('');
-    } else {
-      document.getElementById('editNoHomeworkQuestionsMessage').style.display = 'block';
-    }
-  }
+  // OLD FUNCTION REMOVED - Using the new displayEditHomeworkQuestions function above
 
   // Toggle question selection for edit quiz
   function toggleEditQuizQuestion(index) {
@@ -3281,37 +5372,11 @@ function getContentIcon(type) {
     updateEditQuizSelectionSummary();
   }
 
-  // Toggle question selection for edit homework
-  function toggleEditHomeworkQuestion(index) {
-    const questionElement = document.querySelector(`#editHomeworkQuestionsGrid .question-circle:nth-child(${index + 1})`);
-    if (!questionElement) return;
+  // OLD FUNCTION REMOVED - Using toggleEditHomeworkQuestionSelection(questionId) instead
 
-    if (questionElement.classList.contains('selected')) {
-      questionElement.classList.remove('selected');
-      window.editHomeworkSelectedQuestions = window.editHomeworkSelectedQuestions.filter(id => id !== questionElement.dataset.questionId);
-    } else {
-      questionElement.classList.add('selected');
-      window.editHomeworkSelectedQuestions.push(questionElement.dataset.questionId);
-    }
+  // OLD FUNCTION REMOVED - Using the comprehensive updateEditQuizSelectionSummary function above (defined earlier)
 
-    updateEditHomeworkSelectionSummary();
-  }
-
-  // Update edit quiz selection summary
-  function updateEditQuizSelectionSummary() {
-    const countElement = document.getElementById('editQuizSelectedCount');
-    if (countElement) {
-      countElement.textContent = window.editQuizSelectedQuestions.length;
-    }
-  }
-
-  // Update edit homework selection summary
-  function updateEditHomeworkSelectionSummary() {
-    const countElement = document.getElementById('editHomeworkSelectedCount');
-    if (countElement) {
-      countElement.textContent = window.editHomeworkSelectedQuestions.length;
-    }
-  }
+  // OLD FUNCTION REMOVED - Using the comprehensive updateEditHomeworkSelectionSummary function above
 
   // Edit Quiz Question Selection Tools
   function selectAllEditQuizQuestions() {
@@ -3651,7 +5716,7 @@ function getContentIcon(type) {
   }
 
   // ==================== CONTENT REORDERING FUNCTIONS ====================
-  
+
   let contentReorderModes = {}; // Track reorder mode for each topic
 
   function toggleContentReorder(topicId) {
@@ -3659,10 +5724,10 @@ function getContentIcon(type) {
     if (event) {
       event.stopPropagation();
     }
-    
+
     const contentItems = document.querySelector(`.content-items[data-topic-id="${topicId}"]`);
     const reorderBtn = event.target.closest('.content-reorder-btn');
-    
+
     if (!contentItems) return;
 
     // Toggle reorder mode for this topic
@@ -3673,7 +5738,7 @@ function getContentIcon(type) {
       contentItems.classList.add('reorder-mode');
       reorderBtn.classList.add('active');
       reorderBtn.innerHTML = '<i class="fas fa-check"></i> Save Order';
-      
+
       // Make content items draggable
       const items = contentItems.querySelectorAll('.content-item');
       items.forEach(item => {
@@ -3689,7 +5754,7 @@ function getContentIcon(type) {
       contentItems.classList.remove('reorder-mode');
       reorderBtn.classList.remove('active');
       reorderBtn.innerHTML = '<i class="fas fa-sort"></i> Reorder Content';
-      
+
       // Remove draggable
       const items = contentItems.querySelectorAll('.content-item');
       items.forEach(item => {
@@ -3720,13 +5785,13 @@ function getContentIcon(type) {
       e.preventDefault();
     }
     e.dataTransfer.dropEffect = 'move';
-    
+
     // Add visual feedback
     const contentItem = e.target.closest('.content-item');
     if (contentItem && contentItem !== draggedContentElement) {
       contentItem.classList.add('drag-over');
     }
-    
+
     return false;
   }
 
@@ -3741,7 +5806,7 @@ function getContentIcon(type) {
     });
 
     const dropTarget = e.target.closest('.content-item');
-    
+
     if (draggedContentElement !== dropTarget && dropTarget) {
       const contentItems = dropTarget.parentElement;
       const items = Array.from(contentItems.querySelectorAll('.content-item'));
@@ -3944,11 +6009,14 @@ function getContentIcon(type) {
     const topicCards = document.querySelectorAll('.topic-card');
     topicCards.forEach(card => {
       card.addEventListener('click', function(e) {
-        // Don't toggle if clicking on topic actions, reorder button, or content items header
-        if (!e.target.closest('.topic-actions') && 
-            !e.target.closest('.content-items-header') && 
-            !e.target.closest('.content-reorder-btn') && 
-            !reorderMode) {
+        // Don't toggle if clicking on topic actions, reorder button, content items header, content actions, or zoom meeting controls
+        if (!e.target.closest('.topic-actions') &&
+          !e.target.closest('.content-items-header') &&
+          !e.target.closest('.content-reorder-btn') &&
+          !e.target.closest('.content-actions') &&
+          !e.target.closest('.zoom-meeting-controls') &&
+          !e.target.closest('.content-regular-actions') &&
+          !reorderMode) {
           // Toggle topic content visibility
           const contentSection = this.querySelector('.topic-content-section');
           if (contentSection) {
@@ -3960,22 +6028,127 @@ function getContentIcon(type) {
     });
   });
 
-  // Upload content file function (removed)
+  // Simple PDF Upload Function
   function uploadContentFile(file) {
-    // File upload functionality has been removed
-    console.log('File upload functionality has been removed');
-    
-    // Show message to user
+    // Validate file type
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      showNotification('Only PDF files are allowed', 'error');
+      return;
+    }
+
+    // Validate file size (50MB limit)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      showNotification('File size must be less than 50MB', 'error');
+      return;
+    }
+
     const progressContainer = document.getElementById('contentFileProgress');
-    if (progressContainer) {
-      progressContainer.style.display = 'block';
-      progressContainer.innerHTML = `
-        <div class="alert alert-info">
-          <i class="fas fa-info-circle"></i>
-          File upload functionality has been removed. Please use external file hosting services and paste the URL in the content field.
+    const preview = document.getElementById('contentFilePreview');
+    const uploadedUrlInput = document.getElementById('uploadedFileUrl');
+    const contentUrlInput = document.getElementById('contentUrl');
+
+    // Show file info in preview
+    if (preview) {
+      preview.innerHTML = `
+        <div class="file-info">
+          <i class="fas fa-file-pdf" style="font-size: 3rem; color: #dc2626;"></i>
+          <div class="file-details">
+            <strong>${file.name}</strong>
+            <small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+          </div>
         </div>
       `;
     }
+
+    // Show progress
+    if (progressContainer) {
+      progressContainer.style.display = 'block';
+      progressContainer.innerHTML = `
+        <div class="progress">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+        </div>
+        <small class="d-block mt-2 text-center">Uploading PDF...</small>
+      `;
+    }
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    // Upload PDF
+    fetch('/admin/upload/pdf', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update hidden input and URL input
+        if (uploadedUrlInput) {
+          uploadedUrlInput.value = data.fileUrl;
+        }
+        if (contentUrlInput) {
+          contentUrlInput.value = data.fileUrl;
+        }
+
+        // Show success
+        if (progressContainer) {
+          progressContainer.innerHTML = `
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle"></i>
+              PDF uploaded successfully!
+            </div>
+          `;
+        }
+
+        if (preview) {
+          preview.innerHTML = `
+            <div class="file-info">
+              <i class="fas fa-file-pdf" style="font-size: 3rem; color: #10b981;"></i>
+              <div class="file-details">
+                <strong>${data.fileName}</strong>
+                <small class="text-success">Uploaded successfully</small>
+              </div>
+            </div>
+          `;
+        }
+
+        showNotification('PDF uploaded successfully!', 'success');
+
+        // Hide progress after 3 seconds
+        setTimeout(() => {
+          if (progressContainer) {
+            progressContainer.style.display = 'none';
+          }
+        }, 3000);
+      } else {
+        throw new Error(data.message || 'Upload failed');
+      }
+    })
+    .catch(error => {
+      console.error('Upload error:', error);
+      showNotification('Error uploading PDF: ' + error.message, 'error');
+      
+      if (progressContainer) {
+        progressContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i>
+            Upload failed: ${error.message}
+          </div>
+        `;
+      }
+
+      if (preview) {
+        preview.innerHTML = `
+          <div class="preview-overlay">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Click or drag to upload</p>
+            <small>PDF files only</small>
+          </div>
+        `;
+      }
+    });
   }
 
   // Update topic card in UI
@@ -4057,6 +6230,15 @@ function getContentIcon(type) {
     form.reset();
     document.getElementById('fileUploadSection').style.display = 'none';
     document.getElementById('uploadedFileUrl').value = '';
+
+    // Reset quiz and homework steps
+    resetQuizSteps();
+    resetHomeworkSteps();
+
+    // Hide all content type sections
+    document.getElementById('quizContentSection').style.display = 'none';
+    document.getElementById('homeworkContentSection').style.display = 'none';
+    document.getElementById('zoomContentSection').style.display = 'none';
 
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('addContentModal'));
@@ -4574,9 +6756,17 @@ function getContentIcon(type) {
           return false;
         }
 
-        // Validate Quiz/Homework content before submission
-        if (!handleQuizHomeworkSubmission()) {
+        // Handle quiz content separately with AJAX
+        if (contentType === 'quiz') {
           e.preventDefault();
+          submitQuizContent();
+          return false;
+        }
+
+        // Handle homework content separately with AJAX
+        if (contentType === 'homework') {
+          e.preventDefault();
+          submitHomeworkContent();
           return false;
         }
       });
@@ -4651,7 +6841,7 @@ function getContentIcon(type) {
       // Load questions from selected banks
       loadQuizQuestions();
     }
-    
+
     if (currentQuizStep < 3) {
       currentQuizStep++;
       updateQuizStepDisplay();
@@ -4766,14 +6956,14 @@ function getContentIcon(type) {
     }
 
     fetch('/admin/quizzes/api/banks/multiple/questions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        bankIds: selectedQuizQuestionBankIds
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bankIds: selectedQuizQuestionBankIds
+        })
       })
-    })
       .then(response => response.json())
       .then(result => {
         if (result.success && result.questions) {
@@ -4852,13 +7042,16 @@ function getContentIcon(type) {
         });
 
         const difficultyClass = question.difficulty || 'medium';
+        const questionTags = question.tags || [];
+        const tagsJson = JSON.stringify(questionTags);
 
         questionHTML += `
           <div class="question-item ${difficultyClass}" 
                onclick="toggleQuizQuestion(${globalIndex})" 
                data-question-index="${globalIndex}"
                data-bank-id="${bankId}"
-               data-question-id="${question._id}">
+               data-question-id="${question._id}"
+               data-tags='${tagsJson}'>
             <div class="question-item-top">
               <div class="question-item-number">${globalIndex + 1}</div>
               <button type="button" class="question-preview-btn" onclick="event.stopPropagation(); previewQuizQuestion(${globalIndex})" title="Preview Question">
@@ -4901,6 +7094,9 @@ function getContentIcon(type) {
     // Restore visual state of selected questions
     restoreQuizQuestionSelection();
     updateQuizSelectionSummary();
+    
+    // Populate tags filter
+    populateTagsFilter('quizTagsFilter', quizQuestions);
   }
 
   // Update Quiz Bank Filter Buttons
@@ -4911,7 +7107,7 @@ function getContentIcon(type) {
     // Get the "All Banks" button HTML first
     const allBanksBtn = bankFilterButtons.querySelector('[data-bank-id="all"]');
     let buttonsHTML = '';
-    
+
     if (allBanksBtn) {
       buttonsHTML = allBanksBtn.outerHTML;
     } else {
@@ -4969,6 +7165,7 @@ function getContentIcon(type) {
   function filterQuizQuestions() {
     const difficultyFilter = document.getElementById('quizDifficultyFilter')?.value || '';
     const typeFilter = document.getElementById('quizTypeFilter')?.value || '';
+    const tagsFilter = document.getElementById('quizTagsFilter')?.value || '';
     const searchFilter = document.getElementById('quizSearchFilter')?.value.toLowerCase() || '';
     const activeBankFilter = window.currentQuizBankFilter || document.querySelector('#quizBankFilterButtons .bank-filter-btn.active')?.dataset.bankId || 'all';
 
@@ -4996,6 +7193,17 @@ function getContentIcon(type) {
       // Check type filter
       if (show && typeFilter && question.questionType !== typeFilter) {
         show = false;
+      }
+
+      // Check tags filter
+      if (show && tagsFilter) {
+        const questionTags = question.tags || [];
+        const hasTag = questionTags.some(tag => 
+          tag && tag.toString().toLowerCase() === tagsFilter.toLowerCase()
+        );
+        if (!hasTag) {
+          show = false;
+        }
       }
 
       // Check search filter
@@ -5239,7 +7447,9 @@ function getContentIcon(type) {
     if (selectedCount) selectedCount.textContent = selectedQuizQuestions.length;
 
     let points = 0;
-    let easy = 0, medium = 0, hard = 0;
+    let easy = 0,
+      medium = 0,
+      hard = 0;
 
     selectedQuizQuestions.forEach(selection => {
       const question = quizQuestions.find(q => {
@@ -5275,6 +7485,21 @@ function getContentIcon(type) {
     if (!question) return;
 
     showQuestionPreview(question, `Homework Question ${index + 1}`);
+  }
+
+  // Preview functions for edit quiz/homework
+  function previewEditQuizQuestion(index) {
+    const question = editQuizQuestions[index];
+    if (!question) return;
+
+    showQuestionPreview(question, `Edit Quiz Question ${index + 1}`);
+  }
+
+  function previewEditHomeworkQuestion(index) {
+    const question = editHomeworkQuestions[index];
+    if (!question) return;
+
+    showQuestionPreview(question, `Edit Homework Question ${index + 1}`);
   }
 
   function showQuestionPreview(question, title) {
@@ -5513,7 +7738,7 @@ function getContentIcon(type) {
       // Load questions from selected banks
       loadHomeworkQuestions();
     }
-    
+
     if (currentHomeworkStep < 3) {
       currentHomeworkStep++;
       updateHomeworkStepDisplay();
@@ -5628,14 +7853,14 @@ function getContentIcon(type) {
     }
 
     fetch('/admin/quizzes/api/banks/multiple/questions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        bankIds: selectedHomeworkQuestionBankIds
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bankIds: selectedHomeworkQuestionBankIds
+        })
       })
-    })
       .then(response => response.json())
       .then(result => {
         if (result.success && result.questions) {
@@ -5714,13 +7939,16 @@ function getContentIcon(type) {
         });
 
         const difficultyClass = question.difficulty || 'medium';
+        const questionTags = question.tags || [];
+        const tagsJson = JSON.stringify(questionTags);
 
         questionHTML += `
           <div class="question-item ${difficultyClass}" 
                onclick="toggleHomeworkQuestion(${globalIndex})" 
                data-question-index="${globalIndex}"
                data-bank-id="${bankId}"
-               data-question-id="${question._id}">
+               data-question-id="${question._id}"
+               data-tags='${tagsJson}'>
             <div class="question-item-top">
               <div class="question-item-number">${globalIndex + 1}</div>
               <button type="button" class="question-preview-btn" onclick="event.stopPropagation(); previewHomeworkQuestion(${globalIndex})" title="Preview Question">
@@ -5763,6 +7991,9 @@ function getContentIcon(type) {
     // Restore visual state of selected questions
     restoreHomeworkQuestionSelection();
     updateHomeworkSelectionSummary();
+    
+    // Populate tags filter
+    populateTagsFilter('homeworkTagsFilter', homeworkQuestions);
   }
 
   // Update Homework Bank Filter Buttons
@@ -5773,7 +8004,7 @@ function getContentIcon(type) {
     // Get the "All Banks" button HTML first
     const allBanksBtn = bankFilterButtons.querySelector('[data-bank-id="all"]');
     let buttonsHTML = '';
-    
+
     if (allBanksBtn) {
       buttonsHTML = allBanksBtn.outerHTML;
     } else {
@@ -5831,6 +8062,7 @@ function getContentIcon(type) {
   function filterHomeworkQuestions() {
     const difficultyFilter = document.getElementById('homeworkDifficultyFilter')?.value || '';
     const typeFilter = document.getElementById('homeworkTypeFilter')?.value || '';
+    const tagsFilter = document.getElementById('homeworkTagsFilter')?.value || '';
     const searchFilter = document.getElementById('homeworkSearchFilter')?.value.toLowerCase() || '';
     const activeBankFilter = window.currentHomeworkBankFilter || document.querySelector('#homeworkBankFilterButtons .bank-filter-btn.active')?.dataset.bankId || 'all';
 
@@ -5858,6 +8090,17 @@ function getContentIcon(type) {
       // Check type filter
       if (show && typeFilter && question.questionType !== typeFilter) {
         show = false;
+      }
+
+      // Check tags filter
+      if (show && tagsFilter) {
+        const questionTags = question.tags || [];
+        const hasTag = questionTags.some(tag => 
+          tag && tag.toString().toLowerCase() === tagsFilter.toLowerCase()
+        );
+        if (!hasTag) {
+          show = false;
+        }
       }
 
       // Check search filter
@@ -6101,7 +8344,9 @@ function getContentIcon(type) {
     if (selectedCount) selectedCount.textContent = selectedHomeworkQuestions.length;
 
     let points = 0;
-    let easy = 0, medium = 0, hard = 0;
+    let easy = 0,
+      medium = 0,
+      hard = 0;
 
     selectedHomeworkQuestions.forEach(selection => {
       const question = homeworkQuestions.find(q => {
@@ -6125,58 +8370,186 @@ function getContentIcon(type) {
     if (hardCount) hardCount.textContent = hard;
   }
 
-  // Form submission handler for Quiz and Homework
-  function handleQuizHomeworkSubmission() {
-    const contentType = document.getElementById('contentType').value;
+  // Submit Quiz Content
+  async function submitQuizContent() {
+    try {
+      const courseCode = '<%= course.courseCode %>';
+      const topicId = currentTopicId;
 
-    if (contentType === 'quiz') {
+      if (!topicId) {
+        showNotification('Please select a topic first', 'error');
+        return;
+      }
+
+      // Validation
       if (selectedQuizQuestionBankIds.length === 0 || selectedQuizQuestions.length === 0) {
         showNotification('Please select at least one question bank and at least one question', 'error');
-        return false;
+        return;
       }
 
-      // Add hidden inputs for quiz data
-      addHiddenInput('questionBanks', JSON.stringify(selectedQuizQuestionBankIds));
-      addHiddenInput('selectedQuestions', JSON.stringify(selectedQuizQuestions));
-
-      // Set empty content for quiz
-      const contentUrlInput = document.getElementById('contentUrl');
-      if (contentUrlInput) {
-        contentUrlInput.value = '';
+      const title = document.getElementById('contentTitle').value.trim();
+      if (!title) {
+        showNotification('Please enter a title', 'error');
+        return;
       }
+
+      const prerequisitesValue = document.getElementById('contentPrerequisites')?.value || '';
+
+      const formData = {
+        title: title,
+        description: document.getElementById('contentDescription').value.trim(),
+        questionBanks: selectedQuizQuestionBankIds,
+        selectedQuestions: selectedQuizQuestions,
+        duration: parseInt(document.getElementById('quizDuration')?.value) || 30,
+        passingScore: parseInt(document.getElementById('quizPassingScore')?.value) || 60,
+        maxAttempts: parseInt(document.getElementById('quizMaxAttempts')?.value) || 3,
+        shuffleQuestions: document.getElementById('quizShuffleQuestions')?.checked || false,
+        shuffleOptions: document.getElementById('quizShuffleOptions')?.checked || false,
+        showCorrectAnswers: document.getElementById('quizShowCorrectAnswers')?.checked || false,
+        showResults: document.getElementById('quizShowResults')?.checked || false,
+        instructions: document.getElementById('quizInstructions')?.value.trim() || '',
+        difficulty: document.getElementById('contentDifficulty')?.value || 'beginner',
+        tags: document.getElementById('contentTags')?.value.split(',').map(t => t.trim()).filter(t => t) || [],
+        prerequisites: prerequisitesValue || null,
+        isRequired: true,
+      };
+
+      // Show loading
+      showNotification('Creating quiz content...', 'info');
+      const submitBtn = document.getElementById('addContentSubmitBtn');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+
+      const response = await fetch(`/admin/courses/${courseCode}/topics/${topicId}/content/quiz`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification('Quiz content created successfully!', 'success');
+
+        // Close modal and refresh
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addContentModal'));
+        if (modal) {
+          modal.hide();
+        }
+
+        // Reset form
+        document.getElementById('addContentForm').reset();
+        resetQuizSteps();
+
+        // Reload page to show new content
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      } else {
+        showNotification(data.message || 'Failed to create quiz content', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    } catch (error) {
+      console.error('Error creating quiz content:', error);
+      showNotification('Error creating quiz content: ' + error.message, 'error');
+      const submitBtn = document.getElementById('addContentSubmitBtn');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Content';
     }
-
-    if (contentType === 'homework') {
-      if (selectedHomeworkQuestionBankIds.length === 0 || selectedHomeworkQuestions.length === 0) {
-        showNotification('Please select at least one question bank and at least one question', 'error');
-        return false;
-      }
-
-      // Add hidden inputs for homework data
-      addHiddenInput('questionBanks', JSON.stringify(selectedHomeworkQuestionBankIds));
-      addHiddenInput('selectedQuestions', JSON.stringify(selectedHomeworkQuestions));
-
-      // Set empty content for homework
-      const contentUrlInput = document.getElementById('contentUrl');
-      if (contentUrlInput) {
-        contentUrlInput.value = '';
-      }
-    }
-
-    return true;
   }
 
-  function addHiddenInput(name, value) {
-    // Remove existing input if any
-    const existing = document.querySelector(`input[name="${name}"]`);
-    if (existing) existing.remove();
+  // Submit Homework Content
+  async function submitHomeworkContent() {
+    try {
+      const courseCode = '<%= course.courseCode %>';
+      const topicId = currentTopicId;
 
-    // Add new hidden input
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = name;
-    input.value = value;
-    document.getElementById('addContentForm').appendChild(input);
+      if (!topicId) {
+        showNotification('Please select a topic first', 'error');
+        return;
+      }
+
+      // Validation
+      if (selectedHomeworkQuestionBankIds.length === 0 || selectedHomeworkQuestions.length === 0) {
+        showNotification('Please select at least one question bank and at least one question', 'error');
+        return;
+      }
+
+      const title = document.getElementById('contentTitle').value.trim();
+      if (!title) {
+        showNotification('Please enter a title', 'error');
+        return;
+      }
+
+      const prerequisitesValue = document.getElementById('contentPrerequisites')?.value || '';
+
+      const formData = {
+        title: title,
+        description: document.getElementById('contentDescription').value.trim(),
+        questionBanks: selectedHomeworkQuestionBankIds,
+        selectedQuestions: selectedHomeworkQuestions,
+        passingScore: parseInt(document.getElementById('homeworkPassingScore')?.value) || 60,
+        maxAttempts: parseInt(document.getElementById('homeworkMaxAttempts')?.value) || 1,
+        shuffleQuestions: document.getElementById('homeworkShuffleQuestions')?.checked || false,
+        shuffleOptions: document.getElementById('homeworkShuffleOptions')?.checked || false,
+        showCorrectAnswers: document.getElementById('homeworkShowCorrectAnswers')?.checked || false,
+        instructions: document.getElementById('homeworkInstructions')?.value.trim() || '',
+        difficulty: document.getElementById('contentDifficulty')?.value || 'beginner',
+        tags: document.getElementById('contentTags')?.value.split(',').map(t => t.trim()).filter(t => t) || [],
+        prerequisites: prerequisitesValue || null,
+        isRequired: true,
+      };
+
+      // Show loading
+      showNotification('Creating homework content...', 'info');
+      const submitBtn = document.getElementById('addContentSubmitBtn');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+
+      const response = await fetch(`/admin/courses/${courseCode}/topics/${topicId}/content/homework`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification('Homework content created successfully!', 'success');
+
+        // Close modal and refresh
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addContentModal'));
+        if (modal) {
+          modal.hide();
+        }
+
+        // Reset form
+        document.getElementById('addContentForm').reset();
+        resetHomeworkSteps();
+
+        // Reload page to show new content
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      } else {
+        showNotification(data.message || 'Failed to create homework content', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    } catch (error) {
+      console.error('Error creating homework content:', error);
+      showNotification('Error creating homework content: ' + error.message, 'error');
+      const submitBtn = document.getElementById('addContentSubmitBtn');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Content';
+    }
   }
 
   // ==================== ZOOM MEETING FUNCTIONS ====================
@@ -6314,24 +8687,74 @@ function getContentIcon(type) {
 
   // End Zoom meeting
   async function endZoomMeeting(meetingId) {
-    if (!confirm('⚠️ This will end the meeting for ALL participants!\n\nAre you sure you want to end this meeting? Students will no longer be able to join and will be automatically removed from the meeting.')) {
+    // Show SweetAlert2 modal with recording URL input (optional)
+    const {
+      value: formValues,
+      isConfirmed
+    } = await Swal.fire({
+      title: '⚠️ End Zoom Meeting',
+      html: `
+        <div style="text-align: left;">
+          <p style="margin-bottom: 15px;"><strong>This will end the meeting for ALL participants!</strong></p>
+          <p style="margin-bottom: 20px; color: #666;">You can add the recording link now or later. Students will see a "Waiting for Recording" status until you add it.</p>
+          
+          <label for="recordingUrl" style="display: block; margin-bottom: 8px; font-weight: 500;">
+            <i class="fas fa-video"></i> Add Recording Link (Optional - Can add later):
+          </label>
+          <input 
+            id="recordingUrl" 
+            type="url" 
+            class="swal2-input" 
+            placeholder="Leave empty to add later"
+            style="width: 90%; margin: 0 auto;"
+          >
+          <small style="display: block; margin-top: 8px; color: #666;">
+            You can add the recording link later from the meeting details. Supports: YouTube, Vimeo, Google Drive, or direct video links
+          </small>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'End Meeting',
+      cancelButtonText: 'Cancel',
+      focusConfirm: false,
+      preConfirm: () => {
+        return {
+          recordingUrl: document.getElementById('recordingUrl').value
+        }
+      }
+    });
+
+    if (!isConfirmed) {
       return;
     }
 
     try {
       showNotification('Ending Zoom meeting for all participants...', 'info');
 
+      const requestBody = {};
+      if (formValues.recordingUrl && formValues.recordingUrl.trim()) {
+        requestBody.recordingUrl = formValues.recordingUrl.trim();
+      }
+
       const response = await fetch(`/zoom/admin/zoom/${meetingId}/end`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       const result = await response.json();
 
       if (result.success) {
-        showNotification('✅ Zoom meeting ended successfully. All participants have been removed.', 'success');
+        const message = formValues.recordingUrl ?
+          '✅ Zoom meeting ended successfully and recording URL saved!' :
+          '✅ Zoom meeting ended successfully. You can add the recording link later from the meeting details.';
+
+        showNotification(message, 'success');
 
         // Reload the page to update the UI
         setTimeout(() => {
@@ -6343,6 +8766,78 @@ function getContentIcon(type) {
     } catch (error) {
       console.error('Error ending Zoom meeting:', error);
       showNotification('Failed to end meeting. Please try again.', 'error');
+    }
+  }
+
+  // Add recording URL to ended meeting
+  async function addRecordingUrl(meetingId) {
+    const { value: formValues, isConfirmed } = await Swal.fire({
+      title: '📹 Add Recording Link',
+      html: `
+        <div style="text-align: left;">
+          <p style="margin-bottom: 20px; color: #666;">Add the recording link for this meeting. Students will be able to watch it once added.</p>
+          
+          <label for="recordingUrl" style="display: block; margin-bottom: 8px; font-weight: 500;">
+            <i class="fas fa-video"></i> Recording Link:
+          </label>
+          <input 
+            id="recordingUrl" 
+            type="url" 
+            class="swal2-input" 
+            placeholder="https://example.com/recording-video-link"
+            style="width: 90%; margin: 0 auto;"
+            required
+          >
+          <small style="display: block; margin-top: 8px; color: #666;">
+            Supports: YouTube, Vimeo, Google Drive, or direct video links
+          </small>
+        </div>
+      `,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Save Recording Link',
+      cancelButtonText: 'Cancel',
+      focusConfirm: false,
+      preConfirm: () => {
+        const url = document.getElementById('recordingUrl').value.trim();
+        if (!url) {
+          Swal.showValidationMessage('Please enter a recording URL');
+          return false;
+        }
+        return { recordingUrl: url };
+      }
+    });
+
+    if (!isConfirmed) {
+      return;
+    }
+
+    try {
+      showNotification('Adding recording link...', 'info');
+
+      const response = await fetch(`/zoom/admin/zoom/${meetingId}/add-recording`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formValues)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        showNotification('✅ Recording link added successfully! Students can now watch the recording.', 'success');
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      } else {
+        showNotification(result.message || 'Failed to add recording link', 'error');
+      }
+    } catch (error) {
+      console.error('Error adding recording link:', error);
+      showNotification('Failed to add recording link. Please try again.', 'error');
     }
   }
 </script>
@@ -6583,7 +9078,7 @@ function getContentIcon(type) {
   }
 
   /* ==================== CONTENT REORDERING STYLES ==================== */
-  
+
   .content-items-header {
     display: flex;
     justify-content: flex-end;
@@ -6787,5 +9282,98 @@ function getContentIcon(type) {
     .content-drag-handle {
       padding: 5px;
     }
+  }
+
+  /* Bank Filter Button Active State - Green */
+  .bank-filter-btn.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+  }
+
+  .bank-filter-btn.active:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    border-color: #059669 !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+  }
+
+  /* Ensure all question types have the same color - remove yellow from medium difficulty */
+  .question-item.medium {
+    border-left-color: #3b82f6 !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  }
+
+  .question-item.medium:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%) !important;
+    border-left-color: #3b82f6 !important;
+  }
+
+  .question-item.selected.medium {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+    border-color: #3b82f6 !important;
+    border-left-color: #3b82f6 !important;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25), 0 4px 8px rgba(59, 130, 246, 0.15) !important;
+  }
+
+  .question-item.selected.medium .question-item-number {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  }
+
+  .question-item.selected.medium .question-item-bank {
+    background: rgba(59, 130, 246, 0.1) !important;
+  }
+
+  /* Ensure True/False questions get the same green selected styling as MCQ and Written */
+  .question-item.selected {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+    border-color: #3b82f6 !important;
+    border-left-color: #3b82f6 !important;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25), 0 4px 8px rgba(59, 130, 246, 0.15) !important;
+    transform: translateY(-2px) !important;
+  }
+
+  .question-item.selected .question-item-number {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    color: white !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+    transform: scale(1.1) !important;
+  }
+
+  .question-item.selected .question-item-bank {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: #475569 !important;
+  }
+
+  .question-item.selected .question-check-indicator {
+    opacity: 1 !important;
+    color: #3b82f6 !important;
+  }
+
+  /* Override any difficulty-specific selected styles to use consistent green/blue */
+  .question-item.selected.easy,
+  .question-item.selected.medium,
+  .question-item.selected.hard {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+    border-color: #3b82f6 !important;
+    border-left-color: #3b82f6 !important;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25), 0 4px 8px rgba(59, 130, 246, 0.15) !important;
+  }
+
+  .question-item.selected.easy .question-item-number,
+  .question-item.selected.medium .question-item-number,
+  .question-item.selected.hard .question-item-number {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  }
+
+  .question-item.selected.easy .question-item-bank,
+  .question-item.selected.medium .question-item-bank,
+  .question-item.selected.hard .question-item-bank {
+    background: rgba(59, 130, 246, 0.1) !important;
   }
 </style>

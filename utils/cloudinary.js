@@ -42,6 +42,38 @@ const uploadImage = async (fileBuffer, options = {}) => {
   }
 };
 
+// Upload document/file to Cloudinary (for Excel, PDF, etc.)
+const uploadDocument = async (fileBuffer, fileName, options = {}) => {
+  try {
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: 'zoom-reports',
+          resource_type: 'raw', // Use 'raw' for documents
+          public_id: fileName.replace(/\.[^/.]+$/, ''), // Remove extension for public_id
+          ...options
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      ).end(fileBuffer);
+    });
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      originalName: fileName
+    };
+  } catch (error) {
+    console.error('Cloudinary document upload error:', error);
+    throw new Error('Failed to upload document to Cloudinary');
+  }
+};
+
 // Delete image from Cloudinary
 const deleteImage = async (publicId) => {
   try {
@@ -55,6 +87,7 @@ const deleteImage = async (publicId) => {
 
 module.exports = {
   uploadImage,
+  uploadDocument,
   deleteImage,
   cloudinary
 };

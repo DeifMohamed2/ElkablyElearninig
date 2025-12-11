@@ -20,10 +20,17 @@ const dashboard = async (req, res) => {
     const student = await User.findById(studentId)
       .populate({
         path: 'enrolledCourses.course',
-        populate: {
-          path: 'topics',
-          model: 'Topic',
-        },
+        populate: [
+          {
+            path: 'topics',
+            model: 'Topic',
+          },
+          {
+            path: 'bundle',
+            select: 'title bundleCode thumbnail',
+            model: 'BundleCourse',
+          },
+        ],
       })
       .populate('wishlist')
       .populate({
@@ -130,8 +137,8 @@ const enrolledCourses = async (req, res) => {
         },
         {
           path: 'bundle',
-          select: 'title bundleCode',
-        }
+          select: 'title bundleCode thumbnail',
+        },
       ],
     });
 
@@ -160,22 +167,25 @@ const enrolledCourses = async (req, res) => {
 
     // Search by course name
     if (searchQuery) {
-      filteredCourses = filteredCourses.filter(enrollment => 
-        enrollment.course.title.toLowerCase().includes(searchQuery.toLowerCase())
+      filteredCourses = filteredCourses.filter((enrollment) =>
+        enrollment.course.title
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
       );
     }
 
     // Filter by bundle
     if (bundleFilter !== 'all') {
-      filteredCourses = filteredCourses.filter(enrollment => 
-        enrollment.course.bundle && 
-        enrollment.course.bundle._id.toString() === bundleFilter
+      filteredCourses = filteredCourses.filter(
+        (enrollment) =>
+          enrollment.course.bundle &&
+          enrollment.course.bundle._id.toString() === bundleFilter
       );
     }
 
     // Filter by progress percentage
     if (progressFilter !== 'all') {
-      filteredCourses = filteredCourses.filter(enrollment => {
+      filteredCourses = filteredCourses.filter((enrollment) => {
         const progress = enrollment.progress || 0;
         switch (progressFilter) {
           case 'not-started':
@@ -197,36 +207,58 @@ const enrolledCourses = async (req, res) => {
     // Sort courses
     switch (sortBy) {
       case 'name':
-        filteredCourses.sort((a, b) => a.course.title.localeCompare(b.course.title));
+        filteredCourses.sort((a, b) =>
+          a.course.title.localeCompare(b.course.title)
+        );
         break;
       case 'progress':
         filteredCourses.sort((a, b) => (b.progress || 0) - (a.progress || 0));
         break;
       case 'enrolledAt':
-        filteredCourses.sort((a, b) => new Date(b.enrolledAt) - new Date(a.enrolledAt));
+        filteredCourses.sort(
+          (a, b) => new Date(b.enrolledAt) - new Date(a.enrolledAt)
+        );
         break;
       case 'lastAccessed':
       default:
-        filteredCourses.sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed));
+        filteredCourses.sort(
+          (a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed)
+        );
         break;
     }
 
+    // Get unlock status for each course
+    const Course = require('../models/Course');
+    const coursesWithUnlockStatus = await Promise.all(
+      filteredCourses.map(async (enrollment) => {
+        const unlockStatus = await Course.isCourseUnlocked(
+          studentId,
+          enrollment.course._id
+        );
+        return {
+          ...enrollment.toObject(),
+          isUnlocked: unlockStatus.unlocked,
+          unlockReason: unlockStatus.reason,
+          previousCourse: unlockStatus.previousCourse,
+        };
+      })
+    );
+
     // Paginate results
-    const totalCourses = filteredCourses.length;
+    const totalCourses = coursesWithUnlockStatus.length;
     const totalPages = Math.ceil(totalCourses / limit);
-    const enrolledCourses = filteredCourses.slice(skip, skip + limit);
+    const enrolledCourses = coursesWithUnlockStatus.slice(skip, skip + limit);
 
     // Get available bundles for filter dropdown
     const BundleCourse = require('../models/BundleCourse');
     const bundleIds = validEnrollments
-      .map(e => e.course.bundle?._id)
+      .map((e) => e.course.bundle?._id)
       .filter(Boolean)
       .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
-    
-    const availableBundles = await BundleCourse.find({
-      _id: { $in: bundleIds }
-    }).select('_id title');
 
+    const availableBundles = await BundleCourse.find({
+      _id: { $in: bundleIds },
+    }).select('_id title');
 
     res.render('student/enrolled-courses', {
       title: 'My Enrolled Weeks | ELKABLY',
@@ -238,7 +270,7 @@ const enrolledCourses = async (req, res) => {
         search: searchQuery,
         progress: progressFilter,
         bundle: bundleFilter,
-        sort: sortBy
+        sort: sortBy,
       },
       pagination: {
         currentPage: page,
@@ -371,6 +403,17 @@ const courseContent = async (req, res) => {
 
     if (!course) {
       req.flash('error_msg', 'Course not found');
+      return res.redirect('/student/enrolled-courses');
+    }
+
+    // Check if course is unlocked
+    const unlockStatus = await Course.isCourseUnlocked(studentId, courseId);
+    if (!unlockStatus.unlocked) {
+      req.flash(
+        'error_msg',
+        unlockStatus.reason ||
+          'This course is locked. Please complete the previous courses first.'
+      );
       return res.redirect('/student/enrolled-courses');
     }
 
@@ -531,9 +574,48 @@ const contentDetails = async (req, res) => {
       course._id,
       contentId
     );
-    const isCompleted = contentProgress
+
+    // Special handling for Zoom content completion
+    let isCompleted = contentProgress
       ? contentProgress.completionStatus === 'completed'
       : false;
+
+    // For Zoom content, check if student attended live OR watched recording
+    if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
+      const zoomMeeting = contentItem.zoomMeeting;
+      const studentIdStr = studentId.toString();
+
+      // Check if student attended the live session
+      const attendedLive =
+        zoomMeeting.studentsAttended &&
+        zoomMeeting.studentsAttended.some(
+          (attendance) => attendance.student.toString() === studentIdStr
+        );
+
+      // Check if student watched the recording
+      const watchedRecording =
+        zoomMeeting.studentsWatchedRecording &&
+        zoomMeeting.studentsWatchedRecording.some(
+          (record) =>
+            record.student.toString() === studentIdStr &&
+            record.completedWatching
+        );
+
+      // If student either attended live OR watched recording, mark as completed
+      if ((attendedLive || watchedRecording) && !isCompleted) {
+        isCompleted = true;
+        // Note: We don't automatically update the progress here to avoid side effects
+        // The progress will be updated when they click "Mark as Watched" button
+      }
+
+      console.log(`📊 Zoom completion check for student ${studentIdStr}:`, {
+        attendedLive,
+        watchedRecording,
+        isCompleted,
+        meetingStatus: zoomMeeting.status,
+      });
+    }
+
     const progressPercentage = contentProgress
       ? contentProgress.progressPercentage || 0
       : 0;
@@ -573,12 +655,29 @@ const contentDetails = async (req, res) => {
     // Check if next content is accessible
     let nextContentAccessible = false;
     if (nextContent) {
+      // First check the unlock status
       const nextUnlockStatus = student.isContentUnlocked(
         course._id,
         nextContent._id,
         nextContent
       );
       nextContentAccessible = nextUnlockStatus.unlocked;
+
+      // Additional check: if current content is a prerequisite and is Zoom content
+      // Make sure it's marked as completed if student attended OR watched recording
+      if (
+        !nextContentAccessible &&
+        contentItem.type === 'zoom' &&
+        isCompleted
+      ) {
+        // Recheck after considering Zoom completion
+        const recheck = student.isContentUnlocked(
+          course._id,
+          nextContent._id,
+          nextContent
+        );
+        nextContentAccessible = recheck.unlocked;
+      }
     }
 
     console.log('Content Item Debug:', contentItem);
@@ -722,6 +821,42 @@ const updateContentProgress = async (req, res) => {
       enrollment.contentProgress.length
     );
 
+    // Check if this is a NEW completion BEFORE updating (to avoid duplicate notifications)
+    const existingProgress = enrollment.contentProgress.find(
+      (cp) => cp.contentId.toString() === contentId.toString()
+    );
+    const wasAlreadyCompleted = existingProgress && 
+      existingProgress.completionStatus === 'completed';
+    const isNewCompletion = progressData && 
+      progressData.completionStatus === 'completed' && 
+      !wasAlreadyCompleted;
+
+    // Get course and topic data for notification (before update)
+    let contentTitle = 'Content';
+    let isZoomContent = false;
+    let shouldSendNotification = false;
+    
+    if (isNewCompletion) {
+      try {
+        const course = await Course.findById(courseId);
+        const topic = await Topic.findById(topicId);
+
+        if (topic && topic.content) {
+          const contentItem = topic.content.find(
+            (c) => c._id.toString() === contentId
+          );
+          if (contentItem) {
+            contentTitle = contentItem.title;
+            isZoomContent = contentItem.type === 'zoom';
+            // Only send notification if NOT zoom content (zoom meeting end sends its own SMS)
+            shouldSendNotification = !isZoomContent;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking content type:', error);
+      }
+    }
+
     // Update content progress
     await student.updateContentProgress(
       courseId,
@@ -750,27 +885,44 @@ const updateContentProgress = async (req, res) => {
     );
 
     // Send WhatsApp notification to parent for content completion
+    // Only send if this is a NEW completion (not a re-completion)
+    // Skip if this is a zoom content completion (zoom meeting end will send its own detailed SMS)
     try {
       // Get course and topic data for notification
       const course = await Course.findById(courseId);
       const topic = await Topic.findById(topicId);
-      
+
       // Find the actual content item to get its title
       let contentTitle = 'Content';
+      let isZoomContent = false;
       if (topic && topic.content) {
-        const contentItem = topic.content.find(c => c._id.toString() === contentId);
+        const contentItem = topic.content.find(
+          (c) => c._id.toString() === contentId
+        );
         if (contentItem) {
           contentTitle = contentItem.title;
+          isZoomContent = contentItem.type === 'zoom';
         }
       }
-      
-      // Check if content is completed (check for completionStatus: 'completed')
-      if (progressData && progressData.completionStatus === 'completed') {
-        await whatsappSMSNotificationService.sendContentCompletionNotification(
-          studentId,
-          { title: contentTitle, type: contentType },
-          course
+
+      // Check if content is completed AND it's a NEW completion
+      // Skip zoom content - zoom meeting end will send detailed SMS
+      if (progressData && progressData.completionStatus === 'completed' && !isZoomContent) {
+        // Check if this was already completed BEFORE updating (use enrollment we already have)
+        const existingProgress = enrollment.contentProgress.find(
+          (cp) => cp.contentId.toString() === contentId.toString()
         );
+        // Only send if this is a NEW completion (wasn't completed before)
+        const wasAlreadyCompleted = existingProgress && 
+          existingProgress.completionStatus === 'completed';
+        
+        if (!wasAlreadyCompleted) {
+          await whatsappSMSNotificationService.sendContentCompletionNotification(
+            studentId,
+            { title: contentTitle, type: contentType },
+            course
+          );
+        }
       }
     } catch (whatsappError) {
       console.error('WhatsApp notification error:', whatsappError);
@@ -806,19 +958,36 @@ const quizzes = async (req, res) => {
       .filter((e) => e.course)
       .map((e) => e.course);
 
-    // Get all active quizzes with enhanced data
-    const quizzes = await Quiz.find({
+    // Get all active quizzes with enhanced data (no pagination for grouping)
+    const allQuizzes = await Quiz.find({
       status: 'active',
     })
       .populate('questionBank', 'name description totalQuestions')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
       .lean({ virtuals: true }); // Include virtual fields like totalQuestions
 
-    const totalQuizzes = await Quiz.countDocuments({ status: 'active' });
-    const totalPages = Math.ceil(totalQuizzes / limit);
+    // Group quizzes by testType
+    const groupedQuizzes = {
+      EST: [],
+      SAT: [],
+      ACT: []
+    };
+
+    allQuizzes.forEach(quiz => {
+      if (quiz.testType && groupedQuizzes[quiz.testType]) {
+        groupedQuizzes[quiz.testType].push(quiz);
+      }
+    });
+
+    // Get counts for each test type
+    const testTypeCounts = {
+      EST: groupedQuizzes.EST.length,
+      SAT: groupedQuizzes.SAT.length,
+      ACT: groupedQuizzes.ACT.length
+    };
+
+    const totalQuizzes = allQuizzes.length;
 
     // Get student's quiz attempts
     const studentQuizAttempts = student.quizAttempts || [];
@@ -826,15 +995,17 @@ const quizzes = async (req, res) => {
     res.render('student/quizzes', {
       title: 'Available Quizzes | ELKABLY',
       student,
-      quizzes,
+      quizzes: allQuizzes, // Keep for backward compatibility if needed
+      groupedQuizzes, // New grouped structure
+      testTypeCounts, // Counts for each test type
       studentQuizAttempts,
       pagination: {
         currentPage: page,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-        nextPage: page + 1,
-        prevPage: page - 1,
+        totalPages: 1, // No pagination when grouped
+        hasNext: false,
+        hasPrev: false,
+        nextPage: null,
+        prevPage: null,
       },
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
@@ -883,33 +1054,25 @@ const takeQuiz = async (req, res) => {
       return res.redirect('/student/quizzes');
     }
 
-    // Shuffle questions if enabled
-    let questions = quiz.selectedQuestions;
-    if (quiz.shuffleQuestions) {
-      questions = questions.sort(() => Math.random() - 0.5);
-    }
-
-    // Shuffle options if enabled
-    if (quiz.shuffleOptions) {
-      questions.forEach((q) => {
-        if (q.question.options && Array.isArray(q.question.options)) {
-          q.question.options = q.question.options.sort(
-            () => Math.random() - 0.5
-          );
-        }
-      });
-    }
-
+    // Note: Shuffling is now handled in getSecureStandaloneQuizQuestions
+    // We just pass the original questions here, frontend will load shuffled version
     res.render('student/take-quiz', {
       title: `${quiz.title} - Quiz | ELKABLY`,
       student,
       quiz: {
         ...quiz.toObject(),
-        selectedQuestions: questions,
+        selectedQuestions: quiz.selectedQuestions,
       },
       attemptNumber: studentQuizAttempt
         ? studentQuizAttempt.attempts.length + 1
         : 1,
+      settings: {
+        shuffleQuestions: quiz.shuffleQuestions || false,
+        shuffleOptions: quiz.shuffleOptions || false,
+        showCorrectAnswers: quiz.showCorrectAnswers !== false,
+        showResults: quiz.showResults !== false,
+        instructions: quiz.instructions || '',
+      },
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
   } catch (error) {
@@ -1244,13 +1407,16 @@ const orderDetails = async (req, res) => {
 
     // First try to find in Purchase model (new system)
     const Purchase = require('../models/Purchase');
-    let order = await Purchase.findOne({ 
-      user: studentId, 
-      orderNumber: orderNumber 
+    let order = await Purchase.findOne({
+      user: studentId,
+      orderNumber: orderNumber,
     })
-    .populate('appliedPromoCode', 'code name description discountType discountValue')
-    .populate('items.item')
-    .lean();
+      .populate(
+        'appliedPromoCode',
+        'code name description discountType discountValue'
+      )
+      .populate('items.item')
+      .lean();
 
     let isNewSystem = true;
 
@@ -1259,7 +1425,7 @@ const orderDetails = async (req, res) => {
       isNewSystem = false;
       const purchaseHistory = student.getPurchaseHistory();
       order = purchaseHistory.find((p) => p.orderNumber === orderNumber);
-      
+
       if (!order) {
         req.flash('error_msg', 'Order not found');
         return res.redirect('/student/order-history');
@@ -1277,8 +1443,9 @@ const orderDetails = async (req, res) => {
 
     if (isNewSystem) {
       // New system - use items array
-      const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
-      
+      const firstItem =
+        order.items && order.items.length > 0 ? order.items[0] : null;
+
       if (firstItem && firstItem.itemType === 'course') {
         itemType = 'course';
         courseId = firstItem.item;
@@ -1330,7 +1497,9 @@ const orderDetails = async (req, res) => {
       type: itemType,
       course: courseId,
       bundle: bundleId,
-      price: order.price || (order.items && order.items[0] ? order.items[0].price : 0),
+      price:
+        order.price ||
+        (order.items && order.items[0] ? order.items[0].price : 0),
       purchasedAt: order.purchasedAt || order.createdAt,
       // Ensure we have all necessary fields
       orderNumber: order.orderNumber,
@@ -1341,7 +1510,7 @@ const orderDetails = async (req, res) => {
       discountAmount: order.discountAmount || 0,
       originalAmount: order.originalAmount || order.price,
       appliedPromoCode: order.appliedPromoCode,
-      promoCodeUsed: order.promoCodeUsed
+      promoCodeUsed: order.promoCodeUsed,
     };
 
     // Debug logging
@@ -1349,7 +1518,10 @@ const orderDetails = async (req, res) => {
     console.log('Order type:', order.type);
     console.log('Item populated:', !!item);
     console.log('Item title:', item ? item.title : 'No item');
-    console.log('Formatted order data:', JSON.stringify(formattedOrder, null, 2));
+    console.log(
+      'Formatted order data:',
+      JSON.stringify(formattedOrder, null, 2)
+    );
 
     res.render('student/order-details', {
       title: `Order #${orderNumber} | ELKABLY`,
@@ -1439,11 +1611,212 @@ const profile = async (req, res) => {
   }
 };
 
+// Generate a random 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send OTP for profile phone number change
+const sendProfileOTP = async (req, res) => {
+  try {
+    const { phoneNumber, countryCode } = req.body;
+
+    if (!phoneNumber || !countryCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number and country code are required',
+      });
+    }
+
+    // Validate phone number format
+    const cleanPhoneNumber = phoneNumber.replace(/[^\d]/g, '');
+    if (!cleanPhoneNumber || cleanPhoneNumber.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format',
+      });
+    }
+
+    // Rate limiting: Check OTP send attempts (3 attempts per hour)
+    const attemptsKey = 'profile_otp_attempts';
+    const attemptsBlockedKey = 'profile_otp_blocked_until';
+    const maxAttempts = 3;
+    const blockDuration = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    // Initialize attempts counter if not exists
+    if (!req.session[attemptsKey]) {
+      req.session[attemptsKey] = 0;
+    }
+
+    // Check if user is currently blocked
+    const blockedUntil = req.session[attemptsBlockedKey];
+    if (blockedUntil && Date.now() < blockedUntil) {
+      const remainingMinutes = Math.ceil(
+        (blockedUntil - Date.now()) / (60 * 1000)
+      );
+      return res.status(429).json({
+        success: false,
+        message: `Too many OTP requests. Please try again after ${remainingMinutes} minute(s).`,
+        blockedUntil: blockedUntil,
+        retryAfter: remainingMinutes,
+      });
+    }
+
+    // Reset attempts if block period has passed
+    if (blockedUntil && Date.now() >= blockedUntil) {
+      req.session[attemptsKey] = 0;
+      delete req.session[attemptsBlockedKey];
+    }
+
+    // Check if user has exceeded max attempts (check BEFORE incrementing)
+    if (req.session[attemptsKey] >= maxAttempts) {
+      const blockUntil = Date.now() + blockDuration;
+      req.session[attemptsBlockedKey] = blockUntil;
+      const remainingMinutes = Math.ceil(blockDuration / (60 * 1000));
+
+      return res.status(429).json({
+        success: false,
+        message: `You have exceeded the maximum number of OTP requests (${maxAttempts}). Please try again after ${remainingMinutes} minute(s).`,
+        blockedUntil: blockUntil,
+        retryAfter: remainingMinutes,
+      });
+    }
+
+    // Increment attempts counter (only if not blocked)
+    req.session[attemptsKey] = (req.session[attemptsKey] || 0) + 1;
+
+    // Generate OTP
+    const otp = generateOTP();
+    console.log('Profile OTP:', otp);
+    const fullPhoneNumber = countryCode + cleanPhoneNumber;
+
+    // Store OTP in session with expiration (5 minutes)
+    req.session.profile_otp = otp;
+    req.session.profile_otp_expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+    req.session.profile_phone_verified = false;
+    req.session.profile_phone_number = fullPhoneNumber;
+
+    // Send OTP via SMS
+    const message = `Your ELKABLY verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+
+    try {
+      const { sendSms } = require('../utils/sms');
+      await sendSms({
+        recipient: fullPhoneNumber,
+        message: message,
+      });
+
+      console.log(`Profile OTP sent to ${fullPhoneNumber}`);
+
+      return res.json({
+        success: true,
+        message: 'OTP sent successfully',
+        expiresIn: 300, // 5 minutes in seconds
+        attemptsRemaining: maxAttempts - req.session[attemptsKey],
+      });
+    } catch (smsError) {
+      console.error('SMS sending error:', smsError);
+
+      // Clear session on SMS failure
+      delete req.session.profile_otp;
+      delete req.session.profile_otp_expiry;
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please try again.',
+        error: smsError.message,
+      });
+    }
+  } catch (error) {
+    console.error('Send profile OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while sending OTP',
+      error: error.message,
+    });
+  }
+};
+
+// Verify OTP for profile phone number change
+const verifyProfileOTP = async (req, res) => {
+  try {
+    const { otp } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP is required',
+      });
+    }
+
+    const storedOTP = req.session.profile_otp;
+    const expiryTime = req.session.profile_otp_expiry;
+
+    // Check if OTP exists
+    if (!storedOTP || !expiryTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP not found or expired. Please request a new OTP.',
+      });
+    }
+
+    // Check if OTP has expired
+    if (Date.now() > expiryTime) {
+      delete req.session.profile_otp;
+      delete req.session.profile_otp_expiry;
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new OTP.',
+      });
+    }
+
+    // Verify OTP
+    if (otp.toString() !== storedOTP.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP. Please try again.',
+      });
+    }
+
+    // Mark phone as verified
+    req.session.profile_phone_verified = true;
+
+    // Clear OTP from session (one-time use)
+    delete req.session.profile_otp;
+    delete req.session.profile_otp_expiry;
+
+    // Reset OTP attempts counter on successful verification
+    delete req.session.profile_otp_attempts;
+    delete req.session.profile_otp_blocked_until;
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully',
+    });
+  } catch (error) {
+    console.error('Verify profile OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while verifying OTP',
+      error: error.message,
+    });
+  }
+};
+
 // Update Profile
 const updateProfile = async (req, res) => {
   try {
     const studentId = req.session.user.id;
     const updates = req.body;
+
+    // Get current student data to compare phone numbers
+    const currentStudent = await User.findById(studentId);
+    if (!currentStudent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
 
     // Remove sensitive fields that shouldn't be updated directly
     delete updates.password;
@@ -1472,6 +1845,35 @@ const updateProfile = async (req, res) => {
       }
     });
 
+    // Check if student phone number is being changed
+    const currentStudentNumber = currentStudent.studentNumber || '';
+    const currentStudentCountryCode = currentStudent.studentCountryCode || '';
+    const newStudentNumber = filteredUpdates.studentNumber
+      ? filteredUpdates.studentNumber.replace(/[^\d]/g, '')
+      : '';
+    const newStudentCountryCode = filteredUpdates.studentCountryCode || '';
+
+    const studentPhoneChanged =
+      newStudentNumber &&
+      newStudentCountryCode &&
+      (currentStudentNumber !== newStudentNumber ||
+        currentStudentCountryCode !== newStudentCountryCode);
+
+    // If phone number is being changed, require OTP verification
+    if (studentPhoneChanged) {
+      // Check if phone number matches the verified one
+      const verifiedPhone = req.session.profile_phone_number || '';
+      const expectedPhone = newStudentCountryCode + newStudentNumber;
+
+      if (!req.session.profile_phone_verified || verifiedPhone !== expectedPhone) {
+        return res.status(400).json({
+          success: false,
+          message: 'Student phone number must be verified with OTP before updating. Please verify the new phone number first.',
+          requiresOTP: true,
+        });
+      }
+    }
+
     // Validate required fields
     if (
       filteredUpdates.firstName &&
@@ -1496,15 +1898,16 @@ const updateProfile = async (req, res) => {
     // Validate phone numbers if provided
     if (filteredUpdates.studentNumber && filteredUpdates.studentCountryCode) {
       const phoneLengthStandards = {
-        '+966': 9,  // Saudi Arabia: 9 digits
-        '+20': 11,  // Egypt: 11 digits (including leading 0)
-        '+971': 9,  // UAE: 9 digits
-        '+965': 8   // Kuwait: 8 digits
+        '+966': 9, // Saudi Arabia: 9 digits
+        '+20': 11, // Egypt: 11 digits (including leading 0)
+        '+971': 9, // UAE: 9 digits
+        '+965': 8, // Kuwait: 8 digits
       };
-      
+
       const studentNumber = filteredUpdates.studentNumber.replace(/[^\d]/g, '');
-      const expectedLength = phoneLengthStandards[filteredUpdates.studentCountryCode];
-      
+      const expectedLength =
+        phoneLengthStandards[filteredUpdates.studentCountryCode];
+
       if (expectedLength && studentNumber.length !== expectedLength) {
         return res.status(400).json({
           success: false,
@@ -1515,15 +1918,16 @@ const updateProfile = async (req, res) => {
 
     if (filteredUpdates.parentNumber && filteredUpdates.parentCountryCode) {
       const phoneLengthStandards = {
-        '+966': 9,  // Saudi Arabia: 9 digits
-        '+20': 11,  // Egypt: 11 digits (including leading 0)
-        '+971': 9,  // UAE: 9 digits
-        '+965': 8   // Kuwait: 8 digits
+        '+966': 9, // Saudi Arabia: 9 digits
+        '+20': 11, // Egypt: 11 digits (including leading 0)
+        '+971': 9, // UAE: 9 digits
+        '+965': 8, // Kuwait: 8 digits
       };
-      
+
       const parentNumber = filteredUpdates.parentNumber.replace(/[^\d]/g, '');
-      const expectedLength = phoneLengthStandards[filteredUpdates.parentCountryCode];
-      
+      const expectedLength =
+        phoneLengthStandards[filteredUpdates.parentCountryCode];
+
       if (expectedLength && parentNumber.length !== expectedLength) {
         return res.status(400).json({
           success: false,
@@ -1533,9 +1937,12 @@ const updateProfile = async (req, res) => {
     }
 
     // Check if student and parent numbers are the same
-    if (filteredUpdates.studentNumber && filteredUpdates.parentNumber && 
-        filteredUpdates.studentNumber === filteredUpdates.parentNumber && 
-        filteredUpdates.studentCountryCode === filteredUpdates.parentCountryCode) {
+    if (
+      filteredUpdates.studentNumber &&
+      filteredUpdates.parentNumber &&
+      filteredUpdates.studentNumber === filteredUpdates.parentNumber &&
+      filteredUpdates.studentCountryCode === filteredUpdates.parentCountryCode
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Student and parent phone numbers cannot be the same.',
@@ -1552,6 +1959,12 @@ const updateProfile = async (req, res) => {
         success: false,
         message: 'Student not found',
       });
+    }
+
+    // Clear OTP verification session after successful update
+    if (studentPhoneChanged) {
+      delete req.session.profile_phone_verified;
+      delete req.session.profile_phone_number;
     }
 
     res.json({
@@ -2115,6 +2528,11 @@ const takeContentQuiz = async (req, res) => {
       (c) => c._id.toString() === contentId
     );
     console.log('Populated Content Item:', populatedContentItem);
+    // Get quiz settings
+    const settings = populatedContentItem.type === 'quiz' 
+      ? populatedContentItem.quizSettings 
+      : populatedContentItem.homeworkSettings;
+
     res.render('student/take-content-quiz', {
       title: `Taking ${contentItem.title} | ELKABLY`,
       student,
@@ -2127,6 +2545,13 @@ const takeContentQuiz = async (req, res) => {
         remainingSeconds: remainingSeconds,
         isExpired: isExpired,
         passingScore: passingScore,
+      },
+      settings: {
+        shuffleQuestions: settings?.shuffleQuestions || false,
+        shuffleOptions: settings?.shuffleOptions || false,
+        showCorrectAnswers: settings?.showCorrectAnswers !== false,
+        showResults: settings?.showResults !== false,
+        instructions: settings?.instructions || '',
       },
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
@@ -2265,8 +2690,10 @@ const submitContentQuiz = async (req, res) => {
       }
 
       // Only include answered questions or provide a default value for unanswered ones
-      const answerValue = userAnswer || (question.questionType === 'Written' ? 'No answer provided' : '0');
-      
+      const answerValue =
+        userAnswer ||
+        (question.questionType === 'Written' ? 'No answer provided' : '0');
+
       detailedAnswers.push({
         questionId: question._id,
         selectedAnswer: answerValue,
@@ -2325,7 +2752,7 @@ const submitContentQuiz = async (req, res) => {
         studentId,
         {
           title: contentItem.title || 'Content Quiz',
-          type: contentType
+          type: contentType,
         },
         correctAnswers,
         totalQuestions
@@ -2753,22 +3180,9 @@ const takeQuizPage = async (req, res) => {
       return res.redirect(`/student/quiz/${quizId}/details`);
     }
 
-    // Shuffle questions if enabled
+    // Note: Shuffling is now handled in getSecureStandaloneQuizQuestions
+    // We just pass the original questions here, frontend will load shuffled version
     let questions = quiz.selectedQuestions;
-    if (quiz.shuffleQuestions) {
-      questions = questions.sort(() => Math.random() - 0.5);
-    }
-
-    // Shuffle options if enabled
-    if (quiz.shuffleOptions) {
-      questions.forEach((q) => {
-        if (q.question.options && Array.isArray(q.question.options)) {
-          q.question.options = q.question.options.sort(
-            () => Math.random() - 0.5
-          );
-        }
-      });
-    }
 
     // Calculate timing
     const now = new Date();
@@ -2797,6 +3211,13 @@ const takeQuizPage = async (req, res) => {
       student,
       attemptNumber: activeAttempt.attemptNumber,
       timing,
+      settings: {
+        shuffleQuestions: quiz.shuffleQuestions || false,
+        shuffleOptions: quiz.shuffleOptions || false,
+        showCorrectAnswers: quiz.showCorrectAnswers !== false,
+        showResults: quiz.showResults !== false,
+        instructions: quiz.instructions || '',
+      },
       theme: student.preferences?.theme || 'light',
     });
   } catch (error) {
@@ -2911,8 +3332,10 @@ const submitStandaloneQuiz = async (req, res) => {
       totalPoints += points;
 
       // Only include answered questions or provide a default value for unanswered ones
-      const answerValue = userAnswer || (question.questionType === 'Written' ? 'No answer provided' : '0');
-      
+      const answerValue =
+        userAnswer ||
+        (question.questionType === 'Written' ? 'No answer provided' : '0');
+
       detailedAnswers.push({
         questionId: question._id,
         selectedAnswer: answerValue,
@@ -3005,9 +3428,10 @@ const getStandaloneQuizResults = async (req, res) => {
     const bestScore = quiz.getUserBestScore(student.quizAttempts);
 
     // Get the latest attempt for the score display
-    const latestAttempt = attemptHistory && attemptHistory.length > 0 
-      ? attemptHistory[attemptHistory.length - 1] 
-      : null;
+    const latestAttempt =
+      attemptHistory && attemptHistory.length > 0
+        ? attemptHistory[attemptHistory.length - 1]
+        : null;
 
     // Check if answers can be shown
     let canShowAnswers = quiz.showCorrectAnswers !== false;
@@ -3058,6 +3482,8 @@ module.exports = {
   homeworkAttempts,
   profile,
   updateProfile,
+  sendProfileOTP,
+  verifyProfileOTP,
   settings,
   updateSettings,
   // New profile and settings functions
@@ -3186,12 +3612,19 @@ const joinZoomMeeting = async (req, res) => {
       studentId,
       'join_attempt'
     );
+    
+    // Note: Content completion is now handled in the frontend when user clicks "Join Meeting"
+    // This matches the behavior of other content types (PDF, video, etc.)
 
     // Generate tracking join URL for external Zoom client
+    // Format name as Firstname_SecondName(studentCode)
     const studentInfo = {
       name: student.name || `${student.firstName} ${student.lastName}`.trim(),
+      firstName: student.firstName || '',
+      lastName: student.lastName || '',
       email: student.studentEmail || student.email,
-      id: studentId,
+      id: student.studentCode || studentId, // Use studentCode instead of _id
+      studentCode: student.studentCode || studentId.toString(), // Ensure studentCode is available
     };
 
     const trackingJoinUrl = zoomService.generateTrackingJoinUrl(
@@ -3343,13 +3776,17 @@ const getSecureQuestion = async (req, res) => {
     const { contentId, questionIndex, attemptNumber } = req.body;
     const studentId = req.session.user.id;
 
-    console.log('Secure Question Request:', { contentId, questionIndex, attemptNumber });
+    console.log('Secure Question Request:', {
+      contentId,
+      questionIndex,
+      attemptNumber,
+    });
 
     // Validate required fields
     if (!contentId || questionIndex === undefined || !attemptNumber) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields for question request'
+        message: 'Missing required fields for question request',
       });
     }
 
@@ -3366,15 +3803,17 @@ const getSecureQuestion = async (req, res) => {
           populate: {
             path: 'selectedQuestions.question',
             populate: {
-              path: 'options'
-            }
-          }
+              path: 'options',
+            },
+          },
         },
       });
 
       if (courseData) {
         for (const topicData of courseData.topics) {
-          contentItem = topicData.content.find(c => c._id.toString() === contentId);
+          contentItem = topicData.content.find(
+            (c) => c._id.toString() === contentId
+          );
           if (contentItem) break;
         }
         if (contentItem) break;
@@ -3384,15 +3823,18 @@ const getSecureQuestion = async (req, res) => {
     if (!contentItem) {
       return res.status(404).json({
         success: false,
-        message: 'Content item not found'
+        message: 'Content item not found',
       });
     }
 
     // Validate question index
-    if (questionIndex < 0 || questionIndex >= contentItem.selectedQuestions.length) {
+    if (
+      questionIndex < 0 ||
+      questionIndex >= contentItem.selectedQuestions.length
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid question index'
+        message: 'Invalid question index',
       });
     }
 
@@ -3407,26 +3849,28 @@ const getSecureQuestion = async (req, res) => {
       questionType: question.questionType,
       questionImage: question.questionImage,
       points: selectedQuestion.points || 1,
-      options: question.questionType !== 'Written' ? question.options.map(option => ({
-        _id: option._id,
-        text: option.text,
-        image: option.image
-        // NO correctAnswer field for security
-      })) : []
+      options:
+        question.questionType !== 'Written'
+          ? question.options.map((option) => ({
+              _id: option._id,
+              text: option.text,
+              image: option.image,
+              // NO correctAnswer field for security
+            }))
+          : [],
     };
 
     res.json({
       success: true,
       question: secureQuestion,
       totalQuestions: contentItem.selectedQuestions.length,
-      questionIndex: questionIndex
+      questionIndex: questionIndex,
     });
-
   } catch (error) {
     console.error('Error getting secure question:', error);
     res.status(500).json({
       success: false,
-      message: 'Error loading question. Please try again.'
+      message: 'Error loading question. Please try again.',
     });
   }
 };
@@ -3443,14 +3887,16 @@ const getSecureAllQuestions = async (req, res) => {
     if (!contentId || !attemptNumber) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields for questions request'
+        message: 'Missing required fields for questions request',
       });
     }
 
     const student = await User.findById(studentId);
 
-    // Find the content item
+    // Find the content item and course
     let contentItem = null;
+    let course = null;
+    let topic = null;
     for (const enrollment of student.enrolledCourses) {
       const courseData = await Course.findById(enrollment.course).populate({
         path: 'topics',
@@ -3460,16 +3906,22 @@ const getSecureAllQuestions = async (req, res) => {
           populate: {
             path: 'selectedQuestions.question',
             populate: {
-              path: 'options'
-            }
-          }
+              path: 'options',
+            },
+          },
         },
       });
 
       if (courseData) {
         for (const topicData of courseData.topics) {
-          contentItem = topicData.content.find(c => c._id.toString() === contentId);
-          if (contentItem) break;
+          contentItem = topicData.content.find(
+            (c) => c._id.toString() === contentId
+          );
+          if (contentItem) {
+            course = courseData;
+            topic = topicData;
+            break;
+          }
         }
         if (contentItem) break;
       }
@@ -3478,40 +3930,216 @@ const getSecureAllQuestions = async (req, res) => {
     if (!contentItem) {
       return res.status(404).json({
         success: false,
-        message: 'Content item not found'
+        message: 'Content item not found',
       });
     }
 
-    // Create secure questions array (no correct answers)
-    const secureQuestions = contentItem.selectedQuestions.map((selectedQuestion, index) => {
+    // Get quiz settings
+    const settings = contentItem.type === 'quiz' 
+      ? contentItem.quizSettings 
+      : contentItem.homeworkSettings;
+
+    // Get content progress to check for existing shuffled order
+    const contentProgress = student.getContentProgressDetails(
+      course._id,
+      contentId
+    );
+
+    // Get or create shuffled order for this attempt
+    let shuffledQuestionOrder = [];
+    let shuffledOptionOrders = new Map();
+
+    if (contentProgress && contentProgress.quizAttempts) {
+      const attempt = contentProgress.quizAttempts.find(
+        (a) => a.attemptNumber === parseInt(attemptNumber)
+      );
+
+      if (attempt && attempt.shuffledQuestionOrder && attempt.shuffledQuestionOrder.length > 0) {
+        // Use existing shuffled order
+        shuffledQuestionOrder = attempt.shuffledQuestionOrder;
+        if (attempt.shuffledOptionOrders) {
+          shuffledOptionOrders = new Map(Object.entries(attempt.shuffledOptionOrders));
+        }
+      } else if (settings?.shuffleQuestions || settings?.shuffleOptions) {
+        // Create new shuffled order and save it
+        const originalQuestions = contentItem.selectedQuestions.map((_, idx) => idx);
+        // Define seed for deterministic shuffling (used for both questions and options)
+        const seed = `${studentId}-${contentId}-${attemptNumber}`;
+        
+        if (settings.shuffleQuestions) {
+          // Fisher-Yates shuffle for deterministic but random order
+          shuffledQuestionOrder = [...originalQuestions];
+          let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
+            seedValue = (seedValue * 9301 + 49297) % 233280; // Simple PRNG
+            const j = seedValue % (i + 1);
+            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+          }
+        } else {
+          shuffledQuestionOrder = originalQuestions;
+        }
+
+        // Shuffle options for each question if needed
+        if (settings.shuffleOptions) {
+          contentItem.selectedQuestions.forEach((selectedQuestion, qIdx) => {
+            const question = selectedQuestion.question;
+            if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
+              const originalOptionIndices = question.options.map((_, idx) => idx);
+              const shuffledOptions = [...originalOptionIndices];
+              const optionSeed = `${seed}-${question._id}`;
+              let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
+                const j = optionSeedValue % (i + 1);
+                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+              }
+              shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
+            }
+          });
+        }
+
+        // Save shuffled order to attempt
+        if (attempt) {
+          attempt.shuffledQuestionOrder = shuffledQuestionOrder;
+          attempt.shuffledOptionOrders = Object.fromEntries(shuffledOptionOrders);
+          await student.save();
+        } else {
+          // Create attempt entry if it doesn't exist
+          if (!contentProgress) {
+            await student.updateContentProgress(
+              course._id.toString(),
+              topic._id.toString(),
+              contentId,
+              contentItem.type,
+              {
+                completionStatus: 'in_progress',
+                progressPercentage: 0,
+                lastAccessed: new Date(),
+              }
+            );
+            const refreshed = await User.findById(studentId);
+            const refreshedProgress = refreshed.getContentProgressDetails(course._id, contentId);
+            if (refreshedProgress && !refreshedProgress.quizAttempts) {
+              refreshedProgress.quizAttempts = [];
+            }
+            if (refreshedProgress && refreshedProgress.quizAttempts) {
+              refreshedProgress.quizAttempts.push({
+                attemptNumber: parseInt(attemptNumber),
+                shuffledQuestionOrder: shuffledQuestionOrder,
+                shuffledOptionOrders: Object.fromEntries(shuffledOptionOrders),
+                totalQuestions: contentItem.selectedQuestions.length,
+                correctAnswers: 0,
+                timeSpent: 0,
+                startedAt: new Date(),
+                completedAt: new Date(),
+                status: 'completed',
+                answers: [],
+                passed: false,
+                passingScore: settings?.passingScore || 60,
+              });
+              await refreshed.save();
+            }
+          }
+        }
+      } else {
+        // No shuffling needed
+        shuffledQuestionOrder = contentItem.selectedQuestions.map((_, idx) => idx);
+      }
+    } else {
+      // No progress yet, create shuffled order if needed
+      if (settings?.shuffleQuestions || settings?.shuffleOptions) {
+        const originalQuestions = contentItem.selectedQuestions.map((_, idx) => idx);
+        // Define seed for deterministic shuffling (used for both questions and options)
+        const seed = `${studentId}-${contentId}-${attemptNumber}`;
+        
+        if (settings.shuffleQuestions) {
+          shuffledQuestionOrder = [...originalQuestions];
+          let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
+            seedValue = (seedValue * 9301 + 49297) % 233280;
+            const j = seedValue % (i + 1);
+            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+          }
+        } else {
+          shuffledQuestionOrder = originalQuestions;
+        }
+
+        if (settings.shuffleOptions) {
+          contentItem.selectedQuestions.forEach((selectedQuestion) => {
+            const question = selectedQuestion.question;
+            if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
+              const originalOptionIndices = question.options.map((_, idx) => idx);
+              const shuffledOptions = [...originalOptionIndices];
+              const optionSeed = `${seed}-${question._id}`;
+              let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
+                const j = optionSeedValue % (i + 1);
+                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+              }
+              shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
+            }
+          });
+        }
+      } else {
+        shuffledQuestionOrder = contentItem.selectedQuestions.map((_, idx) => idx);
+      }
+    }
+
+    // Create secure questions array in shuffled order
+    const secureQuestions = shuffledQuestionOrder.map((originalIndex, displayIndex) => {
+      const selectedQuestion = contentItem.selectedQuestions[originalIndex];
       const question = selectedQuestion.question;
+      
+      let options = [];
+      if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
+        const optionOrder = shuffledOptionOrders.get(question._id.toString());
+        if (optionOrder && optionOrder.length > 0) {
+          // Use shuffled option order
+          options = optionOrder.map((optIdx) => ({
+            _id: question.options[optIdx]._id,
+            text: question.options[optIdx].text,
+            image: question.options[optIdx].image,
+          }));
+        } else {
+          // No shuffling or order not found, use original order
+          options = question.options.map((option) => ({
+            _id: option._id,
+            text: option.text,
+            image: option.image,
+          }));
+        }
+      }
+
       return {
         _id: question._id,
         questionText: question.questionText,
         questionType: question.questionType,
         questionImage: question.questionImage,
         points: selectedQuestion.points || 1,
-        index: index,
-        options: question.questionType !== 'Written' ? question.options.map(option => ({
-          _id: option._id,
-          text: option.text,
-          image: option.image
-          // NO correctAnswer field for security
-        })) : []
+        index: displayIndex, // Display index (0-based in shuffled order)
+        originalIndex: originalIndex, // Original index for reference
+        options: options,
       };
     });
 
     res.json({
       success: true,
       questions: secureQuestions,
-      totalQuestions: secureQuestions.length
+      totalQuestions: secureQuestions.length,
+      settings: {
+        shuffleQuestions: settings?.shuffleQuestions || false,
+        shuffleOptions: settings?.shuffleOptions || false,
+        showCorrectAnswers: settings?.showCorrectAnswers !== false,
+        showResults: settings?.showResults !== false,
+        instructions: settings?.instructions || '',
+      },
     });
-
   } catch (error) {
     console.error('Error getting secure questions:', error);
     res.status(500).json({
       success: false,
-      message: 'Error loading questions. Please try again.'
+      message: 'Error loading questions. Please try again.',
     });
   }
 };
@@ -3526,13 +4154,13 @@ const checkQuestionAnswered = async (req, res) => {
     const progress = await Progress.findOne({
       student: studentId,
       content: contentId,
-      attemptNumber: attemptNumber
+      attemptNumber: attemptNumber,
     });
 
     if (!progress || !progress.answers) {
       return res.json({
         success: true,
-        answered: false
+        answered: false,
       });
     }
 
@@ -3547,14 +4175,16 @@ const checkQuestionAnswered = async (req, res) => {
           path: 'content',
           model: 'ContentItem',
           populate: {
-            path: 'selectedQuestions.question'
-          }
+            path: 'selectedQuestions.question',
+          },
         },
       });
 
       if (courseData) {
         for (const topicData of courseData.topics) {
-          contentItem = topicData.content.find(c => c._id.toString() === contentId);
+          contentItem = topicData.content.find(
+            (c) => c._id.toString() === contentId
+          );
           if (contentItem) break;
         }
         if (contentItem) break;
@@ -3564,23 +4194,23 @@ const checkQuestionAnswered = async (req, res) => {
     if (!contentItem || questionIndex >= contentItem.selectedQuestions.length) {
       return res.json({
         success: true,
-        answered: false
+        answered: false,
       });
     }
 
-    const questionId = contentItem.selectedQuestions[questionIndex].question._id.toString();
+    const questionId =
+      contentItem.selectedQuestions[questionIndex].question._id.toString();
     const answered = progress.answers[questionId] !== undefined;
 
     res.json({
       success: true,
-      answered: answered
+      answered: answered,
     });
-
   } catch (error) {
     console.error('Error checking question answered status:', error);
     res.status(500).json({
       success: false,
-      message: 'Error checking answer status'
+      message: 'Error checking answer status',
     });
   }
 };
@@ -3595,7 +4225,7 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
     if (!quizId || !attemptNumber) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields for quiz questions request'
+        message: 'Missing required fields for quiz questions request',
       });
     }
 
@@ -3603,46 +4233,252 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
     const quiz = await Quiz.findById(quizId).populate({
       path: 'selectedQuestions.question',
       populate: {
-        path: 'options'
-      }
+        path: 'options',
+      },
     });
 
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: 'Quiz not found'
+        message: 'Quiz not found',
       });
     }
 
-    // Create secure questions array (no correct answers)
-    const secureQuestions = quiz.selectedQuestions.map((selectedQuestion, index) => {
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found',
+      });
+    }
+
+    // Get quiz attempt to check for existing shuffled order
+    const quizAttempt = student.quizAttempts.find(
+      (attempt) => attempt.quiz.toString() === quizId
+    );
+
+    let shuffledQuestionOrder = [];
+    let shuffledOptionOrders = new Map();
+
+    if (quizAttempt && quizAttempt.attempts) {
+      const attempt = quizAttempt.attempts.find(
+        (a) => a.attemptNumber === parseInt(attemptNumber)
+      );
+
+      if (attempt && attempt.shuffledQuestionOrder && attempt.shuffledQuestionOrder.length > 0) {
+        // Use existing shuffled order
+        shuffledQuestionOrder = attempt.shuffledQuestionOrder;
+        if (attempt.shuffledOptionOrders) {
+          shuffledOptionOrders = new Map(Object.entries(attempt.shuffledOptionOrders));
+        }
+      } else if (quiz.shuffleQuestions || quiz.shuffleOptions) {
+        // Create new shuffled order
+        const originalQuestions = quiz.selectedQuestions.map((_, idx) => idx);
+        // Define seed for deterministic shuffling (used for both questions and options)
+        const seed = `${studentId}-${quizId}-${attemptNumber}`;
+        
+        if (quiz.shuffleQuestions) {
+          shuffledQuestionOrder = [...originalQuestions];
+          let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
+            seedValue = (seedValue * 9301 + 49297) % 233280;
+            const j = seedValue % (i + 1);
+            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+          }
+        } else {
+          shuffledQuestionOrder = originalQuestions;
+        }
+
+        if (quiz.shuffleOptions) {
+          quiz.selectedQuestions.forEach((selectedQuestion) => {
+            const question = selectedQuestion.question;
+            if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
+              const originalOptionIndices = question.options.map((_, idx) => idx);
+              const shuffledOptions = [...originalOptionIndices];
+              const optionSeed = `${seed}-${question._id}`;
+              let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
+                const j = optionSeedValue % (i + 1);
+                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+              }
+              shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
+            }
+          });
+        }
+
+        // Save shuffled order to attempt
+        if (attempt) {
+          attempt.shuffledQuestionOrder = shuffledQuestionOrder;
+          attempt.shuffledOptionOrders = Object.fromEntries(shuffledOptionOrders);
+          await student.save();
+        } else {
+          // Create attempt entry if it doesn't exist
+          if (!quizAttempt.attempts) {
+            quizAttempt.attempts = [];
+          }
+          quizAttempt.attempts.push({
+            attemptNumber: parseInt(attemptNumber),
+            shuffledQuestionOrder: shuffledQuestionOrder,
+            shuffledOptionOrders: Object.fromEntries(shuffledOptionOrders),
+            totalQuestions: quiz.selectedQuestions.length,
+            correctAnswers: 0,
+            timeSpent: 0,
+            startedAt: new Date(),
+            completedAt: null,
+            status: 'in_progress',
+            answers: [],
+            passed: false,
+            passingScore: quiz.passingScore || 60,
+          });
+          await student.save();
+        }
+      } else {
+        // No shuffling needed
+        shuffledQuestionOrder = quiz.selectedQuestions.map((_, idx) => idx);
+      }
+    } else if (quiz.shuffleQuestions || quiz.shuffleOptions) {
+      // No attempt yet, create shuffled order
+      const originalQuestions = quiz.selectedQuestions.map((_, idx) => idx);
+      // Define seed for deterministic shuffling (used for both questions and options)
+      const seed = `${studentId}-${quizId}-${attemptNumber}`;
+      
+      if (quiz.shuffleQuestions) {
+        shuffledQuestionOrder = [...originalQuestions];
+        let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
+          seedValue = (seedValue * 9301 + 49297) % 233280;
+          const j = seedValue % (i + 1);
+          [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+        }
+      } else {
+        shuffledQuestionOrder = originalQuestions;
+      }
+
+      if (quiz.shuffleOptions) {
+        quiz.selectedQuestions.forEach((selectedQuestion) => {
+          const question = selectedQuestion.question;
+          if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
+            const originalOptionIndices = question.options.map((_, idx) => idx);
+            const shuffledOptions = [...originalOptionIndices];
+            const optionSeed = `${seed}-${question._id}`;
+            let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            for (let i = shuffledOptions.length - 1; i > 0; i--) {
+              optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
+              const j = optionSeedValue % (i + 1);
+              [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+            }
+            shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
+          }
+        });
+      }
+
+      // Create quizAttempt and attempt entry if they don't exist
+      if (!quizAttempt) {
+        student.quizAttempts.push({
+          quiz: quizId,
+          attempts: [],
+        });
+        await student.save();
+        // Refresh to get the newly created quizAttempt
+        const refreshed = await User.findById(studentId);
+        const refreshedQuizAttempt = refreshed.quizAttempts.find(
+          (attempt) => attempt.quiz.toString() === quizId
+        );
+        if (refreshedQuizAttempt) {
+          refreshedQuizAttempt.attempts.push({
+            attemptNumber: parseInt(attemptNumber),
+            shuffledQuestionOrder: shuffledQuestionOrder,
+            shuffledOptionOrders: Object.fromEntries(shuffledOptionOrders),
+            totalQuestions: quiz.selectedQuestions.length,
+            correctAnswers: 0,
+            timeSpent: 0,
+            startedAt: new Date(),
+            completedAt: null,
+            status: 'in_progress',
+            answers: [],
+            passed: false,
+            passingScore: quiz.passingScore || 60,
+          });
+          await refreshed.save();
+        }
+      } else {
+        // quizAttempt exists but no attempts array or no attempt for this attemptNumber
+        if (!quizAttempt.attempts) {
+          quizAttempt.attempts = [];
+        }
+        quizAttempt.attempts.push({
+          attemptNumber: parseInt(attemptNumber),
+          shuffledQuestionOrder: shuffledQuestionOrder,
+          shuffledOptionOrders: Object.fromEntries(shuffledOptionOrders),
+          totalQuestions: quiz.selectedQuestions.length,
+          correctAnswers: 0,
+          timeSpent: 0,
+          startedAt: new Date(),
+          completedAt: null,
+          status: 'in_progress',
+          answers: [],
+          passed: false,
+          passingScore: quiz.passingScore || 60,
+        });
+        await student.save();
+      }
+    } else {
+      shuffledQuestionOrder = quiz.selectedQuestions.map((_, idx) => idx);
+    }
+
+    // Create secure questions array in shuffled order
+    const secureQuestions = shuffledQuestionOrder.map((originalIndex, displayIndex) => {
+      const selectedQuestion = quiz.selectedQuestions[originalIndex];
       const question = selectedQuestion.question;
+      
+      let options = [];
+      if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
+        const optionOrder = shuffledOptionOrders.get(question._id.toString());
+        if (optionOrder && optionOrder.length > 0) {
+          options = optionOrder.map((optIdx) => ({
+            _id: question.options[optIdx]._id,
+            text: question.options[optIdx].text,
+            image: question.options[optIdx].image,
+          }));
+        } else {
+          options = question.options.map((option) => ({
+            _id: option._id,
+            text: option.text,
+            image: option.image,
+          }));
+        }
+      }
+
       return {
         _id: question._id,
         questionText: question.questionText,
         questionType: question.questionType,
         questionImage: question.questionImage,
         points: selectedQuestion.points || 1,
-        index: index,
-        options: question.questionType !== 'Written' ? question.options.map(option => ({
-          _id: option._id,
-          text: option.text,
-          image: option.image
-          // NO correctAnswer field for security
-        })) : []
+        index: displayIndex,
+        originalIndex: originalIndex,
+        options: options,
       };
     });
 
     res.json({
       success: true,
       questions: secureQuestions,
-      totalQuestions: secureQuestions.length
+      totalQuestions: secureQuestions.length,
+      settings: {
+        shuffleQuestions: quiz.shuffleQuestions || false,
+        shuffleOptions: quiz.shuffleOptions || false,
+        showCorrectAnswers: quiz.showCorrectAnswers !== false,
+        showResults: quiz.showResults !== false,
+        instructions: quiz.instructions || '',
+      },
     });
-
   } catch (error) {
+    console.error('Error getting secure standalone quiz questions:', error);
     res.status(500).json({
       success: false,
-      message: 'Error loading quiz questions. Please try again.'
+      message: 'Error loading quiz questions. Please try again.',
     });
   }
 };
@@ -3669,6 +4505,8 @@ module.exports = {
   homeworkAttempts,
   profile,
   updateProfile,
+  sendProfileOTP,
+  verifyProfileOTP,
   settings,
   updateSettings,
   // New profile and settings functions

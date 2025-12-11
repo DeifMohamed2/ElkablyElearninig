@@ -128,6 +128,7 @@ const createQuestionBank = async (req, res) => {
 
 // Get single question bank
 const getQuestionBank = async (req, res) => {
+  console.log('Get question bank request received:', req.params);
   try {
     const { bankCode } = req.params;
 
@@ -200,6 +201,7 @@ const getQuestionBank = async (req, res) => {
 
 // Update question bank
 const updateQuestionBank = async (req, res) => {
+  console.log('Update question bank request received:', req.body);
   try {
     const { bankCode } = req.params;
     const { name, description, status, tags, testType } = req.body;
@@ -761,7 +763,10 @@ const updateQuestion = async (req, res) => {
     question.explanation = explanation || '';
     question.explanationImage = explanationImage || '';
     question.difficulty = difficulty;
-    question.tags = tags ? tags.split(',').map(tag => tag.trim()) : [];
+    // Handle tags - split by comma, trim, and filter out empty strings
+    question.tags = tags && tags.trim() 
+      ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+      : [];
     question.points = parseInt(points) || 1;
     question.status = status || 'draft';
 

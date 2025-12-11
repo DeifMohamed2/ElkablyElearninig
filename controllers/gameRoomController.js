@@ -950,23 +950,28 @@ exports.getMyGameHistory = async (req, res) => {
       req.flash('error', 'Authentication required');
       return res.redirect('/auth/login');
     }
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
 
+    // Fetch all completed sessions for client-side filtering
     const sessions = await GameSession.find({
       user: req.session.user.id,
       status: 'completed',
     })
-      .populate('gameRoom', 'title roomCode category difficulty')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+      .populate('gameRoom', 'title roomCode category difficulty questions totalTime')
+      .sort({ createdAt: -1 });
 
-    const total = await GameSession.countDocuments({
-      user: req.session.user.id,
-      status: 'completed',
-    });
+    // Get unique categories and difficulties for filters
+    const categories = [...new Set(sessions.map(s => s.gameRoom?.category).filter(Boolean))];
+    const difficulties = [...new Set(sessions.map(s => s.gameRoom?.difficulty).filter(Boolean))];
+
+    // Calculate statistics
+    const totalSessions = sessions.length;
+    const totalScore = sessions.reduce((sum, s) => sum + (s.score || 0), 0);
+    const avgScore = totalSessions > 0 ? Math.round(totalScore / totalSessions) : 0;
+    const totalCorrect = sessions.reduce((sum, s) => sum + (s.correctAnswers || 0), 0);
+    const totalQuestions = sessions.reduce((sum, s) => sum + (s.totalQuestions || 0), 0);
+    const overallAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+    const bestScore = sessions.length > 0 ? Math.max(...sessions.map(s => s.score || 0)) : 0;
+    const wins = sessions.filter(s => s.position === 1).length;
 
     res.render('student/game-history', {
       title: 'My Game History | ELKABLY',
@@ -974,11 +979,16 @@ exports.getMyGameHistory = async (req, res) => {
       theme: req.cookies.theme || 'light',
       student: req.session,
       sessions,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
+      categories,
+      difficulties,
+      statistics: {
+        totalSessions,
+        avgScore,
+        overallAccuracy,
+        bestScore,
+        wins,
+        totalQuestions,
+        totalCorrect,
       },
     });
   } catch (error) {

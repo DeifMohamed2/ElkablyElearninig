@@ -43,6 +43,7 @@ class ZoomService {
 
   /**
    * Generate join URL with tracking parameters for external Zoom client
+   * Format: Firstname_SecondName(studentID)
    */
   generateTrackingJoinUrl(meetingId, studentInfo, password = '') {
     try {
@@ -53,8 +54,40 @@ class ZoomService {
         params.append('pwd', password);
       }
 
-      // Add tracking parameters with email for better identification
-      params.append('uname', encodeURIComponent(studentInfo.name));
+      // Format name as Firstname_SecondName(studentCode)
+      // Use studentCode instead of MongoDB _id
+      const studentCode = studentInfo.studentCode || studentInfo.id;
+      
+      // Extract first name and last name from studentInfo.name
+      let formattedName = '';
+      if (studentInfo.name) {
+        // Clean the name - remove any URL encoding artifacts and normalize spaces
+        const cleanName = studentInfo.name.trim().replace(/%/g, ' ').replace(/\s+/g, ' ');
+        const nameParts = cleanName.split(/\s+/);
+        // Clean each part to remove special characters (keep only letters)
+        const firstName = (nameParts[0] || '').trim().replace(/[^A-Za-z]/g, '');
+        const lastName = nameParts.slice(1)
+          .map(part => part.replace(/[^A-Za-z]/g, ''))
+          .filter(part => part.length > 0)
+          .join('_');
+        
+        // Format as Firstname_SecondName(studentCode) - use underscore, not space
+        if (lastName) {
+          formattedName = `${firstName}_${lastName}(${studentCode})`;
+        } else {
+          formattedName = `${firstName}(${studentCode})`;
+        }
+      } else if (studentInfo.firstName && studentInfo.lastName) {
+        // Use firstName and lastName directly if available
+        const firstName = (studentInfo.firstName || '').trim().replace(/[^A-Za-z]/g, '');
+        const lastName = (studentInfo.lastName || '').trim().replace(/[^A-Za-z]/g, '');
+        formattedName = `${firstName}_${lastName}(${studentCode})`;
+      } else {
+        formattedName = `Student(${studentCode})`;
+      }
+
+      // Add tracking parameters with properly formatted name
+      params.append('uname', encodeURIComponent(formattedName));
       if (studentInfo.email) {
         params.append('email', encodeURIComponent(studentInfo.email));
       }
@@ -66,6 +99,7 @@ class ZoomService {
         : baseUrl;
 
       console.log('✅ Generated join URL for external client:', finalUrl);
+      console.log('👤 Formatted name:', formattedName);
       console.log('📧 Email included in join URL:', studentInfo.email);
       return finalUrl;
     } catch (error) {
@@ -93,6 +127,14 @@ class ZoomService {
       } = meetingData;
 
       // Prepare meeting configuration
+      // Ensure all settings are properly applied
+      const joinBeforeHost = settings.joinBeforeHost === true || settings.joinBeforeHost === 'true';
+      const waitingRoom = settings.waitingRoom === true || settings.waitingRoom === 'true';
+      
+      // IMPORTANT: If join_before_host is enabled, waiting_room should be disabled
+      // Otherwise students will still need to wait for host to admit them
+      const finalWaitingRoom = joinBeforeHost ? false : waitingRoom;
+      
       const meetingConfig = {
         topic: topic || 'E-Learning Live Session',
         type: 2, // Scheduled meeting
@@ -103,20 +145,29 @@ class ZoomService {
         timezone: timezone,
         password: password,
         settings: {
-          join_before_host: settings.joinBeforeHost !== false,
-          waiting_room: settings.waitingRoom || false,
-          host_video: settings.hostVideo !== false,
-          participant_video: settings.participantVideo !== false,
+          // Apply settings explicitly - ensure boolean values are properly set
+          join_before_host: joinBeforeHost,
+          waiting_room: finalWaitingRoom, // Disabled if join_before_host is true
+          host_video: settings.hostVideo !== false && settings.hostVideo !== 'false',
+          participant_video: settings.participantVideo !== false && settings.participantVideo !== 'false',
           audio: 'both',
-          auto_recording: settings.autoRecording || 'none',
-          mute_upon_entry: settings.muteUponEntry || false,
+          auto_recording: settings.autoRecording || (settings.recording === true || settings.recording === 'true' ? 'cloud' : 'none'),
+          mute_upon_entry: settings.muteUponEntry === true || settings.muteUponEntry === 'true',
           enforce_login: false,
           use_pmi: false,
           approval_type: 2, // No registration required
           registration_type: 1,
-          ...settings,
         },
       };
+      
+      console.log('🔧 Zoom meeting settings:', {
+        join_before_host: meetingConfig.settings.join_before_host,
+        waiting_room: meetingConfig.settings.waiting_room,
+        host_video: meetingConfig.settings.host_video,
+        participant_video: meetingConfig.settings.participant_video,
+        mute_upon_entry: meetingConfig.settings.mute_upon_entry,
+        auto_recording: meetingConfig.settings.auto_recording,
+      });
 
       console.log('🔍 Creating Zoom meeting:', topic);
 
@@ -449,6 +500,25 @@ class ZoomService {
         email: participantEmail,
         id: participant.id,
       });
+
+      // SECURITY CHECK: Validate name format - must be Firstname_SecondName(studentCode)
+      // Pattern: Firstname_SecondName(studentCode) or Firstname(studentCode)
+      // studentCode is numeric (e.g., 160181), not MongoDB ObjectId
+      const nameFormatPattern = /^[A-Za-z]+([_\s][A-Za-z]+)?\(\d+\)$/;
+      const isValidNameFormat = nameFormatPattern.test(participantName);
+      
+      if (!isValidNameFormat) {
+        console.log(
+          '🚫 BLOCKING participant - Invalid name format:',
+          participantName
+        );
+        console.log('⚠️ Expected format: Firstname_SecondName(studentCode)');
+        console.log('⚠️ Only enrolled students with proper format are allowed');
+
+        // Try to kick the participant out of the meeting
+        await this.kickParticipant(meetingId, participant.id, participantName);
+        return; // Don't record attendance for unauthorized participants
+      }
 
       // First, try to find existing attendance record using the new helper method
       let user = null;

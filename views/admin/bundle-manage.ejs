@@ -143,10 +143,12 @@
           </div>
 
           <% if (bundle.courses && bundle.courses.length > 0) { %>
-          <div class="courses-grid">
+          <div class="courses-grid" id="coursesGrid">
             <% bundle.courses.forEach((course, index) => { %>
-            <div class="course-card" data-course-id="<%= course._id %>">
-              <div class="course-number"><%= String(index + 1).padStart(2, '0') %></div>
+            <div class="course-card" data-course-id="<%= course._id %>" data-order="<%= course.order || (index + 1) %>">
+              <div class="course-number">
+                <span class="order-badge">Week <%= course.order || (index + 1) %></span>
+              </div>
 
               <div class="course-thumbnail">
                 <img src="<%= course.thumbnail || '/images/course-placeholder.jpg' %>" alt="Course Thumbnail">
@@ -180,6 +182,14 @@
                 </div>
 
                 <div class="course-actions">
+                  <div class="order-controls mb-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="moveCourseOrder('<%= course._id %>', 'up')" title="Move Up" <%= index === 0 ? 'disabled' : '' %>>
+                      <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="moveCourseOrder('<%= course._id %>', 'down')" title="Move Down" <%= index === bundle.courses.length - 1 ? 'disabled' : '' %>>
+                      <i class="fas fa-arrow-down"></i>
+                    </button>
+                  </div>
                   <a href="/admin/courses/<%= course.courseCode %>/content" class="btn btn-sm btn-primary">
                     <i class="fas fa-edit me-1"></i>
                     Manage
@@ -876,5 +886,68 @@
         alertDiv.parentNode.removeChild(alertDiv);
       }
     }, 7000);
+  }
+
+  // Move course order up or down
+  async function moveCourseOrder(courseId, direction) {
+    try {
+      const courseCard = document.querySelector(`[data-course-id="${courseId}"]`);
+      if (!courseCard) return;
+
+      const currentOrder = parseInt(courseCard.dataset.order);
+      const allCourseCards = Array.from(document.querySelectorAll('.course-card'));
+      allCourseCards.sort((a, b) => parseInt(a.dataset.order) - parseInt(b.dataset.order));
+
+      const currentIndex = allCourseCards.findIndex(card => card.dataset.courseId === courseId);
+      
+      if (direction === 'up' && currentIndex === 0) return;
+      if (direction === 'down' && currentIndex === allCourseCards.length - 1) return;
+
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      const targetCard = allCourseCards[targetIndex];
+      const targetOrder = parseInt(targetCard.dataset.order);
+
+      // Swap orders
+      const tempOrder = currentOrder;
+      courseCard.dataset.order = targetOrder;
+      targetCard.dataset.order = tempOrder;
+
+      // Update order badges
+      courseCard.querySelector('.order-badge').textContent = `Week ${targetOrder}`;
+      targetCard.querySelector('.order-badge').textContent = `Week ${tempOrder}`;
+
+      // Prepare order updates
+      const courseOrders = allCourseCards.map((card, idx) => ({
+        courseId: card.dataset.courseId,
+        order: parseInt(card.dataset.order)
+      }));
+
+      // Update on server
+      const response = await fetch(`/admin/bundles/<%= bundle.bundleCode %>/courses/reorder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ courseOrders })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showSuccessMessage('Course order updated successfully');
+        // Reload page after a short delay to reflect changes
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        showErrorMessage(data.message || 'Failed to update course order');
+        // Revert on error
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error updating course order:', error);
+      showErrorMessage('Error updating course order');
+      window.location.reload();
+    }
   }
 </script>

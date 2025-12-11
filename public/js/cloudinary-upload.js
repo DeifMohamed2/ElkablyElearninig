@@ -12,7 +12,7 @@ class CloudinaryUploader {
   // This Cloudinary uploader is only for images/photos
 
   // Initialize upload functionality for a specific form
-  init(formSelector, inputSelector, previewSelector, progressSelector) {
+  init(formSelector, inputSelector, previewSelector, progressSelector, fieldName = 'thumbnail') {
     const form = document.querySelector(formSelector);
     const input = document.querySelector(inputSelector);
     const preview = document.querySelector(previewSelector);
@@ -33,8 +33,8 @@ class CloudinaryUploader {
           console.log('File upload successful, URL:', url);
           input.dataset.uploaded = 'true';
           input.dataset.cloudinaryUrl = url;
-          // Set the hidden field value immediately
-          const hiddenField = form.querySelector('input[name="thumbnail"]');
+          // Set the hidden field value immediately (support both thumbnail and questionImage)
+          const hiddenField = form.querySelector(`input[name="${fieldName}"]`) || form.querySelector('input[name="thumbnail"]');
           if (hiddenField) {
             hiddenField.value = url;
             console.log('Set hidden field value to:', url);
@@ -89,7 +89,7 @@ class CloudinaryUploader {
   // Handle form submission
   form.addEventListener('submit', (e) => {
     const file = input.files[0];
-    const hiddenField = form.querySelector('input[name="thumbnail"]');
+    const hiddenField = form.querySelector(`input[name="${fieldName}"]`) || form.querySelector('input[name="thumbnail"]');
     
     console.log('Form submission - File:', file);
     console.log('Form submission - Hidden field:', hiddenField);
