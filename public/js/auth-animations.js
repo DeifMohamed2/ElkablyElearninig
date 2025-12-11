@@ -157,6 +157,11 @@ function animateFloating(element, amplitude, period, phase) {
  * Initialize multi-step registration form
  */
 function initMultiStepForm() {
+  // Check if generic multi-step is disabled (for pages with custom logic like forgot-password)
+  if (window.DISABLE_GENERIC_MULTISTEP === true) {
+    return;
+  }
+  
   const form = document.querySelector('.auth-form');
   if (!form || !form.querySelector('.form-step')) return;
 
