@@ -246,6 +246,17 @@ const sendOTP = async (req, res) => {
         const result = await wasender.sendTextMessage(SESSION_API_KEY, whatsappJid, message);
         
         if (!result.success) {
+          // Check if the error is about JID not existing on WhatsApp
+          const errorMessage = result.message || '';
+          const hasJidError = errorMessage.toLowerCase().includes('JID does not exist on WhatsApp') || 
+                             errorMessage.toLowerCase().includes('does not exist on whatsapp') ||
+                             (result.errors && result.errors.to && 
+                              result.errors.to.some(err => err.toLowerCase().includes('does not exist')));
+          
+          if (hasJidError) {
+            throw new Error('This phone number does not have WhatsApp or WhatsApp is not available for this number. Please use an Egyptian phone number (+20) to receive OTP via SMS, or ensure your phone number is registered on WhatsApp.');
+          }
+          
           throw new Error(result.message || 'Failed to send WhatsApp message');
         }
         
@@ -1902,6 +1913,17 @@ const sendForgotPasswordOTP = async (req, res) => {
         const result = await wasender.sendTextMessage(SESSION_API_KEY, whatsappJid, message);
         
         if (!result.success) {
+          // Check if the error is about JID not existing on WhatsApp
+          const errorMessage = result.message || '';
+          const hasJidError = errorMessage.toLowerCase().includes('jid does not exist') || 
+                             errorMessage.toLowerCase().includes('does not exist on whatsapp') ||
+                             (result.errors && result.errors.to && 
+                              result.errors.to.some(err => err.toLowerCase().includes('does not exist')));
+          
+          if (hasJidError) {
+            throw new Error('This phone number does not have WhatsApp or WhatsApp is not available for this number. Please use an Egyptian phone number (+20) to receive OTP via SMS, or ensure your phone number is registered on WhatsApp.');
+          }
+          
           throw new Error(result.message || 'Failed to send WhatsApp message');
         }
         
