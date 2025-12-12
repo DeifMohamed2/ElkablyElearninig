@@ -1258,6 +1258,284 @@ const bulkUpdateCourseStatus = async (req, res) => {
   }
 };
 
+// Duplicate course with all topics and content
+const duplicateCourse = async (req, res) => {
+  try {
+    const { courseCode } = req.params;
+
+    // Find the original course with all topics and content
+    const originalCourse = await Course.findOne({ courseCode })
+      .populate({
+        path: 'topics',
+        options: { sort: { order: 1 } },
+      })
+      .populate('bundle');
+
+    if (!originalCourse) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    // Start a session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Determine the new order (auto-assign next available order in bundle)
+      const existingCourses = await Course.find({ bundle: originalCourse.bundle._id })
+        .sort({ order: -1 })
+        .limit(1)
+        .session(session);
+      const newOrder = existingCourses.length > 0 ? (existingCourses[0].order || 0) + 1 : 1;
+
+      // Create new course with copied data
+      const newCourseData = {
+        title: `${originalCourse.title} (Copy)`,
+        description: originalCourse.description || '',
+        shortDescription: originalCourse.shortDescription || '',
+        level: originalCourse.level,
+        category: originalCourse.category,
+        duration: originalCourse.duration,
+        price: originalCourse.price,
+        discountPrice: originalCourse.discountPrice || 0,
+        thumbnail: originalCourse.thumbnail || '',
+        status: 'draft', // Always set to draft for duplicates
+        isActive: true,
+        createdBy: req.session.user.id,
+        bundle: originalCourse.bundle._id,
+        order: newOrder,
+        requiresSequential: originalCourse.requiresSequential !== false,
+        tags: originalCourse.tags ? [...originalCourse.tags] : [],
+        prerequisites: originalCourse.prerequisites ? [...originalCourse.prerequisites] : [],
+      };
+
+      const newCourse = new Course(newCourseData);
+      await newCourse.save({ session });
+
+      // Add course to bundle
+      await BundleCourse.findByIdAndUpdate(
+        originalCourse.bundle._id,
+        { $push: { courses: newCourse._id } },
+        { session }
+      );
+
+      // Map to track old content IDs to new content IDs for prerequisites/dependencies
+      const contentIdMap = new Map(); // oldContentId -> newContentId
+
+      // Duplicate all topics
+      if (originalCourse.topics && originalCourse.topics.length > 0) {
+        for (const originalTopic of originalCourse.topics) {
+          // Create new topic
+          const newTopicData = {
+            title: originalTopic.title,
+            description: originalTopic.description || '',
+            course: newCourse._id,
+            order: originalTopic.order,
+            estimatedTime: originalTopic.estimatedTime || 0,
+            isPublished: false, // Always set to unpublished for duplicates
+            difficulty: originalTopic.difficulty || 'beginner',
+            learningObjectives: originalTopic.learningObjectives ? [...originalTopic.learningObjectives] : [],
+            tags: originalTopic.tags ? [...originalTopic.tags] : [],
+            unlockConditions: originalTopic.unlockConditions || 'immediate',
+            createdBy: req.session.user.id,
+            content: [], // Will be populated below
+          };
+
+          const newTopic = new Topic(newTopicData);
+
+          // Duplicate all content items in this topic
+          if (originalTopic.content && originalTopic.content.length > 0) {
+            for (const originalContent of originalTopic.content) {
+              // Skip zoom content items - zoom meetings should not be duplicated
+              // Admin needs to create new zoom meetings manually for the duplicated course
+              if (originalContent.type === 'zoom') {
+                console.log(`Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`);
+                continue; // Skip zoom content items
+              }
+
+              // Create new content item
+              const newContentData = {
+                type: originalContent.type,
+                title: originalContent.title,
+                description: originalContent.description || '',
+                content: originalContent.content || '',
+                duration: originalContent.duration || 0,
+                isRequired: originalContent.isRequired !== false,
+                order: originalContent.order || 0,
+                maxWatchCount: originalContent.maxWatchCount || null,
+                difficulty: originalContent.difficulty || 'beginner',
+                learningObjectives: originalContent.learningObjectives ? [...originalContent.learningObjectives] : [],
+                tags: originalContent.tags ? [...originalContent.tags] : [],
+                completionCriteria: originalContent.completionCriteria || 'view',
+                unlockConditions: originalContent.unlockConditions || 'immediate',
+              };
+
+              // Handle question banks - keep references (don't duplicate)
+              if (originalContent.questionBanks && originalContent.questionBanks.length > 0) {
+                newContentData.questionBanks = originalContent.questionBanks.map(
+                  (bankId) => bankId.toString ? bankId.toString() : bankId
+                );
+              }
+              if (originalContent.questionBank) {
+                newContentData.questionBank = originalContent.questionBank.toString ? 
+                  originalContent.questionBank.toString() : originalContent.questionBank;
+              }
+
+              // Handle selected questions - keep references but update sourceBank if needed
+              if (originalContent.selectedQuestions && originalContent.selectedQuestions.length > 0) {
+                newContentData.selectedQuestions = originalContent.selectedQuestions.map((q) => ({
+                  question: q.question.toString ? q.question.toString() : q.question,
+                  sourceBank: q.sourceBank.toString ? q.sourceBank.toString() : q.sourceBank,
+                  points: q.points || 1,
+                  order: q.order || 0,
+                }));
+              }
+
+              // Handle quiz settings
+              if (originalContent.type === 'quiz' && originalContent.quizSettings) {
+                newContentData.quizSettings = { ...originalContent.quizSettings.toObject() };
+              }
+
+              // Handle homework settings
+              if (originalContent.type === 'homework' && originalContent.homeworkSettings) {
+                newContentData.homeworkSettings = { ...originalContent.homeworkSettings.toObject() };
+              }
+
+              // Store the new content item (will be added to topic after prerequisites are handled)
+              const newContentItem = newContentData;
+              
+              // Add content item to topic
+              newTopic.content.push(newContentItem);
+
+              // Map old content ID to new content ID (will be set after save)
+              // We'll update this after the topic is saved
+            }
+          }
+
+          // Save the new topic
+          await newTopic.save({ session });
+
+          // Now map content IDs after topic is saved
+          // Note: We skip zoom content items, so we need to map indices carefully
+          if (originalTopic.content && originalTopic.content.length > 0) {
+            let newContentIndex = 0;
+            for (let i = 0; i < originalTopic.content.length; i++) {
+              const originalContent = originalTopic.content[i];
+              
+              // Skip zoom content items in the mapping (they weren't duplicated)
+              if (originalContent.type === 'zoom') {
+                continue;
+              }
+              
+              // Only map if we have corresponding new content
+              if (newContentIndex < newTopic.content.length) {
+                const oldContentId = originalContent._id.toString();
+                const newContentId = newTopic.content[newContentIndex]._id.toString();
+                contentIdMap.set(oldContentId, newContentId);
+                newContentIndex++;
+              }
+            }
+          }
+
+          // Add topic to course
+          newCourse.topics.push(newTopic._id);
+        }
+      }
+
+      // Update prerequisites and dependencies in all content items
+      // We need to do this after all topics are created
+      if (originalCourse.topics && originalCourse.topics.length > 0) {
+        const newTopics = await Topic.find({ course: newCourse._id }).session(session);
+        
+        for (let topicIndex = 0; topicIndex < newTopics.length; topicIndex++) {
+          const newTopic = newTopics[topicIndex];
+          const originalTopic = originalCourse.topics[topicIndex];
+
+          if (newTopic.content && newTopic.content.length > 0 && originalTopic.content) {
+            // Map through original content and match with new content (skipping zoom items)
+            let newContentIndex = 0;
+            for (let originalContentIndex = 0; originalContentIndex < originalTopic.content.length; originalContentIndex++) {
+              const originalContent = originalTopic.content[originalContentIndex];
+              
+              // Skip zoom content items (they weren't duplicated)
+              if (originalContent.type === 'zoom') {
+                continue;
+              }
+              
+              // Only process if we have corresponding new content
+              if (newContentIndex < newTopic.content.length) {
+                const newContent = newTopic.content[newContentIndex];
+
+                // Update prerequisites (skip if prerequisite was a zoom item)
+                if (originalContent.prerequisites && originalContent.prerequisites.length > 0) {
+                  const newPrerequisites = originalContent.prerequisites
+                    .map((prereqId) => {
+                      const prereqIdStr = prereqId.toString ? prereqId.toString() : prereqId;
+                      const newId = contentIdMap.get(prereqIdStr);
+                      return newId ? new mongoose.Types.ObjectId(newId) : null;
+                    })
+                    .filter((id) => id !== null);
+
+                  newContent.prerequisites = newPrerequisites;
+                }
+
+                // Update dependencies (skip if dependency was a zoom item)
+                if (originalContent.dependencies && originalContent.dependencies.length > 0) {
+                  const newDependencies = originalContent.dependencies
+                    .map((depId) => {
+                      const depIdStr = depId.toString ? depId.toString() : depId;
+                      const newId = contentIdMap.get(depIdStr);
+                      return newId ? new mongoose.Types.ObjectId(newId) : null;
+                    })
+                    .filter((id) => id !== null);
+
+                  newContent.dependencies = newDependencies;
+                }
+
+                // Mark content as modified
+                newContent.markModified('prerequisites');
+                newContent.markModified('dependencies');
+                
+                newContentIndex++;
+              }
+            }
+
+            // Save the topic with updated content
+            await newTopic.save({ session });
+          }
+        }
+      }
+
+      // Save the course with topics
+      await newCourse.save({ session });
+
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.json({
+        success: true,
+        message: 'Course duplicated successfully!',
+        courseCode: newCourse.courseCode,
+        courseId: newCourse._id,
+      });
+    } catch (error) {
+      // Rollback transaction on error
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error duplicating course:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error duplicating course: ' + error.message,
+    });
+  }
+};
+
 // Get course content management page
 const getCourseContent = async (req, res) => {
   try {
@@ -2419,6 +2697,239 @@ const reorderContent = async (req, res) => {
 };
 
 // Delete topic
+// Duplicate topic with all content
+const duplicateTopic = async (req, res) => {
+  try {
+    const { courseCode, topicId } = req.params;
+
+    // Find the original topic with all content
+    const originalTopic = await Topic.findById(topicId);
+    if (!originalTopic) {
+      return res.status(404).json({
+        success: false,
+        message: 'Topic not found',
+      });
+    }
+
+    // Verify the topic belongs to the course
+    const course = await Course.findOne({ courseCode });
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    if (originalTopic.course.toString() !== course._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Topic does not belong to this course',
+      });
+    }
+
+    // Start a session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Determine the new order (auto-assign next available order in course)
+      const existingTopics = await Topic.find({ course: course._id })
+        .sort({ order: -1 })
+        .limit(1)
+        .session(session);
+      const newOrder = existingTopics.length > 0 ? (existingTopics[0].order || 0) + 1 : 1;
+
+      // Create new topic with copied data
+      const newTopicData = {
+        title: `${originalTopic.title} (Copy)`,
+        description: originalTopic.description || '',
+        course: course._id,
+        order: newOrder,
+        estimatedTime: originalTopic.estimatedTime || 0,
+        isPublished: false, // Always set to unpublished for duplicates
+        difficulty: originalTopic.difficulty || 'beginner',
+        learningObjectives: originalTopic.learningObjectives ? [...originalTopic.learningObjectives] : [],
+        tags: originalTopic.tags ? [...originalTopic.tags] : [],
+        unlockConditions: originalTopic.unlockConditions || 'immediate',
+        createdBy: req.session.user.id,
+        content: [], // Will be populated below
+      };
+
+      const newTopic = new Topic(newTopicData);
+
+      // Map to track old content IDs to new content IDs for prerequisites/dependencies
+      const contentIdMap = new Map(); // oldContentId -> newContentId
+
+      // Duplicate all content items in this topic
+      if (originalTopic.content && originalTopic.content.length > 0) {
+        for (const originalContent of originalTopic.content) {
+          // Skip zoom content items - zoom meetings should not be duplicated
+          if (originalContent.type === 'zoom') {
+            console.log(`Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`);
+            continue; // Skip zoom content items
+          }
+
+          // Create new content item
+          const newContentData = {
+            type: originalContent.type,
+            title: originalContent.title,
+            description: originalContent.description || '',
+            content: originalContent.content || '',
+            duration: originalContent.duration || 0,
+            isRequired: originalContent.isRequired !== false,
+            order: originalContent.order || 0,
+            maxWatchCount: originalContent.maxWatchCount || null,
+            difficulty: originalContent.difficulty || 'beginner',
+            learningObjectives: originalContent.learningObjectives ? [...originalContent.learningObjectives] : [],
+            tags: originalContent.tags ? [...originalContent.tags] : [],
+            completionCriteria: originalContent.completionCriteria || 'view',
+            unlockConditions: originalContent.unlockConditions || 'immediate',
+          };
+
+          // Handle question banks - keep references (don't duplicate)
+          if (originalContent.questionBanks && originalContent.questionBanks.length > 0) {
+            newContentData.questionBanks = originalContent.questionBanks.map(
+              (bankId) => bankId.toString ? bankId.toString() : bankId
+            );
+          }
+          if (originalContent.questionBank) {
+            newContentData.questionBank = originalContent.questionBank.toString ? 
+              originalContent.questionBank.toString() : originalContent.questionBank;
+          }
+
+          // Handle selected questions - keep references but update sourceBank if needed
+          if (originalContent.selectedQuestions && originalContent.selectedQuestions.length > 0) {
+            newContentData.selectedQuestions = originalContent.selectedQuestions.map((q) => ({
+              question: q.question.toString ? q.question.toString() : q.question,
+              sourceBank: q.sourceBank.toString ? q.sourceBank.toString() : q.sourceBank,
+              points: q.points || 1,
+              order: q.order || 0,
+            }));
+          }
+
+          // Handle quiz settings
+          if (originalContent.type === 'quiz' && originalContent.quizSettings) {
+            newContentData.quizSettings = { ...originalContent.quizSettings.toObject() };
+          }
+
+          // Handle homework settings
+          if (originalContent.type === 'homework' && originalContent.homeworkSettings) {
+            newContentData.homeworkSettings = { ...originalContent.homeworkSettings.toObject() };
+          }
+
+          // Add content item to topic
+          newTopic.content.push(newContentData);
+        }
+      }
+
+      // Save the new topic
+      await newTopic.save({ session });
+
+      // Now map content IDs after topic is saved
+      if (originalTopic.content && originalTopic.content.length > 0) {
+        let newContentIndex = 0;
+        for (let i = 0; i < originalTopic.content.length; i++) {
+          const originalContent = originalTopic.content[i];
+          
+          // Skip zoom content items in the mapping (they weren't duplicated)
+          if (originalContent.type === 'zoom') {
+            continue;
+          }
+          
+          // Only map if we have corresponding new content
+          if (newContentIndex < newTopic.content.length) {
+            const oldContentId = originalContent._id.toString();
+            const newContentId = newTopic.content[newContentIndex]._id.toString();
+            contentIdMap.set(oldContentId, newContentId);
+            newContentIndex++;
+          }
+        }
+      }
+
+      // Update prerequisites and dependencies in all content items
+      if (newTopic.content && newTopic.content.length > 0 && originalTopic.content) {
+        let newContentIndex = 0;
+        for (let originalContentIndex = 0; originalContentIndex < originalTopic.content.length; originalContentIndex++) {
+          const originalContent = originalTopic.content[originalContentIndex];
+          
+          // Skip zoom content items (they weren't duplicated)
+          if (originalContent.type === 'zoom') {
+            continue;
+          }
+          
+          // Only process if we have corresponding new content
+          if (newContentIndex < newTopic.content.length) {
+            const newContent = newTopic.content[newContentIndex];
+
+            // Update prerequisites (skip if prerequisite was a zoom item)
+            if (originalContent.prerequisites && originalContent.prerequisites.length > 0) {
+              const newPrerequisites = originalContent.prerequisites
+                .map((prereqId) => {
+                  const prereqIdStr = prereqId.toString ? prereqId.toString() : prereqId;
+                  const newId = contentIdMap.get(prereqIdStr);
+                  return newId ? new mongoose.Types.ObjectId(newId) : null;
+                })
+                .filter((id) => id !== null);
+
+              newContent.prerequisites = newPrerequisites;
+            }
+
+            // Update dependencies (skip if dependency was a zoom item)
+            if (originalContent.dependencies && originalContent.dependencies.length > 0) {
+              const newDependencies = originalContent.dependencies
+                .map((depId) => {
+                  const depIdStr = depId.toString ? depId.toString() : depId;
+                  const newId = contentIdMap.get(depIdStr);
+                  return newId ? new mongoose.Types.ObjectId(newId) : null;
+                })
+                .filter((id) => id !== null);
+
+              newContent.dependencies = newDependencies;
+            }
+
+            // Mark content as modified
+            newContent.markModified('prerequisites');
+            newContent.markModified('dependencies');
+            
+            newContentIndex++;
+          }
+        }
+
+        // Save the topic with updated content
+        await newTopic.save({ session });
+      }
+
+      // Add topic to course
+      await Course.findByIdAndUpdate(
+        course._id,
+        { $push: { topics: newTopic._id } },
+        { session }
+      );
+
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.json({
+        success: true,
+        message: 'Topic duplicated successfully!',
+        topicId: newTopic._id,
+      });
+    } catch (error) {
+      // Rollback transaction on error
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error duplicating topic:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error duplicating topic: ' + error.message,
+    });
+  }
+};
+
 const deleteTopic = async (req, res) => {
   try {
     const { courseCode, topicId } = req.params;
@@ -13853,6 +14364,7 @@ module.exports = {
   getCourseData,
   updateCourse,
   deleteCourse,
+  duplicateCourse,
   bulkUpdateCourseStatus,
   getCourseContent,
   createTopic,
@@ -13863,6 +14375,7 @@ module.exports = {
   getContentDetailsForEdit,
   reorderTopics,
   reorderContent,
+  duplicateTopic,
   deleteTopic,
   addTopicContent,
   updateTopicContent,

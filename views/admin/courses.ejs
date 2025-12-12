@@ -384,15 +384,18 @@
                   </div>
 
                   <div class="admin-course-actions">
-                    <a href="/admin/courses/<%= course.courseCode %>/details" class="btn btn-sm btn-info">
+                    <a href="/admin/courses/<%= course.courseCode %>/details" class="btn btn-sm btn-info admin-course-action-btn">
                       <i class="fas fa-chart-line me-1"></i>
-                      Course Details
+                      <span class="btn-text">Details</span>
                     </a>
-                    <a href="/admin/courses/<%= course.courseCode %>/content" class="btn btn-sm btn-primary">
+                    <a href="/admin/courses/<%= course.courseCode %>/content" class="btn btn-sm btn-primary admin-course-action-btn">
                       <i class="fas fa-edit me-1"></i>
-                      Manage Content
+                      <span class="btn-text">Manage</span>
                     </a>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCourse('<%= course.courseCode %>', event)">
+                    <button class="btn btn-sm btn-outline-success admin-course-action-btn" onclick="duplicateCourse('<%= course.courseCode %>', event)" title="Duplicate Course">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger admin-course-action-btn" onclick="deleteCourse('<%= course.courseCode %>', event)" title="Delete Course">
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -1118,6 +1121,69 @@
     }
   }
 
+  /* Enhanced Course Actions - Keep all buttons in one row */
+  .admin-course-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    align-items: stretch;
+    justify-content: space-between;
+    width: 100%;
+    padding: 4px 0;
+  }
+
+  .admin-course-action-btn {
+    flex: 1 1 0;
+    white-space: nowrap;
+    min-width: 0;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .admin-course-action-btn .btn-text {
+    display: inline;
+  }
+
+  /* Hide text on smaller screens, show only icons */
+  @media (max-width: 1400px) {
+    .admin-course-action-btn .btn-text {
+      display: none;
+    }
+    
+    .admin-course-action-btn {
+      padding: 6px 4px !important;
+      flex: 1 1 0;
+    }
+  }
+
+  /* Ensure buttons don't wrap */
+  .admin-course-card .admin-course-actions {
+    flex-wrap: nowrap !important;
+  }
+
+  /* Scrollbar styling for overflow */
+  .admin-course-actions::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .admin-course-actions::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .admin-course-actions::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+
+  .dark-theme .admin-course-actions::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
 </style>
 
 <!-- Cloudinary Upload Script -->
@@ -1567,6 +1633,56 @@
   function editCourse(courseCode) {
     // TODO: Implement edit course functionality
     console.log('Edit course:', courseCode);
+  }
+
+  function duplicateCourse(courseCode, event) {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (!confirm(`Are you sure you want to duplicate this course? This will create a new course with all topics and content. The new course will be set to draft status.`)) {
+      return;
+    }
+
+    // Show loading state
+    const duplicateButton = event ? event.target.closest('button') : null;
+    const originalHTML = duplicateButton ? duplicateButton.innerHTML : '';
+    if (duplicateButton) {
+      duplicateButton.disabled = true;
+      duplicateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    fetch(`/admin/courses/${courseCode}/duplicate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Show success toast
+          showToast(data.message || 'Course duplicated successfully!', 'success');
+          // Reload the page to show the new course
+          setTimeout(() => {
+            location.reload();
+          }, 1500);
+        } else {
+          showToast(data.message || 'Error duplicating course', 'error');
+          if (duplicateButton) {
+            duplicateButton.disabled = false;
+            duplicateButton.innerHTML = originalHTML;
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Error duplicating course', 'error');
+        if (duplicateButton) {
+          duplicateButton.disabled = false;
+          duplicateButton.innerHTML = originalHTML;
+        }
+      });
   }
 
   function deleteCourse(courseCode, event) {

@@ -454,20 +454,25 @@ const courseContent = async (req, res) => {
           // Get watch count for video content
           const watchCount = contentProgressDetails?.watchCount || 0;
 
-          // Get prerequisite names for better user experience
+          // Get prerequisite names and IDs for better user experience
           let prerequisiteNames = [];
+          let prerequisiteData = [];
           if (
             contentItem.prerequisites &&
             contentItem.prerequisites.length > 0
           ) {
-            // Find prerequisite content names
+            // Find prerequisite content names and IDs
             const allContent = course.topics.flatMap((t) => t.content);
-            prerequisiteNames = contentItem.prerequisites.map((prereqId) => {
+            prerequisiteData = contentItem.prerequisites.map((prereqId) => {
               const prereqContent = allContent.find(
                 (c) => c._id.toString() === prereqId.toString()
               );
-              return prereqContent ? prereqContent.title : 'Unknown Content';
+              return {
+                id: prereqId.toString(),
+                title: prereqContent ? prereqContent.title : 'Unknown Content',
+              };
             });
+            prerequisiteNames = prerequisiteData.map((p) => p.title);
           }
 
           return {
@@ -479,6 +484,7 @@ const courseContent = async (req, res) => {
             unlockReason: unlockStatus.reason,
             canAccess: unlockStatus.unlocked || isCompleted,
             prerequisiteNames: prerequisiteNames,
+            prerequisiteData: prerequisiteData,
             contentIndex: index,
             topicId: topic._id,
           };

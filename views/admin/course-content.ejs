@@ -173,6 +173,9 @@
                   <button class="action-btn" onclick="editTopic('<%= topic._id %>')" title="Edit Topic">
                     <i class="fas fa-edit"></i>
                   </button>
+                  <button class="action-btn" onclick="duplicateTopic('<%= topic._id %>', '<%= course.courseCode %>')" title="Duplicate Topic">
+                    <i class="fas fa-copy"></i>
+                  </button>
                   <button class="action-btn danger" onclick="deleteTopic('<%= topic._id %>')" title="Delete Topic">
                     <i class="fas fa-trash"></i>
                   </button>
@@ -1159,65 +1162,66 @@
           <!-- Zoom Meeting Content Section -->
           <div class="row mt-4" id="zoomContentSection" style="display: none;">
             <div class="col-12">
-              <h5 class="mb-3">
-                <i class="fas fa-video me-2"></i>
-                Zoom Live Session Configuration
-              </h5>
-
-              <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Schedule a live Zoom session. The meeting will be locked until you start it from the admin panel.
+              <div class="zoom-config-header mb-4">
+                <h5 class="mb-2" style="color: #2d3748; font-weight: 600; display: flex; align-items: center;">
+                  <i class="fas fa-video me-2" style="color: #2d5aa0;"></i>
+                  Zoom Live Session Configuration
+                </h5>
+                <div class="alert alert-info mb-0" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 1px solid #90caf9; border-radius: 8px; padding: 12px 16px;">
+                  <i class="fas fa-info-circle me-2" style="color: #1976d2;"></i>
+                  <small style="color: #1565c0; font-weight: 500;">Schedule a live Zoom session. The meeting will be locked until you start it from the admin panel.</small>
+                </div>
               </div>
 
               <!-- Meeting Basic Info -->
-              <div class="row">
+              <div class="row g-3 mb-3">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="zoomMeetingName" class="admin-form-label">
-                      <i class="fas fa-signature me-2"></i>
+                    <label for="zoomMeetingName" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-signature me-2" style="color: #2d5aa0;"></i>
                       Meeting Name
                     </label>
-                    <input type="text" class="admin-form-control" id="zoomMeetingName" name="zoomMeetingName" placeholder="e.g., Week 1 Live Q&A Session">
+                    <input type="text" class="admin-form-control" id="zoomMeetingName" name="zoomMeetingName" placeholder="e.g., Week 1 Live Q&A Session" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="zoomMeetingTopic" class="admin-form-label">
-                      <i class="fas fa-comment-dots me-2"></i>
+                    <label for="zoomMeetingTopic" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-comment-dots me-2" style="color: #2d5aa0;"></i>
                       Meeting Topic
                     </label>
-                    <input type="text" class="admin-form-control" id="zoomMeetingTopic" name="zoomMeetingTopic" placeholder="What will be discussed?">
+                    <input type="text" class="admin-form-control" id="zoomMeetingTopic" name="zoomMeetingTopic" placeholder="What will be discussed?" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
               </div>
 
               <!-- Scheduling -->
-              <div class="row">
+              <div class="row g-3 mb-3">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="zoomScheduledTime" class="admin-form-label">
-                      <i class="far fa-calendar-alt me-2"></i>
+                    <label for="zoomScheduledTime" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="far fa-calendar-alt me-2" style="color: #2d5aa0;"></i>
                       Scheduled Start Time
                     </label>
-                    <input type="datetime-local" class="admin-form-control" id="zoomScheduledTime" name="scheduledStartTime">
+                    <input type="datetime-local" class="admin-form-control" id="zoomScheduledTime" name="scheduledStartTime" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="mb-3">
-                    <label for="zoomDuration" class="admin-form-label">
-                      <i class="far fa-clock me-2"></i>
+                    <label for="zoomDuration" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="far fa-clock me-2" style="color: #2d5aa0;"></i>
                       Duration (minutes)
                     </label>
-                    <input type="number" class="admin-form-control" id="zoomDuration" name="duration" value="60" min="15" max="300">
+                    <input type="number" class="admin-form-control" id="zoomDuration" name="duration" value="60" min="15" max="300" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="mb-3">
-                    <label for="zoomTimezone" class="admin-form-label">
-                      <i class="fas fa-globe me-2"></i>
+                    <label for="zoomTimezone" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-globe me-2" style="color: #2d5aa0;"></i>
                       Timezone
                     </label>
-                    <select class="admin-form-control" id="zoomTimezone" name="timezone">
+                    <select class="admin-form-control" id="zoomTimezone" name="timezone" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                       <option value="UTC">UTC</option>
                       <option value="Africa/Cairo" selected>Cairo (EET)</option>
                       <option value="America/New_York">New York (EST)</option>
@@ -1227,77 +1231,69 @@
                 </div>
               </div>
 
-              <!-- Meeting Settings -->
-              <div class="row">
+              <!-- Meeting Password -->
+              <div class="row mb-3">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="zoomPassword" class="admin-form-label">
-                      <i class="fas fa-lock me-2"></i>
+                    <label for="zoomPassword" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-lock me-2" style="color: #2d5aa0;"></i>
                       Meeting Password (Optional)
                     </label>
-                    <input type="text" class="admin-form-control" id="zoomPassword" name="password" placeholder="Leave empty for no password">
+                    <input type="text" class="admin-form-control" id="zoomPassword" name="password" placeholder="Leave empty for no password" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
               </div>
 
-              <!-- Advanced Settings -->
-              <div class="card mb-3">
-                <div class="card-header bg-light">
-                  <h6 class="mb-0">
-                    <i class="fas fa-cog me-2"></i>
+              <!-- Meeting Settings - Compact Design -->
+              <div class="zoom-settings-card" style="background: #f8f9fa; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
+                <div class="d-flex align-items-center mb-2" style="border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px;">
+                  <i class="fas fa-cog me-2" style="color: #2d5aa0; font-size: 13px;"></i>
+                  <h6 class="mb-0" style="color: #2d3748; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
                     Meeting Settings
                   </h6>
                 </div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-4">
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="zoomJoinBeforeHost" name="joinBeforeHost" checked>
-                        <label class="form-check-label" for="zoomJoinBeforeHost">
-                          <i class="fas fa-door-open me-1"></i>
-                          Allow join before host
-                        </label>
-                      </div>
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="zoomWaitingRoom" name="waitingRoom">
-                        <label class="form-check-label" for="zoomWaitingRoom">
-                          <i class="fas fa-hourglass-half me-1"></i>
-                          Enable waiting room
-                        </label>
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="zoomHostVideo" name="hostVideo" checked>
-                        <label class="form-check-label" for="zoomHostVideo">
-                          <i class="fas fa-video me-1"></i>
-                          Host video on
-                        </label>
-                      </div>
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="zoomParticipantVideo" name="participantVideo" checked>
-                        <label class="form-check-label" for="zoomParticipantVideo">
-                          <i class="fas fa-users me-1"></i>
-                          Participant video on
-                        </label>
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="zoomMuteUponEntry" name="muteUponEntry">
-                        <label class="form-check-label" for="zoomMuteUponEntry">
-                          <i class="fas fa-microphone-slash me-1"></i>
-                          Mute participants on entry
-                        </label>
-                      </div>
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="zoomEnableRecording" name="enableRecording">
-                        <label class="form-check-label" for="zoomEnableRecording">
-                          <i class="fas fa-record-vinyl me-1"></i>
-                          Enable cloud recording
-                        </label>
-                      </div>
-                    </div>
+                <div class="zoom-settings-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-door-open" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="zoomJoinBeforeHost" name="joinBeforeHost" checked style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="zoomJoinBeforeHost" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Allow join before host
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-hourglass-half" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="zoomWaitingRoom" name="waitingRoom" style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="zoomWaitingRoom" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Enable waiting room
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-video" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="zoomHostVideo" name="hostVideo" checked style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="zoomHostVideo" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Host video on
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-users" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="zoomParticipantVideo" name="participantVideo" checked style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="zoomParticipantVideo" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Participant video on
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-microphone-slash" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="zoomMuteUponEntry" name="muteUponEntry" style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="zoomMuteUponEntry" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Mute participants on entry
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-record-vinyl" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="zoomEnableRecording" name="enableRecording" style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="zoomEnableRecording" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Enable cloud recording
+                    </label>
                   </div>
                 </div>
               </div>
@@ -2054,65 +2050,66 @@
           <!-- Zoom Meeting Content Section -->
           <div class="row mt-4" id="editZoomContentSection" style="display: none;">
             <div class="col-12">
-              <h5 class="mb-3">
-                <i class="fas fa-video me-2"></i>
-                Zoom Live Session Configuration
-              </h5>
-
-              <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Edit the live Zoom session. The meeting will be locked until you start it from the admin panel.
+              <div class="zoom-config-header mb-4">
+                <h5 class="mb-2" style="color: #2d3748; font-weight: 600; display: flex; align-items: center;">
+                  <i class="fas fa-video me-2" style="color: #2d5aa0;"></i>
+                  Zoom Live Session Configuration
+                </h5>
+                <div class="alert alert-info mb-0" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 1px solid #90caf9; border-radius: 8px; padding: 12px 16px;">
+                  <i class="fas fa-info-circle me-2" style="color: #1976d2;"></i>
+                  <small style="color: #1565c0; font-weight: 500;">Edit the live Zoom session. The meeting will be locked until you start it from the admin panel.</small>
+                </div>
               </div>
 
               <!-- Meeting Basic Info -->
-              <div class="row">
+              <div class="row g-3 mb-3">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="editZoomMeetingName" class="admin-form-label">
-                      <i class="fas fa-signature me-2"></i>
+                    <label for="editZoomMeetingName" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-signature me-2" style="color: #2d5aa0;"></i>
                       Meeting Name
                     </label>
-                    <input type="text" class="admin-form-control" id="editZoomMeetingName" name="zoomMeetingName" placeholder="e.g., Week 1 Live Q&A Session">
+                    <input type="text" class="admin-form-control" id="editZoomMeetingName" name="zoomMeetingName" placeholder="e.g., Week 1 Live Q&A Session" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="editZoomMeetingTopic" class="admin-form-label">
-                      <i class="fas fa-comment-dots me-2"></i>
+                    <label for="editZoomMeetingTopic" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-comment-dots me-2" style="color: #2d5aa0;"></i>
                       Meeting Topic
                     </label>
-                    <input type="text" class="admin-form-control" id="editZoomMeetingTopic" name="zoomMeetingTopic" placeholder="What will be discussed?">
+                    <input type="text" class="admin-form-control" id="editZoomMeetingTopic" name="zoomMeetingTopic" placeholder="What will be discussed?" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
               </div>
 
               <!-- Scheduling -->
-              <div class="row">
+              <div class="row g-3 mb-3">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="editZoomScheduledTime" class="admin-form-label">
-                      <i class="far fa-calendar-alt me-2"></i>
+                    <label for="editZoomScheduledTime" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="far fa-calendar-alt me-2" style="color: #2d5aa0;"></i>
                       Scheduled Start Time
                     </label>
-                    <input type="datetime-local" class="admin-form-control" id="editZoomScheduledTime" name="scheduledStartTime">
+                    <input type="datetime-local" class="admin-form-control" id="editZoomScheduledTime" name="scheduledStartTime" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="mb-3">
-                    <label for="editZoomDuration" class="admin-form-label">
-                      <i class="far fa-clock me-2"></i>
+                    <label for="editZoomDuration" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="far fa-clock me-2" style="color: #2d5aa0;"></i>
                       Duration (minutes)
                     </label>
-                    <input type="number" class="admin-form-control" id="editZoomDuration" name="duration" value="60" min="15" max="300">
+                    <input type="number" class="admin-form-control" id="editZoomDuration" name="duration" value="60" min="15" max="300" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="mb-3">
-                    <label for="editZoomTimezone" class="admin-form-label">
-                      <i class="fas fa-globe me-2"></i>
+                    <label for="editZoomTimezone" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-globe me-2" style="color: #2d5aa0;"></i>
                       Timezone
                     </label>
-                    <select class="admin-form-control" id="editZoomTimezone" name="timezone">
+                    <select class="admin-form-control" id="editZoomTimezone" name="timezone" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                       <option value="UTC">UTC</option>
                       <option value="Africa/Cairo" selected>Cairo (EET)</option>
                       <option value="America/New_York">New York (EST)</option>
@@ -2122,77 +2119,69 @@
                 </div>
               </div>
 
-              <!-- Meeting Settings -->
-              <div class="row">
+              <!-- Meeting Password -->
+              <div class="row mb-3">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="editZoomPassword" class="admin-form-label">
-                      <i class="fas fa-lock me-2"></i>
+                    <label for="editZoomPassword" class="admin-form-label" style="font-weight: 500; color: #4a5568; margin-bottom: 8px;">
+                      <i class="fas fa-lock me-2" style="color: #2d5aa0;"></i>
                       Meeting Password (Optional)
                     </label>
-                    <input type="text" class="admin-form-control" id="editZoomPassword" name="password" placeholder="Leave empty for no password">
+                    <input type="text" class="admin-form-control" id="editZoomPassword" name="password" placeholder="Leave empty for no password" style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 14px; transition: all 0.3s ease;">
                   </div>
                 </div>
               </div>
 
-              <!-- Advanced Settings -->
-              <div class="card mb-3">
-                <div class="card-header bg-light">
-                  <h6 class="mb-0">
-                    <i class="fas fa-cog me-2"></i>
+              <!-- Meeting Settings - Compact Design -->
+              <div class="zoom-settings-card" style="background: #f8f9fa; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
+                <div class="d-flex align-items-center mb-2" style="border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px;">
+                  <i class="fas fa-cog me-2" style="color: #2d5aa0; font-size: 13px;"></i>
+                  <h6 class="mb-0" style="color: #2d3748; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
                     Meeting Settings
                   </h6>
                 </div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-4">
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editZoomJoinBeforeHost" name="joinBeforeHost" checked>
-                        <label class="form-check-label" for="editZoomJoinBeforeHost">
-                          <i class="fas fa-door-open me-1"></i>
-                          Allow join before host
-                        </label>
-                      </div>
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editZoomWaitingRoom" name="waitingRoom">
-                        <label class="form-check-label" for="editZoomWaitingRoom">
-                          <i class="fas fa-hourglass-half me-1"></i>
-                          Enable waiting room
-                        </label>
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editZoomHostVideo" name="hostVideo" checked>
-                        <label class="form-check-label" for="editZoomHostVideo">
-                          <i class="fas fa-video me-1"></i>
-                          Host video on
-                        </label>
-                      </div>
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editZoomParticipantVideo" name="participantVideo" checked>
-                        <label class="form-check-label" for="editZoomParticipantVideo">
-                          <i class="fas fa-users me-1"></i>
-                          Participant video on
-                        </label>
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editZoomMuteUponEntry" name="muteUponEntry">
-                        <label class="form-check-label" for="editZoomMuteUponEntry">
-                          <i class="fas fa-microphone-slash me-1"></i>
-                          Mute participants on entry
-                        </label>
-                      </div>
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editZoomEnableRecording" name="enableRecording">
-                        <label class="form-check-label" for="editZoomEnableRecording">
-                          <i class="fas fa-record-vinyl me-1"></i>
-                          Enable cloud recording
-                        </label>
-                      </div>
-                    </div>
+                <div class="zoom-settings-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-door-open" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="editZoomJoinBeforeHost" name="joinBeforeHost" checked style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="editZoomJoinBeforeHost" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Allow join before host
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-hourglass-half" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="editZoomWaitingRoom" name="waitingRoom" style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="editZoomWaitingRoom" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Enable waiting room
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-video" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="editZoomHostVideo" name="hostVideo" checked style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="editZoomHostVideo" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Host video on
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-users" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="editZoomParticipantVideo" name="participantVideo" checked style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="editZoomParticipantVideo" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Participant video on
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-microphone-slash" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="editZoomMuteUponEntry" name="muteUponEntry" style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="editZoomMuteUponEntry" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Mute participants on entry
+                    </label>
+                  </div>
+                  <div class="zoom-setting-item" style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; transition: all 0.2s ease; gap: 10px;">
+                    <i class="fas fa-record-vinyl" style="color: #718096; font-size: 10px; flex-shrink: 0;"></i>
+                    <input class="form-check-input" type="checkbox" id="editZoomEnableRecording" name="enableRecording" style="cursor: pointer; width: 36px; height: 18px; margin: 0; flex-shrink: 0;">
+                    <label class="form-check-label" for="editZoomEnableRecording" style="font-size: 12px; color: #4a5568; font-weight: 500; cursor: pointer; margin: 0; line-height: 1.3; flex: 1; text-align: right;">
+                      Enable cloud recording
+                    </label>
                   </div>
                 </div>
               </div>
@@ -2877,6 +2866,66 @@ function getContentIcon(type) {
         }
       });
     }
+  }
+
+  function duplicateTopic(topicId, courseCode) {
+    if (!confirm(`Are you sure you want to duplicate this topic? This will create a new topic with all content. The new topic will be set to draft status.`)) {
+      return;
+    }
+
+    // Show loading state
+    const duplicateButton = event ? event.target.closest('button') : null;
+    const originalHTML = duplicateButton ? duplicateButton.innerHTML : '';
+    if (duplicateButton) {
+      duplicateButton.disabled = true;
+      duplicateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    fetch(`/admin/courses/${courseCode}/topics/${topicId}/duplicate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Show success message
+          Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: data.message || 'Topic duplicated successfully!',
+            timer: 2000,
+            showConfirmButton: false
+          });
+          // Reload the page to show the new topic
+          setTimeout(() => {
+            location.reload();
+          }, 1500);
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.message || 'Error duplicating topic'
+          });
+          if (duplicateButton) {
+            duplicateButton.disabled = false;
+            duplicateButton.innerHTML = originalHTML;
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Error duplicating topic'
+        });
+        if (duplicateButton) {
+          duplicateButton.disabled = false;
+          duplicateButton.innerHTML = originalHTML;
+        }
+      });
   }
 
   function deleteTopic(topicId) {
@@ -9513,5 +9562,78 @@ function getContentIcon(type) {
   .question-item.selected.medium .question-item-bank,
   .question-item.selected.hard .question-item-bank {
     background: rgba(59, 130, 246, 0.1) !important;
+  }
+
+  /* Zoom Settings Enhanced Styles */
+  .zoom-setting-item:hover {
+    background: #ffffff !important;
+    border-color: #2d5aa0 !important;
+    box-shadow: 0 1px 4px rgba(45, 90, 160, 0.12) !important;
+    transform: translateY(-1px);
+  }
+
+  .zoom-setting-item .form-check-input:checked {
+    background-color: #2d5aa0;
+    border-color: #2d5aa0;
+  }
+
+  .zoom-setting-item .form-check-input:focus {
+    border-color: #2d5aa0;
+    box-shadow: 0 0 0 0.2rem rgba(45, 90, 160, 0.2);
+  }
+
+  .zoom-settings-grid .zoom-setting-item label:hover {
+    color: #2d3748 !important;
+  }
+
+  .zoom-setting-item i {
+    transition: color 0.2s ease;
+  }
+
+  .zoom-setting-item:hover i {
+    color: #2d5aa0 !important;
+  }
+
+  /* Smaller toggle switch styling */
+  .zoom-setting-item .form-check-input {
+    flex-shrink: 0;
+  }
+
+  /* Input focus styles */
+  #zoomMeetingName:focus,
+  #zoomMeetingTopic:focus,
+  #zoomScheduledTime:focus,
+  #zoomDuration:focus,
+  #zoomTimezone:focus,
+  #zoomPassword:focus,
+  #editZoomMeetingName:focus,
+  #editZoomMeetingTopic:focus,
+  #editZoomScheduledTime:focus,
+  #editZoomDuration:focus,
+  #editZoomTimezone:focus,
+  #editZoomPassword:focus {
+    border-color: #2d5aa0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(45, 90, 160, 0.15) !important;
+    outline: none;
+  }
+
+  /* Responsive zoom settings */
+  @media (max-width: 768px) {
+    .zoom-settings-grid {
+      grid-template-columns: 1fr !important;
+      gap: 6px !important;
+    }
+    .zoom-settings-card {
+      padding: 10px !important;
+    }
+    .zoom-setting-item {
+      padding: 6px !important;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 992px) {
+    .zoom-settings-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
   }
 </style>

@@ -40,26 +40,28 @@
     /* Prerequisites Styling */
     .prerequisites-info {
       margin-top: 12px;
-      padding: 12px 16px;
+      padding: 14px 18px;
       background: linear-gradient(135deg, #fef3c7, #fde68a);
       border: 1px solid #f59e0b;
-      border-radius: 8px;
+      border-radius: 10px;
       border-left: 4px solid #f59e0b;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
     }
 
     .prerequisites-header {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       font-weight: 600;
       color: #92400e;
+      font-size: 14px;
     }
 
     .prerequisites-list {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .prerequisite-item {
@@ -73,6 +75,41 @@
     .prerequisite-item i {
       font-size: 10px;
       color: #f59e0b;
+    }
+
+    /* Clickable Prerequisite Links */
+    .prerequisite-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 6px;
+      text-decoration: none;
+      color: #92400e;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .prerequisite-link:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: #f59e0b;
+      transform: translateX(4px);
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+      color: #78350f;
+    }
+
+    .prerequisite-link-icon {
+      margin-left: auto;
+      font-size: 11px;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+
+    .prerequisite-link:hover .prerequisite-link-icon {
+      opacity: 1;
     }
 
     /* Content Item States */
@@ -107,6 +144,128 @@
     .content-item:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Clickable Content Item */
+    .clickable-content-item {
+      cursor: pointer;
+      position: relative;
+    }
+
+    .clickable-content-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      border-color: var(--primary-color);
+    }
+
+    .clickable-content-item:active {
+      transform: translateY(0px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Visual indicator for clickable cards */
+    .clickable-content-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      opacity: 0;
+    }
+
+    .clickable-content-item:hover::before {
+      box-shadow: inset 0 0 0 2px var(--primary-color);
+      opacity: 0.2;
+    }
+
+    /* Prevent prerequisites area from triggering navigation */
+    .prerequisites-info {
+      cursor: default;
+      pointer-events: auto;
+    }
+
+    .prerequisites-info * {
+      pointer-events: auto;
+    }
+
+    /* Ensure buttons and links inside content items work normally */
+    .clickable-content-item button,
+    .clickable-content-item a {
+      position: relative;
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    /* Topic Header - Clickable for expand/collapse */
+    .clickable-topic-header {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .clickable-topic-header:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .dark-theme .clickable-topic-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .topic-header-left {
+      transition: all 0.2s ease;
+      flex: 1;
+    }
+
+    /* Topic Card Enhancements */
+    .topic-card {
+      transition: all 0.3s ease;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .topic-card:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+    }
+
+    /* Topic Card */
+    .topic-card {
+      cursor: default;
+    }
+
+    /* Topic Toggle Button - Make it clear it's clickable */
+    .topic-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .topic-toggle:hover {
+      background: rgba(0, 0, 0, 0.05);
+      transform: scale(1.1);
+    }
+
+    .dark-theme .topic-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .topic-chevron {
+      transition: transform 0.3s ease;
+      color: var(--text-muted);
+    }
+
+    .topic-toggle:hover .topic-chevron {
+      color: var(--primary-color);
     }
 
     .content-item-header {
@@ -168,12 +327,194 @@
       color: #fbbf24;
     }
 
+    .dark-theme .prerequisite-link {
+      background: rgba(0, 0, 0, 0.3);
+      color: #fbbf24;
+    }
+
+    .dark-theme .prerequisite-link:hover {
+      background: rgba(0, 0, 0, 0.5);
+      border-color: #f59e0b;
+      color: #fcd34d;
+    }
+
     .dark-theme .content-item.completed {
       background: linear-gradient(135deg, #064e3b, #065f46);
     }
 
     .dark-theme .content-item.locked {
       background: linear-gradient(135deg, #7f1d1d, #991b1b);
+    }
+
+    /* Progress Stats Enhancement */
+    .progress-stats {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .progress-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--muted-text);
+    }
+
+    .progress-stat-item i {
+      color: var(--primary-color);
+      font-size: 16px;
+    }
+
+    .progress-stat-item strong {
+      color: var(--text-color);
+      font-weight: 600;
+    }
+
+    /* Course Progress Overview Enhancement */
+    .course-progress-overview {
+      background: var(--card-bg);
+      padding: 20px 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 32px;
+    }
+
+    .progress-bar-container {
+      height: 10px;
+      background: var(--muted-bg);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-color), #f87171);
+      border-radius: 10px;
+      transition: width 0.6s ease;
+    }
+
+    /* Section Header Enhancement */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-color);
+      margin: 0;
+    }
+
+    .section-title i {
+      color: var(--primary-color);
+      font-size: 22px;
+    }
+
+    .section-subtitle {
+      font-size: 14px;
+      color: var(--muted-text);
+      font-weight: 500;
+      padding: 6px 12px;
+      background: var(--muted-bg);
+      border-radius: 20px;
+    }
+
+    /* Topics Section Enhancement */
+    .topics-section {
+      margin-top: 32px;
+    }
+
+    .topics-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Content Items Container Enhancement */
+    .content-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: var(--muted-bg);
+      border-radius: 8px;
+    }
+
+    /* Empty Content States */
+    .empty-content {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted-text);
+    }
+
+    .empty-content i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-topics {
+      text-align: center;
+      padding: 60px 20px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 2px dashed var(--muted-bg);
+    }
+
+    .empty-topics .empty-icon {
+      font-size: 64px;
+      color: var(--muted-text);
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-topics h3 {
+      color: var(--text-color);
+      margin-bottom: 12px;
+    }
+
+    .empty-topics p {
+      color: var(--muted-text);
+    }
+
+    /* Smooth Transitions */
+    .topic-content {
+      transition: all 0.3s ease;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Focus States for Accessibility */
+    .clickable-topic-header:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+
+    .prerequisite-link:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
     }
   </style>
 
@@ -251,20 +592,28 @@
             <div class="progress-bar-fill" style="width: <%= enrollment.progress %>%"></div>
           </div>
           <div class="progress-stats">
-            <span class="progress-text">Overall Progress: <%= enrollment.progress %>%</span>
-            <span class="last-accessed">Last accessed: <%= new Date(enrollment.lastAccessed).toLocaleDateString() %></span>
+            <div class="progress-stat-item">
+              <i class="fas fa-clock"></i>
+              <span class="last-accessed">Last accessed: <strong><%= new Date(enrollment.lastAccessed).toLocaleDateString() %></strong> | <strong><%= enrollment.progress %>%</strong></span>
+            </div>
           </div>
         </div>
 
         <!-- Topics Section -->
         <div class="topics-section">
-          <h2 class="section-title">Week Topics</h2>
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fas fa-book-open"></i>
+              Week Topics
+            </h2>
+            <span class="section-subtitle"><%= topicsWithProgress ? topicsWithProgress.length : 0 %> weeks available</span>
+          </div>
 
           <% if (topicsWithProgress && topicsWithProgress.length > 0) { %>
           <div class="topics-container">
             <% topicsWithProgress.forEach((topic, topicIndex) => { %>
             <div class="topic-card" data-topic-id="<%= topic._id %>">
-              <div class="topic-header" onclick="toggleTopic('<%= topic._id %>')">
+              <div class="topic-header clickable-topic-header" data-topic-id="<%= topic._id %>">
                 <div class="topic-header-left">
                   <div class="topic-number"><%= topicIndex + 1 %></div>
                   <div class="topic-info">
@@ -298,7 +647,7 @@
                     </div>
                   </div>
 
-                  <div class="topic-toggle">
+                  <div class="topic-toggle" role="button" tabindex="0" aria-expanded="false" style="cursor: pointer;">
                     <i class="fas fa-chevron-down topic-chevron" id="chevron-<%= topic._id %>"></i>
                   </div>
                 </div>
@@ -308,8 +657,13 @@
               <div class="topic-content" id="content-<%= topic._id %>" style="display: none;">
                 <% if (topic.content && topic.content.length > 0) { %>
                 <div class="content-items">
-                  <% topic.content.forEach((contentItem, contentIndex) => { %>
-                  <div class="content-item <%= !contentItem.canAccess ? 'locked' : '' %> <%= contentItem.isCompleted ? 'completed' : '' %>" data-content-id="<%= contentItem._id %>">
+                  <% topic.content.forEach((contentItem, contentIndex) => { 
+                    // Determine content URL - only if accessible
+                    const contentUrl = contentItem.canAccess ? `/student/content/${contentItem._id}` : null;
+                  %>
+                  <div class="content-item clickable-content-item <%= !contentItem.canAccess ? 'locked' : '' %> <%= contentItem.isCompleted ? 'completed' : '' %>" 
+                       data-content-id="<%= contentItem._id %>" 
+                       <% if (contentUrl) { %>data-content-url="<%= contentUrl %>"<% } %>>
 
                     <div class="content-item-header">
                       <div class="content-item-left">
@@ -446,18 +800,19 @@
                     </div>
 
                     <!-- Prerequisites Info -->
-                    <% if (!contentItem.canAccess && contentItem.prerequisiteNames && contentItem.prerequisiteNames.length > 0) { %>
+                    <% if (!contentItem.canAccess && contentItem.prerequisiteData && contentItem.prerequisiteData.length > 0) { %>
                     <div class="prerequisites-info">
                       <div class="prerequisites-header">
                         <i class="fas fa-info-circle"></i>
                         <span>Complete these prerequisites first:</span>
                       </div>
                       <div class="prerequisites-list">
-                        <% contentItem.prerequisiteNames.forEach(prereqName => { %>
-                        <div class="prerequisite-item">
+                        <% contentItem.prerequisiteData.forEach((prereq, index) => { %>
+                        <a href="/student/content/<%= prereq.id %>" class="prerequisite-item prerequisite-link">
                           <i class="fas fa-arrow-right"></i>
-                          <span><%= prereqName %></span>
-                        </div>
+                          <span><%= prereq.title %></span>
+                          <i class="fas fa-external-link-alt prerequisite-link-icon"></i>
+                        </a>
                         <% }); %>
                       </div>
                     </div>
@@ -500,15 +855,87 @@
     function toggleTopic(topicId) {
       const content = document.getElementById('content-' + topicId);
       const chevron = document.getElementById('chevron-' + topicId);
+      const toggle = document.querySelector(`[data-topic-id="${topicId}"] .topic-toggle`);
 
-      if (content.style.display === 'none') {
+      if (content.style.display === 'none' || !content.style.display) {
         content.style.display = 'block';
         chevron.style.transform = 'rotate(180deg)';
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+        // Smooth scroll to content if it's being expanded
+        setTimeout(() => {
+          content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
       } else {
         content.style.display = 'none';
         chevron.style.transform = 'rotate(0deg)';
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
       }
     }
+
+    // Prevent event bubbling for buttons and links inside content items
+    document.addEventListener('DOMContentLoaded', function() {
+      // Stop propagation for all buttons and links inside content items
+      const contentItems = document.querySelectorAll('.content-item');
+      contentItems.forEach(item => {
+        const buttons = item.querySelectorAll('button, a.btn, .zoom-admin-controls');
+        buttons.forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+          });
+        });
+      });
+
+      // Add click handler for prerequisite links to track navigation
+      const prerequisiteLinks = document.querySelectorAll('.prerequisite-link');
+      prerequisiteLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          // Stop propagation so card click doesn't trigger
+          e.stopPropagation();
+          // Add visual feedback
+          this.style.transform = 'scale(0.98)';
+          setTimeout(() => {
+            this.style.transform = '';
+          }, 150);
+        });
+      });
+
+      // Make entire topic header clickable for expand/collapse
+      const topicHeaders = document.querySelectorAll('.clickable-topic-header');
+      topicHeaders.forEach(header => {
+        const topicId = header.getAttribute('data-topic-id');
+        
+        // Click handler for the entire header
+        header.addEventListener('click', function(e) {
+          // Don't toggle if clicking on content items or their buttons/links
+          const clickedContent = e.target.closest('.topic-content');
+          const clickedContentItem = e.target.closest('.content-item');
+          const clickedLink = e.target.closest('a');
+          const clickedButton = e.target.closest('button');
+          
+          // If clicking inside content area or on interactive elements, don't toggle
+          if (clickedContent || clickedContentItem || clickedLink || clickedButton) {
+            e.stopPropagation();
+            return;
+          }
+          
+          // Toggle the topic
+          e.preventDefault();
+          e.stopPropagation();
+          toggleTopic(topicId);
+        });
+        
+        // Keyboard support
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTopic(topicId);
+          }
+        });
+      });
+    });
 
     // Auto-expand first topic
     document.addEventListener('DOMContentLoaded', function() {
@@ -517,6 +944,7 @@
         const topicId = firstTopic.getAttribute('data-topic-id');
         toggleTopic(topicId);
       }
+
     });
 
     // Add smooth animations
@@ -644,6 +1072,48 @@
         }, 300);
       }, 4000);
     }
+
+    // Make content item cards clickable
+    document.addEventListener('DOMContentLoaded', function() {
+      const contentItems = document.querySelectorAll('.clickable-content-item');
+      contentItems.forEach(item => {
+        const contentUrl = item.getAttribute('data-content-url');
+        if (contentUrl) {
+          item.addEventListener('click', function(e) {
+            // Don't navigate if clicking on:
+            // - Buttons (Start, View Details, etc.)
+            // - Links (prerequisite links)
+            // - Admin controls
+            // - Locked content indicators
+            const clickedButton = e.target.closest('button');
+            const clickedLink = e.target.closest('a');
+            const clickedAdminControls = e.target.closest('.zoom-admin-controls');
+            const clickedPrerequisites = e.target.closest('.prerequisites-info');
+            const clickedLocked = e.target.closest('.content-locked');
+            
+            // Allow buttons and links to work normally
+            if (clickedButton || clickedLink || clickedAdminControls || clickedPrerequisites || clickedLocked) {
+              e.stopPropagation(); // Stop propagation to prevent topic toggle
+              return;
+            }
+            
+            // Navigate to content
+            e.preventDefault();
+            e.stopPropagation(); // Stop propagation to prevent topic toggle
+            window.location.href = contentUrl;
+          });
+        }
+      });
+
+      // Prevent topic toggle when clicking inside content area
+      const topicContents = document.querySelectorAll('.topic-content');
+      topicContents.forEach(content => {
+        content.addEventListener('click', function(e) {
+          // Stop propagation to prevent topic header toggle
+          e.stopPropagation();
+        });
+      });
+    });
   </script>
 
   <style>
@@ -699,7 +1169,7 @@
 
     .progress-label {
       font-size: 12px;
-      color: #6b7280;
+      color: #ffffff;
       font-weight: 500;
     }
 

@@ -70,6 +70,7 @@ const {
   getCourseData,
   updateCourse,
   deleteCourse,
+  duplicateCourse,
   bulkUpdateCourseStatus,
   getCourseContent,
   createTopic,
@@ -78,6 +79,7 @@ const {
   getTopicDetails,
   reorderTopics,
   reorderContent,
+  duplicateTopic,
   deleteTopic,
   addTopicContent,
   updateTopicContent,
@@ -246,6 +248,7 @@ router.get('/courses/:courseCode/details', isAdmin, getCourseDetails);
 router.get('/courses/:courseCode/data', isAdmin, getCourseData);
 router.put('/courses/:courseCode', isAdmin, updateCourse);
 router.delete('/courses/:courseCode', isAdmin, deleteCourse);
+router.post('/courses/:courseCode/duplicate', isAdmin, duplicateCourse);
 router.post('/courses/bulk-status', isAdmin, bulkUpdateCourseStatus);
 
 // Course Content Management
@@ -268,6 +271,7 @@ router.put(
   updateTopicVisibility
 );
 router.put('/courses/:courseCode/topics/:topicId', isAdmin, updateTopic);
+router.post('/courses/:courseCode/topics/:topicId/duplicate', isAdmin, duplicateTopic);
 router.delete('/courses/:courseCode/topics/:topicId', isAdmin, deleteTopic);
 router.post(
   '/courses/:courseCode/topics/:topicId/content/create',
