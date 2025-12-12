@@ -89,6 +89,13 @@ const BookOrderSchema = new mongoose.Schema(
       type: String,
       maxlength: 1000,
     },
+    libraryNotificationSent: {
+      type: Boolean,
+      default: false,
+    },
+    libraryNotificationSentAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

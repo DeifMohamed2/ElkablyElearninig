@@ -1710,16 +1710,40 @@ const sendProfileOTP = async (req, res) => {
     req.session.profile_phone_verified = false;
     req.session.profile_phone_number = fullPhoneNumber;
 
-    // Send OTP via SMS
+    // Check if country code is NOT Egyptian (+20)
+    const isEgyptian = countryCode === '+20' || countryCode === '20';
     const message = `Your ELKABLY verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
 
     try {
-      const { sendSms } = require('../utils/sms');
-      await sendSms({
-        recipient: fullPhoneNumber,
-        message: message,
-      });
+      if (isEgyptian) {
+        // Send via SMS for Egyptian numbers
+        const { sendSms } = require('../utils/sms');
+        await sendSms({
+          recipient: fullPhoneNumber,
+          message: message,
+        });
+        console.log(`Profile OTP sent via SMS to ${fullPhoneNumber}`);
+      } else {
+        // Send via WhatsApp for non-Egyptian numbers
+        const wasender = require('../utils/wasender');
+        const SESSION_API_KEY = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
+        
+        if (!SESSION_API_KEY) {
+          throw new Error('WhatsApp session API key not configured');
+        }
 
+        // Format phone number for WhatsApp (remove + and ensure proper format)
+        const cleanPhone = fullPhoneNumber.replace(/^\+/, '').replace(/\D/g, '');
+        const whatsappJid = `${cleanPhone}@s.whatsapp.net`;
+        
+        const result = await wasender.sendTextMessage(SESSION_API_KEY, whatsappJid, message);
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to send WhatsApp message');
+        }
+        
+        console.log(`Profile OTP sent via WhatsApp to ${fullPhoneNumber}`);
+      }
 
       return res.json({
         success: true,
@@ -1727,17 +1751,17 @@ const sendProfileOTP = async (req, res) => {
         expiresIn: 300, // 5 minutes in seconds
         attemptsRemaining: maxAttempts - req.session[attemptsKey],
       });
-    } catch (smsError) {
-      console.error('SMS sending error:', smsError);
+    } catch (error) {
+      console.error(`${isEgyptian ? 'SMS' : 'WhatsApp'} sending error:`, error);
 
-      // Clear session on SMS failure
+      // Clear session on failure
       delete req.session.profile_otp;
       delete req.session.profile_otp_expiry;
 
       return res.status(500).json({
         success: false,
         message: 'Failed to send OTP. Please try again.',
-        error: smsError.message,
+        error: error.message,
       });
     }
   } catch (error) {

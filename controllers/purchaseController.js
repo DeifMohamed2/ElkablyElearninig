@@ -55,6 +55,33 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
       return { success: false, message: 'No book orders to notify' };
     }
 
+    // Convert to array if single object
+    const bookOrdersArray = Array.isArray(bookOrders) ? bookOrders : [bookOrders];
+    
+    // Check if any book order already has notification sent
+    const BookOrder = require('../models/BookOrder');
+    const bookOrderIds = bookOrdersArray.map(bo => {
+      // Handle both ObjectId and string IDs, and handle lean objects
+      if (typeof bo === 'string') return bo;
+      if (bo._id) {
+        return typeof bo._id === 'string' ? bo._id : bo._id.toString();
+      }
+      return bo.toString();
+    });
+    
+    const existingOrders = await BookOrder.find({ _id: { $in: bookOrderIds } });
+    
+    // Filter out orders that already have notification sent
+    const ordersToNotify = existingOrders.filter(order => !order.libraryNotificationSent);
+    
+    if (ordersToNotify.length === 0) {
+      console.log('📚 All book orders already have library notifications sent, skipping...');
+      return { success: true, message: 'All notifications already sent', skipped: true };
+    }
+    
+    // Use the first order's data for message formatting (but send notification for all)
+    const firstBookOrder = ordersToNotify[0];
+
     // Get session API key
     const SESSION_API_KEY = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
     if (!SESSION_API_KEY) {
@@ -64,13 +91,12 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
 
     // Determine library phone number based on country
     // Check the first book order's shipping address country
-    const firstBookOrder = Array.isArray(bookOrders) ? bookOrders[0] : bookOrders;
     const country = firstBookOrder.shippingAddress?.country || '';
     const isEgypt = country.toLowerCase().includes('egypt') || country.toLowerCase().includes('مصر') || country === 'EG' || country === 'Egypt';
     
     // Library phone numbers (local Egyptian format, will be converted to international format)
-    const egyptLibraryPhone = '01156012078'; // Egypt library
-    const internationalLibraryPhone = '01003202768'; // International library
+    const egyptLibraryPhone = '01023680795'; // Egypt library
+    const internationalLibraryPhone = '01211000260'; // International library
     const libraryPhone = isEgypt ? egyptLibraryPhone : internationalLibraryPhone;
 
     // Format phone number for WhatsApp (ensure it has country code format)
@@ -96,7 +122,7 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
     message += '═══════════════════\n\n';
     
     // Add order details for each book
-    for (const bookOrder of Array.isArray(bookOrders) ? bookOrders : [bookOrders]) {
+    for (const bookOrder of ordersToNotify) {
       message += `*رقم الطلب:* ${bookOrder.orderNumber || 'N/A'}\n`;
       message += `*معرف الطلب:* ${bookOrder._id}\n`;
       message += `*اسم الكتاب:* ${bookOrder.bookName || 'N/A'}\n`;
@@ -104,7 +130,7 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
       message += `*سعر الكتاب:* ${bookOrder.bookPrice || 0} جنيه\n\n`;
     }
 
-    // Add shipping address details
+    // Add shipping address details (use first order's address)
     if (firstBookOrder.shippingAddress) {
       const address = firstBookOrder.shippingAddress;
       message += '*عنوان الشحن:*\n';
@@ -139,6 +165,14 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
 
     if (result.success) {
       console.log(`✅ Library notification sent successfully to ${isEgypt ? 'Egypt' : 'International'} library`);
+      
+      // Mark all orders as notification sent
+      for (const order of ordersToNotify) {
+        order.libraryNotificationSent = true;
+        order.libraryNotificationSentAt = new Date();
+        await order.save();
+      }
+      
       return { success: true, message: 'Library notification sent successfully', libraryPhone: formattedLibraryPhone };
     } else {
       console.error('❌ Failed to send library notification:', result.message);
