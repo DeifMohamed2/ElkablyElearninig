@@ -1460,6 +1460,17 @@ const getCheckout = async (req, res) => {
       }
     }
 
+    // Check if there's an applied promo code in session
+    let appliedPromo = null;
+    if (req.session.appliedPromoCode) {
+      appliedPromo = {
+        code: req.session.appliedPromoCode.code,
+        discountAmount: req.session.appliedPromoCode.discountAmount,
+        finalAmount: req.session.appliedPromoCode.finalAmount,
+        originalAmount: req.session.appliedPromoCode.originalAmount,
+      };
+    }
+
     res.render('checkout', {
       title: 'Checkout | ELKABLY',
       theme: req.cookies.theme || 'light',
@@ -1468,6 +1479,7 @@ const getCheckout = async (req, res) => {
       total: validatedCart.total,
       user: req.session.user,
       availableBooks: availableBooks,
+      appliedPromoCode: appliedPromo, // Pass promo code to view
       // Payment method availability
       paymentMethods: {
         card: !!process.env.PAYMOB_INTEGRATION_ID_CARD,
@@ -1951,6 +1963,15 @@ const processPayment = async (req, res) => {
       purchase.paymentStatus = 'failed';
       await purchase.save();
 
+      // Cancel any book orders associated with this failed purchase
+      if (purchase.bookOrders && purchase.bookOrders.length > 0) {
+        await BookOrder.updateMany(
+          { _id: { $in: purchase.bookOrders } },
+          { status: 'cancelled' }
+        );
+        console.log(`📚 Cancelled ${purchase.bookOrders.length} book order(s) due to payment session creation failure`);
+      }
+
       return res.status(500).json({
         success: false,
         message: paymentSession.error || 'Failed to create payment session',
@@ -1972,7 +1993,7 @@ const processPayment = async (req, res) => {
         checkoutUrl: paymentSession.checkoutUrl || paymentSession.iframeUrl, // Unified checkout URL
         isUnifiedCheckout: paymentSession.isUnifiedCheckout || false,
         orderNumber: purchase.orderNumber,
-        total: finalTotal, // Use the final total after promo code discount
+        total: totalWithBooks, // Use the final total including books and promo discount
         currency: 'EGP',
       },
     });
@@ -2605,6 +2626,15 @@ const handlePaymentFailure = async (req, res) => {
 
         await purchase.save();
 
+        // Cancel any book orders associated with this failed purchase
+        if (purchase.bookOrders && purchase.bookOrders.length > 0) {
+          await BookOrder.updateMany(
+            { _id: { $in: purchase.bookOrders } },
+            { status: 'cancelled' }
+          );
+          console.log(`📚 Cancelled ${purchase.bookOrders.length} book order(s) for failed payment`);
+        }
+
         console.log('💾 Payment failed and saved for order:', {
           orderNumber: purchase.orderNumber,
           paymobTransactionId: purchase.paymobTransactionId,
@@ -2730,6 +2760,15 @@ const handlePaymobWebhook = async (req, res) => {
       purchase.failureReason = failureReason;
       purchase.paymentGatewayResponse = webhookData.rawPayload;
       await purchase.save();
+
+      // Cancel any book orders associated with this failed purchase
+      if (purchase.bookOrders && purchase.bookOrders.length > 0) {
+        await BookOrder.updateMany(
+          { _id: { $in: purchase.bookOrders } },
+          { status: 'cancelled' }
+        );
+        console.log(`📚 Webhook: Cancelled ${purchase.bookOrders.length} book order(s) for failed payment`);
+      }
 
       console.log('💾 Failed purchase saved via webhook:', {
         orderNumber: purchase.orderNumber,
@@ -3023,6 +3062,15 @@ const handlePaymobWebhookRedirect = async (req, res) => {
 
       await purchase.save();
 
+      // Cancel any book orders associated with this failed purchase
+      if (purchase.bookOrders && purchase.bookOrders.length > 0) {
+        await BookOrder.updateMany(
+          { _id: { $in: purchase.bookOrders } },
+          { status: 'cancelled' }
+        );
+        console.log(`📚 Webhook redirect: Cancelled ${purchase.bookOrders.length} book order(s) for failed payment`);
+      }
+
       console.log('💾 Failed purchase saved:', {
         orderNumber: purchase.orderNumber,
         paymobTransactionId: purchase.paymobTransactionId,
@@ -3213,6 +3261,15 @@ const handlePaymobWebhookRedirect = async (req, res) => {
         status: 'unknown',
       };
       await purchase.save();
+
+      // Cancel any book orders associated with this failed purchase
+      if (purchase.bookOrders && purchase.bookOrders.length > 0) {
+        await BookOrder.updateMany(
+          { _id: { $in: purchase.bookOrders } },
+          { status: 'cancelled' }
+        );
+        console.log(`📚 Webhook redirect: Cancelled ${purchase.bookOrders.length} book order(s) for unknown payment status`);
+      }
 
       console.log('💾 Unknown status purchase saved as failed:', {
         orderNumber: purchase.orderNumber,

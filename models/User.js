@@ -252,6 +252,24 @@ const UserSchema = new mongoose.Schema(
             expectedEnd: {
               type: Date,
             },
+            // Video watch count tracking
+            watchCount: {
+              type: Number,
+              default: 0,
+              min: 0,
+            },
+            watchHistory: [
+              {
+                watchedAt: {
+                  type: Date,
+                  default: Date.now,
+                },
+                completedFully: {
+                  type: Boolean,
+                  default: false,
+                },
+              },
+            ],
             // Quiz/Homework specific fields
             quizAttempts: [
               {
@@ -1418,16 +1436,44 @@ UserSchema.methods.updateContentProgress = async function (
 
   if (!contentProgress) {
     // Create new content progress entry
-    contentProgress = {
+    const newProgressEntry = {
       topicId,
       contentId,
       contentType,
       ...progressData,
+      watchCount: 0,
+      watchHistory: [],
     };
-    enrollment.contentProgress.push(contentProgress);
+    enrollment.contentProgress.push(newProgressEntry);
+    // Get reference to the actual Mongoose subdocument in the array (not the plain object)
+    contentProgress = enrollment.contentProgress[enrollment.contentProgress.length - 1];
   } else {
     // Update existing content progress
     Object.assign(contentProgress, progressData);
+  }
+
+  // VIDEO WATCH COUNT TRACKING
+  // If this is a video content and it's being completed, increment watch count EVERY time
+  // This allows tracking multiple completions of the same video
+  if (contentType === 'video' && isNowCompleted) {
+    // Initialize watch count if it doesn't exist or is undefined/null
+    if (contentProgress.watchCount === undefined || contentProgress.watchCount === null) {
+      contentProgress.watchCount = 0;
+    }
+    // Increment watch count every time video is completed
+    contentProgress.watchCount += 1;
+
+    // Add to watch history
+    if (!contentProgress.watchHistory) {
+      contentProgress.watchHistory = [];
+    }
+    contentProgress.watchHistory.push({
+      watchedAt: new Date(),
+      completedFully: true,
+    });
+    
+    // Mark the nested document as modified to ensure Mongoose saves the changes
+    this.markModified('enrolledCourses');
   }
 
   // Update last accessed
@@ -1955,6 +2001,60 @@ UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
   }
 
   return averageProgress;
+};
+
+// Instance method to check if user can watch a video (check watch limit)
+UserSchema.methods.canWatchVideo = function (courseId, contentId, maxWatchCount) {
+  const enrollment = this.enrolledCourses.find(
+    (enrollment) =>
+      enrollment.course && enrollment.course.toString() === courseId.toString()
+  );
+
+  if (!enrollment) {
+    return { canWatch: false, reason: 'Not enrolled in course' };
+  }
+
+  // If maxWatchCount is null/undefined/-1, unlimited watches allowed
+  if (maxWatchCount === null || maxWatchCount === undefined || maxWatchCount === -1) {
+    return { canWatch: true, reason: 'Unlimited watches', watchesLeft: 'Unlimited' };
+  }
+
+  const contentProgress = enrollment.contentProgress.find(
+    (cp) => cp.contentId.toString() === contentId.toString()
+  );
+
+  // If no progress yet, can watch
+  if (!contentProgress) {
+    return { 
+      canWatch: true, 
+      reason: 'First watch', 
+      watchCount: 0,
+      maxWatchCount: maxWatchCount,
+      watchesLeft: maxWatchCount 
+    };
+  }
+
+  const currentWatchCount = contentProgress.watchCount || 0;
+
+  // Check if limit reached
+  if (currentWatchCount >= maxWatchCount) {
+    return {
+      canWatch: false,
+      reason: `Maximum watch limit reached (${maxWatchCount} times)`,
+      watchCount: currentWatchCount,
+      maxWatchCount: maxWatchCount,
+      watchesLeft: 0,
+      limitReached: true,
+    };
+  }
+
+  return {
+    canWatch: true,
+    reason: 'Can watch',
+    watchCount: currentWatchCount,
+    maxWatchCount: maxWatchCount,
+    watchesLeft: maxWatchCount - currentWatchCount,
+  };
 };
 
 // Instance method to check if user can attempt quiz/homework

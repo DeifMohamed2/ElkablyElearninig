@@ -2467,6 +2467,8 @@ const addTopicContent = async (req, res) => {
       prerequisites,
       difficulty,
       tags,
+      // Video specific fields
+      maxWatchCount,
       // Quiz specific fields
       quizDuration,
       quizPassingScore,
@@ -2525,6 +2527,25 @@ const addTopicContent = async (req, res) => {
       difficulty: difficulty || 'beginner',
       tags: contentTags,
     };
+
+    // Handle Video-specific fields
+    if (type === 'video') {
+      // Set maxWatchCount - null means unlimited, -1 also means unlimited, otherwise parse the number
+      if (maxWatchCount !== undefined && maxWatchCount !== null && maxWatchCount !== '') {
+        const parsedMaxWatchCount = parseInt(maxWatchCount);
+        if (!isNaN(parsedMaxWatchCount)) {
+          if (parsedMaxWatchCount === -1 || parsedMaxWatchCount <= 0) {
+            contentItem.maxWatchCount = null; // Unlimited (for -1 or <= 0)
+          } else {
+            contentItem.maxWatchCount = parsedMaxWatchCount;
+          }
+        } else {
+          contentItem.maxWatchCount = null; // Unlimited
+        }
+      } else {
+        contentItem.maxWatchCount = null; // Unlimited
+      }
+    }
 
     // Handle Quiz content
     if (type === 'quiz') {
@@ -2722,6 +2743,8 @@ const updateTopicContent = async (req, res) => {
       difficulty,
       tags,
       prerequisites,
+      // Video specific fields
+      maxWatchCount,
       // Quiz fields (direct, not nested)
       questionBank,
       questionBanks,
@@ -2811,6 +2834,30 @@ const updateTopicContent = async (req, res) => {
         ? prerequisites
         : [prerequisites]
       : [];
+
+    // Handle Video-specific fields
+    if (type === 'video') {
+      // Update maxWatchCount - null means unlimited, -1 also means unlimited, otherwise parse the number
+      // Only update if explicitly provided (not undefined)
+      if (maxWatchCount !== undefined) {
+        if (maxWatchCount !== null && maxWatchCount !== '') {
+          const parsedMaxWatchCount = parseInt(maxWatchCount);
+          if (!isNaN(parsedMaxWatchCount)) {
+            if (parsedMaxWatchCount === -1 || parsedMaxWatchCount <= 0) {
+              contentItem.maxWatchCount = null; // Unlimited (for -1 or <= 0)
+            } else {
+            contentItem.maxWatchCount = parsedMaxWatchCount;
+            }
+          } else {
+            contentItem.maxWatchCount = null; // Unlimited
+          }
+        } else {
+          // If explicitly empty, set to unlimited
+          contentItem.maxWatchCount = null;
+        }
+      }
+      // If maxWatchCount is undefined, keep the existing value (don't change it)
+    }
 
     // Handle Quiz content updates with multiple banks support
     if (type === 'quiz') {

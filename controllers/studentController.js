@@ -451,6 +451,9 @@ const courseContent = async (req, res) => {
             ? contentProgressDetails.progressPercentage
             : 0;
 
+          // Get watch count for video content
+          const watchCount = contentProgressDetails?.watchCount || 0;
+
           // Get prerequisite names for better user experience
           let prerequisiteNames = [];
           if (
@@ -472,6 +475,7 @@ const courseContent = async (req, res) => {
             isUnlocked: unlockStatus.unlocked,
             isCompleted: isCompleted,
             actualProgress: actualProgress,
+            watchCount: watchCount,
             unlockReason: unlockStatus.reason,
             canAccess: unlockStatus.unlocked || isCompleted,
             prerequisiteNames: prerequisiteNames,
@@ -608,12 +612,6 @@ const contentDetails = async (req, res) => {
         // The progress will be updated when they click "Mark as Watched" button
       }
 
-      console.log(`📊 Zoom completion check for student ${studentIdStr}:`, {
-        attendedLive,
-        watchedRecording,
-        isCompleted,
-        meetingStatus: zoomMeeting.status,
-      });
     }
 
     const progressPercentage = contentProgress
@@ -680,7 +678,6 @@ const contentDetails = async (req, res) => {
       }
     }
 
-    console.log('Content Item Debug:', contentItem);
 
     // Compute server timing for quiz/homework to reflect resume and remaining time
     let serverTiming = null;
@@ -746,6 +743,25 @@ const contentDetails = async (req, res) => {
       attemptPolicy = { maxAttempts, remainingAttempts, outOfAttempts };
     }
 
+    // Video watch limit info
+    let watchLimitInfo = null;
+    if (contentItem.type === 'video') {
+      const watchCount = contentProgress?.watchCount || 0;
+      const maxWatchCount = contentItem.maxWatchCount;
+      const hasLimit = maxWatchCount !== null && maxWatchCount !== undefined && maxWatchCount !== -1;
+      const watchesLeft = hasLimit ? Math.max(0, maxWatchCount - watchCount) : null;
+      const limitReached = hasLimit && watchCount >= maxWatchCount;
+
+      watchLimitInfo = {
+        watchCount: watchCount,
+        maxWatchCount: maxWatchCount,
+        hasLimit: hasLimit,
+        watchesLeft: watchesLeft,
+        limitReached: limitReached,
+        canWatch: !limitReached,
+      };
+    }
+
     res.render('student/content-details', {
       title: `${contentItem.title} - Content | ELKABLY`,
       student,
@@ -766,6 +782,7 @@ const contentDetails = async (req, res) => {
       },
       timing: serverTiming,
       attemptPolicy: attemptPolicy,
+      watchLimitInfo: watchLimitInfo,
       requiresAcknowledgment:
         !isCompleted &&
         ['pdf', 'reading', 'link', 'assignment'].includes(contentItem.type),
@@ -793,14 +810,6 @@ const updateContentProgress = async (req, res) => {
     const { courseId, topicId, contentId, contentType, progressData } =
       req.body;
 
-    console.log('Updating content progress:', {
-      studentId,
-      courseId,
-      topicId,
-      contentId,
-      contentType,
-      progressData,
-    });
 
     const student = await User.findById(studentId);
 
@@ -835,25 +844,49 @@ const updateContentProgress = async (req, res) => {
     let contentTitle = 'Content';
     let isZoomContent = false;
     let shouldSendNotification = false;
+    let contentItem = null;
     
-    if (isNewCompletion) {
-      try {
-        const course = await Course.findById(courseId);
-        const topic = await Topic.findById(topicId);
+    // Fetch content item for validation
+    try {
+      const course = await Course.findById(courseId);
+      const topic = await Topic.findById(topicId);
 
-        if (topic && topic.content) {
-          const contentItem = topic.content.find(
-            (c) => c._id.toString() === contentId
-          );
-          if (contentItem) {
-            contentTitle = contentItem.title;
-            isZoomContent = contentItem.type === 'zoom';
-            // Only send notification if NOT zoom content (zoom meeting end sends its own SMS)
-            shouldSendNotification = !isZoomContent;
-          }
+      if (topic && topic.content) {
+        contentItem = topic.content.find(
+          (c) => c._id.toString() === contentId
+        );
+        if (contentItem) {
+          contentTitle = contentItem.title;
+          isZoomContent = contentItem.type === 'zoom';
+          // Only send notification if NOT zoom content (zoom meeting end sends its own SMS)
+          shouldSendNotification = !isZoomContent && isNewCompletion;
         }
-      } catch (error) {
-        console.error('Error checking content type:', error);
+      }
+    } catch (error) {
+      console.error('Error checking content type:', error);
+    }
+
+    // VIDEO WATCH LIMIT VALIDATION
+    // If this is a video content and trying to mark as completed, check watch limit
+    // Check on EVERY completion attempt (not just new completions) to enforce limits
+    if (contentItem && contentItem.type === 'video' && progressData && progressData.completionStatus === 'completed') {
+      const maxWatchCount = contentItem.maxWatchCount;
+      
+      // If maxWatchCount is set (not null/undefined/-1), enforce the limit
+      if (maxWatchCount !== null && maxWatchCount !== undefined && maxWatchCount !== -1 && maxWatchCount > 0) {
+        const currentWatchCount = existingProgress?.watchCount || 0;
+        
+        // Check if student has reached the watch limit BEFORE allowing this completion
+        // Since watch count will increment after this check, we check if current count >= max
+        if (currentWatchCount >= maxWatchCount) {
+          return res.status(403).json({
+            success: false,
+            message: `You have reached the maximum watch limit (${maxWatchCount} times) for this video.`,
+            watchCount: currentWatchCount,
+            maxWatchCount: maxWatchCount,
+            limitReached: true,
+          });
+        }
       }
     }
 
@@ -872,11 +905,6 @@ const updateContentProgress = async (req, res) => {
       (e) => e.course.toString() === courseId
     );
 
-    console.log(
-      'After update - enrollment contentProgress length:',
-      updatedEnrollment.contentProgress.length
-    );
-    console.log('Updated contentProgress:', updatedEnrollment.contentProgress);
 
     // Get updated progress
     const updatedProgress = updatedStudent.getContentProgressDetails(
@@ -888,41 +916,30 @@ const updateContentProgress = async (req, res) => {
     // Only send if this is a NEW completion (not a re-completion)
     // Skip if this is a zoom content completion (zoom meeting end will send its own detailed SMS)
     try {
-      // Get course and topic data for notification
+      // Check if content is completed AND it's a NEW completion
+      // Skip zoom content - zoom meeting end will send detailed SMS
+      if (progressData && progressData.completionStatus === 'completed' && !isZoomContent && isNewCompletion) {
+        // Get course and topic data for notification (only if we need to send)
       const course = await Course.findById(courseId);
       const topic = await Topic.findById(topicId);
 
       // Find the actual content item to get its title
       let contentTitle = 'Content';
-      let isZoomContent = false;
       if (topic && topic.content) {
         const contentItem = topic.content.find(
           (c) => c._id.toString() === contentId
         );
         if (contentItem) {
           contentTitle = contentItem.title;
-          isZoomContent = contentItem.type === 'zoom';
         }
       }
 
-      // Check if content is completed AND it's a NEW completion
-      // Skip zoom content - zoom meeting end will send detailed SMS
-      if (progressData && progressData.completionStatus === 'completed' && !isZoomContent) {
-        // Check if this was already completed BEFORE updating (use enrollment we already have)
-        const existingProgress = enrollment.contentProgress.find(
-          (cp) => cp.contentId.toString() === contentId.toString()
-        );
-        // Only send if this is a NEW completion (wasn't completed before)
-        const wasAlreadyCompleted = existingProgress && 
-          existingProgress.completionStatus === 'completed';
-        
-        if (!wasAlreadyCompleted) {
+        // Send notification for NEW completion
           await whatsappSMSNotificationService.sendContentCompletionNotification(
             studentId,
             { title: contentTitle, type: contentType },
             course
           );
-        }
       }
     } catch (whatsappError) {
       console.error('WhatsApp notification error:', whatsappError);
@@ -1514,14 +1531,6 @@ const orderDetails = async (req, res) => {
     };
 
     // Debug logging
-    console.log('Order found:', !!order);
-    console.log('Order type:', order.type);
-    console.log('Item populated:', !!item);
-    console.log('Item title:', item ? item.title : 'No item');
-    console.log(
-      'Formatted order data:',
-      JSON.stringify(formattedOrder, null, 2)
-    );
 
     res.render('student/order-details', {
       title: `Order #${orderNumber} | ELKABLY`,
@@ -1687,7 +1696,6 @@ const sendProfileOTP = async (req, res) => {
 
     // Generate OTP
     const otp = generateOTP();
-    console.log('Profile OTP:', otp);
     const fullPhoneNumber = countryCode + cleanPhoneNumber;
 
     // Store OTP in session with expiration (5 minutes)
@@ -1706,7 +1714,6 @@ const sendProfileOTP = async (req, res) => {
         message: message,
       });
 
-      console.log(`Profile OTP sent to ${fullPhoneNumber}`);
 
       return res.json({
         success: true,
@@ -2527,7 +2534,6 @@ const takeContentQuiz = async (req, res) => {
     const populatedContentItem = populatedContent.content.find(
       (c) => c._id.toString() === contentId
     );
-    console.log('Populated Content Item:', populatedContentItem);
     // Get quiz settings
     const settings = populatedContentItem.type === 'quiz' 
       ? populatedContentItem.quizSettings 
@@ -2577,15 +2583,6 @@ const submitContentQuiz = async (req, res) => {
       completedAt,
       attemptNumber,
     } = req.body;
-
-    console.log('Submitting content quiz:', {
-      studentId,
-      contentId,
-      courseId,
-      topicId,
-      contentType,
-      answers,
-    });
 
     const student = await User.findById(studentId);
 
@@ -3509,7 +3506,6 @@ const joinZoomMeeting = async (req, res) => {
     const { meetingId } = req.params;
     const studentId = req.session.user.id;
 
-    console.log('Student requesting to join Zoom meeting:', meetingId);
 
     // Find the Zoom meeting
     const zoomMeeting = await ZoomMeeting.findById(meetingId)
@@ -3523,21 +3519,13 @@ const joinZoomMeeting = async (req, res) => {
       });
     }
 
-    console.log('🔍 Found meeting in database:', {
-      dbMeetingId: zoomMeeting.meetingId,
-      meetingName: zoomMeeting.meetingName,
-      status: zoomMeeting.status,
-      joinUrl: zoomMeeting.joinUrl ? 'Present' : 'Missing',
-    });
 
     // Validate meeting exists in Zoom (optional but recommended)
     try {
       const zoomMeetingDetails = await zoomService.getMeetingDetails(
         zoomMeeting.meetingId
       );
-      console.log('✅ Meeting exists in Zoom:', zoomMeetingDetails.id);
     } catch (zoomError) {
-      console.warn('⚠️ Could not verify meeting in Zoom:', zoomError.message);
       // Continue anyway - might be a permissions issue
     }
 
@@ -3578,14 +3566,6 @@ const joinZoomMeeting = async (req, res) => {
         enrollment.course._id.toString() === zoomMeeting.course._id.toString()
     );
 
-    console.log('🔍 Enrollment check:', {
-      studentId: studentId,
-      meetingCourseId: zoomMeeting.course._id.toString(),
-      studentCourses: student.enrolledCourses.map((e) =>
-        e.course ? e.course._id.toString() : 'null'
-      ),
-      isEnrolled: isEnrolled,
-    });
 
     // For development/testing, you can temporarily disable this check
     const skipEnrollmentCheck =
@@ -3613,8 +3593,51 @@ const joinZoomMeeting = async (req, res) => {
       'join_attempt'
     );
     
-    // Note: Content completion is now handled in the frontend when user clicks "Join Meeting"
-    // This matches the behavior of other content types (PDF, video, etc.)
+    // Auto-mark content as completed when student joins live session
+    // This ensures progress is updated immediately when they join
+    try {
+      const courseId = zoomMeeting.course._id || zoomMeeting.course;
+      const topicId = zoomMeeting.topic._id || zoomMeeting.topic;
+      const Topic = require('../models/Topic');
+      const topic = await Topic.findById(topicId);
+      
+      if (topic && topic.content) {
+        const zoomContentItem = topic.content.find(
+          (item) => item.type === 'zoom' && 
+          item.zoomMeeting && 
+          item.zoomMeeting.toString() === zoomMeeting._id.toString()
+        );
+
+        if (zoomContentItem) {
+          // Refresh student to get latest data before updating
+          const freshStudent = await User.findById(studentId);
+          
+          // Check if already completed to avoid duplicate updates
+          const existingProgress = freshStudent.enrolledCourses
+            .find(e => e.course.toString() === courseId.toString())
+            ?.contentProgress
+            ?.find(cp => cp.contentId.toString() === zoomContentItem._id.toString());
+          
+          if (!existingProgress || existingProgress.completionStatus !== 'completed') {
+            // Update content progress to mark as completed
+            await freshStudent.updateContentProgress(
+              courseId,
+              topicId,
+              zoomContentItem._id,
+              'zoom',
+              {
+                completionStatus: 'completed',
+                progressPercentage: 100,
+                lastAccessed: new Date(),
+                completedAt: new Date()
+              }
+            );
+          }
+        }
+      }
+    } catch (progressError) {
+      // Don't fail the request if progress update fails
+    }
 
     // Generate tracking join URL for external Zoom client
     // Format name as Firstname_SecondName(studentCode)
@@ -3633,13 +3656,6 @@ const joinZoomMeeting = async (req, res) => {
       zoomMeeting.password
     );
 
-    console.log('✅ Student authorized to join meeting');
-    console.log('📊 Meeting details:', {
-      meetingId: zoomMeeting.meetingId,
-      studentName: studentInfo.name,
-      studentEmail: studentInfo.email,
-      joinMethod: 'external_client',
-    });
 
     // Return join URL for external redirect
     res.json({
@@ -3696,7 +3712,6 @@ const leaveZoomMeeting = async (req, res) => {
       'leave'
     );
 
-    console.log('✅ Student leave recorded');
 
     res.json({
       success: true,

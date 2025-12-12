@@ -265,6 +265,107 @@
       width: 100%;
     }
 
+    /* Video Watermark Styles */
+    .video-watermark-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .video-watermark {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      padding: 10px 20px;
+      -webkit-touch-callout: none;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.85));
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      border-radius: 8px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 
+                  0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      opacity: 0.85;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .video-watermark:hover {
+      opacity: 1;
+    }
+
+    .video-watermark span {
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8),
+                   0 1px 3px rgba(0, 0, 0, 0.9);
+      white-space: nowrap;
+    }
+
+    .video-watermark::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 50%, 
+        rgba(0, 0, 0, 0.1) 100%);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    /* Responsive watermark positioning */
+    @media (max-width: 768px) {
+      .video-watermark {
+        font-size: 12px;
+        padding: 8px 16px;
+      }
+
+      /* Mobile fullscreen optimizations */
+      .video-player-wrapper-with-watermark {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      /* Ensure video container is responsive on mobile */
+      .bunny-video-container-inner {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      /* Mobile fullscreen watermark */
+      :fullscreen .video-watermark,
+      :-webkit-full-screen .video-watermark,
+      :-moz-full-screen .video-watermark {
+        font-size: 10px !important;
+        padding: 6px 12px !important;
+      }
+    }
+
+    /* Landscape mode on mobile */
+    @media (max-width: 768px) and (orientation: landscape) {
+      .video-player-wrapper-with-watermark {
+        height: 100vh !important;
+      }
+
+      /* Watermark in landscape fullscreen */
+      :fullscreen .video-watermark,
+      :-webkit-full-screen .video-watermark {
+        font-size: 11px !important;
+        padding: 6px 14px !important;
+      }
+    }
+
     /* Quiz/Homework Details Styles */
     .quiz-details-grid,
     .homework-details-grid {
@@ -1202,10 +1303,99 @@
         <div class="content-body-section">
           <% if (contentItem.type === 'video') { %>
           <div class="video-content">
-            <div class="video-container">
-              <% if (contentItem.content) { %>
-              <%- contentItem.content %>
+            <!-- Video Watch Limit Info -->
+            <% if (watchLimitInfo && watchLimitInfo.hasLimit) { %>
+            <div class="alert <%= watchLimitInfo.limitReached ? 'alert-danger' : 'alert-info' %>" style="margin-bottom: 1rem; border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fas fa-eye" style="font-size: 1.5rem;"></i>
+                <div style="flex: 1;">
+                  <strong style="display: block; margin-bottom: 4px;">
+                    <% if (watchLimitInfo.limitReached) { %>
+                      Watch Limit Reached
+                    <% } else { %>
+                      Watch Limit Information
+                    <% } %>
+                  </strong>
+                  <span>
+                    You have watched this video <strong><%= watchLimitInfo.watchCount %></strong> out of <strong><%= watchLimitInfo.maxWatchCount %></strong> allowed times.
+                    <% if (!watchLimitInfo.limitReached) { %>
+                      <br>Remaining watches: <strong><%= watchLimitInfo.watchesLeft %></strong>
+                    <% } else { %>
+                      <br>You cannot watch this video again.
+                    <% } %>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <% } %>
 
+            <div class="video-container">
+              <% if (watchLimitInfo && watchLimitInfo.limitReached) { %>
+              <!-- Show blocked message if limit reached -->
+              <div class="placeholder-content" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white;">
+                <i class="fas fa-ban" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <h3 style="margin-bottom: 0.5rem;">Video Access Blocked</h3>
+                <p style="margin-bottom: 0;">You have reached the maximum watch limit for this video.</p>
+                <p style="font-size: 0.9rem; opacity: 0.9;">Watched <%= watchLimitInfo.watchCount %> / <%= watchLimitInfo.maxWatchCount %> times</p>
+              </div>
+              <% } else if (contentItem.content) { %>
+                <% 
+                  // Check if content contains YouTube iframe
+                  const youtubeRegex = /(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/;
+                  const youtubeMatch = contentItem.content.match(youtubeRegex);
+                  const isYouTube = youtubeMatch !== null;
+                  const youtubeVideoId = isYouTube ? youtubeMatch[1] : null;
+                  
+                  // Get student info for watermark
+                  const studentName = student.firstName && student.lastName 
+                    ? `${student.firstName} ${student.lastName}` 
+                    : student.name || 'Student';
+                  const studentCode = student.studentCode || student.studentNumber || '';
+                %>
+                <% if (isYouTube && youtubeVideoId) { %>
+                  <!-- YouTube Player Container with Dynamic Watermark -->
+                  <div class="video-player-wrapper-with-watermark" id="youtube-video-wrapper">
+                    <div id="youtube-player-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; background: #000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+                      <div id="youtube-player" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+                      <!-- Dynamic Moving Watermark -->
+                      <div class="video-watermark video-watermark-moving" id="youtubeWatermark">
+                        <span class="watermark-text"><%= studentName %></span>
+                        <% if (studentCode) { %>
+                        <span class="watermark-separator">|</span>
+                        <span class="watermark-code"><%= studentCode %></span>
+                        <% } %>
+                      </div>
+                    </div>
+                  </div>
+                  <script>
+                    window.youtubeVideoId = '<%= youtubeVideoId %>';
+                    window.studentWatermark = {
+                      name: '<%= studentName %>',
+                      code: '<%= studentCode %>'
+                    };
+                  </script>
+                <% } else { %>
+                  <!-- Regular video content (Bunny Stream, etc.) with Dynamic Watermark -->
+                  <div class="video-player-wrapper-with-watermark" id="bunny-video-wrapper">
+                    <div class="bunny-video-container-inner" id="bunny-video-container-inner">
+                      <%- contentItem.content %>
+                    </div>
+                    <!-- Dynamic Moving Watermark - positioned on wrapper -->
+                    <div class="video-watermark video-watermark-moving" id="bunnyWatermark">
+                      <span class="watermark-text"><%= studentName %></span>
+                      <% if (studentCode) { %>
+                      <span class="watermark-separator">|</span>
+                      <span class="watermark-code"><%= studentCode %></span>
+                      <% } %>
+                    </div>
+                  </div>
+                  <script>
+                    window.studentWatermark = {
+                      name: '<%= studentName %>',
+                      code: '<%= studentCode %>'
+                    };
+                  </script>
+                <% } %>
               <% } else { %>
               <div class="placeholder-content">
                 <i class="fas fa-video"></i>
@@ -1658,34 +1848,112 @@
               <div class="ended-icon">
                 <i class="fas fa-check-circle"></i>
               </div>
-              <h5>Meeting Has Ended</h5>
-              <p>This live session took place on:</p>
+              <h5>Session Recording</h5>
+              <p class="text-muted">This live session took place on:</p>
               <div class="ended-time">
                 <%= zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleString() : 'N/A' %>
               </div>
 
               <% if (zoomMeeting.recordingUrl) { %>
               <div class="recording-available mt-4">
-                <h6><i class="fas fa-play-circle me-2"></i>Recording Available</h6>
-                <p class="text-muted mb-3">Watch the recorded session below. Once you finish watching, you'll be able to proceed to the next content.</p>
-
-                <!-- Video Player Container -->
-                <div class="video-player-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #000;">
-                  <iframe id="recordingPlayer" src="<%= zoomMeeting.recordingUrl %>" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+                <div class="recording-header">
+                  <div class="recording-badge">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Recording Available</span>
+                  </div>
+                  <% if (!contentProgress.isCompleted) { %>
+                  <div class="recording-progress-hint">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Watch to the end to complete</span>
+                  </div>
+                  <% } else { %>
+                  <div class="recording-completed-badge">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Completed</span>
+                  </div>
+                  <% } %>
                 </div>
 
-                <!-- Mark as Watched Button -->
+                <!-- Recording Progress Bar -->
                 <% if (!contentProgress.isCompleted) { %>
-                <div class="text-center mt-3">
-                  <button class="btn btn-success btn-lg" onclick="markRecordingAsWatched(event)">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Mark Recording as Watched
-                  </button>
-                  <p class="text-muted mt-2" style="font-size: 13px;">
-                    <i class="fas fa-info-circle"></i> Click this button after finishing the recording to proceed to next content
-                  </p>
+                <div class="recording-progress-container">
+                  <div class="recording-progress-bar">
+                    <div class="recording-progress-fill" id="recordingProgressFill" style="width: 0%"></div>
+                  </div>
+                  <span class="recording-progress-text" id="recordingProgressText">0%</span>
                 </div>
                 <% } %>
+
+                <!-- Video Player Container - Supports both Bunny and YouTube with Watermark -->
+                <div class="recording-player-wrapper">
+                  <% 
+                    // Check if recording URL is a YouTube video
+                    const recordingYoutubeRegex = /(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/;
+                    const recordingYoutubeMatch = zoomMeeting.recordingUrl.match(recordingYoutubeRegex);
+                    const isRecordingYouTube = recordingYoutubeMatch !== null;
+                    const recordingYoutubeVideoId = isRecordingYouTube ? recordingYoutubeMatch[1] : null;
+                    
+                    // Get student info for watermark
+                    const recordingStudentName = student.firstName && student.lastName 
+                      ? `${student.firstName} ${student.lastName}` 
+                      : student.name || 'Student';
+                    const recordingStudentCode = student.studentCode || student.studentNumber || '';
+                  %>
+                  <div class="video-player-wrapper-with-watermark" id="recording-video-wrapper">
+                    <% if (isRecordingYouTube && recordingYoutubeVideoId) { %>
+                      <!-- YouTube Player Container with Watermark -->
+                      <div class="video-player-container" style="position: relative; padding-top: 56.25%; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+                        <div id="recording-youtube-player" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+                        <!-- Dynamic Moving Watermark -->
+                        <div class="video-watermark video-watermark-moving" id="recordingYoutubeWatermark">
+                          <span class="watermark-text"><%= recordingStudentName %></span>
+                          <% if (recordingStudentCode) { %>
+                          <span class="watermark-separator">|</span>
+                          <span class="watermark-code"><%= recordingStudentCode %></span>
+                          <% } %>
+                        </div>
+                      </div>
+                      <script>
+                        window.recordingYoutubeVideoId = '<%= recordingYoutubeVideoId %>';
+                      </script>
+                    <% } else { %>
+                      <!-- Bunny/Regular Video Player Container with Watermark -->
+                      <div class="video-player-container" style="position: relative; padding-top: 56.25%; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+                        <iframe id="recordingPlayer" 
+                          src="<%= zoomMeeting.recordingUrl %>" 
+                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+                          loading="lazy"
+                          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" 
+                          allowfullscreen="true">
+                        </iframe>
+                        <!-- Dynamic Moving Watermark -->
+                        <div class="video-watermark video-watermark-moving" id="recordingBunnyWatermark">
+                          <span class="watermark-text"><%= recordingStudentName %></span>
+                          <% if (recordingStudentCode) { %>
+                          <span class="watermark-separator">|</span>
+                          <span class="watermark-code"><%= recordingStudentCode %></span>
+                          <% } %>
+                        </div>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+
+                <!-- Recording Info -->
+                <div class="recording-info mt-3">
+                  <div class="recording-meta">
+                    <span class="recording-meta-item">
+                      <i class="fas fa-calendar-alt"></i>
+                      Recorded: <%= zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleDateString() : 'N/A' %>
+                    </span>
+                    <% if (zoomMeeting.duration) { %>
+                    <span class="recording-meta-item">
+                      <i class="fas fa-clock"></i>
+                      Duration: ~<%= zoomMeeting.duration %> min
+                    </span>
+                    <% } %>
+                  </div>
+                </div>
               </div>
               <% } else { %>
               <!-- Waiting for recording message -->
@@ -1812,6 +2080,9 @@
   <!-- PlayerJS Library -->
   <script src="https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js"></script>
 
+  <!-- YouTube IFrame Player API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
   <!-- SweetAlert2 Library -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -1855,7 +2126,7 @@
           }
         })
         .catch(error => {
-          console.error('Error:', error);
+          // Error - silently handle
           showMessage('Error updating progress', 'error');
         });
     }
@@ -1865,14 +2136,12 @@
       // Find all completion-related buttons
       const buttons = document.querySelectorAll(
         'button[onclick*="acknowledgeAndComplete"], ' +
-        'button[onclick*="markRecordingAsWatched"], ' +
         'button[onclick*="joinZoomMeeting"], ' +
         '.btn-success, .btn-primary'
       );
       
       buttons.forEach(btn => {
         if (!btn.disabled && (btn.textContent.includes('Complete') || 
-            btn.textContent.includes('Watched') || 
             btn.textContent.includes('Join') ||
             btn.textContent.includes('Acknowledge'))) {
           btn.dataset.originalText = btn.innerHTML;
@@ -1891,7 +2160,6 @@
     function enableCompletionButtons() {
       const buttons = document.querySelectorAll(
         'button[onclick*="acknowledgeAndComplete"], ' +
-        'button[onclick*="markRecordingAsWatched"], ' +
         'button[onclick*="joinZoomMeeting"], ' +
         '.btn-success, .btn-primary'
       );
@@ -1937,7 +2205,48 @@
           if (data.success) {
             // Update UI elements smoothly without reload
             updateUIAfterCompletion();
-            showSmoothSuccessMessage('🎉 Great! You\'ve watched enough of the video. Content marked as completed!');
+            
+            // For video content, update watch count display dynamically
+            if ('<%= contentItem.type %>' === 'video' && data.contentProgress) {
+              // Use watch limit info from response if available, otherwise use initial values
+              let watchLimitInfo = data.watchLimitInfo;
+              if (!watchLimitInfo) {
+                const updatedWatchCount = data.contentProgress.watchCount || 0;
+                const maxWatchCount = '<%= watchLimitInfo && watchLimitInfo.maxWatchCount ? watchLimitInfo.maxWatchCount : "null" %>';
+                const hasLimit = maxWatchCount !== 'null' && maxWatchCount !== null && maxWatchCount !== '-1';
+                watchLimitInfo = {
+                  watchCount: updatedWatchCount,
+                  maxWatchCount: hasLimit ? parseInt(maxWatchCount) : null,
+                  hasLimit: hasLimit,
+                  watchesLeft: hasLimit ? Math.max(0, parseInt(maxWatchCount) - updatedWatchCount) : null,
+                  limitReached: hasLimit && updatedWatchCount >= parseInt(maxWatchCount),
+                };
+              }
+              
+              // Update watch count display
+              if (watchLimitInfo.hasLimit) {
+                // Update global variables first
+                currentWatchCount = watchLimitInfo.watchCount;
+                currentMaxWatchCount = watchLimitInfo.maxWatchCount;
+                
+                // Update UI display
+                updateWatchCountDisplay(watchLimitInfo.watchCount, watchLimitInfo.maxWatchCount, true);
+                
+                // Show watch count message
+                const remaining = watchLimitInfo.watchesLeft;
+                let message = `🎉 Video completed! You have watched this video <strong>${watchLimitInfo.watchCount}</strong> out of <strong>${watchLimitInfo.maxWatchCount}</strong> times.`;
+                if (remaining > 0) {
+                  message += ` <strong>Remaining: ${remaining} watch${remaining > 1 ? 'es' : ''}.</strong>`;
+                } else {
+                  message += ` <strong>No watches remaining.</strong>`;
+                }
+                showSmoothSuccessMessage(message);
+              } else {
+                showSmoothSuccessMessage('🎉 Great! You\'ve watched enough of the video. Content marked as completed!');
+              }
+            } else {
+              showSmoothSuccessMessage('🎉 Great! You\'ve watched enough of the video. Content marked as completed!');
+            }
             // Buttons stay disabled since content is completed
           } else {
             // Re-enable buttons on error
@@ -1946,7 +2255,7 @@
           }
         })
         .catch(error => {
-          console.error('Error:', error);
+          // Error - silently handle
           // Re-enable buttons on error
           enableCompletionButtons();
           showMessage('Error updating progress', 'error');
@@ -1961,6 +2270,45 @@
     // Show smooth success message with animation - Enhanced
     function showSmoothSuccessMessage(message) {
       showEnhancedNotification(message, 'success', 'Content Completed!');
+    }
+
+    // Global variables to track watch count (will be updated dynamically)
+    let currentWatchCount = <%= watchLimitInfo ? watchLimitInfo.watchCount : 0 %>;
+    let currentMaxWatchCount = <%= watchLimitInfo && watchLimitInfo.maxWatchCount ? watchLimitInfo.maxWatchCount : 'null' %>;
+
+    // Update watch count display dynamically
+    function updateWatchCountDisplay(watchCount, maxWatchCount, hasLimit) {
+      if (!hasLimit) return;
+      
+      // Update global variables
+      currentWatchCount = parseInt(watchCount);
+      currentMaxWatchCount = parseInt(maxWatchCount);
+      
+      const watchLimitAlert = document.querySelector('.alert.alert-info, .alert.alert-danger');
+      if (watchLimitAlert) {
+        const maxCount = parseInt(maxWatchCount);
+        const currentCount = parseInt(watchCount);
+        const remaining = maxCount - currentCount;
+        const limitReached = currentCount >= maxCount;
+        
+        // Update alert class
+        watchLimitAlert.className = limitReached ? 'alert alert-danger' : 'alert alert-info';
+        
+        // Update content
+        const strongElement = watchLimitAlert.querySelector('strong');
+        const spanElement = watchLimitAlert.querySelector('span');
+        
+        if (strongElement) {
+          strongElement.textContent = limitReached ? 'Watch Limit Reached' : 'Watch Limit Information';
+        }
+        
+        if (spanElement) {
+          spanElement.innerHTML = `
+            You have watched this video <strong>${currentCount}</strong> out of <strong>${maxCount}</strong> allowed times.
+            ${!limitReached ? `<br>Remaining watches: <strong>${remaining}</strong>` : '<br>You cannot watch this video again.'}
+          `;
+        }
+      }
     }
 
     // Update UI elements after completion
@@ -2040,7 +2388,7 @@
           }
         }
       } catch (navError) {
-        console.warn('Could not update navigation:', navError);
+        // Could not update navigation - silently handle
         // Don't fail the completion update if navigation update fails
       }
     }
@@ -2111,7 +2459,6 @@
             btn.style.opacity = '1';
             btn.style.cursor = 'pointer';
           });
-          console.log(`${quizType} start cancelled by user`);
         }
       });
     }
@@ -2139,7 +2486,7 @@
     function showEnhancedNotification(message, type = 'success', title = 'Notification') {
       const container = document.getElementById('notification-container');
       if (!container) {
-        console.error('Notification container not found');
+        // Notification container not found - silently handle
         return;
       }
 
@@ -2212,7 +2559,6 @@
       // Auto-complete when user scrolls 80% of the content
       if (scrollPercentage >= 80) {
         readingCompleted = true;
-        console.log("Reading content auto-completed at", scrollPercentage.toFixed(1) + "%");
         updateContentProgressSmooth('completed', 100);
       }
     }
@@ -2224,7 +2570,6 @@
       setTimeout(() => {
         if (!pdfCompleted) {
           pdfCompleted = true;
-          console.log("PDF content auto-completed after 30 seconds");
           updateContentProgressSmooth('completed', 100);
         }
       }, 30000);
@@ -2266,14 +2611,256 @@
       }
     });
 
+    // ==================== WATERMARK INITIALIZATION ====================
+    function initializeVideoWatermark() {
+      console.log('🚀 Initializing video watermarks...');
+      
+      // List of watermark configurations
+      const configs = [
+        { wrapperId: 'bunny-video-wrapper', watermarkId: 'bunnyWatermark' },
+        { wrapperId: 'youtube-video-wrapper', watermarkId: 'youtubeWatermark' },
+        { wrapperId: 'recording-video-wrapper', watermarkId: 'recordingYoutubeWatermark' },
+        { wrapperId: 'recording-video-wrapper', watermarkId: 'recordingBunnyWatermark' }
+      ];
+
+      configs.forEach(config => {
+        const wrapper = document.getElementById(config.wrapperId);
+        const watermark = document.getElementById(config.watermarkId);
+        
+        if (wrapper && watermark) {
+          console.log('📍 Found:', config.watermarkId);
+          
+          // For Bunny videos, move watermark to video container
+          if (config.watermarkId === 'bunnyWatermark') {
+            const videoContainer = wrapper.querySelector('div[style*="padding-top"]');
+            if (videoContainer) {
+              videoContainer.style.position = 'relative';
+              if (watermark.parentElement !== videoContainer) {
+                videoContainer.appendChild(watermark);
+              }
+            }
+          }
+          
+          // Setup fullscreen handling
+          setupFullscreenWatermark(wrapper, watermark);
+        }
+      });
+      
+      console.log('✅ Watermark initialization complete');
+    }
+
+
+    // Setup fullscreen watermark handling - IMPROVED APPROACH
+    // SIMPLE FULLSCREEN WATERMARK - REBUILT FROM SCRATCH
+    function setupFullscreenWatermark(wrapper, watermark) {
+      if (!wrapper || !watermark) return;
+
+      // Store watermark info
+      const watermarkText = watermark.textContent || watermark.innerText;
+      const watermarkId = watermark.id;
+      
+      console.log('🎬 Initializing watermark for:', watermarkId, '- Text:', watermarkText);
+
+      // Create persistent fullscreen watermark element (hidden by default)
+      const fsWatermark = document.createElement('div');
+      fsWatermark.id = watermarkId + '-fs';
+      fsWatermark.className = 'video-watermark video-watermark-moving';
+      fsWatermark.innerHTML = watermark.innerHTML;
+      fsWatermark.style.cssText = `
+        position: fixed;
+        top: 8%;
+        left: 8%;
+        z-index: 2147483647;
+        display: none;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.75);
+        color: #ffffff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        opacity: 0.85;
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+        animation: watermarkMove 25s linear infinite;
+        -webkit-animation: watermarkMove 25s linear infinite;
+      `;
+      document.body.appendChild(fsWatermark);
+      console.log('✅ Fullscreen watermark element created');
+
+      // Fullscreen change handler
+      function onFullscreenChange() {
+        const isFullscreen = !!(document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement);
+        
+        console.log('🔄 Fullscreen state:', isFullscreen);
+        
+        if (isFullscreen) {
+          // Hide original, show fullscreen watermark
+          watermark.style.display = 'none';
+          fsWatermark.style.display = 'inline-flex';
+          console.log('✅ Fullscreen watermark shown');
+        } else {
+          // Show original, hide fullscreen watermark
+          watermark.style.display = 'inline-flex';
+          fsWatermark.style.display = 'none';
+          console.log('✅ Normal watermark shown');
+        }
+      }
+
+      // Add event listeners
+      ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(event => {
+        document.addEventListener(event, onFullscreenChange);
+      });
+
+      // Ensure iframe can go fullscreen
+      const iframe = wrapper.querySelector('iframe');
+      if (iframe) {
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.setAttribute('webkitallowfullscreen', '');
+        iframe.setAttribute('mozallowfullscreen', '');
+      }
+
+      // Monitor and ensure watermark stays visible in fullscreen
+      setInterval(() => {
+        const isFullscreen = !!(document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement);
+        
+        if (isFullscreen && fsWatermark.style.display === 'none') {
+          fsWatermark.style.display = 'inline-flex';
+          console.log('🔧 Restored fullscreen watermark');
+        }
+      }, 1000);
+
+      console.log('✅ Setup complete for:', watermarkId);
+    }
+
+    // Helper function to request fullscreen on wrapper (keep for custom button)
+
+    // Watermark protection - simplified
+    function protectWatermark() {
+      const watermarkIds = [
+        'bunnyWatermark',
+        'youtubeWatermark',
+        'recordingYoutubeWatermark',
+        'recordingBunnyWatermark'
+      ];
+
+      setInterval(() => {
+        const isFullscreen = !!(document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement);
+        
+        watermarkIds.forEach(id => {
+          const watermark = document.getElementById(id);
+          const fsWatermark = document.getElementById(id + '-fs');
+          
+          if (watermark && fsWatermark) {
+            if (isFullscreen) {
+              // Ensure fullscreen watermark is visible
+              if (fsWatermark.style.display !== 'inline-flex') {
+                fsWatermark.style.display = 'inline-flex';
+                console.log('🔧 Restored fullscreen watermark:', id);
+              }
+              if (watermark.style.display !== 'none') {
+                watermark.style.display = 'none';
+              }
+            } else {
+              // Ensure normal watermark is visible
+              if (watermark.style.display !== 'inline-flex') {
+                watermark.style.display = 'inline-flex';
+                console.log('🔧 Restored normal watermark:', id);
+              }
+              if (fsWatermark.style.display !== 'none') {
+                fsWatermark.style.display = 'none';
+              }
+            }
+          }
+        });
+      }, 1000); // Check every second
+    }
+
+    // Initialize watermarks when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeVideoWatermark();
+      
+      // Start watermark protection after initialization
+      setTimeout(protectWatermark, 2000);
+      
+      // Prevent context menu on video wrappers and watermarks
+      const videoWrappers = [
+        'bunny-video-wrapper',
+        'youtube-video-wrapper',
+        'recording-video-wrapper'
+      ];
+      
+      videoWrappers.forEach(wrapperId => {
+        const wrapper = document.getElementById(wrapperId);
+        if (wrapper) {
+          wrapper.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+          });
+          
+          // Also prevent on iframe
+          const iframe = wrapper.querySelector('iframe');
+          if (iframe) {
+            iframe.addEventListener('contextmenu', function(e) {
+              e.preventDefault();
+              return false;
+            });
+          }
+        }
+      });
+      
+      // Prevent context menu on watermarks
+      const watermarkIds = [
+        'bunnyWatermark',
+        'youtubeWatermark',
+        'recordingYoutubeWatermark',
+        'recordingBunnyWatermark'
+      ];
+      
+      watermarkIds.forEach(id => {
+        const watermark = document.getElementById(id);
+        if (watermark) {
+          watermark.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+          });
+        }
+      });
+    });
+
+    // Re-initialize after dynamic content loads
+    setTimeout(initializeVideoWatermark, 1000);
+
     // PlayerJS Video Tracking
     document.addEventListener('DOMContentLoaded', function() {
       // Check if this is a video content that needs tracking
       const isVideoContent = '<%= contentItem.type %>' === 'video';
       const hasVideoContent = '<%= contentItem.content ? "true" : "false" %>' === 'true';
-      const isNotCompleted = '<%= !contentProgress.isCompleted ? "true" : "false" %>' === 'true';
+      const isAlreadyCompleted = '<%= contentProgress.isCompleted ? "true" : "false" %>' === 'true';
+      
+      // Video watch limit info - use global variables that can be updated
+      const watchLimitReached = <%= watchLimitInfo && watchLimitInfo.limitReached ? 'true' : 'false' %>;
+      const hasWatchLimit = <%= watchLimitInfo && watchLimitInfo.hasLimit ? 'true' : 'false' %>;
+      // Use global variables for watch count (will be updated dynamically)
+      // watchCount and maxWatchCount are defined globally above
 
-      if (isVideoContent && hasVideoContent && isNotCompleted) {
+      // Initialize player for videos - even if already completed (to track watch count)
+      // Only skip if watch limit is reached
+      if (isVideoContent && hasVideoContent && !watchLimitReached) {
         let player = null;
         let videoDuration = 0;
         let playerReady = false;
@@ -2296,7 +2883,6 @@
             const iframe = videoContainer ? videoContainer.querySelector('iframe') : null;
 
             if (!iframe) {
-              console.log("No iframe found in video container");
               return;
             }
 
@@ -2309,40 +2895,61 @@
 
             player.on("ready", () => {
               playerReady = true;
-              console.log("Bunny Stream player ready");
 
               // Get duration once
               player.getDuration((dur) => {
                 videoDuration = dur;
-                console.log("Video duration: " + dur + "s");
               });
             });
 
             // Event listeners
             player.on("timeupdate", (data) => {
-              console.log(`Video progress: ${data.seconds.toFixed(1)}s / ${data.duration}s`);
+              const currentSeconds = data.seconds;
+              const totalDuration = data.duration || videoDuration;
+              const progressPercentage = totalDuration > 0 ? (currentSeconds / totalDuration) * 100 : 0;
 
-              // Auto-complete when reaching last 10 seconds
-              if (videoDuration > 0 && data.seconds >= videoDuration - 10 && !autoCompleted) {
-                autoCompleted = true;
-                console.log("Reached last 10 seconds - auto-completing content");
-                updateContentProgressSmooth('completed', 100);
+              // Auto-complete when reaching 90% of video duration (or last 10 seconds, whichever comes first)
+              if (totalDuration > 0 && !autoCompleted) {
+                const shouldComplete = progressPercentage >= 90 || currentSeconds >= totalDuration - 10;
+                
+                if (shouldComplete) {
+                  autoCompleted = true;
+                  
+                  // Show watch limit warning if this is the last allowed watch
+                  if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
+                    showEnhancedNotification(
+                      `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
+                      'warning',
+                      'Final Watch Warning'
+                    );
+                  }
+                  
+                  updateContentProgressSmooth('completed', 100);
+                }
               }
             });
 
             player.on("ended", () => {
-              console.log("Video ended");
               if (!autoCompleted) {
+                // Show watch limit warning if this is the last allowed watch
+                if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
+                  showEnhancedNotification(
+                    `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
+                    'warning',
+                    'Final Watch Warning'
+                  );
+                }
+                
                 updateContentProgressSmooth('completed', 100);
               }
             });
 
-            player.on("error", (e) => {
-              console.error("Player error:", e);
+            player.on("error", () => {
+              // Player error - silently handle
             });
 
           } catch (error) {
-            console.error("Error initializing player:", error);
+            // Error initializing player - silently handle
           }
         }
 
@@ -2352,6 +2959,403 @@
         }, 500);
       }
     });
+
+    // ==================== YOUTUBE VIDEO TRACKING ====================
+    // Initialize YouTube Player API for YouTube videos
+    let youtubePlayer = null;
+    let youtubeVideoDuration = 0;
+    let youtubeAutoCompleted = false;
+    let youtubeProgressInterval = null;
+
+    // YouTube API callback - must be global
+    function onYouTubeIframeAPIReady() {
+      initializeYouTubePlayer();
+      
+      // Also initialize recording YouTube player if needed
+      if (window.recordingYoutubeVideoId && typeof window.initializeRecordingYouTubePlayer === 'function') {
+        // Wait a bit for DOM to be ready
+        setTimeout(() => {
+          const isAlreadyCompleted = '<%= contentProgress.isCompleted ? "true" : "false" %>' === 'true';
+          window.initializeRecordingYouTubePlayer(isAlreadyCompleted);
+        }, 500);
+      }
+    }
+
+    function initializeYouTubePlayer() {
+      const isVideoContent = '<%= contentItem.type %>' === 'video';
+      const hasVideoContent = '<%= contentItem.content ? "true" : "false" %>' === 'true';
+      const watchLimitReached = <%= watchLimitInfo && watchLimitInfo.limitReached ? 'true' : 'false' %>;
+      const isAlreadyCompleted = '<%= contentProgress.isCompleted ? "true" : "false" %>' === 'true';
+      
+      // Check if this is a YouTube video and API is loaded
+      if (isVideoContent && hasVideoContent && !watchLimitReached && window.youtubeVideoId && typeof YT !== 'undefined') {
+        youtubeAutoCompleted = isAlreadyCompleted;
+        
+        // Check if player container exists
+          const playerContainer = document.getElementById('youtube-player');
+          if (!playerContainer) {
+            return;
+          }
+        
+        // Initialize YouTube player
+        try {
+          youtubePlayer = new YT.Player('youtube-player', {
+            height: '100%',
+            width: '100%',
+            videoId: window.youtubeVideoId,
+            playerVars: {
+              'playsinline': 1,
+              'rel': 0,
+              'modestbranding': 1,
+              'enablejsapi': 1
+            },
+            events: {
+              'onReady': onYouTubePlayerReady,
+              'onStateChange': onYouTubeStateChange
+            }
+          });
+        } catch (error) {
+          // Error initializing YouTube player - silently handle
+        }
+      }
+    }
+
+    // Fallback: Check if YouTube API is loaded when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // If YouTube API is already loaded, initialize immediately
+      if (typeof YT !== 'undefined' && YT.Player && window.youtubeVideoId) {
+        setTimeout(initializeYouTubePlayer, 500);
+      }
+    });
+
+    function onYouTubePlayerReady(event) {
+      youtubeVideoDuration = event.target.getDuration();
+      
+      // Start tracking progress every second
+      youtubeProgressInterval = setInterval(() => {
+        trackYouTubeProgress();
+      }, 1000);
+    }
+
+    function onYouTubeStateChange(event) {
+      if (event.data === YT.PlayerState.ENDED) {
+        if (!youtubeAutoCompleted) {
+          youtubeAutoCompleted = true;
+          if (youtubeProgressInterval) {
+            clearInterval(youtubeProgressInterval);
+          }
+          
+          // Show watch limit warning if this is the last allowed watch
+          const hasWatchLimit = <%= watchLimitInfo && watchLimitInfo.hasLimit ? 'true' : 'false' %>;
+          const currentWatchCount = <%= watchLimitInfo ? watchLimitInfo.watchCount : 0 %>;
+          const currentMaxWatchCount = <%= watchLimitInfo && watchLimitInfo.maxWatchCount ? watchLimitInfo.maxWatchCount : 'null' %>;
+          
+          if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
+            showEnhancedNotification(
+              `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
+              'warning',
+              'Final Watch Warning'
+            );
+          }
+          
+          updateContentProgressSmooth('completed', 100);
+        }
+      }
+    }
+
+    function trackYouTubeProgress() {
+      if (!youtubePlayer || youtubeAutoCompleted) return;
+      
+      try {
+        const playerState = youtubePlayer.getPlayerState();
+        
+        // Only track when playing
+        if (playerState === YT.PlayerState.PLAYING) {
+          const currentTime = youtubePlayer.getCurrentTime();
+          const totalDuration = youtubeVideoDuration;
+          const progressPercentage = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
+          
+          // Auto-complete when reaching 90% or last 10 seconds
+          if (totalDuration > 0) {
+            const shouldComplete = progressPercentage >= 90 || currentTime >= totalDuration - 10;
+            
+            if (shouldComplete && !youtubeAutoCompleted) {
+              youtubeAutoCompleted = true;
+              if (youtubeProgressInterval) {
+                clearInterval(youtubeProgressInterval);
+              }
+              
+              // Show watch limit warning if this is the last allowed watch
+              const hasWatchLimit = <%= watchLimitInfo && watchLimitInfo.hasLimit ? 'true' : 'false' %>;
+              const currentWatchCount = <%= watchLimitInfo ? watchLimitInfo.watchCount : 0 %>;
+              const currentMaxWatchCount = <%= watchLimitInfo && watchLimitInfo.maxWatchCount ? watchLimitInfo.maxWatchCount : 'null' %>;
+              
+              if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
+                showEnhancedNotification(
+                  `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
+                  'warning',
+                  'Final Watch Warning'
+                );
+              }
+              
+              updateContentProgressSmooth('completed', 100);
+            }
+          }
+        }
+      } catch (error) {
+        // Error tracking YouTube progress - silently handle
+      }
+    }
+
+    // ==================== ZOOM RECORDING PLAYER TRACKING ====================
+    // Initialize player for Zoom recording (supports both YouTube and Bunny/PlayerJS)
+    let recordingYouTubePlayer = null;
+    let recordingYouTubeDuration = 0;
+    let recordingYouTubeAutoCompleted = false;
+    let recordingYouTubeProgressInterval = null;
+
+    // Make function globally accessible for YouTube API callback
+    window.initializeRecordingYouTubePlayer = function(isAlreadyCompleted) {
+      recordingYouTubeAutoCompleted = isAlreadyCompleted;
+
+      function initRecordingYouTube() {
+        if (typeof YT === 'undefined' || !YT.Player) {
+          setTimeout(initRecordingYouTube, 100);
+          return;
+        }
+
+        try {
+          const playerContainer = document.getElementById('recording-youtube-player');
+          if (!playerContainer) {
+            return;
+          }
+
+          recordingYouTubePlayer = new YT.Player('recording-youtube-player', {
+            height: '100%',
+            width: '100%',
+            videoId: window.recordingYoutubeVideoId,
+            playerVars: {
+              'playsinline': 1,
+              'rel': 0,
+              'modestbranding': 1,
+              'enablejsapi': 1
+            },
+            events: {
+              'onReady': onRecordingYouTubeReady,
+              'onStateChange': onRecordingYouTubeStateChange
+            }
+          });
+        } catch (error) {
+          // Error initializing recording YouTube player - silently handle
+        }
+      }
+
+      function onRecordingYouTubeReady(event) {
+        recordingYouTubeDuration = event.target.getDuration();
+        
+        // Start tracking progress every second
+        recordingYouTubeProgressInterval = setInterval(() => {
+          trackRecordingYouTubeProgress();
+        }, 1000);
+      }
+
+      function onRecordingYouTubeStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+          if (!recordingYouTubeAutoCompleted) {
+            recordingYouTubeAutoCompleted = true;
+            if (recordingYouTubeProgressInterval) {
+              clearInterval(recordingYouTubeProgressInterval);
+            }
+            
+            const progressContainer = document.querySelector('.recording-progress-container');
+            if (progressContainer) {
+              progressContainer.innerHTML = `
+                <div class="recording-auto-complete-message">
+                  <i class="fas fa-check-circle"></i>
+                  <span>Recording complete - Saving progress...</span>
+                </div>
+              `;
+            }
+            
+            updateContentProgressSmooth('completed', 100);
+      }
+        }
+      }
+
+      function trackRecordingYouTubeProgress() {
+        if (!recordingYouTubePlayer || recordingYouTubeAutoCompleted) return;
+        
+        try {
+          const playerState = recordingYouTubePlayer.getPlayerState();
+          
+          // Only track when playing
+          if (playerState === YT.PlayerState.PLAYING) {
+            const currentTime = recordingYouTubePlayer.getCurrentTime();
+            const totalDuration = recordingYouTubeDuration;
+            const progressPercentage = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
+
+            // Update progress bar UI
+            const progressFill = document.getElementById('recordingProgressFill');
+            const progressText = document.getElementById('recordingProgressText');
+            if (progressFill) progressFill.style.width = progressPercentage + '%';
+            if (progressText) progressText.textContent = Math.round(progressPercentage) + '%';
+
+            // Auto-complete when reaching 90% or last 10 seconds
+            if (totalDuration > 0) {
+              const shouldComplete = progressPercentage >= 90 || currentTime >= totalDuration - 10;
+              
+              if (shouldComplete && !recordingYouTubeAutoCompleted) {
+                recordingYouTubeAutoCompleted = true;
+                if (recordingYouTubeProgressInterval) {
+                  clearInterval(recordingYouTubeProgressInterval);
+                }
+                
+                const progressContainer = document.querySelector('.recording-progress-container');
+                if (progressContainer) {
+                  progressContainer.innerHTML = `
+                    <div class="recording-auto-complete-message">
+                      <i class="fas fa-check-circle"></i>
+                      <span>Recording watched - Marking as complete...</span>
+                    </div>
+                  `;
+                }
+                
+                updateContentProgressSmooth('completed', 100);
+              }
+            }
+          }
+        } catch (error) {
+          // Error tracking recording YouTube progress - silently handle
+        }
+      }
+
+      // Start initialization
+      if (typeof YT !== 'undefined' && YT.Player) {
+        initRecordingYouTube();
+      } else {
+        // Wait for YouTube API to load
+        setTimeout(initRecordingYouTube, 500);
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const isZoomContent = '<%= contentItem.type %>' === 'zoom';
+      const hasRecording = '<%= contentItem.zoomMeeting && contentItem.zoomMeeting.recordingUrl ? "true" : "false" %>' === 'true';
+      const meetingEnded = '<%= contentItem.zoomMeeting && contentItem.zoomMeeting.status === "ended" ? "true" : "false" %>' === 'true';
+      const isAlreadyCompleted = '<%= contentProgress.isCompleted ? "true" : "false" %>' === 'true';
+
+      if (isZoomContent && hasRecording && meetingEnded) {
+        // Check if recording is YouTube video
+        if (window.recordingYoutubeVideoId) {
+          // Initialize YouTube player for recording
+          if (typeof window.initializeRecordingYouTubePlayer === 'function') {
+            window.initializeRecordingYouTubePlayer(isAlreadyCompleted);
+          }
+        } else {
+          // Initialize PlayerJS for Bunny/regular videos
+          initializeRecordingPlayerJS(isAlreadyCompleted);
+        }
+      }
+    });
+
+    function initializeRecordingPlayerJS(isAlreadyCompleted) {
+      let recordingPlayer = null;
+      let recordingDuration = 0;
+      let recordingPlayerReady = false;
+      let recordingAutoCompleted = isAlreadyCompleted;
+
+      function checkRecordingPlayerJS() {
+        if (typeof playerjs === 'undefined') {
+          setTimeout(checkRecordingPlayerJS, 100);
+          return;
+        }
+        initRecordingPlayer();
+      }
+
+      function initRecordingPlayer() {
+        try {
+          const iframe = document.getElementById('recordingPlayer');
+          if (!iframe) {
+            return;
+          }
+
+          recordingPlayer = new playerjs.Player(iframe);
+
+          recordingPlayer.on("ready", () => {
+            recordingPlayerReady = true;
+
+            recordingPlayer.getDuration((duration) => {
+              recordingDuration = duration;
+            });
+          });
+
+          // Track progress
+          recordingPlayer.on("timeupdate", (data) => {
+            const currentSeconds = data.seconds;
+            const totalDuration = data.duration || recordingDuration;
+            const progressPercentage = totalDuration > 0 ? (currentSeconds / totalDuration) * 100 : 0;
+
+            // Update progress bar UI
+            const progressFill = document.getElementById('recordingProgressFill');
+            const progressText = document.getElementById('recordingProgressText');
+            if (progressFill) progressFill.style.width = progressPercentage + '%';
+            if (progressText) progressText.textContent = Math.round(progressPercentage) + '%';
+
+            // Auto-complete when reaching 90% or last 10 seconds
+            if (totalDuration > 0 && !recordingAutoCompleted) {
+              const shouldComplete = progressPercentage >= 90 || currentSeconds >= totalDuration - 10;
+              
+              if (shouldComplete) {
+                recordingAutoCompleted = true;
+                
+                // Hide progress bar and show completion
+                const progressContainer = document.querySelector('.recording-progress-container');
+                if (progressContainer) {
+                  progressContainer.innerHTML = `
+                    <div class="recording-auto-complete-message">
+                      <i class="fas fa-check-circle"></i>
+                      <span>Recording watched - Marking as complete...</span>
+                    </div>
+                  `;
+                }
+                
+                updateContentProgressSmooth('completed', 100);
+              }
+            }
+          });
+
+          recordingPlayer.on("ended", () => {
+            if (!recordingAutoCompleted) {
+              recordingAutoCompleted = true;
+              
+              const progressContainer = document.querySelector('.recording-progress-container');
+              if (progressContainer) {
+                progressContainer.innerHTML = `
+                  <div class="recording-auto-complete-message">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Recording complete - Saving progress...</span>
+                  </div>
+                `;
+              }
+              
+              updateContentProgressSmooth('completed', 100);
+            }
+          });
+
+          recordingPlayer.on("error", () => {
+            // Recording player error - silently handle
+          });
+
+        } catch (error) {
+          // Error initializing recording player - silently handle
+        }
+      }
+
+      // Start checking for PlayerJS
+      setTimeout(() => {
+        checkRecordingPlayerJS();
+      }, 500);
+    }
 
     // Acknowledgment helpers (download/link/read)
     function acknowledgeAndComplete(event) {
@@ -2408,11 +3412,8 @@
           }
         });
 
-        // NOTE: Content will be marked as completed ONLY when admin ends the meeting
-        // AND student attended 50% or more of the session
-        // Do NOT mark as completed here - wait for meeting to end
-
-        // THEN: Get join URL and open meeting
+        // Get join URL and open meeting
+        // Content will be automatically marked as completed when joining (handled in backend)
         try {
           const response = await fetch(`/zoom/student/zoom/${meetingId}/join`, {
             method: 'POST',
@@ -2427,14 +3428,21 @@
             // Record that the student attempted to join
             recordMeetingJoinAttempt(meetingId);
 
+            // Content is automatically marked as completed in backend when joining
+            // Update UI to reflect completion
+            updateUIAfterCompletion();
+
             // Show modal with meeting details instead of popup (browsers may block popups)
             // Modal stays open until user closes it manually
             showMeetingInfoModal(data.meeting, data.student);
 
-            // Don't auto-reload - let user close modal and navigate manually
-            // The content is already marked as completed, so next content will be unlocked
+            // Show success notification
+            showEnhancedNotification(
+              'Meeting joined! Content marked as completed.',
+              'success',
+              'Success'
+            );
           } else {
-            console.warn('Could not get join URL:', data.message);
             // Re-enable buttons on error
             const joinButtons = document.querySelectorAll('button[onclick*="joinZoomMeeting"], .btn-primary, .btn-outline-primary');
             joinButtons.forEach(btn => {
@@ -2449,7 +3457,6 @@
             alert('Could not get meeting details. Content is already marked as completed. Please refresh the page.');
           }
         } catch (joinError) {
-          console.warn('Error getting join URL:', joinError);
           // Re-enable buttons on error
           const joinButtons = document.querySelectorAll('button[onclick*="joinZoomMeeting"], .btn-primary, .btn-outline-primary');
           joinButtons.forEach(btn => {
@@ -2465,7 +3472,6 @@
         }
 
       } catch (error) {
-        console.error('❌ Error in joinZoomMeeting:', error);
         // Re-enable buttons on error
         const joinButtons = document.querySelectorAll('button[onclick*="joinZoomMeeting"], .btn-primary, .btn-outline-primary');
         joinButtons.forEach(btn => {
@@ -2491,32 +3497,9 @@
           },
         });
       } catch (error) {
-        console.log('Could not record join attempt:', error);
+        // Could not record join attempt - silently handle
       }
     }
-
-    // Mark recording as watched and complete the content (same as acknowledgeAndComplete)
-    async function markRecordingAsWatched(event) {
-      // Disable button immediately to prevent multiple clicks
-      const button = (event && event.target) || document.querySelector('button[onclick*="markRecordingAsWatched"]');
-      if (button && !button.disabled) {
-        button.disabled = true;
-        button.style.opacity = '0.6';
-        button.style.cursor = 'not-allowed';
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-        button.dataset.originalText = originalText;
-      }
-      
-      // Use the same function as other content types - this will update contentProgress
-      acknowledgeAndComplete(event);
-      
-      // Reload after completion to update navigation
-      setTimeout(() => {
-        location.reload();
-      }, 2000);
-    }
-
     // Update meeting status in UI
     function updateMeetingStatus(status) {
       const statusElement = document.querySelector('.meeting-status');
@@ -2956,12 +3939,11 @@
     }
 
     .recording-available {
-      padding: 25px;
-      background: #ffffff;
+      padding: 24px;
+      background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
       border: 2px solid #dc2626;
-      border-radius: 15px;
+      border-radius: 16px;
       margin-top: 20px;
-      text-align: center;
     }
 
     .recording-available h6 {
@@ -3080,6 +4062,309 @@
       .ended-icon {
         font-size: 48px;
       }
+    }
+
+    /* ==================== RECORDING PLAYER STYLES ==================== */
+    .recording-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .recording-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .recording-badge i {
+      font-size: 16px;
+    }
+
+    .recording-progress-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #6b7280;
+      font-size: 13px;
+      background: #f3f4f6;
+      padding: 6px 12px;
+      border-radius: 15px;
+    }
+
+    .recording-completed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .recording-progress-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+    }
+
+    .recording-progress-bar {
+      flex: 1;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .recording-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #dc2626, #f87171);
+      border-radius: 10px;
+      transition: width 0.3s ease;
+    }
+
+    .recording-progress-text {
+      font-weight: 700;
+      color: #dc2626;
+      min-width: 45px;
+      text-align: right;
+      font-size: 14px;
+    }
+
+    .recording-player-wrapper {
+      margin-bottom: 16px;
+    }
+
+    .recording-auto-complete-message {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px;
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+      border: 1px solid #86efac;
+      border-radius: 12px;
+      color: #166534;
+      font-weight: 600;
+      animation: pulse-success 2s infinite;
+    }
+
+    .recording-auto-complete-message i {
+      font-size: 20px;
+      color: #10b981;
+    }
+
+    @keyframes pulse-success {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .recording-info {
+      padding: 12px 16px;
+      background: #f9fafb;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .recording-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .recording-meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .recording-meta-item i {
+      color: #dc2626;
+    }
+
+    /* Dark theme recording styles */
+    .dark-theme .recording-progress-hint {
+      background: #374151;
+      color: #9ca3af;
+    }
+
+    .dark-theme .recording-progress-container {
+      background: linear-gradient(135deg, #1f2937, #111827);
+      border-color: #374151;
+    }
+
+    .dark-theme .recording-progress-bar {
+      background: #374151;
+    }
+
+    .dark-theme .recording-info {
+      background: #1f2937;
+      border-color: #374151;
+    }
+
+    .dark-theme .recording-meta-item {
+      color: #9ca3af;
+    }
+
+    .dark-theme .recording-auto-complete-message {
+      background: linear-gradient(135deg, #064e3b, #065f46);
+      border-color: #10b981;
+      color: #a7f3d0;
+    }
+
+    /* ==================== VIDEO WATERMARK STYLES ==================== */
+    .video-player-wrapper-with-watermark {
+      position: relative;
+      width: 100%;
+    }
+
+    .bunny-video-container-inner {
+      position: relative;
+      width: 100%;
+    }
+
+    .video-watermark {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .video-watermark .watermark-text {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .video-watermark .watermark-separator {
+      color: rgba(255, 255, 255, 0.6);
+      margin: 0 4px;
+    }
+
+    .video-watermark .watermark-code {
+      color: #fbbf24;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Dynamic moving animation - moves around the video area */
+    .video-watermark-moving {
+      animation: watermarkMove 25s linear infinite;
+    }
+
+    @keyframes watermarkMove {
+      0% {
+        top: 8%;
+        left: 8%;
+        transform: translate(0, 0);
+      }
+      20% {
+        top: 8%;
+        left: 75%;
+        transform: translate(-100%, 0);
+      }
+      40% {
+        top: 75%;
+        left: 75%;
+        transform: translate(-100%, -100%);
+      }
+      60% {
+        top: 75%;
+        left: 8%;
+        transform: translate(0, -100%);
+      }
+      80% {
+        top: 40%;
+        left: 40%;
+        transform: translate(-50%, -50%);
+      }
+      100% {
+        top: 8%;
+        left: 8%;
+        transform: translate(0, 0);
+      }
+    }
+
+    /* Fullscreen watermark styles - injected dynamically */
+    :fullscreen .video-watermark,
+    :-webkit-full-screen .video-watermark,
+    :-moz-full-screen .video-watermark,
+    :-ms-fullscreen .video-watermark {
+      position: fixed !important;
+      z-index: 2147483647 !important;
+      display: inline-flex !important;
+      animation: watermarkMove 25s linear infinite !important;
+    }
+
+    /* Make wrapper fullscreen-able */
+    .video-player-wrapper-with-watermark {
+      position: relative;
+    }
+
+    /* Fullscreen iframe - let it behave naturally */
+    iframe:fullscreen,
+    iframe:-webkit-full-screen,
+    iframe:-moz-full-screen,
+    iframe:-ms-fullscreen {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+    }
+
+    /* Custom fullscreen button styles */
+    .custom-fullscreen-btn {
+      opacity: 0.8;
+      transition: opacity 0.3s ease, transform 0.3s ease, background 0.3s ease;
+    }
+
+    .custom-fullscreen-btn:hover {
+      opacity: 1;
+    }
+
+    .custom-fullscreen-btn:active {
+      transform: scale(0.95) !important;
+    }
+
+    /* Show fullscreen button on video hover */
+    .video-player-wrapper-with-watermark:hover .custom-fullscreen-btn {
+      opacity: 1;
+    }
+
+    /* Dark theme watermark */
+    .dark-theme .video-watermark {
+      background: rgba(0, 0, 0, 0.85);
+      border-color: rgba(255, 255, 255, 0.3);
     }
 
     /* Custom Modal Styles - Updated with Red Theme */

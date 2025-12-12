@@ -245,10 +245,10 @@
                           Meeting Ended
                         </span>
                         <% if (contentItem.zoomMeeting.recordingUrl) { %>
-                        <a href="<%= contentItem.zoomMeeting.recordingUrl %>" target="_blank" class="btn btn-sm btn-outline-info ms-2">
-                          <i class="fas fa-video"></i>
-                          View Recording
-                        </a>
+                        <button class="btn btn-sm btn-outline-warning ms-2" onclick="event.stopPropagation(); addRecordingUrl('<%= contentItem.zoomMeeting._id %>', '<%= contentItem.zoomMeeting.recordingUrl %>')" title="Edit Recording Link">
+                          <i class="fas fa-edit"></i>
+                          Edit Recording
+                        </button>
                         <% } else { %>
                         <button class="btn btn-sm btn-outline-primary ms-2" onclick="event.stopPropagation(); addRecordingUrl('<%= contentItem.zoomMeeting._id %>')" title="Add Recording Link">
                           <i class="fas fa-video"></i>
@@ -557,6 +557,16 @@
                     <option value="intermediate">Intermediate</option>
                     <option value="advanced">Advanced</option>
                   </select>
+                </div>
+
+                <!-- Video Watch Limit Section (Only for Video Content) -->
+                <div class="admin-form-group" id="videoWatchLimitSection" style="display: none;">
+                  <label for="maxWatchCount" class="admin-form-label">
+                    <i class="fas fa-eye me-2"></i>
+                    Max Watch Count
+                  </label>
+                  <input type="number" class="admin-form-control" id="maxWatchCount" name="maxWatchCount" min="-1" placeholder="Enter number or -1 for unlimited">
+                  <small class="admin-form-text">Number of times students can complete watching this video (enter -1 for unlimited, or leave empty for unlimited)</small>
                 </div>
               </div>
             </div>
@@ -1433,6 +1443,16 @@
                     <option value="intermediate">Intermediate</option>
                     <option value="advanced">Advanced</option>
                   </select>
+                </div>
+
+                <!-- Video Watch Limit Section (Only for Video Content) -->
+                <div class="admin-form-group" id="editVideoWatchLimitSection" style="display: none;">
+                  <label for="editMaxWatchCount" class="admin-form-label">
+                    <i class="fas fa-eye me-2"></i>
+                    Max Watch Count
+                  </label>
+                  <input type="number" class="admin-form-control" id="editMaxWatchCount" name="maxWatchCount" min="-1" placeholder="Enter number or -1 for unlimited">
+                  <small class="admin-form-text">Number of times students can complete watching this video (enter -1 for unlimited, or leave empty to keep current value)</small>
                 </div>
 
                 <div class="admin-form-group">
@@ -3155,6 +3175,31 @@ function getContentIcon(type) {
     document.getElementById('editIsRequired').checked = contentData.isRequired !== false;
     document.getElementById('editContentTags').value = Array.isArray(contentData.tags) ? contentData.tags.join(', ') : (contentData.tags || '');
 
+    // Show/hide and populate video watch limit section
+    const editVideoWatchLimitSection = document.getElementById('editVideoWatchLimitSection');
+    const editMaxWatchCountInput = document.getElementById('editMaxWatchCount');
+    if (contentData.type === 'video') {
+      if (editVideoWatchLimitSection) {
+        editVideoWatchLimitSection.style.display = 'block';
+      }
+      if (editMaxWatchCountInput) {
+        // Show current maxWatchCount value, or empty if null/unlimited
+        // If maxWatchCount is null/undefined, leave empty (user can enter -1 or leave empty)
+        if (contentData.maxWatchCount !== null && contentData.maxWatchCount !== undefined) {
+          editMaxWatchCountInput.value = contentData.maxWatchCount;
+        } else {
+          editMaxWatchCountInput.value = '';
+        }
+      }
+    } else {
+      if (editVideoWatchLimitSection) {
+        editVideoWatchLimitSection.style.display = 'none';
+      }
+      if (editMaxWatchCountInput) {
+        editMaxWatchCountInput.value = '';
+      }
+    }
+
     // Make Content Type READ-ONLY by making it look disabled but keep it enabled for form submission
     const typeSelect = document.getElementById('editContentType');
     typeSelect.style.pointerEvents = 'none';
@@ -3587,6 +3632,24 @@ function getContentIcon(type) {
     } else {
       // Remove duration from data if empty, so backend keeps existing value
       delete data.duration;
+    }
+
+    // Handle maxWatchCount for video content - only include if explicitly changed
+    if (data.type === 'video') {
+      const maxWatchCountValue = document.getElementById('editMaxWatchCount')?.value;
+      if (maxWatchCountValue !== undefined && maxWatchCountValue !== null && maxWatchCountValue.trim() !== '') {
+        const parsedValue = parseInt(maxWatchCountValue);
+        if (!isNaN(parsedValue)) {
+          // If -1, send -1 to backend (will be converted to null for unlimited)
+          data.maxWatchCount = parsedValue;
+        } else {
+          // Invalid value, remove from data to keep existing value
+          delete data.maxWatchCount;
+        }
+      } else {
+        // Empty field - remove from data to keep existing value (don't change it)
+        delete data.maxWatchCount;
+      }
     }
 
     // For zoom, set content to type name
@@ -5917,6 +5980,12 @@ function getContentIcon(type) {
     if (contentTypeSelect) {
       contentTypeSelect.addEventListener('change', function() {
         const type = this.value;
+
+        // Show/hide Video Watch Limit section
+        const videoWatchLimitSection = document.getElementById('videoWatchLimitSection');
+        if (videoWatchLimitSection) {
+          videoWatchLimitSection.style.display = type === 'video' ? 'block' : 'none';
+        }
 
         // Show/hide Quiz content section
         const quizContentSection = document.getElementById('quizContentSection');
@@ -8769,44 +8838,113 @@ function getContentIcon(type) {
     }
   }
 
-  // Add recording URL to ended meeting
-  async function addRecordingUrl(meetingId) {
+  // Helper function to extract URL from iframe embed code
+  function extractUrlFromIframe(input) {
+    const trimmedInput = input.trim();
+    
+    // Check if input looks like HTML/iframe code
+    if (trimmedInput.includes('<iframe') || trimmedInput.includes('</iframe>')) {
+      // Extract src attribute from iframe
+      const srcMatch = trimmedInput.match(/src=["']([^"']+)["']/i);
+      if (srcMatch && srcMatch[1]) {
+        return srcMatch[1];
+      }
+    }
+    
+    // If not iframe code, return as is (it's already a URL)
+    return trimmedInput;
+  }
+
+  // Add or edit recording URL to ended meeting
+  async function addRecordingUrl(meetingId, currentUrl = null) {
+    const isEditing = !!currentUrl;
     const { value: formValues, isConfirmed } = await Swal.fire({
-      title: '📹 Add Recording Link',
+      title: isEditing ? '✏️ Edit Recording Link' : '📹 Add Recording Link',
       html: `
         <div style="text-align: left;">
-          <p style="margin-bottom: 20px; color: #666;">Add the recording link for this meeting. Students will be able to watch it once added.</p>
+          <p style="margin-bottom: 20px; color: #666;">${isEditing ? 'Edit the recording link for this meeting.' : 'Add the recording link for this meeting. Students will be able to watch it once added.'}</p>
+          
+          ${isEditing && currentUrl ? `
+          <div style="margin-bottom: 15px; padding: 10px; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
+            <a href="${currentUrl}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+              <i class="fas fa-external-link-alt"></i> View Current Recording
+            </a>
+          </div>
+          ` : ''}
           
           <label for="recordingUrl" style="display: block; margin-bottom: 8px; font-weight: 500;">
-            <i class="fas fa-video"></i> Recording Link:
+            <i class="fas fa-video"></i> Recording Link or Embed Code:
           </label>
-          <input 
+          <textarea 
             id="recordingUrl" 
-            type="url" 
-            class="swal2-input" 
-            placeholder="https://example.com/recording-video-link"
-            style="width: 90%; margin: 0 auto;"
+            class="swal2-textarea" 
+            placeholder="Paste video URL or iframe embed code here..."
+            style="width: 90%; margin: 0 auto; min-height: 80px; font-family: monospace; font-size: 12px;"
             required
-          >
+          >${currentUrl || ''}</textarea>
           <small style="display: block; margin-top: 8px; color: #666;">
-            Supports: YouTube, Vimeo, Google Drive, or direct video links
+            ✅ You can paste either:<br>
+            • Direct video URL (e.g., https://iframe.mediadelivery.net/...)<br>
+            • Full iframe embed code (we'll extract the URL automatically)
           </small>
+          <div id="urlPreview" style="margin-top: 10px; padding: 8px; background: #f0fdf4; border-radius: 4px; display: none;">
+            <small style="color: #16a34a;"><strong>✓ Detected URL:</strong> <span id="detectedUrl"></span></small>
+          </div>
         </div>
       `,
-      icon: 'info',
+      icon: isEditing ? 'info' : 'info',
       showCancelButton: true,
       confirmButtonColor: '#10b981',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Save Recording Link',
+      confirmButtonText: isEditing ? 'Update Recording Link' : 'Save Recording Link',
       cancelButtonText: 'Cancel',
       focusConfirm: false,
+      didOpen: () => {
+        const textarea = document.getElementById('recordingUrl');
+        const preview = document.getElementById('urlPreview');
+        const detectedUrl = document.getElementById('detectedUrl');
+        
+        // Show preview when user types/pastes
+        textarea.addEventListener('input', () => {
+          const input = textarea.value.trim();
+          if (input) {
+            const extractedUrl = extractUrlFromIframe(input);
+            if (extractedUrl !== input && extractedUrl) {
+              // Show preview if we extracted a URL from iframe code
+              detectedUrl.textContent = extractedUrl.length > 60 ? extractedUrl.substring(0, 60) + '...' : extractedUrl;
+              preview.style.display = 'block';
+            } else {
+              preview.style.display = 'none';
+            }
+          } else {
+            preview.style.display = 'none';
+          }
+        });
+      },
       preConfirm: () => {
-        const url = document.getElementById('recordingUrl').value.trim();
-        if (!url) {
-          Swal.showValidationMessage('Please enter a recording URL');
+        const input = document.getElementById('recordingUrl').value.trim();
+        if (!input) {
+          Swal.showValidationMessage('Please enter a recording URL or embed code');
           return false;
         }
-        return { recordingUrl: url };
+        
+        // Extract URL from iframe if needed
+        const extractedUrl = extractUrlFromIframe(input);
+        
+        if (!extractedUrl) {
+          Swal.showValidationMessage('Could not extract a valid URL from the input');
+          return false;
+        }
+        
+        // Basic URL validation
+        try {
+          new URL(extractedUrl);
+        } catch (e) {
+          Swal.showValidationMessage('Invalid URL format. Please check the link.');
+          return false;
+        }
+        
+        return { recordingUrl: extractedUrl };
       }
     });
 
@@ -8815,7 +8953,7 @@ function getContentIcon(type) {
     }
 
     try {
-      showNotification('Adding recording link...', 'info');
+      showNotification(isEditing ? 'Updating recording link...' : 'Adding recording link...', 'info');
 
       const response = await fetch(`/zoom/admin/zoom/${meetingId}/add-recording`, {
         method: 'POST',
@@ -8828,16 +8966,16 @@ function getContentIcon(type) {
       const result = await response.json();
 
       if (result.success) {
-        showNotification('✅ Recording link added successfully! Students can now watch the recording.', 'success');
+        showNotification(isEditing ? '✅ Recording link updated successfully!' : '✅ Recording link added successfully! Students can now watch the recording.', 'success');
         setTimeout(() => {
           location.reload();
         }, 1500);
       } else {
-        showNotification(result.message || 'Failed to add recording link', 'error');
+        showNotification(result.message || (isEditing ? 'Failed to update recording link' : 'Failed to add recording link'), 'error');
       }
     } catch (error) {
-      console.error('Error adding recording link:', error);
-      showNotification('Failed to add recording link. Please try again.', 'error');
+      console.error('Error ' + (isEditing ? 'updating' : 'adding') + ' recording link:', error);
+      showNotification('Failed to ' + (isEditing ? 'update' : 'add') + ' recording link. Please try again.', 'error');
     }
   }
 </script>

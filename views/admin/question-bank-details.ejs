@@ -315,8 +315,39 @@
 
               <div class="filter-group">
                 <label class="filter-label">Tags</label>
-                <input type="text" id="tagsFilter" class="filter-input" placeholder="Filter by tags...">
+                <input type="text" id="tagsFilter" class="filter-input" placeholder="Filter by tags (comma-separated for multiple)...">
+              
               </div>
+
+              <div class="filter-group" style="display: flex; align-items: flex-end;">
+                <button class="btn" onclick="openQuestionsSlider()" id="questionsSliderBtn" style="background: var(--admin-primary, #B80101); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; transition: all 0.3s ease; white-space: nowrap; box-shadow: 0 2px 4px rgba(184, 1, 1, 0.2);" onmouseover="this.style.background='var(--admin-primary-dark, #8b0000)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(184, 1, 1, 0.3)';" onmouseout="this.style.background='var(--admin-primary, #B80101)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(184, 1, 1, 0.2)';">
+                  <i class="fas fa-images me-2"></i>
+                  Preview All Questions
+                  <span class="badge bg-white text-danger ms-2" id="sliderBtnCount" style="color: var(--admin-primary, #B80101) !important;"><%= questions.length %></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Available Tags Section -->
+            <div id="availableTagsSection" class="available-tags-section" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="filter-label mb-0">
+                  <i class="fas fa-tags me-1"></i>
+                  Available Tags (click to filter)
+                </label>
+                <button class="btn btn-sm btn-outline-secondary" id="clearTagsFilterBtn" style="display: none;">
+                  <i class="fas fa-times me-1"></i>Clear Tags
+                </button>
+              </div>
+              <div id="availableTagsContainer" class="d-flex flex-wrap gap-2">
+                <!-- Tags will be populated here -->
+              </div>
+            </div>
+
+            <!-- Filter Results Summary -->
+            <div id="filterResultsSummary" class="filter-results-summary" style="display: none; margin-top: 15px; padding: 12px; background: #e0f2fe; border-radius: 8px; border: 1px solid #7dd3fc;">
+              <i class="fas fa-filter me-2"></i>
+              <span id="filterResultsText">Showing all questions</span>
             </div>
           </div>
 
@@ -529,6 +560,71 @@
   </div>
 </div>
 
+<!-- Questions Slider Modal -->
+<div class="modal fade" id="questionsSliderModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content" style="background: #000000;">
+      <div class="modal-header" style="background: rgba(0, 0, 0, 0.9); border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding: 15px 30px;">
+        <div class="d-flex align-items-center justify-content-between w-100">
+          <h5 class="modal-title text-white mb-0">
+            <i class="fas fa-images me-2"></i>
+            Questions Preview
+            <span class="badge bg-primary ms-2" id="sliderQuestionCounter">0 / 0</span>
+          </h5>
+          <div class="d-flex align-items-center gap-3">
+            <span class="text-white-50" style="font-size: 13px;" id="sliderFilterInfo"></span>
+            <button type="button" class="btn btn-sm btn-outline-light" data-bs-dismiss="modal">
+              <i class="fas fa-times me-1"></i> Close
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-body p-0" style="background: #000000; position: relative; overflow: hidden;">
+        <!-- Navigation Arrows -->
+        <button class="slider-nav-btn slider-prev" id="sliderPrevBtn" onclick="navigateSlider(-1)">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="slider-nav-btn slider-next" id="sliderNextBtn" onclick="navigateSlider(1)">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        
+        <!-- Slider Container -->
+        <div id="questionsSliderContainer" class="questions-slider-container">
+          <!-- Slides will be dynamically inserted here -->
+        </div>
+        
+        <!-- Bottom Controls -->
+        <div class="slider-controls">
+          <div class="d-flex align-items-center justify-content-between w-100">
+            <div class="d-flex align-items-center gap-3">
+              <button class="btn btn-outline-light btn-sm" onclick="navigateSlider(-1)">
+                <i class="fas fa-chevron-left me-1"></i> Previous
+              </button>
+              <button class="btn btn-outline-light btn-sm" onclick="navigateSlider(1)">
+                Next <i class="fas fa-chevron-right ms-1"></i>
+              </button>
+            </div>
+            
+            <div class="slider-dots" id="sliderDots">
+              <!-- Dots will be dynamically inserted here -->
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-warning btn-sm" id="sliderEditBtn" onclick="editCurrentSlideQuestion()" style="display: none;">
+                <i class="fas fa-edit me-1"></i> Edit This Question
+              </button>
+              <button class="btn btn-danger btn-sm" id="sliderDeleteBtn" onclick="deleteCurrentSlideQuestion()" style="display: none;">
+                <i class="fas fa-trash me-1"></i> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Create Question Modal -->
 <div class="modal fade admin-modal" id="createQuestionModal" tabindex="-1">
   <div class="modal-dialog modal-xl">
@@ -706,8 +802,19 @@
 
 
               <div class="admin-form-group">
-                <label for="tags" class="admin-form-label">Tags</label>
+                <label for="tags" class="admin-form-label">
+                  Tags
+                  <span class="badge bg-success ms-2" style="font-size: 9px; font-weight: 500;">
+                    <i class="fas fa-mouse-pointer"></i> Click to remove
+                  </span>
+                </label>
                 <input type="text" class="form-control admin-form-control" id="tags" name="tags" placeholder="Enter tags separated by commas">
+                <small class="form-text text-muted" id="createTagsHelp" style="display: block; margin-top: 5px;">
+                  <i class="fas fa-info-circle"></i> Separate multiple tags with commas. Tags will appear below for easy removal.
+                </small>
+                <div id="createTagsPreview" class="mt-2" style="display: none;">
+                  <!-- Tag preview will be shown here -->
+                </div>
 
                 <!-- Previous Tags Selection -->
                 <div id="createPreviousTagsSection" style="display: none;">
@@ -816,6 +923,10 @@
         <h5 class="modal-title admin-modal-title">
           <i class="fas fa-edit me-2"></i>
           Edit Question
+          <span id="editQuestionTagsBadge" class="badge bg-primary ms-2" style="display: none; font-size: 11px; font-weight: 600;">
+            <i class="fas fa-tags me-1"></i>
+            <span id="editQuestionTagsCount">0</span> tags
+          </span>
         </h5>
         <button type="button" class="btn-close admin-btn-close" data-bs-dismiss="modal"></button>
       </div>
@@ -825,6 +936,15 @@
         <!-- Hidden field for question text to ensure it's sent to backend -->
         <input type="hidden" name="questionText" id="editHiddenQuestionText" value="">
         <div class="modal-body admin-modal-body">
+          <!-- Loading State -->
+          <div id="editQuestionLoader" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading question data...</p>
+          </div>
+          <!-- Form Content -->
+          <div id="editQuestionFormContent" style="display: block;">
           <div class="row">
             <div class="col-md-8">
               <div class="admin-form-group">
@@ -987,8 +1107,19 @@
               </div>
 
               <div class="admin-form-group">
-                <label for="editTags" class="admin-form-label">Tags</label>
+                <label for="editTags" class="admin-form-label">
+                  Tags
+                  <span class="badge bg-info ms-2" style="font-size: 9px; font-weight: 500;">
+                    <i class="fas fa-mouse-pointer"></i> Click to remove
+                  </span>
+                </label>
                 <input type="text" class="form-control admin-form-control" id="editTags" name="tags" placeholder="Enter tags separated by commas">
+                <small class="form-text text-muted" id="editTagsHelp" style="display: block; margin-top: 5px;">
+                  <i class="fas fa-info-circle"></i> Separate multiple tags with commas. Tags will appear below for easy removal.
+                </small>
+                <div id="editTagsPreview" class="mt-2" style="display: none;">
+                  <!-- Tag preview will be shown here -->
+                </div>
 
                 <!-- Previous Tags Selection -->
                 <div id="previousTagsSection" style="display: none;">
@@ -999,6 +1130,7 @@
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
 
@@ -1586,34 +1718,122 @@
     modal.show();
   }
 
-  // Edit question
-  function editQuestion(questionId) {
-    cleanupModals();
+  // Clear edit form completely
+  function clearEditForm() {
+    // Clear all text inputs
+    document.getElementById('editQuestionText').value = '';
+    document.getElementById('editHiddenQuestionText').value = '';
+    document.getElementById('editExplanation').value = '';
+    document.getElementById('editTags').value = '';
+    document.getElementById('editQuestionImageUrl').value = '';
+    document.getElementById('editPoints').value = '1';
+    
+    // Reset selects
+    document.getElementById('editQuestionType').value = '';
+    document.getElementById('editDifficulty').value = '';
+    
+    // Clear options container
+    const optionsContainer = document.getElementById('editOptionsContainer');
+    if (optionsContainer) {
+      optionsContainer.innerHTML = '';
+    }
+    
+    // Clear correct answers container
+    const answersContainer = document.getElementById('editCorrectAnswersContainer');
+    if (answersContainer) {
+      answersContainer.innerHTML = '';
+    }
+    
+    // Clear image preview
+    const imagePreview = document.getElementById('editQuestionImagePreview');
+    if (imagePreview) {
+      imagePreview.innerHTML = `
+        <div class="preview-overlay">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p>Click or drag to upload</p>
+          <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
+        </div>
+      `;
+    }
+    
+    // Clear tags preview
+    const tagsPreview = document.getElementById('editTagsPreview');
+    if (tagsPreview) {
+      tagsPreview.innerHTML = '';
+      tagsPreview.style.display = 'none';
+    }
+    
+    // Reset math editor preview
+    const mathPreview = document.getElementById('mathEditorPreview-editQuestionText');
+    if (mathPreview) {
+      mathPreview.innerHTML = 'Preview will appear here...';
+    }
+    
+    // Clear math editor field
+    const mathField = document.getElementById('mathEditorField-editQuestionText');
+    if (mathField) {
+      mathField.value = '';
+    }
+    
+    // Hide sections
+    document.getElementById('editAnswerOptionsSection').style.display = 'none';
+    document.getElementById('editWrittenAnswersSection').style.display = 'none';
+    
+    // Clear validation errors
+    const invalidFields = document.querySelectorAll('#editQuestionModal .is-invalid');
+    invalidFields.forEach(field => field.classList.remove('is-invalid'));
+    const errorMessages = document.querySelectorAll('#editQuestionModal .invalid-feedback');
+    errorMessages.forEach(error => {
+      error.style.display = 'none';
+      error.textContent = '';
+    });
+    
+    // Reset tags badge
+    const tagsBadge = document.getElementById('editQuestionTagsBadge');
+    if (tagsBadge) {
+      tagsBadge.style.display = 'none';
+    }
+  }
 
-    // Show loading state
+  // Populate edit form directly with question data (no fetch - used for cached data)
+  function populateEditFormDirectly(question, questionId) {
+    cleanupModals();
+    
+    // Clear form completely to prevent cached data
+    clearEditForm();
+    
+    // No loader needed since we have data immediately
+    const loader = document.getElementById('editQuestionLoader');
+    const formContent = document.getElementById('editQuestionFormContent');
+    if (loader) loader.style.display = 'none';
+    if (formContent) formContent.style.display = 'block';
+    
+    // Enable footer buttons
+    const footerButtons = document.querySelectorAll('#editQuestionModal .modal-footer button');
+    footerButtons.forEach(btn => btn.disabled = false);
+
+    // Show modal immediately
     const modal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
     modal.show();
 
-    // Fetch complete question data from server
-    fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.success && data.question) {
-          const question = data.question;
+    // Populate the edit form
+    const editQuestionTextElement = document.getElementById('editQuestionText');
+    editQuestionTextElement.value = question.questionText || '';
+    
+    // Continue with the rest of the population logic (same as editQuestion)
+    populateEditFormFields(question, questionId);
+  }
+  
+  // Shared function to populate edit form fields (used by both editQuestion and populateEditFormDirectly)
+  function populateEditFormFields(question, questionId) {
+    // Populate the edit form
+    const editQuestionTextElement = document.getElementById('editQuestionText');
+    editQuestionTextElement.value = question.questionText || '';
 
-          // Populate the edit form
-          const editQuestionTextElement = document.getElementById('editQuestionText');
-          editQuestionTextElement.value = question.questionText || '';
+    // Populate basic fields
+    document.getElementById('editQuestionType').value = question.questionType;
+    document.getElementById('editDifficulty').value = question.difficulty;
+    document.getElementById('editPoints').value = question.points;
 
           // Populate basic fields
           document.getElementById('editQuestionType').value = question.questionType;
@@ -1624,12 +1844,131 @@
           const editTagsInput = document.getElementById('editTags');
           if (editTagsInput) {
             if (question.tags && Array.isArray(question.tags) && question.tags.length > 0) {
-              editTagsInput.value = question.tags.join(', ');
-              console.log('Tags populated in edit form:', question.tags.join(', '));
-            } else {
-              editTagsInput.value = '';
-              console.log('No tags found for this question');
-            }
+              const tagsString = question.tags.join(', ');
+              editTagsInput.value = tagsString;
+            // Store original tags as data attribute for reference
+            editTagsInput.setAttribute('data-original-tags', tagsString);
+          } else {
+            editTagsInput.value = '';
+            editTagsInput.setAttribute('data-original-tags', '');
+          }
+            
+            // Function to remove a tag with animation
+            const removeEditTag = function(tagToRemove, badgeElement) {
+              // Add removing animation
+              if (badgeElement) {
+                badgeElement.classList.add('removing');
+                // Wait for animation to complete
+                setTimeout(() => {
+                  const currentTags = editTagsInput.value.trim();
+                  const tags = currentTags.split(',').map(t => t.trim()).filter(t => t);
+                  const updatedTags = tags.filter(tag => tag !== tagToRemove);
+                  editTagsInput.value = updatedTags.join(', ');
+                  updateTagsPreview();
+                }, 400);
+              } else {
+                const currentTags = editTagsInput.value.trim();
+                const tags = currentTags.split(',').map(t => t.trim()).filter(t => t);
+                const updatedTags = tags.filter(tag => tag !== tagToRemove);
+                editTagsInput.value = updatedTags.join(', ');
+                updateTagsPreview();
+              }
+            };
+            
+            // Add visual indicator for tag changes and live preview
+            const updateTagsPreview = function() {
+              const originalTags = editTagsInput.getAttribute('data-original-tags') || '';
+              const currentTags = editTagsInput.value.trim();
+              const tagsPreview = document.getElementById('editTagsPreview');
+              const tagsHelp = document.getElementById('editTagsHelp');
+              const tagsBadge = document.getElementById('editQuestionTagsBadge');
+              const tagsCount = document.getElementById('editQuestionTagsCount');
+              
+              // Visual indicator for changes
+              if (currentTags !== originalTags) {
+                editTagsInput.style.borderColor = '#f59e0b';
+                editTagsInput.style.boxShadow = '0 0 0 3px rgba(245, 158, 11, 0.1)';
+              } else {
+                editTagsInput.style.borderColor = '';
+                editTagsInput.style.boxShadow = '';
+              }
+              
+              // Parse tags
+              const tags = currentTags ? currentTags.split(',').map(t => t.trim()).filter(t => t) : [];
+              
+              // Update badge in modal header
+              if (tagsBadge && tagsCount) {
+                if (tags.length > 0) {
+                  tagsCount.textContent = tags.length;
+                  tagsBadge.style.display = 'inline-block';
+                  
+                  // Change badge color if tags were modified
+                  if (currentTags !== originalTags) {
+                    tagsBadge.className = 'badge bg-warning ms-2';
+                  } else {
+                    tagsBadge.className = 'badge bg-primary ms-2';
+                  }
+                } else {
+                  tagsBadge.style.display = 'none';
+                }
+              }
+              
+              // Show tag preview with remove buttons
+              if (currentTags && tagsPreview) {
+                if (tags.length > 0) {
+                  tagsPreview.innerHTML = `
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
+                      ${tags.map(tag => `
+                        <span class="editable-tag-badge" data-tag="${tag.replace(/"/g, '&quot;')}" 
+                              style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 4px 10px 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s ease;">
+                          <i class="fas fa-tag" style="font-size: 9px;"></i>
+                          <span>${tag}</span>
+                          <i class="fas fa-times" style="font-size: 10px; opacity: 0.8; padding: 2px; border-radius: 50%; transition: all 0.2s ease;"></i>
+                        </span>
+                      `).join('')}
+                      <span style="color: #6b7280; font-size: 11px; padding: 4px 10px; display: inline-flex; align-items: center;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        ${tags.length} tag${tags.length !== 1 ? 's' : ''} (click × to remove)
+                      </span>
+                    </div>
+                  `;
+                  
+                  // Add click handlers to remove tags
+                  const tagBadges = tagsPreview.querySelectorAll('.editable-tag-badge');
+                  tagBadges.forEach(badge => {
+                    badge.addEventListener('click', function(e) {
+                      e.preventDefault();
+                      const tagToRemove = this.getAttribute('data-tag');
+                      removeEditTag(tagToRemove, this);
+                    });
+                    
+                    // Add hover effect
+                    badge.addEventListener('mouseenter', function() {
+                      this.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                      this.style.transform = 'scale(1.05)';
+                    });
+                    
+                    badge.addEventListener('mouseleave', function() {
+                      this.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+                      this.style.transform = 'scale(1)';
+                    });
+                  });
+                  
+                  tagsPreview.style.display = 'block';
+                  if (tagsHelp) tagsHelp.style.display = 'none';
+                } else {
+                  tagsPreview.style.display = 'none';
+                  if (tagsHelp) tagsHelp.style.display = 'block';
+                }
+              } else {
+                if (tagsPreview) tagsPreview.style.display = 'none';
+                if (tagsHelp) tagsHelp.style.display = 'block';
+              }
+            };
+            
+            editTagsInput.addEventListener('input', updateTagsPreview);
+            // Initial preview
+            updateTagsPreview();
           } else {
             console.error('editTags input not found');
           }
@@ -1732,24 +2071,85 @@
             updateEditAnswerRemoveButtons();
           }
 
-          // Set the form action
-          const editForm = document.getElementById('editQuestionForm');
-          editForm.action = `/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`;
+    // Set the form action
+    const editForm = document.getElementById('editQuestionForm');
+    editForm.action = `/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`;
 
-          // Load previous tags with a delay to ensure modal is ready
-          // Pass the current question's tags so they're included in the previous tags list
-          setTimeout(function() {
-            loadPreviousTags(question.tags || []);
-          }, 200);
+    // Load previous tags asynchronously after form is shown (non-blocking)
+    // Pass the current question's tags so they're included in the previous tags list
+    setTimeout(function() {
+      loadPreviousTags(question.tags || []);
+    }, 100); // Reduced delay
+  }
+  
+  // Edit question (fetches from server)
+  function editQuestion(questionId) {
+    cleanupModals();
+    
+    // Clear form completely to prevent cached data
+    clearEditForm();
+    
+    // Show loader and hide form content
+    const loader = document.getElementById('editQuestionLoader');
+    const formContent = document.getElementById('editQuestionFormContent');
+    if (loader) loader.style.display = 'block';
+    if (formContent) formContent.style.display = 'none';
+    
+    // Disable footer buttons during loading
+    const footerButtons = document.querySelectorAll('#editQuestionModal .modal-footer button');
+    footerButtons.forEach(btn => btn.disabled = true);
+
+    // Show modal with loader
+    const modal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
+    modal.show();
+
+    // Fetch complete question data from server (optimized with cache control)
+    fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        cache: 'no-store' // Prevent browser caching for fresh data
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success && data.question) {
+          const question = data.question;
+          
+          // Hide loader and show form content
+          const loader = document.getElementById('editQuestionLoader');
+          const formContent = document.getElementById('editQuestionFormContent');
+          if (loader) loader.style.display = 'none';
+          if (formContent) formContent.style.display = 'block';
+          
+          // Enable footer buttons
+          const footerButtons = document.querySelectorAll('#editQuestionModal .modal-footer button');
+          footerButtons.forEach(btn => btn.disabled = false);
+
+          // Populate the edit form using shared function
+          populateEditFormFields(question, questionId);
 
         } else {
+          // Hide loader on error
+          const loader = document.getElementById('editQuestionLoader');
+          if (loader) loader.style.display = 'none';
           showNotification('Failed to load question data', 'error');
           modal.hide();
         }
       })
       .catch(error => {
         console.error('Error fetching question:', error);
-        showNotification('Failed to load question data', 'error');
+        // Hide loader on error
+        const loader = document.getElementById('editQuestionLoader');
+        if (loader) loader.style.display = 'none';
+        showNotification('Failed to load question data: ' + (error.message || 'Network error'), 'error');
         modal.hide();
       });
   }
@@ -2468,9 +2868,29 @@
         const tagsInput = document.getElementById('editTags');
         if (tagsInput) {
           const tagsValue = tagsInput.value.trim();
+          const originalTags = tagsInput.getAttribute('data-original-tags') || '';
+          
+          // Warn if tags are being removed
+          if (originalTags && !tagsValue) {
+            const confirmRemove = confirm(
+              `Warning: You are about to remove all tags from this question.\n\n` +
+              `Original tags: ${originalTags}\n\n` +
+              `Are you sure you want to continue?`
+            );
+            
+            if (!confirmRemove) {
+              // Restore original tags
+              tagsInput.value = originalTags;
+              submitBtn.innerHTML = originalText;
+              submitBtn.disabled = false;
+              return;
+            }
+          }
+          
           // Always include tags field, even if empty (so server knows to preserve/clear tags)
           jsonData.tags = tagsValue;
           console.log('Tags from input field:', tagsValue);
+          console.log('Original tags:', originalTags);
         } else {
           // If input not found, set empty string to preserve existing behavior
           jsonData.tags = '';
@@ -2506,12 +2926,27 @@
           .then(data => {
             if (data.success) {
               showNotification(data.message, 'success');
-              // Close modal and reload page
+              
+              // Close modal
               const modal = bootstrap.Modal.getInstance(document.getElementById('editQuestionModal'));
               modal.hide();
+              
+              // Update the question card in the DOM without reloading
               setTimeout(() => {
-                window.location.reload();
-              }, 1000);
+                updateQuestionCardInDOM(data.question);
+                
+                // Re-initialize questions array
+                reinitializeQuestionsArray();
+                
+                // Show success animation
+                const questionCard = document.querySelector(`[data-question-id="${data.question._id}"]`);
+                if (questionCard) {
+                  questionCard.style.animation = 'none';
+                  setTimeout(() => {
+                    questionCard.style.animation = 'pulse 0.5s ease';
+                  }, 10);
+                }
+              }, 300);
             } else {
               showNotification(data.message, 'error');
             }
@@ -2862,7 +3297,95 @@
         const tagsInput = document.getElementById('tags');
         if (tagsInput) {
           tagsInput.value = '';
+          
+          // Function to remove a tag from create form with animation
+          const removeCreateTag = function(tagToRemove, badgeElement) {
+            // Add removing animation
+            if (badgeElement) {
+              badgeElement.classList.add('removing');
+              // Wait for animation to complete
+              setTimeout(() => {
+                const currentTags = tagsInput.value.trim();
+                const tags = currentTags.split(',').map(t => t.trim()).filter(t => t);
+                const updatedTags = tags.filter(tag => tag !== tagToRemove);
+                tagsInput.value = updatedTags.join(', ');
+                updateCreateTagsPreview();
+              }, 400);
+            } else {
+              const currentTags = tagsInput.value.trim();
+              const tags = currentTags.split(',').map(t => t.trim()).filter(t => t);
+              const updatedTags = tags.filter(tag => tag !== tagToRemove);
+              tagsInput.value = updatedTags.join(', ');
+              updateCreateTagsPreview();
+            }
+          };
+          
+          // Setup live preview for create form tags
+          const updateCreateTagsPreview = function() {
+            const currentTags = tagsInput.value.trim();
+            const tagsPreview = document.getElementById('createTagsPreview');
+            const tagsHelp = document.getElementById('createTagsHelp');
+            
+            // Show tag preview with remove buttons
+            if (currentTags && tagsPreview) {
+              const tags = currentTags.split(',').map(t => t.trim()).filter(t => t);
+              if (tags.length > 0) {
+                tagsPreview.innerHTML = `
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
+                    ${tags.map(tag => `
+                      <span class="editable-tag-badge-create" data-tag="${tag.replace(/"/g, '&quot;')}" 
+                            style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 10px 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s ease;">
+                        <i class="fas fa-tag" style="font-size: 9px;"></i>
+                        <span>${tag}</span>
+                        <i class="fas fa-times" style="font-size: 10px; opacity: 0.8; padding: 2px; border-radius: 50%; transition: all 0.2s ease;"></i>
+                      </span>
+                    `).join('')}
+                    <span style="color: #6b7280; font-size: 11px; padding: 4px 10px; display: inline-flex; align-items: center;">
+                      <i class="fas fa-info-circle me-1"></i>
+                      ${tags.length} tag${tags.length !== 1 ? 's' : ''} (click × to remove)
+                    </span>
+                  </div>
+                `;
+                
+                // Add click handlers to remove tags
+                const tagBadges = tagsPreview.querySelectorAll('.editable-tag-badge-create');
+                tagBadges.forEach(badge => {
+                  badge.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tagToRemove = this.getAttribute('data-tag');
+                    removeCreateTag(tagToRemove, this);
+                  });
+                  
+                  // Add hover effect
+                  badge.addEventListener('mouseenter', function() {
+                    this.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                    this.style.transform = 'scale(1.05)';
+                  });
+                  
+                  badge.addEventListener('mouseleave', function() {
+                    this.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    this.style.transform = 'scale(1)';
+                  });
+                });
+                
+                tagsPreview.style.display = 'block';
+                if (tagsHelp) tagsHelp.style.display = 'none';
+              } else {
+                tagsPreview.style.display = 'none';
+                if (tagsHelp) tagsHelp.style.display = 'block';
+              }
+            } else {
+              if (tagsPreview) tagsPreview.style.display = 'none';
+              if (tagsHelp) tagsHelp.style.display = 'block';
+            }
+          };
+          
+          // Remove old listener if exists
+          tagsInput.removeEventListener('input', updateCreateTagsPreview);
+          // Add new listener
+          tagsInput.addEventListener('input', updateCreateTagsPreview);
         }
+        
         // Load previous tags with a small delay to ensure DOM is ready
         setTimeout(function() {
           loadPreviousTagsForCreate();
@@ -3071,10 +3594,8 @@
         previousTagsContainer.appendChild(tagElement);
       });
       previousTagsSection.style.display = 'block';
-      console.log('Previous tags loaded:', sortedTags.length, 'tags');
     } else {
       previousTagsSection.style.display = 'none';
-      console.log('No previous tags found');
     }
   }
 
@@ -3240,22 +3761,59 @@
   // Store all questions for client-side filtering
   let allQuestions = [];
   let filteredQuestions = [];
+  
+  // Slider state
+  let currentSlideIndex = 0;
+  let sliderQuestions = [];
+  let sliderModal = null;
 
   // Initialize the page
   document.addEventListener('DOMContentLoaded', function() {
     // Store all questions from the page
     const questionCards = document.querySelectorAll('.question-card-modern');
-    allQuestions = Array.from(questionCards).map(card => ({
-      element: card,
-      id: card.dataset.questionId,
-      difficulty: card.dataset.difficulty,
-      tags: card.dataset.tags.toLowerCase(),
-      points: parseInt(card.dataset.points),
-      createdAt: new Date(card.dataset.createdAt),
-      text: card.querySelector('.question-text').textContent.toLowerCase()
-    }));
+    console.log('Found', questionCards.length, 'question cards');
+    
+    allQuestions = Array.from(questionCards).map(card => {
+      // Get question text from either plain text or math field
+      let questionText = '';
+      const plainTextEl = card.querySelector('.question-text-plain');
+      const mathFieldEl = card.querySelector('.question-math-field');
+      
+      if (plainTextEl) {
+        questionText = plainTextEl.textContent.toLowerCase();
+      } else if (mathFieldEl) {
+        questionText = (mathFieldEl.textContent || mathFieldEl.getAttribute('data-question-text') || '').toLowerCase();
+      }
+      
+      const tagsData = card.dataset.tags;
+      const tagsArray = tagsData ? tagsData.toLowerCase().split(',').map(t => t.trim()).filter(t => t) : [];
+      
+      return {
+        element: card,
+        id: card.dataset.questionId,
+        difficulty: card.dataset.difficulty,
+        tags: tagsArray,
+        tagsString: tagsData ? tagsData.toLowerCase() : '',
+        points: parseInt(card.dataset.points),
+        createdAt: new Date(card.dataset.createdAt),
+        text: questionText
+      };
+    });
+
+    // Log sample question to debug tags
+    if (allQuestions.length > 0) {
+      console.log('Sample question data:', {
+        id: allQuestions[0].id,
+        tags: allQuestions[0].tags,
+        tagsString: allQuestions[0].tagsString,
+        difficulty: allQuestions[0].difficulty
+      });
+    }
 
     filteredQuestions = [...allQuestions];
+
+    // Populate available tags
+    populateAvailableTags();
 
     // Initialize Chart.js - wait for Chart.js to be fully loaded
     function initChartWhenReady() {
@@ -3506,6 +4064,165 @@
     }
   }
 
+  // Populate available tags from all questions
+  function populateAvailableTags() {
+    const allTags = new Set();
+    
+    // Collect all unique tags from questions
+    allQuestions.forEach(question => {
+      if (question.tags && question.tags.length > 0) {
+        question.tags.forEach(tag => {
+          if (tag && tag.trim()) {
+            allTags.add(tag.trim());
+          }
+        });
+      }
+    });
+
+    console.log('Total unique tags found:', allTags.size);
+    console.log('Tags:', Array.from(allTags));
+
+    const availableTagsSection = document.getElementById('availableTagsSection');
+    const availableTagsContainer = document.getElementById('availableTagsContainer');
+    
+    if (!availableTagsSection || !availableTagsContainer) {
+      console.error('Available tags section or container not found');
+      return;
+    }
+
+    // If there are tags, show the section
+    if (allTags.size > 0) {
+      availableTagsSection.style.display = 'block';
+      
+      // Sort tags alphabetically
+      const sortedTags = Array.from(allTags).sort();
+      
+      // Create tag chips
+      availableTagsContainer.innerHTML = sortedTags.map(tag => `
+        <span class="available-tag-chip" data-tag="${tag}" onclick="toggleTagFilter('${tag.replace(/'/g, "\\'")}')">
+          <i class="fas fa-tag me-1"></i>${tag}
+        </span>
+      `).join('');
+      
+      console.log('Available tags section populated with', sortedTags.length, 'tags');
+    } else {
+      availableTagsSection.style.display = 'none';
+      console.log('No tags found in questions');
+    }
+  }
+
+  // Toggle tag in filter
+  function toggleTagFilter(tag) {
+    const tagsFilter = document.getElementById('tagsFilter');
+    const clearTagsBtn = document.getElementById('clearTagsFilterBtn');
+    
+    if (!tagsFilter) return;
+    
+    const currentTags = tagsFilter.value.split(',').map(t => t.trim()).filter(t => t);
+    const tagLower = tag.toLowerCase();
+    
+    // Check if tag is already in filter
+    const tagIndex = currentTags.findIndex(t => t.toLowerCase() === tagLower);
+    
+    if (tagIndex > -1) {
+      // Remove tag
+      currentTags.splice(tagIndex, 1);
+    } else {
+      // Add tag
+      currentTags.push(tag);
+    }
+    
+    // Update input
+    tagsFilter.value = currentTags.join(', ');
+    
+    // Show/hide clear button
+    if (currentTags.length > 0) {
+      clearTagsBtn.style.display = 'inline-block';
+    } else {
+      clearTagsBtn.style.display = 'none';
+    }
+    
+    // Update tag chip styles
+    updateTagChipStyles();
+    
+    // Trigger filter
+    filterQuestions();
+  }
+
+  // Update tag chip styles based on active filters
+  function updateTagChipStyles() {
+    const tagsFilter = document.getElementById('tagsFilter');
+    if (!tagsFilter) return;
+    
+    const activeTags = tagsFilter.value.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+    const tagChips = document.querySelectorAll('.available-tag-chip');
+    
+    tagChips.forEach(chip => {
+      const chipTag = chip.getAttribute('data-tag').toLowerCase();
+      if (activeTags.includes(chipTag)) {
+        chip.classList.add('active');
+      } else {
+        chip.classList.remove('active');
+      }
+    });
+  }
+
+  // Update filter results summary
+  function updateFilterSummary() {
+    const summaryEl = document.getElementById('filterResultsSummary');
+    const summaryText = document.getElementById('filterResultsText');
+    
+    if (!summaryEl || !summaryText) return;
+
+    const searchInput = document.getElementById('questionsSearchInput');
+    const difficultyFilter = document.getElementById('difficultyFilter');
+    const tagsFilter = document.getElementById('tagsFilter');
+
+    const hasSearch = searchInput && searchInput.value.trim();
+    const hasDifficulty = difficultyFilter && difficultyFilter.value !== 'all';
+    const hasTags = tagsFilter && tagsFilter.value.trim();
+
+    const isFiltering = hasSearch || hasDifficulty || hasTags;
+
+    if (isFiltering) {
+      summaryEl.style.display = 'block';
+      
+      let filterParts = [];
+      
+      if (hasSearch) {
+        filterParts.push(`search: "${searchInput.value.trim()}"`);
+      }
+      
+      if (hasDifficulty) {
+        filterParts.push(`difficulty: ${difficultyFilter.value}`);
+      }
+      
+      if (hasTags) {
+        const tags = tagsFilter.value.split(',').map(t => t.trim()).filter(t => t);
+        filterParts.push(`tags: ${tags.join(', ')}`);
+      }
+
+      summaryText.innerHTML = `
+        Showing <strong>${filteredQuestions.length}</strong> of <strong>${allQuestions.length}</strong> questions
+        ${filterParts.length > 0 ? `(${filterParts.join(' | ')})` : ''}
+      `;
+    } else {
+      summaryEl.style.display = 'none';
+    }
+    
+    // Update slider button count
+    updateSliderButtonCount();
+  }
+  
+  // Update slider button count
+  function updateSliderButtonCount() {
+    const sliderBtnCount = document.getElementById('sliderBtnCount');
+    if (sliderBtnCount) {
+      const count = filteredQuestions.length > 0 ? filteredQuestions.length : allQuestions.length;
+      sliderBtnCount.textContent = count;
+    }
+  }
+
   // Setup search and filter event listeners
   function setupSearchAndFilters() {
     const searchInput = document.getElementById('questionsSearchInput');
@@ -3513,6 +4230,7 @@
     const difficultyFilter = document.getElementById('difficultyFilter');
     const sortFilter = document.getElementById('sortFilter');
     const tagsFilter = document.getElementById('tagsFilter');
+    const clearTagsBtn = document.getElementById('clearTagsFilterBtn');
 
     // Check if elements exist before adding event listeners
     if (!searchInput || !searchClearBtn || !difficultyFilter || !sortFilter || !tagsFilter) {
@@ -3543,7 +4261,27 @@
     // Filter change events
     difficultyFilter.addEventListener('change', filterQuestions);
     sortFilter.addEventListener('change', filterAndSortQuestions);
-    tagsFilter.addEventListener('input', debounce(filterQuestions, 300));
+    tagsFilter.addEventListener('input', function() {
+      debounce(filterQuestions, 300)();
+      updateTagChipStyles();
+      
+      // Show/hide clear button
+      if (this.value.trim()) {
+        clearTagsBtn.style.display = 'inline-block';
+      } else {
+        clearTagsBtn.style.display = 'none';
+      }
+    });
+
+    // Clear tags filter button
+    if (clearTagsBtn) {
+      clearTagsBtn.addEventListener('click', function() {
+        tagsFilter.value = '';
+        this.style.display = 'none';
+        updateTagChipStyles();
+        filterQuestions();
+      });
+    }
   }
 
   // Filter questions based on search and filters
@@ -3561,10 +4299,19 @@
     const difficultyFilter = difficultySelect.value;
     const tagsFilter = tagsInput.value.toLowerCase().trim();
 
+    // Parse tags filter - support comma-separated tags for AND logic
+    const filterTags = tagsFilter ? tagsFilter.split(',').map(t => t.trim()).filter(t => t) : [];
+
     filteredQuestions = allQuestions.filter(question => {
-      // Search filter
-      if (searchQuery && !question.text.includes(searchQuery) && !question.tags.includes(searchQuery)) {
-        return false;
+      // Search filter - search in question text and tags
+      if (searchQuery) {
+        const matchesText = question.text.includes(searchQuery);
+        const matchesTags = question.tagsString.includes(searchQuery);
+        const matchesDifficulty = question.difficulty.toLowerCase().includes(searchQuery);
+        
+        if (!matchesText && !matchesTags && !matchesDifficulty) {
+          return false;
+        }
       }
 
       // Difficulty filter
@@ -3572,9 +4319,19 @@
         return false;
       }
 
-      // Tags filter
-      if (tagsFilter && !question.tags.includes(tagsFilter)) {
-        return false;
+      // Tags filter - enhanced to support multiple tags
+      if (filterTags.length > 0) {
+        // Check if question has all the filter tags (AND logic)
+        const hasAllTags = filterTags.every(filterTag => {
+          // Check if any of the question's tags includes the filter tag
+          return question.tags.some(questionTag => 
+            questionTag.includes(filterTag) || filterTag.includes(questionTag)
+          );
+        });
+        
+        if (!hasAllTags) {
+          return false;
+        }
       }
 
       return true;
@@ -3643,6 +4400,9 @@
 
     // Update count
     questionsCount.textContent = filteredQuestions.length;
+
+    // Update filter results summary
+    updateFilterSummary();
 
     // Show empty state if no results
     if (filteredQuestions.length === 0) {
@@ -3718,6 +4478,522 @@
     };
   }
 
+  // ==================== QUESTIONS SLIDER ====================
+  
+  // Cache for full question data in slider (keyed by question ID)
+  const sliderQuestionDataCache = new Map();
+  
+  // Open questions slider
+  function openQuestionsSlider() {
+    // Use filtered questions if filters are active, otherwise use all questions
+    sliderQuestions = filteredQuestions.length > 0 ? filteredQuestions : allQuestions;
+    // Clear cache when opening slider
+    sliderQuestionDataCache.clear();
+    
+    if (sliderQuestions.length === 0) {
+      showNotification('No questions to display', 'warning');
+      return;
+    }
+    
+    currentSlideIndex = 0;
+    
+    // Initialize modal
+    const modalEl = document.getElementById('questionsSliderModal');
+    sliderModal = new bootstrap.Modal(modalEl);
+    
+    // Build slider
+    buildSlider();
+    
+    // Show modal
+    sliderModal.show();
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', handleSliderKeyboard);
+    
+    // Update filter info
+    updateSliderFilterInfo();
+  }
+  
+  // Build slider HTML
+  function buildSlider() {
+    const container = document.getElementById('questionsSliderContainer');
+    const dotsContainer = document.getElementById('sliderDots');
+    
+    if (!container || !dotsContainer) return;
+    
+    // Clear existing content
+    container.innerHTML = '';
+    dotsContainer.innerHTML = '';
+    
+    if (sliderQuestions.length === 0) {
+      container.innerHTML = `
+        <div class="slider-empty-state">
+          <i class="fas fa-question-circle"></i>
+          <h3>No Questions Found</h3>
+          <p>Try adjusting your filters or add some questions to get started.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Create slides
+    sliderQuestions.forEach((question, index) => {
+      const slide = createSlide(question, index);
+      container.appendChild(slide);
+      
+      // Create dot
+      const dot = document.createElement('div');
+      dot.className = 'slider-dot';
+      if (index === 0) dot.classList.add('active');
+      dot.onclick = () => goToSlide(index);
+      dot.title = `Question ${index + 1}`;
+      dotsContainer.appendChild(dot);
+    });
+    
+    // Show first slide
+    updateSlidePosition();
+    updateSliderCounter();
+    updateNavigationButtons();
+  }
+  
+  // Create a slide
+  function createSlide(question, index) {
+    const slide = document.createElement('div');
+    slide.className = 'slider-slide';
+    if (index === 0) slide.classList.add('active');
+    
+    // Fetch full question data (optimized)
+    fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${question.id}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      cache: 'default' // Allow caching for slider since it's not critical
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.question) {
+        // Cache the full question data for quick access when editing
+        sliderQuestionDataCache.set(question.id, data.question);
+        
+        // Store question ID on slide element for easy access
+        slide.setAttribute('data-question-id', question.id);
+        
+        slide.innerHTML = createSlideHTML(data.question, index);
+        // Initialize MathLive fields after HTML is inserted
+        setTimeout(() => {
+          const mathFields = slide.querySelectorAll('math-field');
+          mathFields.forEach(field => {
+            if (typeof MathLive !== 'undefined') {
+              // MathLive fields are automatically initialized when inserted into DOM
+              // Just ensure they're properly rendered
+              field.style.display = 'inline-block';
+            }
+          });
+        }, 100);
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching question:', error);
+      slide.innerHTML = `
+        <div class="slider-question-card">
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Error loading question details
+          </div>
+        </div>
+      `;
+    });
+    
+    // Show loading state
+    slide.innerHTML = `
+      <div class="slider-question-card">
+        <div class="text-center">
+          <i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
+          <p class="text-muted">Loading question...</p>
+        </div>
+      </div>
+    `;
+    
+    return slide;
+  }
+  
+  // Create slide HTML
+  function createSlideHTML(question, index) {
+    const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+    
+    let html = `
+      <div class="slider-question-card">
+        <div class="slider-question-header">
+          <div class="slider-question-number">
+            Question ${index + 1} of ${sliderQuestions.length}
+          </div>
+          <div class="slider-question-meta">
+            <span class="difficulty-badge difficulty-${question.difficulty.toLowerCase()}">
+              <i class="fas fa-${question.difficulty === 'Easy' ? 'check-circle' : question.difficulty === 'Medium' ? 'exclamation-circle' : 'times-circle'} me-1"></i>
+              ${question.difficulty}
+            </span>
+            <span class="question-type-badge ${question.questionType.toLowerCase().replace('/', '-')}">
+              <i class="fas fa-${question.questionType === 'Written' ? 'edit' : question.questionType === 'MCQ' ? 'list' : 'check-square'} me-1"></i>
+              ${question.questionType}
+            </span>
+            <span class="badge bg-secondary">
+              <i class="fas fa-star me-1"></i>
+              ${question.points} point${question.points !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+        
+        <div class="slider-question-text">
+          ${parseMathExpressions(question.questionText)}
+        </div>
+    `;
+    
+    // Question image
+    if (question.questionImage && question.questionImage.trim()) {
+      html += `
+        <div class="slider-question-image">
+          <img src="${question.questionImage}" alt="Question Image">
+        </div>
+      `;
+    }
+    
+    // Options for MCQ/True-False
+    if (question.questionType === 'MCQ' || question.questionType === 'True/False') {
+      html += '<div class="slider-options-container">';
+      question.options.forEach((option, optIndex) => {
+        const isCorrect = option.isCorrect;
+        html += `
+          <div class="slider-option ${isCorrect ? 'correct' : ''}">
+            <div class="slider-option-letter">${optionLetters[optIndex]}</div>
+            <div class="slider-option-text">${parseMathExpressions(option.text)}</div>
+            ${isCorrect ? '<i class="fas fa-check-circle text-success ms-auto"></i>' : ''}
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+    
+    // Written answers
+    if (question.questionType === 'Written' && question.correctAnswers && question.correctAnswers.length > 0) {
+      html += `
+        <div class="slider-written-answers">
+          <h6><i class="fas fa-check-double me-2"></i>Correct Answers:</h6>
+      `;
+      question.correctAnswers.forEach((answer, idx) => {
+        const answerText = typeof answer === 'string' ? answer : answer.text;
+        const isMandatory = typeof answer === 'object' && answer.isMandatory !== undefined ? answer.isMandatory : true;
+        html += `
+          <div class="slider-written-answer">
+            <i class="fas fa-check text-success"></i>
+            <span>${parseMathExpressions(answerText)}</span>
+            ${!isMandatory ? '<span class="badge bg-info ms-2">Optional</span>' : ''}
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+    
+    // Explanation
+    if (question.explanation && question.explanation.trim()) {
+      html += `
+        <div class="slider-explanation">
+          <h6><i class="fas fa-lightbulb"></i> Explanation</h6>
+          <div class="slider-explanation-text">${parseMathExpressions(question.explanation)}</div>
+        </div>
+      `;
+    }
+    
+    // Tags
+    if (question.tags && question.tags.length > 0) {
+      html += '<div class="slider-tags">';
+      question.tags.forEach(tag => {
+        html += `<span class="slider-tag"><i class="fas fa-tag me-1"></i>${escapeHtml(tag)}</span>`;
+      });
+      html += '</div>';
+    }
+    
+    html += '</div>';
+    return html;
+  }
+  
+  // Navigate slider
+  function navigateSlider(direction) {
+    const newIndex = currentSlideIndex + direction;
+    
+    if (newIndex >= 0 && newIndex < sliderQuestions.length) {
+      goToSlide(newIndex);
+    }
+  }
+  
+  // Go to specific slide
+  function goToSlide(index) {
+    if (index < 0 || index >= sliderQuestions.length) return;
+    
+    currentSlideIndex = index;
+    updateSlidePosition();
+    updateSliderCounter();
+    updateNavigationButtons();
+    updateSliderDots();
+  }
+  
+  // Update slide position
+  function updateSlidePosition() {
+    const slides = document.querySelectorAll('.slider-slide');
+    slides.forEach((slide, index) => {
+      if (index === currentSlideIndex) {
+        slide.classList.add('active');
+        slide.style.display = 'flex';
+      } else {
+        slide.classList.remove('active');
+        slide.style.display = 'none';
+      }
+    });
+  }
+  
+  // Update counter
+  function updateSliderCounter() {
+    const counter = document.getElementById('sliderQuestionCounter');
+    if (counter) {
+      counter.textContent = `${currentSlideIndex + 1} / ${sliderQuestions.length}`;
+    }
+    
+    // Update edit/delete buttons
+    const editBtn = document.getElementById('sliderEditBtn');
+    const deleteBtn = document.getElementById('sliderDeleteBtn');
+    
+    if (editBtn && deleteBtn) {
+      if (sliderQuestions.length > 0) {
+        editBtn.style.display = 'inline-block';
+        deleteBtn.style.display = 'inline-block';
+      } else {
+        editBtn.style.display = 'none';
+        deleteBtn.style.display = 'none';
+      }
+    }
+  }
+  
+  // Update navigation buttons
+  function updateNavigationButtons() {
+    const prevBtn = document.getElementById('sliderPrevBtn');
+    const nextBtn = document.getElementById('sliderNextBtn');
+    
+    if (prevBtn) {
+      prevBtn.disabled = currentSlideIndex === 0;
+    }
+    
+    if (nextBtn) {
+      nextBtn.disabled = currentSlideIndex === sliderQuestions.length - 1;
+    }
+  }
+  
+  // Update dots
+  function updateSliderDots() {
+    const dots = document.querySelectorAll('.slider-dot');
+    dots.forEach((dot, index) => {
+      if (index === currentSlideIndex) {
+        dot.classList.add('active');
+      } else {
+        dot.classList.remove('active');
+      }
+    });
+  }
+  
+  // Update filter info
+  function updateSliderFilterInfo() {
+    const filterInfo = document.getElementById('sliderFilterInfo');
+    if (!filterInfo) return;
+    
+    const searchInput = document.getElementById('questionsSearchInput');
+    const difficultyFilter = document.getElementById('difficultyFilter');
+    const tagsFilter = document.getElementById('tagsFilter');
+    
+    const hasFilters = (searchInput && searchInput.value.trim()) ||
+                      (difficultyFilter && difficultyFilter.value !== 'all') ||
+                      (tagsFilter && tagsFilter.value.trim());
+    
+    if (hasFilters) {
+      filterInfo.innerHTML = '<i class="fas fa-filter me-1"></i> Filtered Results';
+    } else {
+      filterInfo.innerHTML = '<i class="fas fa-list me-1"></i> All Questions';
+    }
+  }
+  
+  // Keyboard navigation
+  function handleSliderKeyboard(e) {
+    if (!sliderModal || !sliderModal._isShown) return;
+    
+    if (e.key === 'ArrowLeft') {
+      navigateSlider(-1);
+    } else if (e.key === 'ArrowRight') {
+      navigateSlider(1);
+    } else if (e.key === 'Escape') {
+      closeSlider();
+    }
+  }
+  
+  // Close slider
+  function closeSlider() {
+    if (sliderModal) {
+      sliderModal.hide();
+    }
+    document.removeEventListener('keydown', handleSliderKeyboard);
+  }
+  
+  // Edit current slide question
+  function editCurrentSlideQuestion() {
+    if (sliderQuestions.length === 0) return;
+    
+    const currentQuestion = sliderQuestions[currentSlideIndex];
+    
+    // Check if we have cached full question data (much faster!)
+    const cachedQuestionData = sliderQuestionDataCache.get(currentQuestion.id);
+    
+    // Close slider immediately
+    closeSlider();
+    
+    // If we have cached data, populate edit form directly without fetching
+    if (cachedQuestionData) {
+      // Small delay to ensure slider modal is closed
+      setTimeout(() => {
+        // Populate edit form directly with cached data (no fetch needed!)
+        populateEditFormDirectly(cachedQuestionData, currentQuestion.id);
+      }, 100);
+    } else {
+      // Fallback: fetch if cache miss (shouldn't happen normally)
+      setTimeout(() => {
+        editQuestion(currentQuestion.id);
+      }, 100);
+    }
+  }
+  
+  // Delete current slide question
+  function deleteCurrentSlideQuestion() {
+    if (sliderQuestions.length === 0) return;
+    
+    const currentQuestion = sliderQuestions[currentSlideIndex];
+    const questionText = currentQuestion.text.substring(0, 50) + '...';
+    
+    // Close slider
+    closeSlider();
+    
+    // Wait for slider to close, then confirm delete
+    setTimeout(() => {
+      deleteQuestion(currentQuestion.id, questionText);
+    }, 300);
+  }
+  
+  // Helper function to escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  // Update question card in DOM without reload
+  function updateQuestionCardInDOM(question) {
+    const questionCard = document.querySelector(`[data-question-id="${question._id}"]`);
+    if (!questionCard) return;
+    
+    // Update data attributes
+    questionCard.setAttribute('data-difficulty', question.difficulty);
+    questionCard.setAttribute('data-tags', question.tags ? question.tags.join(',') : '');
+    questionCard.setAttribute('data-points', question.points);
+    
+    // Update question text
+    const questionTextEl = questionCard.querySelector('.question-text-plain, .question-math-field');
+    if (questionTextEl) {
+      if (questionTextEl.classList.contains('question-text-plain')) {
+        questionTextEl.textContent = question.questionText.length > 120 ? 
+          question.questionText.substring(0, 120) + '...' : question.questionText;
+      } else {
+        questionTextEl.value = question.questionText;
+      }
+    }
+    
+    // Update difficulty badge
+    const difficultyBadge = questionCard.querySelector('.difficulty-badge');
+    if (difficultyBadge) {
+      difficultyBadge.className = `difficulty-badge difficulty-${question.difficulty.toLowerCase()}`;
+      difficultyBadge.innerHTML = `
+        <i class="fas fa-${question.difficulty === 'Easy' ? 'check-circle' : question.difficulty === 'Medium' ? 'exclamation-circle' : 'times-circle'} me-1"></i>
+        ${question.difficulty}
+      `;
+    }
+    
+    // Update type badge
+    const typeBadge = questionCard.querySelector('.question-type-badge');
+    if (typeBadge) {
+      typeBadge.className = `question-type-badge ${question.questionType.toLowerCase().replace('/', '-')}`;
+      typeBadge.innerHTML = `
+        <i class="fas fa-${question.questionType === 'Written' ? 'edit' : question.questionType === 'MCQ' ? 'list' : 'check-square'} me-1"></i>
+        ${question.questionType}
+      `;
+    }
+    
+    // Update tags
+    const tagsContainer = questionCard.querySelector('.question-tags');
+    if (tagsContainer) {
+      if (question.tags && question.tags.length > 0) {
+        tagsContainer.innerHTML = '';
+        question.tags.slice(0, 3).forEach(tag => {
+          const tagSpan = document.createElement('span');
+          tagSpan.className = 'question-tag';
+          tagSpan.textContent = tag;
+          tagsContainer.appendChild(tagSpan);
+        });
+        
+        if (question.tags.length > 3) {
+          const moreSpan = document.createElement('span');
+          moreSpan.className = 'question-tag question-tag-more';
+          moreSpan.textContent = `+${question.tags.length - 3}`;
+          tagsContainer.appendChild(moreSpan);
+        }
+        tagsContainer.style.display = 'flex';
+      } else {
+        tagsContainer.style.display = 'none';
+      }
+    }
+  }
+  
+  // Reinitialize questions array after update
+  function reinitializeQuestionsArray() {
+    const questionCards = document.querySelectorAll('.question-card-modern');
+    
+    allQuestions = Array.from(questionCards).map(card => {
+      let questionText = '';
+      const plainTextEl = card.querySelector('.question-text-plain');
+      const mathFieldEl = card.querySelector('.question-math-field');
+      
+      if (plainTextEl) {
+        questionText = plainTextEl.textContent.toLowerCase();
+      } else if (mathFieldEl) {
+        questionText = (mathFieldEl.textContent || mathFieldEl.getAttribute('data-question-text') || '').toLowerCase();
+      }
+      
+      const tagsData = card.dataset.tags;
+      const tagsArray = tagsData ? tagsData.toLowerCase().split(',').map(t => t.trim()).filter(t => t) : [];
+      
+      return {
+        element: card,
+        id: card.dataset.questionId,
+        difficulty: card.dataset.difficulty,
+        tags: tagsArray,
+        tagsString: tagsData ? tagsData.toLowerCase() : '',
+        points: parseInt(card.dataset.points),
+        createdAt: new Date(card.dataset.createdAt),
+        text: questionText
+      };
+    });
+    
+    // Reapply filters
+    filterQuestions();
+    
+    // Repopulate available tags
+    populateAvailableTags();
+  }
+
   // ==================== IMAGE UPLOAD FUNCTIONALITY ====================
   // Using CloudinaryUploader class (same as bundles)
 
@@ -3773,6 +5049,22 @@
     setTimeout(function() {
       loadPreviousTags();
     }, 150);
+  });
+  
+  // Reset form visibility when modal is hidden
+  document.getElementById('editQuestionModal')?.addEventListener('hidden.bs.modal', function() {
+    // Reset loader and form content visibility
+    const loader = document.getElementById('editQuestionLoader');
+    const formContent = document.getElementById('editQuestionFormContent');
+    if (loader) loader.style.display = 'none';
+    if (formContent) formContent.style.display = 'block';
+    
+    // Enable footer buttons
+    const footerButtons = document.querySelectorAll('#editQuestionModal .modal-footer button');
+    footerButtons.forEach(btn => btn.disabled = false);
+    
+    // Clear form to prevent cached data
+    clearEditForm();
   });
 
   // Show notification function

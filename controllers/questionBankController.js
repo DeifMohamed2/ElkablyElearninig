@@ -630,7 +630,9 @@ const getQuestion = async (req, res) => {
   try {
     const { bankCode, questionId } = req.params;
 
-    const questionBank = await QuestionBank.findOne({ bankCode });
+    // Optimize: Use lean() and select only needed fields, combine queries where possible
+    // First verify the bank exists (quick check with just _id)
+    const questionBank = await QuestionBank.findOne({ bankCode }).select('_id').lean();
     if (!questionBank) {
       if (req.headers.accept && req.headers.accept.includes('application/json')) {
         return res.status(404).json({ success: false, message: 'Question bank not found' });
@@ -639,10 +641,11 @@ const getQuestion = async (req, res) => {
       return res.redirect('/admin/question-banks/banks');
     }
 
+    // Optimize: Use lean() for faster queries, no need to populate createdBy for edit
     const question = await Question.findOne({ 
       _id: questionId, 
       bank: questionBank._id 
-    }).populate('createdBy', 'name email');
+    }).lean(); // Use lean() for faster read-only query
 
     if (!question) {
       if (req.headers.accept && req.headers.accept.includes('application/json')) {
@@ -652,10 +655,8 @@ const getQuestion = async (req, res) => {
       return res.redirect(`/admin/question-banks/banks/${bankCode}`);
     }
 
-    // Return JSON for AJAX requests (preview)
-    console.log('Request headers:', req.headers.accept);
+    // Return JSON for AJAX requests (preview/edit)
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
-      console.log('Returning JSON response for question:', questionId);
       return res.json({ 
         success: true, 
         question: {
@@ -670,8 +671,8 @@ const getQuestion = async (req, res) => {
           difficulty: question.difficulty,
           tags: question.tags,
           points: question.points,
-          createdAt: question.createdAt,
-          createdBy: question.createdBy
+          createdAt: question.createdAt
+          // Removed createdBy - not needed for editing
         }
       });
     }

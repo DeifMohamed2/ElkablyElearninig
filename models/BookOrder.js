@@ -116,13 +116,20 @@ BookOrderSchema.virtual('statusDisplay').get(function () {
 });
 
 // Static method to check if user has ordered a book for a bundle
+// Only returns true if the book order has a completed payment
 BookOrderSchema.statics.hasUserOrderedBook = async function (userId, bundleId) {
   const order = await this.findOne({
     user: userId,
     bundle: bundleId,
     status: { $ne: 'cancelled' },
-  });
-  return !!order;
+  }).populate('purchase', 'paymentStatus');
+  
+  // Only consider it ordered if the associated purchase payment is completed
+  if (order && order.purchase && order.purchase.paymentStatus === 'completed') {
+    return true;
+  }
+  
+  return false;
 };
 
 // Static method to get user book orders

@@ -333,6 +333,10 @@
                   <span>ملاحظة: سعر الكتاب لا يشمل رسوم الشحن. يتم تحديد رسوم الشحن لاحقاً. | <strong>Note:</strong> Book price does not include shipping fees. Shipping fees will be determined later.</span>
                 </p>
               </div>
+              <div class="checkout-breakdown-row" id="promoDiscountBreakdownRow" style="display: none;">
+                <span class="checkout-breakdown-label" style="color: #059669;">Promo Discount:</span>
+                <span class="checkout-breakdown-value" style="color: #059669;" id="promoDiscountBreakdown">-EGP 0.00</span>
+              </div>
               <div class="checkout-breakdown-row checkout-breakdown-total">
                 <span class="checkout-breakdown-label">Total:</span>
                 <span class="checkout-breakdown-value" id="orderTotalDisplay">EGP <%= total.toFixed(2) %></span>
@@ -445,6 +449,14 @@
     const originalSubtotal = parseFloat(<%= subtotal || 0 %>) || 0;
     const originalTotal = parseFloat(<%= total || 0 %>) || 0;
     let booksSubtotal = 0;
+    
+    // Promo code state from server
+    let currentPromoDiscount = 0;
+    let currentPromoCode = null;
+    <% if (appliedPromoCode) { %>
+    currentPromoDiscount = parseFloat(<%= appliedPromoCode.discountAmount || 0 %>) || 0;
+    currentPromoCode = '<%= appliedPromoCode.code %>';
+    <% } %>
 
     // Handle book selection - only if books are available
     const bookCheckboxes = document.querySelectorAll('.book-checkbox');
@@ -469,7 +481,8 @@
 
     function updateOrderSummaryWithBooks() {
       const newSubtotal = (originalSubtotal || 0) + (booksSubtotal || 0);
-      const newTotal = (originalTotal || 0) + (booksSubtotal || 0);
+      // Apply promo discount to the total
+      const newTotal = (originalTotal || 0) + (booksSubtotal || 0) - (currentPromoDiscount || 0);
 
       // Update selected books summary
       const selectedBooksSummary = document.getElementById('selectedBooksSummary');
@@ -478,6 +491,8 @@
       const booksSubtotalDisplay = document.getElementById('booksSubtotalDisplay');
       const orderTotalDisplay = document.getElementById('orderTotalDisplay');
       const shippingNoteRow = document.getElementById('shippingNoteRow');
+      const promoDiscountBreakdownRow = document.getElementById('promoDiscountBreakdownRow');
+      const promoDiscountBreakdown = document.getElementById('promoDiscountBreakdown');
 
       if (booksSubtotal > 0) {
         // Show books summary
@@ -537,6 +552,20 @@
         }
       }
 
+      // Update promo discount display in order breakdown
+      if (currentPromoDiscount > 0) {
+        if (promoDiscountBreakdownRow) {
+          promoDiscountBreakdownRow.style.display = 'flex';
+        }
+        if (promoDiscountBreakdown) {
+          promoDiscountBreakdown.textContent = `-EGP ${currentPromoDiscount.toFixed(2)}`;
+        }
+      } else {
+        if (promoDiscountBreakdownRow) {
+          promoDiscountBreakdownRow.style.display = 'none';
+        }
+      }
+
       // Update order total
       if (orderTotalDisplay) {
         orderTotalDisplay.textContent = `EGP ${newTotal.toFixed(2)}`;
@@ -558,6 +587,25 @@
       window.currentSubtotal = newSubtotal || 0;
       window.currentTotal = newTotal || 0;
     }
+
+    // Initialize promo code display on page load
+    function initializePromoCode() {
+      <% if (appliedPromoCode) { %>
+      // Show applied promo code from session
+      const promoCode = '<%= appliedPromoCode.code %>';
+      const discountAmount = parseFloat(<%= appliedPromoCode.discountAmount || 0 %>);
+      const finalAmount = parseFloat(<%= appliedPromoCode.finalAmount || 0 %>);
+      const originalAmount = parseFloat(<%= appliedPromoCode.originalAmount || 0 %>);
+      
+      if (promoCode && discountAmount > 0) {
+        updateOrderSummary(originalAmount, discountAmount, finalAmount, promoCode);
+        showAppliedPromoCode(promoCode, discountAmount);
+      }
+      <% } %>
+    }
+
+    // Call initialization
+    initializePromoCode();
 
     // Promo code functionality
     applyPromoBtn.addEventListener('click', applyPromoCode);
@@ -652,6 +700,11 @@
       const final = parseFloat(finalAmount || 0) || 0;
       const original = parseFloat(originalAmount || 0) || 0;
       
+      // Update global promo state
+      currentPromoDiscount = discount;
+      currentPromoCode = promoCode;
+      
+      // Update summary card promo discount
       if (promoDiscountValue) {
         promoDiscountValue.textContent = `-EGP ${discount.toFixed(2)}`;
       }
@@ -667,14 +720,60 @@
       if (subtotalValue) {
         subtotalValue.textContent = `EGP ${original.toFixed(2)}`;
       }
+
+      // Update order breakdown section with promo discount
+      const promoDiscountBreakdownRow = document.getElementById('promoDiscountBreakdownRow');
+      const promoDiscountBreakdown = document.getElementById('promoDiscountBreakdown');
+      const orderTotalDisplay = document.getElementById('orderTotalDisplay');
+      
+      if (promoDiscountBreakdownRow) {
+        promoDiscountBreakdownRow.style.display = 'flex';
+      }
+      if (promoDiscountBreakdown) {
+        promoDiscountBreakdown.textContent = `-EGP ${discount.toFixed(2)}`;
+      }
+      if (orderTotalDisplay) {
+        // Recalculate with books if any
+        const totalWithBooks = final + (booksSubtotal || 0);
+        orderTotalDisplay.textContent = `EGP ${totalWithBooks.toFixed(2)}`;
+      }
+      
+      // Update the sidebar total to include books
+      if (totalValue) {
+        const totalWithBooks = final + (booksSubtotal || 0);
+        totalValue.textContent = `EGP ${totalWithBooks.toFixed(2)}`;
+      }
     }
 
     function resetOrderSummary() {
+      // Reset global promo state
+      currentPromoDiscount = 0;
+      currentPromoCode = null;
+      
+      // Recalculate total with books but without promo
+      const newTotal = (originalTotal || 0) + (booksSubtotal || 0);
+      
       if (totalValue) {
-        totalValue.textContent = `EGP ${(originalTotal || 0).toFixed(2)}`;
+        totalValue.textContent = `EGP ${newTotal.toFixed(2)}`;
       }
       if (promoCodeDiscountRow) {
         promoCodeDiscountRow.style.display = 'none';
+      }
+
+      // Reset order breakdown section
+      const promoDiscountBreakdownRow = document.getElementById('promoDiscountBreakdownRow');
+      const orderTotalDisplay = document.getElementById('orderTotalDisplay');
+      const subtotalValue = document.getElementById('subtotalValue');
+      
+      if (promoDiscountBreakdownRow) {
+        promoDiscountBreakdownRow.style.display = 'none';
+      }
+      if (orderTotalDisplay) {
+        orderTotalDisplay.textContent = `EGP ${newTotal.toFixed(2)}`;
+      }
+      if (subtotalValue) {
+        const newSubtotal = (originalSubtotal || 0) + (booksSubtotal || 0);
+        subtotalValue.textContent = `EGP ${newSubtotal.toFixed(2)}`;
       }
     }
 
@@ -709,11 +808,17 @@
       const currentTotal = parseFloat(totalValue.textContent.replace('EGP ', ''));
       const originalTotalAmount = <%= total %>;
 
-      // If promo code is applied, ensure the total is less than original
+      // Calculate expected total based on books and promo discount
+      const expectedTotalWithBooks = (originalTotalAmount || 0) + (booksSubtotal || 0) - (currentPromoDiscount || 0);
+      
+      // If promo code is applied, ensure the total is less than original (without books)
       const hasAppliedPromo = document.getElementById('appliedPromoCode').style.display !== 'none';
-      if (hasAppliedPromo && currentTotal >= originalTotalAmount) {
-        showNotification('Invalid order total. Please refresh the page and try again.', 'error');
-        return;
+      if (hasAppliedPromo && currentPromoDiscount > 0) {
+        // Validate that displayed total matches our calculation
+        if (Math.abs(currentTotal - expectedTotalWithBooks) > 0.01) {
+          showNotification('Invalid order total. Please refresh the page and try again.', 'error');
+          return;
+        }
       }
 
       // Show loading state
@@ -768,12 +873,10 @@
           showNotification('Redirecting to payment gateway...', 'success');
 
           // SECURITY: Verify that the payment total matches our expected total
-          const expectedTotal = hasAppliedPromo ? currentTotal : originalTotalAmount;
+          // Expected total should include books and subtract promo discount
+          const expectedTotal = (originalTotalAmount || 0) + (booksSubtotal || 0) - (currentPromoDiscount || 0);
+          
           if (Math.abs(data.paymentData.total - expectedTotal) > 0.01) {
-            console.warn('Payment total mismatch:', {
-              expected: expectedTotal,
-              received: data.paymentData.total
-            });
             showNotification('Payment amount mismatch detected. Please refresh and try again.', 'error');
             return;
           }

@@ -126,7 +126,7 @@ router.post(
 
       res.json({ success: true, message: 'Join attempt recorded' });
     } catch (error) {
-      console.error('Error recording join attempt:', error);
+      // Error recording join attempt
       res
         .status(500)
         .json({ success: false, message: 'Failed to record join attempt' });
@@ -184,9 +184,6 @@ router.post(
         });
 
         await zoomMeeting.save();
-        console.log(
-          `✅ Student ${studentId} marked recording as watched for meeting ${meetingId}`
-        );
       }
 
       // Auto-mark content as completed when recording is watched
@@ -221,11 +218,9 @@ router.post(
                 completedAt: new Date()
               }
             );
-            console.log(`✅ Auto-marked zoom content ${zoomContentItem._id} as completed after watching recording`);
           }
         }
       } catch (progressError) {
-        console.warn('⚠️ Could not auto-mark content as completed:', progressError.message);
         // Don't fail the request if progress update fails
       }
 
@@ -234,7 +229,7 @@ router.post(
         message: 'Recording marked as watched and content marked as completed',
       });
     } catch (error) {
-      console.error('❌ Error marking recording as watched:', error);
+      // Error marking recording as watched
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to mark recording as watched',

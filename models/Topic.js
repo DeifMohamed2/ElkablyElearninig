@@ -187,6 +187,19 @@ const ContentItemSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Video watch limit - how many times a student can complete watching the video
+    maxWatchCount: {
+      type: Number,
+      default: null, // null means unlimited
+      min: 1,
+      validate: {
+        validator: function (value) {
+          // Only validate for video content
+          return this.type !== 'video' || value === null || value >= 1;
+        },
+        message: 'Max watch count must be at least 1 for video content',
+      },
+    },
     prerequisites: [
       {
         type: mongoose.Schema.Types.ObjectId,
