@@ -69,7 +69,8 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
       return bo.toString();
     });
     
-    const existingOrders = await BookOrder.find({ _id: { $in: bookOrderIds } });
+    const existingOrders = await BookOrder.find({ _id: { $in: bookOrderIds } })
+      .populate('bundle', 'title bundleCode');
     
     // Filter out orders that already have notification sent
     const ordersToNotify = existingOrders.filter(order => !order.libraryNotificationSent);

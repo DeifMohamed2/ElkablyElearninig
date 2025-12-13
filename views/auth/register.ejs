@@ -4235,15 +4235,6 @@ document.addEventListener('DOMContentLoaded', function() {
       // Get the new content in the selected language
       const newContent = getModalContent(currentDocument, lang);
       modalContent.innerHTML = newContent;
-      
-      // Update modal title
-      if (currentDocument === 'terms') {
-        const titleText = lang === 'ar' ? 'شروط الخدمة' : 'Terms of Service';
-        modalTitle.textContent = titleText;
-      } else {
-        const titleText = lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy';
-        modalTitle.textContent = titleText;
-      }
     }
     
     // Apply RTL only to modal content, not the whole modal
@@ -4254,11 +4245,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Update all text elements with data attributes (for buttons, progress text, etc.)
+    // Exclude modal title as it's set based on currentDocument
     const textElements = modal.querySelectorAll('[data-english][data-arabic]');
     textElements.forEach(element => {
+      // Skip modal title - it will be set separately based on currentDocument
+      if (element.id === 'modalTitle') return;
       const text = lang === 'ar' ? element.getAttribute('data-arabic') : element.getAttribute('data-english');
       element.textContent = text;
     });
+    
+    // Update modal title based on currentDocument (after data attribute update to ensure it takes precedence)
+    if (currentDocument) {
+      if (currentDocument === 'terms') {
+        const titleText = lang === 'ar' ? 'شروط الخدمة' : 'Terms of Service';
+        modalTitle.textContent = titleText;
+      } else if (currentDocument === 'privacy') {
+        const titleText = lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy';
+        modalTitle.textContent = titleText;
+      }
+    }
     
     // Update buttons text
     const confirmBtnText = confirmReadBtn.querySelector('span').getAttribute(lang === 'ar' ? 'data-arabic' : 'data-english');
