@@ -820,28 +820,119 @@ class ZoomService {
       const zoomToken = await this.getAccessToken();
 
       // Step 1: Download MP4 from Zoom
+      // Zoom webhook download URLs are usually pre-signed and don't need auth
+      // But some may require OAuth token, so we'll try both methods
       console.log('⬇️ Downloading video from Zoom...');
-      const downloadResponse = await axios.get(mp4File.download_url, {
-        responseType: 'arraybuffer',
-        headers: {
-          Authorization: `Bearer ${zoomToken}`,
-        },
-        // Increase timeout for large files (10 minutes)
-        timeout: 600000,
-        // Show download progress
-        onDownloadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            if (percentCompleted % 10 === 0) {
-              console.log(`⬇️ Download progress: ${percentCompleted}%`);
+      let downloadResponse;
+      let videoBuffer;
+
+      // Method 1: Try without authentication first (most webhook URLs are pre-signed)
+      try {
+        console.log('🔐 Attempting download without authentication (pre-signed URL)...');
+        downloadResponse = await axios.get(mp4File.download_url, {
+          responseType: 'arraybuffer',
+          // No Authorization header for pre-signed URLs
+          timeout: 600000,
+          maxRedirects: 5, // Allow redirects
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              if (percentCompleted % 10 === 0) {
+                console.log(`⬇️ Download progress: ${percentCompleted}%`);
+              }
+            }
+          },
+        });
+        videoBuffer = Buffer.from(downloadResponse.data);
+        console.log('✅ Downloaded using pre-signed URL (no auth required)');
+      } catch (noAuthError) {
+        // If that fails, try with OAuth Bearer token
+        if (noAuthError.response && (noAuthError.response.status === 401 || noAuthError.response.status === 403)) {
+          console.log('⚠️ Pre-signed URL failed, trying with OAuth Bearer token...');
+          try {
+            downloadResponse = await axios.get(mp4File.download_url, {
+              responseType: 'arraybuffer',
+              headers: {
+                Authorization: `Bearer ${zoomToken}`,
+              },
+              timeout: 600000,
+              maxRedirects: 5,
+              onDownloadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                  const percentCompleted = Math.round(
+                    (progressEvent.loaded * 100) / progressEvent.total
+                  );
+                  if (percentCompleted % 10 === 0) {
+                    console.log(`⬇️ Download progress: ${percentCompleted}%`);
+                  }
+                }
+              },
+            });
+            videoBuffer = Buffer.from(downloadResponse.data);
+            console.log('✅ Downloaded using OAuth Bearer token');
+          } catch (authError) {
+            // If Bearer token also fails, try using Zoom API to get the recording
+            console.log('⚠️ Bearer token failed, trying via Zoom API...');
+            try {
+              const meetingUUID = object.uuid;
+              
+              // First, get the recording details from Zoom API
+              const recordingsResponse = await axios.get(
+                `https://api.zoom.us/v2/meetings/${meetingUUID}/recordings`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${zoomToken}`,
+                  },
+                }
+              );
+
+              // Find the MP4 file in the recordings
+              const recordings = recordingsResponse.data.recording_files || [];
+              const apiMp4File = recordings.find(
+                (file) => file.file_type === 'MP4' && file.download_url
+              );
+
+              if (apiMp4File && apiMp4File.download_url) {
+                // Try downloading from the API-provided URL
+                downloadResponse = await axios.get(apiMp4File.download_url, {
+                  responseType: 'arraybuffer',
+                  headers: {
+                    Authorization: `Bearer ${zoomToken}`,
+                  },
+                  timeout: 600000,
+                  maxRedirects: 5,
+                  onDownloadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                      const percentCompleted = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                      );
+                      if (percentCompleted % 10 === 0) {
+                        console.log(`⬇️ Download progress: ${percentCompleted}%`);
+                      }
+                    }
+                  },
+                });
+                videoBuffer = Buffer.from(downloadResponse.data);
+                console.log('✅ Downloaded via Zoom API endpoint');
+              } else {
+                throw new Error('MP4 file not found in Zoom API recordings');
+              }
+            } catch (apiError) {
+              console.error('❌ All download methods failed');
+              console.error('Pre-signed URL error:', noAuthError.message);
+              console.error('Bearer token error:', authError.message);
+              console.error('API endpoint error:', apiError.message);
+              throw new Error(`Failed to download recording: ${apiError.message || authError.message || noAuthError.message}`);
             }
           }
-        },
-      });
+        } else {
+          // Re-throw if it's not an auth error
+          throw noAuthError;
+        }
+      }
 
-      const videoBuffer = Buffer.from(downloadResponse.data);
       console.log(`✅ Video downloaded successfully: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
 
       // Step 2: Upload to Bunny CDN
