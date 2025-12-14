@@ -784,15 +784,17 @@ class ZoomService {
       console.log('📋 Recording files available:', recordingFiles.length);
 
       // Find the Zoom meeting in database
-      const zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
-      if (!zoomMeeting) {
-        console.log('❌ Zoom meeting not found in database:', meetingId);
-        return;
+      let zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
+      const meetingExists = !!zoomMeeting;
+      
+      if (!meetingExists) {
+        console.log('⚠️ Zoom meeting not found in database:', meetingId);
+        console.log('📤 Will still process and upload recording...');
+      } else {
+        // Update status to indicate processing
+        zoomMeeting.recordingStatus = 'uploading';
+        await zoomMeeting.save();
       }
-
-      // Update status to indicate processing
-      zoomMeeting.recordingStatus = 'uploading';
-      await zoomMeeting.save();
 
       // Find MP4 recording file
       const mp4File = recordingFiles.find(
@@ -801,9 +803,13 @@ class ZoomService {
 
       if (!mp4File) {
         console.log('⚠️ No MP4 recording file found, saving original URL only');
-        zoomMeeting.recordingStatus = 'completed';
-        zoomMeeting.recordingUrl = recordingFiles[0]?.download_url || null;
-        await zoomMeeting.save();
+        if (meetingExists && zoomMeeting) {
+          zoomMeeting.recordingStatus = 'completed';
+          zoomMeeting.recordingUrl = recordingFiles[0]?.download_url || null;
+          await zoomMeeting.save();
+        } else {
+          console.log('📝 Meeting not in DB, skipping database update');
+        }
         return;
       }
 
@@ -841,15 +847,21 @@ class ZoomService {
       // Step 2: Upload to Bunny CDN
       if (!bunnyCDNService.isConfigured()) {
         console.log('⚠️ Bunny CDN not configured, saving Zoom URL only');
-        zoomMeeting.recordingStatus = 'completed';
-        zoomMeeting.recordingUrl = mp4File.download_url;
-        await zoomMeeting.save();
+        if (meetingExists && zoomMeeting) {
+          zoomMeeting.recordingStatus = 'completed';
+          zoomMeeting.recordingUrl = mp4File.download_url;
+          await zoomMeeting.save();
+        } else {
+          console.log('📝 Meeting not in DB, skipping database update');
+        }
         return;
       }
 
       // Generate unique video ID from meeting UUID
       const videoId = object.uuid.replace(/[^a-zA-Z0-9]/g, '') || `zoom-${meetingId}-${Date.now()}`;
-      const videoTitle = `${zoomMeeting.meetingName || 'Zoom Recording'} - ${new Date().toLocaleDateString()}`;
+      const videoTitle = meetingExists && zoomMeeting?.meetingName 
+        ? `${zoomMeeting.meetingName} - ${new Date().toLocaleDateString()}`
+        : `Zoom Recording ${meetingId} - ${new Date().toLocaleDateString()}`;
 
       console.log('📤 Uploading to Bunny CDN...');
       const uploadResult = await bunnyCDNService.uploadVideo(
@@ -858,20 +870,27 @@ class ZoomService {
         videoTitle
       );
 
-      // Step 3: Update database with Bunny CDN information
-      zoomMeeting.recordingStatus = 'completed';
-      zoomMeeting.recordingUrl = mp4File.download_url; // Keep original Zoom URL as backup
-      zoomMeeting.bunnyVideoId = uploadResult.bunnyVideoId;
-      zoomMeeting.bunnyVideoUrl = uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId);
-      await zoomMeeting.save();
+      // Step 3: Update database with Bunny CDN information (if meeting exists)
+      if (meetingExists && zoomMeeting) {
+        zoomMeeting.recordingStatus = 'completed';
+        zoomMeeting.recordingUrl = mp4File.download_url; // Keep original Zoom URL as backup
+        zoomMeeting.bunnyVideoId = uploadResult.bunnyVideoId;
+        zoomMeeting.bunnyVideoUrl = uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId);
+        await zoomMeeting.save();
 
-      console.log('✅ Recording uploaded to Bunny CDN successfully!');
-      console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
-      console.log('🔗 Bunny Video URL:', zoomMeeting.bunnyVideoUrl);
+        console.log('✅ Recording uploaded to Bunny CDN successfully!');
+        console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
+        console.log('🔗 Bunny Video URL:', zoomMeeting.bunnyVideoUrl);
+      } else {
+        console.log('✅ Recording uploaded to Bunny CDN successfully!');
+        console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
+        console.log('🔗 Bunny Video URL:', uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId));
+        console.log('⚠️ Meeting not in database - recording uploaded but not linked to meeting record');
+      }
     } catch (error) {
       console.error('❌ Error handling recording completed:', error.message);
       
-      // Update meeting status to failed
+      // Update meeting status to failed (only if meeting exists)
       try {
         const zoomMeeting = await ZoomMeeting.findByMeetingId(
           payload.object.id.toString()
