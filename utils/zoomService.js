@@ -796,13 +796,41 @@ class ZoomService {
         await zoomMeeting.save();
       }
 
+      // Log all recording files for debugging
+      console.log('📋 Recording files details:');
+      recordingFiles.forEach((file, index) => {
+        console.log(`  File ${index + 1}:`, {
+          type: file.file_type,
+          size: file.file_size ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
+          status: file.status,
+          recording_type: file.recording_type,
+          has_download_url: !!file.download_url,
+        });
+      });
+
       // Find MP4 recording file
       const mp4File = recordingFiles.find(
-        (file) => file.file_type === 'MP4' && file.download_url
+        (file) => file.file_type === 'MP4' && file.download_url && file.status === 'completed'
       );
 
       if (!mp4File) {
-        console.log('⚠️ No MP4 recording file found, saving original URL only');
+        console.log('⚠️ No completed MP4 recording file found');
+        
+        // Check if recording is still processing
+        const processingFile = recordingFiles.find(
+          (file) => file.file_type === 'MP4' && file.status === 'processing'
+        );
+        
+        if (processingFile) {
+          console.log('⏳ Recording is still processing, will retry later');
+          if (meetingExists && zoomMeeting) {
+            zoomMeeting.recordingStatus = 'processing';
+            await zoomMeeting.save();
+          }
+          return;
+        }
+        
+        // Save any available URL
         if (meetingExists && zoomMeeting) {
           zoomMeeting.recordingStatus = 'completed';
           zoomMeeting.recordingUrl = recordingFiles[0]?.download_url || null;
@@ -815,6 +843,8 @@ class ZoomService {
 
       console.log('📥 Found MP4 file, starting download from Zoom...');
       console.log('📊 File size:', mp4File.file_size ? `${(mp4File.file_size / 1024 / 1024).toFixed(2)} MB` : 'Unknown');
+      console.log('📊 Recording type:', mp4File.recording_type);
+      console.log('📊 Status:', mp4File.status);
 
       // Get Zoom access token
       const zoomToken = await this.getAccessToken();
@@ -934,6 +964,54 @@ class ZoomService {
       }
 
       console.log(`✅ Video downloaded successfully: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+
+      // Validate the downloaded file
+      // Check minimum file size (should be at least 100KB for a valid video)
+      const minVideoSize = 100 * 1024; // 100 KB
+      if (videoBuffer.length < minVideoSize) {
+        console.error(`⚠️ Downloaded file is too small (${(videoBuffer.length / 1024).toFixed(2)} KB), likely not a valid video`);
+        console.error('File header (first 20 bytes):', videoBuffer.slice(0, 20).toString('hex'));
+        
+        // Check if it's an HTML error page
+        const contentPreview = videoBuffer.toString('utf8', 0, Math.min(500, videoBuffer.length));
+        console.error('File content preview:', contentPreview.substring(0, 200));
+        
+        if (contentPreview.includes('<html') || contentPreview.includes('<!DOCTYPE') || contentPreview.includes('<HTML')) {
+          throw new Error('Downloaded file is an HTML page, not a video. The download URL may be invalid or expired.');
+        }
+        
+        if (contentPreview.includes('error') || contentPreview.includes('Error') || contentPreview.includes('ERROR')) {
+          throw new Error(`Downloaded file contains an error message: ${contentPreview.substring(0, 200)}`);
+        }
+        
+        console.warn('⚠️ File is very small but will attempt to upload anyway');
+      }
+      
+      // Check if it's actually a video file (MP4 should start with specific bytes)
+      // MP4 files typically start with 'ftyp' at bytes 4-8
+      const isValidMP4 = videoBuffer.length > 12 && 
+                         videoBuffer.toString('ascii', 4, 8).includes('ftyp');
+      
+      if (!isValidMP4) {
+        console.error('⚠️ Downloaded file does not appear to be a valid MP4 video');
+        console.error('File header (first 20 bytes):', videoBuffer.slice(0, 20).toString('hex'));
+        console.error('Expected MP4 signature (ftyp) not found at bytes 4-8');
+        
+        // Try to identify what type of file it is
+        const header = videoBuffer.slice(0, 4).toString('hex');
+        const fileType = {
+          '89504e47': 'PNG image',
+          'ffd8ffe0': 'JPEG image',
+          'ffd8ffe1': 'JPEG image',
+          '25504446': 'PDF document',
+          '504b0304': 'ZIP archive',
+        }[header] || 'Unknown file type';
+        
+        console.error('File appears to be:', fileType);
+        throw new Error(`Downloaded file is not a valid MP4 video (appears to be ${fileType})`);
+      }
+      
+      console.log('✅ File validated as valid MP4 video');
 
       // Step 2: Upload to Bunny CDN
       if (!bunnyCDNService.isConfigured()) {
