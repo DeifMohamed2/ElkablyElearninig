@@ -954,41 +954,75 @@ class ZoomService {
         ? `${zoomMeeting.meetingName} - ${new Date().toLocaleDateString()}`
         : `Zoom Recording ${meetingId} - ${new Date().toLocaleDateString()}`;
 
-      console.log('📤 Uploading to Bunny CDN...');
-      const uploadResult = await bunnyCDNService.uploadVideo(
-        videoBuffer,
-        videoId,
-        videoTitle
-      );
-
-      // Step 3: Update database with Bunny CDN information (if meeting exists)
-      if (meetingExists && zoomMeeting) {
-        zoomMeeting.recordingStatus = 'completed';
-        zoomMeeting.recordingUrl = mp4File.download_url; // Keep original Zoom URL as backup
-        zoomMeeting.bunnyVideoId = uploadResult.bunnyVideoId;
-        zoomMeeting.bunnyVideoUrl = uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId);
-        await zoomMeeting.save();
-
-        console.log('✅ Recording uploaded to Bunny CDN successfully!');
-        console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
-        console.log('🔗 Bunny Video URL:', zoomMeeting.bunnyVideoUrl);
-      } else {
+      // Step 2: Try uploading to Bunny CDN (with fallback to Zoom URL)
+      let uploadResult = null;
+      try {
+        console.log('📤 Uploading to Bunny CDN...');
+        uploadResult = await bunnyCDNService.uploadVideo(
+          videoBuffer,
+          videoId,
+          videoTitle
+        );
         console.log('✅ Recording uploaded to Bunny CDN successfully!');
         console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
         console.log('🔗 Bunny Video URL:', uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId));
-        console.log('⚠️ Meeting not in database - recording uploaded but not linked to meeting record');
+      } catch (bunnyError) {
+        console.error('⚠️ Failed to upload to Bunny CDN, falling back to Zoom URL');
+        console.error('Bunny CDN error:', bunnyError.message);
+        // Continue with Zoom URL as fallback
+        uploadResult = null;
+      }
+
+      // Step 3: Update database with recording information (if meeting exists)
+      if (meetingExists && zoomMeeting) {
+        zoomMeeting.recordingStatus = 'completed';
+        zoomMeeting.recordingUrl = mp4File.download_url; // Always save Zoom URL as backup/primary
+        
+        // If Bunny CDN upload succeeded, save that info too
+        if (uploadResult && uploadResult.bunnyVideoId) {
+          zoomMeeting.bunnyVideoId = uploadResult.bunnyVideoId;
+          zoomMeeting.bunnyVideoUrl = uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId);
+          console.log('💾 Saved Bunny CDN information to database');
+        } else {
+          console.log('💾 Saved Zoom recording URL to database (Bunny CDN upload failed)');
+        }
+        
+        await zoomMeeting.save();
+      } else {
+        if (uploadResult && uploadResult.bunnyVideoId) {
+          console.log('✅ Recording uploaded to Bunny CDN successfully!');
+          console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
+          console.log('🔗 Bunny Video URL:', uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId));
+        } else {
+          console.log('✅ Recording downloaded successfully (Zoom URL available)');
+          console.log('🔗 Zoom Recording URL:', mp4File.download_url);
+        }
+        console.log('⚠️ Meeting not in database - recording processed but not linked to meeting record');
       }
     } catch (error) {
       console.error('❌ Error handling recording completed:', error.message);
       
-      // Update meeting status to failed (only if meeting exists)
+      // Try to save Zoom URL even if download/upload failed
       try {
-        const zoomMeeting = await ZoomMeeting.findByMeetingId(
-          payload.object.id.toString()
+        const { object } = payload;
+        const meetingId = object.id.toString();
+        const recordingFiles = object.recording_files || [];
+        const mp4File = recordingFiles.find(
+          (file) => file.file_type === 'MP4' && file.download_url
         );
+        
+        const zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
         if (zoomMeeting) {
-          zoomMeeting.recordingStatus = 'failed';
-          await zoomMeeting.save();
+          // If we have a Zoom URL, save it even if upload failed
+          if (mp4File && mp4File.download_url) {
+            zoomMeeting.recordingStatus = 'completed';
+            zoomMeeting.recordingUrl = mp4File.download_url;
+            await zoomMeeting.save();
+            console.log('💾 Saved Zoom recording URL despite upload failure');
+          } else {
+            zoomMeeting.recordingStatus = 'failed';
+            await zoomMeeting.save();
+          }
         }
       } catch (saveError) {
         console.error('❌ Failed to update recording status:', saveError);
