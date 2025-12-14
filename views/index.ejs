@@ -519,12 +519,49 @@
     }
   }
 
+  /* Results Score Container */
+  .results-score {
+    padding: 20px 15px;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .results-score::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .results-score::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+  }
+
+  .results-score::-webkit-scrollbar-thumb {
+    background: rgba(184, 1, 1, 0.3);
+    border-radius: 2px;
+  }
+
+  .results-score::-webkit-scrollbar-thumb:hover {
+    background: rgba(184, 1, 1, 0.5);
+  }
+
   /* Score Display with Percentage and Icon */
   .results-score .score-display {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    padding: 0 10px;
+  }
+
+  /* Wrapper for score value and percentage to keep them together */
+  .results-score .score-display > span {
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .results-score .score-icon-positive {
@@ -546,7 +583,18 @@
     font-size: 3.5em;
     font-weight: bold;
     color: #B80101;
-    line-height: 1;
+    line-height: 1.1;
+    word-break: break-all;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    display: inline-block;
+    text-align: center;
+    transition: font-size 0.3s ease;
+  }
+
+  .results-score .score-value.long-number {
+    letter-spacing: -1px;
+    word-spacing: -3px;
   }
 
   .results-score .score-percentage {
@@ -557,15 +605,393 @@
     margin-left: 4px;
   }
 
+  /* Show More Button */
+  .btn-show-more {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #B80101 0%, #8B0000 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 2px 8px rgba(184, 1, 1, 0.2);
+  }
+
+  .btn-show-more:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+  }
+
+  .btn-show-more:active {
+    transform: translateY(0);
+  }
+
+  .btn-show-more i {
+    transition: transform 0.3s ease;
+  }
+
+  .btn-show-more.expanded i {
+    transform: rotate(180deg);
+  }
+
+  /* Breakdown values styling */
+  .breakdown-value {
+    font-weight: 600;
+    color: #1e293b;
+    cursor: help;
+    transition: color 0.2s ease;
+  }
+
+  .breakdown-value:hover {
+    color: #B80101;
+  }
+
+  .dark-theme .breakdown-value {
+    color: #e2e8f0;
+  }
+
+  .dark-theme .breakdown-value:hover {
+    color: #ff4444;
+  }
+
+  /* Available Colleges Card */
+  .available-colleges-card {
+    margin-top: 30px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 2px solid #e2e8f0;
+    animation: slideInUp 0.5s ease-out;
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .colleges-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .colleges-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #B80101 0%, #8B0000 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5em;
+    box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+  }
+
+  .colleges-title h4 {
+    margin: 0;
+    font-size: 1.3em;
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  .colleges-title p {
+    margin: 5px 0 0 0;
+    font-size: 0.9em;
+    color: #64748b;
+  }
+
+  .colleges-search {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .colleges-search i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 1.1em;
+  }
+
+  .colleges-search input {
+    width: 100%;
+    padding: 12px 15px 12px 45px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    direction: ltr;
+    text-align: left;
+  }
+
+  .colleges-search input:focus {
+    outline: none;
+    border-color: #B80101;
+    box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.1);
+  }
+
+  .colleges-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding-right: 5px;
+  }
+
+  .colleges-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .colleges-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  .colleges-list::-webkit-scrollbar-thumb {
+    background: #B80101;
+    border-radius: 3px;
+  }
+
+  .college-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .college-item:hover {
+    transform: translateX(-5px);
+    box-shadow: 0 4px 12px rgba(184, 1, 1, 0.15);
+    border-color: #B80101;
+  }
+
+  .college-name {
+    font-size: 1em;
+    color: #1e293b;
+    font-weight: 600;
+    direction: rtl;
+    text-align: right;
+    flex: 1;
+  }
+
+  .college-score {
+    font-size: 1.1em;
+    color: #B80101;
+    font-weight: 700;
+    padding: 8px 15px;
+    background: rgba(184, 1, 1, 0.1);
+    border-radius: 8px;
+    margin-left: 15px;
+    white-space: nowrap;
+  }
+
+  .college-item.highlighted {
+    background: linear-gradient(135deg, rgba(184, 1, 1, 0.05) 0%, rgba(184, 1, 1, 0.1) 100%);
+    border-color: #B80101;
+    border-width: 2px;
+  }
+
+  .dark-theme .college-item.highlighted {
+    background: linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(184, 1, 1, 0.3) 100%);
+    border-color: #ff4444;
+    border-width: 2px;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+  }
+
+  .dark-theme .college-item.highlighted .college-name {
+    color: #fef2f2;
+    font-weight: 700;
+  }
+
+  .dark-theme .college-item.highlighted .college-score {
+    background: rgba(255, 68, 68, 0.25);
+    color: #ff6b6b;
+    font-weight: 800;
+    border: 1px solid rgba(255, 68, 68, 0.4);
+  }
+
+  .btn-show-all-colleges {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #B80101 0%, #8B0000 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-show-all-colleges:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(184, 1, 1, 0.3);
+  }
+
+  .btn-show-all-colleges i {
+    transition: transform 0.3s ease;
+  }
+
+  .btn-show-all-colleges.expanded i {
+    transform: rotate(180deg);
+  }
+
+  .no-colleges-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+  }
+
+  .no-colleges-message i {
+    font-size: 3em;
+    color: #cbd5e1;
+    margin-bottom: 15px;
+  }
+
+  .no-colleges-message p {
+    font-size: 1.1em;
+    margin: 10px 0;
+  }
+
+  /* Dark theme support */
+  .dark-theme .available-colleges-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: #334155;
+  }
+
+  .dark-theme .colleges-header {
+    border-color: #334155;
+  }
+
+  .dark-theme .colleges-title h4 {
+    color: #f1f5f9;
+  }
+
+  .dark-theme .colleges-title p {
+    color: #94a3b8;
+  }
+
+  .dark-theme .colleges-search input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+  }
+
+  .dark-theme .college-item {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .dark-theme .college-name {
+    color: #f1f5f9;
+  }
+
+  @media (max-width: 768px) {
+    .available-colleges-card {
+      padding: 20px 15px;
+    }
+
+    .colleges-header {
+      flex-direction: column;
+      text-align: center;
+      align-items: center;
+    }
+
+    .colleges-title h4 {
+      font-size: 1.1em;
+    }
+
+    .college-item {
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .college-score {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    .colleges-list {
+      max-height: 300px;
+    }
+  }
+
   @media (max-width: 768px) {
     .results-score .score-value {
       font-size: 2.5em;
+    }
+    .results-score .score-value[data-is-expanded="true"] {
+      font-size: 1.8em;
+      line-height: 1.2;
     }
     .results-score .score-percentage {
       font-size: 1.5em;
     }
     .results-score .score-icon-positive {
       font-size: 1.2em;
+    }
+    .results-score .score-display {
+      padding: 0 5px;
+    }
+    .btn-show-more {
+      font-size: 0.85em;
+      padding: 6px 12px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .results-score {
+      padding: 15px 10px;
+    }
+    
+    .results-score .score-value {
+      font-size: 2em;
+    }
+    .results-score .score-value[data-is-expanded="true"] {
+      font-size: 1.4em;
+      line-height: 1.3;
+      letter-spacing: -0.5px;
+      word-spacing: -2px;
+    }
+    .results-score .score-percentage {
+      font-size: 1.2em;
+    }
+    .results-score .score-icon-positive {
+      font-size: 1em;
+    }
+    .results-score .score-display {
+      gap: 4px;
+      padding: 0 2px;
     }
   }
 
@@ -846,14 +1272,16 @@
   }
 
   .dark-theme .exam-option .option-icon {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .dark-theme .exam-option:hover .option-icon,
   .dark-theme .exam-option.selected .option-icon {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .dark-theme .exam-option .option-content h4 {
@@ -877,6 +1305,11 @@
 
   .dark-theme .exam-option::before {
     background: linear-gradient(90deg, transparent, rgba(184, 1, 1, 0.15), transparent);
+  }
+
+  .dark-theme .exam-option .option-icon .exam-logo-img {
+    background: #ffffff;
+    padding: 2px;
   }
 
   /* Dark Mode Styles for University Options (for consistency) */
@@ -2161,23 +2594,15 @@
         updateScrollPosition();
       }
 
-      // Update button states
+      // Update button states (always enabled for looping)
       function updateButtonStates() {
-        if (scrollPosition <= 1) {
-          prevBtn.style.opacity = '0.5';
-          prevBtn.style.pointerEvents = 'none';
-        } else {
+        // Buttons are always enabled for infinite looping
+        if (prevBtn) {
           prevBtn.style.opacity = '1';
           prevBtn.style.pointerEvents = 'auto';
         }
 
-        // Use a threshold to account for rounding and ensure last card is accessible
-        // Allow a bit more tolerance for the new maxScroll calculation
-        const threshold = 10;
-        if (scrollPosition >= maxScroll - threshold) {
-          nextBtn.style.opacity = '0.5';
-          nextBtn.style.pointerEvents = 'none';
-        } else {
+        if (nextBtn) {
           nextBtn.style.opacity = '1';
           nextBtn.style.pointerEvents = 'auto';
         }
@@ -2221,36 +2646,50 @@
         }
       }
 
-      // Scroll functions - scroll by multiple cards for bigger movement
+      // Scroll functions - scroll by multiple cards for bigger movement (with looping)
       function scrollNext() {
         if (isScrolling) return;
         
         calculateDimensions();
         const isMobile = window.innerWidth <= 768;
+        const threshold = 10;
+        
+        // Check if we're at the end (within threshold)
+        if (scrollPosition >= maxScroll - threshold) {
+          // Loop back to the start
+          scrollPosition = 0;
+          updateScrollPosition();
+          return;
+        }
         
         if (isMobile) {
           // Mobile: Scroll to next card and center it
           const currentCardIndex = Math.round(scrollPosition / (cardWidth + cardGap));
-          const nextCardIndex = Math.min(currentCardIndex + 1, slides.length - 1);
+          const nextCardIndex = currentCardIndex + 1;
           
-          const trackRect = track.getBoundingClientRect();
-          const trackStyles = window.getComputedStyle(track);
-          const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
-          const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
-          const centerX = availableWidth / 2;
-          
-          const nextCardCenter = nextCardIndex * (cardWidth + cardGap) + cardWidth / 2;
-          const targetScroll = nextCardCenter - centerX;
-          
-          scrollPosition = Math.max(0, Math.min(targetScroll, maxScroll));
+          // If we've reached the last card, loop to first
+          if (nextCardIndex >= slides.length) {
+            scrollPosition = 0;
+          } else {
+            const trackRect = track.getBoundingClientRect();
+            const trackStyles = window.getComputedStyle(track);
+            const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+            const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
+            const centerX = availableWidth / 2;
+            
+            const nextCardCenter = nextCardIndex * (cardWidth + cardGap) + cardWidth / 2;
+            const targetScroll = nextCardCenter - centerX;
+            
+            scrollPosition = Math.max(0, Math.min(targetScroll, maxScroll));
+          }
         } else {
           // Desktop: Calculate how many cards to scroll (2-3 cards for bigger movement)
           const cardsPerScroll = Math.max(2, Math.floor(visibleCards * 0.6)); // Scroll 60% of visible cards
           const scrollAmount = (cardWidth + cardGap) * cardsPerScroll;
           
-          // If we're close to the end, scroll to maxScroll exactly to show last card
-          if (scrollPosition + scrollAmount >= maxScroll - 10) {
-            scrollPosition = maxScroll;
+          // If we're close to the end, loop to start
+          if (scrollPosition + scrollAmount >= maxScroll - threshold) {
+            scrollPosition = 0;
           } else {
             scrollPosition = Math.min(scrollPosition + scrollAmount, maxScroll);
           }
@@ -2260,32 +2699,51 @@
       }
 
       function scrollPrev() {
-        if (isScrolling || scrollPosition <= 0) return;
+        if (isScrolling) return;
         
         calculateDimensions();
         const isMobile = window.innerWidth <= 768;
+        const threshold = 10;
+        
+        // Check if we're at the start (within threshold)
+        if (scrollPosition <= threshold) {
+          // Loop to the end
+          scrollPosition = maxScroll;
+          updateScrollPosition();
+          return;
+        }
         
         if (isMobile) {
           // Mobile: Scroll to previous card and center it
           const currentCardIndex = Math.round(scrollPosition / (cardWidth + cardGap));
-          const prevCardIndex = Math.max(currentCardIndex - 1, 0);
+          const prevCardIndex = currentCardIndex - 1;
           
-          const trackRect = track.getBoundingClientRect();
-          const trackStyles = window.getComputedStyle(track);
-          const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
-          const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
-          const centerX = availableWidth / 2;
-          
-          const prevCardCenter = prevCardIndex * (cardWidth + cardGap) + cardWidth / 2;
-          const targetScroll = prevCardCenter - centerX;
-          
-          scrollPosition = Math.max(0, Math.min(targetScroll, maxScroll));
+          // If we're at the first card, loop to last
+          if (prevCardIndex < 0) {
+            scrollPosition = maxScroll;
+          } else {
+            const trackRect = track.getBoundingClientRect();
+            const trackStyles = window.getComputedStyle(track);
+            const trackPaddingLeft = parseFloat(trackStyles.paddingLeft) || 0;
+            const availableWidth = trackRect.width - trackPaddingLeft - parseFloat(trackStyles.paddingRight || 0);
+            const centerX = availableWidth / 2;
+            
+            const prevCardCenter = prevCardIndex * (cardWidth + cardGap) + cardWidth / 2;
+            const targetScroll = prevCardCenter - centerX;
+            
+            scrollPosition = Math.max(0, Math.min(targetScroll, maxScroll));
+          }
         } else {
           // Desktop: Calculate how many cards to scroll (2-3 cards for bigger movement)
           const cardsPerScroll = Math.max(2, Math.floor(visibleCards * 0.6)); // Scroll 60% of visible cards
           const scrollAmount = (cardWidth + cardGap) * cardsPerScroll;
           
-          scrollPosition = Math.max(scrollPosition - scrollAmount, 0);
+          // If we're at the start, loop to end
+          if (scrollPosition - scrollAmount <= threshold) {
+            scrollPosition = maxScroll;
+          } else {
+            scrollPosition = Math.max(scrollPosition - scrollAmount, 0);
+          }
         }
         
         updateScrollPosition();
@@ -2807,6 +3265,10 @@
                 <span class="score-value" id="calculatedValue">0.00</span>
                 <span class="score-percentage">%</span>
               </div>
+              <button class="btn-show-more" id="showMoreBtn" style="display: none;">
+                <i class="fas fa-chevron-down"></i>
+                <span class="show-more-text">Show More</span>
+              </button>
             </div>
 
             <div class="score-breakdown">
@@ -2838,6 +3300,33 @@
                 Share Results
               </button>
             </div>
+          </div>
+
+          <!-- Available Colleges Section -->
+          <div class="available-colleges-card" id="availableCollegesCard" style="display: none;">
+            <div class="colleges-header">
+              <div class="colleges-icon">
+                <i class="fas fa-university"></i>
+              </div>
+              <div class="colleges-title">
+                <h4>Available Colleges & Institutes</h4>
+                <p id="collegesCount">0 colleges available based on your score</p>
+              </div>
+            </div>
+
+            <div class="colleges-search">
+              <i class="fas fa-search"></i>
+              <input type="text" id="collegesSearch" placeholder="Search for a college...">
+            </div>
+
+            <div class="colleges-list" id="collegesList">
+              <!-- Will be populated by JavaScript -->
+            </div>
+
+            <button class="btn-show-all-colleges" id="showAllCollegesBtn">
+              <span class="show-all-text">Show All Colleges</span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
           </div>
         </div>
 
@@ -3343,6 +3832,198 @@
 
   // Enhanced Score Calculator - 4-Step Design
   document.addEventListener('DOMContentLoaded', function() {
+    // Colleges data for American Diploma 2025
+    const collegesData = [
+      { name: 'طب فاقوس', minScore: 122.518753 },
+      { name: 'طب أسنان الإسكندرية', minScore: 122.275002 },
+      { name: 'طب القاهرة', minScore: 121.956253 },
+      { name: 'طب عين شمس', minScore: 121.843750 },
+      { name: 'طب الإسكندرية', minScore: 121.656250 },
+      { name: 'طب حلوان', minScore: 121.656250 },
+      { name: 'طب بنها', minScore: 121.318748 },
+      { name: 'طب طنطا', minScore: 121.206253 },
+      { name: 'طب الفيوم', minScore: 120.849998 },
+      { name: 'طب المنوفية بشبين الكوم', minScore: 120.693748 },
+      { name: 'طب كفر الشيخ', minScore: 120.606247 },
+      { name: 'طب الزقازيق', minScore: 120.591248 },
+      { name: 'طب أسنان القاهرة', minScore: 120.568748 },
+      { name: 'طب المنصورة', minScore: 120.556252 },
+      { name: 'طب السادات', minScore: 120.550003 },
+      { name: 'طب دمياط', minScore: 120.550003 },
+      { name: 'طب بور سعيد', minScore: 120.456253 },
+      { name: 'طب بني سويف', minScore: 120.418747 },
+      { name: 'طب قناة السويس بالإسماعيلية', minScore: 120.362503 },
+      { name: 'طب السويس', minScore: 120.324997 },
+      { name: 'طب المنيا', minScore: 120.312500 },
+      { name: 'طب أسيوط', minScore: 120.212502 },
+      { name: 'طب سوهاج', minScore: 120.181252 },
+      { name: 'طب العريش', minScore: 120.175003 },
+      { name: 'طب الاقصر', minScore: 120.156250 },
+      { name: 'طب جنوب الوادي', minScore: 120.025002 },
+      { name: 'طب أسوان', minScore: 119.987503 },
+      { name: 'طب الوادي الجديد', minScore: 119.987503 },
+      { name: 'طب أسنان عين شمس', minScore: 119.943748 },
+      { name: 'طب أسنان المنصورة', minScore: 119.931252 },
+      { name: 'طب أسنان الفيوم', minScore: 119.931252 },
+      { name: 'طب أسنان المنوفية', minScore: 119.931252 },
+      { name: 'طب أسنان السويس', minScore: 119.925003 },
+      { name: 'طب أسنان قناة السويس بالإسماعيلية', minScore: 119.914749 },
+      { name: 'طب أسنان طنطا', minScore: 119.912498 },
+      { name: 'طب أسنان الزقازيق', minScore: 119.837502 },
+      { name: 'طب أسنان كفر الشيخ', minScore: 119.800003 },
+      { name: 'طب أسنان بني سويف', minScore: 119.787498 },
+      { name: 'طب أسنان المنيا', minScore: 119.762497 },
+      { name: 'طب أسنان جنوب الوادي', minScore: 119.750000 },
+      { name: 'صيدلة المنيا', minScore: 119.743752 },
+      { name: 'طب وجراحة الفم والأسنان سوهاج', minScore: 119.743752 },
+      { name: 'طب أسنان أسيوط', minScore: 119.743752 },
+      { name: 'صيدلة عين شمس', minScore: 119.675003 },
+      { name: 'صيدلة الإسكندرية', minScore: 119.500000 },
+      { name: 'علاج طبيعي القاهرة', minScore: 119.387497 },
+      { name: 'صيدلة القاهرة', minScore: 119.368752 },
+      { name: 'علاج طبيعي بنها', minScore: 119.325249 },
+      { name: 'علاج طبيعي السويس', minScore: 119.268753 },
+      { name: 'صيدلة دمنهور', minScore: 119.237503 },
+      { name: 'صيدلة أسيوط', minScore: 119.224998 },
+      { name: 'صيدلة طنطا', minScore: 119.218750 },
+      { name: 'هندسة بترول و تعدين السويس', minScore: 119.218750 },
+      { name: 'صيدلة حلوان', minScore: 119.212502 },
+      { name: 'صيدلة و تصنيع دوائي كفر الشيخ', minScore: 119.181252 },
+      { name: 'علاج طبيعي بني سويف', minScore: 119.181252 },
+      { name: 'صيدلة المنصورة', minScore: 119.125000 },
+      { name: 'صيدلة مدينة السادات', minScore: 119.118752 },
+      { name: 'صيدلة الزقازيق', minScore: 119.087502 },
+      { name: 'صيدلة المنوفية', minScore: 119.068748 },
+      { name: 'علاج طبيعي بورسعيد', minScore: 118.912498 },
+      { name: 'صيدلة الفيوم', minScore: 118.881248 },
+      { name: 'صيدلة قناة السويس بالإسماعيلية', minScore: 118.875000 },
+      { name: 'صيدلة بور سعيد', minScore: 118.731247 },
+      { name: 'صيدلة بني سويف', minScore: 118.637497 },
+      { name: 'صيدلة سوهاج', minScore: 118.431252 },
+      { name: 'صيدلة ج الوادي الجديد', minScore: 118.368752 },
+      { name: 'صيدلة جنوب الوادي', minScore: 118.356247 },
+      { name: 'هندسة القاهرة', minScore: 118.324997 },
+      { name: 'علاج طبيعي قناة السويس', minScore: 118.262497 },
+      { name: 'علاج طبيعي كفر الشيخ', minScore: 118.187500 },
+      { name: 'علاج طبيعي جنوب الوادي', minScore: 118.037498 },
+      { name: 'هندسة الإسكندرية', minScore: 117.793747 },
+      { name: 'هندسة عين شمس', minScore: 117.643753 },
+      { name: 'هندسة حلوان', minScore: 117.343750 },
+      { name: 'هندسة إلكترونية المنوفية بمنوف', minScore: 117.212502 },
+      { name: 'كلية الهندسة جامعة دمنهور', minScore: 117.031250 },
+      { name: 'هندسة طنطا', minScore: 116.737503 },
+      { name: 'هندسة أسيوط', minScore: 116.650002 },
+      { name: 'هندسة بنها بشبرا', minScore: 116.500000 },
+      { name: 'هندسة حلوان بالمطرية', minScore: 116.220001 },
+      { name: 'هندسة السويس', minScore: 116.218750 },
+      { name: 'هندسة كفر الشيخ', minScore: 116.162498 },
+      { name: 'هندسة المنصورة', minScore: 115.881248 },
+      { name: 'هندسة بنها', minScore: 115.862503 },
+      { name: 'هندسة المنيا', minScore: 115.737503 },
+      { name: 'هندسة المنوفية بشبين الكوم', minScore: 115.637497 },
+      { name: 'هندسة الفيوم', minScore: 115.493752 },
+      { name: 'هندسة قناة السويس بالإسماعيلية', minScore: 115.487503 },
+      { name: 'هندسة دمياط', minScore: 115.449997 },
+      { name: 'هندسة الطاقة أسوان', minScore: 115.412498 },
+      { name: 'هندسة أسوان', minScore: 115.224998 },
+      { name: 'هندسة الزقازيق', minScore: 115.112503 },
+      { name: 'هندسة بور سعيد', minScore: 115.081253 },
+      { name: 'هندسة بني سويف', minScore: 114.956253 },
+      { name: 'هندسة الوادي الجديد', minScore: 114.925003 },
+      { name: 'هندسة سوهاج', minScore: 114.762497 },
+      { name: 'هندسة جنوب الوادي', minScore: 114.631248 },
+      { name: 'حاسبات و ذكاء إصطناعي القاهرة رياضة', minScore: 114.537498 },
+      { name: 'حاسبات و علوم البيانات الإسكندرية رياضة', minScore: 114.531250 },
+      { name: 'تخطيط عمراني القاهرة', minScore: 114.137497 },
+      { name: 'حاسبات ومعلومات عين شمس رياضة', minScore: 113.762497 },
+      { name: 'طب بيطري عين شمس', minScore: 112.731247 },
+      { name: 'اقتصاد و علوم سياسية القاهرة', minScore: 112.593750 },
+      { name: 'معهد العبور العالي للهندسه والتكنولوجيا بمصروفات', minScore: 112.262497 },
+      { name: 'حاسبات و ذكاء إصطناعي حلوان رياضة', minScore: 112.018753 },
+      { name: 'حاسبات و علوم البيانات الإسكندرية علوم', minScore: 112.000000 },
+      { name: 'حاسبات ومعلومات دمنهور بالنوبارية رياضة', minScore: 111.831253 },
+      { name: 'حاسبات و ذكاء إصطناعي القاهرة علوم', minScore: 111.699997 },
+      { name: 'حاسبات ومعلومات طنطا رياضة', minScore: 111.693748 },
+      { name: 'حاسبات ومعلومات عين شمس علوم', minScore: 111.368752 },
+      { name: 'فنون جميلة (عمارة) الإسكندرية', minScore: 110.706253 },
+      { name: 'الدراسات الاقتصادية و العلوم السياسة الإسكندرية', minScore: 110.518753 },
+      { name: 'حاسبات و ذكاء إصطناعي حلوان علوم', minScore: 110.300003 },
+      { name: 'فنون جميلة (عمارة) حلوان', minScore: 109.993752 },
+      { name: 'طب بيطري القاهرة', minScore: 109.593750 },
+      { name: 'حاسبات ومعلومات دمنهور بالنوبارية علوم', minScore: 109.487503 },
+      { name: 'سياسة واقتصاد السويس', minScore: 109.318748 },
+      { name: 'حاسبات ومعلومات المنوفية بشبين الكوم رياضة', minScore: 109.312500 },
+      { name: 'طب بيطري الإسكندرية', minScore: 109.262497 },
+      { name: 'حاسبات ومعلومات أسيوط رياضة', minScore: 109.187500 },
+      { name: 'حاسبات و ذكاء إصطناعي بنها رياضة', minScore: 108.856247 },
+      { name: 'الذكاء الاصطناعى كفر الشيخ رياضة', minScore: 108.212502 },
+      { name: 'ذكاء إصطناعي المنوفية شبين الكوم رياضة', minScore: 106.918747 },
+      { name: 'حاسبات ومعلومات كفر الشيخ رياضة', minScore: 106.843750 },
+      { name: 'حاسبات ومعلومات الفيوم رياضة', minScore: 106.812500 },
+      { name: 'فنون جميلة (عمارة) المنصورة', minScore: 106.706253 },
+      { name: 'فنون جميلة (عمارة) أسيوط', minScore: 106.112503 },
+      { name: 'حاسبات ومعلومات السويس رياضة', minScore: 105.956253 },
+      { name: 'حاسبات و ذكاء إصطناعي الغردقة رياضة', minScore: 105.818748 },
+      { name: 'حاسبات ومعلومات طنطا علوم', minScore: 105.724998 },
+      { name: 'حاسبات و ذكاء إصطناعي بنها علوم', minScore: 105.631248 },
+      { name: 'فنون جميلة (عمارة) المنيا', minScore: 105.162498 },
+      { name: 'طب بيطري المنوفية', minScore: 104.756248 },
+      { name: 'حاسبات و معلومات العريش رياضة', minScore: 104.631248 },
+      { name: 'حاسبات ومعلومات المنصورة رياضة', minScore: 104.337502 },
+      { name: 'حاسبات وذكاء اصطناعي السادات رياضة', minScore: 104.312500 },
+      { name: 'سياسة واقتصاد بني سويف', minScore: 103.868752 },
+      { name: 'حاسبات وذكاء اصطناعي مطروح رياضة', minScore: 103.843750 },
+      { name: 'المعهد العالى للهندسة والتكنولوجيا الحديثة بالمرج', minScore: 103.762497 },
+      { name: 'حاسبات ومعلومات أسيوط علوم', minScore: 103.368752 },
+      { name: 'حاسبات ومعلومات الزقازيق رياضة', minScore: 102.618752 },
+      { name: 'حاسبات ومعلومات المنيا رياضة', minScore: 102.525002 },
+      { name: 'حاسبات ومعلومات الأقصر رياضة', minScore: 102.512497 },
+      { name: 'الذكاء الاصطناعى كفر الشيخ علوم', minScore: 102.449997 },
+      { name: 'إعلام القاهرة', minScore: 101.800003 },
+      { name: 'حاسبات ومعلومات بني سويف رياضة', minScore: 101.706253 },
+      { name: 'حاسبات ومعلومات المنوفية بشبين الكوم علوم', minScore: 101.431252 },
+      { name: 'حاسبات ومعلومات دمياط رياضة', minScore: 101.218750 },
+      { name: 'ألسن الغردقة', minScore: 101.181252 },
+      { name: 'حاسبات ومعلومات سوهاج رياضة', minScore: 100.956253 },
+      { name: 'حاسبات ومعلومات قناة السويس بالإسماعيلية رياضة', minScore: 100.768753 },
+      { name: 'علوم البترول والتعدين مطروح', minScore: 100.531250 },
+      { name: 'طب بيطري أسيوط', minScore: 100.269249 },
+      { name: 'حاسبات ومعلومات قنا رياضة', minScore: 99.9875030 },
+      { name: 'حاسبات ومعلومات كفر الشيخ علوم', minScore: 99.6937480 },
+      { name: 'طب بيطري بنها', minScore: 99.4375000 },
+      { name: 'حاسبات ومعلومات الفيوم علوم', minScore: 99.2437520 },
+      { name: 'إعلام عين شمس', minScore: 98.7750020 },
+      { name: 'ذكاء إصطناعي المنوفية شبين الكوم علوم', minScore: 98.3562470 },
+      { name: 'ألسن كفر الشيخ', minScore: 97.9937520 },
+      { name: 'طب بيطري كفر الشيخ', minScore: 97.9749980 },
+      { name: 'معهد عالي كندي تكنولوجيا هندسة ت.خامس', minScore: 97.5875020 },
+      { name: 'حقوق المنيا', minScore: 97.0374980 },
+      { name: 'علوم البترول والتعدين مطروح - علوم', minScore: 96.9499970 },
+      { name: 'حاسبات و ذكاء إصطناعي الغردقة علوم', minScore: 96.8874970 },
+      { name: 'الاكاديمية الدولية لعلوم الإعلام (شعبة هندسة )6اكتوبر', minScore: 96.5062480 },
+      { name: 'إعلام المنوفية', minScore: 96.0562520 },
+      { name: 'ألسن عين شمس', minScore: 94.1999970 },
+      { name: 'فنون جميلة (فنون) حلوان', minScore: 89.3750000 },
+      { name: 'ألسن الفيوم', minScore: 89.1562500 },
+      { name: 'فنون جميلة (فنون) الإسكندرية', minScore: 89.1134160 },
+      { name: 'معهد هندسة وتكنولوجيا الطيران إمبابة جيزة بمصروفات', minScore: 88.6562500 },
+      { name: 'تجارة القاهرة', minScore: 87.6999970 },
+      { name: 'معهد الصفوة العالي هندسة وتكنولوجيا بالقليوبية', minScore: 87.4000020 },
+      { name: 'تجارة انتساب موجه القاهرة', minScore: 86.0562520 },
+      { name: 'ألسن قناة السويس بالإسماعيلية', minScore: 85.8874970 },
+      { name: 'معهد الإسكندرية العالي للتكنولوجيا بسموحة بمصروفات', minScore: 85.8249970 },
+      { name: 'تجارة و إدارة أعمال حلوان', minScore: 85.8125000 },
+      { name: 'فنون جميلة (فنون) المنصورة', minScore: 85.2874980 },
+      { name: 'ع.هندسةوتكنوالعبور ك21 طريق بلبيس الصحراوى', minScore: 82.4312520 },
+      { name: 'المعهد العالى للهندسة والتكنولوجيا بكنج مريوط', minScore: 82.0812530 },
+      { name: 'تجارة عين شمس', minScore: 78.2687530 },
+      { name: 'معهد عالي فنون تطبيقيه 6 اكتوبر', minScore: 77.9250030 },
+      { name: 'ألسن أسوان', minScore: 77.8750000 },
+      { name: 'ألسن بني سويف', minScore: 76.0540010 },
+      { name: 'فنون تطبيقية حلوان', minScore: 75.3499980 },
+      { name: 'ع.كندى تكنو.اعلام ت.خامس', minScore: 71.4499970 }
+    ];
+
     // University type configurations
     const universityTypes = {
       government: {
@@ -3798,6 +4479,119 @@
       }
     }
 
+    // Smart decimal display with toggle functionality
+    function displayScoreWithToggle(score, element) {
+      const showMoreBtn = document.getElementById('showMoreBtn');
+      const fullScore = score.toString();
+      
+      // Check if score has more than 3 decimal places
+      const decimalPart = fullScore.split('.')[1] || '';
+      
+      if (decimalPart.length > 3) {
+        // Store full score in data attribute
+        element.setAttribute('data-full-score', fullScore);
+        element.setAttribute('data-is-expanded', 'false');
+        
+        // Show only first 3 decimals initially
+        const shortScore = parseFloat(score).toFixed(3);
+        element.textContent = shortScore;
+        
+        // Show the "Show More" button
+        if (showMoreBtn) {
+          showMoreBtn.style.display = 'flex';
+          
+          // Remove any existing event listeners
+          const newBtn = showMoreBtn.cloneNode(true);
+          showMoreBtn.parentNode.replaceChild(newBtn, showMoreBtn);
+          
+          // Add new event listener
+          newBtn.addEventListener('click', function() {
+            const isExpanded = element.getAttribute('data-is-expanded') === 'true';
+            
+            if (isExpanded) {
+              // Show short version
+              element.textContent = parseFloat(score).toFixed(3);
+              element.setAttribute('data-is-expanded', 'false');
+              newBtn.querySelector('.show-more-text').textContent = 'Show More';
+              newBtn.classList.remove('expanded');
+              
+              // Reset any inline styles and classes
+              element.style.fontSize = '';
+              element.classList.remove('long-number');
+            } else {
+              // Show full version
+              element.textContent = fullScore;
+              element.setAttribute('data-is-expanded', 'true');
+              newBtn.querySelector('.show-more-text').textContent = 'Show Less';
+              newBtn.classList.add('expanded');
+              
+              // Add class for long numbers
+              if (fullScore.length > 15) {
+                element.classList.add('long-number');
+              }
+              
+              // Adjust font size dynamically based on length and screen size
+              const screenWidth = window.innerWidth;
+              const numberLength = fullScore.length;
+              
+              if (screenWidth <= 480) {
+                // Extra small screens (phones in portrait)
+                if (numberLength > 20) {
+                  element.style.fontSize = '1.2em';
+                } else if (numberLength > 15) {
+                  element.style.fontSize = '1.4em';
+                } else {
+                  element.style.fontSize = '1.8em';
+                }
+              } else if (screenWidth <= 768) {
+                // Small screens (phones in landscape, small tablets)
+                if (numberLength > 20) {
+                  element.style.fontSize = '1.5em';
+                } else if (numberLength > 15) {
+                  element.style.fontSize = '1.8em';
+                } else {
+                  element.style.fontSize = '2.2em';
+                }
+              } else if (screenWidth <= 1024) {
+                // Medium screens (tablets)
+                if (numberLength > 20) {
+                  element.style.fontSize = '2em';
+                } else if (numberLength > 15) {
+                  element.style.fontSize = '2.5em';
+                }
+              }
+            }
+          });
+        }
+      } else {
+        // If 3 or fewer decimals, just show normally
+        element.textContent = parseFloat(score).toFixed(2);
+        element.removeAttribute('data-full-score');
+        element.removeAttribute('data-is-expanded');
+        
+        // Hide the button
+        if (showMoreBtn) {
+          showMoreBtn.style.display = 'none';
+        }
+      }
+    }
+
+    // Display breakdown scores with smart formatting (no toggle button for these)
+    function displayBreakdownScore(score, element) {
+      const fullScore = score.toString();
+      const decimalPart = fullScore.split('.')[1] || '';
+      
+      if (decimalPart.length > 3) {
+        // Show first 3 decimals with ellipsis
+        const shortScore = parseFloat(score).toFixed(3);
+        element.textContent = shortScore + '...';
+        element.setAttribute('title', fullScore); // Show full on hover
+      } else {
+        element.textContent = parseFloat(score).toFixed(2);
+        element.removeAttribute('title');
+      }
+    }
+
     // Calculate score - Following exact rules
     function calculateScore() {
       const exam1 = parseFloat(exam1Input?.value) || 0;
@@ -3882,9 +4676,9 @@
       calculationData.breakdown.gpaScore = gpaScore;
       calculationData.finalScore = finalScore;
 
-      // Display rounded to 2 decimals
+      // Display with smart decimal handling
       if (calculatedValue) {
-        calculatedValue.textContent = finalScore.toFixed(2);
+        displayScoreWithToggle(finalScore, calculatedValue);
       }
     }
 
@@ -3906,9 +4700,9 @@
         selectedUniversityTypeEl.textContent = config.name;
       }
 
-      // Update calculated value with percentage sign
+      // Update calculated value with smart decimal handling
       if (calculatedValue) {
-        calculatedValue.textContent = calculationData.finalScore.toFixed(2);
+        displayScoreWithToggle(calculationData.finalScore, calculatedValue);
       }
 
       // Update score icon to be positive (trophy icon)
@@ -3928,7 +4722,7 @@
         exam1BreakdownLabel.textContent = `${examName}1 Score:`;
       }
       if (exam1Breakdown) {
-        exam1Breakdown.textContent = calculationData.breakdown.exam1Score.toFixed(2);
+        displayBreakdownScore(calculationData.breakdown.exam1Score, exam1Breakdown);
       }
       
       // Show/hide exam 2 breakdown
@@ -3939,16 +4733,118 @@
           exam2BreakdownLabel.textContent = `${exam2Name}2 Score:`;
         }
         if (exam2Breakdown) {
-          exam2Breakdown.textContent = calculationData.breakdown.exam2Score.toFixed(2);
+          displayBreakdownScore(calculationData.breakdown.exam2Score, exam2Breakdown);
         }
       } else {
         if (exam2BreakdownItem) exam2BreakdownItem.style.display = 'none';
       }
       
       if (gpaBreakdown) {
-        gpaBreakdown.textContent = calculationData.breakdown.gpaScore.toFixed(2);
+        displayBreakdownScore(calculationData.breakdown.gpaScore, gpaBreakdown);
       }
 
+      // Display available colleges
+      displayAvailableColleges(calculationData.finalScore);
+    }
+
+    // Display available colleges based on score
+    function displayAvailableColleges(userScore) {
+      const availableCollegesCard = document.getElementById('availableCollegesCard');
+      const collegesList = document.getElementById('collegesList');
+      const collegesCount = document.getElementById('collegesCount');
+      const showAllBtn = document.getElementById('showAllCollegesBtn');
+      const searchInput = document.getElementById('collegesSearch');
+
+      if (!availableCollegesCard || !collegesList) return;
+
+      // Only show colleges for Government University
+      if (selectedUniversityType !== 'government') {
+        availableCollegesCard.style.display = 'none';
+        return;
+      }
+
+      // Filter colleges where user score >= minimum score
+      const availableColleges = collegesData.filter(college => userScore >= college.minScore);
+
+      if (availableColleges.length === 0) {
+        collegesList.innerHTML = `
+          <div class="no-colleges-message">
+            <i class="fas fa-graduation-cap"></i>
+            <p>Unfortunately, no colleges are available with this score</p>
+            <p style="font-size: 0.9em; color: #94a3b8;">Try to improve your score for better options</p>
+          </div>
+        `;
+        availableCollegesCard.style.display = 'block';
+        collegesCount.textContent = 'No colleges available';
+        showAllBtn.style.display = 'none';
+        return;
+      }
+
+      // Update count
+      collegesCount.textContent = `${availableColleges.length} colleges available based on your score`;
+
+      // Display colleges (show first 10 initially)
+      let displayLimit = 10;
+      let isExpanded = false;
+
+      function renderColleges(searchTerm = '') {
+        let filteredColleges = availableColleges;
+        
+        if (searchTerm) {
+          filteredColleges = availableColleges.filter(college => 
+            college.name.includes(searchTerm)
+          );
+        }
+
+        const collegesToShow = isExpanded ? filteredColleges : filteredColleges.slice(0, displayLimit);
+
+        if (filteredColleges.length === 0) {
+          collegesList.innerHTML = `
+            <div class="no-colleges-message">
+              <i class="fas fa-search"></i>
+              <p>No search results found</p>
+            </div>
+          `;
+          showAllBtn.style.display = 'none';
+          return;
+        }
+
+        collegesList.innerHTML = collegesToShow.map((college, index) => {
+          const isHighlighted = index < 5; // Highlight top 5
+          return `
+            <div class="college-item ${isHighlighted ? 'highlighted' : ''}" data-college="${college.name}">
+              <span class="college-name">${college.name}</span>
+              <span class="college-score">${college.minScore.toFixed(2)}</span>
+            </div>
+          `;
+        }).join('');
+
+        // Show/hide "Show All" button
+        if (filteredColleges.length > displayLimit && !searchTerm) {
+          showAllBtn.style.display = 'flex';
+          showAllBtn.querySelector('.show-all-text').textContent = isExpanded ? 'Show Less' : `Show All Colleges (${filteredColleges.length})`;
+          showAllBtn.classList.toggle('expanded', isExpanded);
+        } else {
+          showAllBtn.style.display = 'none';
+        }
+      }
+
+      // Initial render
+      renderColleges();
+
+      // Show all button handler
+      showAllBtn.onclick = () => {
+        isExpanded = !isExpanded;
+        renderColleges(searchInput.value);
+      };
+
+      // Search handler
+      searchInput.oninput = (e) => {
+        renderColleges(e.target.value);
+      };
+
+      // Show the card
+      availableCollegesCard.style.display = 'block';
     }
 
     // Share results
@@ -4327,6 +5223,36 @@
           gpaScore: 0
         }
       };
+
+      // Reset show more button
+      const showMoreBtn = document.getElementById('showMoreBtn');
+      if (showMoreBtn) {
+        showMoreBtn.style.display = 'none';
+        showMoreBtn.classList.remove('expanded');
+        const showMoreText = showMoreBtn.querySelector('.show-more-text');
+        if (showMoreText) {
+          showMoreText.textContent = 'Show More';
+        }
+      }
+
+      // Reset calculated value
+      if (calculatedValue) {
+        calculatedValue.textContent = '0.00';
+        calculatedValue.removeAttribute('data-full-score');
+        calculatedValue.removeAttribute('data-is-expanded');
+      }
+
+      // Hide available colleges card
+      const availableCollegesCard = document.getElementById('availableCollegesCard');
+      if (availableCollegesCard) {
+        availableCollegesCard.style.display = 'none';
+      }
+
+      // Clear search input
+      const collegesSearch = document.getElementById('collegesSearch');
+      if (collegesSearch) {
+        collegesSearch.value = '';
+      }
     }
 
     // Initialize calculator

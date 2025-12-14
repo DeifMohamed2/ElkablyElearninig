@@ -103,6 +103,22 @@ class WhatsAppSMSNotificationService {
   }
 
   /**
+   * Remove WhatsApp link from message (for WhatsApp messages only)
+   * SMS messages should keep the link
+   */
+  removeWhatsAppLink(message) {
+    if (!message) return '';
+    
+    // Remove the WhatsApp link and any trailing/leading whitespace or newlines
+    let cleanedMessage = message.replace(this.whatsappLink, '').trim();
+    
+    // Remove any double newlines that might be left after removing the link
+    cleanedMessage = cleanedMessage.replace(/\n\n+/g, '\n');
+    
+    return cleanedMessage;
+  }
+
+  /**
    * Generate SMS message for quiz completion (140-160 chars) - Vertical format
    */
   getSmsQuizCompletionMessage(student, quizData, score, totalQuestions, percentage) {
@@ -397,11 +413,14 @@ class WhatsAppSMSNotificationService {
           
           console.log(`💬 Sending WhatsApp to non-Egyptian number: ${formattedPhone} (${studentCountryCode})`);
           
+          // Remove WhatsApp link from WhatsApp messages
+          const cleanedWhatsappMessage = this.removeWhatsAppLink(whatsappMessage);
+          
           // Send message via WhatsApp
           const result = await wasender.sendTextMessage(
             this.sessionApiKey,
             formattedPhone,
-            whatsappMessage
+            cleanedWhatsappMessage
           );
 
           if (result.success) {
@@ -501,11 +520,14 @@ class WhatsAppSMSNotificationService {
           
           console.log(`💬 Sending WhatsApp to non-Egyptian number: ${formattedPhone} (${parentCountryCode})`);
           
+          // Remove WhatsApp link from WhatsApp messages
+          const cleanedWhatsappMessage = this.removeWhatsAppLink(whatsappMessage);
+          
           // Send message via WhatsApp
           const result = await wasender.sendTextMessage(
             this.sessionApiKey,
             formattedPhone,
-            whatsappMessage
+            cleanedWhatsappMessage
           );
 
           if (result.success) {

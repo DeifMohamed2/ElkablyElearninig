@@ -357,10 +357,24 @@
               How did you know Mr Kably? *
             </label>
             <div class="input-group-modern">
-              <textarea id="howDidYouKnow" name="howDidYouKnow" class="form-control-modern" 
-                        placeholder="Tell us how you heard about Mr Kably..." 
-                        rows="3" required><%= typeof howDidYouKnow != 'undefined' ? howDidYouKnow : '' %></textarea>
+              <select id="howDidYouKnow" name="howDidYouKnow" class="form-control-modern" required>
+                <option value="">Select an option...</option>
+                <option value="TikTok" <%= typeof howDidYouKnow != 'undefined' && howDidYouKnow == 'TikTok' ? 'selected' : '' %>>TikTok</option>
+                <option value="Instagram" <%= typeof howDidYouKnow != 'undefined' && howDidYouKnow == 'Instagram' ? 'selected' : '' %>>Instagram</option>
+                <option value="Facebook" <%= typeof howDidYouKnow != 'undefined' && howDidYouKnow == 'Facebook' ? 'selected' : '' %>>Facebook</option>
+                <option value="YouTube" <%= typeof howDidYouKnow != 'undefined' && howDidYouKnow == 'YouTube' ? 'selected' : '' %>>YouTube</option>
+                <option value="Snapchat" <%= typeof howDidYouKnow != 'undefined' && howDidYouKnow == 'Snapchat' ? 'selected' : '' %>>Snapchat</option>
+                <option value="Friend" <%= typeof howDidYouKnow != 'undefined' && howDidYouKnow == 'Friend' ? 'selected' : '' %>>Friend</option>
+                <option value="Other" <%= typeof howDidYouKnow != 'undefined' && howDidYouKnow == 'Other' ? 'selected' : '' %>>Other</option>
+              </select>
               <div class="input-focus-line"></div>
+            </div>
+            <div id="howDidYouKnowOtherContainer" style="display: none; margin-top: 10px;">
+              <div class="input-group-modern">
+                <input type="text" id="howDidYouKnowOther" name="howDidYouKnowOther" class="form-control-modern" 
+                       placeholder="Please specify how you heard about Mr Kably...">
+                <div class="input-focus-line"></div>
+              </div>
             </div>
             <div class="invalid-feedback-modern">Please tell us how you heard about Mr Kably.</div>
           </div>
@@ -491,16 +505,38 @@
   align-items: center;
   background: #e5e7eb;
   border-right: 1px solid #d1d5db;
-  min-width: 100px;
+  min-width: 95px;
+  max-width: 95px;
+  position: relative;
 }
+
+/* Flag overlay element created by JavaScript */
+.country-flag-overlay {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 100;
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+  color: #374151;
+  width: calc(100% - 35px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 .country-select {
   border: none;
   background: transparent;
-  padding: 12px 8px;
+  padding: 12px 8px 12px 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: transparent;
   cursor: pointer;
   outline: none;
   width: 100%;
@@ -510,6 +546,23 @@
   background-repeat: no-repeat;
   background-size: 16px 16px;
   padding-right: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Keep text transparent even when focused (open) */
+.country-select:focus {
+  color: transparent;
+  padding-left: 12px;
+}
+
+/* Keep flag overlay visible even when focused (open) */
+.country-select:focus + .country-flag-overlay {
+  display: block;
+}
+
+.country-code-selector:has(.country-select:focus) .country-flag-overlay {
+  display: block;
 }
 
 .country-select:focus {
@@ -554,12 +607,17 @@
 }
 
 .dark-theme .country-select {
-  color: #d1d5db;
+  color: transparent;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23d1d5db' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.dark-theme .country-flag-overlay {
+  color: #d1d5db;
 }
 
 .dark-theme .country-select:focus {
   background-color: #374151;
+  color: transparent;
 }
 
 .dark-theme .country-select option {
@@ -578,14 +636,25 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .country-code-selector {
-    min-width: 85px;
+    min-width: 90px;
+    max-width: 90px;
   }
   
   .country-select {
-    padding: 10px 6px;
+    padding: 10px 6px 10px 10px;
     font-size: 13px;
     padding-right: 28px;
     background-size: 14px 14px;
+  }
+  
+  .country-flag-overlay {
+    font-size: 13px;
+    left: 6px;
+    width: calc(100% - 35px);
+  }
+
+  .country-select:focus {
+    padding-left: 6px;
   }
   
   .phone-input {
@@ -1288,12 +1357,233 @@ document.addEventListener('DOMContentLoaded', function() {
   // ============================================
   // Configuration
   // ============================================
+  // Phone length standards for specific countries (optional validation)
+  // If a country is not listed, we use a flexible range of 7-15 digits
   const phoneLengthStandards = {
     '+966': 9,  // Saudi Arabia: 9 digits
     '+20': 11,  // Egypt: 11 digits (including leading 0)
     '+971': 9,  // UAE: 9 digits
-    '+965': 8   // Kuwait: 8 digits
+    '+965': 8,  // Kuwait: 8 digits
+    '+1': 10,   // US/Canada: 10 digits
+    '+44': 10,  // UK: 10 digits
+    '+91': 10,  // India: 10 digits
+    '+86': 11,  // China: 11 digits
+    '+81': 10,  // Japan: 10 digits
+    '+49': 11,  // Germany: 11 digits
+    '+33': 9,   // France: 9 digits
+    '+39': 10,  // Italy: 10 digits
+    '+34': 9,   // Spain: 9 digits
+    '+7': 10,   // Russia/Kazakhstan: 10 digits
+    '+82': 10,  // South Korea: 10 digits
+    '+61': 9,   // Australia: 9 digits
+    '+55': 11,  // Brazil: 11 digits
+    '+52': 10,  // Mexico: 10 digits
+    '+27': 9,   // South Africa: 9 digits
+    '+90': 10,  // Turkey: 10 digits
+    '+92': 10,  // Pakistan: 10 digits
+    '+62': 10,  // Indonesia: 10 digits
+    '+63': 10,  // Philippines: 10 digits
+    '+84': 10,  // Vietnam: 10 digits
+    '+66': 9,   // Thailand: 9 digits
+    '+60': 9,   // Malaysia: 9 digits
+    '+65': 8,   // Singapore: 8 digits
+    '+64': 8,   // New Zealand: 8 digits
+    '+31': 9,   // Netherlands: 9 digits
+    '+32': 9,   // Belgium: 9 digits
+    '+41': 9,   // Switzerland: 9 digits
+    '+46': 9,   // Sweden: 9 digits
+    '+47': 8,   // Norway: 8 digits
+    '+45': 8,   // Denmark: 8 digits
+    '+358': 9,  // Finland: 9 digits
+    '+351': 9,  // Portugal: 9 digits
+    '+30': 10,  // Greece: 10 digits
+    '+48': 9,   // Poland: 9 digits
+    '+40': 10,  // Romania: 10 digits
+    '+36': 9,   // Hungary: 9 digits
+    '+420': 9,  // Czech Republic: 9 digits
+    '+421': 9,  // Slovakia: 9 digits
+    '+385': 9,  // Croatia: 9 digits
+    '+386': 8,  // Slovenia: 8 digits
+    '+359': 9,  // Bulgaria: 9 digits
+    '+372': 8,  // Estonia: 8 digits
+    '+371': 8,  // Latvia: 8 digits
+    '+370': 8,  // Lithuania: 8 digits
+    '+353': 9,  // Ireland: 9 digits
+    '+354': 7,  // Iceland: 7 digits
+    '+352': 9,  // Luxembourg: 9 digits
+    '+356': 8,  // Malta: 8 digits
+    '+357': 8,  // Cyprus: 8 digits
+    '+43': 10,  // Austria: 10 digits
+    '+961': 8,  // Lebanon: 8 digits
+    '+962': 9,  // Jordan: 9 digits
+    '+974': 8,  // Qatar: 8 digits
+    '+968': 8,  // Oman: 8 digits
+    '+973': 8,  // Bahrain: 8 digits
+    '+212': 9,  // Morocco: 9 digits
+    '+213': 9,  // Algeria: 9 digits
+    '+216': 8,  // Tunisia: 8 digits
+    '+218': 9,  // Libya: 9 digits
+    '+20': 11,  // Egypt: 11 digits (already listed, but keeping for clarity)
+    '+234': 10, // Nigeria: 10 digits
+    '+254': 9,  // Kenya: 9 digits
+    '+27': 9,   // South Africa: 9 digits (already listed)
+    '+233': 9,  // Ghana: 9 digits
+    '+256': 9,  // Uganda: 9 digits
+    '+255': 9,  // Tanzania: 9 digits
+    '+251': 9,  // Ethiopia: 9 digits
+    '+880': 10, // Bangladesh: 10 digits
+    '+94': 9,   // Sri Lanka: 9 digits
+    '+977': 10, // Nepal: 10 digits
+    '+975': 8,  // Bhutan: 8 digits
+    '+95': 9,   // Myanmar: 9 digits
+    '+856': 8,  // Laos: 8 digits
+    '+855': 9,  // Cambodia: 9 digits
+    '+84': 10,  // Vietnam: 10 digits (already listed)
+    '+66': 9,   // Thailand: 9 digits (already listed)
+    '+60': 9,   // Malaysia: 9 digits (already listed)
+    '+65': 8,   // Singapore: 8 digits (already listed)
+    '+62': 10,  // Indonesia: 10 digits (already listed)
+    '+63': 10,  // Philippines: 10 digits (already listed)
+    '+61': 9,   // Australia: 9 digits (already listed)
+    '+64': 8,   // New Zealand: 8 digits (already listed)
+    '+679': 7,  // Fiji: 7 digits
+    '+676': 5,  // Tonga: 5 digits
+    '+685': 7,  // Samoa: 7 digits
+    '+687': 6,  // New Caledonia: 6 digits
+    '+689': 6,  // French Polynesia: 6 digits
+    '+55': 11,  // Brazil: 11 digits (already listed)
+    '+54': 10,  // Argentina: 10 digits
+    '+56': 9,   // Chile: 9 digits
+    '+57': 10,  // Colombia: 10 digits
+    '+51': 9,   // Peru: 9 digits
+    '+593': 9,  // Ecuador: 9 digits
+    '+58': 10,  // Venezuela: 10 digits
+    '+595': 9,  // Paraguay: 9 digits
+    '+598': 8,  // Uruguay: 8 digits
+    '+591': 8,  // Bolivia: 8 digits
+    '+592': 7,  // Guyana: 7 digits
+    '+597': 7,  // Suriname: 7 digits
+    '+594': 9,  // French Guiana: 9 digits
+    '+1-242': 7, // Bahamas: 7 digits
+    '+1-246': 7, // Barbados: 7 digits
+    '+1-268': 7, // Antigua and Barbuda: 7 digits
+    '+1-284': 7, // British Virgin Islands: 7 digits
+    '+1-340': 7, // US Virgin Islands: 7 digits
+    '+1-441': 7, // Bermuda: 7 digits
+    '+1-473': 7, // Grenada: 7 digits
+    '+1-649': 7, // Turks and Caicos: 7 digits
+    '+1-658': 7, // Jamaica: 7 digits
+    '+1-670': 7, // Northern Mariana Islands: 7 digits
+    '+1-671': 7, // Guam: 7 digits
+    '+1-758': 7, // Saint Lucia: 7 digits
+    '+1-767': 7, // Dominica: 7 digits
+    '+1-784': 7, // Saint Vincent and the Grenadines: 7 digits
+    '+1-809': 7, // Dominican Republic: 7 digits
+    '+1-868': 7, // Trinidad and Tobago: 7 digits
+    '+1-869': 7, // Saint Kitts and Nevis: 7 digits
+    '+1-876': 7, // Jamaica: 7 digits
+    '+1-939': 7, // Puerto Rico: 7 digits
+    '+7': 10,   // Russia/Kazakhstan: 10 digits (already listed)
+    '+380': 9,  // Ukraine: 9 digits
+    '+375': 9,  // Belarus: 9 digits
+    '+370': 8,  // Lithuania: 8 digits (already listed)
+    '+371': 8,  // Latvia: 8 digits (already listed)
+    '+372': 8,  // Estonia: 8 digits (already listed)
+    '+373': 8,  // Moldova: 8 digits
+    '+374': 8,  // Armenia: 8 digits
+    '+375': 9,  // Belarus: 9 digits (already listed)
+    '+376': 6,  // Andorra: 6 digits
+    '+377': 8,  // Monaco: 8 digits
+    '+378': 10, // San Marino: 10 digits
+    '+379': 0,  // Vatican City: variable
+    '+380': 9,  // Ukraine: 9 digits (already listed)
+    '+381': 9,  // Serbia: 9 digits
+    '+382': 8,  // Montenegro: 8 digits
+    '+383': 8,  // Kosovo: 8 digits
+    '+385': 9,  // Croatia: 9 digits (already listed)
+    '+386': 8,  // Slovenia: 8 digits (already listed)
+    '+387': 8,  // Bosnia and Herzegovina: 8 digits
+    '+389': 8,  // North Macedonia: 8 digits
+    '+390': 10, // Vatican City (alternative): 10 digits
+    '+420': 9,  // Czech Republic: 9 digits (already listed)
+    '+421': 9,  // Slovakia: 9 digits (already listed)
+    '+423': 7,  // Liechtenstein: 7 digits
+    '+500': 5,  // Falkland Islands: 5 digits
+    '+501': 7,  // Belize: 7 digits
+    '+502': 8,  // Guatemala: 8 digits
+    '+503': 8,  // El Salvador: 8 digits
+    '+504': 8,  // Honduras: 8 digits
+    '+505': 8,  // Nicaragua: 8 digits
+    '+506': 8,  // Costa Rica: 8 digits
+    '+507': 8,  // Panama: 8 digits
+    '+508': 6,  // Saint Pierre and Miquelon: 6 digits
+    '+509': 8,  // Haiti: 8 digits
+    '+590': 9,  // Guadeloupe: 9 digits
+    '+591': 8,  // Bolivia: 8 digits (already listed)
+    '+592': 7,  // Guyana: 7 digits (already listed)
+    '+593': 9,  // Ecuador: 9 digits (already listed)
+    '+594': 9,  // French Guiana: 9 digits (already listed)
+    '+595': 9,  // Paraguay: 9 digits (already listed)
+    '+596': 9,  // Martinique: 9 digits
+    '+597': 7,  // Suriname: 7 digits (already listed)
+    '+598': 8,  // Uruguay: 8 digits (already listed)
+    '+599': 7,  // Netherlands Antilles: 7 digits
+    '+670': 7,  // East Timor: 7 digits
+    '+672': 5,  // Australian External Territories: 5 digits
+    '+673': 7,  // Brunei: 7 digits
+    '+674': 7,  // Nauru: 7 digits
+    '+675': 7,  // Papua New Guinea: 7 digits
+    '+676': 5,  // Tonga: 5 digits (already listed)
+    '+677': 5,  // Solomon Islands: 5 digits
+    '+678': 5,  // Vanuatu: 5 digits
+    '+679': 7,  // Fiji: 7 digits (already listed)
+    '+680': 7,  // Palau: 7 digits
+    '+681': 6,  // Wallis and Futuna: 6 digits
+    '+682': 5,  // Cook Islands: 5 digits
+    '+683': 4,  // Niue: 4 digits
+    '+684': 7,  // American Samoa: 7 digits
+    '+685': 7,  // Samoa: 7 digits (already listed)
+    '+686': 5,  // Kiribati: 5 digits
+    '+687': 6,  // New Caledonia: 6 digits (already listed)
+    '+688': 5,  // Tuvalu: 5 digits
+    '+689': 6,  // French Polynesia: 6 digits (already listed)
+    '+690': 4,  // Tokelau: 4 digits
+    '+691': 7,  // Micronesia: 7 digits
+    '+692': 7,  // Marshall Islands: 7 digits
+    '+850': 8,  // North Korea: 8 digits
+    '+852': 8,  // Hong Kong: 8 digits
+    '+853': 8,  // Macau: 8 digits
+    '+855': 9,  // Cambodia: 9 digits (already listed)
+    '+856': 8,  // Laos: 8 digits (already listed)
+    '+880': 10, // Bangladesh: 10 digits (already listed)
+    '+886': 9,  // Taiwan: 9 digits
+    '+960': 7,  // Maldives: 7 digits
+    '+961': 8,  // Lebanon: 8 digits (already listed)
+    '+962': 9,  // Jordan: 9 digits (already listed)
+    '+963': 9,  // Syria: 9 digits
+    '+964': 10, // Iraq: 10 digits
+    '+965': 8,  // Kuwait: 8 digits (already listed)
+    '+966': 9,  // Saudi Arabia: 9 digits (already listed)
+    '+967': 9,  // Yemen: 9 digits
+    '+968': 8,  // Oman: 8 digits (already listed)
+    '+970': 9,  // Palestine: 9 digits
+    '+971': 9,  // UAE: 9 digits (already listed)
+    '+973': 8,  // Bahrain: 8 digits (already listed)
+    '+974': 8,  // Qatar: 8 digits (already listed)
+    '+975': 8,  // Bhutan: 8 digits (already listed)
+    '+976': 8,  // Mongolia: 8 digits
+    '+977': 10, // Nepal: 10 digits (already listed)
+    '+992': 9,  // Tajikistan: 9 digits
+    '+993': 8,  // Turkmenistan: 8 digits
+    '+994': 9,  // Azerbaijan: 9 digits
+    '+995': 9,  // Georgia: 9 digits
+    '+996': 9,  // Kyrgyzstan: 9 digits
+    '+998': 9   // Uzbekistan: 9 digits
   };
+  
+  // Default phone length range for countries not in the list
+  const DEFAULT_MIN_PHONE_LENGTH = 7;
+  const DEFAULT_MAX_PHONE_LENGTH = 15;
 
   // ============================================
   // DOM Elements
@@ -1324,10 +1614,304 @@ document.addEventListener('DOMContentLoaded', function() {
   const passwordInput = document.getElementById('password');
   const password2Input = document.getElementById('password2');
   const howDidYouKnowInput = document.getElementById('howDidYouKnow');
+  const howDidYouKnowOtherInput = document.getElementById('howDidYouKnowOther');
+  const howDidYouKnowOtherContainer = document.getElementById('howDidYouKnowOtherContainer');
 
   // Current step tracker
   let currentStep = 1;
   const totalSteps = 3;
+  
+  // Comprehensive country list with country codes
+  const countries = [
+    { code: '+93', name: 'Afghanistan', flag: '🇦🇫' },
+    { code: '+355', name: 'Albania', flag: '🇦🇱' },
+    { code: '+213', name: 'Algeria', flag: '🇩🇿' },
+    { code: '+376', name: 'Andorra', flag: '🇦🇩' },
+    { code: '+244', name: 'Angola', flag: '🇦🇴' },
+    { code: '+1-268', name: 'Antigua and Barbuda', flag: '🇦🇬' },
+    { code: '+54', name: 'Argentina', flag: '🇦🇷' },
+    { code: '+374', name: 'Armenia', flag: '🇦🇲' },
+    { code: '+61', name: 'Australia', flag: '🇦🇺' },
+    { code: '+43', name: 'Austria', flag: '🇦🇹' },
+    { code: '+994', name: 'Azerbaijan', flag: '🇦🇿' },
+    { code: '+1-242', name: 'Bahamas', flag: '🇧🇸' },
+    { code: '+973', name: 'Bahrain', flag: '🇧🇭' },
+    { code: '+880', name: 'Bangladesh', flag: '🇧🇩' },
+    { code: '+1-246', name: 'Barbados', flag: '🇧🇧' },
+    { code: '+375', name: 'Belarus', flag: '🇧🇾' },
+    { code: '+32', name: 'Belgium', flag: '🇧🇪' },
+    { code: '+501', name: 'Belize', flag: '🇧🇿' },
+    { code: '+229', name: 'Benin', flag: '🇧🇯' },
+    { code: '+975', name: 'Bhutan', flag: '🇧🇹' },
+    { code: '+591', name: 'Bolivia', flag: '🇧🇴' },
+    { code: '+387', name: 'Bosnia and Herzegovina', flag: '🇧🇦' },
+    { code: '+267', name: 'Botswana', flag: '🇧🇼' },
+    { code: '+55', name: 'Brazil', flag: '🇧🇷' },
+    { code: '+673', name: 'Brunei Darussalam', flag: '🇧🇳' },
+    { code: '+359', name: 'Bulgaria', flag: '🇧🇬' },
+    { code: '+226', name: 'Burkina Faso', flag: '🇧🇫' },
+    { code: '+257', name: 'Burundi', flag: '🇧🇮' },
+    { code: '+238', name: 'Cabo Verde', flag: '🇨🇻' },
+    { code: '+855', name: 'Cambodia', flag: '🇰🇭' },
+    { code: '+237', name: 'Cameroon', flag: '🇨🇲' },
+    { code: '+1', name: 'Canada', flag: '🇨🇦' },
+    { code: '+236', name: 'Central African Republic', flag: '🇨🇫' },
+    { code: '+235', name: 'Chad', flag: '🇹🇩' },
+    { code: '+56', name: 'Chile', flag: '🇨🇱' },
+    { code: '+86', name: 'China', flag: '🇨🇳' },
+    { code: '+57', name: 'Colombia', flag: '🇨🇴' },
+    { code: '+269', name: 'Comoros', flag: '🇰🇲' },
+    { code: '+242', name: 'Congo', flag: '🇨🇬' },
+    { code: '+243', name: 'Congo, Democratic Republic', flag: '🇨🇩' },
+    { code: '+506', name: 'Costa Rica', flag: '🇨🇷' },
+    { code: '+225', name: 'Côte d\'Ivoire', flag: '🇨🇮' },
+    { code: '+385', name: 'Croatia', flag: '🇭🇷' },
+    { code: '+53', name: 'Cuba', flag: '🇨🇺' },
+    { code: '+357', name: 'Cyprus', flag: '🇨🇾' },
+    { code: '+420', name: 'Czechia', flag: '🇨🇿' },
+    { code: '+45', name: 'Denmark', flag: '🇩🇰' },
+    { code: '+253', name: 'Djibouti', flag: '🇩🇯' },
+    { code: '+1-767', name: 'Dominica', flag: '🇩🇲' },
+    { code: '+1-809', name: 'Dominican Republic', flag: '🇩🇴' },
+    { code: '+593', name: 'Ecuador', flag: '🇪🇨' },
+    { code: '+20', name: 'Egypt', flag: '🇪🇬' },
+    { code: '+503', name: 'El Salvador', flag: '🇸🇻' },
+    { code: '+240', name: 'Equatorial Guinea', flag: '🇬🇶' },
+    { code: '+291', name: 'Eritrea', flag: '🇪🇷' },
+    { code: '+372', name: 'Estonia', flag: '🇪🇪' },
+    { code: '+268', name: 'Eswatini', flag: '🇸🇿' },
+    { code: '+251', name: 'Ethiopia', flag: '🇪🇹' },
+    { code: '+679', name: 'Fiji', flag: '🇫🇯' },
+    { code: '+358', name: 'Finland', flag: '🇫🇮' },
+    { code: '+33', name: 'France', flag: '🇫🇷' },
+    { code: '+241', name: 'Gabon', flag: '🇬🇦' },
+    { code: '+220', name: 'Gambia', flag: '🇬🇲' },
+    { code: '+995', name: 'Georgia', flag: '🇬🇪' },
+    { code: '+49', name: 'Germany', flag: '🇩🇪' },
+    { code: '+233', name: 'Ghana', flag: '🇬🇭' },
+    { code: '+30', name: 'Greece', flag: '🇬🇷' },
+    { code: '+1-473', name: 'Grenada', flag: '🇬🇩' },
+    { code: '+502', name: 'Guatemala', flag: '🇬🇹' },
+    { code: '+224', name: 'Guinea', flag: '🇬🇳' },
+    { code: '+245', name: 'Guinea-Bissau', flag: '🇬🇼' },
+    { code: '+592', name: 'Guyana', flag: '🇬🇾' },
+    { code: '+509', name: 'Haiti', flag: '🇭🇹' },
+    { code: '+504', name: 'Honduras', flag: '🇭🇳' },
+    { code: '+36', name: 'Hungary', flag: '🇭🇺' },
+    { code: '+354', name: 'Iceland', flag: '🇮🇸' },
+    { code: '+91', name: 'India', flag: '🇮🇳' },
+    { code: '+62', name: 'Indonesia', flag: '🇮🇩' },
+    { code: '+98', name: 'Iran', flag: '🇮🇷' },
+    { code: '+964', name: 'Iraq', flag: '🇮🇶' },
+    { code: '+353', name: 'Ireland', flag: '🇮🇪' },
+    { code: '+39', name: 'Italy', flag: '🇮🇹' },
+    { code: '+1-876', name: 'Jamaica', flag: '🇯🇲' },
+    { code: '+81', name: 'Japan', flag: '🇯🇵' },
+    { code: '+962', name: 'Jordan', flag: '🇯🇴' },
+    { code: '+7', name: 'Kazakhstan', flag: '🇰🇿' },
+    { code: '+254', name: 'Kenya', flag: '🇰🇪' },
+    { code: '+686', name: 'Kiribati', flag: '🇰🇮' },
+    { code: '+850', name: 'Korea, North', flag: '🇰🇵' },
+    { code: '+82', name: 'Korea, South', flag: '🇰🇷' },
+    { code: '+965', name: 'Kuwait', flag: '🇰🇼' },
+    { code: '+996', name: 'Kyrgyzstan', flag: '🇰🇬' },
+    { code: '+856', name: 'Laos', flag: '🇱🇦' },
+    { code: '+371', name: 'Latvia', flag: '🇱🇻' },
+    { code: '+961', name: 'Lebanon', flag: '🇱🇧' },
+    { code: '+266', name: 'Lesotho', flag: '🇱🇸' },
+    { code: '+231', name: 'Liberia', flag: '🇱🇷' },
+    { code: '+218', name: 'Libya', flag: '🇱🇾' },
+    { code: '+423', name: 'Liechtenstein', flag: '🇱🇮' },
+    { code: '+370', name: 'Lithuania', flag: '🇱🇹' },
+    { code: '+352', name: 'Luxembourg', flag: '🇱🇺' },
+    { code: '+261', name: 'Madagascar', flag: '🇲🇬' },
+    { code: '+265', name: 'Malawi', flag: '🇲🇼' },
+    { code: '+60', name: 'Malaysia', flag: '🇲🇾' },
+    { code: '+960', name: 'Maldives', flag: '🇲🇻' },
+    { code: '+223', name: 'Mali', flag: '🇲🇱' },
+    { code: '+356', name: 'Malta', flag: '🇲🇹' },
+    { code: '+692', name: 'Marshall Islands', flag: '🇲🇭' },
+    { code: '+222', name: 'Mauritania', flag: '🇲🇷' },
+    { code: '+230', name: 'Mauritius', flag: '🇲🇺' },
+    { code: '+52', name: 'Mexico', flag: '🇲🇽' },
+    { code: '+691', name: 'Micronesia', flag: '🇫🇲' },
+    { code: '+373', name: 'Moldova', flag: '🇲🇩' },
+    { code: '+377', name: 'Monaco', flag: '🇲🇨' },
+    { code: '+976', name: 'Mongolia', flag: '🇲🇳' },
+    { code: '+382', name: 'Montenegro', flag: '🇲🇪' },
+    { code: '+212', name: 'Morocco', flag: '🇲🇦' },
+    { code: '+258', name: 'Mozambique', flag: '🇲🇿' },
+    { code: '+95', name: 'Myanmar', flag: '🇲🇲' },
+    { code: '+264', name: 'Namibia', flag: '🇳🇦' },
+    { code: '+674', name: 'Nauru', flag: '🇳🇷' },
+    { code: '+977', name: 'Nepal', flag: '🇳🇵' },
+    { code: '+31', name: 'Netherlands', flag: '🇳🇱' },
+    { code: '+64', name: 'New Zealand', flag: '🇳🇿' },
+    { code: '+505', name: 'Nicaragua', flag: '🇳🇮' },
+    { code: '+227', name: 'Niger', flag: '🇳🇪' },
+    { code: '+234', name: 'Nigeria', flag: '🇳🇬' },
+    { code: '+389', name: 'North Macedonia', flag: '🇲🇰' },
+    { code: '+47', name: 'Norway', flag: '🇳🇴' },
+    { code: '+968', name: 'Oman', flag: '🇴🇲' },
+    { code: '+92', name: 'Pakistan', flag: '🇵🇰' },
+    { code: '+680', name: 'Palau', flag: '🇵🇼' },
+    { code: '+970', name: 'Palestine', flag: '🇵🇸' },
+    { code: '+507', name: 'Panama', flag: '🇵🇦' },
+    { code: '+675', name: 'Papua New Guinea', flag: '🇵🇬' },
+    { code: '+595', name: 'Paraguay', flag: '🇵🇾' },
+    { code: '+51', name: 'Peru', flag: '🇵🇪' },
+    { code: '+63', name: 'Philippines', flag: '🇵🇭' },
+    { code: '+48', name: 'Poland', flag: '🇵🇱' },
+    { code: '+351', name: 'Portugal', flag: '🇵🇹' },
+    { code: '+974', name: 'Qatar', flag: '🇶🇦' },
+    { code: '+40', name: 'Romania', flag: '🇷🇴' },
+    { code: '+7', name: 'Russia', flag: '🇷🇺' },
+    { code: '+250', name: 'Rwanda', flag: '🇷🇼' },
+    { code: '+1-869', name: 'Saint Kitts and Nevis', flag: '🇰🇳' },
+    { code: '+1-758', name: 'Saint Lucia', flag: '🇱🇨' },
+    { code: '+1-784', name: 'Saint Vincent and the Grenadines', flag: '🇻🇨' },
+    { code: '+685', name: 'Samoa', flag: '🇼🇸' },
+    { code: '+378', name: 'San Marino', flag: '🇸🇲' },
+    { code: '+239', name: 'Sao Tome and Principe', flag: '🇸🇹' },
+    { code: '+966', name: 'Saudi Arabia', flag: '🇸🇦' },
+    { code: '+221', name: 'Senegal', flag: '🇸🇳' },
+    { code: '+381', name: 'Serbia', flag: '🇷🇸' },
+    { code: '+248', name: 'Seychelles', flag: '🇸🇨' },
+    { code: '+232', name: 'Sierra Leone', flag: '🇸🇱' },
+    { code: '+65', name: 'Singapore', flag: '🇸🇬' },
+    { code: '+421', name: 'Slovakia', flag: '🇸🇰' },
+    { code: '+386', name: 'Slovenia', flag: '🇸🇮' },
+    { code: '+677', name: 'Solomon Islands', flag: '🇸🇧' },
+    { code: '+252', name: 'Somalia', flag: '🇸🇴' },
+    { code: '+27', name: 'South Africa', flag: '🇿🇦' },
+    { code: '+211', name: 'South Sudan', flag: '🇸🇸' },
+    { code: '+34', name: 'Spain', flag: '🇪🇸' },
+    { code: '+94', name: 'Sri Lanka', flag: '🇱🇰' },
+    { code: '+249', name: 'Sudan', flag: '🇸🇩' },
+    { code: '+597', name: 'Suriname', flag: '🇸🇷' },
+    { code: '+46', name: 'Sweden', flag: '🇸🇪' },
+    { code: '+41', name: 'Switzerland', flag: '🇨🇭' },
+    { code: '+963', name: 'Syria', flag: '🇸🇾' },
+    { code: '+886', name: 'Taiwan', flag: '🇹🇼' },
+    { code: '+992', name: 'Tajikistan', flag: '🇹🇯' },
+    { code: '+255', name: 'Tanzania', flag: '🇹🇿' },
+    { code: '+66', name: 'Thailand', flag: '🇹🇭' },
+    { code: '+228', name: 'Togo', flag: '🇹🇬' },
+    { code: '+676', name: 'Tonga', flag: '🇹🇴' },
+    { code: '+1-868', name: 'Trinidad and Tobago', flag: '🇹🇹' },
+    { code: '+216', name: 'Tunisia', flag: '🇹🇳' },
+    { code: '+90', name: 'Turkey', flag: '🇹🇷' },
+    { code: '+993', name: 'Turkmenistan', flag: '🇹🇲' },
+    { code: '+1-649', name: 'Turks and Caicos Islands', flag: '🇹🇨' },
+    { code: '+256', name: 'Uganda', flag: '🇺🇬' },
+    { code: '+380', name: 'Ukraine', flag: '🇺🇦' },
+    { code: '+971', name: 'United Arab Emirates', flag: '🇦🇪' },
+    { code: '+44', name: 'United Kingdom', flag: '🇬🇧' },
+    { code: '+1', name: 'United States', flag: '🇺🇸' },
+    { code: '+598', name: 'Uruguay', flag: '🇺🇾' },
+    { code: '+998', name: 'Uzbekistan', flag: '🇺🇿' },
+    { code: '+678', name: 'Vanuatu', flag: '🇻🇺' },
+    { code: '+379', name: 'Vatican City', flag: '🇻🇦' },
+    { code: '+58', name: 'Venezuela', flag: '🇻🇪' },
+    { code: '+84', name: 'Vietnam', flag: '🇻🇳' },
+    { code: '+967', name: 'Yemen', flag: '🇾🇪' },
+    { code: '+260', name: 'Zambia', flag: '🇿🇲' },
+    { code: '+263', name: 'Zimbabwe', flag: '🇿🇼' }
+  ];
+
+  // Function to extract flag from option text
+  function extractFlagFromOption(option) {
+    if (!option || !option.textContent) return '';
+    const text = option.textContent.trim();
+    // Match emoji flag (usually 1-2 characters at the start)
+    const flagMatch = text.match(/^[\u{1F1E6}-\u{1F1FF}]{2}/u);
+    return flagMatch ? flagMatch[0] : '';
+  }
+
+  // Function to update flag display on select element
+  function updateCountryFlagDisplay(selectElement) {
+    if (!selectElement) return;
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (selectedOption) {
+      const flag = extractFlagFromOption(selectedOption);
+      const countryCode = selectedOption.value;
+      selectElement.setAttribute('data-flag', flag);
+      selectElement.setAttribute('data-code', countryCode);
+      
+      // Also update or create a flag overlay element for better browser compatibility
+      let flagOverlay = selectElement.parentElement.querySelector('.country-flag-overlay');
+      if (!flagOverlay) {
+        flagOverlay = document.createElement('span');
+        flagOverlay.className = 'country-flag-overlay';
+        selectElement.parentElement.style.position = 'relative';
+        selectElement.parentElement.appendChild(flagOverlay);
+      }
+      flagOverlay.textContent = flag + ' ' + countryCode;
+      flagOverlay.style.display = 'block';
+    }
+  }
+
+  // Function to populate country dropdown
+  function populateCountryDropdown(selectElement, selectedValue) {
+    if (!selectElement) return;
+    
+    // Clear existing options
+    selectElement.innerHTML = '';
+    
+    // Add default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Select Country...';
+    selectElement.appendChild(defaultOption);
+    
+    // Add all countries
+    countries.forEach(country => {
+      const option = document.createElement('option');
+      option.value = country.code;
+      // Show full name in dropdown, but only flag + code when selected
+      option.textContent = `${country.flag} ${country.name} ${country.code}`;
+      option.setAttribute('data-display', `${country.flag} ${country.code}`);
+      if (selectedValue && country.code === selectedValue) {
+        option.selected = true;
+      }
+      selectElement.appendChild(option);
+    });
+    
+    // If no selected value and it's student country code, default to Egypt
+    if (!selectedValue && selectElement.id === 'studentCountryCode') {
+      const egyptOption = selectElement.querySelector('option[value="+20"]');
+      if (egyptOption) {
+        egyptOption.selected = true;
+      }
+    }
+
+    // Update flag display after populating
+    updateCountryFlagDisplay(selectElement);
+  }
+  
+  // Populate country dropdowns immediately after DOM elements are available
+  (function() {
+    const studentCountryCode = '<%= typeof studentCountryCode != 'undefined' ? studentCountryCode : '+20' %>';
+    const parentCountryCode = '<%= typeof parentCountryCode != 'undefined' ? parentCountryCode : '+20' %>';
+    
+    // Update flags for hardcoded options if dropdowns haven't been populated yet
+    if (studentCountrySelect && studentCountrySelect.options.length > 0) {
+      updateCountryFlagDisplay(studentCountrySelect);
+    }
+    if (parentCountrySelect && parentCountrySelect.options.length > 0) {
+      updateCountryFlagDisplay(parentCountrySelect);
+    }
+    
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(function() {
+      if (studentCountrySelect) {
+        populateCountryDropdown(studentCountrySelect, studentCountryCode);
+      }
+      if (parentCountrySelect) {
+        populateCountryDropdown(parentCountrySelect, parentCountryCode);
+      }
+    }, 0);
+  })();
   
   // Track which fields have been touched/interacted with
   const touchedFields = new Set();
@@ -1362,8 +1946,15 @@ document.addEventListener('DOMContentLoaded', function() {
       return { valid: false, message: 'Student number is required' };
     }
     
-    if (expectedLength && phoneNumber.length !== expectedLength) {
+    if (expectedLength) {
+      if (phoneNumber.length !== expectedLength) {
       return { valid: false, message: `Student number must be ${expectedLength} digits for ${countryCode}` };
+      }
+    } else {
+      // Use flexible range for countries not in the list
+      if (phoneNumber.length < DEFAULT_MIN_PHONE_LENGTH || phoneNumber.length > DEFAULT_MAX_PHONE_LENGTH) {
+        return { valid: false, message: `Student number must be between ${DEFAULT_MIN_PHONE_LENGTH} and ${DEFAULT_MAX_PHONE_LENGTH} digits` };
+      }
     }
     
     // Check if student and parent numbers are the same
@@ -1390,8 +1981,15 @@ document.addEventListener('DOMContentLoaded', function() {
       return { valid: false, message: 'Parent number is required' };
     }
     
-    if (expectedLength && phoneNumber.length !== expectedLength) {
+    if (expectedLength) {
+      if (phoneNumber.length !== expectedLength) {
       return { valid: false, message: `Parent number must be ${expectedLength} digits for ${countryCode}` };
+      }
+    } else {
+      // Use flexible range for countries not in the list
+      if (phoneNumber.length < DEFAULT_MIN_PHONE_LENGTH || phoneNumber.length > DEFAULT_MAX_PHONE_LENGTH) {
+        return { valid: false, message: `Parent number must be between ${DEFAULT_MIN_PHONE_LENGTH} and ${DEFAULT_MAX_PHONE_LENGTH} digits` };
+      }
     }
     
     // Check if student and parent numbers are the same
@@ -1485,9 +2083,23 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     howDidYouKnow: {
       required: true,
-      minLength: 5,
+      message: 'Please select how you heard about Mr Kably'
+    },
+    howDidYouKnowOther: {
+      required: false,
+      minLength: 3,
       maxLength: 500,
-      message: 'Please provide at least 5 characters describing how you heard about Mr Kably'
+      message: 'Please provide at least 3 characters describing how you heard about Mr Kably',
+      validate: function() {
+        // Only required if "Other" is selected
+        if (howDidYouKnowInput && howDidYouKnowInput.value === 'Other') {
+          const value = howDidYouKnowOtherInput ? howDidYouKnowOtherInput.value.trim() : '';
+          if (!value || value.length < 3) {
+            return { valid: false, message: 'Please provide at least 3 characters describing how you heard about Mr Kably' };
+          }
+        }
+        return { valid: true };
+      }
     }
   };
 
@@ -1747,7 +2359,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return [
           { name: 'password', input: passwordInput },
           { name: 'password2', input: password2Input },
-          { name: 'howDidYouKnow', input: howDidYouKnowInput }
+          { name: 'howDidYouKnow', input: howDidYouKnowInput },
+          { name: 'howDidYouKnowOther', input: howDidYouKnowOtherInput }
         ];
       default:
         return [];
@@ -1946,6 +2559,7 @@ document.addEventListener('DOMContentLoaded', function() {
       case 'grade': input = gradeSelect; break;
       case 'englishTeacher': input = englishTeacherInput; break;
       case 'howDidYouKnow': input = howDidYouKnowInput; break;
+      case 'howDidYouKnowOther': input = howDidYouKnowOtherInput; break;
     }
     
     if (input) {
@@ -2014,23 +2628,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Special handling for country code changes - trigger phone validation
   if (studentCountrySelect) {
-    studentCountrySelect.addEventListener('focus', () => {
+    studentCountrySelect.addEventListener('focus', function() {
       markFieldAsTouched(studentNumberInput);
+      // Keep flag overlay visible
+      const flagOverlay = this.parentElement.querySelector('.country-flag-overlay');
+      if (flagOverlay) flagOverlay.style.display = 'block';
     });
     studentCountrySelect.addEventListener('change', function() {
+      updateCountryFlagDisplay(this);
       markFieldAsTouched(studentNumberInput);
       validatePhoneNumbers();
+    });
+    studentCountrySelect.addEventListener('blur', function() {
+      updateCountryFlagDisplay(this);
+      const flagOverlay = this.parentElement.querySelector('.country-flag-overlay');
+      if (flagOverlay) flagOverlay.style.display = 'block';
     });
   }
 
   if (parentCountrySelect) {
-    parentCountrySelect.addEventListener('focus', () => {
+    parentCountrySelect.addEventListener('focus', function() {
       markFieldAsTouched(parentNumberInput);
+      // Keep flag overlay visible
+      const flagOverlay = this.parentElement.querySelector('.country-flag-overlay');
+      if (flagOverlay) flagOverlay.style.display = 'block';
     });
     parentCountrySelect.addEventListener('change', function() {
+      updateCountryFlagDisplay(this);
       markFieldAsTouched(parentNumberInput);
       validatePhoneNumbers();
     });
+    parentCountrySelect.addEventListener('blur', function() {
+      updateCountryFlagDisplay(this);
+      const flagOverlay = this.parentElement.querySelector('.country-flag-overlay');
+      if (flagOverlay) flagOverlay.style.display = 'block';
+    });
+  }
+
+  // Handle "How did you know Mr Kably?" dropdown - show/hide "Other" field
+  if (howDidYouKnowInput) {
+    howDidYouKnowInput.addEventListener('change', function() {
+      const selectedValue = this.value;
+      if (selectedValue === 'Other') {
+        if (howDidYouKnowOtherContainer) {
+          howDidYouKnowOtherContainer.style.display = 'block';
+        }
+        if (howDidYouKnowOtherInput) {
+          howDidYouKnowOtherInput.setAttribute('required', 'required');
+        }
+      } else {
+        if (howDidYouKnowOtherContainer) {
+          howDidYouKnowOtherContainer.style.display = 'none';
+        }
+        if (howDidYouKnowOtherInput) {
+          howDidYouKnowOtherInput.removeAttribute('required');
+          howDidYouKnowOtherInput.value = '';
+        }
+      }
+      markFieldAsTouched(this);
+      validateField('howDidYouKnow', this);
+    });
+    
+    // Initialize on page load
+    if (howDidYouKnowInput.value === 'Other') {
+      if (howDidYouKnowOtherContainer) {
+        howDidYouKnowOtherContainer.style.display = 'block';
+      }
+      if (howDidYouKnowOtherInput) {
+        howDidYouKnowOtherInput.setAttribute('required', 'required');
+      }
+    }
   }
 
   // Password confirmation validation - validate both fields when either changes
@@ -2087,6 +2754,25 @@ document.addEventListener('DOMContentLoaded', function() {
   // Form submission
   if (form) {
     form.addEventListener('submit', function(e) {
+      // Combine howDidYouKnow dropdown with "Other" text if "Other" is selected
+      if (howDidYouKnowInput && howDidYouKnowInput.value === 'Other' && howDidYouKnowOtherInput) {
+        const otherText = howDidYouKnowOtherInput.value.trim();
+        if (otherText) {
+          // Create a hidden input to store the combined value
+          let hiddenInput = document.getElementById('howDidYouKnowCombined');
+          if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'howDidYouKnowCombined';
+            hiddenInput.name = 'howDidYouKnow';
+            form.appendChild(hiddenInput);
+          }
+          hiddenInput.value = 'Other: ' + otherText;
+          // Temporarily disable the dropdown so it doesn't submit
+          howDidYouKnowInput.disabled = true;
+        }
+      }
+      
       // Mark all fields as touched before validation
       for (let i = 1; i <= totalSteps; i++) {
         const stepFields = getStepFields(i);
@@ -2111,6 +2797,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!allValid) {
         e.preventDefault();
         e.stopPropagation();
+        // Re-enable dropdown if validation failed
+        if (howDidYouKnowInput) {
+          howDidYouKnowInput.disabled = false;
+        }
         return false;
       }
 
@@ -2183,8 +2873,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const countryCode = countrySelect.value;
     const expectedLength = phoneLengthStandards[countryCode];
     
+    // Check if phone number is valid
+    let isValidLength = false;
+    if (expectedLength) {
+      isValidLength = phoneNumber.length === expectedLength;
+    } else {
+      isValidLength = phoneNumber.length >= DEFAULT_MIN_PHONE_LENGTH && phoneNumber.length <= DEFAULT_MAX_PHONE_LENGTH;
+    }
+    
     // Show OTP section if phone number is valid
-    if (phoneNumber && phoneNumber.length === expectedLength && !otpState[type].verified) {
+    if (phoneNumber && isValidLength && !otpState[type].verified) {
       otpSection.style.display = 'block';
       // Enable send button if not rate limited
       if (sendBtn && !otpState[type].rateLimitTimer) {
@@ -2753,7 +3451,15 @@ document.addEventListener('DOMContentLoaded', function() {
       const countryCode = studentCountrySelect.value;
       const expectedLength = phoneLengthStandards[countryCode];
       
-      if (phoneNumber && phoneNumber.length === expectedLength && !otpState.student.verified) {
+      // Check if phone number is valid
+      let isValidLength = false;
+      if (expectedLength) {
+        isValidLength = phoneNumber.length === expectedLength;
+      } else {
+        isValidLength = phoneNumber.length >= DEFAULT_MIN_PHONE_LENGTH && phoneNumber.length <= DEFAULT_MAX_PHONE_LENGTH;
+      }
+      
+      if (phoneNumber && isValidLength && !otpState.student.verified) {
         checkAndShowOtpSection('student');
       }
     }

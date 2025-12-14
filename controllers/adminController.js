@@ -954,6 +954,8 @@ const getCourseData = async (req, res) => {
         discountPrice: course.discountPrice,
         status: course.status,
         isFeatured: course.isFeatured || false,
+        isFullyBooked: course.isFullyBooked || false,
+        fullyBookedMessage: course.fullyBookedMessage || 'FULLY BOOKED',
         tags: course.tags || [],
         thumbnail: course.thumbnail || '',
         bundle: course.bundle
@@ -5789,8 +5791,43 @@ const updateBundle = async (req, res) => {
     bundle.hasBook = hasBook === 'on' || hasBook === true;
     bundle.bookName = bundle.hasBook ? (bookName ? bookName.trim() : '') : '';
     bundle.bookPrice = bundle.hasBook && bookPrice ? parseFloat(bookPrice) : 0;
+    
+    // Handle fully booked fields
+    const wasFullyBooked = bundle.isFullyBooked;
+    bundle.isFullyBooked = req.body.isFullyBooked === true || req.body.isFullyBooked === 'true' || req.body.isFullyBooked === 'on';
+    bundle.fullyBookedMessage = bundle.isFullyBooked 
+      ? (req.body.fullyBookedMessage ? req.body.fullyBookedMessage.trim() : 'FULLY BOOKED')
+      : 'FULLY BOOKED';
 
     await bundle.save();
+
+    // If bundle is set to fully booked, update all courses in the bundle
+    if (bundle.isFullyBooked && !wasFullyBooked) {
+      const Course = require('../models/Course');
+      await Course.updateMany(
+        { bundle: bundle._id },
+        {
+          $set: {
+            isFullyBooked: true,
+            fullyBookedMessage: bundle.fullyBookedMessage
+          }
+        }
+      );
+      console.log(`✅ Updated all courses in bundle ${bundle.bundleCode} to fully booked`);
+    }
+    // If bundle is no longer fully booked, remove fully booked status from courses (optional)
+    else if (!bundle.isFullyBooked && wasFullyBooked) {
+      const Course = require('../models/Course');
+      await Course.updateMany(
+        { bundle: bundle._id },
+        {
+          $set: {
+            isFullyBooked: false
+          }
+        }
+      );
+      console.log(`✅ Removed fully booked status from all courses in bundle ${bundle.bundleCode}`);
+    }
 
     if (isAjaxRequest) {
       return res.status(200).json({
@@ -6974,10 +7011,9 @@ const toggleStudentStatus = async (req, res) => {
         /[^\d+]/g,
         ''
       );
-      const contactLink = ' https://wa.me/201050994880';
       const message = isActive
-        ? `Your Elkably account has been activated. You can now log in and start learning.${contactLink}`
-        : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.${contactLink}`;
+        ? `Your Elkably account has been activated. You can now log in and start learning.`
+        : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
       sendSms({ recipient, message }).catch((err) =>
         console.error('SMS send error (toggle status):', err?.message || err)
       );
@@ -7771,10 +7807,9 @@ const updateStudent = async (req, res) => {
             )
           : null;
       if (phone) {
-        const contactLink = ' https://wa.me/201050994880';
         const message = student.isActive
-          ? `Your Elkably account has been activated. You can now log in and start learning.${contactLink}`
-          : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.${contactLink}`;
+          ? `Your Elkably account has been activated. You can now log in and start learning.`
+          : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
         sendSms({ recipient: phone, message }).catch((err) =>
           console.error('SMS send error (update student status):', err?.message || err)
         );
@@ -7871,7 +7906,7 @@ const deleteStudent = async (req, res) => {
     // Notify student via SMS about deletion (non-blocking)
     if (studentInfo.phone) {
       const message =
-        'Your Elkably account has been deleted. If this was unexpected, please contact support. https://wa.me/201050994880';
+        'Your Elkably account has been deleted. If this was unexpected, please contact support.';
       sendSms({ recipient: studentInfo.phone, message }).catch((err) =>
         console.error('SMS send error (delete student):', err?.message || err)
       );
@@ -13960,8 +13995,7 @@ const getBundleStudentsCount = async (req, res) => {
 // Send Bulk SMS
 const sendBulkSMS = async (req, res) => {
   try {
-    const { targetType, targetId, recipientType, selectedStudents, message } =
-      req.body;
+    const { targetType, targetId, recipientType, selectedStudents, message } = req.body;
 
     if (!message || message.trim().length < 10) {
       return res.status(400).json({
@@ -14007,24 +14041,20 @@ const sendBulkSMS = async (req, res) => {
 
       students.forEach((student) => {
         if (recipientType === 'parents' || recipientType === 'both') {
-          const parentPhone = student.parentCountryCode
-            ? `${student.parentCountryCode}${student.parentNumber}`
-            : student.parentNumber;
-          if (parentPhone) {
+          if (student.parentNumber) {
             recipients.push({
-              phone: parentPhone,
+              phoneNumber: student.parentNumber,
+              countryCode: student.parentCountryCode || null,
               name: `${student.firstName} ${student.lastName}'s Parent`,
               type: 'parent',
             });
           }
         }
         if (recipientType === 'students' || recipientType === 'both') {
-          const studentPhone = student.studentCountryCode
-            ? `${student.studentCountryCode}${student.studentNumber}`
-            : student.studentNumber;
-          if (studentPhone) {
+          if (student.studentNumber) {
             recipients.push({
-              phone: studentPhone,
+              phoneNumber: student.studentNumber,
+              countryCode: student.studentCountryCode || null,
               name: `${student.firstName} ${student.lastName}`,
               type: 'student',
             });
@@ -14042,24 +14072,20 @@ const sendBulkSMS = async (req, res) => {
 
       students.forEach((student) => {
         if (recipientType === 'parents' || recipientType === 'both') {
-          const parentPhone = student.parentCountryCode
-            ? `${student.parentCountryCode}${student.parentNumber}`
-            : student.parentNumber;
-          if (parentPhone) {
+          if (student.parentNumber) {
             recipients.push({
-              phone: parentPhone,
+              phoneNumber: student.parentNumber,
+              countryCode: student.parentCountryCode || null,
               name: `${student.firstName} ${student.lastName}'s Parent`,
               type: 'parent',
             });
           }
         }
         if (recipientType === 'students' || recipientType === 'both') {
-          const studentPhone = student.studentCountryCode
-            ? `${student.studentCountryCode}${student.studentNumber}`
-            : student.studentNumber;
-          if (studentPhone) {
+          if (student.studentNumber) {
             recipients.push({
-              phone: studentPhone,
+              phoneNumber: student.studentNumber,
+              countryCode: student.studentCountryCode || null,
               name: `${student.firstName} ${student.lastName}`,
               type: 'student',
             });
@@ -14098,24 +14124,20 @@ const sendBulkSMS = async (req, res) => {
 
       students.forEach((student) => {
         if (recipientType === 'parents' || recipientType === 'both') {
-          const parentPhone = student.parentCountryCode
-            ? `${student.parentCountryCode}${student.parentNumber}`
-            : student.parentNumber;
-          if (parentPhone) {
+          if (student.parentNumber) {
             recipients.push({
-              phone: parentPhone,
+              phoneNumber: student.parentNumber,
+              countryCode: student.parentCountryCode || null,
               name: `${student.firstName} ${student.lastName}'s Parent`,
               type: 'parent',
             });
           }
         }
         if (recipientType === 'students' || recipientType === 'both') {
-          const studentPhone = student.studentCountryCode
-            ? `${student.studentCountryCode}${student.studentNumber}`
-            : student.studentNumber;
-          if (studentPhone) {
+          if (student.studentNumber) {
             recipients.push({
-              phone: studentPhone,
+              phoneNumber: student.studentNumber,
+              countryCode: student.studentCountryCode || null,
               name: `${student.firstName} ${student.lastName}`,
               type: 'student',
             });
@@ -14178,117 +14200,249 @@ const sendBulkSMS = async (req, res) => {
       });
     }
 
-    // Remove duplicates
+    // Remove duplicates based on phoneNumber and countryCode combination
     const uniqueRecipients = recipients.filter(
       (recipient, index, self) =>
-        index === self.findIndex((r) => r.phone === recipient.phone)
+        index === self.findIndex((r) => 
+          r.phoneNumber === recipient.phoneNumber && 
+          (r.countryCode || '') === (recipient.countryCode || '')
+        )
     );
 
     results.total = uniqueRecipients.length;
 
-    // Send SMS in batches using bulk API for better performance
-    const BATCH_SIZE = 50; // Send 50 recipients per batch
-    const batches = [];
+    // Separate recipients into Egyptian (SMS) and non-Egyptian (WhatsApp) groups
+    const egyptianRecipients = [];
+    const nonEgyptianRecipients = [];
 
-    for (let i = 0; i < uniqueRecipients.length; i += BATCH_SIZE) {
-      batches.push(uniqueRecipients.slice(i, i + BATCH_SIZE));
+    for (const recipient of uniqueRecipients) {
+      const isEgyptian = whatsappSMSNotificationService.isEgyptianNumber(
+        recipient.phoneNumber,
+        recipient.countryCode
+      );
+
+      if (isEgyptian) {
+        egyptianRecipients.push(recipient);
+      } else {
+        nonEgyptianRecipients.push(recipient);
+      }
     }
 
-    // Process batches
-    for (const batch of batches) {
-      try {
-        // Extract phone numbers for this batch
-        const batchPhones = batch.map((r) => r.phone);
+    // Send SMS to Egyptian recipients in batches using bulk API
+    if (egyptianRecipients.length > 0) {
+      const BATCH_SIZE = 50; // Send 50 recipients per batch
+      const batches = [];
 
-        // Send bulk SMS
-        await sendBulkSms({
-          recipients: batchPhones,
-          message: message.trim(),
-        });
+      for (let i = 0; i < egyptianRecipients.length; i += BATCH_SIZE) {
+        batches.push(egyptianRecipients.slice(i, i + BATCH_SIZE));
+      }
 
-        // All recipients in batch succeeded
-        batch.forEach((recipient) => {
-          results.success.push({
-            phone: recipient.phone,
-            name: recipient.name,
-            type: recipient.type,
+      // Process batches
+      for (const batch of batches) {
+        try {
+          // Format phone numbers for SMS (combine country code if present)
+          const batchPhones = batch.map((r) => {
+            if (r.countryCode) {
+              return `${r.countryCode}${r.phoneNumber}`;
+            }
+            return r.phoneNumber;
           });
-        });
-      } catch (error) {
-        console.error(`Failed to send SMS batch:`, error);
+
+          // Send bulk SMS
+          await sendBulkSms({
+            recipients: batchPhones,
+            message: message.trim(),
+          });
+
+          // All recipients in batch succeeded
+          batch.forEach((recipient) => {
+            const fullPhone = recipient.countryCode 
+              ? `${recipient.countryCode}${recipient.phoneNumber}`
+              : recipient.phoneNumber;
+            results.success.push({
+              phone: fullPhone,
+              name: recipient.name,
+              type: recipient.type,
+              method: 'SMS',
+            });
+          });
+        } catch (error) {
+          console.error(`Failed to send SMS batch:`, error);
 
         // Extract error message from API response
         let errorMessage = 'Unknown error';
 
-        // Priority 1: Check if it's an API error with isApiError flag
-        if (error.isApiError && error.message) {
-          errorMessage = error.message;
-        }
-        // Priority 2: Check error.details for API error format (status: "error")
-        else if (error.details && typeof error.details === 'object') {
-          if (error.details.status === 'error') {
-            errorMessage = error.details.message || 'SMS API returned an error';
-          } else {
-            errorMessage =
-              error.details.message ||
-              error.details.error ||
-              error.details.help ||
-              JSON.stringify(error.details);
+          // Priority 1: Check if it's an API error with isApiError flag
+          if (error.isApiError && error.message) {
+            errorMessage = error.message;
           }
-        }
-        // Priority 3: Check error.message (from utils/sms.js)
-        else if (error.message && error.message !== 'WhySMS API error') {
-          errorMessage = error.message;
-        }
-        // Priority 4: Check error.response.data for API error format
-        else if (error.response?.data) {
-          const responseData = error.response.data;
-          if (responseData.status === 'error') {
-            errorMessage = responseData.message || 'SMS API returned an error';
-          } else if (typeof responseData === 'object') {
-            errorMessage =
-              responseData.message ||
-              responseData.error ||
-              responseData.help ||
-              JSON.stringify(responseData);
-          } else {
-            errorMessage = String(responseData);
+          // Priority 2: Check error.details for API error format (status: "error")
+          else if (error.details && typeof error.details === 'object') {
+            if (error.details.status === 'error') {
+              errorMessage = error.details.message || 'SMS API returned an error';
+            } else {
+              errorMessage =
+                error.details.message ||
+                error.details.error ||
+                error.details.help ||
+                JSON.stringify(error.details);
+            }
           }
-        }
-        // Priority 5: Check error.details as string
-        else if (error.details) {
-          errorMessage = String(error.details);
-        }
-        // Priority 6: Fallback to error.message
-        else if (error.message) {
-          errorMessage = error.message;
-        }
+          // Priority 3: Check error.message (from utils/sms.js)
+          else if (error.message && error.message !== 'WhySMS API error') {
+            errorMessage = error.message;
+          }
+          // Priority 4: Check error.response.data for API error format
+          else if (error.response?.data) {
+            const responseData = error.response.data;
+            if (responseData.status === 'error') {
+              errorMessage = responseData.message || 'SMS API returned an error';
+            } else if (typeof responseData === 'object') {
+              errorMessage =
+                responseData.message ||
+                responseData.error ||
+                responseData.help ||
+                JSON.stringify(responseData);
+            } else {
+              errorMessage = String(responseData);
+            }
+          }
+          // Priority 5: Check error.details as string
+          else if (error.details) {
+            errorMessage = String(error.details);
+          }
+          // Priority 6: Fallback to error.message
+          else if (error.message) {
+            errorMessage = error.message;
+          }
 
-        // Add status code if available for better error context (but not for API-level errors)
-        if (!error.isApiError) {
-          if (error.statusCode) {
-            errorMessage = `[${error.statusCode}] ${errorMessage}`;
-          } else if (error.response?.status) {
-            errorMessage = `[${error.response.status}] ${errorMessage}`;
+          // Add status code if available for better error context (but not for API-level errors)
+          if (!error.isApiError) {
+            if (error.statusCode) {
+              errorMessage = `[${error.statusCode}] ${errorMessage}`;
+            } else if (error.response?.status) {
+              errorMessage = `[${error.response.status}] ${errorMessage}`;
+            }
           }
-        }
 
-        // If bulk send fails, mark all recipients in batch as failed
-        // If we can't determine which specific ones failed, mark all
-        batch.forEach((recipient) => {
-          results.failed.push({
-            phone: recipient.phone,
-            name: recipient.name,
-            type: recipient.type,
-            error: errorMessage,
+          // If bulk send fails, mark all recipients in batch as failed
+          // If we can't determine which specific ones failed, mark all
+          batch.forEach((recipient) => {
+            const fullPhone = recipient.countryCode 
+              ? `${recipient.countryCode}${recipient.phoneNumber}`
+              : recipient.phoneNumber;
+            results.failed.push({
+              phone: fullPhone,
+              name: recipient.name,
+              type: recipient.type,
+              method: 'SMS',
+              error: errorMessage,
+            });
           });
-        });
+        }
       }
     }
 
+    // Send WhatsApp messages to non-Egyptian recipients
+    if (nonEgyptianRecipients.length > 0) {
+      const wasender = require('../utils/wasender');
+      
+      // Check if session API key is available
+      if (!whatsappSMSNotificationService.sessionApiKey) {
+        console.error('Session API key is not configured for WhatsApp');
+        // Mark all non-Egyptian recipients as failed
+        nonEgyptianRecipients.forEach((recipient) => {
+          const fullPhone = recipient.countryCode 
+            ? `${recipient.countryCode}${recipient.phoneNumber}`
+            : recipient.phoneNumber;
+          results.failed.push({
+            phone: fullPhone,
+            name: recipient.name,
+            type: recipient.type,
+            method: 'WhatsApp',
+            error: 'Session API key not configured',
+          });
+        });
+      } else {
+        // Remove WhatsApp link from message for WhatsApp delivery
+        const cleanedWhatsappMessage = whatsappSMSNotificationService.removeWhatsAppLink(message.trim());
+
+        // Send WhatsApp messages individually
+        for (const recipient of nonEgyptianRecipients) {
+          try {
+            // Format phone number for WhatsApp
+            const formattedPhone = whatsappSMSNotificationService.formatPhoneNumber(
+              recipient.phoneNumber,
+              recipient.countryCode
+            );
+
+            // Convert to WhatsApp JID format (remove + and add @s.whatsapp.net)
+            let cleaned = formattedPhone.replace(/^\+/, '').replace(/\D/g, '');
+            // If starts with 0, replace with country code if available
+            if (cleaned.startsWith('0') && recipient.countryCode) {
+              cleaned = recipient.countryCode.replace(/^\+/, '').replace(/\D/g, '') + cleaned.substring(1);
+            }
+            const whatsappJid = `${cleaned}@s.whatsapp.net`;
+
+            console.log(`💬 Sending WhatsApp to non-Egyptian number: ${whatsappJid}`);
+
+            // Send message via WhatsApp
+            const result = await wasender.sendTextMessage(
+              whatsappSMSNotificationService.sessionApiKey,
+              whatsappJid,
+              cleanedWhatsappMessage
+            );
+
+            if (result.success) {
+              const fullPhone = recipient.countryCode 
+                ? `${recipient.countryCode}${recipient.phoneNumber}`
+                : recipient.phoneNumber;
+              console.log(`✅ WhatsApp message sent to ${recipient.name} (${whatsappJid})`);
+              results.success.push({
+                phone: fullPhone,
+                name: recipient.name,
+                type: recipient.type,
+                method: 'WhatsApp',
+              });
+            } else {
+              const fullPhone = recipient.countryCode 
+                ? `${recipient.countryCode}${recipient.phoneNumber}`
+                : recipient.phoneNumber;
+              console.error(`❌ Failed to send WhatsApp to ${recipient.name}:`, result.message);
+              results.failed.push({
+                phone: fullPhone,
+                name: recipient.name,
+                type: recipient.type,
+                method: 'WhatsApp',
+                error: result.message || 'Failed to send WhatsApp message',
+              });
+            }
+          } catch (whatsappError) {
+            const fullPhone = recipient.countryCode 
+              ? `${recipient.countryCode}${recipient.phoneNumber}`
+              : recipient.phoneNumber;
+            console.error(`❌ WhatsApp sending error for ${recipient.name}:`, whatsappError);
+            results.failed.push({
+              phone: fullPhone,
+              name: recipient.name,
+              type: recipient.type,
+              method: 'WhatsApp',
+              error: whatsappError.message || 'Unknown WhatsApp error',
+            });
+          }
+        }
+      }
+    }
+
+    // Calculate total counts
+    const successCount = results.success.length;
+    const failedCount = results.failed.length;
+    const smsCount = results.success.filter(r => r.method === 'SMS').length;
+    const whatsappCount = results.success.filter(r => r.method === 'WhatsApp').length;
+
     res.json({
       success: true,
-      message: `SMS sent to ${results.success.length} out of ${results.total} recipients`,
+      message: `Messages sent to ${successCount} out of ${results.total} recipients (${smsCount} SMS, ${whatsappCount} WhatsApp)`,
       results,
     });
   } catch (error) {

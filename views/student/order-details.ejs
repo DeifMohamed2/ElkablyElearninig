@@ -69,7 +69,7 @@
                                 </div>
                             </div>
                             <div class="order-actions-header">
-                                <button class="btn btn-outline btn-sm" onclick="window.print()">
+                                <button class="btn btn-outline btn-sm" onclick="printInvoice()">
                                     <i class="fas fa-print"></i>
                                     Print
                                 </button>
@@ -333,7 +333,7 @@
                                         <i class="fas fa-arrow-left"></i>
                                         Back to Orders
                                     </a>
-                                    <button class="btn btn-outline" onclick="window.print()">
+                                    <button class="btn btn-outline" onclick="printInvoice()">
                                         <i class="fas fa-print"></i>
                                         Print Receipt
                                     </button>
@@ -344,6 +344,177 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Professional Invoice Template (Hidden) -->
+    <div class="invoice-template" id="invoice-template" style="display: none;">
+        <div class="invoice-container">
+            <!-- Watermark -->
+            <div class="invoice-watermark">ELKABLY</div>
+            
+            <!-- Invoice Header -->
+            <div class="invoice-header">
+                <div class="invoice-logo-section">
+                    <img src="/images/K.png" alt="ELKABLY Logo" class="invoice-logo">
+                    <div class="invoice-brand">
+                        <h1 class="invoice-brand-name">ELKABLY</h1>
+                        <p class="invoice-brand-tagline">Math Is Root of Knowledge</p>
+                    </div>
+                </div>
+                <div class="invoice-header-right">
+                    <div class="invoice-type">INVOICE</div>
+                    <div class="invoice-number">Order #<%= order.orderNumber %></div>
+                </div>
+            </div>
+            
+            <!-- Invoice Info Section -->
+            <div class="invoice-info-section">
+                <div class="invoice-info-left">
+                    <h3 class="invoice-section-title">Bill To:</h3>
+                    <div class="invoice-info-content">
+                        <p class="invoice-info-line"><strong><%= student.name %></strong></p>
+                        <% if (student.studentEmail) { %>
+                            <p class="invoice-info-line"><%= student.studentEmail %></p>
+                        <% } %>
+                        <% if (student.studentCode) { %>
+                            <p class="invoice-info-line">Student Code: <%= student.studentCode %></p>
+                        <% } %>
+                    </div>
+                </div>
+                <div class="invoice-info-right">
+                    <div class="invoice-info-item">
+                        <span class="invoice-info-label">Invoice Date:</span>
+                        <span class="invoice-info-value"><%= new Date(order.purchasedAt || order.createdAt).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric'
+                        }) %></span>
+                    </div>
+                    <div class="invoice-info-item">
+                        <span class="invoice-info-label">Status:</span>
+                        <span class="invoice-info-value status-<%= order.status %>"><%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Invoice Items -->
+            <div class="invoice-items-section">
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th class="invoice-th-item">Item Description</th>
+                            <th class="invoice-th-type">Type</th>
+                            <th class="invoice-th-price">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="invoice-td-item">
+                                <div class="invoice-item-details">
+                                    <strong class="invoice-item-title"><%= order.item ? order.item.title : 'Item not found' %></strong>
+                                    <% if (order.type === 'course' && order.item) { %>
+                                        <div class="invoice-item-meta">
+                                            <span>Level: <%= order.item.level %></span>
+                                            <span>Duration: <%= order.item.duration %>h</span>
+                                            <% if (order.item.topics && order.item.topics.length > 0) { %>
+                                                <span>Topics: <%= order.item.topics.length %></span>
+                                            <% } %>
+                                        </div>
+                                    <% } else if (order.type === 'bundle' && order.item) { %>
+                                        <div class="invoice-item-meta">
+                                            <span>Subject: <%= order.item.subject %></span>
+                                            <span>Courses: <%= order.item.courses ? order.item.courses.length : 0 %></span>
+                                            <% if (order.item.duration) { %>
+                                                <span>Total Duration: <%= order.item.duration %>h</span>
+                                            <% } %>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            </td>
+                            <td class="invoice-td-type">
+                                <% if (order.type === 'course') { %>
+                                    <span class="invoice-badge invoice-badge-primary">Week</span>
+                                <% } else { %>
+                                    <span class="invoice-badge invoice-badge-success">Course</span>
+                                <% } %>
+                            </td>
+                            <td class="invoice-td-price">
+                                <strong><%= order.originalAmount ? order.originalAmount.toFixed(2) : order.price.toFixed(2) %> EGP</strong>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Included Weeks (if bundle) -->
+            <% if (order.type === 'bundle' && order.item && order.item.courses && order.item.courses.length > 0) { %>
+                <div class="invoice-courses-section">
+                    <h3 class="invoice-section-title-small">Included Weeks:</h3>
+                    <div class="invoice-courses-list">
+                        <% order.item.courses.forEach((course, index) => { %>
+                            <div class="invoice-course-item">
+                                <span class="course-number-badge"><%= index + 1 %></span>
+                                <span class="course-name"><%= course.title %></span>
+                                <% if (course.duration) { %>
+                                    <span class="course-duration-badge"><%= course.duration %>h</span>
+                                <% } %>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+            <% } %>
+            
+            <!-- Invoice Totals -->
+            <div class="invoice-totals-section">
+                <div class="invoice-totals">
+                    <div class="invoice-total-row">
+                        <span class="invoice-total-label">Subtotal:</span>
+                        <span class="invoice-total-value"><%= order.originalAmount ? order.originalAmount.toFixed(2) : order.price.toFixed(2) %> EGP</span>
+                    </div>
+                    <% if (order.tax && order.tax > 0) { %>
+                        <div class="invoice-total-row">
+                            <span class="invoice-total-label">Tax:</span>
+                            <span class="invoice-total-value"><%= order.tax.toFixed(2) %> EGP</span>
+                        </div>
+                    <% } %>
+                    <% if (order.discountAmount && order.discountAmount > 0) { %>
+                        <div class="invoice-total-row discount-row">
+                            <span class="invoice-total-label">
+                                <i class="fas fa-tag"></i>
+                                Discount<% if (order.appliedPromoCode) { %> (<%= order.appliedPromoCode.code %>)<% } %>:
+                            </span>
+                            <span class="invoice-total-value discount-value">-<%= order.discountAmount.toFixed(2) %> EGP</span>
+                        </div>
+                    <% } %>
+                    <div class="invoice-total-row invoice-total-row-final">
+                        <span class="invoice-total-label">Total Amount:</span>
+                        <span class="invoice-total-value invoice-total-amount"><%= order.total ? order.total.toFixed(2) : order.price.toFixed(2) %> EGP</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Invoice Footer -->
+            <div class="invoice-footer">
+                <div class="invoice-footer-content">
+                    <p class="invoice-footer-text">
+                        <strong>Thank you for your purchase!</strong>
+                    </p>
+                    <p class="invoice-footer-text">
+                        This is an official invoice from ELKABLY. For any inquiries, please contact us through our website.
+                    </p>
+                    <div class="invoice-footer-divider"></div>
+                    <p class="invoice-footer-note">
+                        This invoice was generated on <%= new Date().toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) %>
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Enhanced CSS -->
@@ -945,6 +1116,581 @@
                 display: none;
             }
         }
+
+        /* Invoice Template Styles (Hidden by default) */
+        .invoice-template {
+            display: none;
+        }
     </style>
+
+    <!-- JavaScript for Professional Invoice Printing -->
+    <script>
+        // Print Invoice Function
+        function printInvoice() {
+            const invoiceElement = document.getElementById('invoice-template');
+            if (!invoiceElement) {
+                alert('Invoice template not found');
+                return;
+            }
+            
+            // Create a new window for printing
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            
+            // Get the invoice HTML
+            const invoiceHTML = invoiceElement.innerHTML;
+            
+            // Create complete HTML document for printing
+            const printDocument = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Invoice - Order #<%= order.orderNumber %></title>
+                    <style>
+                        ${getPrintStyles()}
+                    </style>
+                </head>
+                <body>
+                    ${invoiceHTML}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(printDocument);
+            printWindow.document.close();
+        }
+        
+        // Get Professional Print Styles
+        function getPrintStyles() {
+            return `
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: #ffffff;
+                    color: #1a1a1a;
+                    line-height: 1.4;
+                    padding: 0;
+                }
+                
+                .invoice-container {
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0;
+                    background: #ffffff;
+                    position: relative;
+                    padding: 15mm 12mm;
+                    min-height: 297mm;
+                    max-height: 297mm;
+                    overflow: hidden;
+                }
+                
+                /* Watermark */
+                .invoice-watermark {
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%) rotate(-45deg);
+                    font-size: 120px;
+                    font-weight: 900;
+                    color: rgba(184, 1, 1, 0.04);
+                    z-index: 0;
+                    letter-spacing: 20px;
+                    pointer-events: none;
+                    white-space: nowrap;
+                    font-family: 'Arial Black', Arial, sans-serif;
+                }
+                
+                /* Invoice Header */
+                .invoice-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 12mm;
+                    padding-bottom: 8mm;
+                    border-bottom: 3px solid #b80101;
+                    position: relative;
+                    z-index: 1;
+                }
+                
+                .invoice-logo-section {
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                }
+                
+                .invoice-logo {
+                    width: 60px;
+                    height: 60px;
+                    object-fit: contain;
+                    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+                }
+                
+                .invoice-brand-name {
+                    font-size: 28px;
+                    font-weight: 900;
+                    color: #b80101;
+                    margin: 0;
+                    letter-spacing: 2px;
+                    line-height: 1.2;
+                    font-family: 'Arial Black', Arial, sans-serif;
+                }
+                
+                .invoice-brand-tagline {
+                    font-size: 11px;
+                    color: #666;
+                    margin: 3px 0 0 0;
+                    font-style: italic;
+                    line-height: 1.2;
+                }
+                
+                .invoice-header-right {
+                    text-align: right;
+                }
+                
+                .invoice-type {
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #b80101;
+                    margin-bottom: 5px;
+                    letter-spacing: 3px;
+                    text-transform: uppercase;
+                }
+                
+                .invoice-number {
+                    font-size: 13px;
+                    color: #666;
+                    font-weight: 600;
+                }
+                
+                /* Invoice Info Section */
+                .invoice-info-section {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 10mm;
+                    padding: 10mm;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                    border: 1px solid #e5e7eb;
+                    position: relative;
+                    z-index: 1;
+                }
+                
+                .invoice-info-left {
+                    flex: 1;
+                }
+                
+                .invoice-info-right {
+                    flex: 1;
+                    text-align: right;
+                }
+                
+                .invoice-section-title {
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #b80101;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.8px;
+                }
+                
+                .invoice-info-content {
+                    line-height: 1.6;
+                }
+                
+                .invoice-info-line {
+                    margin: 3px 0;
+                    color: #333;
+                    font-size: 12px;
+                }
+                
+                .invoice-info-item {
+                    margin-bottom: 6px;
+                }
+                
+                .invoice-info-label {
+                    font-weight: 600;
+                    color: #666;
+                    margin-right: 8px;
+                    font-size: 12px;
+                }
+                
+                .invoice-info-value {
+                    color: #333;
+                    font-weight: 600;
+                    font-size: 12px;
+                }
+                
+                .invoice-info-value.status-active,
+                .invoice-info-value.status-completed {
+                    color: #166534;
+                    background: #dcfce7;
+                    padding: 3px 10px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+                
+                .invoice-info-value.status-expired {
+                    color: #92400e;
+                    background: #fef3c7;
+                    padding: 3px 10px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+                
+                .invoice-info-value.status-cancelled {
+                    color: #991b1b;
+                    background: #fee2e2;
+                    padding: 3px 10px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+                
+                /* Invoice Items Section */
+                .invoice-items-section {
+                    margin-bottom: 8mm;
+                    position: relative;
+                    z-index: 1;
+                }
+                
+                .invoice-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    background: #ffffff;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                }
+                
+                .invoice-th-item,
+                .invoice-th-type,
+                .invoice-th-price {
+                    background: #b80101;
+                    color: #ffffff;
+                    padding: 10px 12px;
+                    text-align: left;
+                    font-weight: 700;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.8px;
+                }
+                
+                .invoice-th-type {
+                    text-align: center;
+                    width: 100px;
+                }
+                
+                .invoice-th-price {
+                    text-align: right;
+                    width: 120px;
+                }
+                
+                .invoice-td-item,
+                .invoice-td-type,
+                .invoice-td-price {
+                    padding: 12px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                
+                .invoice-td-type {
+                    text-align: center;
+                }
+                
+                .invoice-td-price {
+                    text-align: right;
+                    font-size: 13px;
+                }
+                
+                .invoice-item-details {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                }
+                
+                .invoice-item-title {
+                    font-size: 13px;
+                    color: #1a1a1a;
+                    font-weight: 700;
+                    line-height: 1.4;
+                }
+                
+                .invoice-item-meta {
+                    display: flex;
+                    gap: 12px;
+                    font-size: 11px;
+                    color: #666;
+                    flex-wrap: wrap;
+                }
+                
+                .invoice-item-meta span {
+                    display: flex;
+                    align-items: center;
+                }
+                
+                .invoice-badge {
+                    display: inline-block;
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                }
+                
+                .invoice-badge-primary {
+                    background: #dbeafe;
+                    color: #1e40af;
+                }
+                
+                .invoice-badge-success {
+                    background: #d1fae5;
+                    color: #065f46;
+                }
+                
+                /* Included Courses Section */
+                .invoice-courses-section {
+                    margin-bottom: 8mm;
+                    padding: 8mm;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                    border: 1px solid #e5e7eb;
+                    position: relative;
+                    z-index: 1;
+                }
+                
+                .invoice-section-title-small {
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: #b80101;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.8px;
+                }
+                
+                .invoice-courses-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                }
+                
+                .invoice-course-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 6px 8px;
+                    background: #ffffff;
+                    border-radius: 4px;
+                    border: 1px solid #e5e7eb;
+                }
+                
+                .course-number-badge {
+                    width: 24px;
+                    height: 24px;
+                    background: #b80101;
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 10px;
+                    font-weight: 700;
+                    flex-shrink: 0;
+                }
+                
+                .course-name {
+                    flex: 1;
+                    font-size: 11px;
+                    color: #333;
+                    font-weight: 500;
+                }
+                
+                .course-duration-badge {
+                    background: #e5e7eb;
+                    color: #666;
+                    padding: 2px 8px;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    font-weight: 600;
+                }
+                
+                /* Invoice Totals */
+                .invoice-totals-section {
+                    margin-bottom: 8mm;
+                    position: relative;
+                    z-index: 1;
+                }
+                
+                .invoice-totals {
+                    margin-left: auto;
+                    width: 280px;
+                    background: #f8f9fa;
+                    padding: 12px;
+                    border-radius: 6px;
+                    border: 1px solid #e5e7eb;
+                }
+                
+                .invoice-total-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 6px 0;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                
+                .invoice-total-row.discount-row {
+                    background: #dcfce7;
+                    padding: 6px 8px;
+                    border-radius: 4px;
+                    margin: 4px 0;
+                    border-bottom: none;
+                }
+                
+                .invoice-total-row-final {
+                    border-bottom: 3px solid #b80101;
+                    margin-top: 6px;
+                    padding-top: 8px;
+                }
+                
+                .invoice-total-label {
+                    font-size: 12px;
+                    color: #666;
+                    font-weight: 600;
+                }
+                
+                .invoice-total-value {
+                    font-size: 12px;
+                    color: #333;
+                    font-weight: 600;
+                }
+                
+                .invoice-total-amount {
+                    font-size: 18px;
+                    color: #b80101;
+                    font-weight: 900;
+                }
+                
+                .discount-value {
+                    color: #166534;
+                    font-weight: 700;
+                }
+                
+                /* Invoice Footer */
+                .invoice-footer {
+                    margin-top: 10mm;
+                    padding-top: 8mm;
+                    border-top: 2px solid #e5e7eb;
+                    position: relative;
+                    z-index: 1;
+                }
+                
+                .invoice-footer-content {
+                    text-align: center;
+                }
+                
+                .invoice-footer-text {
+                    margin: 4px 0;
+                    color: #666;
+                    font-size: 10px;
+                    line-height: 1.5;
+                }
+                
+                .invoice-footer-text strong {
+                    color: #b80101;
+                    font-size: 11px;
+                }
+                
+                .invoice-footer-divider {
+                    height: 1px;
+                    background: #e5e7eb;
+                    margin: 8px 0;
+                }
+                
+                .invoice-footer-note {
+                    font-size: 9px;
+                    color: #999;
+                    font-style: italic;
+                }
+                
+                /* Print Specific Styles */
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 0;
+                    }
+                    
+                    html, body {
+                        width: 210mm;
+                        height: 297mm;
+                        margin: 0;
+                        padding: 0;
+                        background: #ffffff;
+                        overflow: hidden;
+                    }
+                    
+                    .invoice-container {
+                        width: 210mm;
+                        height: 297mm;
+                        padding: 15mm 12mm;
+                        margin: 0;
+                        box-shadow: none;
+                        page-break-after: avoid;
+                        page-break-inside: avoid;
+                    }
+                    
+                    .invoice-watermark {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%) rotate(-45deg);
+                        font-size: 120px;
+                        opacity: 0.04;
+                        z-index: 0;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    
+                    /* Ensure colors print */
+                    .invoice-th-item,
+                    .invoice-th-type,
+                    .invoice-th-price {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    
+                    .invoice-badge-primary,
+                    .invoice-badge-success {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    
+                    .course-number-badge {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    
+                    /* Prevent page breaks */
+                    .invoice-header,
+                    .invoice-info-section,
+                    .invoice-items-section,
+                    .invoice-courses-section,
+                    .invoice-totals-section,
+                    .invoice-footer {
+                        page-break-inside: avoid;
+                    }
+                    
+                    /* Ensure everything fits on one page */
+                    .invoice-container * {
+                        page-break-inside: avoid;
+                    }
+                }
+            `;
+        }
+    </script>
 </body>
 </html>

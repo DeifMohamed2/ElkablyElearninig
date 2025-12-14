@@ -894,6 +894,67 @@ const updateContentProgress = async (req, res) => {
           });
         }
       }
+      
+      // ==================== ANTI-SKIP VALIDATION ====================
+      // Validate that student actually watched 90% of the video (not just skipped to the end)
+      if (progressData.watchData) {
+        const watchData = progressData.watchData;
+        const REQUIRED_WATCH_PERCENTAGE = 90;
+        
+        // Backend validation: Calculate actual watched time from segments
+        let totalWatchedTime = 0;
+        
+        if (watchData.watchedSegments && Array.isArray(watchData.watchedSegments)) {
+          // Merge and validate segments
+          const segments = watchData.watchedSegments
+            .filter(seg => seg.start >= 0 && seg.end > seg.start) // Valid segments only
+            .sort((a, b) => a.start - b.start);
+          
+          // Merge overlapping segments to get accurate total
+          const mergedSegments = [];
+          for (const segment of segments) {
+            if (mergedSegments.length === 0) {
+              mergedSegments.push({start: segment.start, end: segment.end});
+            } else {
+              const last = mergedSegments[mergedSegments.length - 1];
+              if (segment.start <= last.end + 0.5) {
+                // Overlapping or adjacent - merge
+                last.end = Math.max(last.end, segment.end);
+              } else {
+                // New separate segment
+                mergedSegments.push({start: segment.start, end: segment.end});
+              }
+            }
+          }
+          
+          // Calculate total watched time
+          for (const segment of mergedSegments) {
+            totalWatchedTime += (segment.end - segment.start);
+          }
+        }
+        
+        // Validate against video duration
+        const videoDuration = watchData.videoDuration || 0;
+        
+        if (videoDuration > 0) {
+          const actualWatchPercentage = (totalWatchedTime / videoDuration) * 100;
+          
+          // Log for debugging
+          console.log(`Video Watch Validation - Student: ${studentId}, Content: ${contentId}`);
+          console.log(`  Duration: ${videoDuration}s, Watched: ${totalWatchedTime.toFixed(2)}s (${actualWatchPercentage.toFixed(2)}%)`);
+          console.log(`  Required: ${REQUIRED_WATCH_PERCENTAGE}%, Result: ${actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE ? 'PASS' : 'FAIL'}`);
+          
+          // Reject if student didn't watch enough
+          if (actualWatchPercentage < REQUIRED_WATCH_PERCENTAGE) {
+            return res.status(400).json({
+              success: false,
+              message: `You must watch at least ${REQUIRED_WATCH_PERCENTAGE}% of the video to complete it. You have watched ${actualWatchPercentage.toFixed(1)}%. Skipping is not allowed.`,
+              watchPercentage: actualWatchPercentage,
+              requiredPercentage: REQUIRED_WATCH_PERCENTAGE,
+            });
+          }
+        }
+      }
     }
 
     // Update content progress
@@ -952,13 +1013,25 @@ const updateContentProgress = async (req, res) => {
       // Don't fail the progress update if WhatsApp fails
     }
 
-    res.json({
+    // Prepare response with watch count info for videos
+    const response = {
       success: true,
       contentProgress: updatedProgress,
       courseProgress: updatedEnrollment.progress,
       totalContentProgress: updatedEnrollment.contentProgress.length,
       message: 'Progress updated successfully',
-    });
+    };
+    
+    // Add watch count info for video content
+    if (contentItem && contentItem.type === 'video') {
+      const finalProgress = updatedEnrollment.contentProgress.find(
+        (cp) => cp.contentId.toString() === contentId.toString()
+      );
+      response.watchCount = finalProgress?.watchCount || 0;
+      response.maxWatchCount = contentItem.maxWatchCount;
+    }
+    
+    res.json(response);
   } catch (error) {
     console.error('Update content progress error:', error);
     res.status(500).json({
@@ -1873,6 +1946,12 @@ const updateProfile = async (req, res) => {
     delete updates.studentCode;
     delete updates.email; // Email should not be editable
     delete updates.username; // Username should not be editable
+    
+    // Block phone number changes - students cannot change their phone numbers
+    delete updates.studentNumber;
+    delete updates.parentNumber;
+    delete updates.studentCountryCode;
+    delete updates.parentCountryCode;
 
     // Only allow specific fields to be updated
     const allowedFields = [
@@ -1880,10 +1959,6 @@ const updateProfile = async (req, res) => {
       'lastName',
       'schoolName',
       'grade',
-      'studentNumber',
-      'parentNumber',
-      'studentCountryCode',
-      'parentCountryCode',
     ];
     const filteredUpdates = {};
 
@@ -1892,35 +1967,6 @@ const updateProfile = async (req, res) => {
         filteredUpdates[field] = updates[field];
       }
     });
-
-    // Check if student phone number is being changed
-    const currentStudentNumber = currentStudent.studentNumber || '';
-    const currentStudentCountryCode = currentStudent.studentCountryCode || '';
-    const newStudentNumber = filteredUpdates.studentNumber
-      ? filteredUpdates.studentNumber.replace(/[^\d]/g, '')
-      : '';
-    const newStudentCountryCode = filteredUpdates.studentCountryCode || '';
-
-    const studentPhoneChanged =
-      newStudentNumber &&
-      newStudentCountryCode &&
-      (currentStudentNumber !== newStudentNumber ||
-        currentStudentCountryCode !== newStudentCountryCode);
-
-    // If phone number is being changed, require OTP verification
-    if (studentPhoneChanged) {
-      // Check if phone number matches the verified one
-      const verifiedPhone = req.session.profile_phone_number || '';
-      const expectedPhone = newStudentCountryCode + newStudentNumber;
-
-      if (!req.session.profile_phone_verified || verifiedPhone !== expectedPhone) {
-        return res.status(400).json({
-          success: false,
-          message: 'Student phone number must be verified with OTP before updating. Please verify the new phone number first.',
-          requiresOTP: true,
-        });
-      }
-    }
 
     // Validate required fields
     if (
@@ -1943,59 +1989,6 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // Validate phone numbers if provided
-    if (filteredUpdates.studentNumber && filteredUpdates.studentCountryCode) {
-      const phoneLengthStandards = {
-        '+966': 9, // Saudi Arabia: 9 digits
-        '+20': 11, // Egypt: 11 digits (including leading 0)
-        '+971': 9, // UAE: 9 digits
-        '+965': 8, // Kuwait: 8 digits
-      };
-
-      const studentNumber = filteredUpdates.studentNumber.replace(/[^\d]/g, '');
-      const expectedLength =
-        phoneLengthStandards[filteredUpdates.studentCountryCode];
-
-      if (expectedLength && studentNumber.length !== expectedLength) {
-        return res.status(400).json({
-          success: false,
-          message: `Student number must be ${expectedLength} digits for the selected country.`,
-        });
-      }
-    }
-
-    if (filteredUpdates.parentNumber && filteredUpdates.parentCountryCode) {
-      const phoneLengthStandards = {
-        '+966': 9, // Saudi Arabia: 9 digits
-        '+20': 11, // Egypt: 11 digits (including leading 0)
-        '+971': 9, // UAE: 9 digits
-        '+965': 8, // Kuwait: 8 digits
-      };
-
-      const parentNumber = filteredUpdates.parentNumber.replace(/[^\d]/g, '');
-      const expectedLength =
-        phoneLengthStandards[filteredUpdates.parentCountryCode];
-
-      if (expectedLength && parentNumber.length !== expectedLength) {
-        return res.status(400).json({
-          success: false,
-          message: `Parent number must be ${expectedLength} digits for the selected country.`,
-        });
-      }
-    }
-
-    // Check if student and parent numbers are the same
-    if (
-      filteredUpdates.studentNumber &&
-      filteredUpdates.parentNumber &&
-      filteredUpdates.studentNumber === filteredUpdates.parentNumber &&
-      filteredUpdates.studentCountryCode === filteredUpdates.parentCountryCode
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: 'Student and parent phone numbers cannot be the same.',
-      });
-    }
 
     const student = await User.findByIdAndUpdate(studentId, filteredUpdates, {
       new: true,
@@ -2007,12 +2000,6 @@ const updateProfile = async (req, res) => {
         success: false,
         message: 'Student not found',
       });
-    }
-
-    // Clear OTP verification session after successful update
-    if (studentPhoneChanged) {
-      delete req.session.profile_phone_verified;
-      delete req.session.profile_phone_number;
     }
 
     res.json({
@@ -2332,29 +2319,10 @@ const exportData = async (req, res) => {
 // Delete Account
 const deleteAccount = async (req, res) => {
   try {
-    const studentId = req.session.user.id;
-
-    const student = await User.findById(studentId);
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found',
-      });
-    }
-
-    // Delete the student account
-    await User.findByIdAndDelete(studentId);
-
-    // Destroy session
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Session destruction error:', err);
-      }
-    });
-
-    res.json({
-      success: true,
-      message: 'Account deleted successfully',
+    // Account deletion is currently blocked
+    return res.status(403).json({
+      success: false,
+      message: 'Account deletion is temporarily disabled. Please contact support if you need assistance.',
     });
   } catch (error) {
     console.error('Delete account error:', error);

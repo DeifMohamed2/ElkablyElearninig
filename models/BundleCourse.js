@@ -29,7 +29,7 @@ const BundleCourseSchema = new mongoose.Schema(
     },
     subject: {
       type: String,
-      enum: ['Basics', 'Advanced'],
+      enum: ['Basics', 'Advanced', 'Basics & Advanced'],
       required: true,
     },
     testType: {
@@ -111,6 +111,17 @@ const BundleCourseSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    // Fully booked / closed enrollment
+    isFullyBooked: {
+      type: Boolean,
+      default: false,
+    },
+    fullyBookedMessage: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: 'FULLY BOOKED',
+    },
   },
   { 
     timestamps: true,
@@ -170,7 +181,12 @@ BundleCourseSchema.pre('save', async function (next) {
     let isUnique = false;
     
     // Generate bundle code based on subject only (year removed)
-    const subjectPrefix = this.subject.substring(0, 3).toUpperCase();
+    let subjectPrefix;
+    if (this.subject === 'Basics & Advanced') {
+      subjectPrefix = 'BAA'; // Basics & Advanced
+    } else {
+      subjectPrefix = this.subject.substring(0, 3).toUpperCase();
+    }
     
     while (!isUnique) {
       const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');

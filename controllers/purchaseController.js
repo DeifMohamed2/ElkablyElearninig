@@ -941,11 +941,11 @@ const addToCart = async (req, res) => {
     let item;
     if (itemType === 'bundle') {
       item = await BundleCourse.findById(itemId).select(
-        'title price discountPrice thumbnail status isActive'
+        'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage'
       );
     } else {
       item = await Course.findById(itemId).select(
-        'title price discountPrice thumbnail status isActive'
+        'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage'
       );
     }
 
@@ -953,6 +953,14 @@ const addToCart = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Item not found',
+      });
+    }
+
+    // Check if item is fully booked
+    if (item.isFullyBooked) {
+      return res.status(400).json({
+        success: false,
+        message: item.fullyBookedMessage || 'This item is fully booked',
       });
     }
 
@@ -1247,12 +1255,18 @@ const getCheckout = async (req, res) => {
       if (!existingBundle) {
         // Add bundle to cart - fetch with courses populated for conflict check
         const bundle = await BundleCourse.findById(bundleId)
-          .select('title price discountPrice thumbnail status isActive')
+          .select('title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage')
           .populate('courses');
 
         if (!bundle) {
           req.flash('error_msg', 'Bundle not found');
           return res.redirect('/');
+        }
+
+        // Check if bundle is fully booked
+        if (bundle.isFullyBooked) {
+          req.flash('error_msg', bundle.fullyBookedMessage || 'This bundle is fully booked');
+          return res.redirect('back');
         }
 
         // Validate bundle is available for purchase
@@ -1325,12 +1339,18 @@ const getCheckout = async (req, res) => {
       if (!existingCourse) {
         // Add course to cart
         const course = await Course.findById(courseId).select(
-          'title price discountPrice thumbnail status isActive'
+          'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage'
         );
 
         if (!course) {
           req.flash('error_msg', 'Course not found');
           return res.redirect('/');
+        }
+
+        // Check if course is fully booked
+        if (course.isFullyBooked) {
+          req.flash('error_msg', course.fullyBookedMessage || 'This course is fully booked');
+          return res.redirect('back');
         }
 
         // Validate course is available for purchase

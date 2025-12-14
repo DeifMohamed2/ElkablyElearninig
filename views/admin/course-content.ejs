@@ -2418,6 +2418,53 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Fully Booked Section -->
+                <div class="row mt-3">
+                  <div class="col-12">
+                    <div class="admin-form-group">
+                      <div class="admin-form-check mb-3">
+                        <input type="checkbox" class="admin-form-check-input" id="editCourseIsFullyBooked" name="isFullyBooked">
+                        <label class="admin-form-check-label" for="editCourseIsFullyBooked">
+                          <i class="fas fa-ban me-2"></i>
+                          Fully Booked / Close Enrollment
+                        </label>
+                      </div>
+                      <small class="admin-form-text">When enabled, this course will be marked as fully booked and students cannot enroll</small>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row" id="fullyBookedMessageRow" style="display: none;">
+                  <div class="col-12">
+                    <div class="admin-form-group">
+                      <label for="editCourseFullyBookedMessage" class="admin-form-label">
+                        <i class="fas fa-comment me-2"></i>
+                        Fully Booked Message
+                      </label>
+                      <select class="admin-form-control" id="editCourseFullyBookedMessage" name="fullyBookedMessage">
+                        <option value="FULLY BOOKED">FULLY BOOKED</option>
+                        <option value="Out of Stock">Out of Stock</option>
+                        <option value="Enrollment Closed">Enrollment Closed</option>
+                        <option value="Registration Closed">Registration Closed</option>
+                        <option value="Sold Out">Sold Out</option>
+                        <option value="Not Available">Not Available</option>
+                        <option value="other">Other (Custom Message)</option>
+                      </select>
+                      <small class="admin-form-text">Choose a message to display when course is fully booked</small>
+                      <div class="invalid-feedback" id="editCourseFullyBookedMessageError"></div>
+                    </div>
+                    <div class="admin-form-group" id="customMessageRow" style="display: none;">
+                      <label for="editCourseCustomFullyBookedMessage" class="admin-form-label">
+                        <i class="fas fa-edit me-2"></i>
+                        Custom Message
+                      </label>
+                      <input type="text" class="admin-form-control" id="editCourseCustomFullyBookedMessage" name="customFullyBookedMessage" maxlength="100" placeholder="Enter your custom message">
+                      <small class="admin-form-text">Enter a custom message (max 100 characters)</small>
+                      <div class="invalid-feedback" id="editCourseCustomFullyBookedMessageError"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -6417,6 +6464,39 @@ function getContentIcon(type) {
       });
   }
 
+  // Setup fully booked checkbox toggle and message dropdown
+  document.addEventListener('DOMContentLoaded', function() {
+    const fullyBookedCheckbox = document.getElementById('editCourseIsFullyBooked');
+    const fullyBookedMessageRow = document.getElementById('fullyBookedMessageRow');
+    const fullyBookedMessageSelect = document.getElementById('editCourseFullyBookedMessage');
+    const customMessageRow = document.getElementById('customMessageRow');
+    const customMessageInput = document.getElementById('editCourseCustomFullyBookedMessage');
+    
+    if (fullyBookedCheckbox && fullyBookedMessageRow) {
+      fullyBookedCheckbox.addEventListener('change', function() {
+        fullyBookedMessageRow.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+
+    // Handle dropdown change for "Other" option
+    if (fullyBookedMessageSelect && customMessageRow) {
+      fullyBookedMessageSelect.addEventListener('change', function() {
+        if (this.value === 'other') {
+          customMessageRow.style.display = 'block';
+          if (customMessageInput) {
+            customMessageInput.required = true;
+          }
+        } else {
+          customMessageRow.style.display = 'none';
+          if (customMessageInput) {
+            customMessageInput.required = false;
+            customMessageInput.value = '';
+          }
+        }
+      });
+    }
+  });
+
   // Populate edit form with course data
   function populateEditForm(course) {
     // Basic information
@@ -6434,6 +6514,42 @@ function getContentIcon(type) {
     // Status and featured
     document.getElementById('editCourseStatus').value = course.status || 'draft';
     document.getElementById('editCourseFeatured').checked = course.isFeatured || false;
+
+    // Fully booked
+    const isFullyBooked = course.isFullyBooked || false;
+    document.getElementById('editCourseIsFullyBooked').checked = isFullyBooked;
+    
+    // Show/hide message field based on checkbox
+    const fullyBookedMessageRow = document.getElementById('fullyBookedMessageRow');
+    const fullyBookedMessageSelect = document.getElementById('editCourseFullyBookedMessage');
+    const customMessageRow = document.getElementById('customMessageRow');
+    const customMessageInput = document.getElementById('editCourseCustomFullyBookedMessage');
+    
+    if (fullyBookedMessageRow) {
+      fullyBookedMessageRow.style.display = isFullyBooked ? 'block' : 'none';
+    }
+
+    // Set message value - check if it's a predefined option or custom
+    const messageValue = course.fullyBookedMessage || 'FULLY BOOKED';
+    const predefinedOptions = ['FULLY BOOKED', 'Out of Stock', 'Enrollment Closed', 'Registration Closed', 'Sold Out', 'Not Available'];
+    
+    if (fullyBookedMessageSelect) {
+      if (predefinedOptions.includes(messageValue)) {
+        fullyBookedMessageSelect.value = messageValue;
+        if (customMessageRow) customMessageRow.style.display = 'none';
+        if (customMessageInput) {
+          customMessageInput.value = '';
+          customMessageInput.required = false;
+        }
+      } else {
+        fullyBookedMessageSelect.value = 'other';
+        if (customMessageRow) customMessageRow.style.display = 'block';
+        if (customMessageInput) {
+          customMessageInput.value = messageValue;
+          customMessageInput.required = true;
+        }
+      }
+    }
 
     // Tags
     document.getElementById('editCourseTags').value = course.tags ? course.tags.join(', ') : '';
@@ -6606,6 +6722,18 @@ function getContentIcon(type) {
 
     // Add checkbox values
     data.isFeatured = document.getElementById('editCourseFeatured').checked;
+    data.isFullyBooked = document.getElementById('editCourseIsFullyBooked').checked;
+    
+    // Handle fully booked message - use custom if "other" is selected, otherwise use dropdown value
+    const fullyBookedMessageSelect = document.getElementById('editCourseFullyBookedMessage');
+    const customMessageInput = document.getElementById('editCourseCustomFullyBookedMessage');
+    if (fullyBookedMessageSelect && fullyBookedMessageSelect.value === 'other' && customMessageInput) {
+      data.fullyBookedMessage = customMessageInput.value.trim() || 'FULLY BOOKED';
+    } else if (fullyBookedMessageSelect) {
+      data.fullyBookedMessage = fullyBookedMessageSelect.value || 'FULLY BOOKED';
+    } else {
+      data.fullyBookedMessage = 'FULLY BOOKED';
+    }
 
     // Debug logging
     console.log('Sending update data:', data);

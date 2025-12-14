@@ -34,7 +34,7 @@
             <form class="search-form-enhanced" method="GET">
               <div class="search-input-group-enhanced">
               
-                <input type="text" name="search" class="search-input-enhanced" placeholder="Search courses in this bundle..." value="">
+                <input type="text" name="search" class="search-input-enhanced" placeholder="Search weeks in this course..." value="">
                 <button type="submit" class="search-btn-enhanced">
                   <span>Search</span>
                   <i class="fas fa-arrow-right"></i>
@@ -67,11 +67,11 @@
       <div class="results-info">
         <div class="results-stats">
           <span class="results-number" id="filteredCount"><%= bundle.courses.length %></span>
-          <span class="results-label">of <%= bundle.courses.length %> courses</span>
+          <span class="results-label">/ <%= bundle.courses.length %> weeks</span>
         </div>
         <div class="results-type">
           <i class="fas fa-<%= bundle.courseType === 'online' ? 'laptop-code' : bundle.courseType === 'recorded' ? 'video' : 'chalkboard-teacher' %>"></i>
-          <span><%= bundle.courseType === 'online' ? 'Online' : bundle.courseType === 'recorded' ? 'Recorded' : 'On-Ground' %> Bundle</span>
+          <span><%= bundle.courseType === 'online' ? 'Online' : bundle.courseType === 'recorded' ? 'Recorded' : 'On-Ground' %> Course</span>
         </div>
       </div>
     </div>
@@ -110,7 +110,7 @@
             <div class="bundle-stats">
               <div class="stat-item">
                 <i class="fas fa-book"></i>
-                <span><%= bundle.courses.length %> Course<%= bundle.courses.length !== 1 ? 's' : '' %></span>
+                <span><%= bundle.courses.length %> Week<%= bundle.courses.length !== 1 ? 's' : '' %></span>
               </div>
               <div class="stat-item">
                 <i class="fas fa-clock"></i>
@@ -148,6 +148,11 @@
                 <i class="fas fa-graduation-cap"></i>
                 <span>Access Courses</span>
               </a>
+              <% } else if (bundle.isFullyBooked) { %>
+              <button class="btn-fully-booked-enhanced" disabled>
+                <i class="fas fa-ban"></i>
+                <span class="fully-booked-text"><%= bundle.fullyBookedMessage || 'FULLY BOOKED' %></span>
+              </button>
               <% } else { %>
               <button class="btn-add-to-cart" onclick="addBundleToCart('<%= bundle._id %>')">
                 <i class="fas fa-shopping-cart"></i>
@@ -179,7 +184,7 @@
 
     <!-- Courses Grid -->
     <div class="courses-content-grid fade-in-up">
-      <h2 class="section-title">Courses in this Bundle</h2>
+      <h2 class="section-title">Weeks in this Course</h2>
       <div class="courses-grid" id="coursesGrid">
         <% 
           // Use coursesWithUnlockStatus if available, otherwise use bundle.courses
@@ -246,6 +251,10 @@
                 <% } else if (isEnrolled && !isUnlocked) { %>
                 <button class="quick-action-btn locked" title="<%= course.unlockReason || 'Course Locked' %>" disabled>
                   <i class="fas fa-lock"></i>
+                </button>
+                <% } else if (course.isFullyBooked || (bundle.isFullyBooked && !course.isFullyBooked)) { %>
+                <button class="quick-action-btn fully-booked" title="<%= course.isFullyBooked ? (course.fullyBookedMessage || 'FULLY BOOKED') : (bundle.fullyBookedMessage || 'FULLY BOOKED') %>" disabled style="background-color: #dc3545; cursor: not-allowed;">
+                  <i class="fas fa-ban"></i>
                 </button>
                 <% } else { %>
                 <button class="quick-action-btn" onclick="addCourseToCart('<%= course._id %>')" title="Add to Cart">
@@ -326,6 +335,11 @@
               <button class="btn-access-course-enhanced" disabled style="opacity: 0.6; cursor: not-allowed;" title="<%= course.unlockReason || 'Complete previous weeks first' %>">
                 <i class="fas fa-lock"></i>
                 <span>Locked</span>
+              </button>
+              <% } else if (course.isFullyBooked || (bundle.isFullyBooked && !course.isFullyBooked)) { %>
+              <button class="btn-fully-booked-enhanced" disabled>
+                <i class="fas fa-ban"></i>
+                <span class="fully-booked-text"><%= course.isFullyBooked ? (course.fullyBookedMessage || 'FULLY BOOKED') : (bundle.fullyBookedMessage || 'FULLY BOOKED') %></span>
               </button>
               <% } else { %>
               <button class="btn-add-to-cart-enhanced" onclick="addCourseToCart('<%= course._id %>')">
@@ -809,6 +823,19 @@
 
   .quick-action-btn.locked:hover {
     opacity: 0.9;
+  }
+
+  .quick-action-btn.fully-booked {
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+    cursor: not-allowed;
+    opacity: 1;
+  }
+
+  .quick-action-btn.fully-booked:hover {
+    opacity: 0.9;
+    transform: none;
   }
 
   .course-price-enrolled {
@@ -1724,6 +1751,47 @@
     height: auto;
     object-fit: contain;
     object-position: center;
+  }
+
+  /* Fully Booked Button Enhanced Styles */
+  .btn-fully-booked-enhanced {
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+    color: white !important;
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: not-allowed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-fully-booked-enhanced::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-fully-booked-enhanced:hover::before {
+    left: 100%;
+  }
+
+  .fully-booked-text {
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
   }
 
   /* Responsive image fixes */

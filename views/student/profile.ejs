@@ -1104,14 +1104,14 @@
                                         <label class="form-label">Student Phone</label>
                                         <div class="phone-input-group">
                                             <div class="country-code-selector">
-                                                <select name="studentCountryCode" class="country-select" readonly>
+                                                <select name="studentCountryCode" class="country-select" disabled>
                                                 <option value="+20" <%= student.studentCountryCode == '+20' ? 'selected' : '' %>>🇪🇬 +20</option>
                                                 <option value="+966" <%= student.studentCountryCode == '+966' ? 'selected' : '' %>>🇸🇦 +966</option>
                                                 <option value="+971" <%= student.studentCountryCode == '+971' ? 'selected' : '' %>>🇦🇪 +971</option>
                                                 <option value="+965" <%= student.studentCountryCode == '+965' ? 'selected' : '' %>>🇰🇼 +965</option>
                                                 </select>
                                             </div>
-                                            <input type="tel" name="studentNumber" class="phone-input" value="<%= student.studentNumber %>" readonly>
+                                            <input type="tel" name="studentNumber" class="phone-input" value="<%= student.studentNumber %>" readonly disabled>
                                         </div>
                                         <!-- OTP Verification Section for Student Phone -->
                                         <div class="otp-verification-section" id="studentOtpSection" style="display: none;">
@@ -1140,14 +1140,14 @@
                                         <label class="form-label">Parent Phone</label>
                                         <div class="phone-input-group">
                                             <div class="country-code-selector">
-                                                <select name="parentCountryCode" class="country-select" readonly>
+                                                <select name="parentCountryCode" class="country-select" disabled>
                                                 <option value="+20" <%= student.parentCountryCode == '+20' ? 'selected' : '' %>>🇪🇬 +20</option>
                                                 <option value="+966" <%= student.parentCountryCode == '+966' ? 'selected' : '' %>>🇸🇦 +966</option>
                                                 <option value="+971" <%= student.parentCountryCode == '+971' ? 'selected' : '' %>>🇦🇪 +971</option>
                                                 <option value="+965" <%= student.parentCountryCode == '+965' ? 'selected' : '' %>>🇰🇼 +965</option>
                                                 </select>
                                             </div>
-                                            <input type="tel" name="parentNumber" class="phone-input" value="<%= student.parentNumber %>" readonly>
+                                            <input type="tel" name="parentNumber" class="phone-input" value="<%= student.parentNumber %>" readonly disabled>
                                         </div>
                                     </div>
                                 </div>
@@ -1326,11 +1326,23 @@
             const studentOtpSection = document.getElementById('studentOtpSection');
 
             if (isEditMode) {
-                // Enable editing for specific fields only
-                const editableFields = ['firstName', 'lastName', 'schoolName', 'grade', 'studentNumber', 'parentNumber', 'studentCountryCode', 'parentCountryCode'];
+                // Enable editing for specific fields only (phone numbers are blocked)
+                const editableFields = ['firstName', 'lastName', 'schoolName', 'grade'];
+                const blockedFields = ['studentNumber', 'parentNumber', 'studentCountryCode', 'parentCountryCode'];
                 
                 formInputs.forEach(input => {
-                    if (editableFields.includes(input.name)) {
+                    // Keep phone fields readonly/disabled
+                    if (blockedFields.includes(input.name)) {
+                        if (input.tagName === 'SELECT') {
+                            input.setAttribute('disabled', 'disabled');
+                            input.style.backgroundColor = 'var(--bg-secondary)';
+                            input.style.cursor = 'not-allowed';
+                        } else {
+                            input.setAttribute('readonly', 'readonly');
+                            input.style.backgroundColor = 'var(--bg-secondary)';
+                            input.style.cursor = 'not-allowed';
+                        }
+                    } else if (editableFields.includes(input.name)) {
                         if (input.tagName === 'SELECT') {
                             // For select elements, remove disabled attribute
                             input.removeAttribute('disabled');
@@ -1357,12 +1369,13 @@
                 }
                 
                 // Reset OTP state when entering edit mode (hide section)
+                // Phone numbers cannot be changed, so OTP section is not needed
                 resetOTPState(true);
                 
-                // Check phone number change after a short delay to ensure DOM is ready
-                setTimeout(() => {
-                    setupPhoneNumberMonitoring();
-                }, 100);
+                // Hide OTP section permanently since phone numbers are blocked
+                if (studentOtpSection) {
+                    studentOtpSection.style.display = 'none';
+                }
             } else {
                 // Disable editing
                 formInputs.forEach(input => {
@@ -1441,22 +1454,19 @@
                     studentOtpInput.readOnly = false;
                 }
                 
-                // Unlock phone fields only if not verified
-                if (!otpState.verified) {
-                    const studentNumberInput = document.querySelector('input[name="studentNumber"]');
-                    const studentCountryCodeSelect = document.querySelector('select[name="studentCountryCode"]');
-                    if (studentNumberInput) {
-                        studentNumberInput.classList.remove('otp-locked');
-                        if (isEditMode) {
-                            studentNumberInput.readOnly = false;
-                        }
-                    }
-                    if (studentCountryCodeSelect) {
-                        studentCountryCodeSelect.classList.remove('otp-locked');
-                        if (isEditMode) {
-                            studentCountryCodeSelect.disabled = false;
-                        }
-                    }
+                // Phone fields are always locked - students cannot change them
+                const studentNumberInput = document.querySelector('input[name="studentNumber"]');
+                const studentCountryCodeSelect = document.querySelector('select[name="studentCountryCode"]');
+                if (studentNumberInput) {
+                    studentNumberInput.setAttribute('readonly', 'readonly');
+                    studentNumberInput.setAttribute('disabled', 'disabled');
+                    studentNumberInput.style.backgroundColor = 'var(--bg-secondary)';
+                    studentNumberInput.style.cursor = 'not-allowed';
+                }
+                if (studentCountryCodeSelect) {
+                    studentCountryCodeSelect.setAttribute('disabled', 'disabled');
+                    studentCountryCodeSelect.style.backgroundColor = 'var(--bg-secondary)';
+                    studentCountryCodeSelect.style.cursor = 'not-allowed';
                 }
             } catch (error) {
                 console.error('Error resetting OTP state:', error);
@@ -1719,8 +1729,8 @@
             const formData = new FormData(this);
             const data = {};
             
-            // Only include editable fields
-            const editableFields = ['firstName', 'lastName', 'schoolName', 'grade', 'studentNumber', 'parentNumber', 'studentCountryCode', 'parentCountryCode'];
+            // Only include editable fields (phone numbers are blocked)
+            const editableFields = ['firstName', 'lastName', 'schoolName', 'grade'];
             editableFields.forEach(field => {
                 const input = this.querySelector(`[name="${field}"]`);
                 if (input) {
@@ -1731,59 +1741,6 @@
             // Validate required fields
             if (!data.firstName || !data.lastName) {
                 showNotification('First name and last name are required', 'error');
-                return;
-            }
-
-            // Validate phone numbers
-            if (data.studentNumber && data.studentCountryCode) {
-                const phoneLengthStandards = {
-                    '+966': 9,  // Saudi Arabia: 9 digits
-                    '+20': 11,  // Egypt: 11 digits (including leading 0)
-                    '+971': 9,  // UAE: 9 digits
-                    '+965': 8   // Kuwait: 8 digits
-                };
-                
-                const studentNumber = data.studentNumber.replace(/[^\d]/g, '');
-                const expectedLength = phoneLengthStandards[data.studentCountryCode];
-                
-                if (expectedLength && studentNumber.length !== expectedLength) {
-                    showNotification(`Student number must be ${expectedLength} digits for the selected country.`, 'error');
-                    return;
-                }
-            }
-
-            if (data.parentNumber && data.parentCountryCode) {
-                const phoneLengthStandards = {
-                    '+966': 9,  // Saudi Arabia: 9 digits
-                    '+20': 11,  // Egypt: 11 digits (including leading 0)
-                    '+971': 9,  // UAE: 9 digits
-                    '+965': 8   // Kuwait: 8 digits
-                };
-                
-                const parentNumber = data.parentNumber.replace(/[^\d]/g, '');
-                const expectedLength = phoneLengthStandards[data.parentCountryCode];
-                
-                if (expectedLength && parentNumber.length !== expectedLength) {
-                    showNotification(`Parent number must be ${expectedLength} digits for the selected country.`, 'error');
-                    return;
-                }
-            }
-
-            // Check if student and parent numbers are the same
-            if (data.studentNumber && data.parentNumber && 
-                data.studentNumber === data.parentNumber && 
-                data.studentCountryCode === data.parentCountryCode) {
-                showNotification('Student and parent phone numbers cannot be the same.', 'error');
-                return;
-            }
-
-            // Check if phone number changed and OTP verification is required
-            if (hasPhoneNumberChanged() && !otpState.verified) {
-                showNotification('Please verify the new phone number with OTP before saving.', 'error');
-                const studentOtpSection = document.getElementById('studentOtpSection');
-                if (studentOtpSection) {
-                    studentOtpSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
                 return;
             }
 

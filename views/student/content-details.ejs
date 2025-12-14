@@ -1365,6 +1365,39 @@
                         <span class="watermark-code"><%= studentCode %></span>
                         <% } %>
                       </div>
+                      <!-- Real-time Watch Progress Indicator for YouTube -->
+                      <div id="youtubeWatchProgress" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.85); color: white; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: none; backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                          <i class="fas fa-eye" style="color: #10b981;"></i>
+                          <span style="font-size: 14px;">Watch Progress</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                          <div style="flex: 1;">
+                            <div style="font-size: 20px; color: #10b981; margin-bottom: 2px;" id="youtubeWatchProgressPercent">0%</div>
+                            <div style="font-size: 11px; opacity: 0.8;" id="youtubeWatchProgressTime">0:00 / 0:00</div>
+                          </div>
+                          <div style="width: 50px; height: 50px; position: relative;">
+                            <svg width="50" height="50" style="transform: rotate(-90deg);">
+                              <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle>
+                              <circle id="youtubeWatchProgressCircle" cx="25" cy="25" r="20" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-linecap="round"></circle>
+                            </svg>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10px; font-weight: bold;" id="youtubeWatchProgressCircleText">0%</div>
+                          </div>
+                        </div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px; opacity: 0.9;">
+                          <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                            <span>Required:</span>
+                            <span style="color: #fbbf24;">90%</span>
+                          </div>
+                          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span>Remaining:</span>
+                            <span style="color: #ef4444;" id="youtubeWatchProgressRemaining">90%</span>
+                          </div>
+                          <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">
+                            <i class="fas fa-info-circle"></i> Can seek up to: <span id="youtubeMaxSeekTime" style="color: #10b981;">0:00</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <script>
@@ -1387,6 +1420,39 @@
                       <span class="watermark-separator">|</span>
                       <span class="watermark-code"><%= studentCode %></span>
                       <% } %>
+                    </div>
+                    <!-- Real-time Watch Progress Indicator -->
+                    <div id="videoWatchProgress" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.85); color: white; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: none; backdrop-filter: blur(10px);">
+                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <i class="fas fa-eye" style="color: #10b981;"></i>
+                        <span style="font-size: 14px;">Watch Progress</span>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="flex: 1;">
+                          <div style="font-size: 20px; color: #10b981; margin-bottom: 2px;" id="watchProgressPercent">0%</div>
+                          <div style="font-size: 11px; opacity: 0.8;" id="watchProgressTime">0:00 / 0:00</div>
+                        </div>
+                        <div style="width: 50px; height: 50px; position: relative;">
+                          <svg width="50" height="50" style="transform: rotate(-90deg);">
+                            <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle>
+                            <circle id="watchProgressCircle" cx="25" cy="25" r="20" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-linecap="round"></circle>
+                          </svg>
+                          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10px; font-weight: bold;" id="watchProgressCircleText">0%</div>
+                        </div>
+                      </div>
+                      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px; opacity: 0.9;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                          <span>Required:</span>
+                          <span style="color: #fbbf24;">90%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                          <span>Remaining:</span>
+                          <span style="color: #ef4444;" id="watchProgressRemaining">90%</span>
+                        </div>
+                        <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">
+                          <i class="fas fa-info-circle"></i> Can seek up to: <span id="maxSeekTime" style="color: #10b981;">0:00</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <script>
@@ -2175,7 +2241,121 @@
       });
     }
 
-    // Smooth update content progress - no page reload
+    // Update content progress with watch data (for video tracking)
+    function updateContentProgressWithWatchData(status, percentage, watchData) {
+      // Disable all completion buttons immediately
+      disableCompletionButtons();
+
+      const progressData = {
+        completionStatus: status,
+        progressPercentage: percentage,
+        lastAccessed: new Date(),
+        completedAt: status === 'completed' ? new Date() : null,
+        // Include watch tracking data for backend validation
+        watchData: watchData
+      };
+
+      fetch('/student/content/progress/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            courseId: '<%= course._id %>',
+            topicId: '<%= topic._id %>',
+            contentId: '<%= contentItem._id %>',
+            contentType: '<%= contentItem.type %>',
+            progressData: progressData
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update UI elements smoothly without reload
+            updateUIAfterCompletion();
+
+            // For video content, update watch count display dynamically
+            if ('<%= contentItem.type %>' === 'video' && data.watchCount !== undefined) {
+              currentWatchCount = data.watchCount;
+              currentMaxWatchCount = data.maxWatchCount;
+              
+              // Update watch limit info display if it exists
+              const watchLimitAlert = document.querySelector('.alert');
+              if (watchLimitAlert && data.maxWatchCount) {
+                const watchesLeft = data.maxWatchCount - data.watchCount;
+                if (watchesLeft <= 0) {
+                  watchLimitAlert.className = 'alert alert-danger';
+                  watchLimitAlert.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <i class="fas fa-eye" style="font-size: 1.5rem;"></i>
+                      <div style="flex: 1;">
+                        <strong style="display: block; margin-bottom: 4px;">Watch Limit Reached</strong>
+                        <span>You have watched this video <strong>${data.watchCount}</strong> out of <strong>${data.maxWatchCount}</strong> allowed times.<br>You cannot watch this video again.</span>
+                      </div>
+                    </div>
+                  `;
+                  
+                  // Reload page to show blocked state
+                  setTimeout(() => {
+                    location.reload();
+                  }, 2000);
+                } else {
+                  const watchCountText = watchLimitAlert.querySelector('span');
+                  if (watchCountText) {
+                    watchCountText.innerHTML = `You have watched this video <strong>${data.watchCount}</strong> out of <strong>${data.maxWatchCount}</strong> allowed times.<br>Remaining watches: <strong>${watchesLeft}</strong>`;
+                  }
+                }
+              }
+            }
+
+            showEnhancedNotification(
+              'Content completed successfully! 🎉',
+              'success',
+              'Progress Updated'
+            );
+          } else {
+            // Handle error - especially watch limit errors
+            if (data.limitReached) {
+              showEnhancedNotification(
+                data.message || 'Watch limit reached',
+                'error',
+                'Cannot Complete'
+              );
+              
+              // Reload page to show blocked state
+              setTimeout(() => {
+                location.reload();
+              }, 2000);
+            } else if (data.message && data.message.includes('90%')) {
+              // Backend validation failed - student didn't really watch 90%
+              showEnhancedNotification(
+                'You must watch at least 90% of the video to complete it. Skipping is not allowed.',
+                'warning',
+                'Insufficient Watch Time'
+              );
+            } else {
+              showEnhancedNotification(
+                data.message || 'Error updating progress',
+                'error',
+                'Update Failed'
+              );
+            }
+            
+            // Re-enable buttons on error
+            enableCompletionButtons();
+          }
+        })
+        .catch(error => {
+          showEnhancedNotification(
+            'Network error. Please check your connection.',
+            'error',
+            'Connection Error'
+          );
+          enableCompletionButtons();
+        });
+    }
+    
+    // Smooth update content progress - no page reload (for non-video content)
     function updateContentProgressSmooth(status, percentage) {
       // Disable all completion buttons immediately
       disableCompletionButtons();
@@ -2205,7 +2385,7 @@
           if (data.success) {
             // Update UI elements smoothly without reload
             updateUIAfterCompletion();
-            
+
             // For video content, update watch count display dynamically
             if ('<%= contentItem.type %>' === 'video' && data.contentProgress) {
               // Use watch limit info from response if available, otherwise use initial values
@@ -2483,7 +2663,7 @@
     }
 
     // Enhanced notification function - Unified notification system
-    function showEnhancedNotification(message, type = 'success', title = 'Notification') {
+    function showEnhancedNotification(message, type = 'success', title = 'Notification', customDuration = null) {
       const container = document.getElementById('notification-container');
       if (!container) {
         // Notification container not found - silently handle
@@ -2496,7 +2676,9 @@
       else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
       else if (type === 'info') iconClass = 'fa-info-circle';
 
-      // Create notification element
+      // Create notification element with proper line breaks
+      const formattedMessage = message.replace(/\n/g, '<br>');
+      
       const notification = document.createElement('div');
       notification.className = `enhanced-notification ${type}`;
       notification.innerHTML = `
@@ -2505,7 +2687,7 @@
         </div>
         <div class="enhanced-notification-content">
           <div class="enhanced-notification-title">${title}</div>
-          <div class="enhanced-notification-message">${message}</div>
+          <div class="enhanced-notification-message">${formattedMessage}</div>
         </div>
         <button class="enhanced-notification-close" aria-label="Close">
           <i class="fas fa-times"></i>
@@ -2531,8 +2713,8 @@
         notification.classList.add('show');
       }, 10);
 
-      // Auto remove after 5 seconds (or 3 seconds for simple toasts)
-      const duration = type === 'success' && title === 'Success' ? 3000 : 5000;
+      // Auto remove after specified duration or default
+      const duration = customDuration || (type === 'success' && title === 'Success' ? 3000 : 5000);
       setTimeout(() => {
         notification.classList.add('hide');
         setTimeout(() => {
@@ -2865,6 +3047,380 @@
         let videoDuration = 0;
         let playerReady = false;
         let autoCompleted = false;
+        
+        // ==================== ANTI-SKIP TRACKING SYSTEM ====================
+        // Track which segments of the video have been actually watched
+        let watchedSegments = []; // Array of {start, end} objects
+        let lastTrackedTime = 0;
+        let isPlaying = false;
+        const REQUIRED_WATCH_PERCENTAGE = 90; // Must watch 90% of video
+        const SEGMENT_TOLERANCE = 2; // Allow 2 second jumps without considering it a skip
+        let skipAlertShown = false; // Track if we've shown the skip alert
+        let progressIndicatorVisible = false;
+        let maxWatchedTime = 0; // Track the furthest point watched
+        let isSeeking = false; // Track if currently seeking to prevent loops
+        let lastSkipAlertTime = 0; // Prevent alert spam
+        let wasPlayingBeforeSeek = false; // Track if was playing before seek
+        let lastUpdateTime = Date.now(); // Track last update timestamp
+        
+        // LocalStorage key for this specific video
+        const videoStorageKey = 'video_progress_<%= contentItem._id %>';
+        
+        // Load saved progress from localStorage
+        function loadSavedProgress() {
+          try {
+            const saved = localStorage.getItem(videoStorageKey);
+            if (saved) {
+              const data = JSON.parse(saved);
+              console.log('📂 Loading saved progress:', data);
+              
+              watchedSegments = data.segments || [];
+              maxWatchedTime = data.maxWatchedTime || 0;
+              
+              return data.lastPosition || 0;
+            }
+          } catch (e) {
+            console.error('Error loading saved progress:', e);
+          }
+          return 0;
+        }
+        
+        // Save progress to localStorage
+        function saveProgressToStorage() {
+          try {
+            const data = {
+              segments: watchedSegments,
+              maxWatchedTime: maxWatchedTime,
+              lastPosition: lastTrackedTime,
+              timestamp: Date.now()
+            };
+            localStorage.setItem(videoStorageKey, JSON.stringify(data));
+          } catch (e) {
+            console.error('Error saving progress:', e);
+          }
+        }
+        
+        // Clear saved progress (called on completion)
+        function clearSavedProgress() {
+          try {
+            localStorage.removeItem(videoStorageKey);
+            console.log('🗑️ Cleared saved progress for this video');
+          } catch (e) {
+            console.error('Error clearing progress:', e);
+          }
+        }
+        
+        // Function to add a watched segment (prevents counting same time twice)
+        function addWatchedSegment(start, end) {
+          if (end <= start) return;
+          
+          // Don't allow segments beyond video duration
+          if (videoDuration > 0) {
+            start = Math.max(0, Math.min(start, videoDuration));
+            end = Math.max(0, Math.min(end, videoDuration));
+          }
+          
+          // CRITICAL: Only update maxWatchedTime if this is continuous playback
+          // Check BOTH start and end against maxWatchedTime
+          const startDiff = start - maxWatchedTime;
+          const segmentLength = end - start;
+          
+          console.log('📊 addWatchedSegment:', {
+            start: start.toFixed(2),
+            end: end.toFixed(2),
+            currentMax: maxWatchedTime.toFixed(2),
+            startDiff: startDiff.toFixed(2),
+            segmentLength: segmentLength.toFixed(2),
+            tolerance: SEGMENT_TOLERANCE
+          });
+          
+          // REJECT if segment length is too large (indicates a jump, not playback)
+          if (segmentLength > 5) {
+            console.log('🚫 SEGMENT TOO LARGE: Rejected (length:', segmentLength.toFixed(2), 's)');
+            return; // Don't add this segment at all!
+          }
+          
+          if (maxWatchedTime === 0 || (startDiff >= -SEGMENT_TOLERANCE && startDiff <= SEGMENT_TOLERANCE)) {
+            // Continuous from current max, or first segment - OK to update
+            const oldMax = maxWatchedTime;
+            maxWatchedTime = Math.max(maxWatchedTime, end);
+            console.log('✅ Continuous playback: maxWatchedTime', oldMax.toFixed(2), '→', maxWatchedTime.toFixed(2));
+          } else if (start <= maxWatchedTime && end <= maxWatchedTime + SEGMENT_TOLERANCE) {
+            // Re-watching earlier content within bounds
+            if (end > maxWatchedTime) {
+              const oldMax = maxWatchedTime;
+              maxWatchedTime = end;
+              console.log('✅ Re-watch extended: maxWatchedTime', oldMax.toFixed(2), '→', maxWatchedTime.toFixed(2));
+            } else {
+              console.log('✅ Re-watch (no extension): maxWatchedTime stays', maxWatchedTime.toFixed(2));
+            }
+          } else {
+            console.log('🚫 GAP DETECTED: Segment rejected (startDiff:', startDiff.toFixed(2), 's)');
+            return; // Don't add this segment!
+          }
+          
+          // Merge with existing segments
+          watchedSegments.push({start: start, end: end});
+          watchedSegments = mergeSegments(watchedSegments);
+        }
+        
+        // Check if a time position has been watched
+        function isTimeWatched(time) {
+          for (const segment of watchedSegments) {
+            if (time >= segment.start && time <= segment.end) {
+              return true;
+            }
+          }
+          return false;
+        }
+        
+        // Get the furthest continuous watched time from start
+        function getMaxAllowedSeekTime() {
+          // Validate maxWatchedTime against actual segments
+          // Find the actual furthest point that's continuously watched from start
+          let continuousMax = 0;
+          
+          if (watchedSegments.length === 0) {
+            return 0;
+          }
+          
+          // Sort segments
+          const sorted = [...watchedSegments].sort((a, b) => a.start - b.start);
+          
+          // Find continuous progress from 0
+          for (const segment of sorted) {
+            if (segment.start <= continuousMax + SEGMENT_TOLERANCE) {
+              continuousMax = Math.max(continuousMax, segment.end);
+            } else {
+              // Gap found, stop here
+              break;
+            }
+          }
+          
+          // Use the minimum of calculated continuous max and stored max
+          // This prevents maxWatchedTime from being incorrectly inflated
+          const validMax = Math.min(continuousMax, maxWatchedTime);
+          
+          // Update maxWatchedTime to the valid value
+          if (validMax < maxWatchedTime) {
+            console.log('⚠️ Correcting maxWatchedTime from', maxWatchedTime.toFixed(2), 'to', validMax.toFixed(2));
+            maxWatchedTime = validMax;
+          }
+          
+          return maxWatchedTime;
+        }
+        
+        // Merge overlapping segments (prevents double counting)
+        function mergeSegments(segments) {
+          if (segments.length === 0) return [];
+          
+          // Sort by start time
+          segments.sort((a, b) => a.start - b.start);
+          
+          const merged = [segments[0]];
+          
+          for (let i = 1; i < segments.length; i++) {
+            const current = segments[i];
+            const last = merged[merged.length - 1];
+            
+            // If segments overlap or are adjacent, merge them
+            // This prevents counting the same time period twice
+            if (current.start <= last.end + 0.5) {
+              // Only extend if current segment goes beyond last
+              last.end = Math.max(last.end, current.end);
+            } else {
+              merged.push(current);
+            }
+          }
+          
+          return merged;
+        }
+        
+        // Calculate total watched time (in seconds) - capped at video duration
+        function getTotalWatchedTime() {
+          let total = 0;
+          for (const segment of watchedSegments) {
+            total += (segment.end - segment.start);
+          }
+          // Cap at video duration to prevent over 100%
+          if (videoDuration > 0) {
+            total = Math.min(total, videoDuration);
+          }
+          return total;
+        }
+        
+        // Calculate watch percentage (capped at 100%)
+        function getWatchPercentage() {
+          if (videoDuration <= 0) return 0;
+          const percentage = (getTotalWatchedTime() / videoDuration) * 100;
+          return Math.min(percentage, 100); // Cap at 100%
+        }
+        
+        // Format seconds to MM:SS
+        function formatTime(seconds) {
+          const mins = Math.floor(seconds / 60);
+          const secs = Math.floor(seconds % 60);
+          return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Update progress indicator UI
+        function updateProgressIndicator() {
+          const progressDiv = document.getElementById('videoWatchProgress');
+          if (!progressDiv) return;
+          
+          // Show indicator when video starts playing
+          if (!progressIndicatorVisible && isPlaying) {
+            progressDiv.style.display = 'block';
+            progressIndicatorVisible = true;
+          }
+          
+          const watchPercentage = getWatchPercentage();
+          const totalWatched = getTotalWatchedTime();
+          const remaining = Math.max(0, REQUIRED_WATCH_PERCENTAGE - watchPercentage);
+          
+          // Update percentage text
+          const percentElem = document.getElementById('watchProgressPercent');
+          if (percentElem) {
+            percentElem.textContent = watchPercentage.toFixed(1) + '%';
+            // Change color based on progress
+            if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE) {
+              percentElem.style.color = '#10b981'; // Green
+            } else if (watchPercentage >= 60) {
+              percentElem.style.color = '#fbbf24'; // Yellow
+            } else {
+              percentElem.style.color = '#ef4444'; // Red
+            }
+          }
+          
+          // Update time text
+          const timeElem = document.getElementById('watchProgressTime');
+          if (timeElem) {
+            timeElem.textContent = `${formatTime(totalWatched)} / ${formatTime(videoDuration)}`;
+          }
+          
+          // Update circular progress
+          const circleElem = document.getElementById('watchProgressCircle');
+          if (circleElem) {
+            const circumference = 125.6; // 2 * PI * 20
+            const offset = circumference - (watchPercentage / 100 * circumference);
+            circleElem.style.strokeDashoffset = offset;
+            
+            // Change circle color
+            if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE) {
+              circleElem.style.stroke = '#10b981';
+            } else if (watchPercentage >= 60) {
+              circleElem.style.stroke = '#fbbf24';
+            } else {
+              circleElem.style.stroke = '#ef4444';
+            }
+          }
+          
+          // Update circle text
+          const circleTextElem = document.getElementById('watchProgressCircleText');
+          if (circleTextElem) {
+            circleTextElem.textContent = Math.floor(watchPercentage) + '%';
+          }
+          
+          // Update remaining percentage
+          const remainingElem = document.getElementById('watchProgressRemaining');
+          if (remainingElem) {
+            if (remaining <= 0) {
+              remainingElem.textContent = '✓ Done';
+              remainingElem.style.color = '#10b981';
+            } else {
+              remainingElem.textContent = remaining.toFixed(1) + '%';
+            }
+          }
+          
+          // Update max seek time
+          const maxSeekElem = document.getElementById('maxSeekTime');
+          if (maxSeekElem) {
+            const maxTime = Math.max(maxWatchedTime, 0);
+            maxSeekElem.textContent = formatTime(maxTime);
+            // Change color based on progress
+            if (maxTime >= videoDuration * 0.9) {
+              maxSeekElem.style.color = '#10b981'; // Green
+            } else if (maxTime >= videoDuration * 0.5) {
+              maxSeekElem.style.color = '#fbbf24'; // Yellow
+            } else {
+              maxSeekElem.style.color = '#ef4444'; // Red
+            }
+          }
+        }
+        
+        // Show skip alert (with debounce to prevent spam)
+        function showSkipAlert(targetTime, maxAllowed) {
+          const now = Date.now();
+          // Only show alert once every 3 seconds
+          if (now - lastSkipAlertTime < 3000) {
+            return;
+          }
+          lastSkipAlertTime = now;
+          
+          const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+          };
+          
+          showEnhancedNotification(
+            `🚫 Cannot Skip to Unwatched Content!\n\nYou tried to jump to ${formatTime(targetTime)}, but you've only watched up to ${formatTime(maxAllowed)}.\n\n✓ You can seek within watched segments\n✗ You cannot skip to unwatched parts\n\nWatch the video continuously to unlock more content.`,
+            'error',
+            'Skip Prevented',
+            5000
+          );
+        }
+        
+        // Check if video completion criteria is met
+        function checkVideoCompletion() {
+          const watchPercentage = getWatchPercentage();
+          const totalWatched = getTotalWatchedTime();
+          
+          // Debug logging
+          console.log(`🎥 Video Progress Check:`, {
+            watchPercentage: watchPercentage.toFixed(2) + '%',
+            totalWatched: totalWatched.toFixed(2) + 's',
+            videoDuration: videoDuration.toFixed(2) + 's',
+            required: REQUIRED_WATCH_PERCENTAGE + '%',
+            autoCompleted: autoCompleted
+          });
+
+          if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE && !autoCompleted) {
+            autoCompleted = true;
+            
+            console.log('✅ Video completion triggered! Sending to backend...');
+            
+            // Clear saved progress since video is completed
+            clearSavedProgress();
+
+            // Show success notification
+            showEnhancedNotification(
+              `🎉 Congratulations!\n\nYou've watched ${watchPercentage.toFixed(1)}% of the video.\n\nMarking as completed...`,
+              'success',
+              'Video Completed!',
+              4000
+            );
+
+            // Show watch limit warning if this is the last allowed watch
+            if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
+              setTimeout(() => {
+                showEnhancedNotification(
+                  `This was your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again.`,
+                  'warning',
+                  'Final Watch Warning'
+                );
+              }, 2000);
+            }
+
+            // Send watched segments data to backend for validation
+            updateContentProgressWithWatchData('completed', 100, {
+              watchedSegments: watchedSegments,
+              totalWatchedTime: totalWatched,
+              videoDuration: videoDuration,
+              watchPercentage: watchPercentage
+            });
+          }
+        }
 
         // Check if playerjs is loaded
         function checkPlayerJS() {
@@ -2899,48 +3455,214 @@
               // Get duration once
               player.getDuration((dur) => {
                 videoDuration = dur;
+                
+                // Load saved progress
+                const savedPosition = loadSavedProgress();
+                
+                if (savedPosition > 0 && savedPosition < dur) {
+                  // Restore to saved position
+                  console.log('⏮️ Restoring to saved position:', savedPosition.toFixed(2));
+                  lastTrackedTime = savedPosition;
+                  
+                  // Show notification
+                  showEnhancedNotification(
+                    `Resuming from ${formatTime(savedPosition)}`,
+                    'info',
+                    'Progress Restored',
+                    3000
+                  );
+                  
+                  // Set player to saved position
+                  try {
+                    player.setCurrentTime(savedPosition);
+                  } catch (e) {
+                    console.error('Error setting saved position:', e);
+                  }
+                } else {
+                  lastTrackedTime = 0;
+                }
+              });
+            });
+            
+            // Listen for seeking event (before seek completes)
+            player.on("seeking", () => {
+              console.log('🔄 Seeking started');
+              wasPlayingBeforeSeek = isPlaying;
+              isSeeking = true; // Mark as seeking immediately
+              
+              player.getCurrentTime((currentTime) => {
+                const maxAllowed = getMaxAllowedSeekTime();
+                
+                if (currentTime > maxAllowed + SEGMENT_TOLERANCE) {
+                  console.log('🚫 Seeking blocked:', currentTime.toFixed(2), '→', maxAllowed.toFixed(2));
+                  
+                  player.setCurrentTime(maxAllowed);
+                  lastTrackedTime = maxAllowed;
+                }
+              });
+            });
+            
+            // Listen for seeked event (after seek completes)
+            player.on("seeked", () => {
+              console.log('✅ Seeked completed');
+              
+              player.getCurrentTime((currentTime) => {
+                const maxAllowed = getMaxAllowedSeekTime();
+                
+                if (currentTime > maxAllowed + SEGMENT_TOLERANCE) {
+                  console.log('🚫 Seeked blocked:', currentTime.toFixed(2), '→', maxAllowed.toFixed(2));
+                  showSkipAlert(currentTime, maxAllowed);
+                  
+                  player.setCurrentTime(maxAllowed);
+                  lastTrackedTime = maxAllowed;
+                } else {
+                  // Valid seek position, update tracking
+                  lastTrackedTime = currentTime;
+                }
+                
+                // Clear seeking flag after a delay
+                setTimeout(() => {
+                  isSeeking = false;
+                  console.log('🔓 Seeking flag cleared');
+                }, 1000); // Longer delay to ensure timeupdate doesn't count seek as playback
               });
             });
 
-            // Event listeners
+            // Track play/pause state
+            player.on("play", () => {
+              isPlaying = true;
+              player.getCurrentTime((time) => {
+                // Check if current position is beyond max watched
+                const maxAllowed = getMaxAllowedSeekTime();
+                if (time > maxAllowed + SEGMENT_TOLERANCE) {
+                  // Force back to max watched position
+                  try {
+                    player.setCurrentTime(maxAllowed);
+                    lastTrackedTime = maxAllowed;
+                  } catch (e) {
+                    lastTrackedTime = time;
+                  }
+                } else {
+                  lastTrackedTime = time;
+                }
+              });
+            });
+            
+            player.on("pause", () => {
+              isPlaying = false;
+              // Save the segment that was just watched
+              if (lastTrackedTime >= 0) {
+                player.getCurrentTime((currentTime) => {
+                  if (currentTime > lastTrackedTime) {
+                    addWatchedSegment(lastTrackedTime, currentTime);
+                  }
+                });
+              }
+            });
+
+            // Event listeners for time updates
             player.on("timeupdate", (data) => {
               const currentSeconds = data.seconds;
               const totalDuration = data.duration || videoDuration;
-              const progressPercentage = totalDuration > 0 ? (currentSeconds / totalDuration) * 100 : 0;
-
-              // Auto-complete when reaching 90% of video duration (or last 10 seconds, whichever comes first)
-              if (totalDuration > 0 && !autoCompleted) {
-                const shouldComplete = progressPercentage >= 90 || currentSeconds >= totalDuration - 10;
+              const now = Date.now();
+              const timeSinceLastUpdate = now - lastUpdateTime;
+              
+              // Skip processing if we're currently seeking
+              if (isSeeking) {
+                console.log('⏭️ Skipping timeupdate (seeking in progress)');
+                return;
+              }
+              
+              // Detect if user skipped forward
+              const timeDiff = currentSeconds - lastTrackedTime;
+              
+              if (timeDiff > SEGMENT_TOLERANCE) {
+                // User jumped forward - check if it's to an unwatched area
+                const maxAllowed = getMaxAllowedSeekTime();
                 
-                if (shouldComplete) {
-                  autoCompleted = true;
+                console.log('⚠️ Forward jump detected:', {
+                  from: lastTrackedTime.toFixed(2),
+                  to: currentSeconds.toFixed(2),
+                  diff: timeDiff.toFixed(2),
+                  maxAllowed: maxAllowed.toFixed(2)
+                });
+                
+                if (currentSeconds > maxAllowed + SEGMENT_TOLERANCE) {
+                  // Trying to skip to unwatched content - PREVENT IT!
+                  isSeeking = true; // Set flag to prevent loop
                   
-                  // Show watch limit warning if this is the last allowed watch
-                  if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
-                    showEnhancedNotification(
-                      `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
-                      'warning',
-                      'Final Watch Warning'
-                    );
+                  showSkipAlert(currentSeconds, maxAllowed);
+                  
+                  // FORCE player back to max watched position
+                  try {
+                    player.setCurrentTime(maxAllowed);
+                    lastTrackedTime = maxAllowed;
+                  } catch (e) {
+                    // If setCurrentTime fails, go back to last position
+                    try {
+                      player.setCurrentTime(lastTrackedTime);
+                    } catch (e2) {
+                      lastTrackedTime = currentSeconds;
+                    }
                   }
                   
-                  updateContentProgressSmooth('completed', 100);
+                  updateProgressIndicator();
+                  
+                  // Clear seeking flag after a short delay
+                  setTimeout(() => {
+                    isSeeking = false;
+                  }, 500);
+                  
+                  return;
+                } else {
+                  // Seeking within watched content - allowed but DON'T count as playback
+                  console.log('✅ Seek within watched area (no segment added)');
+                  lastTrackedTime = currentSeconds;
+                  updateProgressIndicator();
                 }
+              } else if (timeDiff < -SEGMENT_TOLERANCE) {
+                // User went backwards - always allowed
+                console.log('⬅️ Backward seek (no segment added)');
+                lastTrackedTime = currentSeconds;
+                updateProgressIndicator();
+              } else if (timeDiff >= 0 && timeDiff <= SEGMENT_TOLERANCE && isPlaying && timeSinceLastUpdate < 2000) {
+                // STRICT: Normal playback ONLY if:
+                // 1. Small time difference (not a jump)
+                // 2. Video is playing
+                // 3. Less than 2 seconds since last update (continuous playback)
+                
+                console.log('▶️ Normal playback - adding segment:', lastTrackedTime.toFixed(2), '→', currentSeconds.toFixed(2));
+                addWatchedSegment(lastTrackedTime, currentSeconds);
+                lastTrackedTime = currentSeconds;
+                lastUpdateTime = now;
+                
+                // Update progress indicator
+                updateProgressIndicator();
+                
+                // Check if completion criteria is met
+                checkVideoCompletion();
+              } else {
+                // Any other case - just update position without adding segment
+                console.log('⏸️ Other case (no segment added):', {
+                  timeDiff: timeDiff.toFixed(2),
+                  isPlaying: isPlaying,
+                  timeSinceLastUpdate: timeSinceLastUpdate
+                });
+                lastTrackedTime = currentSeconds;
+                lastUpdateTime = now;
               }
             });
 
             player.on("ended", () => {
+              isPlaying = false;
+              // Add final segment
+              if (lastTrackedTime >= 0 && videoDuration > 0) {
+                addWatchedSegment(lastTrackedTime, videoDuration);
+              }
+              
+              // Check completion one final time
               if (!autoCompleted) {
-                // Show watch limit warning if this is the last allowed watch
-                if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
-                  showEnhancedNotification(
-                    `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
-                    'warning',
-                    'Final Watch Warning'
-                  );
-                }
-                
-                updateContentProgressSmooth('completed', 100);
+                checkVideoCompletion();
               }
             });
 
@@ -2953,6 +3675,41 @@
           }
         }
 
+        // Aggressive periodic enforcement - runs even when paused
+        setInterval(() => {
+          if (!player || !playerReady) return;
+          
+          try {
+            player.getCurrentTime((currentTime) => {
+              const maxAllowed = getMaxAllowedSeekTime();
+              
+              // If ahead of max watched, force back immediately
+              if (currentTime > maxAllowed + SEGMENT_TOLERANCE) {
+                console.log('⚠️ Periodic enforcement: Returning from', currentTime.toFixed(2), 'to', maxAllowed.toFixed(2));
+                
+                if (!isSeeking) {
+                  isSeeking = true;
+                  player.setCurrentTime(maxAllowed);
+                  lastTrackedTime = maxAllowed;
+                  
+                  setTimeout(() => {
+                    isSeeking = false;
+                  }, 300);
+                }
+              }
+            });
+          } catch (e) {
+            // Silently handle
+          }
+        }, 500); // Check every 500ms (more frequent)
+        
+        // Save progress periodically (every 5 seconds)
+        setInterval(() => {
+          if (playerReady && maxWatchedTime > 0) {
+            saveProgressToStorage();
+          }
+        }, 5000);
+        
         // Wait a bit for the content to be rendered, then start checking for PlayerJS
         setTimeout(() => {
           checkPlayerJS();
@@ -2966,6 +3723,344 @@
     let youtubeVideoDuration = 0;
     let youtubeAutoCompleted = false;
     let youtubeProgressInterval = null;
+    
+    // ==================== YOUTUBE ANTI-SKIP TRACKING ====================
+    let youtubeWatchedSegments = [];
+    let youtubeLastTrackedTime = 0;
+    let youtubeIsPlaying = false;
+    const YOUTUBE_REQUIRED_WATCH_PERCENTAGE = 90;
+    const YOUTUBE_SEGMENT_TOLERANCE = 2;
+    let youtubeSkipAlertShown = false;
+    let youtubeProgressIndicatorVisible = false;
+    let youtubeMaxWatchedTime = 0;
+    let youtubeIsSeeking = false;
+    let youtubeLastSkipAlertTime = 0;
+    let youtubeLastUpdateTime = Date.now();
+    
+    // LocalStorage for YouTube videos
+    const youtubeStorageKey = 'video_progress_<%= contentItem._id %>';
+    
+    function loadYouTubeSavedProgress() {
+      try {
+        const saved = localStorage.getItem(youtubeStorageKey);
+        if (saved) {
+          const data = JSON.parse(saved);
+          console.log('📂 Loading YouTube saved progress:', data);
+          
+          youtubeWatchedSegments = data.segments || [];
+          youtubeMaxWatchedTime = data.maxWatchedTime || 0;
+          
+          return data.lastPosition || 0;
+        }
+      } catch (e) {
+        console.error('Error loading YouTube saved progress:', e);
+      }
+      return 0;
+    }
+    
+    function saveYouTubeProgressToStorage() {
+      try {
+        const data = {
+          segments: youtubeWatchedSegments,
+          maxWatchedTime: youtubeMaxWatchedTime,
+          lastPosition: youtubeLastTrackedTime,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(youtubeStorageKey, JSON.stringify(data));
+      } catch (e) {
+        console.error('Error saving YouTube progress:', e);
+      }
+    }
+    
+    function clearYouTubeSavedProgress() {
+      try {
+        localStorage.removeItem(youtubeStorageKey);
+        console.log('🗑️ Cleared YouTube saved progress');
+      } catch (e) {
+        console.error('Error clearing YouTube progress:', e);
+      }
+    }
+    
+    function addYouTubeWatchedSegment(start, end) {
+      if (end <= start) return;
+      
+      // Cap at video duration
+      if (youtubeVideoDuration > 0) {
+        start = Math.max(0, Math.min(start, youtubeVideoDuration));
+        end = Math.max(0, Math.min(end, youtubeVideoDuration));
+      }
+      
+      const segmentLength = end - start;
+      const startDiff = start - youtubeMaxWatchedTime;
+      
+      console.log('📊 YouTube addWatchedSegment:', {
+        start: start.toFixed(2),
+        end: end.toFixed(2),
+        currentMax: youtubeMaxWatchedTime.toFixed(2),
+        startDiff: startDiff.toFixed(2),
+        segmentLength: segmentLength.toFixed(2)
+      });
+      
+      // REJECT if segment length is too large
+      if (segmentLength > 5) {
+        console.log('🚫 YOUTUBE SEGMENT TOO LARGE: Rejected (length:', segmentLength.toFixed(2), 's)');
+        return;
+      }
+      
+      if (youtubeMaxWatchedTime === 0 || (startDiff >= -YOUTUBE_SEGMENT_TOLERANCE && startDiff <= YOUTUBE_SEGMENT_TOLERANCE)) {
+        // Continuous from current max
+        const oldMax = youtubeMaxWatchedTime;
+        youtubeMaxWatchedTime = Math.max(youtubeMaxWatchedTime, end);
+        console.log('✅ YouTube continuous: maxWatchedTime', oldMax.toFixed(2), '→', youtubeMaxWatchedTime.toFixed(2));
+      } else if (start <= youtubeMaxWatchedTime && end <= youtubeMaxWatchedTime + YOUTUBE_SEGMENT_TOLERANCE) {
+        // Re-watching earlier content
+        if (end > youtubeMaxWatchedTime) {
+          const oldMax = youtubeMaxWatchedTime;
+          youtubeMaxWatchedTime = end;
+          console.log('✅ YouTube re-watch extended:', oldMax.toFixed(2), '→', youtubeMaxWatchedTime.toFixed(2));
+        } else {
+          console.log('✅ YouTube re-watch (no extension)');
+        }
+      } else {
+        console.log('🚫 YOUTUBE GAP DETECTED: Segment rejected (startDiff:', startDiff.toFixed(2), 's)');
+        return;
+      }
+      
+      youtubeWatchedSegments.push({start: start, end: end});
+      youtubeWatchedSegments = mergeYouTubeSegments(youtubeWatchedSegments);
+    }
+    
+    function getYouTubeMaxAllowedSeekTime() {
+      // Validate against actual segments
+      let continuousMax = 0;
+      
+      if (youtubeWatchedSegments.length === 0) {
+        return 0;
+      }
+      
+      const sorted = [...youtubeWatchedSegments].sort((a, b) => a.start - b.start);
+      
+      for (const segment of sorted) {
+        if (segment.start <= continuousMax + YOUTUBE_SEGMENT_TOLERANCE) {
+          continuousMax = Math.max(continuousMax, segment.end);
+        } else {
+          break;
+        }
+      }
+      
+      const validMax = Math.min(continuousMax, youtubeMaxWatchedTime);
+      
+      if (validMax < youtubeMaxWatchedTime) {
+        console.log('⚠️ YouTube: Correcting maxWatchedTime from', youtubeMaxWatchedTime.toFixed(2), 'to', validMax.toFixed(2));
+        youtubeMaxWatchedTime = validMax;
+      }
+      
+      return youtubeMaxWatchedTime;
+    }
+    
+    function mergeYouTubeSegments(segments) {
+      if (segments.length === 0) return [];
+      segments.sort((a, b) => a.start - b.start);
+      const merged = [segments[0]];
+      
+      for (let i = 1; i < segments.length; i++) {
+        const current = segments[i];
+        const last = merged[merged.length - 1];
+        // Prevent double counting
+        if (current.start <= last.end + 0.5) {
+          last.end = Math.max(last.end, current.end);
+        } else {
+          merged.push(current);
+        }
+      }
+      return merged;
+    }
+    
+    function getYouTubeTotalWatchedTime() {
+      let total = 0;
+      for (const segment of youtubeWatchedSegments) {
+        total += (segment.end - segment.start);
+      }
+      // Cap at video duration
+      if (youtubeVideoDuration > 0) {
+        total = Math.min(total, youtubeVideoDuration);
+      }
+      return total;
+    }
+    
+    function getYouTubeWatchPercentage() {
+      if (youtubeVideoDuration <= 0) return 0;
+      const percentage = (getYouTubeTotalWatchedTime() / youtubeVideoDuration) * 100;
+      return Math.min(percentage, 100); // Cap at 100%
+    }
+    
+    // Update YouTube progress indicator
+    function updateYouTubeProgressIndicator() {
+      const progressDiv = document.getElementById('youtubeWatchProgress');
+      if (!progressDiv) return;
+      
+      // Show indicator when video starts playing
+      if (!youtubeProgressIndicatorVisible && youtubeIsPlaying) {
+        progressDiv.style.display = 'block';
+        youtubeProgressIndicatorVisible = true;
+      }
+      
+      const watchPercentage = getYouTubeWatchPercentage();
+      const totalWatched = getYouTubeTotalWatchedTime();
+      const remaining = Math.max(0, YOUTUBE_REQUIRED_WATCH_PERCENTAGE - watchPercentage);
+      
+      // Format time helper
+      const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      };
+      
+      // Update percentage text
+      const percentElem = document.getElementById('youtubeWatchProgressPercent');
+      if (percentElem) {
+        percentElem.textContent = watchPercentage.toFixed(1) + '%';
+        if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE) {
+          percentElem.style.color = '#10b981';
+        } else if (watchPercentage >= 60) {
+          percentElem.style.color = '#fbbf24';
+        } else {
+          percentElem.style.color = '#ef4444';
+        }
+      }
+      
+      // Update time text
+      const timeElem = document.getElementById('youtubeWatchProgressTime');
+      if (timeElem) {
+        timeElem.textContent = `${formatTime(totalWatched)} / ${formatTime(youtubeVideoDuration)}`;
+      }
+      
+      // Update circular progress
+      const circleElem = document.getElementById('youtubeWatchProgressCircle');
+      if (circleElem) {
+        const circumference = 125.6;
+        const offset = circumference - (watchPercentage / 100 * circumference);
+        circleElem.style.strokeDashoffset = offset;
+        
+        if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE) {
+          circleElem.style.stroke = '#10b981';
+        } else if (watchPercentage >= 60) {
+          circleElem.style.stroke = '#fbbf24';
+        } else {
+          circleElem.style.stroke = '#ef4444';
+        }
+      }
+      
+      // Update circle text
+      const circleTextElem = document.getElementById('youtubeWatchProgressCircleText');
+      if (circleTextElem) {
+        circleTextElem.textContent = Math.floor(watchPercentage) + '%';
+      }
+      
+      // Update remaining
+      const remainingElem = document.getElementById('youtubeWatchProgressRemaining');
+      if (remainingElem) {
+        if (remaining <= 0) {
+          remainingElem.textContent = '✓ Done';
+          remainingElem.style.color = '#10b981';
+        } else {
+          remainingElem.textContent = remaining.toFixed(1) + '%';
+        }
+      }
+      
+      // Update max seek time
+      const maxSeekElem = document.getElementById('youtubeMaxSeekTime');
+      if (maxSeekElem) {
+        const maxTime = Math.max(youtubeMaxWatchedTime, 0);
+        maxSeekElem.textContent = formatTime(maxTime);
+        // Change color based on progress
+        if (maxTime >= youtubeVideoDuration * 0.9) {
+          maxSeekElem.style.color = '#10b981';
+        } else if (maxTime >= youtubeVideoDuration * 0.5) {
+          maxSeekElem.style.color = '#fbbf24';
+        } else {
+          maxSeekElem.style.color = '#ef4444';
+        }
+      }
+    }
+    
+    // Show YouTube skip alert (with debounce)
+    function showYouTubeSkipAlert(targetTime, maxAllowed) {
+      const now = Date.now();
+      if (now - youtubeLastSkipAlertTime < 3000) {
+        return;
+      }
+      youtubeLastSkipAlertTime = now;
+      
+      const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      };
+      
+      showEnhancedNotification(
+        `🚫 Cannot Skip to Unwatched Content!\n\nYou tried to jump to ${formatTime(targetTime)}, but you've only watched up to ${formatTime(maxAllowed)}.\n\n✓ You can seek within watched segments\n✗ You cannot skip to unwatched parts\n\nWatch the video continuously to unlock more content.`,
+        'error',
+        'Skip Prevented',
+        5000
+      );
+    }
+    
+    function checkYouTubeVideoCompletion() {
+      const watchPercentage = getYouTubeWatchPercentage();
+      const totalWatched = getYouTubeTotalWatchedTime();
+      
+      // Debug logging
+      console.log(`🎥 YouTube Progress Check:`, {
+        watchPercentage: watchPercentage.toFixed(2) + '%',
+        totalWatched: totalWatched.toFixed(2) + 's',
+        videoDuration: youtubeVideoDuration.toFixed(2) + 's',
+        required: YOUTUBE_REQUIRED_WATCH_PERCENTAGE + '%',
+        autoCompleted: youtubeAutoCompleted
+      });
+
+      if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE && !youtubeAutoCompleted) {
+        youtubeAutoCompleted = true;
+
+        if (youtubeProgressInterval) {
+          clearInterval(youtubeProgressInterval);
+        }
+        
+        console.log('✅ YouTube video completion triggered! Sending to backend...');
+        
+        // Clear saved progress since video is completed
+        clearYouTubeSavedProgress();
+
+        // Show success notification
+        showEnhancedNotification(
+          `🎉 Congratulations!\n\nYou've watched ${watchPercentage.toFixed(1)}% of the video.\n\nMarking as completed...`,
+          'success',
+          'Video Completed!',
+          4000
+        );
+
+        const hasWatchLimit = <%= watchLimitInfo && watchLimitInfo.hasLimit ? 'true' : 'false' %>;
+        const currentWatchCount = <%= watchLimitInfo ? watchLimitInfo.watchCount : 0 %>;
+        const currentMaxWatchCount = <%= watchLimitInfo && watchLimitInfo.maxWatchCount ? watchLimitInfo.maxWatchCount : 'null' %>;
+
+        if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
+          setTimeout(() => {
+            showEnhancedNotification(
+              `This was your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again.`,
+              'warning',
+              'Final Watch Warning'
+            );
+          }, 2000);
+        }
+
+        updateContentProgressWithWatchData('completed', 100, {
+          watchedSegments: youtubeWatchedSegments,
+          totalWatchedTime: totalWatched,
+          videoDuration: youtubeVideoDuration,
+          watchPercentage: watchPercentage
+        });
+      }
+    }
 
     // YouTube API callback - must be global
     function onYouTubeIframeAPIReady() {
@@ -3031,76 +4126,155 @@
     function onYouTubePlayerReady(event) {
       youtubeVideoDuration = event.target.getDuration();
       
+      // Load saved progress
+      const savedPosition = loadYouTubeSavedProgress();
+      
+      if (savedPosition > 0 && savedPosition < youtubeVideoDuration) {
+        // Restore to saved position
+        console.log('⏮️ Restoring YouTube to saved position:', savedPosition.toFixed(2));
+        youtubeLastTrackedTime = savedPosition;
+        
+        showEnhancedNotification(
+          `Resuming from ${Math.floor(savedPosition / 60)}:${Math.floor(savedPosition % 60).toString().padStart(2, '0')}`,
+          'info',
+          'Progress Restored',
+          3000
+        );
+        
+        try {
+          youtubePlayer.seekTo(savedPosition, true);
+        } catch (e) {
+          console.error('Error setting YouTube saved position:', e);
+        }
+      } else {
+        youtubeLastTrackedTime = 0;
+      }
+      
       // Start tracking progress every second
       youtubeProgressInterval = setInterval(() => {
         trackYouTubeProgress();
+        
+        // Periodic enforcement - ensure player never gets ahead
+        if (youtubePlayer && youtubeIsPlaying && !youtubeAutoCompleted) {
+          try {
+            const currentTime = youtubePlayer.getCurrentTime();
+            const maxAllowed = getYouTubeMaxAllowedSeekTime();
+            
+            if (currentTime > maxAllowed + YOUTUBE_SEGMENT_TOLERANCE) {
+              console.log('⚠️ YouTube position enforcement: Returning from', currentTime.toFixed(2), 'to', maxAllowed.toFixed(2));
+              youtubePlayer.seekTo(maxAllowed, true);
+              youtubeLastTrackedTime = maxAllowed;
+            }
+          } catch (e) {
+            // Silently handle
+          }
+        }
       }, 1000);
+      
+      // Save YouTube progress periodically
+      setInterval(() => {
+        if (youtubeMaxWatchedTime > 0) {
+          saveYouTubeProgressToStorage();
+        }
+      }, 5000);
     }
 
     function onYouTubeStateChange(event) {
-      if (event.data === YT.PlayerState.ENDED) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        youtubeIsPlaying = true;
+        const currentTime = youtubePlayer.getCurrentTime();
+        const maxAllowed = getYouTubeMaxAllowedSeekTime();
+        
+        // Check if position is beyond max watched
+        if (currentTime > maxAllowed + YOUTUBE_SEGMENT_TOLERANCE) {
+          // Force back to max watched position
+          try {
+            youtubePlayer.seekTo(maxAllowed, true);
+            youtubeLastTrackedTime = maxAllowed;
+          } catch (e) {
+            youtubeLastTrackedTime = currentTime;
+          }
+        } else {
+          youtubeLastTrackedTime = currentTime;
+        }
+      } else if (event.data === YT.PlayerState.PAUSED) {
+        youtubeIsPlaying = false;
+        const currentTime = youtubePlayer.getCurrentTime();
+        if (currentTime > youtubeLastTrackedTime) {
+          addYouTubeWatchedSegment(youtubeLastTrackedTime, currentTime);
+        }
+      } else if (event.data === YT.PlayerState.ENDED) {
+        youtubeIsPlaying = false;
+        // Add final segment
+        if (youtubeLastTrackedTime >= 0 && youtubeVideoDuration > 0) {
+          addYouTubeWatchedSegment(youtubeLastTrackedTime, youtubeVideoDuration);
+        }
+        
         if (!youtubeAutoCompleted) {
-          youtubeAutoCompleted = true;
-          if (youtubeProgressInterval) {
-            clearInterval(youtubeProgressInterval);
-          }
-          
-          // Show watch limit warning if this is the last allowed watch
-          const hasWatchLimit = <%= watchLimitInfo && watchLimitInfo.hasLimit ? 'true' : 'false' %>;
-          const currentWatchCount = <%= watchLimitInfo ? watchLimitInfo.watchCount : 0 %>;
-          const currentMaxWatchCount = <%= watchLimitInfo && watchLimitInfo.maxWatchCount ? watchLimitInfo.maxWatchCount : 'null' %>;
-          
-          if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
-            showEnhancedNotification(
-              `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
-              'warning',
-              'Final Watch Warning'
-            );
-          }
-          
-          updateContentProgressSmooth('completed', 100);
+          checkYouTubeVideoCompletion();
         }
       }
     }
 
     function trackYouTubeProgress() {
-      if (!youtubePlayer || youtubeAutoCompleted) return;
+      if (!youtubePlayer || youtubeAutoCompleted || youtubeIsSeeking) return;
       
       try {
-        const playerState = youtubePlayer.getPlayerState();
+        const currentTime = youtubePlayer.getCurrentTime();
+        const timeDiff = currentTime - youtubeLastTrackedTime;
         
-        // Only track when playing
-        if (playerState === YT.PlayerState.PLAYING) {
-          const currentTime = youtubePlayer.getCurrentTime();
-          const totalDuration = youtubeVideoDuration;
-          const progressPercentage = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
+        // Detect if user skipped forward
+        if (timeDiff > YOUTUBE_SEGMENT_TOLERANCE) {
+          // User jumped forward - check if it's to an unwatched area
+          const maxAllowed = getYouTubeMaxAllowedSeekTime();
           
-          // Auto-complete when reaching 90% or last 10 seconds
-          if (totalDuration > 0) {
-            const shouldComplete = progressPercentage >= 90 || currentTime >= totalDuration - 10;
+          if (currentTime > maxAllowed + YOUTUBE_SEGMENT_TOLERANCE) {
+            // Trying to skip to unwatched content - PREVENT IT!
+            youtubeIsSeeking = true;
             
-            if (shouldComplete && !youtubeAutoCompleted) {
-              youtubeAutoCompleted = true;
-              if (youtubeProgressInterval) {
-                clearInterval(youtubeProgressInterval);
+            showYouTubeSkipAlert(currentTime, maxAllowed);
+            
+            // FORCE player back to max watched position
+            try {
+              youtubePlayer.seekTo(maxAllowed, true);
+              youtubeLastTrackedTime = maxAllowed;
+            } catch (e) {
+              // If seekTo fails, go back to last position
+              try {
+                youtubePlayer.seekTo(youtubeLastTrackedTime, true);
+              } catch (e2) {
+                youtubeLastTrackedTime = currentTime;
               }
-              
-              // Show watch limit warning if this is the last allowed watch
-              const hasWatchLimit = <%= watchLimitInfo && watchLimitInfo.hasLimit ? 'true' : 'false' %>;
-              const currentWatchCount = <%= watchLimitInfo ? watchLimitInfo.watchCount : 0 %>;
-              const currentMaxWatchCount = <%= watchLimitInfo && watchLimitInfo.maxWatchCount ? watchLimitInfo.maxWatchCount : 'null' %>;
-              
-              if (hasWatchLimit && currentMaxWatchCount !== null && currentWatchCount + 1 >= currentMaxWatchCount) {
-                showEnhancedNotification(
-                  `This is your final allowed watch of this video (${currentWatchCount + 1}/${currentMaxWatchCount}). You won't be able to watch it again after this.`,
-                  'warning',
-                  'Final Watch Warning'
-                );
-              }
-              
-              updateContentProgressSmooth('completed', 100);
             }
+            
+            updateYouTubeProgressIndicator();
+            
+            setTimeout(() => {
+              youtubeIsSeeking = false;
+            }, 500);
+            
+            return;
+          } else {
+            // Seeking within watched content - allowed
+            // DON'T update maxWatchedTime here
+            youtubeLastTrackedTime = currentTime;
+            updateYouTubeProgressIndicator();
           }
+        } else if (timeDiff < -YOUTUBE_SEGMENT_TOLERANCE) {
+          // User went backwards - always allowed
+          // Just update tracking position (don't count twice)
+          youtubeLastTrackedTime = currentTime;
+          updateYouTubeProgressIndicator();
+        } else if (timeDiff >= 0 && timeDiff <= YOUTUBE_SEGMENT_TOLERANCE && youtubeIsPlaying) {
+          // Normal playback - ONLY update maxWatchedTime during actual playback
+          addYouTubeWatchedSegment(youtubeLastTrackedTime, currentTime);
+          youtubeLastTrackedTime = currentTime;
+          
+          // Update progress indicator
+          updateYouTubeProgressIndicator();
+          
+          // Check if completion criteria is met
+          checkYouTubeVideoCompletion();
         }
       } catch (error) {
         // Error tracking YouTube progress - silently handle

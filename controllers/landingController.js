@@ -468,6 +468,12 @@ const getBundleContent = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Validate ID format
+    if (!id || !require('mongoose').Types.ObjectId.isValid(id)) {
+      req.flash('error_msg', 'Invalid bundle ID');
+      return res.redirect('/courses');
+    }
+
     const bundle = await BundleCourse.findById(id)
       .populate('courses')
       .populate('createdBy', 'userName')
@@ -534,6 +540,11 @@ const getBundleContent = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching bundle content:', error);
+    // If it's a CastError (invalid ObjectId), show specific message
+    if (error.name === 'CastError' || error.message.includes('Cast to ObjectId')) {
+      req.flash('error_msg', 'Invalid bundle ID format');
+      return res.redirect('/courses');
+    }
     req.flash('error_msg', 'Error loading bundle content');
     res.redirect('/courses');
   }

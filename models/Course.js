@@ -112,6 +112,17 @@ const CourseSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Fully booked / closed enrollment
+    isFullyBooked: {
+      type: Boolean,
+      default: false,
+    },
+    fullyBookedMessage: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: 'FULLY BOOKED',
+    },
   },
   {
     timestamps: true,

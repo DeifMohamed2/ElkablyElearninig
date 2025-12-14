@@ -124,11 +124,17 @@ const zoomMeetingSchema = new mongoose.Schema({
   // Recording Information
   recordingStatus: {
     type: String,
-    enum: ['not_recorded', 'recording', 'processing', 'completed', 'failed'],
+    enum: ['not_recorded', 'recording', 'processing', 'completed', 'failed', 'uploading'],
     default: 'not_recorded',
   },
   recordingUrl: {
-    type: String,
+    type: String, // Original Zoom recording URL (backup)
+  },
+  bunnyVideoId: {
+    type: String, // Bunny CDN video ID
+  },
+  bunnyVideoUrl: {
+    type: String, // Bunny CDN playback URL
   },
 
   // Students who watched the recording (after session ended)
