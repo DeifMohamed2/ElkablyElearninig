@@ -774,337 +774,140 @@ class ZoomService {
    * Handle recording completed event
    * Downloads MP4 from Zoom and uploads to Bunny CDN
    */
-  async handleRecordingCompleted(payload) {
-    try {
-      const { object } = payload;
-      const meetingId = object.id.toString();
-      const recordingFiles = object.recording_files || [];
-      
-      console.log('📹 Recording completed event received for meeting:', meetingId);
-      console.log('📋 Recording files available:', recordingFiles.length);
+async handleRecordingCompleted(payload) {
+  try {
+    const { object } = payload;
+    const meetingId = object.id.toString();
+    const recordingFiles = object.recording_files || [];
 
-      // Find the Zoom meeting in database
-      let zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
-      const meetingExists = !!zoomMeeting;
-      
-      if (!meetingExists) {
-        console.log('⚠️ Zoom meeting not found in database:', meetingId);
-        console.log('📤 Will still process and upload recording...');
-      } else {
-        // Update status to indicate processing
-        zoomMeeting.recordingStatus = 'uploading';
+    console.log('📹 Recording completed for meeting:', meetingId);
+    console.log('📋 Recording files available:', recordingFiles.length);
+
+    // Try to find meeting in DB
+    let zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
+    const meetingExists = !!zoomMeeting;
+
+    if (!meetingExists) {
+      console.log('⚠️ Meeting not found in DB, continuing anyway');
+    } else {
+      zoomMeeting.recordingStatus = 'uploading';
+      await zoomMeeting.save();
+    }
+
+    // Log files
+    recordingFiles.forEach((file, i) => {
+      console.log(`📄 File ${i + 1}:`, {
+        type: file.file_type,
+        sizeMB: file.file_size
+          ? (file.file_size / 1024 / 1024).toFixed(2)
+          : 'unknown',
+        status: file.status,
+        recording_type: file.recording_type,
+        has_download_url: !!file.download_url,
+      });
+    });
+
+    // Find MP4
+    const mp4File = recordingFiles.find(
+      f => f.file_type === 'MP4' && f.download_url && f.status === 'completed'
+    );
+
+    if (!mp4File) {
+      console.log('⏳ No completed MP4 found yet, recording still processing');
+      if (meetingExists) {
+        zoomMeeting.recordingStatus = 'processing';
         await zoomMeeting.save();
       }
+      return;
+    }
 
-      // Log all recording files for debugging
-      console.log('📋 Recording files details:');
-      recordingFiles.forEach((file, index) => {
-        console.log(`  File ${index + 1}:`, {
-          type: file.file_type,
-          size: file.file_size ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
-          status: file.status,
-          recording_type: file.recording_type,
-          has_download_url: !!file.download_url,
-        });
-      });
+    console.log('📥 MP4 found, starting download...');
+    console.log('📊 Type:', mp4File.recording_type);
+    console.log(
+      '📊 Size:',
+      mp4File.file_size
+        ? `${(mp4File.file_size / 1024 / 1024).toFixed(2)} MB`
+        : 'unknown'
+    );
 
-      // Find MP4 recording file
-      const mp4File = recordingFiles.find(
-        (file) => file.file_type === 'MP4' && file.download_url && file.status === 'completed'
+    // Get OAuth token
+    const zoomToken = await this.getAccessToken();
+
+    // 🔥 CORRECT DOWNLOAD METHOD
+    let downloadUrl = `${mp4File.download_url}?access_token=${zoomToken}`;
+    console.log('⬇️ Downloading from Zoom...');
+
+    const downloadResponse = await axios.get(downloadUrl, {
+      responseType: 'arraybuffer',
+      timeout: 600000,
+      maxRedirects: 5,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+
+    const videoBuffer = Buffer.from(downloadResponse.data);
+    const sizeMB = (videoBuffer.length / 1024 / 1024).toFixed(2);
+
+    console.log(`✅ Video downloaded (${sizeMB} MB)`);
+
+    // Validate MP4 (ftyp)
+    const isMP4 =
+      videoBuffer.length > 12 &&
+      videoBuffer.toString('ascii', 4, 8).includes('ftyp');
+
+    if (!isMP4) {
+      throw new Error('Downloaded file is not a valid MP4');
+    }
+
+    console.log('✅ MP4 file validated');
+
+    // Upload to Bunny CDN
+    let uploadResult = null;
+
+    if (bunnyCDNService.isConfigured()) {
+      const videoId =
+        object.uuid.replace(/[^a-zA-Z0-9]/g, '') ||
+        `zoom-${meetingId}-${Date.now()}`;
+
+      const title = meetingExists && zoomMeeting?.meetingName
+        ? zoomMeeting.meetingName
+        : `Zoom Recording ${meetingId}`;
+
+      console.log('📤 Uploading to Bunny CDN...');
+      uploadResult = await bunnyCDNService.uploadVideo(
+        videoBuffer,
+        videoId,
+        title
       );
 
-      if (!mp4File) {
-        console.log('⚠️ No completed MP4 recording file found');
-        
-        // Check if recording is still processing
-        const processingFile = recordingFiles.find(
-          (file) => file.file_type === 'MP4' && file.status === 'processing'
-        );
-        
-        if (processingFile) {
-          console.log('⏳ Recording is still processing, will retry later');
-          if (meetingExists && zoomMeeting) {
-            zoomMeeting.recordingStatus = 'processing';
-            await zoomMeeting.save();
-          }
-          return;
-        }
-        
-        // Save any available URL
-        if (meetingExists && zoomMeeting) {
-          zoomMeeting.recordingStatus = 'completed';
-          zoomMeeting.recordingUrl = recordingFiles[0]?.download_url || null;
-          await zoomMeeting.save();
-        } else {
-          console.log('📝 Meeting not in DB, skipping database update');
-        }
-        return;
-      }
-
-      console.log('📥 Found MP4 file, starting download from Zoom...');
-      console.log('📊 File size:', mp4File.file_size ? `${(mp4File.file_size / 1024 / 1024).toFixed(2)} MB` : 'Unknown');
-      console.log('📊 Recording type:', mp4File.recording_type);
-      console.log('📊 Status:', mp4File.status);
-
-      // Get Zoom access token
-      const zoomToken = await this.getAccessToken();
-
-      // Step 1: Get fresh download URL with access token from Zoom API
-      // The webhook URLs may require a download_access_token parameter
-      console.log('🔑 Getting fresh download access token from Zoom API...');
-      
-      // Zoom UUIDs in webhooks may contain special characters (/, ==) that need to be double-encoded
-      // See: https://developers.zoom.us/docs/api/rest/using-zoom-apis/#meeting-id-and-uuid
-      let meetingUUID = object.uuid;
-      console.log('📝 Original UUID:', meetingUUID);
-      
-      // Double encode the UUID for API requests (encode twice)
-      const encodedUUID = encodeURIComponent(encodeURIComponent(meetingUUID));
-      console.log('🔐 Encoded UUID:', encodedUUID);
-      
-      let videoBuffer;
-      try {
-        // Get recording details with download_access_token
-        const recordingsResponse = await axios.get(
-          `https://api.zoom.us/v2/meetings/${encodedUUID}/recordings`,
-          {
-            params: {
-              include_fields: 'download_access_token',
-            },
-            headers: {
-              Authorization: `Bearer ${zoomToken}`,
-            },
-          }
-        );
-
-        console.log('✅ Retrieved recording details from Zoom API');
-        
-        const downloadAccessToken = recordingsResponse.data.download_access_token;
-        if (!downloadAccessToken) {
-          console.error('⚠️ No download_access_token in API response');
-        } else {
-          console.log('🔑 Download access token obtained');
-        }
-
-        // Find the MP4 file in the API response
-        const apiRecordingFiles = recordingsResponse.data.recording_files || [];
-        const apiMp4File = apiRecordingFiles.find(
-          (file) => file.file_type === 'MP4' && file.download_url && file.status === 'completed'
-        );
-
-        if (!apiMp4File) {
-          throw new Error('MP4 file not found in Zoom API response');
-        }
-
-        console.log('📥 Downloading video from Zoom with access token...');
-        console.log('📊 API File size:', apiMp4File.file_size ? `${(apiMp4File.file_size / 1024 / 1024).toFixed(2)} MB` : 'Unknown');
-
-        // Download using the API URL with download_access_token
-        let downloadUrl = apiMp4File.download_url;
-        
-        // Add download_access_token as query parameter if available
-        if (downloadAccessToken) {
-          const separator = downloadUrl.includes('?') ? '&' : '?';
-          downloadUrl = `${downloadUrl}${separator}access_token=${downloadAccessToken}`;
-        }
-
-        console.log('⬇️ Downloading from:', downloadUrl.substring(0, 100) + '...');
-        
-        const downloadResponse = await axios.get(downloadUrl, {
-          responseType: 'arraybuffer',
-          headers: {
-            Authorization: `Bearer ${zoomToken}`,
-          },
-          timeout: 600000, // 10 minutes
-          maxRedirects: 5,
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-          onDownloadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const percentCompleted = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              if (percentCompleted % 10 === 0) {
-                console.log(`⬇️ Download progress: ${percentCompleted}%`);
-              }
-            } else if (progressEvent.loaded) {
-              // Show progress even without total
-              const loadedMB = (progressEvent.loaded / 1024 / 1024).toFixed(2);
-              console.log(`⬇️ Downloaded: ${loadedMB} MB`);
-            }
-          },
-        });
-
-        videoBuffer = Buffer.from(downloadResponse.data);
-        console.log('✅ Video downloaded successfully via Zoom API');
-      } catch (downloadError) {
-        console.error('❌ Failed to download via Zoom API:', downloadError.message);
-        
-        // Log more details about the error
-        if (downloadError.response) {
-          console.error('Response status:', downloadError.response.status);
-          console.error('Response headers:', downloadError.response.headers);
-          if (downloadError.response.data) {
-            const preview = downloadError.response.data.toString('utf8', 0, Math.min(500, downloadError.response.data.length));
-            console.error('Response preview:', preview);
-          }
-        }
-        
-        throw new Error(`Failed to download recording from Zoom: ${downloadError.message}`);
-      }
-
-      console.log(`✅ Video downloaded successfully: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
-
-      // Validate the downloaded file
-      // Check minimum file size (should be at least 100KB for a valid video)
-      const minVideoSize = 100 * 1024; // 100 KB
-      if (videoBuffer.length < minVideoSize) {
-        console.error(`⚠️ Downloaded file is too small (${(videoBuffer.length / 1024).toFixed(2)} KB), likely not a valid video`);
-        console.error('File header (first 20 bytes):', videoBuffer.slice(0, 20).toString('hex'));
-        
-        // Check if it's an HTML error page
-        const contentPreview = videoBuffer.toString('utf8', 0, Math.min(500, videoBuffer.length));
-        console.error('File content preview:', contentPreview.substring(0, 200));
-        
-        if (contentPreview.includes('<html') || contentPreview.includes('<!DOCTYPE') || contentPreview.includes('<HTML')) {
-          throw new Error('Downloaded file is an HTML page, not a video. The download URL may be invalid or expired.');
-        }
-        
-        if (contentPreview.includes('error') || contentPreview.includes('Error') || contentPreview.includes('ERROR')) {
-          throw new Error(`Downloaded file contains an error message: ${contentPreview.substring(0, 200)}`);
-        }
-        
-        console.warn('⚠️ File is very small but will attempt to upload anyway');
-      }
-      
-      // Check if it's actually a video file (MP4 should start with specific bytes)
-      // MP4 files typically start with 'ftyp' at bytes 4-8
-      const isValidMP4 = videoBuffer.length > 12 && 
-                         videoBuffer.toString('ascii', 4, 8).includes('ftyp');
-      
-      if (!isValidMP4) {
-        console.error('⚠️ Downloaded file does not appear to be a valid MP4 video');
-        console.error('File header (first 20 bytes):', videoBuffer.slice(0, 20).toString('hex'));
-        console.error('Expected MP4 signature (ftyp) not found at bytes 4-8');
-        
-        // Try to identify what type of file it is
-        const header = videoBuffer.slice(0, 4).toString('hex');
-        const fileType = {
-          '89504e47': 'PNG image',
-          'ffd8ffe0': 'JPEG image',
-          'ffd8ffe1': 'JPEG image',
-          '25504446': 'PDF document',
-          '504b0304': 'ZIP archive',
-        }[header] || 'Unknown file type';
-        
-        console.error('File appears to be:', fileType);
-        throw new Error(`Downloaded file is not a valid MP4 video (appears to be ${fileType})`);
-      }
-      
-      console.log('✅ File validated as valid MP4 video');
-
-      // Step 2: Upload to Bunny CDN
-      if (!bunnyCDNService.isConfigured()) {
-        console.log('⚠️ Bunny CDN not configured, saving Zoom URL only');
-        if (meetingExists && zoomMeeting) {
-          zoomMeeting.recordingStatus = 'completed';
-          zoomMeeting.recordingUrl = mp4File.download_url;
-          await zoomMeeting.save();
-        } else {
-          console.log('📝 Meeting not in DB, skipping database update');
-        }
-        return;
-      }
-
-      // Generate unique video ID from meeting UUID
-      const videoId = object.uuid.replace(/[^a-zA-Z0-9]/g, '') || `zoom-${meetingId}-${Date.now()}`;
-      const videoTitle = meetingExists && zoomMeeting?.meetingName 
-        ? `${zoomMeeting.meetingName} - ${new Date().toLocaleDateString()}`
-        : `Zoom Recording ${meetingId} - ${new Date().toLocaleDateString()}`;
-
-      // Step 2: Try uploading to Bunny CDN (with fallback to Zoom URL)
-      let uploadResult = null;
-      try {
-        console.log('📤 Uploading to Bunny CDN...');
-        uploadResult = await bunnyCDNService.uploadVideo(
-          videoBuffer,
-          videoId,
-          videoTitle
-        );
-        console.log('✅ Recording uploaded to Bunny CDN successfully!');
-        console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
-        console.log('🔗 Bunny Video URL:', uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId));
-      } catch (bunnyError) {
-        console.error('⚠️ Failed to upload to Bunny CDN, falling back to Zoom URL');
-        console.error('Bunny CDN error:', bunnyError.message);
-        // Continue with Zoom URL as fallback
-        uploadResult = null;
-      }
-
-      // Step 3: Update database with recording information (if meeting exists)
-      if (meetingExists && zoomMeeting) {
-        zoomMeeting.recordingStatus = 'completed';
-        zoomMeeting.recordingUrl = mp4File.download_url; // Always save Zoom URL as backup/primary
-        
-        // If Bunny CDN upload succeeded, save that info too
-        if (uploadResult && uploadResult.bunnyVideoId) {
-          zoomMeeting.bunnyVideoId = uploadResult.bunnyVideoId;
-          zoomMeeting.bunnyVideoUrl = uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId);
-          console.log('💾 Saved Bunny CDN information to database');
-        } else {
-          console.log('💾 Saved Zoom recording URL to database (Bunny CDN upload failed)');
-        }
-        
-        await zoomMeeting.save();
-      } else {
-        if (uploadResult && uploadResult.bunnyVideoId) {
-          console.log('✅ Recording uploaded to Bunny CDN successfully!');
-          console.log('📺 Bunny Video ID:', uploadResult.bunnyVideoId);
-          console.log('🔗 Bunny Video URL:', uploadResult.videoUrl || bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId));
-        } else {
-          console.log('✅ Recording downloaded successfully (Zoom URL available)');
-          console.log('🔗 Zoom Recording URL:', mp4File.download_url);
-        }
-        console.log('⚠️ Meeting not in database - recording processed but not linked to meeting record');
-      }
-    } catch (error) {
-      console.error('❌ Error handling recording completed:', error.message);
-      
-      // Try to save Zoom URL even if download/upload failed
-      try {
-        const { object } = payload;
-        const meetingId = object.id.toString();
-        const recordingFiles = object.recording_files || [];
-        const mp4File = recordingFiles.find(
-          (file) => file.file_type === 'MP4' && file.download_url
-        );
-        
-        const zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
-        if (zoomMeeting) {
-          // If we have a Zoom URL, save it even if upload failed
-          if (mp4File && mp4File.download_url) {
-            zoomMeeting.recordingStatus = 'completed';
-            zoomMeeting.recordingUrl = mp4File.download_url;
-            await zoomMeeting.save();
-            console.log('💾 Saved Zoom recording URL despite upload failure');
-          } else {
-            zoomMeeting.recordingStatus = 'failed';
-            await zoomMeeting.save();
-          }
-        }
-      } catch (saveError) {
-        console.error('❌ Failed to update recording status:', saveError);
-      }
-
-      // Log full error details for debugging
-      if (error.response) {
-        console.error('Error response:', {
-          status: error.response.status,
-          data: error.response.data,
-        });
-      }
+      console.log('✅ Uploaded to Bunny:', uploadResult.bunnyVideoId);
+    } else {
+      console.log('⚠️ Bunny not configured, skipping upload');
     }
+
+    // Save DB
+    if (meetingExists) {
+      zoomMeeting.recordingStatus = 'completed';
+      zoomMeeting.recordingUrl = mp4File.download_url;
+
+      if (uploadResult?.bunnyVideoId) {
+        zoomMeeting.bunnyVideoId = uploadResult.bunnyVideoId;
+        zoomMeeting.bunnyVideoUrl =
+          uploadResult.videoUrl ||
+          bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId);
+      }
+
+      await zoomMeeting.save();
+      console.log('💾 Recording info saved to DB');
+    }
+
+    console.log('🎉 Recording processing finished successfully');
+
+  } catch (error) {
+    console.error('❌ Recording processing failed:', error.message);
   }
+}
+
 
   /**
    * Process webhook event
