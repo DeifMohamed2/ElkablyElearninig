@@ -852,13 +852,21 @@ class ZoomService {
       // Step 1: Get fresh download URL with access token from Zoom API
       // The webhook URLs may require a download_access_token parameter
       console.log('🔑 Getting fresh download access token from Zoom API...');
-      const meetingUUID = object.uuid;
+      
+      // Zoom UUIDs in webhooks may contain special characters (/, ==) that need to be double-encoded
+      // See: https://developers.zoom.us/docs/api/rest/using-zoom-apis/#meeting-id-and-uuid
+      let meetingUUID = object.uuid;
+      console.log('📝 Original UUID:', meetingUUID);
+      
+      // Double encode the UUID for API requests (encode twice)
+      const encodedUUID = encodeURIComponent(encodeURIComponent(meetingUUID));
+      console.log('🔐 Encoded UUID:', encodedUUID);
       
       let videoBuffer;
       try {
         // Get recording details with download_access_token
         const recordingsResponse = await axios.get(
-          `https://api.zoom.us/v2/meetings/${meetingUUID}/recordings`,
+          `https://api.zoom.us/v2/meetings/${encodedUUID}/recordings`,
           {
             params: {
               include_fields: 'download_access_token',
