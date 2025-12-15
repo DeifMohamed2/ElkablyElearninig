@@ -246,6 +246,35 @@ class BunnyCDNService {
     const url = `${baseUrl}/play_${quality}.mp4`;
     return token ? `${url}?token=${token}` : url;
   }
+
+  /**
+   * Generate Bunny CDN embed iframe code
+   * @param {String} videoId - Bunny video ID
+   * @param {Object} options - Embed options
+   * @param {Boolean} options.autoplay - Autoplay video (default: true)
+   * @param {Boolean} options.loop - Loop video (default: false)
+   * @param {Boolean} options.muted - Mute video (default: false)
+   * @param {Boolean} options.preload - Preload video (default: true)
+   * @param {Boolean} options.responsive - Responsive embed (default: true)
+   * @returns {String} HTML embed code
+   */
+  getEmbedCode(videoId, options = {}) {
+    const {
+      autoplay = true,
+      loop = false,
+      muted = false,
+      preload = true,
+      responsive = true,
+    } = options;
+
+    // Bunny CDN embed URL format: https://iframe.mediadelivery.net/embed/{libraryId}/{videoId}
+    const embedUrl = `https://iframe.mediadelivery.net/embed/${this.libraryId}/${videoId}?autoplay=${autoplay}&loop=${loop}&muted=${muted}&preload=${preload}&responsive=${responsive}`;
+
+    // Generate responsive embed iframe code
+    const embedCode = `<div style="position:relative;padding-top:56.25%;"><iframe src="${embedUrl}" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe></div>`;
+
+    return embedCode;
+  }
 }
 
 module.exports = new BunnyCDNService();

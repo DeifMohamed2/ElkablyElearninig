@@ -774,18 +774,36 @@ class ZoomService {
    * Handle recording completed event
    * Downloads MP4 from Zoom and uploads to Bunny CDN
    */
-async handleRecordingCompleted(payload) {
-  try {
-    const { object } = payload;
-    const meetingId = object.id.toString();
-    const recordingFiles = object.recording_files || [];
+  async handleRecordingCompleted(payload) {
+    // Must be function-scoped so catch() can access them
+    let zoomMeeting = null;
+    let meetingExists = false;
+
+    try {
+      const { object } = payload;
+      const meetingId = object.id.toString();
+      const recordingFiles = object.recording_files || [];
+      const downloadTokenFromWebhook =
+        payload?.download_token || object?.download_token || null;
 
     console.log('📹 Recording completed for meeting:', meetingId);
     console.log('📋 Recording files available:', recordingFiles.length);
 
-    // Try DB lookup (optional)
-    let zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
-    const meetingExists = !!zoomMeeting;
+      // Try DB lookup (optional)
+      zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
+      meetingExists = !!zoomMeeting;
+
+    // ✅ Prevent duplicate processing: Check if recording already completed
+    if (meetingExists && zoomMeeting.recordingStatus === 'completed') {
+      console.log('⏭️ Recording already processed, skipping duplicate webhook');
+      return; // Exit early if already completed
+    }
+
+    // ✅ Prevent race conditions: Check if recording is currently uploading
+    if (meetingExists && zoomMeeting.recordingStatus === 'uploading') {
+      console.log('⏳ Recording upload already in progress, skipping duplicate webhook');
+      return; // Exit early if upload is in progress
+    }
 
     if (!meetingExists) {
       console.log('⚠️ Meeting not found in DB, continuing anyway');
@@ -833,28 +851,248 @@ async handleRecordingCompleted(payload) {
         : 'unknown'
     );
 
-    // 🔥 CORRECT DOWNLOAD (NO TOKEN, NO HEADERS)
-    const downloadResponse = await axios.get(mp4File.download_url, {
-      responseType: 'arraybuffer',
-      timeout: 600000,
-      maxRedirects: 5,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-    });
+    console.log('🔐 Downloading recording from Zoom...');
+    
+    // Get OAuth access token for API calls
+    const token = await this.getAccessToken();
+    
+    let downloadResponse = null;
+    let lastDownloadError = null;
 
-    const videoBuffer = Buffer.from(downloadResponse.data);
-    const sizeMB = (videoBuffer.length / 1024 / 1024).toFixed(2);
+    // Strategy 1: Try using Zoom API recording download endpoint (most reliable)
+    // Format: GET /meetings/{meetingId}/recordings/{recordingId}/files/{fileId}/download
+    if (mp4File.id && object.uuid) {
+      try {
+        console.log('🔁 Attempt #1: Using Zoom API recording download endpoint');
+        
+        // Use the recording file ID from webhook
+        const apiDownloadUrl = `https://api.zoom.us/v2/meetings/${meetingId}/recordings/${object.uuid}/files/${mp4File.id}/download`;
+        
+        console.log('🔗 API Download URL:', apiDownloadUrl);
+        
+        downloadResponse = await axios.get(apiDownloadUrl, {
+          responseType: 'arraybuffer',
+          timeout: 600000,
+          maxRedirects: 10,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'video/mp4,application/octet-stream,*/*',
+          },
+          validateStatus: (status) => status >= 200 && status < 400,
+        });
 
-    console.log(`✅ Downloaded video: ${sizeMB} MB`);
-
-    // Validate MP4 (ftyp)
-    const isMP4 =
-      videoBuffer.length > 12 &&
-      videoBuffer.toString('ascii', 4, 8).includes('ftyp');
-
-    if (!isMP4) {
-      throw new Error('Downloaded file is not a valid MP4');
+        console.log('✅ Download successful via API endpoint');
+      } catch (apiError) {
+        lastDownloadError = apiError;
+        const status = apiError.response?.status;
+        console.warn(
+          `⚠️ API endpoint download failed (status=${status || 'n/a'}):`,
+          apiError.message
+        );
+        
+        // If 404, the file ID might not be available, try webhook URL
+        if (status !== 404) {
+          // For other errors, continue to try webhook URL
+        }
+      }
     }
+
+    // Strategy 2: Try webhook download URL with different auth methods
+    if (!downloadResponse && mp4File.download_url) {
+      console.log('🔁 Attempt #2: Using webhook download URL');
+      console.log('🔗 Download URL (preview):', mp4File.download_url.substring(0, 60) + '...');
+      
+      // Try multiple approaches for webhook URLs
+      const downloadAttempts = [];
+      
+      // Attempt 2a: Try with OAuth token as query param
+      if (token) {
+        downloadAttempts.push({
+          url: mp4File.download_url + (mp4File.download_url.includes('?') ? '&' : '?') + `access_token=${encodeURIComponent(token)}`,
+          method: 'oauth_token_query',
+        });
+      }
+      
+      // Attempt 2b: Try with download_token from webhook if available
+      if (downloadTokenFromWebhook) {
+        downloadAttempts.push({
+          url: mp4File.download_url + (mp4File.download_url.includes('?') ? '&' : '?') + `access_token=${encodeURIComponent(downloadTokenFromWebhook)}`,
+          method: 'webhook_download_token',
+        });
+      }
+      
+      // Attempt 2c: Try without any token (some webhook URLs are public but expire quickly)
+      downloadAttempts.push({
+        url: mp4File.download_url,
+        method: 'no_token',
+      });
+
+      for (let i = 0; i < downloadAttempts.length; i++) {
+        const attempt = downloadAttempts[i];
+        try {
+          console.log(`🔁 Webhook download attempt #${i + 1} (${attempt.method})`);
+
+          const resp = await axios.get(attempt.url, {
+            responseType: 'arraybuffer',
+            timeout: 600000,
+            maxRedirects: 10,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            headers: {
+              Accept: 'video/mp4,application/octet-stream,*/*',
+            },
+            validateStatus: (status) => status >= 200 && status < 400,
+          });
+
+          const contentType = resp.headers?.['content-type'];
+          console.log('📦 Download response:', {
+            status: resp.status,
+            contentType,
+            contentLength: resp.headers?.['content-length'],
+          });
+
+          // Check if we got HTML instead of video
+          if (contentType && contentType.toLowerCase().includes('text/html')) {
+            throw new Error(`Zoom returned HTML instead of video (method=${attempt.method})`);
+          }
+
+          downloadResponse = resp;
+          console.log(`✅ Download successful via ${attempt.method}`);
+          break;
+        } catch (err) {
+          lastDownloadError = err;
+          const status = err.response?.status;
+          console.warn(
+            `⚠️ Webhook download attempt failed (status=${status || 'n/a'}, method=${attempt.method}):`,
+            err.message
+          );
+
+          // If unauthorized/forbidden, try next method; otherwise stop
+          if (status === 401 || status === 403) continue;
+          // For other errors, continue trying
+        }
+      }
+    }
+
+    // Strategy 3: Fetch recording details from API and use the download URL from there
+    if (!downloadResponse) {
+      try {
+        console.log('🔁 Attempt #3: Fetching recording details from API and using API download URL');
+        
+        const recordingsResponse = await axios.get(
+          `https://api.zoom.us/v2/meetings/${meetingId}/recordings`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const recordings = recordingsResponse.data;
+        if (recordings.recording_files && recordings.recording_files.length > 0) {
+          // Find the MP4 file
+          const apiMp4File = recordings.recording_files.find(
+            f => f.file_type === 'MP4' && f.status === 'completed'
+          );
+
+          if (apiMp4File && apiMp4File.download_url) {
+            console.log('🔗 Using download URL from API response');
+            
+            // Try downloading with OAuth token
+            downloadResponse = await axios.get(apiMp4File.download_url, {
+              responseType: 'arraybuffer',
+              timeout: 600000,
+              maxRedirects: 10,
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'video/mp4,application/octet-stream,*/*',
+              },
+              validateStatus: (status) => status >= 200 && status < 400,
+            });
+
+            console.log('✅ Download successful via API recording details');
+          }
+        }
+      } catch (apiError) {
+        lastDownloadError = apiError;
+        console.warn('⚠️ API recording details fetch failed:', apiError.message);
+      }
+    }
+
+    if (!downloadResponse) {
+      const status = lastDownloadError?.response?.status;
+      throw new Error(
+        `Failed to download Zoom recording after all attempts (status=${status || 'n/a'}): ${
+          lastDownloadError?.message || 'Unknown error'
+        }`
+      );
+    }
+
+      const videoBuffer = Buffer.from(downloadResponse.data);
+      const sizeMB = (videoBuffer.length / 1024 / 1024).toFixed(2);
+
+      console.log(`✅ Downloaded video: ${sizeMB} MB`);
+      console.log(
+        `📊 Expected size: ${(mp4File.file_size / 1024 / 1024).toFixed(2)} MB`
+      );
+
+      // Check if size matches (allow 10% variance for encoding overhead)
+      const expectedSize = mp4File.file_size || 0;
+      const sizeDifference = Math.abs(videoBuffer.length - expectedSize);
+      const sizeVariancePercent =
+        expectedSize > 0 ? (sizeDifference / expectedSize) * 100 : 0;
+
+      if (expectedSize > 0 && sizeVariancePercent > 50) {
+        console.warn(
+          `⚠️ Size mismatch detected: expected ${(
+            expectedSize /
+            1024 /
+            1024
+          ).toFixed(2)} MB, got ${sizeMB} MB`
+        );
+        console.warn(
+          `⚠️ This might indicate a download error (HTML error page instead of video)`
+        );
+
+        // Log first 200 bytes to debug
+        const preview = videoBuffer
+          .slice(0, 200)
+          .toString('utf8', 0, Math.min(200, videoBuffer.length));
+        console.log('📄 File preview (first 200 bytes):', preview.substring(0, 100));
+
+        // Check if it's HTML (error page)
+        if (
+          preview.toLowerCase().includes('<html') ||
+          preview.toLowerCase().includes('<!doctype')
+        ) {
+          throw new Error(
+            'Downloaded file is an HTML page, not a video. Recording may still be processing or token is invalid.'
+          );
+        }
+      }
+
+      // Validate MP4 (check for ftyp box in first 32 bytes)
+      const isMP4 =
+        videoBuffer.length > 12 &&
+        videoBuffer.toString('ascii', 4, 8).includes('ftyp');
+
+      if (!isMP4) {
+        // Try to detect file type
+        const header = videoBuffer.slice(0, 16).toString('hex');
+        console.error('❌ Invalid MP4 file. Header (hex):', header);
+        console.error(
+          '❌ Header (ascii):',
+          videoBuffer
+            .slice(0, 32)
+            .toString('ascii')
+            .replace(/[^\x20-\x7E]/g, '.')
+        );
+        throw new Error(`Downloaded file is not a valid MP4. Header: ${header}`);
+      }
 
     console.log('✅ MP4 validated');
 
@@ -885,13 +1123,28 @@ async handleRecordingCompleted(payload) {
     // Save DB (optional)
     if (meetingExists) {
       zoomMeeting.recordingStatus = 'completed';
-      zoomMeeting.recordingUrl = mp4File.download_url;
-
+      
+      // Save Bunny CDN embed code if available, otherwise save original Zoom URL as backup
       if (uploadResult?.bunnyVideoId) {
+        // Generate and save Bunny CDN embed code
+        const embedCode = bunnyCDNService.getEmbedCode(uploadResult.bunnyVideoId, {
+          autoplay: true,
+          loop: false,
+          muted: false,
+          preload: true,
+          responsive: true,
+        });
+        zoomMeeting.recordingUrl = embedCode;
         zoomMeeting.bunnyVideoId = uploadResult.bunnyVideoId;
         zoomMeeting.bunnyVideoUrl =
           uploadResult.videoUrl ||
           bunnyCDNService.getPlaybackUrl(uploadResult.bunnyVideoId);
+        
+        console.log('💾 Saved Bunny CDN embed code to recordingUrl');
+      } else {
+        // Fallback: save original Zoom download URL if Bunny upload failed
+        zoomMeeting.recordingUrl = mp4File.download_url;
+        console.log('💾 Saved original Zoom URL to recordingUrl (Bunny upload not available)');
       }
 
       await zoomMeeting.save();
@@ -900,12 +1153,73 @@ async handleRecordingCompleted(payload) {
 
     console.log('🎉 Recording processing finished successfully');
 
-  } catch (error) {
-    console.error('❌ Recording processing failed:', error.message);
+    } catch (error) {
+      console.error('❌ Recording processing failed:', error.message);
+
+      // Update status to failed if meeting exists
+      if (meetingExists && zoomMeeting) {
+        try {
+          zoomMeeting.recordingStatus = 'failed';
+          zoomMeeting.recordingError = error.message;
+          await zoomMeeting.save();
+        } catch (saveError) {
+          console.error('❌ Failed to save error status:', saveError.message);
+        }
+      }
+
+      // Provide actionable guidance
+      console.error('\n🔍 Troubleshooting steps:');
+      console.error('1. Ensure Zoom app scopes include recording:read:admin');
+      console.error('2. Ensure cloud recording is enabled in Zoom account settings');
+      console.error('3. Webhook may fire before file is downloadable—retry in 2-5 minutes');
+      console.error('4. If 401/403 persists, recording may belong to another Zoom account/user\n');
+    }
   }
-}
 
 
+
+  /**
+   * Manually retry recording download (for failed recordings)
+   * @param {String} meetingId - Zoom meeting ID
+   * @returns {Promise<Object>} Processing result
+   */
+  async retryRecordingDownload(meetingId) {
+    try {
+      console.log('🔄 Manually retrying recording download for meeting:', meetingId);
+      
+      // Get recording details from Zoom API
+      const token = await this.getAccessToken();
+      const response = await axios.get(
+        `https://api.zoom.us/v2/meetings/${meetingId}/recordings`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const recordingData = response.data;
+      
+      // Simulate webhook payload
+      const payload = {
+        download_token: token,
+        object: {
+          id: meetingId,
+          uuid: recordingData.uuid,
+          recording_files: recordingData.recording_files,
+        },
+      };
+
+      // Process using existing handler
+      await this.handleRecordingCompleted(payload);
+      
+      console.log('✅ Manual retry completed');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Manual retry failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
 
   /**
    * Process webhook event

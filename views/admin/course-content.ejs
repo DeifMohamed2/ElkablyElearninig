@@ -9015,12 +9015,12 @@ function getContentIcon(type) {
     }
   }
 
-  // Helper function to extract URL from iframe embed code
+  // Helper function to extract URL from iframe embed code (enhanced)
   function extractUrlFromIframe(input) {
     const trimmedInput = input.trim();
     
     // Check if input looks like HTML/iframe code
-    if (trimmedInput.includes('<iframe') || trimmedInput.includes('</iframe>')) {
+    if (trimmedInput.includes('<iframe') || trimmedInput.includes('</iframe>') || trimmedInput.includes('<div')) {
       // Extract src attribute from iframe
       const srcMatch = trimmedInput.match(/src=["']([^"']+)["']/i);
       if (srcMatch && srcMatch[1]) {
@@ -9032,22 +9032,73 @@ function getContentIcon(type) {
     return trimmedInput;
   }
 
+  // Helper function to check if input is embed code
+  function isEmbedCode(input) {
+    const trimmed = input.trim();
+    return trimmed.includes('<iframe') || trimmed.includes('</iframe>') || (trimmed.includes('<div') && trimmed.includes('iframe'));
+  }
+
+  // Helper function to create video preview HTML
+  function createVideoPreview(url, isEmbedCode) {
+    if (!url) return '';
+    
+    // Check if it's a YouTube URL
+    const youtubeRegex = /(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/;
+    const youtubeMatch = url.match(youtubeRegex);
+    
+    if (youtubeMatch && youtubeMatch[1]) {
+      // YouTube video
+      const videoId = youtubeMatch[1];
+      return `
+        <div style="position: relative; padding-top: 56.25%; background: #000; border-radius: 8px; overflow: hidden; margin-top: 12px;">
+          <iframe 
+            src="https://www.youtube.com/embed/${videoId}" 
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
+    } else if (url.includes('iframe.mediadelivery.net') || url.includes('mediadelivery.net')) {
+      // Bunny CDN or similar - use direct iframe
+      return `
+        <div style="position: relative; padding-top: 56.25%; background: #000; border-radius: 8px; overflow: hidden; margin-top: 12px;">
+          <iframe 
+            src="${url}" 
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
+    } else {
+      // Generic video URL - try to embed
+      return `
+        <div style="position: relative; padding-top: 56.25%; background: #000; border-radius: 8px; overflow: hidden; margin-top: 12px;">
+          <iframe 
+            src="${url}" 
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
+    }
+  }
+
   // Add or edit recording URL to ended meeting
   async function addRecordingUrl(meetingId, currentUrl = null) {
     const isEditing = !!currentUrl;
+    
+    // Determine if current URL is embed code
+    const currentIsEmbed = currentUrl ? isEmbedCode(currentUrl) : false;
+    const currentDisplayUrl = currentUrl ? (currentIsEmbed ? extractUrlFromIframe(currentUrl) : currentUrl) : '';
+    
     const { value: formValues, isConfirmed } = await Swal.fire({
       title: isEditing ? '✏️ Edit Recording Link' : '📹 Add Recording Link',
       html: `
         <div style="text-align: left;">
           <p style="margin-bottom: 20px; color: #666;">${isEditing ? 'Edit the recording link for this meeting.' : 'Add the recording link for this meeting. Students will be able to watch it once added.'}</p>
-          
-          ${isEditing && currentUrl ? `
-          <div style="margin-bottom: 15px; padding: 10px; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
-            <a href="${currentUrl}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
-              <i class="fas fa-external-link-alt"></i> View Current Recording
-            </a>
-          </div>
-          ` : ''}
           
           <label for="recordingUrl" style="display: block; margin-bottom: 8px; font-weight: 500;">
             <i class="fas fa-video"></i> Recording Link or Embed Code:
@@ -9056,19 +9107,34 @@ function getContentIcon(type) {
             id="recordingUrl" 
             class="swal2-textarea" 
             placeholder="Paste video URL or iframe embed code here..."
-            style="width: 90%; margin: 0 auto; min-height: 80px; font-family: monospace; font-size: 12px;"
+            style="width: 100%; min-height: 100px; font-family: monospace; font-size: 12px; margin-bottom: 12px;"
             required
           >${currentUrl || ''}</textarea>
-          <small style="display: block; margin-top: 8px; color: #666;">
+          
+          <small style="display: block; margin-bottom: 12px; color: #666;">
             ✅ You can paste either:<br>
             • Direct video URL (e.g., https://iframe.mediadelivery.net/...)<br>
             • Full iframe embed code (we'll extract the URL automatically)
           </small>
-          <div id="urlPreview" style="margin-top: 10px; padding: 8px; background: #f0fdf4; border-radius: 4px; display: none;">
-            <small style="color: #16a34a;"><strong>✓ Detected URL:</strong> <span id="detectedUrl"></span></small>
+          
+          <!-- Video Preview Container -->
+          <div id="videoPreviewContainer" style="margin-top: 15px; display: none;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <i class="fas fa-play-circle" style="color: #10b981;"></i>
+              <strong style="color: #10b981;">Video Preview:</strong>
+            </div>
+            <div id="videoPreviewContent" style="border: 2px solid #10b981; border-radius: 8px; overflow: hidden; background: #f9fafb;">
+              <!-- Video preview will be inserted here -->
+            </div>
+            <div id="urlPreview" style="margin-top: 8px; padding: 8px; background: #f0fdf4; border-radius: 4px;">
+              <small style="color: #16a34a;">
+                <strong>✓ Detected URL:</strong> <span id="detectedUrl"></span>
+              </small>
+            </div>
           </div>
         </div>
       `,
+      width: '800px',
       icon: isEditing ? 'info' : 'info',
       showCancelButton: true,
       confirmButtonColor: '#10b981',
@@ -9078,23 +9144,42 @@ function getContentIcon(type) {
       focusConfirm: false,
       didOpen: () => {
         const textarea = document.getElementById('recordingUrl');
-        const preview = document.getElementById('urlPreview');
+        const previewContainer = document.getElementById('videoPreviewContainer');
+        const previewContent = document.getElementById('videoPreviewContent');
         const detectedUrl = document.getElementById('detectedUrl');
+        
+        // Show preview for current URL if editing
+        if (currentUrl && currentDisplayUrl) {
+          const previewHtml = createVideoPreview(currentDisplayUrl, currentIsEmbed);
+          if (previewHtml) {
+            previewContent.innerHTML = previewHtml;
+            detectedUrl.textContent = currentDisplayUrl.length > 80 ? currentDisplayUrl.substring(0, 80) + '...' : currentDisplayUrl;
+            previewContainer.style.display = 'block';
+          }
+        }
         
         // Show preview when user types/pastes
         textarea.addEventListener('input', () => {
           const input = textarea.value.trim();
           if (input) {
+            const isEmbed = isEmbedCode(input);
             const extractedUrl = extractUrlFromIframe(input);
-            if (extractedUrl !== input && extractedUrl) {
-              // Show preview if we extracted a URL from iframe code
-              detectedUrl.textContent = extractedUrl.length > 60 ? extractedUrl.substring(0, 60) + '...' : extractedUrl;
-              preview.style.display = 'block';
+            
+            if (extractedUrl) {
+              // Show video preview
+              const previewHtml = createVideoPreview(extractedUrl, isEmbed);
+              if (previewHtml) {
+                previewContent.innerHTML = previewHtml;
+                detectedUrl.textContent = extractedUrl.length > 80 ? extractedUrl.substring(0, 80) + '...' : extractedUrl;
+                previewContainer.style.display = 'block';
+              } else {
+                previewContainer.style.display = 'none';
+              }
             } else {
-              preview.style.display = 'none';
+              previewContainer.style.display = 'none';
             }
           } else {
-            preview.style.display = 'none';
+            previewContainer.style.display = 'none';
           }
         });
       },
@@ -9105,23 +9190,25 @@ function getContentIcon(type) {
           return false;
         }
         
-        // Extract URL from iframe if needed
-        const extractedUrl = extractUrlFromIframe(input);
+        // Check if it's embed code - if so, store the full embed code
+        const isEmbed = isEmbedCode(input);
+        let finalUrl = input;
         
-        if (!extractedUrl) {
-          Swal.showValidationMessage('Could not extract a valid URL from the input');
-          return false;
+        if (isEmbed) {
+          // Store the full embed code
+          finalUrl = input;
+        } else {
+          // It's a direct URL - validate it
+          try {
+            new URL(input);
+            finalUrl = input;
+          } catch (e) {
+            Swal.showValidationMessage('Invalid URL format. Please check the link.');
+            return false;
+          }
         }
         
-        // Basic URL validation
-        try {
-          new URL(extractedUrl);
-        } catch (e) {
-          Swal.showValidationMessage('Invalid URL format. Please check the link.');
-          return false;
-        }
-        
-        return { recordingUrl: extractedUrl };
+        return { recordingUrl: finalUrl };
       }
     });
 

@@ -1984,14 +1984,30 @@
                       </script>
                     <% } else { %>
                       <!-- Bunny/Regular Video Player Container with Watermark -->
+                      <% 
+                        // Check if recordingUrl is HTML embed code or a regular URL
+                        const isEmbedCode = zoomMeeting.recordingUrl && (
+                          zoomMeeting.recordingUrl.includes('<div') || 
+                          zoomMeeting.recordingUrl.includes('<iframe') ||
+                          zoomMeeting.recordingUrl.trim().startsWith('<')
+                        );
+                      %>
                       <div class="video-player-container" style="position: relative; padding-top: 56.25%; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
-                        <iframe id="recordingPlayer" 
-                          src="<%= zoomMeeting.recordingUrl %>" 
-                          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
-                          loading="lazy"
-                          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" 
-                          allowfullscreen="true">
-                        </iframe>
+                        <% if (isEmbedCode) { %>
+                          <!-- Render embed code directly (Bunny CDN embed) -->
+                          <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                            <%- zoomMeeting.recordingUrl %>
+                          </div>
+                        <% } else { %>
+                          <!-- Regular URL - use iframe -->
+                          <iframe id="recordingPlayer" 
+                            src="<%= zoomMeeting.recordingUrl %>" 
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+                            loading="lazy"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" 
+                            allowfullscreen="true">
+                          </iframe>
+                        <% } %>
                         <!-- Dynamic Moving Watermark -->
                         <div class="video-watermark video-watermark-moving" id="recordingBunnyWatermark">
                           <span class="watermark-text"><%= recordingStudentName %></span>
@@ -4448,12 +4464,28 @@
 
       function initRecordingPlayer() {
         try {
-          const iframe = document.getElementById('recordingPlayer');
+          // Try to find iframe by ID first (for regular URL)
+          let iframe = document.getElementById('recordingPlayer');
+          
+          // If not found, look for iframe inside the video container (for embed code)
           if (!iframe) {
+            const videoContainer = document.querySelector('.video-player-container');
+            if (videoContainer) {
+              iframe = videoContainer.querySelector('iframe');
+            }
+          }
+          
+          if (!iframe) {
+            console.log('⚠️ Recording iframe not found');
             return;
           }
 
-          recordingPlayer = new playerjs.Player(iframe);
+          // Add ID to iframe if it doesn't have one (for PlayerJS)
+          if (!iframe.id) {
+            iframe.id = 'recordingPlayer-' + Date.now();
+          }
+
+          recordingPlayer = new playerjs.Player(iframe.id);
 
           recordingPlayer.on("ready", () => {
             recordingPlayerReady = true;

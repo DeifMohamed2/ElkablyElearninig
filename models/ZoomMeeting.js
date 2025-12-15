@@ -128,7 +128,7 @@ const zoomMeetingSchema = new mongoose.Schema({
     default: 'not_recorded',
   },
   recordingUrl: {
-    type: String, // Original Zoom recording URL (backup)
+    type: String, // Bunny CDN embed iframe code (or original Zoom recording URL as backup)
   },
   bunnyVideoId: {
     type: String, // Bunny CDN video ID
