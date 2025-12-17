@@ -1,5 +1,769 @@
 <%- include('partials/header', { title: 'Home', isIndexPage: true }) %>
 
+<!-- Welcome Overlay Layer -->
+<div id="welcomeOverlay" class="welcome-overlay">
+  <div class="welcome-background">
+    <div class="welcome-gradient"></div>
+    <div class="welcome-particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+  </div>
+  <div class="welcome-content">
+    <div class="welcome-logo-container">
+      <div class="welcome-logo-glow">
+        <img src="/images/KImage.jpg" alt="Elkably Logo" class="welcome-logo-image">
+      </div>
+    </div>
+    <h1 class="welcome-title">
+      <span class="welcome-word" data-word="Welcome">Welcome</span>
+      <span class="welcome-word" data-word="to">to</span>
+      <span class="welcome-word" data-word="the">the</span>
+      <span class="welcome-word highlight-word" data-word="new">New</span>
+      <span class="welcome-word highlight-word" data-word="Generation">ERA</span>
+      <span class="welcome-word highlight-word" data-word="Of">Of</span>
+      <span class="welcome-word highlight-word" data-word="Elkably">Elkably</span>
+      <span class="welcome-word highlight-word" data-word="School ">Team</span>
+    </h1>
+ 
+    
+    <!-- Start Button -->
+    <button id="startJourneyBtn" class="start-journey-btn">
+      <span class="btn-text">Start Journey</span>
+      <span class="btn-icon">🚀</span>
+    </button>
+    
+    <!-- Countdown Display (hidden initially, replaces welcome text) -->
+    <div id="countdownDisplay" class="countdown-display">
+      <div class="countdown-text"></div>
+    </div>
+    
+    <!-- Lottie Animation Launch -->
+    <div id="rocketLaunch" class="rocket-launch">
+      <dotlottie-wc     src="https://lottie.host/90303ba7-4f14-49dc-b805-71069fa43e5d/8DgfuGfObf.lottie"
+ style="width: 300px;height: 300px" autoplay loop></dotlottie-wc>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Welcome Overlay Styles */
+  .welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+
+  .welcome-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .welcome-overlay.fade-out {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .welcome-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .welcome-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 50%, rgba(184, 1, 1, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(184, 1, 1, 0.1) 0%, transparent 50%);
+    animation: gradientShift 8s ease-in-out infinite;
+  }
+
+  @keyframes gradientShift {
+    0%, 100% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  }
+
+  .welcome-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(184, 1, 1, 0.6);
+    border-radius: 50%;
+    animation: float 15s infinite ease-in-out;
+  }
+
+  .particle:nth-child(1) {
+    left: 10%;
+    top: 20%;
+    animation-delay: 0s;
+    animation-duration: 12s;
+  }
+
+  .particle:nth-child(2) {
+    left: 20%;
+    top: 60%;
+    animation-delay: 2s;
+    animation-duration: 14s;
+  }
+
+  .particle:nth-child(3) {
+    left: 30%;
+    top: 40%;
+    animation-delay: 4s;
+    animation-duration: 13s;
+  }
+
+  .particle:nth-child(4) {
+    left: 50%;
+    top: 10%;
+    animation-delay: 1s;
+    animation-duration: 15s;
+  }
+
+  .particle:nth-child(5) {
+    left: 60%;
+    top: 70%;
+    animation-delay: 3s;
+    animation-duration: 12s;
+  }
+
+  .particle:nth-child(6) {
+    left: 70%;
+    top: 30%;
+    animation-delay: 5s;
+    animation-duration: 14s;
+  }
+
+  .particle:nth-child(7) {
+    left: 80%;
+    top: 50%;
+    animation-delay: 2.5s;
+    animation-duration: 13s;
+  }
+
+  .particle:nth-child(8) {
+    left: 90%;
+    top: 80%;
+    animation-delay: 4.5s;
+    animation-duration: 15s;
+  }
+
+  .particle:nth-child(9) {
+    left: 40%;
+    top: 15%;
+    animation-delay: 1.5s;
+    animation-duration: 12s;
+  }
+
+  .particle:nth-child(10) {
+    left: 85%;
+    top: 65%;
+    animation-delay: 3.5s;
+    animation-duration: 14s;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) translateX(0) scale(1);
+      opacity: 0.3;
+    }
+    25% {
+      transform: translateY(-50px) translateX(20px) scale(1.2);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateY(-100px) translateX(-20px) scale(0.8);
+      opacity: 0.5;
+    }
+    75% {
+      transform: translateY(-50px) translateX(30px) scale(1.1);
+      opacity: 0.7;
+    }
+  }
+
+  .welcome-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 40px;
+    max-width: 900px;
+    width: 90%;
+  }
+
+  .welcome-logo-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 40px;
+    opacity: 0;
+    transform: scale(0.5);
+    animation: logoEntrance 1s ease-out 0.5s forwards;
+  }
+
+  .welcome-logo-glow {
+    width: 100%;
+    height: 100%;
+    border-radius: 20%;
+    background: linear-gradient(135deg, rgba(184, 1, 1, 0.3), rgba(184, 1, 1, 0.1));
+    box-shadow: 0 0 60px rgba(184, 1, 1, 0.5),
+                0 0 120px rgba(184, 1, 1, 0.3),
+                inset 0 0 40px rgba(184, 1, 1, 0.2);
+    animation: logoGlow 3s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .welcome-logo-image {
+    width: 70%;
+    height: 70%;
+    object-fit: cover;
+    border-radius: 15%;
+    position: relative;
+    z-index: 2;
+  }
+
+  .welcome-logo-container.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    display: none !important;
+  }
+
+  @keyframes logoEntrance {
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes logoGlow {
+    0%, 100% {
+      box-shadow: 0 0 60px rgba(184, 1, 1, 0.5),
+                  0 0 120px rgba(184, 1, 1, 0.3),
+                  inset 0 0 40px rgba(184, 1, 1, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 80px rgba(184, 1, 1, 0.7),
+                  0 0 140px rgba(184, 1, 1, 0.5),
+                  inset 0 0 50px rgba(184, 1, 1, 0.3);
+    }
+  }
+
+  .welcome-title {
+    font-size: clamp(2rem, 5vw, 4rem);
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.3;
+    margin: 0 0 30px 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    opacity: 0;
+    animation: titleFadeIn 0.8s ease-out 1.2s forwards;
+  }
+
+  .welcome-word {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(30px) rotateX(90deg);
+    animation: wordEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .welcome-word:nth-child(1) { animation-delay: 1.5s; }
+  .welcome-word:nth-child(2) { animation-delay: 1.7s; }
+  .welcome-word:nth-child(3) { animation-delay: 1.9s; }
+  .welcome-word:nth-child(4) { animation-delay: 2.1s; }
+  .welcome-word:nth-child(5) { animation-delay: 2.3s; }
+  .welcome-word:nth-child(6) { animation-delay: 2.5s; }
+  .welcome-word:nth-child(7) { animation-delay: 2.7s; }
+  .welcome-word:nth-child(8) { animation-delay: 2.9s; }
+
+  .welcome-word.highlight-word {
+    color: #B80101;
+    text-shadow: 0 0 20px rgba(184, 1, 1, 0.6),
+                 0 0 40px rgba(184, 1, 1, 0.4),
+                 0 0 60px rgba(184, 1, 1, 0.2);
+    position: relative;
+  }
+
+  .welcome-word.highlight-word::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #B80101, transparent);
+    animation: underlineExpand 0.8s ease-out 3.5s forwards;
+  }
+
+  @keyframes wordEntrance {
+    to {
+      opacity: 1;
+      transform: translateY(0) rotateX(0deg);
+    }
+  }
+
+  @keyframes titleFadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes underlineExpand {
+    to {
+      width: 100%;
+    }
+  }
+
+  .welcome-subtitle {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin: 0 0 50px 0;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: subtitleEntrance 1s ease-out 3.2s forwards;
+  }
+
+  .welcome-subtitle-line {
+    display: inline-block;
+  }
+
+  @keyframes subtitleEntrance {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Start Journey Button */
+  .start-journey-btn {
+    position: relative;
+    background: linear-gradient(135deg, #B80101 0%, #8B0000 100%);
+    color: #ffffff;
+    border: none;
+    padding: 18px 50px;
+    font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 50px;
+    cursor: pointer;
+    margin: 40px auto 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 40px rgba(184, 1, 1, 0.4);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: buttonEntrance 0.8s ease-out 3.5s forwards;
+    z-index: 10;
+  }
+
+  .start-journey-btn.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    display: none !important;
+  }
+
+  .start-journey-btn:hover {
+    box-shadow: 0 15px 50px rgba(184, 1, 1, 0.6);
+    transform: translateY(-3px);
+  }
+
+  .start-journey-btn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(184, 1, 1, 0.5);
+  }
+
+  .btn-text, .btn-icon {
+    position: relative;
+  }
+
+  @keyframes buttonEntrance {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Countdown Display - Replaces welcome text */
+  .countdown-display {
+    position: absolute;
+    top: 70%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .countdown-display.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .countdown-text {
+    font-size: clamp(5rem, 15vw, 10rem);
+    font-weight: 900;
+    color: #B80101;
+    text-shadow: 0 0 40px rgba(184, 1, 1, 0.9),
+                 0 0 80px rgba(184, 1, 1, 0.7),
+                 0 0 120px rgba(184, 1, 1, 0.5),
+                 0 0 160px rgba(184, 1, 1, 0.3);
+    line-height: 1;
+    white-space: nowrap;
+    text-align: center;
+    display: block;
+  }
+
+  .countdown-text.animate {
+    animation: countdownPulse 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes countdownPulse {
+    0% {
+      transform: scale(0.2);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Lottie Animation Launch */
+  .rocket-launch {
+    position: absolute;
+    top: 12%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    z-index: 101;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Rocket in preparation mode (during countdown) */
+  .rocket-launch.preparation {
+    visibility: visible;
+    opacity: 1;
+    animation: lottieAppear 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* Rocket launches on "Goooo!" */
+  .rocket-launch.launch {
+    animation: lottieFly 2.5s cubic-bezier(0.33, 0, 0.2, 1) forwards !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .rocket-launch dotlottie-wc {
+    display: block;
+    width: 280px !important;
+    height: 280px !important;
+  }
+
+  @keyframes lottieAppear {
+    0% {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100%) scale(0.5) translateY(30px);
+    }
+    50% {
+      opacity: 0.8;
+      transform: translateX(-50%) translateY(-100%) scale(1.1) translateY(-5px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-100%) scale(1) translateY(0);
+    }
+  }
+
+  @keyframes lottieFly {
+    0% {
+      top: 12%;
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(-100%) scale(1);
+    }
+    100% {
+      top: -100vh;
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(-100%) scale(1);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .welcome-title {
+      gap: 8px;
+    }
+
+    .welcome-word {
+      font-size: clamp(1.5rem, 6vw, 2.5rem);
+    }
+
+    .welcome-subtitle {
+      font-size: clamp(0.9rem, 3vw, 1.2rem);
+      letter-spacing: 1px;
+    }
+
+    .welcome-logo-container {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 30px;
+    }
+
+    .start-journey-btn {
+      padding: 16px 40px;
+      font-size: clamp(1rem, 4vw, 1.4rem);
+    }
+
+    .countdown-text {
+      font-size: clamp(3.5rem, 12vw, 7rem);
+    }
+
+    .countdown-display {
+      top: 65%;
+    }
+
+    .rocket-launch {
+      top: 15%;
+    }
+
+    .rocket-launch dotlottie-wc {
+      width: 220px !important;
+      height: 220px !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .welcome-content {
+      padding: 20px;
+    }
+
+    .welcome-title {
+      gap: 6px;
+    }
+
+    .welcome-word {
+      font-size: clamp(1.2rem, 7vw, 2rem);
+    }
+
+    .start-journey-btn {
+      padding: 14px 30px;
+      font-size: clamp(0.9rem, 5vw, 1.2rem);
+      gap: 8px;
+    }
+
+    .countdown-text {
+      font-size: clamp(3rem, 15vw, 6rem);
+    }
+
+    .countdown-display {
+      top: 65%;
+    }
+
+    .rocket-launch {
+      top: 15%;
+    }
+
+    .rocket-launch dotlottie-wc {
+      width: 180px !important;
+      height: 180px !important;
+    }
+  }
+</style>
+
+<!-- DotLottie Web Component Script -->
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.11/dist/dotlottie-wc.js" type="module"></script>
+
+<script>
+  // Welcome Overlay Controller
+  (function() {
+    'use strict';
+    
+    // Check if user has seen the welcome overlay before
+    const hasSeenWelcome = localStorage.getItem('elkablyWelcomeSeen');
+    const welcomeOverlay = document.getElementById('welcomeOverlay');
+    
+    if (!hasSeenWelcome && welcomeOverlay) {
+      const startBtn = document.getElementById('startJourneyBtn');
+      const countdownDisplay = document.getElementById('countdownDisplay');
+      const countdownText = document.querySelector('.countdown-text');
+      const rocketLaunch = document.getElementById('rocketLaunch');
+      const welcomeContent = document.querySelector('.welcome-content');
+      const welcomeTitle = document.querySelector('.welcome-title');
+      const welcomeSubtitle = document.querySelector('.welcome-subtitle');
+      const logoContainer = document.querySelector('.welcome-logo-container');
+      
+      // Show the overlay
+      setTimeout(() => {
+        welcomeOverlay.classList.add('active');
+      }, 100);
+      
+      // Prevent body scroll while overlay is active
+      document.body.style.overflow = 'hidden';
+      
+      // Handle start button click
+      if (startBtn && countdownDisplay && countdownText && rocketLaunch) {
+        startBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Hide button completely
+          startBtn.classList.add('hidden');
+          
+          // Hide logo container with smooth professional fade-out
+          if (logoContainer) {
+            logoContainer.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1)';
+            logoContainer.style.opacity = '0';
+            logoContainer.style.transform = 'scale(0.8) translateY(-20px)';
+            setTimeout(() => {
+              logoContainer.classList.add('hidden');
+            }, 1000);
+          }
+          
+          // Hide welcome title with smooth professional fade-out
+          if (welcomeTitle) {
+            welcomeTitle.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1)';
+            welcomeTitle.style.opacity = '0';
+            welcomeTitle.style.transform = 'translateY(-30px) scale(0.95)';
+          }
+          if (welcomeSubtitle) {
+            welcomeSubtitle.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1)';
+            welcomeSubtitle.style.opacity = '0';
+            welcomeSubtitle.style.transform = 'translateY(-20px)';
+          }
+          
+          // Wait for fade, then show countdown and rocket in preparation
+          setTimeout(() => {
+            if (welcomeTitle) welcomeTitle.style.display = 'none';
+            if (welcomeSubtitle) welcomeSubtitle.style.display = 'none';
+            
+            // Show countdown display
+            countdownDisplay.classList.add('show');
+            
+            // Show rocket in preparation mode (ready to launch) with smooth entrance
+            rocketLaunch.classList.add('preparation');
+            
+            // Countdown sequence: 5, 4, 3, 2, 1, Goooo!
+            const countdownSequence = ['5', '4', '3', '2', '1', 'Goo!'];
+            let index = 0;
+            
+            function displayNextNumber() {
+              if (index < countdownSequence.length) {
+                // Update text
+                countdownText.textContent = countdownSequence[index];
+                
+                // Remove animation class
+                countdownText.classList.remove('animate');
+                
+                // Force reflow to restart animation
+                void countdownText.offsetWidth;
+                
+                // Add animation class
+                countdownText.classList.add('animate');
+                
+                index++;
+                
+                // Continue countdown or launch rocket
+                if (index < countdownSequence.length) {
+                  setTimeout(displayNextNumber, 900);
+                } else {
+                  // When "Goo!" appears, launch the rocket
+                  setTimeout(() => {
+                    // Hide countdown
+                    countdownDisplay.classList.remove('show');
+                    
+                    // Small delay to let "Goo!" be visible, then launch
+                    setTimeout(() => {
+                      // Remove preparation class and add launch class to start rocket animation
+                      rocketLaunch.classList.remove('preparation');
+                      rocketLaunch.classList.add('launch');
+                      
+                      console.log('Rocket launch animation started');
+                      
+                      // Hide overlay right after rocket animation completes (2.5s animation)
+                      setTimeout(() => {
+                        welcomeOverlay.classList.add('fade-out');
+                        
+                        // Clean up and mark as seen
+                        setTimeout(() => {
+                          welcomeOverlay.remove();
+                          localStorage.setItem('elkablyWelcomeSeen', 'true');
+                          document.body.style.overflow = '';
+                        }, 800);
+                      }, 1200);
+                    }, 500);
+                  }, 700);
+                }
+              }
+            }
+            
+            // Start the countdown
+            displayNextNumber();
+          }, 1100);
+        });
+      }
+    } else if (welcomeOverlay) {
+      // User has seen it before, remove immediately
+      welcomeOverlay.remove();
+    }
+  })();
+</script>
+
 <style>
   .media-guard {
     position: relative;
