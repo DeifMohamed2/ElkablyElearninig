@@ -661,7 +661,7 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
-    .students-table th:first-child {
+    .students-table th.checkbox-cell {
       border-top-left-radius: 12px;
     }
 
@@ -682,10 +682,11 @@
       transition: all 0.2s ease;
     }
 
-    /* Special styling for student info cells */
-    .students-table td:first-child {
-      padding: 20px 16px;
+    /* Special styling for checkbox cells */
+    .students-table td.checkbox-cell {
+      padding: 18px 8px;
       vertical-align: middle;
+      text-align: center;
     }
 
     /* Alternating row colors */
@@ -1573,6 +1574,198 @@
         justify-content: center;
       }
     }
+
+    /* Bulk Actions Styles */
+    .bulk-actions-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: linear-gradient(135deg, var(--admin-primary) 0%, #8b0000 100%);
+      color: white;
+      padding: 16px 24px;
+      margin: -24px -28px 24px -28px;
+      border-radius: 12px 12px 0 0;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+      animation: slideDown 0.3s ease;
+    }
+
+    .bulk-actions-toolbar.show {
+      display: flex;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .bulk-actions-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .bulk-actions-info i {
+      font-size: 1.2rem;
+    }
+
+    .bulk-actions-buttons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .bulk-action-btn {
+      padding: 10px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .bulk-action-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .bulk-action-btn.activate {
+      background: rgba(16, 185, 129, 0.3);
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .bulk-action-btn.activate:hover {
+      background: rgba(16, 185, 129, 0.5);
+      border-color: #10b981;
+    }
+
+    .bulk-action-btn.deactivate {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .bulk-action-btn.deactivate:hover {
+      background: rgba(239, 68, 68, 0.5);
+      border-color: #ef4444;
+    }
+
+    .bulk-action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .bulk-action-btn:disabled:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Checkbox Styles */
+    .student-checkbox {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--admin-primary);
+      border-radius: 3px;
+      transition: all 0.2s ease;
+    }
+
+    .student-checkbox:hover {
+      transform: scale(1.1);
+    }
+
+    .select-all-checkbox {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--admin-primary);
+      border-radius: 3px;
+      transition: all 0.2s ease;
+    }
+
+    .select-all-checkbox:hover {
+      transform: scale(1.1);
+    }
+
+    .checkbox-cell {
+      width: 40px;
+      text-align: center;
+      padding: 18px 8px !important;
+    }
+
+    /* Status Badge in Table */
+    .status-badge-table {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-badge-table.active {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-badge-table.inactive {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .status-icon-table {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Responsive bulk actions */
+    @media (max-width: 768px) {
+      .bulk-actions-toolbar {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 16px;
+        margin: -24px -16px 16px -16px;
+      }
+
+      .bulk-actions-info {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .bulk-actions-buttons {
+        width: 100%;
+        flex-direction: column;
+      }
+
+      .bulk-action-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 
@@ -1820,12 +2013,38 @@
           </div>
         </div>
 
+        <!-- Bulk Actions Toolbar -->
+        <div class="bulk-actions-toolbar" id="bulkActionsToolbar">
+          <div class="bulk-actions-info">
+            <i class="fas fa-check-circle"></i>
+            <span id="selectedCount">0</span> student(s) selected
+          </div>
+          <div class="bulk-actions-buttons">
+            <button class="bulk-action-btn activate" onclick="bulkActivateStudents()" id="bulkActivateBtn">
+              <i class="fas fa-check"></i>
+              Activate Selected
+            </button>
+            <button class="bulk-action-btn deactivate" onclick="bulkDeactivateStudents()" id="bulkDeactivateBtn">
+              <i class="fas fa-ban"></i>
+              Deactivate Selected
+            </button>
+            <button class="bulk-action-btn" onclick="clearSelection()">
+              <i class="fas fa-times"></i>
+              Clear Selection
+            </button>
+          </div>
+        </div>
+
         <div class="table-overflow">
           <% if (students && students.length > 0) { %>
           <table class="students-table">
             <thead>
               <tr>
+                <th class="checkbox-cell">
+                  <input type="checkbox" class="select-all-checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)">
+                </th>
                 <th>Student</th>
+                <th>Status</th>
                 <th>Student Code</th>
                 <th>Grade</th>
                 <th>Courses</th>
@@ -1837,7 +2056,10 @@
             </thead>
             <tbody>
               <% students.forEach(student => { %>
-              <tr>
+              <tr data-student-id="<%= student._id %>" data-student-active="<%= student.isActive !== false %>">
+                <td class="checkbox-cell">
+                  <input type="checkbox" class="student-checkbox" value="<%= student._id %>" onchange="updateBulkActions()">
+                </td>
                 <td>
                   <div class="student-profile">
                     <div class="student-avatar">
@@ -1852,6 +2074,12 @@
                       </div>
                     </div>
                   </div>
+                </td>
+                <td>
+                  <span class="status-badge-table <%= student.isActive !== false ? 'active' : 'inactive' %>">
+                    <span class="status-icon-table"></span>
+                    <%= student.isActive !== false ? 'Active' : 'Inactive' %>
+                  </span>
                 </td>
                 <td>
                   <div class="student-code-cell">
@@ -2479,6 +2707,259 @@
       if (e.target === this) {
         closeBulkImportModal();
       }
+    });
+
+    // ==================== BULK ACTIONS FUNCTIONALITY ====================
+    
+    // Toggle select all checkbox
+    function toggleSelectAll(checkbox) {
+      const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+      studentCheckboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+      });
+      updateBulkActions();
+    }
+
+    // Update bulk actions toolbar visibility and button states
+    function updateBulkActions() {
+      const selectedCheckboxes = document.querySelectorAll('.student-checkbox:checked');
+      const selectedCount = selectedCheckboxes.length;
+      const toolbar = document.getElementById('bulkActionsToolbar');
+      const selectedCountSpan = document.getElementById('selectedCount');
+      const bulkActivateBtn = document.getElementById('bulkActivateBtn');
+      const bulkDeactivateBtn = document.getElementById('bulkDeactivateBtn');
+
+      if (selectedCountSpan) {
+        selectedCountSpan.textContent = selectedCount;
+      }
+
+      if (toolbar) {
+        if (selectedCount > 0) {
+          toolbar.classList.add('show');
+        } else {
+          toolbar.classList.remove('show');
+        }
+      }
+
+      // Update button states based on selected students' current status
+      if (selectedCount > 0) {
+        let allActive = true;
+        let allInactive = true;
+
+        selectedCheckboxes.forEach(checkbox => {
+          const row = checkbox.closest('tr');
+          const isActive = row.getAttribute('data-student-active') === 'true';
+          
+          if (isActive) {
+            allInactive = false;
+          } else {
+            allActive = false;
+          }
+        });
+
+        // Enable/disable buttons based on selection
+        if (bulkActivateBtn) {
+          bulkActivateBtn.disabled = allActive;
+        }
+        if (bulkDeactivateBtn) {
+          bulkDeactivateBtn.disabled = allInactive;
+        }
+      } else {
+        if (bulkActivateBtn) bulkActivateBtn.disabled = false;
+        if (bulkDeactivateBtn) bulkDeactivateBtn.disabled = false;
+      }
+
+      // Update select all checkbox state
+      const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+      if (selectAllCheckbox) {
+        const totalCheckboxes = document.querySelectorAll('.student-checkbox').length;
+        selectAllCheckbox.checked = selectedCount === totalCheckboxes && totalCheckboxes > 0;
+        selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalCheckboxes;
+      }
+    }
+
+    // Clear all selections
+    function clearSelection() {
+      const checkboxes = document.querySelectorAll('.student-checkbox, .select-all-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = false;
+      });
+      const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+      if (selectAllCheckbox) {
+        selectAllCheckbox.indeterminate = false;
+      }
+      updateBulkActions();
+    }
+
+    // Get selected student IDs
+    function getSelectedStudentIds() {
+      const selectedCheckboxes = document.querySelectorAll('.student-checkbox:checked');
+      return Array.from(selectedCheckboxes).map(cb => cb.value);
+    }
+
+    // Bulk activate students
+    async function bulkActivateStudents() {
+      const selectedIds = getSelectedStudentIds();
+      
+      if (selectedIds.length === 0) {
+        alert('Please select at least one student to activate.');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to activate ${selectedIds.length} student(s)?\n\nThis will allow them to log in and access their courses.`)) {
+        return;
+      }
+
+      const bulkActivateBtn = document.getElementById('bulkActivateBtn');
+      const originalText = bulkActivateBtn ? bulkActivateBtn.innerHTML : '';
+      
+      if (bulkActivateBtn) {
+        bulkActivateBtn.disabled = true;
+        bulkActivateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Activating...';
+      }
+
+      try {
+        const response = await fetch('/admin/students/bulk-status', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            studentIds: selectedIds,
+            isActive: true
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Show success message
+          showToast('success', 'Success', `Successfully activated ${data.modifiedCount} student(s).`);
+          
+          // Reload page after a short delay to show updated status
+          setTimeout(() => {
+            location.reload();
+          }, 1500);
+        } else {
+          showToast('error', 'Error', data.message || 'Failed to activate students. Please try again.');
+          if (bulkActivateBtn) {
+            bulkActivateBtn.disabled = false;
+            bulkActivateBtn.innerHTML = originalText;
+          }
+        }
+      } catch (error) {
+        console.error('Error activating students:', error);
+        showToast('error', 'Error', 'Network error occurred. Please try again.');
+        if (bulkActivateBtn) {
+          bulkActivateBtn.disabled = false;
+          bulkActivateBtn.innerHTML = originalText;
+        }
+      }
+    }
+
+    // Bulk deactivate students
+    async function bulkDeactivateStudents() {
+      const selectedIds = getSelectedStudentIds();
+      
+      if (selectedIds.length === 0) {
+        alert('Please select at least one student to deactivate.');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to deactivate ${selectedIds.length} student(s)?\n\nThis will prevent them from logging in and accessing their courses.`)) {
+        return;
+      }
+
+      const bulkDeactivateBtn = document.getElementById('bulkDeactivateBtn');
+      const originalText = bulkDeactivateBtn ? bulkDeactivateBtn.innerHTML : '';
+      
+      if (bulkDeactivateBtn) {
+        bulkDeactivateBtn.disabled = true;
+        bulkDeactivateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deactivating...';
+      }
+
+      try {
+        const response = await fetch('/admin/students/bulk-status', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            studentIds: selectedIds,
+            isActive: false
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Show success message
+          showToast('success', 'Success', `Successfully deactivated ${data.modifiedCount} student(s).`);
+          
+          // Reload page after a short delay to show updated status
+          setTimeout(() => {
+            location.reload();
+          }, 1500);
+        } else {
+          showToast('error', 'Error', data.message || 'Failed to deactivate students. Please try again.');
+          if (bulkDeactivateBtn) {
+            bulkDeactivateBtn.disabled = false;
+            bulkDeactivateBtn.innerHTML = originalText;
+          }
+        }
+      } catch (error) {
+        console.error('Error deactivating students:', error);
+        showToast('error', 'Error', 'Network error occurred. Please try again.');
+        if (bulkDeactivateBtn) {
+          bulkDeactivateBtn.disabled = false;
+          bulkDeactivateBtn.innerHTML = originalText;
+        }
+      }
+    }
+
+    // Toast notification function
+    function showToast(type, title, message) {
+      // Create toast container if it doesn't exist
+      let toastContainer = document.querySelector('.toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+      }
+
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast show`;
+      
+      const iconClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning';
+      const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-exclamation-triangle';
+
+      toast.innerHTML = `
+        <div class="toast-header">
+          <div class="toast-icon ${iconClass}">
+            <i class="fas ${icon}"></i>
+          </div>
+          <h4 class="toast-title">${title}</h4>
+        </div>
+        <p class="toast-message">${message}</p>
+      `;
+
+      toastContainer.appendChild(toast);
+
+      // Remove toast after 5 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, 5000);
+    }
+
+    // Initialize bulk actions on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      updateBulkActions();
     });
   </script>
 

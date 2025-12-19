@@ -4691,6 +4691,9 @@ const getBookOrders = async (req, res) => {
         { 'shippingAddress.lastName': { $regex: searchTerm, $options: 'i' } },
         { 'shippingAddress.phone': { $regex: searchTerm, $options: 'i' } },
         { 'shippingAddress.city': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.streetName': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.buildingNumber': { $regex: searchTerm, $options: 'i' } },
+        { 'shippingAddress.apartmentNumber': { $regex: searchTerm, $options: 'i' } },
         { 'shippingAddress.address': { $regex: searchTerm, $options: 'i' } },
         { 'shippingAddress.zipCode': { $regex: searchTerm, $options: 'i' } },
         { notes: { $regex: searchTerm, $options: 'i' } },
@@ -4925,6 +4928,9 @@ const exportBookOrders = async (req, res) => {
         { 'shippingAddress.email': { $regex: search, $options: 'i' } },
         { 'shippingAddress.firstName': { $regex: search, $options: 'i' } },
         { 'shippingAddress.lastName': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.streetName': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.buildingNumber': { $regex: search, $options: 'i' } },
+        { 'shippingAddress.apartmentNumber': { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -7508,6 +7514,84 @@ const toggleStudentStatus = async (req, res) => {
   } catch (error) {
     console.error('Error toggling student status:', error);
     return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Bulk toggle student status (activate/deactivate multiple students)
+const bulkToggleStudentStatus = async (req, res) => {
+  try {
+    const { studentIds, isActive } = req.body;
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of student IDs',
+      });
+    }
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid isActive status (true or false)',
+      });
+    }
+
+    // Update all students
+    const updateResult = await User.updateMany(
+      { _id: { $in: studentIds } },
+      { $set: { isActive } }
+    );
+
+    // Get updated students for logging and notifications
+    const updatedStudents = await User.find({ _id: { $in: studentIds } });
+
+    // Send SMS notifications (non-blocking)
+    updatedStudents.forEach((student) => {
+      if (student.studentNumber && student.studentCountryCode) {
+        const recipient = `${student.studentCountryCode}${student.studentNumber}`.replace(
+          /[^\d+]/g,
+          ''
+        );
+        const message = isActive
+          ? `Your Elkably account has been activated. You can now log in and start learning.`
+          : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
+        sendSms({ recipient, message }).catch((err) =>
+          console.error('SMS send error (bulk toggle status):', err?.message || err)
+        );
+      }
+    });
+
+    // Log the action
+    await createLog(req, {
+      action: 'BULK_TOGGLE_STUDENT_STATUS',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Bulk ${isActive ? 'activated' : 'deactivated'} ${updateResult.modifiedCount} student(s)`,
+      targetModel: 'User',
+      metadata: {
+        studentCount: updateResult.modifiedCount,
+        isActive,
+        studentIds: studentIds.slice(0, 10), // Log first 10 IDs
+      },
+    });
+
+    console.log(
+      `Admin ${req.session.user.username || 'admin'} bulk ${
+        isActive ? 'activated' : 'deactivated'
+      } ${updateResult.modifiedCount} students`
+    );
+
+    return res.json({
+      success: true,
+      message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${updateResult.modifiedCount} student(s)`,
+      modifiedCount: updateResult.modifiedCount,
+    });
+  } catch (error) {
+    console.error('Error bulk toggling student status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error bulk updating student status',
+      error: error.message,
+    });
   }
 };
 
@@ -15185,6 +15269,7 @@ module.exports = {
   getStudentDetails,
   getStudentEditPage,
   toggleStudentStatus,
+  bulkToggleStudentStatus,
   exportStudentData,
   updateStudent,
   deleteStudent,

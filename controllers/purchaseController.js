@@ -49,81 +49,93 @@ async function getStudentStartingOrderInBundle(userId, bundleId) {
 }
 
 // Helper function to send WhatsApp notification to library for book orders
-async function sendLibraryBookOrderNotification(bookOrders, user) {
+// Accepts book order IDs (string or ObjectId array)
+// Sends notification directly without any tracking - called only on payment confirmation
+async function sendLibraryBookOrderNotification(bookOrderIds, user) {
   try {
-    if (!bookOrders || bookOrders.length === 0) {
+    console.log('\n📚 ========== LIBRARY NOTIFICATION ==========');
+    console.log('📚 Book order IDs:', bookOrderIds);
+    
+    if (!bookOrderIds || bookOrderIds.length === 0) {
+      console.log('❌ No book order IDs provided');
       return { success: false, message: 'No book orders to notify' };
     }
 
-    // Convert to array if single object
-    const bookOrdersArray = Array.isArray(bookOrders) ? bookOrders : [bookOrders];
+    // Convert to array if single ID
+    const idsArray = Array.isArray(bookOrderIds) ? bookOrderIds : [bookOrderIds];
     
-    // Check if any book order already has notification sent
-    const BookOrder = require('../models/BookOrder');
-    const bookOrderIds = bookOrdersArray.map(bo => {
-      // Handle both ObjectId and string IDs, and handle lean objects
-      if (typeof bo === 'string') return bo;
-      if (bo._id) {
-        return typeof bo._id === 'string' ? bo._id : bo._id.toString();
-      }
-      return bo.toString();
+    // Convert all to strings for consistency
+    const cleanIds = idsArray.map(id => {
+      if (typeof id === 'string') return id;
+      if (id._id) return id._id.toString();
+      return id.toString();
     });
     
-    const existingOrders = await BookOrder.find({ _id: { $in: bookOrderIds } })
+    console.log('📚 Cleaned IDs:', cleanIds);
+    
+    // Fetch BookOrder documents from database
+    const BookOrder = require('../models/BookOrder');
+    const bookOrders = await BookOrder.find({ _id: { $in: cleanIds } })
       .populate('bundle', 'title bundleCode');
     
-    // Filter out orders that already have notification sent
-    const ordersToNotify = existingOrders.filter(order => !order.libraryNotificationSent);
+    console.log(`📚 Found ${bookOrders.length} book orders in database`);
     
-    if (ordersToNotify.length === 0) {
-      console.log('📚 All book orders already have library notifications sent, skipping...');
-      return { success: true, message: 'All notifications already sent', skipped: true };
+    if (bookOrders.length === 0) {
+      console.log('❌ No book orders found in database');
+      return { success: false, message: 'Book orders not found' };
     }
     
-    // Use the first order's data for message formatting (but send notification for all)
-    const firstBookOrder = ordersToNotify[0];
+    const firstBookOrder = bookOrders[0];
+    
+    // Validate shipping address
+    if (!firstBookOrder.shippingAddress) {
+      console.error('❌ Book order missing shippingAddress:', firstBookOrder._id);
+      return { success: false, message: 'Book order missing shipping address' };
+    }
+    
+    console.log('✓ Shipping address validated');
 
-    // Get session API key
+    // Get WhatsApp session API key
     const SESSION_API_KEY = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
     if (!SESSION_API_KEY) {
       console.error('❌ WhatsApp session API key not configured');
       return { success: false, message: 'WhatsApp session API key not configured' };
     }
+    console.log('✓ API key found');
 
     // Determine library phone number based on country
-    // Check the first book order's shipping address country
     const country = firstBookOrder.shippingAddress?.country || '';
+    console.log(`📚 Shipping country: ${country}`);
     const isEgypt = country.toLowerCase().includes('egypt') || country.toLowerCase().includes('مصر') || country === 'EG' || country === 'Egypt';
+    console.log(`📚 Is Egypt: ${isEgypt}`);
     
-    // Library phone numbers (local Egyptian format, will be converted to international format)
-    const egyptLibraryPhone = '01023680795'; // Egypt library
-    const internationalLibraryPhone = '01211000260'; // International library
+    // Library phone numbers - Both Egypt and International use same number
+    const egyptLibraryPhone = '01055200152';
+    const internationalLibraryPhone = '01055200152';
     const libraryPhone = isEgypt ? egyptLibraryPhone : internationalLibraryPhone;
 
-    // Format phone number for WhatsApp (ensure it has country code format)
+    // Format phone number for WhatsApp
     const formatPhoneForWhatsApp = (phone) => {
-      // Remove all non-digit characters
       const cleaned = phone.replace(/\D/g, '');
-      // If starts with 0, replace with country code 20 (Egypt)
       if (cleaned.startsWith('0')) {
         return `20${cleaned.substring(1)}`;
       }
-      // If doesn't start with country code, add 20 (default to Egypt format)
       if (!cleaned.startsWith('20') && !cleaned.startsWith('+')) {
         return `20${cleaned}`;
       }
-      return cleaned.replace(/^\+/, ''); // Remove + if present
+      return cleaned.replace(/^\+/, '');
     };
 
     const formattedLibraryPhone = formatPhoneForWhatsApp(libraryPhone);
     const libraryJid = `${formattedLibraryPhone}@s.whatsapp.net`;
+    console.log(`📚 Library WhatsApp JID: ${libraryJid}`);
 
-    // Format professional Arabic message
+    // Build WhatsApp message
     let message = '📚 *طلب جديد*\n\n';
     message += '═══════════════════\n\n';
     
     // Add order details for each book
-    for (const bookOrder of ordersToNotify) {
+    for (const bookOrder of bookOrders) {
       message += `*رقم الطلب:* ${bookOrder.orderNumber || 'N/A'}\n`;
       message += `*معرف الطلب:* ${bookOrder._id}\n`;
       message += `*اسم الكتاب:* ${bookOrder.bookName || 'N/A'}\n`;
@@ -131,19 +143,47 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
       message += `*سعر الكتاب:* ${bookOrder.bookPrice || 0} جنيه\n\n`;
     }
 
-    // Add shipping address details (use first order's address)
+    // Add shipping address
     if (firstBookOrder.shippingAddress) {
       const address = firstBookOrder.shippingAddress;
       message += '*عنوان الشحن:*\n';
       message += `*الاسم:* ${address.firstName || ''} ${address.lastName || ''}\n`;
+      message += `*البريد الإلكتروني:* ${address.email || 'N/A'}\n`;
       message += `*رقم الهاتف:* ${address.phone || 'N/A'}\n`;
-      message += `*العنوان:* ${address.address || 'N/A'}\n`;
-      message += `*المدينة:* ${address.city || 'N/A'}\n`;
-      message += `*المحافظة:* ${address.state || 'N/A'}\n`;
-      message += `*البلد:* ${address.country || 'N/A'}\n\n`;
+      
+      // Street address details
+      if (address.streetName) {
+        message += `*اسم الشارع:* ${address.streetName}\n`;
+      }
+      if (address.buildingNumber) {
+        message += `*رقم المبنى:* ${address.buildingNumber}\n`;
+      }
+      if (address.apartmentNumber) {
+        message += `*رقم الشقة:* ${address.apartmentNumber}\n`;
+      }
+      
+      // Governorate (if exists)
+      if (address.governorate) {
+        message += `*المحافظة:* ${address.governorate}\n`;
+      }
+      
+      // Zone/City (use city field, not state)
+      if (address.city) {
+        message += `*المنطقة:* ${address.city}\n`;
+      }
+      message += `*البلد:* ${address.country || 'N/A'}\n`;
+      message += `*الرمز البريدي:* ${address.zipCode || 'N/A'}\n`;
+      
+      // Location on map with Google Maps link
+      if (address.location && (address.location.link || (address.location.lat && address.location.lng))) {
+        const mapsLink = address.location.link || `https://www.google.com/maps?q=${address.location.lat},${address.location.lng}`;
+        message += `\n*📍 موقع التوصيل:* ${mapsLink}\n`;
+      }
+      
+      message += '\n';
     }
 
-    // Add student and parent contact information
+    // Add student and parent contact info
     if (user) {
       message += '*معلومات الطالب والوالد:*\n';
       message += `*اسم الطالب:* ${user.firstName || ''} ${user.lastName || ''}\n`;
@@ -159,29 +199,44 @@ async function sendLibraryBookOrderNotification(bookOrders, user) {
       hour: '2-digit',
       minute: '2-digit'
     })}\n`;
+    
+    console.log('📚 Message built - length:', message.length, 'characters');
 
     // Send WhatsApp message
-    console.log(`📱 Sending book order notification to library (${isEgypt ? 'Egypt' : 'International'}): ${libraryJid}`);
+    console.log(`📚 Sending to ${isEgypt ? 'Egypt' : 'International'} Library: ${libraryJid}`);
+    
     const result = await wasender.sendTextMessage(SESSION_API_KEY, libraryJid, message);
+    
+    console.log('📚 WhatsApp API Response:', JSON.stringify(result, null, 2));
 
     if (result.success) {
-      console.log(`✅ Library notification sent successfully to ${isEgypt ? 'Egypt' : 'International'} library`);
-      
-      // Mark all orders as notification sent
-      for (const order of ordersToNotify) {
-        order.libraryNotificationSent = true;
-        order.libraryNotificationSentAt = new Date();
-        await order.save();
-      }
-      
-      return { success: true, message: 'Library notification sent successfully', libraryPhone: formattedLibraryPhone };
+      console.log('✅ Library notification sent successfully!');
+      console.log('📚 ========== END LIBRARY NOTIFICATION (SUCCESS) ==========\n');
+      return { 
+        success: true, 
+        message: 'Library notification sent successfully', 
+        libraryPhone: formattedLibraryPhone,
+        orderCount: bookOrders.length
+      };
     } else {
-      console.error('❌ Failed to send library notification:', result.message);
-      return { success: false, message: result.message || 'Failed to send library notification' };
+      console.error('❌ WhatsApp API returned failure:', result.message);
+      console.log('📚 ========== END LIBRARY NOTIFICATION (FAILED) ==========\n');
+      return { 
+        success: false, 
+        message: result.message || 'Failed to send library notification',
+        error: result.error
+      };
     }
   } catch (error) {
-    console.error('❌ Error sending library book order notification:', error);
-    return { success: false, message: error.message || 'Error sending library notification' };
+    console.error('\n❌ ========== LIBRARY NOTIFICATION CRASHED ==========');
+    console.error('❌ Error:', error.message);
+    console.error('❌ Stack:', error.stack);
+    console.error('❌ ========== END ERROR ==========\n');
+    return { 
+      success: false, 
+      message: error.message || 'Error sending library notification',
+      error: error.name
+    };
   }
 }
 
@@ -1535,6 +1590,7 @@ const getCheckout = async (req, res) => {
       user: req.session.user,
       availableBooks: availableBooks,
       appliedPromoCode: appliedPromo, // Pass promo code to view
+      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '', // Pass Google Maps API key
       // Payment method availability
       paymentMethods: {
         card: !!process.env.PAYMOB_INTEGRATION_ID_CARD,
@@ -2467,21 +2523,29 @@ const handlePaymentSuccess = async (req, res) => {
       // Populate book orders if they exist
       const purchaseObj = purchase.toObject();
       if (purchaseObj.bookOrders && purchaseObj.bookOrders.length > 0) {
+        // Fetch book orders for display (can use lean here since it's just for rendering)
         const bookOrders = await BookOrder.find({ _id: { $in: purchaseObj.bookOrders } })
           .populate('bundle', 'title bundleCode')
           .lean();
         purchaseObj.bookOrders = bookOrders || [];
 
-        // Send library notification for book orders
+        // Send library notification for book orders - PASS IDs, NOT OBJECTS
         try {
           console.log(
-            '📚 Sending library notification for book orders (already completed purchase):',
+            '📚 Initiating library notification for book orders:',
             purchase.orderNumber
           );
           const libraryUser = await User.findById(purchase.user._id || purchase.user);
           if (libraryUser) {
-            await sendLibraryBookOrderNotification(bookOrders, libraryUser);
-            console.log('✅ Library notification sent successfully');
+            // Pass book order IDs (not objects) so function fetches fresh data
+            const libraryResult = await sendLibraryBookOrderNotification(purchaseObj.bookOrders.map(bo => bo._id), libraryUser);
+            if (libraryResult.success) {
+              console.log('✅ Library notification completed successfully');
+            } else {
+              console.log('⚠️ Library notification result:', libraryResult.message);
+            }
+          } else {
+            console.log('⚠️ Library user not found, skipping notification');
           }
         } catch (libraryError) {
           console.error('❌ Library notification error:', libraryError);
@@ -2615,14 +2679,22 @@ const handlePaymentSuccess = async (req, res) => {
         .lean();
       purchaseObj.bookOrders = bookOrders || [];
 
-      // Send library notification for book orders
+      // Send library notification for book orders - PASS IDs
       try {
         console.log(
-          '📚 Sending library notification for book orders:',
+          '📚 Initiating library notification for book orders:',
           purchase.orderNumber
         );
-        await sendLibraryBookOrderNotification(bookOrders, user);
-        console.log('✅ Library notification sent successfully');
+        // Pass book order IDs so function fetches fresh data
+        const libraryResult = await sendLibraryBookOrderNotification(
+          purchaseObj.bookOrders.map(bo => bo._id),
+          user
+        );
+        if (libraryResult.success) {
+          console.log('✅ Library notification completed successfully');
+        } else {
+          console.log('⚠️ Library notification result:', libraryResult.message);
+        }
       } catch (libraryError) {
         console.error('❌ Library notification error:', libraryError);
         // Don't fail the payment success if library notification fails
@@ -2958,15 +3030,22 @@ const handlePaymobWebhook = async (req, res) => {
       if (purchase.bookOrders && purchase.bookOrders.length > 0) {
         try {
           console.log(
-            `[Webhook] 📚 Sending library notification for book orders: ${purchase.orderNumber}`
+            `[Webhook] 📚 Initiating library notification for book orders: ${purchase.orderNumber}`
           );
-          const bookOrders = await BookOrder.find({ _id: { $in: purchase.bookOrders } })
-            .populate('bundle', 'title bundleCode')
-            .lean();
           
-          if (bookOrders && bookOrders.length > 0 && user) {
-            await sendLibraryBookOrderNotification(bookOrders, user);
-            console.log(`[Webhook] ✅ Library notification sent successfully`);
+          if (user) {
+            // Pass book order IDs so function fetches fresh data
+            const libraryResult = await sendLibraryBookOrderNotification(
+              purchase.bookOrders, // These are already IDs from the purchase document
+              user
+            );
+            if (libraryResult.success) {
+              console.log(`[Webhook] ✅ Library notification completed successfully`);
+            } else {
+              console.log(`[Webhook] ⚠️ Library notification result:`, libraryResult.message);
+            }
+          } else {
+            console.log(`[Webhook] ⚠️ User not found, skipping library notification`);
           }
         } catch (libraryError) {
           console.error(`[Webhook] ❌ Library notification error:`, libraryError);
@@ -3255,15 +3334,18 @@ const handlePaymobWebhookRedirect = async (req, res) => {
       if (purchase.bookOrders && purchase.bookOrders.length > 0 && user) {
         try {
           console.log(
-            `[Webhook Redirect] 📚 Sending library notification for book orders: ${purchase.orderNumber}`
+            `[Webhook Redirect] 📚 Initiating library notification for book orders: ${purchase.orderNumber}`
           );
-          const bookOrders = await BookOrder.find({ _id: { $in: purchase.bookOrders } })
-            .populate('bundle', 'title bundleCode')
-            .lean();
           
-          if (bookOrders && bookOrders.length > 0) {
-            await sendLibraryBookOrderNotification(bookOrders, user);
-            console.log(`[Webhook Redirect] ✅ Library notification sent successfully`);
+          // Pass book order IDs so function fetches fresh data
+          const libraryResult = await sendLibraryBookOrderNotification(
+            purchase.bookOrders, // These are already IDs from the purchase document
+            user
+          );
+          if (libraryResult.success) {
+            console.log(`[Webhook Redirect] ✅ Library notification completed successfully`);
+          } else {
+            console.log(`[Webhook Redirect] ⚠️ Library notification result:`, libraryResult.message);
           }
         } catch (libraryError) {
           console.error(`[Webhook Redirect] ❌ Library notification error:`, libraryError);

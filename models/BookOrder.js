@@ -49,6 +49,18 @@ const BookOrderSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
+      streetName: {
+        type: String,
+        required: true,
+      },
+      buildingNumber: {
+        type: String,
+        required: true,
+      },
+      apartmentNumber: {
+        type: String,
+        required: true,
+      },
       address: {
         type: String,
         required: true,
@@ -69,6 +81,28 @@ const BookOrderSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
+      governorate: {
+        type: String,
+        default: '',
+      },
+      location: {
+        lat: {
+          type: String,
+          default: '',
+        },
+        lng: {
+          type: String,
+          default: '',
+        },
+        address: {
+          type: String,
+          default: '',
+        },
+        link: {
+          type: String,
+          default: '',
+        },
+      },
     },
     status: {
       type: String,
@@ -88,13 +122,6 @@ const BookOrderSchema = new mongoose.Schema(
     notes: {
       type: String,
       maxlength: 1000,
-    },
-    libraryNotificationSent: {
-      type: Boolean,
-      default: false,
-    },
-    libraryNotificationSentAt: {
-      type: Date,
     },
   },
   {

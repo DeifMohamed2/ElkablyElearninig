@@ -104,6 +104,7 @@ const {
   getStudentDetails,
   getStudentEditPage,
   toggleStudentStatus,
+  bulkToggleStudentStatus,
   exportStudentData,
   updateStudent,
   deleteStudent,
@@ -403,6 +404,7 @@ router.post(
 router.get('/students/:studentId', isAdmin, getStudentDetails);
 router.get('/students/:studentId/export', isAdmin, exportStudentData);
 router.put('/students/:studentId/status', isAdmin, toggleStudentStatus);
+router.put('/students/bulk-status', isAdmin, bulkToggleStudentStatus);
 router.put('/students/:studentId', isAdmin, updateStudent);
 router.delete('/students/:studentId', isAdmin, deleteStudent);
 
