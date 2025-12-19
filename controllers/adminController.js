@@ -499,24 +499,41 @@ const getCourses = async (req, res) => {
       ];
     }
 
+    // Check if any filters are applied
+    const hasFilters = (status && status !== 'all') || level || bundle || search;
+
     // Build sort object
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Get courses with pagination
-    const courses = await Course.find(filter)
-      .populate('topics')
-      .populate('bundle', 'title bundleCode thumbnail')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
-
     // Get total count for pagination
     const totalCourses = await Course.countDocuments(filter);
-    const totalPages = Math.ceil(totalCourses / parseInt(limit));
+
+    // If no filters are applied, show all courses without pagination
+    // Otherwise, use pagination with the specified limit
+    let courses;
+    let totalPages = 1;
+    let currentPage = 1;
+
+    if (!hasFilters) {
+      // No filters: show all courses
+      courses = await Course.find(filter)
+        .populate('topics')
+        .populate('bundle', 'title bundleCode thumbnail')
+        .sort(sort);
+    } else {
+      // Filters applied: use pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      currentPage = parseInt(page);
+      totalPages = Math.ceil(totalCourses / parseInt(limit));
+      
+      courses = await Course.find(filter)
+        .populate('topics')
+        .populate('bundle', 'title bundleCode thumbnail')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit));
+    }
 
     // Get course statistics
     const stats = await getCourseStats();
@@ -533,11 +550,11 @@ const getCourses = async (req, res) => {
       filterOptions,
       currentFilters: { status, level, bundle, search, sortBy, sortOrder },
       pagination: {
-        currentPage: parseInt(page),
+        currentPage,
         totalPages,
         totalCourses,
-        hasNext: parseInt(page) < totalPages,
-        hasPrev: parseInt(page) > 1,
+        hasNext: currentPage < totalPages,
+        hasPrev: currentPage > 1,
       },
     });
   } catch (error) {
