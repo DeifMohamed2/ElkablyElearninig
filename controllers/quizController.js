@@ -4,6 +4,7 @@ const QuestionBank = require('../models/QuestionBank');
 const Question = require('../models/Question');
 const { validationResult } = require('express-validator');
 const { uploadImage } = require('../utils/cloudinary');
+const { createLog } = require('../middlewares/adminLogger');
 
 // Get all quizzes with pagination and filtering
 const getAllQuizzes = async (req, res) => {
@@ -576,6 +577,24 @@ const createQuiz = async (req, res) => {
     }
 
     await quiz.save();
+
+    // Log admin action
+    await createLog(req, {
+      action: 'CREATE_QUIZ',
+      actionCategory: 'QUIZ_MANAGEMENT',
+      description: `Created quiz "${quiz.title}" (${quiz.code}) with ${parsedQuestions.length} questions`,
+      targetModel: 'Quiz',
+      targetId: quiz._id.toString(),
+      targetName: quiz.title,
+      metadata: {
+        code: quiz.code,
+        testType: quiz.testType,
+        difficulty: quiz.difficulty,
+        duration: quiz.duration,
+        questionCount: parsedQuestions.length,
+        questionBanks: selectedBankIds.length,
+      },
+    });
 
     // Return JSON response for AJAX requests
     if (

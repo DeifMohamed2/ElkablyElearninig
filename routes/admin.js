@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { isAdmin } = require('../middlewares/auth');
+const { isSuperAdmin } = require('../middlewares/isSuperAdmin');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -235,6 +236,15 @@ const {
   getSessionDetails,
   testInvoiceGeneration,
 } = require('../controllers/whatsappController');
+
+// Import Admin Log Controllers
+const {
+  getAdminLogs,
+  getLogDetails,
+  getLogsStats,
+  exportLogs,
+  deleteOldLogs,
+} = require('../controllers/adminLogController');
 
 // Admin Dashboard
 router.get('/dashboard', isAdmin, getAdminDashboard);
@@ -622,5 +632,12 @@ router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
 
 // Duplicate cleanup routes
 router.post('/cleanup-duplicates/:userId', isAdmin, cleanupUserDuplicates);
+
+// Admin Logs Routes (Super Admin Only)
+router.get('/logs', isAdmin, isSuperAdmin, getAdminLogs);
+router.get('/logs/export', isAdmin, isSuperAdmin, exportLogs);
+router.get('/logs/stats', isAdmin, isSuperAdmin, getLogsStats);
+router.get('/logs/:logId', isAdmin, isSuperAdmin, getLogDetails);
+router.post('/logs/cleanup', isAdmin, isSuperAdmin, deleteOldLogs);
 
 module.exports = router;

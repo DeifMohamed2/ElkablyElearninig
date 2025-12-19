@@ -1044,7 +1044,7 @@ const loginUser = async (req, res) => {
       }
 
       // Simple redirect based on role
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'superAdmin') {
         return res.redirect('/admin/dashboard');
       } else {
         // Check if student data is complete

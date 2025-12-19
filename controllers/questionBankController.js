@@ -1,6 +1,7 @@
 const QuestionBank = require('../models/QuestionBank');
 const Question = require('../models/Question');
 const Admin = require('../models/Admin');
+const { createLog } = require('../middlewares/adminLogger');
 
 // ==================== QUESTION BANK CONTROLLERS ====================
 
@@ -116,6 +117,21 @@ const createQuestionBank = async (req, res) => {
     });
 
     await questionBank.save();
+
+    // Log admin action
+    await createLog(req, {
+      action: 'CREATE_QUESTION_BANK',
+      actionCategory: 'QUESTION_BANK_MANAGEMENT',
+      description: `Created question bank "${questionBank.name}" (${questionBank.bankCode})`,
+      targetModel: 'QuestionBank',
+      targetId: questionBank._id.toString(),
+      targetName: questionBank.name,
+      metadata: {
+        bankCode: questionBank.bankCode,
+        testType: questionBank.testType,
+        tags: questionBank.tags,
+      },
+    });
 
     req.flash('success', 'Question bank created successfully');
     return res.redirect(`/admin/question-banks/banks/${questionBank.bankCode}`);
@@ -299,10 +315,24 @@ const deleteQuestionBank = async (req, res) => {
     console.log('Deleting all questions in bank:', questionBank._id);
 
     // Delete all questions in this bank
-    await Question.deleteMany({ bank: questionBank._id });
+    const deletedQuestions = await Question.deleteMany({ bank: questionBank._id });
 
     // Delete the question bank
     await QuestionBank.findByIdAndDelete(questionBank._id);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'DELETE_QUESTION_BANK',
+      actionCategory: 'QUESTION_BANK_MANAGEMENT',
+      description: `Deleted question bank "${questionBank.name}" (${questionBank.bankCode}) with ${deletedQuestions.deletedCount} questions`,
+      targetModel: 'QuestionBank',
+      targetId: questionBank._id.toString(),
+      targetName: questionBank.name,
+      metadata: {
+        bankCode: questionBank.bankCode,
+        deletedQuestionsCount: deletedQuestions.deletedCount,
+      },
+    });
 
     console.log('Question bank deleted successfully');
 

@@ -1,0 +1,442 @@
+<%- include('partials/admin-header') %>
+
+<style>
+  /* CSS Variables for Admin Theme */
+  .light-theme {
+    --admin-primary: #b80101;
+    --admin-secondary: #f8f9fa;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #f8fafc;
+    --admin-bg-dark: #1e293b;
+    --admin-card-light: #ffffff;
+    --admin-card-dark: #2d3748;
+    --admin-text-light: #1e293b;
+    --admin-text-dark: #f7fafc;
+    --admin-border-light: #e2e8f0;
+    --admin-border-dark: #4a5568;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark-theme {
+    --admin-primary: #d40000;
+    --admin-secondary: #2d3748;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #1e293b;
+    --admin-bg-dark: #0f172a;
+    --admin-card-light: #2d3748;
+    --admin-card-dark: #1e293b;
+    --admin-text-light: #f7fafc;
+    --admin-text-dark: #e2e8f0;
+    --admin-border-light: #4a5568;
+    --admin-border-dark: #2d3748;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Professional Admin Logs Styles */
+  .admin-main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background: var(--admin-bg-light);
+    transition: margin-left 0.3s ease;
+  }
+
+  /* Sidebar hidden state */
+  .admin-sidebar.sidebar-hidden {
+    transform: translateX(-100%);
+  }
+
+  .admin-logs-container {
+    padding: 20px;
+    background: var(--admin-bg-light);
+    min-height: calc(100vh - 80px);
+  }
+
+  /* Responsive adjustments for smaller screens */
+  @media (max-width: 1024px) {
+    .admin-main-content {
+      margin-left: 0;
+    }
+    
+    .admin-logs-container {
+      padding: 15px;
+    }
+  }
+</style>
+
+<div class="admin-main-content">
+  <%- include('partials/admin-sidebar') %>
+  
+  <div class="admin-logs-container">
+    <!-- Page Header -->
+    <div class="logs-page-header">
+      <div class="page-header-top">
+        <div class="page-title-section">
+          <div class="page-title-icon">
+            <i class="fas fa-history"></i>
+          </div>
+          <div>
+            <h1 class="page-title">Admin Activity Logs</h1>
+            <p class="page-subtitle">Monitor and track all administrative actions</p>
+          </div>
+        </div>
+        <div class="page-actions">
+          <button class="action-btn btn-secondary" onclick="exportLogs()">
+            <i class="fas fa-download"></i>
+            Export Logs
+          </button>
+          <button class="action-btn btn-secondary" onclick="refreshLogs()">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <% if (stats && stats.total && stats.total.length > 0) { %>
+    <div class="logs-stats-grid">
+      <div class="logs-stat-card">
+        <div class="logs-stat-header">
+          <span class="logs-stat-label">Total Actions</span>
+          <div class="logs-stat-icon primary">
+            <i class="fas fa-tasks"></i>
+          </div>
+        </div>
+        <h3 class="logs-stat-value"><%= stats.total[0].count.toLocaleString() %></h3>
+      </div>
+
+      <div class="logs-stat-card">
+        <div class="logs-stat-header">
+          <span class="logs-stat-label">Success Rate</span>
+          <div class="logs-stat-icon success">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+        <h3 class="logs-stat-value">
+          <% 
+            const successCount = stats.byStatus?.find(s => s._id === 'SUCCESS')?.count || 0;
+            const totalCount = stats.total[0].count;
+            const successRate = totalCount > 0 ? ((successCount / totalCount) * 100).toFixed(1) : 0;
+          %>
+          <%= successRate %>%
+        </h3>
+      </div>
+
+      <div class="logs-stat-card">
+        <div class="logs-stat-header">
+          <span class="logs-stat-label">Active Admins</span>
+          <div class="logs-stat-icon info">
+            <i class="fas fa-users"></i>
+          </div>
+        </div>
+        <h3 class="logs-stat-value"><%= stats.byAdmin?.length || 0 %></h3>
+      </div>
+
+      <div class="logs-stat-card">
+        <div class="logs-stat-header">
+          <span class="logs-stat-label">Categories</span>
+          <div class="logs-stat-icon warning">
+            <i class="fas fa-layer-group"></i>
+          </div>
+        </div>
+        <h3 class="logs-stat-value"><%= stats.byCategory?.length || 0 %></h3>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Filters -->
+    <div class="logs-filters-card">
+      <form id="filterForm" method="GET" action="/admin/logs">
+        <div class="logs-filters-row">
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">Admin</label>
+            <select name="adminId" class="logs-filter-control">
+              <option value="">All Admins</option>
+              <% filterOptions.admins.forEach(admin => { %>
+                <option value="<%= admin._id %>" <%= filters.adminId === admin._id.toString() ? 'selected' : '' %>>
+                  <%= admin.userName %> (<%= admin.phoneNumber %>)
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">Category</label>
+            <select name="actionCategory" class="logs-filter-control">
+              <option value="">All Categories</option>
+              <% filterOptions.categories.forEach(category => { %>
+                <option value="<%= category %>" <%= filters.actionCategory === category ? 'selected' : '' %>>
+                  <%= category.replace(/_/g, ' ') %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">Status</label>
+            <select name="status" class="logs-filter-control">
+              <option value="">All Statuses</option>
+              <option value="SUCCESS" <%= filters.status === 'SUCCESS' ? 'selected' : '' %>>Success</option>
+              <option value="FAILED" <%= filters.status === 'FAILED' ? 'selected' : '' %>>Failed</option>
+              <option value="PARTIAL" <%= filters.status === 'PARTIAL' ? 'selected' : '' %>>Partial</option>
+            </select>
+          </div>
+
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">Search</label>
+            <input type="text" name="search" class="logs-filter-control" placeholder="Search description..." value="<%= filters.search || '' %>">
+          </div>
+
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">Start Date</label>
+            <input type="date" name="startDate" class="logs-filter-control" value="<%= filters.startDate || '' %>">
+          </div>
+
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">End Date</label>
+            <input type="date" name="endDate" class="logs-filter-control" value="<%= filters.endDate || '' %>">
+          </div>
+
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">Sort By</label>
+            <select name="sortBy" class="logs-filter-control">
+              <option value="createdAt" <%= filters.sortBy === 'createdAt' ? 'selected' : '' %>>Date</option>
+              <option value="action" <%= filters.sortBy === 'action' ? 'selected' : '' %>>Action</option>
+              <option value="adminName" <%= filters.sortBy === 'adminName' ? 'selected' : '' %>>Admin</option>
+            </select>
+          </div>
+
+          <div class="logs-filter-group">
+            <label class="logs-filter-label">Sort Order</label>
+            <select name="sortOrder" class="logs-filter-control">
+              <option value="desc" <%= filters.sortOrder === 'desc' ? 'selected' : '' %>>Descending</option>
+              <option value="asc" <%= filters.sortOrder === 'asc' ? 'selected' : '' %>>Ascending</option>
+            </select>
+          </div>
+        </div>
+        <div class="logs-filter-actions">
+          <button type="submit" class="action-btn btn-primary">
+            <i class="fas fa-filter"></i>
+            Apply Filters
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="logs-table-container">
+      <table class="logs-table">
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>Admin</th>
+            <th>Action</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (logs && logs.length > 0) { %>
+            <% logs.forEach(log => { %>
+              <tr>
+                <td>
+                  <small><%= new Date(log.createdAt).toLocaleString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  }) %></small>
+                </td>
+                <td>
+                  <div class="log-admin-info">
+                    <span class="log-admin-name"><%= log.adminName %></span>
+                    <span class="log-admin-phone"><%= log.adminPhone %></span>
+                  </div>
+                </td>
+                <td>
+                  <span class="log-badge log-badge-action">
+                    <%= log.action.replace(/_/g, ' ') %>
+                  </span>
+                </td>
+                <td>
+                  <small><%= log.actionCategory.replace(/_/g, ' ') %></small>
+                </td>
+                <td>
+                  <div class="log-description" title="<%= log.description %>">
+                    <%= log.description %>
+                  </div>
+                </td>
+                <td>
+                  <span class="log-badge log-badge-<%= log.status.toLowerCase() %>">
+                    <%= log.status %>
+                  </span>
+                </td>
+                <td>
+                  <button class="log-action-btn" onclick="viewLogDetails('<%= log._id %>')">
+                    <i class="fas fa-eye"></i>
+                    View
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 40px; color: var(--admin-text-light);">
+                <i class="fas fa-inbox" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px; display: block;"></i>
+                <p style="margin: 0; font-size: 16px;">No logs found</p>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <% if (pagination && pagination.totalPages > 1) { %>
+      <div class="logs-pagination">
+        <div class="logs-pagination-info">
+          Showing <%= ((pagination.page - 1) * 50) + 1 %> to <%= Math.min(pagination.page * 50, pagination.total) %> of <%= pagination.total %> logs
+        </div>
+        <div class="logs-pagination-nav">
+          <a href="?page=<%= pagination.page - 1 %>&<%= new URLSearchParams(filters).toString() %>" 
+             class="logs-pagination-btn <%= pagination.page === 1 ? 'disabled' : '' %>">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+          <% for (let i = Math.max(1, pagination.page - 2); i <= Math.min(pagination.totalPages, pagination.page + 2); i++) { %>
+            <a href="?page=<%= i %>&<%= new URLSearchParams(filters).toString() %>" 
+               class="logs-pagination-btn <%= i === pagination.page ? 'active' : '' %>">
+              <%= i %>
+            </a>
+          <% } %>
+          <a href="?page=<%= pagination.page + 1 %>&<%= new URLSearchParams(filters).toString() %>" 
+             class="logs-pagination-btn <%= pagination.page === pagination.totalPages ? 'disabled' : '' %>">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Log Details Modal -->
+<div class="modal fade log-details-modal" id="logDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-info-circle"></i>
+          Log Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="logDetailsContent">
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/admin-footer') %>
+
+<script>
+  function viewLogDetails(logId) {
+    const modal = new bootstrap.Modal(document.getElementById('logDetailsModal'));
+    modal.show();
+
+    fetch(`/admin/logs/${logId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const log = data.log;
+          const content = `
+            <div class="log-details-row">
+              <div>
+                <div class="log-details-label">Admin</div>
+                <div class="log-details-value">
+                  ${log.adminName}<br>
+                  <small style="opacity: 0.7;">${log.adminPhone}</small>
+                </div>
+              </div>
+              <div>
+                <div class="log-details-label">Date & Time</div>
+                <div class="log-details-value">${new Date(log.createdAt).toLocaleString()}</div>
+              </div>
+              <div>
+                <div class="log-details-label">Action</div>
+                <div class="log-details-value">
+                  <span class="log-badge log-badge-action">${log.action.replace(/_/g, ' ')}</span>
+                </div>
+              </div>
+              <div>
+                <div class="log-details-label">Category</div>
+                <div class="log-details-value">${log.actionCategory.replace(/_/g, ' ')}</div>
+              </div>
+              <div>
+                <div class="log-details-label">Status</div>
+                <div class="log-details-value">
+                  <span class="log-badge log-badge-${log.status.toLowerCase()}">${log.status}</span>
+                </div>
+              </div>
+              <div>
+                <div class="log-details-label">IP Address</div>
+                <div class="log-details-value">${log.ipAddress || 'N/A'}</div>
+              </div>
+              ${log.targetModel ? `
+              <div>
+                <div class="log-details-label">Target Model</div>
+                <div class="log-details-value">${log.targetModel}</div>
+              </div>
+              ` : ''}
+              ${log.targetName ? `
+              <div>
+                <div class="log-details-label">Target Name</div>
+                <div class="log-details-value">${log.targetName}</div>
+              </div>
+              ` : ''}
+              <div class="log-details-full">
+                <div class="log-details-label">Description</div>
+                <div class="log-details-value">${log.description}</div>
+              </div>
+              ${log.metadata ? `
+              <div class="log-details-full">
+                <div class="log-details-label">Additional Details</div>
+                <div class="log-details-metadata">${JSON.stringify(log.metadata, null, 2)}</div>
+              </div>
+              ` : ''}
+            </div>
+          `;
+          document.getElementById('logDetailsContent').innerHTML = content;
+        }
+      })
+      .catch(err => {
+        document.getElementById('logDetailsContent').innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Error loading log details
+          </div>
+        `;
+      });
+  }
+
+  function exportLogs() {
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = '/admin/logs/export?' + params.toString();
+  }
+
+  function refreshLogs() {
+    window.location.reload();
+  }
+</script>

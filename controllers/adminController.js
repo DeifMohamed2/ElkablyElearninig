@@ -21,6 +21,7 @@ const { sendSms, sendBulkSms } = require('../utils/sms');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { createLog } = require('../middlewares/adminLogger');
 
 // Admin Dashboard with Real Data
 const getAdminDashboard = async (req, res) => {
@@ -632,6 +633,25 @@ const createCourse = async (req, res) => {
     bundle.courses.push(course._id);
     await bundle.save();
 
+    // Log admin action
+    await createLog(req, {
+      action: 'CREATE_COURSE',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Created course "${course.title}" (${course.courseCode}) in bundle "${bundle.title}"`,
+      targetModel: 'Course',
+      targetId: course._id.toString(),
+      targetName: course.title,
+      metadata: {
+        courseCode: course.courseCode,
+        bundleId: bundle._id.toString(),
+        bundleName: bundle.title,
+        level: course.level,
+        year: course.year,
+        price: course.price,
+        status: course.status,
+      },
+    });
+
     req.flash(
       'success_msg',
       'Course created and added to bundle successfully!'
@@ -1086,6 +1106,21 @@ const updateCourse = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // Log admin action
+    await createLog(req, {
+      action: 'UPDATE_COURSE',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Updated course "${course.title}" (${course.courseCode})`,
+      targetModel: 'Course',
+      targetId: course._id.toString(),
+      targetName: course.title,
+      changes: updateData,
+      metadata: {
+        courseCode: course.courseCode,
+        bundleChanged: isBundleChanging,
+      },
+    });
+
     if (
       req.xhr ||
       req.headers.accept?.indexOf('json') > -1 ||
@@ -1164,6 +1199,20 @@ const deleteCourse = async (req, res) => {
       // Delete the course
       await Course.findOneAndDelete({ courseCode });
 
+      // Log admin action
+      await createLog(req, {
+        action: 'DELETE_COURSE',
+        actionCategory: 'COURSE_MANAGEMENT',
+        description: `Permanently deleted course "${course.title}" (${course.courseCode})`,
+        targetModel: 'Course',
+        targetId: course._id.toString(),
+        targetName: course.title,
+        metadata: {
+          courseCode: course.courseCode,
+          deletionType: 'permanent',
+        },
+      });
+
       return res.json({
         success: true,
         message:
@@ -1179,6 +1228,20 @@ const deleteCourse = async (req, res) => {
           isActive: false,
         }
       );
+
+      // Log admin action
+      await createLog(req, {
+        action: 'DELETE_COURSE',
+        actionCategory: 'COURSE_MANAGEMENT',
+        description: `Archived course "${course.title}" (${course.courseCode})`,
+        targetModel: 'Course',
+        targetId: course._id.toString(),
+        targetName: course.title,
+        metadata: {
+          courseCode: course.courseCode,
+          deletionType: 'archived',
+        },
+      });
 
       return res.json({
         success: true,
@@ -1244,6 +1307,22 @@ const bulkUpdateCourseStatus = async (req, res) => {
       draft: 'Draft',
       archived: 'Archived',
     };
+
+    // Log admin action
+    await createLog(req, {
+      action: 'BULK_UPDATE_COURSE_STATUS',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Bulk updated ${updateResult.modifiedCount} course(s) to ${statusLabels[status]}`,
+      targetModel: 'Course',
+      targetId: 'multiple',
+      targetName: `${updateResult.modifiedCount} courses`,
+      metadata: {
+        courseCodes: courseCodes,
+        status: status,
+        updatedCount: updateResult.modifiedCount,
+        totalRequested: courseCodes.length,
+      },
+    });
 
     return res.json({
       success: true,
@@ -1517,6 +1596,23 @@ const duplicateCourse = async (req, res) => {
       await session.commitTransaction();
       session.endSession();
 
+      // Log admin action
+      await createLog(req, {
+        action: 'DUPLICATE_COURSE',
+        actionCategory: 'COURSE_MANAGEMENT',
+        description: `Duplicated course "${originalCourse.title}" to "${newCourse.title}" (${newCourse.courseCode})`,
+        targetModel: 'Course',
+        targetId: newCourse._id.toString(),
+        targetName: newCourse.title,
+        metadata: {
+          originalCourseCode: originalCourse.courseCode,
+          originalCourseId: originalCourse._id.toString(),
+          newCourseCode: newCourse.courseCode,
+          bundleId: originalCourse.bundle?.toString(),
+          topicsCount: newCourse.topics?.length || 0,
+        },
+      });
+
       return res.json({
         success: true,
         message: 'Course duplicated successfully!',
@@ -1682,6 +1778,24 @@ const createTopic = async (req, res) => {
     course.topics.push(topic._id);
     await course.save();
 
+    // Log admin action
+    await createLog(req, {
+      action: 'CREATE_TOPIC',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Created topic "${topic.title}" in course "${course.title}" (${course.courseCode})`,
+      targetModel: 'Topic',
+      targetId: topic._id.toString(),
+      targetName: topic.title,
+      metadata: {
+        courseCode: course.courseCode,
+        courseId: course._id.toString(),
+        courseTitle: course.title,
+        topicOrder: topic.order,
+        isPublished: topic.isPublished,
+        difficulty: topic.difficulty,
+      },
+    });
+
     req.flash('success_msg', 'Topic created successfully!');
     res.redirect(`/admin/courses/${courseCode}/content`);
   } catch (error) {
@@ -1786,7 +1900,35 @@ const updateTopic = async (req, res) => {
       topic.tags = topicTags;
     }
 
+    const oldTopic = { ...topic.toObject() };
     await topic.save();
+
+    // Log admin action
+    const course = await Course.findById(topic.course);
+    await createLog(req, {
+      action: 'UPDATE_TOPIC',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Updated topic "${topic.title}" in course "${course?.title || courseCode}"`,
+      targetModel: 'Topic',
+      targetId: topic._id.toString(),
+      targetName: topic.title,
+      changes: {
+        before: {
+          title: oldTopic.title,
+          isPublished: oldTopic.isPublished,
+          difficulty: oldTopic.difficulty,
+        },
+        after: {
+          title: topic.title,
+          isPublished: topic.isPublished,
+          difficulty: topic.difficulty,
+        },
+      },
+      metadata: {
+        courseCode: course?.courseCode || courseCode,
+        courseId: course?._id?.toString(),
+      },
+    });
 
     // Check if this is an AJAX request
     if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
@@ -1872,8 +2014,30 @@ const updateTopicVisibility = async (req, res) => {
     }
 
     // Update visibility
+    const oldVisibility = topic.isPublished;
     topic.isPublished = isPublished === true || isPublished === 'true';
     await topic.save();
+
+    // Get course info for logging
+    const course = await Course.findOne({ courseCode });
+
+    // Log admin action
+    await createLog(req, {
+      action: 'UPDATE_TOPIC_VISIBILITY',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Updated visibility of topic "${topic.title}" to ${topic.isPublished ? 'published' : 'unpublished'}`,
+      targetModel: 'Topic',
+      targetId: topicId,
+      targetName: topic.title,
+      changes: {
+        before: { isPublished: oldVisibility },
+        after: { isPublished: topic.isPublished },
+      },
+      metadata: {
+        courseCode: courseCode,
+        courseId: course?._id?.toString(),
+      },
+    });
 
     res.json({
       success: true,
@@ -2282,6 +2446,29 @@ const resetContentAttempts = async (req, res) => {
 
     await student.resetContentAttempts(course._id, contentId);
 
+    // Get topic and content info for logging
+    const topic = await Topic.findById(topicId);
+    const contentItem = topic?.content?.id(contentId);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'RESET_CONTENT_ATTEMPTS',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Reset attempts for student "${student.name || student.firstName + ' ' + student.lastName}" in content "${contentItem?.title || contentId}"`,
+      targetModel: 'Content',
+      targetId: contentId,
+      targetName: contentItem?.title || 'Unknown',
+      metadata: {
+        courseCode: courseCode,
+        courseId: course._id.toString(),
+        topicId: topicId,
+        topicTitle: topic?.title,
+        contentTitle: contentItem?.title,
+        studentId: studentId,
+        studentName: student.name || `${student.firstName} ${student.lastName}`,
+      },
+    });
+
     return res.json({ success: true, message: 'Attempts reset successfully' });
   } catch (error) {
     console.error('Error resetting content attempts:', error);
@@ -2644,6 +2831,24 @@ const reorderTopics = async (req, res) => {
 
     await Promise.all(updatePromises);
 
+    // Get course info for logging
+    const course = await Course.findOne({ courseCode });
+
+    // Log admin action
+    await createLog(req, {
+      action: 'REORDER_TOPICS',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Reordered ${orderUpdates.length} topics in course "${course?.title || courseCode}"`,
+      targetModel: 'Topic',
+      targetId: 'multiple',
+      targetName: `${orderUpdates.length} topics`,
+      metadata: {
+        courseCode: courseCode,
+        courseId: course?._id?.toString(),
+        orderUpdates: orderUpdates,
+      },
+    });
+
     res.json({ success: true, message: 'Topic order updated successfully' });
   } catch (error) {
     console.error('Error reordering topics:', error);
@@ -2684,6 +2889,26 @@ const reorderContent = async (req, res) => {
     topic.content.sort((a, b) => a.order - b.order);
 
     await topic.save();
+
+    // Get course info for logging
+    const course = await Course.findById(topic.course);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'REORDER_CONTENT',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Reordered ${orderUpdates.length} content items in topic "${topic.title}"`,
+      targetModel: 'Content',
+      targetId: 'multiple',
+      targetName: `${orderUpdates.length} content items`,
+      metadata: {
+        courseCode: course?.courseCode,
+        courseId: course?._id?.toString(),
+        topicId: topicId,
+        topicTitle: topic.title,
+        orderUpdates: orderUpdates,
+      },
+    });
 
     res.json({
       success: true,
@@ -2912,6 +3137,23 @@ const duplicateTopic = async (req, res) => {
       await session.commitTransaction();
       session.endSession();
 
+      // Log admin action
+      await createLog(req, {
+        action: 'DUPLICATE_TOPIC',
+        actionCategory: 'CONTENT_MANAGEMENT',
+        description: `Duplicated topic "${originalTopic.title}" to "${newTopic.title}" in course "${course.title}"`,
+        targetModel: 'Topic',
+        targetId: newTopic._id.toString(),
+        targetName: newTopic.title,
+        metadata: {
+          originalTopicId: originalTopic._id.toString(),
+          originalTopicTitle: originalTopic.title,
+          courseCode: courseCode,
+          courseId: course._id.toString(),
+          contentCount: newTopic.content.length,
+        },
+      });
+
       return res.json({
         success: true,
         message: 'Topic duplicated successfully!',
@@ -2944,6 +3186,10 @@ const deleteTopic = async (req, res) => {
       });
     }
 
+    const course = await Course.findById(topic.course);
+    const topicTitle = topic.title;
+    const courseTitle = course?.title || 'Unknown';
+
     // Remove topic from course
     await Course.findByIdAndUpdate(topic.course, {
       $pull: { topics: topicId },
@@ -2951,6 +3197,20 @@ const deleteTopic = async (req, res) => {
 
     // Delete the topic
     await Topic.findByIdAndDelete(topicId);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'DELETE_TOPIC',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Deleted topic "${topicTitle}" from course "${courseTitle}"`,
+      targetModel: 'Topic',
+      targetId: topicId,
+      targetName: topicTitle,
+      metadata: {
+        courseCode: course?.courseCode || courseCode,
+        courseId: course?._id?.toString(),
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -3219,6 +3479,29 @@ const addTopicContent = async (req, res) => {
 
     topic.content.push(contentItem);
     await topic.save();
+
+    // Get course and topic info for logging
+    const course = await Course.findOne({ courseCode }).populate('topics');
+    const topicInfo = await Topic.findById(topicId);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'CREATE_CONTENT',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Added ${type} content "${contentItem.title}" to topic "${topicInfo?.title || 'Unknown'}" in course "${course?.title || courseCode}"`,
+      targetModel: 'Content',
+      targetId: contentItem._id?.toString() || 'new',
+      targetName: contentItem.title,
+      metadata: {
+        contentType: type,
+        courseCode: courseCode,
+        courseId: course?._id?.toString(),
+        topicId: topicId,
+        topicTitle: topicInfo?.title,
+        contentOrder: contentItem.order,
+        isRequired: contentItem.isRequired,
+      },
+    });
 
     req.flash('success_msg', 'Content added successfully!');
     res.redirect(`/admin/courses/${courseCode}/content`);
@@ -3631,7 +3914,41 @@ const updateTopicContent = async (req, res) => {
       }
     }
 
+    const oldContent = { ...contentItem.toObject() };
     await topic.save();
+
+    // Get course and topic info for logging
+    const course = await Course.findOne({ courseCode });
+    const topicInfo = await Topic.findById(topicId);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'UPDATE_CONTENT',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Updated ${contentItem.type} content "${contentItem.title}" in topic "${topicInfo?.title || 'Unknown'}"`,
+      targetModel: 'Content',
+      targetId: contentId,
+      targetName: contentItem.title,
+      changes: {
+        before: {
+          title: oldContent.title,
+          type: oldContent.type,
+          isRequired: oldContent.isRequired,
+        },
+        after: {
+          title: contentItem.title,
+          type: contentItem.type,
+          isRequired: contentItem.isRequired,
+        },
+      },
+      metadata: {
+        contentType: contentItem.type,
+        courseCode: courseCode,
+        courseId: course?._id?.toString(),
+        topicId: topicId,
+        topicTitle: topicInfo?.title,
+      },
+    });
 
     return res.json({
       success: true,
@@ -3833,8 +4150,33 @@ const deleteTopicContent = async (req, res) => {
       });
     }
 
+    // Get content info before deletion for logging
+    const contentItem = topic.content.id(contentId);
+    const contentTitle = contentItem?.title || 'Unknown';
+    const contentType = contentItem?.type || 'Unknown';
+
     topic.content.pull(contentId);
     await topic.save();
+
+    // Get course info for logging
+    const course = await Course.findOne({ courseCode });
+
+    // Log admin action
+    await createLog(req, {
+      action: 'DELETE_CONTENT',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Deleted ${contentType} content "${contentTitle}" from topic "${topic.title}"`,
+      targetModel: 'Content',
+      targetId: contentId,
+      targetName: contentTitle,
+      metadata: {
+        contentType: contentType,
+        courseCode: courseCode,
+        courseId: course?._id?.toString(),
+        topicId: topicId,
+        topicTitle: topic.title,
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -5403,6 +5745,24 @@ const createBundle = async (req, res) => {
 
     console.log('Bundle saved successfully with ID:', bundle._id);
 
+    // Log admin action
+    await createLog(req, {
+      action: 'CREATE_BUNDLE',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Created bundle "${bundle.title}" (${bundle.bundleCode})`,
+      targetModel: 'BundleCourse',
+      targetId: bundle._id.toString(),
+      targetName: bundle.title,
+      metadata: {
+        bundleCode: bundle.bundleCode,
+        subject: bundle.subject,
+        testType: bundle.testType,
+        courseType: bundle.courseType,
+        price: bundle.price,
+        status: bundle.status,
+      },
+    });
+
     req.flash(
       'success_msg',
       'Bundle created successfully! You can now add courses to it.'
@@ -5502,6 +5862,23 @@ const addCourseToBundle = async (req, res) => {
     bundle.courses.push(courseId);
     await bundle.save();
 
+    // Log admin action
+    await createLog(req, {
+      action: 'ADD_COURSE_TO_BUNDLE',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Added course "${course.title}" (${course.courseCode}) to bundle "${bundle.title}"`,
+      targetModel: 'BundleCourse',
+      targetId: bundle._id.toString(),
+      targetName: bundle.title,
+      metadata: {
+        bundleCode: bundleCode,
+        courseId: courseId,
+        courseCode: course.courseCode,
+        courseTitle: course.title,
+        courseOrder: nextOrder,
+      },
+    });
+
     req.flash('success_msg', 'Course added to bundle successfully!');
     res.redirect(`/admin/bundles/${bundleCode}/manage`);
   } catch (error) {
@@ -5522,9 +5899,28 @@ const removeCourseFromBundle = async (req, res) => {
       return res.redirect('/admin/bundles');
     }
 
+    // Get course info before removal for logging
+    const course = await Course.findById(courseId);
+
     // Remove course from bundle
     bundle.courses = bundle.courses.filter((id) => id.toString() !== courseId);
     await bundle.save();
+
+    // Log admin action
+    await createLog(req, {
+      action: 'REMOVE_COURSE_FROM_BUNDLE',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Removed course "${course?.title || courseId}" from bundle "${bundle.title}"`,
+      targetModel: 'BundleCourse',
+      targetId: bundle._id.toString(),
+      targetName: bundle.title,
+      metadata: {
+        bundleCode: bundleCode,
+        courseId: courseId,
+        courseCode: course?.courseCode,
+        courseTitle: course?.title,
+      },
+    });
 
     req.flash('success_msg', 'Course removed from bundle successfully!');
     res.redirect(`/admin/bundles/${bundleCode}/manage`);
@@ -5647,6 +6043,20 @@ const updateCourseOrder = async (req, res) => {
     });
 
     await Promise.all(updatePromises);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'REORDER_BUNDLE_COURSES',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Reordered ${courseOrders.length} courses in bundle "${bundle.title}"`,
+      targetModel: 'BundleCourse',
+      targetId: bundle._id.toString(),
+      targetName: bundle.title,
+      metadata: {
+        bundleCode: bundleCode,
+        courseOrders: courseOrders,
+      },
+    });
 
     return res.json({
       success: true,
@@ -5799,7 +6209,36 @@ const updateBundle = async (req, res) => {
       ? (req.body.fullyBookedMessage ? req.body.fullyBookedMessage.trim() : 'FULLY BOOKED')
       : 'FULLY BOOKED';
 
+    const oldBundle = { ...bundle.toObject() };
     await bundle.save();
+
+    // Log admin action
+    await createLog(req, {
+      action: 'UPDATE_BUNDLE',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Updated bundle "${bundle.title}" (${bundle.bundleCode})`,
+      targetModel: 'BundleCourse',
+      targetId: bundle._id.toString(),
+      targetName: bundle.title,
+      changes: {
+        before: {
+          title: oldBundle.title,
+          status: oldBundle.status,
+          price: oldBundle.price,
+        },
+        after: {
+          title: bundle.title,
+          status: bundle.status,
+          price: bundle.price,
+        },
+      },
+      metadata: {
+        bundleCode: bundleCode,
+        subject: bundle.subject,
+        testType: bundle.testType,
+        courseType: bundle.courseType,
+      },
+    });
 
     // If bundle is set to fully booked, update all courses in the bundle
     if (bundle.isFullyBooked && !wasFullyBooked) {
@@ -5895,11 +6334,29 @@ const deleteBundle = async (req, res) => {
       });
     }
 
+    const bundleTitle = bundle.title;
+    const bundleCodeValue = bundle.bundleCode;
+    const coursesCount = bundle.courses?.length || 0;
+
     // Remove bundle reference from all courses
     await Course.updateMany({ bundle: bundle._id }, { $unset: { bundle: 1 } });
 
     // Delete the bundle
     await BundleCourse.findByIdAndDelete(bundle._id);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'DELETE_BUNDLE',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: `Deleted bundle "${bundleTitle}" (${bundleCodeValue})`,
+      targetModel: 'BundleCourse',
+      targetId: bundle._id.toString(),
+      targetName: bundleTitle,
+      metadata: {
+        bundleCode: bundleCodeValue,
+        coursesCount: coursesCount,
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -7797,6 +8254,21 @@ const updateStudent = async (req, res) => {
     // Save the student (this will trigger validation and password hashing if password was changed)
     await student.save();
 
+    // Log admin action
+    await createLog(req, {
+      action: 'UPDATE_STUDENT',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Updated student "${student.firstName} ${student.lastName}" (${student.username})`,
+      targetModel: 'User',
+      targetId: student._id.toString(),
+      targetName: `${student.firstName} ${student.lastName}`,
+      metadata: {
+        username: student.username,
+        email: student.studentEmail,
+        statusChanged: previousIsActive !== student.isActive,
+      },
+    });
+
     // If activation status changed, notify student via SMS (non-blocking)
     if (previousIsActive !== student.isActive) {
       const phone =
@@ -7903,6 +8375,21 @@ const deleteStudent = async (req, res) => {
     // Permanently delete the student from database
     await User.findByIdAndDelete(studentId);
 
+    // Log admin action
+    await createLog(req, {
+      action: 'DELETE_STUDENT',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Permanently deleted student "${studentInfo.name}" (${studentInfo.username})`,
+      targetModel: 'User',
+      targetId: studentInfo.id.toString(),
+      targetName: studentInfo.name,
+      metadata: {
+        username: studentInfo.username,
+        email: studentInfo.email,
+        phone: studentInfo.phone,
+      },
+    });
+
     // Notify student via SMS about deletion (non-blocking)
     if (studentInfo.phone) {
       const message =
@@ -7948,14 +8435,16 @@ const deleteStudent = async (req, res) => {
 
 const calculateStudentAnalytics = async (filter = {}) => {
   try {
-    // Basic counts
-    const totalStudents = await User.countDocuments(filter);
+    // Basic counts - always calculate from total database, not filtered results
+    // This ensures the counts remain consistent regardless of active filters
+    const baseFilter = { role: 'student' };
+    const totalStudents = await User.countDocuments(baseFilter);
     const activeStudents = await User.countDocuments({
-      ...filter,
+      ...baseFilter,
       isActive: true,
     });
     const inactiveStudents = await User.countDocuments({
-      ...filter,
+      ...baseFilter,
       isActive: false,
     });
 
@@ -11522,6 +12011,24 @@ const bulkImportStudents = async (req, res) => {
       fs.unlinkSync(req.file.path);
     }
 
+    // Log admin action
+    await createLog(req, {
+      action: 'BULK_IMPORT_STUDENTS',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Bulk imported ${results.success.length} students (${results.failed.length} failed)`,
+      targetModel: 'User',
+      targetId: 'multiple',
+      targetName: `${results.success.length} students`,
+      status: results.failed.length > 0 ? 'PARTIAL' : 'SUCCESS',
+      metadata: {
+        total: results.total,
+        successful: results.success.length,
+        failed: results.failed.length,
+        successDetails: results.success.slice(0, 10), // First 10 for reference
+        failedDetails: results.failed.slice(0, 10), // First 10 for reference
+      },
+    });
+
     return res.json({
       success: true,
       message: `Import completed: ${results.success.length} successful, ${results.failed.length} failed`,
@@ -11687,6 +12194,22 @@ const enrollStudentsToCourse = async (req, res) => {
           } student(s) from week ${finalStartingOrder + 1}`
         : `Successfully enrolled ${enrolledStudents.length} student(s)`;
 
+    // Log admin action
+    await createLog(req, {
+      action: 'ENROLL_STUDENT',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Enrolled ${enrolledStudents.length} student(s) to course "${course.title}" (${course.courseCode})`,
+      targetModel: 'Course',
+      targetId: courseId,
+      targetName: course.title,
+      metadata: {
+        courseCode: course.courseCode,
+        studentCount: enrolledStudents.length,
+        studentNames: enrolledStudents,
+        startingOrder: finalStartingOrder,
+      },
+    });
+
     res.json({
       success: true,
       message: message,
@@ -11781,6 +12304,22 @@ const enrollStudentsToBundle = async (req, res) => {
         // Don't fail the enrollment if WhatsApp fails
       }
     }
+
+    // Log admin action
+    await createLog(req, {
+      action: 'ENROLL_STUDENT',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Enrolled ${enrolledStudents.length} student(s) to bundle "${bundle.title}" (${bundle.bundleCode})`,
+      targetModel: 'BundleCourse',
+      targetId: bundleId,
+      targetName: bundle.title,
+      metadata: {
+        bundleCode: bundle.bundleCode,
+        studentCount: enrolledStudents.length,
+        studentNames: enrolledStudents,
+        coursesCount: bundle.courses.length,
+      },
+    });
 
     res.json({
       success: true,
@@ -11968,6 +12507,24 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
     if (fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
+
+    // Log admin action
+    await createLog(req, {
+      action: 'BULK_ENROLL_STUDENTS',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Bulk enrolled ${results.success.length} student(s) to course "${course.title}" (${results.failed.length} failed, ${results.alreadyEnrolled.length} already enrolled)`,
+      targetModel: 'Course',
+      targetId: courseId,
+      targetName: course.title,
+      status: results.failed.length > 0 ? 'PARTIAL' : 'SUCCESS',
+      metadata: {
+        courseCode: course.courseCode,
+        successful: results.success.length,
+        failed: results.failed.length,
+        alreadyEnrolled: results.alreadyEnrolled.length,
+        total: results.total,
+      },
+    });
 
     res.json({
       success: true,
@@ -12576,6 +13133,26 @@ const createPromoCode = async (req, res) => {
 
     await promoCode.save();
 
+    // Log admin action
+    await createLog(req, {
+      action: 'CREATE_PROMO_CODE',
+      actionCategory: 'PROMO_CODE_MANAGEMENT',
+      description: `Created promo code "${promoCode.code}" - ${promoCode.discountType === 'percentage' ? promoCode.discountValue + '%' : promoCode.discountValue + ' EGP'} discount`,
+      targetModel: 'PromoCode',
+      targetId: promoCode._id.toString(),
+      targetName: promoCode.code,
+      metadata: {
+        code: promoCode.code,
+        discountType: promoCode.discountType,
+        discountValue: promoCode.discountValue,
+        maxUses: promoCode.maxUses,
+        validFrom: promoCode.validFrom,
+        validUntil: promoCode.validUntil,
+        applicableTo: promoCode.applicableTo,
+        restrictToStudents: promoCode.restrictToStudents,
+      },
+    });
+
     res.json({
       success: true,
       message: 'Promo code created successfully',
@@ -12678,7 +13255,28 @@ const deletePromoCode = async (req, res) => {
       });
     }
 
+    const promoCodeData = {
+      code: promoCode.code,
+      name: promoCode.name,
+      currentUses: promoCode.currentUses,
+    };
+
     await PromoCode.findByIdAndDelete(id);
+
+    // Log admin action
+    await createLog(req, {
+      action: 'DELETE_PROMO_CODE',
+      actionCategory: 'PROMO_CODE_MANAGEMENT',
+      description: `Deleted promo code "${promoCodeData.code}"`,
+      targetModel: 'PromoCode',
+      targetId: id,
+      targetName: promoCodeData.code,
+      metadata: {
+        code: promoCodeData.code,
+        name: promoCodeData.name,
+        currentUses: promoCodeData.currentUses,
+      },
+    });
 
     res.json({
       success: true,
@@ -12785,6 +13383,25 @@ const updatePromoCode = async (req, res) => {
     });
 
     await promoCode.save();
+
+    // Log admin action
+    await createLog(req, {
+      action: 'UPDATE_PROMO_CODE',
+      actionCategory: 'PROMO_CODE_MANAGEMENT',
+      description: `Updated promo code "${promoCode.code}"`,
+      targetModel: 'PromoCode',
+      targetId: id,
+      targetName: promoCode.code,
+      metadata: {
+        code: promoCode.code,
+        discountType: promoCode.discountType,
+        discountValue: promoCode.discountValue,
+        maxUses: promoCode.maxUses,
+        currentUses: promoCode.currentUses,
+        validFrom: promoCode.validFrom,
+        validUntil: promoCode.validUntil,
+      },
+    });
 
     res.json({
       success: true,

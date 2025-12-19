@@ -62,7 +62,7 @@ const isNotAuthenticated = (req, res, next) => {
     return next();
   }
   // If user is already authenticated, redirect to appropriate dashboard
-  if (req.session.user.role === 'admin') {
+  if (req.session.user.role === 'admin' || req.session.user.role === 'superAdmin') {
     return res.redirect('/admin/dashboard');
   } else if (req.session.user.role === 'student') {
     return res.redirect('/student/dashboard');
@@ -70,9 +70,9 @@ const isNotAuthenticated = (req, res, next) => {
   return next();
 };
 
-// Middleware to check if user is admin
+// Middleware to check if user is admin (includes both admin and superAdmin)
 const isAdmin = (req, res, next) => {
-  if (req.session && req.session.user && req.session.user.role === 'admin') {
+  if (req.session && req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'superAdmin')) {
     return next();
   }
   safeFlash(req, 'error_msg', 'Unauthorized: Admins only');

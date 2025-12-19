@@ -1703,7 +1703,7 @@
               <button type="button" class="status-filter-btn <%= currentFilters?.status === 'inactive' ? 'active' : '' %>" onclick="setStatusFilter('inactive')">
                 <i class="fas fa-user-times"></i>
                 Inactive Students
-                <span class="status-count"><%= (analytics?.totalStudents || 0) - (analytics?.activeStudents || 0) %></span>
+                <span class="status-count"><%= analytics?.inactiveStudents || 0 %></span>
               </button>
             </div>
             <input type="hidden" name="status" id="statusInput" value="<%= currentFilters?.status || 'all' %>">
@@ -1942,6 +1942,19 @@
 
         <!-- Pagination -->
         <% if (pagination && pagination.totalPages > 1) { %>
+        <%
+          // Helper function to build query string for pagination
+          const buildQueryString = (filters) => {
+            if (!filters) return '';
+            const params = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+              if (filters[key] && filters[key] !== 'all' && key !== 'page') {
+                params.append(key, filters[key]);
+              }
+            });
+            return params.toString() ? '&' + params.toString() : '';
+          };
+        %>
         <div class="pagination-container">
           <div class="pagination-info">
             Showing <%= ((pagination.currentPage - 1) * pagination.limit) + 1 %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalStudents) %>
