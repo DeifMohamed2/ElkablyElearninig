@@ -1276,7 +1276,24 @@ UserSchema.methods.addPurchasedBundle = async function (
     purchasedAt: new Date(),
     status: 'active',
   });
-  return await this.save();
+
+  await this.save();
+
+  // Update bundle's enrolledStudents list
+  try {
+    const BundleCourse = mongoose.model('BundleCourse');
+    const bundle = await BundleCourse.findById(bundleId);
+
+    if (bundle && !bundle.enrolledStudents.includes(this._id)) {
+      bundle.enrolledStudents.push(this._id);
+      await bundle.save();
+    }
+  } catch (error) {
+    console.error('Error updating bundle enrolledStudents:', error);
+    // Don't fail the purchase if this update fails
+  }
+
+  return this;
 };
 
 // Instance method to safely enroll in a course (prevents duplicates)
@@ -1430,8 +1447,10 @@ UserSchema.methods.updateContentProgress = async function (
   );
 
   // Track if this is a NEW completion (wasn't completed before)
-  const wasAlreadyCompleted = contentProgress && contentProgress.completionStatus === 'completed';
-  const isNowCompleted = progressData && progressData.completionStatus === 'completed';
+  const wasAlreadyCompleted =
+    contentProgress && contentProgress.completionStatus === 'completed';
+  const isNowCompleted =
+    progressData && progressData.completionStatus === 'completed';
   const isNewCompletion = isNowCompleted && !wasAlreadyCompleted;
 
   if (!contentProgress) {
@@ -1446,7 +1465,8 @@ UserSchema.methods.updateContentProgress = async function (
     };
     enrollment.contentProgress.push(newProgressEntry);
     // Get reference to the actual Mongoose subdocument in the array (not the plain object)
-    contentProgress = enrollment.contentProgress[enrollment.contentProgress.length - 1];
+    contentProgress =
+      enrollment.contentProgress[enrollment.contentProgress.length - 1];
   } else {
     // Update existing content progress
     Object.assign(contentProgress, progressData);
@@ -1457,7 +1477,10 @@ UserSchema.methods.updateContentProgress = async function (
   // This allows tracking multiple completions of the same video
   if (contentType === 'video' && isNowCompleted) {
     // Initialize watch count if it doesn't exist or is undefined/null
-    if (contentProgress.watchCount === undefined || contentProgress.watchCount === null) {
+    if (
+      contentProgress.watchCount === undefined ||
+      contentProgress.watchCount === null
+    ) {
       contentProgress.watchCount = 0;
     }
     // Increment watch count every time video is completed
@@ -1471,7 +1494,7 @@ UserSchema.methods.updateContentProgress = async function (
       watchedAt: new Date(),
       completedFully: true,
     });
-    
+
     // Mark the nested document as modified to ensure Mongoose saves the changes
     this.markModified('enrolledCourses');
   }
@@ -1501,7 +1524,7 @@ UserSchema.methods.updateContentProgress = async function (
     ) {
       // Only send notification if this is a NEW topic completion
       const wasAlreadyCompleted = enrollment.completedTopics.includes(topicId);
-      
+
       if (!wasAlreadyCompleted) {
         enrollment.completedTopics.push(topicId);
 
@@ -1895,7 +1918,7 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
 
   // Mark course as completed if ALL content is completed OR if progress is 100%
   const wasAlreadyCompleted = enrollment.status === 'completed';
-  
+
   if (
     (completedContentCount === contentCount && contentCount > 0) ||
     averageProgress >= 100
@@ -2004,7 +2027,11 @@ UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
 };
 
 // Instance method to check if user can watch a video (check watch limit)
-UserSchema.methods.canWatchVideo = function (courseId, contentId, maxWatchCount) {
+UserSchema.methods.canWatchVideo = function (
+  courseId,
+  contentId,
+  maxWatchCount
+) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
       enrollment.course && enrollment.course.toString() === courseId.toString()
@@ -2015,8 +2042,16 @@ UserSchema.methods.canWatchVideo = function (courseId, contentId, maxWatchCount)
   }
 
   // If maxWatchCount is null/undefined/-1, unlimited watches allowed
-  if (maxWatchCount === null || maxWatchCount === undefined || maxWatchCount === -1) {
-    return { canWatch: true, reason: 'Unlimited watches', watchesLeft: 'Unlimited' };
+  if (
+    maxWatchCount === null ||
+    maxWatchCount === undefined ||
+    maxWatchCount === -1
+  ) {
+    return {
+      canWatch: true,
+      reason: 'Unlimited watches',
+      watchesLeft: 'Unlimited',
+    };
   }
 
   const contentProgress = enrollment.contentProgress.find(
@@ -2025,12 +2060,12 @@ UserSchema.methods.canWatchVideo = function (courseId, contentId, maxWatchCount)
 
   // If no progress yet, can watch
   if (!contentProgress) {
-    return { 
-      canWatch: true, 
-      reason: 'First watch', 
+    return {
+      canWatch: true,
+      reason: 'First watch',
       watchCount: 0,
       maxWatchCount: maxWatchCount,
-      watchesLeft: maxWatchCount 
+      watchesLeft: maxWatchCount,
     };
   }
 

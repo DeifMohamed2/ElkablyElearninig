@@ -500,7 +500,8 @@ const getCourses = async (req, res) => {
     }
 
     // Check if any filters are applied
-    const hasFilters = (status && status !== 'all') || level || bundle || search;
+    const hasFilters =
+      (status && status !== 'all') || level || bundle || search;
 
     // Build sort object
     const sort = {};
@@ -526,7 +527,7 @@ const getCourses = async (req, res) => {
       const skip = (parseInt(page) - 1) * parseInt(limit);
       currentPage = parseInt(page);
       totalPages = Math.ceil(totalCourses / parseInt(limit));
-      
+
       courses = await Course.find(filter)
         .populate('topics')
         .populate('bundle', 'title bundleCode thumbnail')
@@ -1382,11 +1383,14 @@ const duplicateCourse = async (req, res) => {
 
     try {
       // Determine the new order (auto-assign next available order in bundle)
-      const existingCourses = await Course.find({ bundle: originalCourse.bundle._id })
+      const existingCourses = await Course.find({
+        bundle: originalCourse.bundle._id,
+      })
         .sort({ order: -1 })
         .limit(1)
         .session(session);
-      const newOrder = existingCourses.length > 0 ? (existingCourses[0].order || 0) + 1 : 1;
+      const newOrder =
+        existingCourses.length > 0 ? (existingCourses[0].order || 0) + 1 : 1;
 
       // Create new course with copied data
       const newCourseData = {
@@ -1406,7 +1410,9 @@ const duplicateCourse = async (req, res) => {
         order: newOrder,
         requiresSequential: originalCourse.requiresSequential !== false,
         tags: originalCourse.tags ? [...originalCourse.tags] : [],
-        prerequisites: originalCourse.prerequisites ? [...originalCourse.prerequisites] : [],
+        prerequisites: originalCourse.prerequisites
+          ? [...originalCourse.prerequisites]
+          : [],
       };
 
       const newCourse = new Course(newCourseData);
@@ -1434,7 +1440,9 @@ const duplicateCourse = async (req, res) => {
             estimatedTime: originalTopic.estimatedTime || 0,
             isPublished: false, // Always set to unpublished for duplicates
             difficulty: originalTopic.difficulty || 'beginner',
-            learningObjectives: originalTopic.learningObjectives ? [...originalTopic.learningObjectives] : [],
+            learningObjectives: originalTopic.learningObjectives
+              ? [...originalTopic.learningObjectives]
+              : [],
             tags: originalTopic.tags ? [...originalTopic.tags] : [],
             unlockConditions: originalTopic.unlockConditions || 'immediate',
             createdBy: req.session.user.id,
@@ -1449,7 +1457,9 @@ const duplicateCourse = async (req, res) => {
               // Skip zoom content items - zoom meetings should not be duplicated
               // Admin needs to create new zoom meetings manually for the duplicated course
               if (originalContent.type === 'zoom') {
-                console.log(`Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`);
+                console.log(
+                  `Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`
+                );
                 continue; // Skip zoom content items
               }
 
@@ -1464,46 +1474,74 @@ const duplicateCourse = async (req, res) => {
                 order: originalContent.order || 0,
                 maxWatchCount: originalContent.maxWatchCount || null,
                 difficulty: originalContent.difficulty || 'beginner',
-                learningObjectives: originalContent.learningObjectives ? [...originalContent.learningObjectives] : [],
+                learningObjectives: originalContent.learningObjectives
+                  ? [...originalContent.learningObjectives]
+                  : [],
                 tags: originalContent.tags ? [...originalContent.tags] : [],
-                completionCriteria: originalContent.completionCriteria || 'view',
-                unlockConditions: originalContent.unlockConditions || 'immediate',
+                completionCriteria:
+                  originalContent.completionCriteria || 'view',
+                unlockConditions:
+                  originalContent.unlockConditions || 'immediate',
               };
 
               // Handle question banks - keep references (don't duplicate)
-              if (originalContent.questionBanks && originalContent.questionBanks.length > 0) {
-                newContentData.questionBanks = originalContent.questionBanks.map(
-                  (bankId) => bankId.toString ? bankId.toString() : bankId
-                );
+              if (
+                originalContent.questionBanks &&
+                originalContent.questionBanks.length > 0
+              ) {
+                newContentData.questionBanks =
+                  originalContent.questionBanks.map((bankId) =>
+                    bankId.toString ? bankId.toString() : bankId
+                  );
               }
               if (originalContent.questionBank) {
-                newContentData.questionBank = originalContent.questionBank.toString ? 
-                  originalContent.questionBank.toString() : originalContent.questionBank;
+                newContentData.questionBank = originalContent.questionBank
+                  .toString
+                  ? originalContent.questionBank.toString()
+                  : originalContent.questionBank;
               }
 
               // Handle selected questions - keep references but update sourceBank if needed
-              if (originalContent.selectedQuestions && originalContent.selectedQuestions.length > 0) {
-                newContentData.selectedQuestions = originalContent.selectedQuestions.map((q) => ({
-                  question: q.question.toString ? q.question.toString() : q.question,
-                  sourceBank: q.sourceBank.toString ? q.sourceBank.toString() : q.sourceBank,
-                  points: q.points || 1,
-                  order: q.order || 0,
-                }));
+              if (
+                originalContent.selectedQuestions &&
+                originalContent.selectedQuestions.length > 0
+              ) {
+                newContentData.selectedQuestions =
+                  originalContent.selectedQuestions.map((q) => ({
+                    question: q.question.toString
+                      ? q.question.toString()
+                      : q.question,
+                    sourceBank: q.sourceBank.toString
+                      ? q.sourceBank.toString()
+                      : q.sourceBank,
+                    points: q.points || 1,
+                    order: q.order || 0,
+                  }));
               }
 
               // Handle quiz settings
-              if (originalContent.type === 'quiz' && originalContent.quizSettings) {
-                newContentData.quizSettings = { ...originalContent.quizSettings.toObject() };
+              if (
+                originalContent.type === 'quiz' &&
+                originalContent.quizSettings
+              ) {
+                newContentData.quizSettings = {
+                  ...originalContent.quizSettings.toObject(),
+                };
               }
 
               // Handle homework settings
-              if (originalContent.type === 'homework' && originalContent.homeworkSettings) {
-                newContentData.homeworkSettings = { ...originalContent.homeworkSettings.toObject() };
+              if (
+                originalContent.type === 'homework' &&
+                originalContent.homeworkSettings
+              ) {
+                newContentData.homeworkSettings = {
+                  ...originalContent.homeworkSettings.toObject(),
+                };
               }
 
               // Store the new content item (will be added to topic after prerequisites are handled)
               const newContentItem = newContentData;
-              
+
               // Add content item to topic
               newTopic.content.push(newContentItem);
 
@@ -1521,16 +1559,17 @@ const duplicateCourse = async (req, res) => {
             let newContentIndex = 0;
             for (let i = 0; i < originalTopic.content.length; i++) {
               const originalContent = originalTopic.content[i];
-              
+
               // Skip zoom content items in the mapping (they weren't duplicated)
               if (originalContent.type === 'zoom') {
                 continue;
               }
-              
+
               // Only map if we have corresponding new content
               if (newContentIndex < newTopic.content.length) {
                 const oldContentId = originalContent._id.toString();
-                const newContentId = newTopic.content[newContentIndex]._id.toString();
+                const newContentId =
+                  newTopic.content[newContentIndex]._id.toString();
                 contentIdMap.set(oldContentId, newContentId);
                 newContentIndex++;
               }
@@ -1545,32 +1584,48 @@ const duplicateCourse = async (req, res) => {
       // Update prerequisites and dependencies in all content items
       // We need to do this after all topics are created
       if (originalCourse.topics && originalCourse.topics.length > 0) {
-        const newTopics = await Topic.find({ course: newCourse._id }).session(session);
-        
+        const newTopics = await Topic.find({ course: newCourse._id }).session(
+          session
+        );
+
         for (let topicIndex = 0; topicIndex < newTopics.length; topicIndex++) {
           const newTopic = newTopics[topicIndex];
           const originalTopic = originalCourse.topics[topicIndex];
 
-          if (newTopic.content && newTopic.content.length > 0 && originalTopic.content) {
+          if (
+            newTopic.content &&
+            newTopic.content.length > 0 &&
+            originalTopic.content
+          ) {
             // Map through original content and match with new content (skipping zoom items)
             let newContentIndex = 0;
-            for (let originalContentIndex = 0; originalContentIndex < originalTopic.content.length; originalContentIndex++) {
-              const originalContent = originalTopic.content[originalContentIndex];
-              
+            for (
+              let originalContentIndex = 0;
+              originalContentIndex < originalTopic.content.length;
+              originalContentIndex++
+            ) {
+              const originalContent =
+                originalTopic.content[originalContentIndex];
+
               // Skip zoom content items (they weren't duplicated)
               if (originalContent.type === 'zoom') {
                 continue;
               }
-              
+
               // Only process if we have corresponding new content
               if (newContentIndex < newTopic.content.length) {
                 const newContent = newTopic.content[newContentIndex];
 
                 // Update prerequisites (skip if prerequisite was a zoom item)
-                if (originalContent.prerequisites && originalContent.prerequisites.length > 0) {
+                if (
+                  originalContent.prerequisites &&
+                  originalContent.prerequisites.length > 0
+                ) {
                   const newPrerequisites = originalContent.prerequisites
                     .map((prereqId) => {
-                      const prereqIdStr = prereqId.toString ? prereqId.toString() : prereqId;
+                      const prereqIdStr = prereqId.toString
+                        ? prereqId.toString()
+                        : prereqId;
                       const newId = contentIdMap.get(prereqIdStr);
                       return newId ? new mongoose.Types.ObjectId(newId) : null;
                     })
@@ -1580,10 +1635,15 @@ const duplicateCourse = async (req, res) => {
                 }
 
                 // Update dependencies (skip if dependency was a zoom item)
-                if (originalContent.dependencies && originalContent.dependencies.length > 0) {
+                if (
+                  originalContent.dependencies &&
+                  originalContent.dependencies.length > 0
+                ) {
                   const newDependencies = originalContent.dependencies
                     .map((depId) => {
-                      const depIdStr = depId.toString ? depId.toString() : depId;
+                      const depIdStr = depId.toString
+                        ? depId.toString()
+                        : depId;
                       const newId = contentIdMap.get(depIdStr);
                       return newId ? new mongoose.Types.ObjectId(newId) : null;
                     })
@@ -1595,7 +1655,7 @@ const duplicateCourse = async (req, res) => {
                 // Mark content as modified
                 newContent.markModified('prerequisites');
                 newContent.markModified('dependencies');
-                
+
                 newContentIndex++;
               }
             }
@@ -1925,7 +1985,9 @@ const updateTopic = async (req, res) => {
     await createLog(req, {
       action: 'UPDATE_TOPIC',
       actionCategory: 'CONTENT_MANAGEMENT',
-      description: `Updated topic "${topic.title}" in course "${course?.title || courseCode}"`,
+      description: `Updated topic "${topic.title}" in course "${
+        course?.title || courseCode
+      }"`,
       targetModel: 'Topic',
       targetId: topic._id.toString(),
       targetName: topic.title,
@@ -2042,7 +2104,9 @@ const updateTopicVisibility = async (req, res) => {
     await createLog(req, {
       action: 'UPDATE_TOPIC_VISIBILITY',
       actionCategory: 'CONTENT_MANAGEMENT',
-      description: `Updated visibility of topic "${topic.title}" to ${topic.isPublished ? 'published' : 'unpublished'}`,
+      description: `Updated visibility of topic "${topic.title}" to ${
+        topic.isPublished ? 'published' : 'unpublished'
+      }`,
       targetModel: 'Topic',
       targetId: topicId,
       targetName: topic.title,
@@ -2471,7 +2535,9 @@ const resetContentAttempts = async (req, res) => {
     await createLog(req, {
       action: 'RESET_CONTENT_ATTEMPTS',
       actionCategory: 'CONTENT_MANAGEMENT',
-      description: `Reset attempts for student "${student.name || student.firstName + ' ' + student.lastName}" in content "${contentItem?.title || contentId}"`,
+      description: `Reset attempts for student "${
+        student.name || student.firstName + ' ' + student.lastName
+      }" in content "${contentItem?.title || contentId}"`,
       targetModel: 'Content',
       targetId: contentId,
       targetName: contentItem?.title || 'Unknown',
@@ -2855,7 +2921,9 @@ const reorderTopics = async (req, res) => {
     await createLog(req, {
       action: 'REORDER_TOPICS',
       actionCategory: 'CONTENT_MANAGEMENT',
-      description: `Reordered ${orderUpdates.length} topics in course "${course?.title || courseCode}"`,
+      description: `Reordered ${orderUpdates.length} topics in course "${
+        course?.title || courseCode
+      }"`,
       targetModel: 'Topic',
       targetId: 'multiple',
       targetName: `${orderUpdates.length} topics`,
@@ -2981,7 +3049,8 @@ const duplicateTopic = async (req, res) => {
         .sort({ order: -1 })
         .limit(1)
         .session(session);
-      const newOrder = existingTopics.length > 0 ? (existingTopics[0].order || 0) + 1 : 1;
+      const newOrder =
+        existingTopics.length > 0 ? (existingTopics[0].order || 0) + 1 : 1;
 
       // Create new topic with copied data
       const newTopicData = {
@@ -2992,7 +3061,9 @@ const duplicateTopic = async (req, res) => {
         estimatedTime: originalTopic.estimatedTime || 0,
         isPublished: false, // Always set to unpublished for duplicates
         difficulty: originalTopic.difficulty || 'beginner',
-        learningObjectives: originalTopic.learningObjectives ? [...originalTopic.learningObjectives] : [],
+        learningObjectives: originalTopic.learningObjectives
+          ? [...originalTopic.learningObjectives]
+          : [],
         tags: originalTopic.tags ? [...originalTopic.tags] : [],
         unlockConditions: originalTopic.unlockConditions || 'immediate',
         createdBy: req.session.user.id,
@@ -3009,7 +3080,9 @@ const duplicateTopic = async (req, res) => {
         for (const originalContent of originalTopic.content) {
           // Skip zoom content items - zoom meetings should not be duplicated
           if (originalContent.type === 'zoom') {
-            console.log(`Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`);
+            console.log(
+              `Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`
+            );
             continue; // Skip zoom content items
           }
 
@@ -3024,41 +3097,62 @@ const duplicateTopic = async (req, res) => {
             order: originalContent.order || 0,
             maxWatchCount: originalContent.maxWatchCount || null,
             difficulty: originalContent.difficulty || 'beginner',
-            learningObjectives: originalContent.learningObjectives ? [...originalContent.learningObjectives] : [],
+            learningObjectives: originalContent.learningObjectives
+              ? [...originalContent.learningObjectives]
+              : [],
             tags: originalContent.tags ? [...originalContent.tags] : [],
             completionCriteria: originalContent.completionCriteria || 'view',
             unlockConditions: originalContent.unlockConditions || 'immediate',
           };
 
           // Handle question banks - keep references (don't duplicate)
-          if (originalContent.questionBanks && originalContent.questionBanks.length > 0) {
+          if (
+            originalContent.questionBanks &&
+            originalContent.questionBanks.length > 0
+          ) {
             newContentData.questionBanks = originalContent.questionBanks.map(
-              (bankId) => bankId.toString ? bankId.toString() : bankId
+              (bankId) => (bankId.toString ? bankId.toString() : bankId)
             );
           }
           if (originalContent.questionBank) {
-            newContentData.questionBank = originalContent.questionBank.toString ? 
-              originalContent.questionBank.toString() : originalContent.questionBank;
+            newContentData.questionBank = originalContent.questionBank.toString
+              ? originalContent.questionBank.toString()
+              : originalContent.questionBank;
           }
 
           // Handle selected questions - keep references but update sourceBank if needed
-          if (originalContent.selectedQuestions && originalContent.selectedQuestions.length > 0) {
-            newContentData.selectedQuestions = originalContent.selectedQuestions.map((q) => ({
-              question: q.question.toString ? q.question.toString() : q.question,
-              sourceBank: q.sourceBank.toString ? q.sourceBank.toString() : q.sourceBank,
-              points: q.points || 1,
-              order: q.order || 0,
-            }));
+          if (
+            originalContent.selectedQuestions &&
+            originalContent.selectedQuestions.length > 0
+          ) {
+            newContentData.selectedQuestions =
+              originalContent.selectedQuestions.map((q) => ({
+                question: q.question.toString
+                  ? q.question.toString()
+                  : q.question,
+                sourceBank: q.sourceBank.toString
+                  ? q.sourceBank.toString()
+                  : q.sourceBank,
+                points: q.points || 1,
+                order: q.order || 0,
+              }));
           }
 
           // Handle quiz settings
           if (originalContent.type === 'quiz' && originalContent.quizSettings) {
-            newContentData.quizSettings = { ...originalContent.quizSettings.toObject() };
+            newContentData.quizSettings = {
+              ...originalContent.quizSettings.toObject(),
+            };
           }
 
           // Handle homework settings
-          if (originalContent.type === 'homework' && originalContent.homeworkSettings) {
-            newContentData.homeworkSettings = { ...originalContent.homeworkSettings.toObject() };
+          if (
+            originalContent.type === 'homework' &&
+            originalContent.homeworkSettings
+          ) {
+            newContentData.homeworkSettings = {
+              ...originalContent.homeworkSettings.toObject(),
+            };
           }
 
           // Add content item to topic
@@ -3074,16 +3168,17 @@ const duplicateTopic = async (req, res) => {
         let newContentIndex = 0;
         for (let i = 0; i < originalTopic.content.length; i++) {
           const originalContent = originalTopic.content[i];
-          
+
           // Skip zoom content items in the mapping (they weren't duplicated)
           if (originalContent.type === 'zoom') {
             continue;
           }
-          
+
           // Only map if we have corresponding new content
           if (newContentIndex < newTopic.content.length) {
             const oldContentId = originalContent._id.toString();
-            const newContentId = newTopic.content[newContentIndex]._id.toString();
+            const newContentId =
+              newTopic.content[newContentIndex]._id.toString();
             contentIdMap.set(oldContentId, newContentId);
             newContentIndex++;
           }
@@ -3091,25 +3186,38 @@ const duplicateTopic = async (req, res) => {
       }
 
       // Update prerequisites and dependencies in all content items
-      if (newTopic.content && newTopic.content.length > 0 && originalTopic.content) {
+      if (
+        newTopic.content &&
+        newTopic.content.length > 0 &&
+        originalTopic.content
+      ) {
         let newContentIndex = 0;
-        for (let originalContentIndex = 0; originalContentIndex < originalTopic.content.length; originalContentIndex++) {
+        for (
+          let originalContentIndex = 0;
+          originalContentIndex < originalTopic.content.length;
+          originalContentIndex++
+        ) {
           const originalContent = originalTopic.content[originalContentIndex];
-          
+
           // Skip zoom content items (they weren't duplicated)
           if (originalContent.type === 'zoom') {
             continue;
           }
-          
+
           // Only process if we have corresponding new content
           if (newContentIndex < newTopic.content.length) {
             const newContent = newTopic.content[newContentIndex];
 
             // Update prerequisites (skip if prerequisite was a zoom item)
-            if (originalContent.prerequisites && originalContent.prerequisites.length > 0) {
+            if (
+              originalContent.prerequisites &&
+              originalContent.prerequisites.length > 0
+            ) {
               const newPrerequisites = originalContent.prerequisites
                 .map((prereqId) => {
-                  const prereqIdStr = prereqId.toString ? prereqId.toString() : prereqId;
+                  const prereqIdStr = prereqId.toString
+                    ? prereqId.toString()
+                    : prereqId;
                   const newId = contentIdMap.get(prereqIdStr);
                   return newId ? new mongoose.Types.ObjectId(newId) : null;
                 })
@@ -3119,7 +3227,10 @@ const duplicateTopic = async (req, res) => {
             }
 
             // Update dependencies (skip if dependency was a zoom item)
-            if (originalContent.dependencies && originalContent.dependencies.length > 0) {
+            if (
+              originalContent.dependencies &&
+              originalContent.dependencies.length > 0
+            ) {
               const newDependencies = originalContent.dependencies
                 .map((depId) => {
                   const depIdStr = depId.toString ? depId.toString() : depId;
@@ -3134,7 +3245,7 @@ const duplicateTopic = async (req, res) => {
             // Mark content as modified
             newContent.markModified('prerequisites');
             newContent.markModified('dependencies');
-            
+
             newContentIndex++;
           }
         }
@@ -3321,7 +3432,11 @@ const addTopicContent = async (req, res) => {
     // Handle Video-specific fields
     if (type === 'video') {
       // Set maxWatchCount - null means unlimited, -1 also means unlimited, otherwise parse the number
-      if (maxWatchCount !== undefined && maxWatchCount !== null && maxWatchCount !== '') {
+      if (
+        maxWatchCount !== undefined &&
+        maxWatchCount !== null &&
+        maxWatchCount !== ''
+      ) {
         const parsedMaxWatchCount = parseInt(maxWatchCount);
         if (!isNaN(parsedMaxWatchCount)) {
           if (parsedMaxWatchCount === -1 || parsedMaxWatchCount <= 0) {
@@ -3505,7 +3620,9 @@ const addTopicContent = async (req, res) => {
     await createLog(req, {
       action: 'CREATE_CONTENT',
       actionCategory: 'CONTENT_MANAGEMENT',
-      description: `Added ${type} content "${contentItem.title}" to topic "${topicInfo?.title || 'Unknown'}" in course "${course?.title || courseCode}"`,
+      description: `Added ${type} content "${contentItem.title}" to topic "${
+        topicInfo?.title || 'Unknown'
+      }" in course "${course?.title || courseCode}"`,
       targetModel: 'Content',
       targetId: contentItem._id?.toString() || 'new',
       targetName: contentItem.title,
@@ -3659,7 +3776,7 @@ const updateTopicContent = async (req, res) => {
             if (parsedMaxWatchCount === -1 || parsedMaxWatchCount <= 0) {
               contentItem.maxWatchCount = null; // Unlimited (for -1 or <= 0)
             } else {
-            contentItem.maxWatchCount = parsedMaxWatchCount;
+              contentItem.maxWatchCount = parsedMaxWatchCount;
             }
           } else {
             contentItem.maxWatchCount = null; // Unlimited
@@ -3921,7 +4038,9 @@ const updateTopicContent = async (req, res) => {
           timezone || contentItem.zoomMeeting.timezone;
         contentItem.zoomMeeting.password = password || '';
         const finalJoinBeforeHost = joinBeforeHost !== false;
-        const finalWaitingRoom = finalJoinBeforeHost ? false : (waitingRoom || false);
+        const finalWaitingRoom = finalJoinBeforeHost
+          ? false
+          : waitingRoom || false;
         contentItem.zoomMeeting.joinBeforeHost = finalJoinBeforeHost;
         contentItem.zoomMeeting.waitingRoom = finalWaitingRoom;
         contentItem.zoomMeeting.hostVideo = hostVideo !== false;
@@ -3942,7 +4061,9 @@ const updateTopicContent = async (req, res) => {
     await createLog(req, {
       action: 'UPDATE_CONTENT',
       actionCategory: 'CONTENT_MANAGEMENT',
-      description: `Updated ${contentItem.type} content "${contentItem.title}" in topic "${topicInfo?.title || 'Unknown'}"`,
+      description: `Updated ${contentItem.type} content "${
+        contentItem.title
+      }" in topic "${topicInfo?.title || 'Unknown'}"`,
       targetModel: 'Content',
       targetId: contentId,
       targetName: contentItem.title,
@@ -4692,8 +4813,18 @@ const getBookOrders = async (req, res) => {
         { 'shippingAddress.phone': { $regex: searchTerm, $options: 'i' } },
         { 'shippingAddress.city': { $regex: searchTerm, $options: 'i' } },
         { 'shippingAddress.streetName': { $regex: searchTerm, $options: 'i' } },
-        { 'shippingAddress.buildingNumber': { $regex: searchTerm, $options: 'i' } },
-        { 'shippingAddress.apartmentNumber': { $regex: searchTerm, $options: 'i' } },
+        {
+          'shippingAddress.buildingNumber': {
+            $regex: searchTerm,
+            $options: 'i',
+          },
+        },
+        {
+          'shippingAddress.apartmentNumber': {
+            $regex: searchTerm,
+            $options: 'i',
+          },
+        },
         { 'shippingAddress.address': { $regex: searchTerm, $options: 'i' } },
         { 'shippingAddress.zipCode': { $regex: searchTerm, $options: 'i' } },
         { notes: { $regex: searchTerm, $options: 'i' } },
@@ -4930,7 +5061,9 @@ const exportBookOrders = async (req, res) => {
         { 'shippingAddress.lastName': { $regex: search, $options: 'i' } },
         { 'shippingAddress.streetName': { $regex: search, $options: 'i' } },
         { 'shippingAddress.buildingNumber': { $regex: search, $options: 'i' } },
-        { 'shippingAddress.apartmentNumber': { $regex: search, $options: 'i' } },
+        {
+          'shippingAddress.apartmentNumber': { $regex: search, $options: 'i' },
+        },
       ];
     }
 
@@ -4987,6 +5120,7 @@ const refundOrder = async (req, res) => {
     const refundAmount = typeof amount === 'number' ? amount : purchase.total;
 
     // Revoke access for each item
+    const bundlesUpdated = [];
     for (const it of purchase.items) {
       if (it.itemType === 'bundle') {
         // Mark purchased bundle cancelled
@@ -5010,6 +5144,15 @@ const refundOrder = async (req, res) => {
             (en) =>
               !bundleCourseIds.has((en.course?._id || en.course).toString())
           );
+
+          // Remove student from bundle's enrolledStudents list
+          const studentIndexInBundle = bundle.enrolledStudents.indexOf(
+            user._id
+          );
+          if (studentIndexInBundle !== -1) {
+            bundle.enrolledStudents.splice(studentIndexInBundle, 1);
+            bundlesUpdated.push(bundle);
+          }
         }
       } else {
         // Course purchase cancel and unenroll
@@ -5030,6 +5173,11 @@ const refundOrder = async (req, res) => {
     }
 
     await user.save();
+
+    // Save all updated bundles
+    for (const bundle of bundlesUpdated) {
+      await bundle.save();
+    }
 
     // Update purchase to refunded
     purchase.status = 'refunded';
@@ -5933,7 +6081,9 @@ const removeCourseFromBundle = async (req, res) => {
     await createLog(req, {
       action: 'REMOVE_COURSE_FROM_BUNDLE',
       actionCategory: 'COURSE_MANAGEMENT',
-      description: `Removed course "${course?.title || courseId}" from bundle "${bundle.title}"`,
+      description: `Removed course "${
+        course?.title || courseId
+      }" from bundle "${bundle.title}"`,
       targetModel: 'BundleCourse',
       targetId: bundle._id.toString(),
       targetName: bundle.title,
@@ -6224,12 +6374,17 @@ const updateBundle = async (req, res) => {
     bundle.hasBook = hasBook === 'on' || hasBook === true;
     bundle.bookName = bundle.hasBook ? (bookName ? bookName.trim() : '') : '';
     bundle.bookPrice = bundle.hasBook && bookPrice ? parseFloat(bookPrice) : 0;
-    
+
     // Handle fully booked fields
     const wasFullyBooked = bundle.isFullyBooked;
-    bundle.isFullyBooked = req.body.isFullyBooked === true || req.body.isFullyBooked === 'true' || req.body.isFullyBooked === 'on';
-    bundle.fullyBookedMessage = bundle.isFullyBooked 
-      ? (req.body.fullyBookedMessage ? req.body.fullyBookedMessage.trim() : 'FULLY BOOKED')
+    bundle.isFullyBooked =
+      req.body.isFullyBooked === true ||
+      req.body.isFullyBooked === 'true' ||
+      req.body.isFullyBooked === 'on';
+    bundle.fullyBookedMessage = bundle.isFullyBooked
+      ? req.body.fullyBookedMessage
+        ? req.body.fullyBookedMessage.trim()
+        : 'FULLY BOOKED'
       : 'FULLY BOOKED';
 
     const oldBundle = { ...bundle.toObject() };
@@ -6271,11 +6426,13 @@ const updateBundle = async (req, res) => {
         {
           $set: {
             isFullyBooked: true,
-            fullyBookedMessage: bundle.fullyBookedMessage
-          }
+            fullyBookedMessage: bundle.fullyBookedMessage,
+          },
         }
       );
-      console.log(`✅ Updated all courses in bundle ${bundle.bundleCode} to fully booked`);
+      console.log(
+        `✅ Updated all courses in bundle ${bundle.bundleCode} to fully booked`
+      );
     }
     // If bundle is no longer fully booked, remove fully booked status from courses (optional)
     else if (!bundle.isFullyBooked && wasFullyBooked) {
@@ -6284,11 +6441,13 @@ const updateBundle = async (req, res) => {
         { bundle: bundle._id },
         {
           $set: {
-            isFullyBooked: false
-          }
+            isFullyBooked: false,
+          },
         }
       );
-      console.log(`✅ Removed fully booked status from all courses in bundle ${bundle.bundleCode}`);
+      console.log(
+        `✅ Removed fully booked status from all courses in bundle ${bundle.bundleCode}`
+      );
     }
 
     if (isAjaxRequest) {
@@ -7487,10 +7646,11 @@ const toggleStudentStatus = async (req, res) => {
 
     // Notify student via SMS about status change (non-blocking)
     if (student.studentNumber && student.studentCountryCode) {
-      const recipient = `${student.studentCountryCode}${student.studentNumber}`.replace(
-        /[^\d+]/g,
-        ''
-      );
+      const recipient =
+        `${student.studentCountryCode}${student.studentNumber}`.replace(
+          /[^\d+]/g,
+          ''
+        );
       const message = isActive
         ? `Your Elkably account has been activated. You can now log in and start learning.`
         : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
@@ -7548,15 +7708,19 @@ const bulkToggleStudentStatus = async (req, res) => {
     // Send SMS notifications (non-blocking)
     updatedStudents.forEach((student) => {
       if (student.studentNumber && student.studentCountryCode) {
-        const recipient = `${student.studentCountryCode}${student.studentNumber}`.replace(
-          /[^\d+]/g,
-          ''
-        );
+        const recipient =
+          `${student.studentCountryCode}${student.studentNumber}`.replace(
+            /[^\d+]/g,
+            ''
+          );
         const message = isActive
           ? `Your Elkably account has been activated. You can now log in and start learning.`
           : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
         sendSms({ recipient, message }).catch((err) =>
-          console.error('SMS send error (bulk toggle status):', err?.message || err)
+          console.error(
+            'SMS send error (bulk toggle status):',
+            err?.message || err
+          )
         );
       }
     });
@@ -7565,7 +7729,9 @@ const bulkToggleStudentStatus = async (req, res) => {
     await createLog(req, {
       action: 'BULK_TOGGLE_STUDENT_STATUS',
       actionCategory: 'STUDENT_MANAGEMENT',
-      description: `Bulk ${isActive ? 'activated' : 'deactivated'} ${updateResult.modifiedCount} student(s)`,
+      description: `Bulk ${isActive ? 'activated' : 'deactivated'} ${
+        updateResult.modifiedCount
+      } student(s)`,
       targetModel: 'User',
       metadata: {
         studentCount: updateResult.modifiedCount,
@@ -7582,7 +7748,9 @@ const bulkToggleStudentStatus = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${updateResult.modifiedCount} student(s)`,
+      message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${
+        updateResult.modifiedCount
+      } student(s)`,
       modifiedCount: updateResult.modifiedCount,
     });
   } catch (error) {
@@ -8384,7 +8552,10 @@ const updateStudent = async (req, res) => {
           ? `Your Elkably account has been activated. You can now log in and start learning.`
           : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
         sendSms({ recipient: phone, message }).catch((err) =>
-          console.error('SMS send error (update student status):', err?.message || err)
+          console.error(
+            'SMS send error (update student status):',
+            err?.message || err
+          )
         );
       }
     }
@@ -11183,7 +11354,10 @@ const createZoomMeeting = async (req, res) => {
       settings: {
         joinBeforeHost: joinBeforeHost === 'true' || joinBeforeHost === true,
         // If joinBeforeHost is enabled, waitingRoom must be disabled
-        waitingRoom: (joinBeforeHost === 'true' || joinBeforeHost === true) ? false : (waitingRoom === 'true' || waitingRoom === true),
+        waitingRoom:
+          joinBeforeHost === 'true' || joinBeforeHost === true
+            ? false
+            : waitingRoom === 'true' || waitingRoom === true,
         muteUponEntry: muteUponEntry === 'true' || muteUponEntry === true,
         hostVideo: hostVideo === 'true' || hostVideo === true,
         participantVideo:
@@ -11339,7 +11513,6 @@ const endZoomMeeting = async (req, res) => {
     // Mark content as completed for students who attended 50% or more
     // and send SMS notifications to parents
     try {
-
       // Get topic and course IDs
       const topicId = zoomMeeting.topic._id || zoomMeeting.topic;
       const courseId = zoomMeeting.course._id || zoomMeeting.course;
@@ -11358,7 +11531,7 @@ const endZoomMeeting = async (req, res) => {
           // Refresh zoomMeeting to get latest calculated attendance percentages after endMeeting
           await zoomMeeting.populate('course topic');
           const refreshedMeeting = await ZoomMeeting.findById(zoomMeeting._id);
-          
+
           for (const attendance of refreshedMeeting.studentsAttended) {
             const studentId = attendance.student;
             // Get exact attendance percentage (already calculated with precision in calculateAttendanceStats)
@@ -11409,25 +11582,38 @@ const endZoomMeeting = async (req, res) => {
                   // Camera is ON if it was on for 80% or more of the student's attendance time
                   let cameraOnPercentage = 0;
                   let cameraOpened = false;
-                  
-                  if (attendance.joinEvents && attendance.joinEvents.length > 0 && timeSpent > 0) {
+
+                  if (
+                    attendance.joinEvents &&
+                    attendance.joinEvents.length > 0 &&
+                    timeSpent > 0
+                  ) {
                     let totalCameraOnTime = 0; // in minutes
-                    
+
                     for (const joinEvent of attendance.joinEvents) {
                       const eventDuration = joinEvent.duration || 0;
                       if (eventDuration <= 0) continue;
-                      
+
                       const joinTime = new Date(joinEvent.joinTime);
-                      const leaveTime = joinEvent.leaveTime 
+                      const leaveTime = joinEvent.leaveTime
                         ? new Date(joinEvent.leaveTime)
                         : new Date(zoomMeeting.actualEndTime || Date.now());
-                      
+
                       // Get initial camera status from the first timeline entry (join action) or joinEvent
                       let initialCameraStatus = 'off';
-                      if (joinEvent.statusTimeline && joinEvent.statusTimeline.length > 0) {
+                      if (
+                        joinEvent.statusTimeline &&
+                        joinEvent.statusTimeline.length > 0
+                      ) {
                         // Find the join action to get initial status
-                        const joinAction = joinEvent.statusTimeline.find(s => s.action === 'join');
-                        if (joinAction && joinAction.cameraStatus && joinAction.cameraStatus !== 'unknown') {
+                        const joinAction = joinEvent.statusTimeline.find(
+                          (s) => s.action === 'join'
+                        );
+                        if (
+                          joinAction &&
+                          joinAction.cameraStatus &&
+                          joinAction.cameraStatus !== 'unknown'
+                        ) {
                           initialCameraStatus = joinAction.cameraStatus;
                         } else {
                           // Use joinEvent camera status as fallback
@@ -11437,42 +11623,53 @@ const endZoomMeeting = async (req, res) => {
                         // No timeline - use joinEvent camera status
                         initialCameraStatus = joinEvent.cameraStatus || 'off';
                       }
-                      
+
                       // Analyze status timeline to calculate camera ON time
-                      if (joinEvent.statusTimeline && joinEvent.statusTimeline.length > 0) {
+                      if (
+                        joinEvent.statusTimeline &&
+                        joinEvent.statusTimeline.length > 0
+                      ) {
                         // Sort timeline by timestamp
-                        const sortedTimeline = [...joinEvent.statusTimeline].sort(
-                          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+                        const sortedTimeline = [
+                          ...joinEvent.statusTimeline,
+                        ].sort(
+                          (a, b) =>
+                            new Date(a.timestamp) - new Date(b.timestamp)
                         );
-                        
+
                         // Start with initial camera status
                         let currentCameraStatus = initialCameraStatus;
                         let lastTimestamp = joinTime;
-                        
+
                         for (const status of sortedTimeline) {
                           const statusTime = new Date(status.timestamp);
-                          const timeSegment = (statusTime - lastTimestamp) / (1000 * 60); // in minutes
-                          
+                          const timeSegment =
+                            (statusTime - lastTimestamp) / (1000 * 60); // in minutes
+
                           // If camera was ON during this segment, add to total
                           if (currentCameraStatus === 'on') {
                             totalCameraOnTime += timeSegment;
                           }
-                          
+
                           // Update current status from timeline entry (only if not unknown)
-                          if (status.cameraStatus && status.cameraStatus !== 'unknown') {
+                          if (
+                            status.cameraStatus &&
+                            status.cameraStatus !== 'unknown'
+                          ) {
                             currentCameraStatus = status.cameraStatus;
                           } else if (status.action === 'camera_on') {
                             currentCameraStatus = 'on';
                           } else if (status.action === 'camera_off') {
                             currentCameraStatus = 'off';
                           }
-                          
+
                           lastTimestamp = statusTime;
                         }
-                        
+
                         // Calculate remaining time after last status change
-                        const remainingTime = (leaveTime - lastTimestamp) / (1000 * 60);
-                        
+                        const remainingTime =
+                          (leaveTime - lastTimestamp) / (1000 * 60);
+
                         if (currentCameraStatus === 'on') {
                           totalCameraOnTime += remainingTime;
                         }
@@ -11483,34 +11680,42 @@ const endZoomMeeting = async (req, res) => {
                         }
                       }
                     }
-                    
+
                     // Calculate percentage
-                    cameraOnPercentage = timeSpent > 0 
-                      ? (totalCameraOnTime / timeSpent) * 100 
-                      : 0;
-                    
+                    cameraOnPercentage =
+                      timeSpent > 0 ? (totalCameraOnTime / timeSpent) * 100 : 0;
+
                     // Camera is ON if it was on for 80% or more
                     cameraOpened = cameraOnPercentage >= 80;
-                    
+
                     console.log(
-                      `📹 Camera status for ${student.firstName}: ${cameraOnPercentage.toFixed(1)}% ON (${totalCameraOnTime.toFixed(1)}/${timeSpent.toFixed(1)} min) - Status: ${cameraOpened ? 'ON' : 'OFF'}`
+                      `📹 Camera status for ${
+                        student.firstName
+                      }: ${cameraOnPercentage.toFixed(
+                        1
+                      )}% ON (${totalCameraOnTime.toFixed(
+                        1
+                      )}/${timeSpent.toFixed(1)} min) - Status: ${
+                        cameraOpened ? 'ON' : 'OFF'
+                      }`
                     );
                   }
 
                   // Generate SMS message for zoom meeting completion
-                  const smsMessage = whatsappSMSNotificationService.getSmsZoomMeetingMessage(
-                    student,
-                    {
-                      meetingName: zoomMeeting.meetingName,
-                      meetingTopic: zoomMeeting.meetingTopic,
-                      attendancePercentage: attendancePercentage, // This is already calculated with precision
-                      meetingDate: meetingDate,
-                      duration: meetingDuration,
-                      timeSpent: timeSpent, // Time student spent in meeting
-                      courseTitle: course ? course.title : 'Course',
-                      cameraOpened: cameraOpened,
-                    }
-                  );
+                  const smsMessage =
+                    whatsappSMSNotificationService.getSmsZoomMeetingMessage(
+                      student,
+                      {
+                        meetingName: zoomMeeting.meetingName,
+                        meetingTopic: zoomMeeting.meetingTopic,
+                        attendancePercentage: attendancePercentage, // This is already calculated with precision
+                        meetingDate: meetingDate,
+                        duration: meetingDuration,
+                        timeSpent: timeSpent, // Time student spent in meeting
+                        courseTitle: course ? course.title : 'Course',
+                        cameraOpened: cameraOpened,
+                      }
+                    );
 
                   // Send notification to parent
                   await whatsappSMSNotificationService.sendToParent(
@@ -11541,55 +11746,61 @@ const endZoomMeeting = async (req, res) => {
           try {
             // Get course (already populated)
             const course = await Course.findById(courseId);
-            
+
             // Get all enrolled students in the course
             const enrolledStudents = await User.find({
               'enrolledCourses.course': courseId,
               role: 'student',
             })
-              .select('firstName lastName studentEmail studentCode parentNumber parentCountryCode')
+              .select(
+                'firstName lastName studentEmail studentCode parentNumber parentCountryCode'
+              )
               .lean();
 
             // Get list of student IDs who attended live session
             const attendedStudentIds = new Set(
-              refreshedMeeting.studentsAttended.map(a => a.student.toString())
+              refreshedMeeting.studentsAttended.map((a) => a.student.toString())
             );
 
             // Get list of student IDs who watched recording
             const watchedRecordingStudentIds = new Set(
               (refreshedMeeting.studentsWatchedRecording || [])
-                .filter(r => r.completedWatching)
-                .map(r => r.student.toString())
+                .filter((r) => r.completedWatching)
+                .map((r) => r.student.toString())
             );
 
             console.log(`📊 Processing non-attendance notifications:`);
             console.log(`   Total enrolled: ${enrolledStudents.length}`);
             console.log(`   Attended live: ${attendedStudentIds.size}`);
-            console.log(`   Watched recording: ${watchedRecordingStudentIds.size}`);
+            console.log(
+              `   Watched recording: ${watchedRecordingStudentIds.size}`
+            );
 
             // Find students who didn't attend live session
             for (const enrolledStudent of enrolledStudents) {
               const studentIdStr = enrolledStudent._id.toString();
-              
+
               // Skip if student attended live session
               if (attendedStudentIds.has(studentIdStr)) {
                 continue;
               }
 
               // Check if student watched recording
-              const watchedRecording = watchedRecordingStudentIds.has(studentIdStr);
+              const watchedRecording =
+                watchedRecordingStudentIds.has(studentIdStr);
 
               try {
                 // Generate SMS message for non-attendance
-                const smsMessage = whatsappSMSNotificationService.getSmsZoomMeetingNonAttendanceMessage(
-                  enrolledStudent,
-                  {
-                    meetingName: zoomMeeting.meetingName,
-                    meetingTopic: zoomMeeting.meetingTopic,
-                    courseTitle: course ? course.title : 'Course',
-                    watchedRecording: watchedRecording,
-                  }
-                );
+                const smsMessage =
+                  whatsappSMSNotificationService.getSmsZoomMeetingNonAttendanceMessage(
+                    enrolledStudent,
+                    {
+                      meetingName: zoomMeeting.meetingName,
+                      meetingTopic: zoomMeeting.meetingTopic,
+                      courseTitle: course ? course.title : 'Course',
+                      watchedRecording: watchedRecording,
+                    }
+                  );
 
                 // Send notification to parent
                 await whatsappSMSNotificationService.sendToParent(
@@ -11599,7 +11810,11 @@ const endZoomMeeting = async (req, res) => {
                 );
 
                 console.log(
-                  `📱 Sent non-attendance SMS to parent of ${enrolledStudent.firstName} ${enrolledStudent.lastName} (${watchedRecording ? 'watched recording' : 'did not attend'})`
+                  `📱 Sent non-attendance SMS to parent of ${
+                    enrolledStudent.firstName
+                  } ${enrolledStudent.lastName} (${
+                    watchedRecording ? 'watched recording' : 'did not attend'
+                  })`
                 );
               } catch (smsError) {
                 console.error(
@@ -11638,10 +11853,14 @@ const endZoomMeeting = async (req, res) => {
         'enrolledCourses.course': course._id,
         role: 'student',
       })
-        .select('firstName lastName studentEmail studentCode grade schoolName parentNumber parentCountryCode studentNumber studentCountryCode isActive enrolledCourses')
+        .select(
+          'firstName lastName studentEmail studentCode grade schoolName parentNumber parentCountryCode studentNumber studentCountryCode isActive enrolledCourses'
+        )
         .lean();
 
-      console.log(`📊 Generating Excel attendance report for meeting: ${zoomMeeting.meetingName}`);
+      console.log(
+        `📊 Generating Excel attendance report for meeting: ${zoomMeeting.meetingName}`
+      );
       console.log(`📚 Course: ${course.title}`);
       console.log(`👥 Total enrolled students: ${enrolledStudents.length}`);
 
@@ -11659,38 +11878,65 @@ const endZoomMeeting = async (req, res) => {
 
       // Upload Excel file to Cloudinary
       const cloudinary = require('../utils/cloudinary');
-      const fileName = `Zoom_Attendance_${zoomMeeting.meetingName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.xlsx`;
-      
+      const fileName = `Zoom_Attendance_${zoomMeeting.meetingName.replace(
+        /[^a-zA-Z0-9]/g,
+        '_'
+      )}_${Date.now()}.xlsx`;
+
       console.log('📤 Uploading Excel file to Cloudinary...');
-      const uploadResult = await cloudinary.uploadDocument(excelBuffer, fileName, {
-        resource_type: 'raw',
-        folder: 'zoom-reports',
-      });
+      const uploadResult = await cloudinary.uploadDocument(
+        excelBuffer,
+        fileName,
+        {
+          resource_type: 'raw',
+          folder: 'zoom-reports',
+        }
+      );
 
       console.log('✅ Excel file uploaded to Cloudinary:', uploadResult.url);
 
       // Send Excel file via WhatsApp to admin number
       const adminPhoneNumber = '01223333625'; // Admin WhatsApp number
-      const caption = `📊 Zoom Meeting Attendance Report\n\n` +
+      const caption =
+        `📊 Zoom Meeting Attendance Report\n\n` +
         `Meeting: ${zoomMeeting.meetingName}\n` +
         `Course: ${course.title}\n` +
-        `Date: ${zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleDateString() : 'N/A'}\n` +
+        `Date: ${
+          zoomMeeting.actualStartTime
+            ? new Date(zoomMeeting.actualStartTime).toLocaleDateString()
+            : 'N/A'
+        }\n` +
         `Total Enrolled: ${enrolledStudents.length}\n` +
-        `Attended: ${zoomMeeting.studentsAttended ? zoomMeeting.studentsAttended.length : 0}\n` +
-        `Not Attended: ${enrolledStudents.length - (zoomMeeting.studentsAttended ? zoomMeeting.studentsAttended.length : 0)}`;
+        `Attended: ${
+          zoomMeeting.studentsAttended ? zoomMeeting.studentsAttended.length : 0
+        }\n` +
+        `Not Attended: ${
+          enrolledStudents.length -
+          (zoomMeeting.studentsAttended
+            ? zoomMeeting.studentsAttended.length
+            : 0)
+        }`;
 
-      console.log(`📱 Sending Excel report via WhatsApp to: ${adminPhoneNumber}`);
-      const whatsappResult = await whatsappSMSNotificationService.sendDocumentViaWhatsApp(
-        adminPhoneNumber,
-        uploadResult.url,
-        fileName,
-        caption
+      console.log(
+        `📱 Sending Excel report via WhatsApp to: ${adminPhoneNumber}`
       );
+      const whatsappResult =
+        await whatsappSMSNotificationService.sendDocumentViaWhatsApp(
+          adminPhoneNumber,
+          uploadResult.url,
+          fileName,
+          caption
+        );
 
       if (whatsappResult.success) {
-        console.log('✅ Excel attendance report sent successfully via WhatsApp');
+        console.log(
+          '✅ Excel attendance report sent successfully via WhatsApp'
+        );
       } else {
-        console.error('❌ Failed to send Excel report via WhatsApp:', whatsappResult.message);
+        console.error(
+          '❌ Failed to send Excel report via WhatsApp:',
+          whatsappResult.message
+        );
       }
     } catch (excelError) {
       console.error(
@@ -12381,14 +12627,29 @@ const enrollStudentsToBundle = async (req, res) => {
 
     // Enroll all students to bundle
     const enrolledStudents = [];
+    const enrolledStudentIds = [];
+
     for (const student of students) {
+      // Add bundle to student's purchasedBundles
+      student.purchasedBundles.push({
+        bundle: bundleId,
+        purchasedAt: new Date(),
+        price: bundle.discountPrice || bundle.price || 0,
+        orderNumber: `ADMIN-${Date.now()}-${student._id}`,
+        status: 'active',
+      });
+
       // Also enroll in all courses in the bundle using safe enrollment
       for (const courseId of bundle.courses) {
         await student.safeEnrollInCourse(courseId);
       }
+
+      await student.save();
+
       enrolledStudents.push(
         student.name || `${student.firstName} ${student.lastName}`
       );
+      enrolledStudentIds.push(student._id);
 
       // Send WhatsApp notification for bundle enrollment
       try {
@@ -12405,6 +12666,10 @@ const enrollStudentsToBundle = async (req, res) => {
         // Don't fail the enrollment if WhatsApp fails
       }
     }
+
+    // Update bundle's enrolledStudents list
+    bundle.enrolledStudents.push(...enrolledStudentIds);
+    await bundle.save();
 
     // Log admin action
     await createLog(req, {
@@ -12760,7 +13025,7 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
         student.purchasedBundles.push({
           bundle: bundleId,
           purchasedAt: new Date(),
-          price: bundle.price || 0,
+          price: bundle.discountPrice || bundle.price || 0,
           orderNumber: `BULK-${Date.now()}-${rowNumber}`,
           status: 'active',
         });
@@ -12788,6 +13053,11 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
 
         await student.save();
 
+        // Add student to bundle's enrolledStudents list
+        if (!bundle.enrolledStudents.includes(student._id)) {
+          bundle.enrolledStudents.push(student._id);
+        }
+
         results.success.push({
           row: rowNumber,
           studentName:
@@ -12801,6 +13071,11 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
           reason: error.message,
         });
       }
+    }
+
+    // Save bundle with updated enrolledStudents
+    if (results.success.length > 0) {
+      await bundle.save();
     }
 
     // Clean up uploaded file
@@ -12985,6 +13260,30 @@ const removeStudentFromBundle = async (req, res) => {
     }
 
     await student.save();
+
+    // Remove student from bundle's enrolledStudents list
+    const studentIndexInBundle = bundle.enrolledStudents.indexOf(studentId);
+    if (studentIndexInBundle !== -1) {
+      bundle.enrolledStudents.splice(studentIndexInBundle, 1);
+      await bundle.save();
+    }
+
+    // Log admin action
+    await createLog(req, {
+      action: 'REMOVE_STUDENT',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Removed student "${
+        student.name || `${student.firstName} ${student.lastName}`
+      }" from bundle "${bundle.title}" (${bundle.bundleCode})`,
+      targetModel: 'BundleCourse',
+      targetId: bundleId,
+      targetName: bundle.title,
+      metadata: {
+        studentId,
+        studentName: student.name || `${student.firstName} ${student.lastName}`,
+        removedCoursesCount: removedCourses.length,
+      },
+    });
 
     res.json({
       success: true,
@@ -13238,7 +13537,11 @@ const createPromoCode = async (req, res) => {
     await createLog(req, {
       action: 'CREATE_PROMO_CODE',
       actionCategory: 'PROMO_CODE_MANAGEMENT',
-      description: `Created promo code "${promoCode.code}" - ${promoCode.discountType === 'percentage' ? promoCode.discountValue + '%' : promoCode.discountValue + ' EGP'} discount`,
+      description: `Created promo code "${promoCode.code}" - ${
+        promoCode.discountType === 'percentage'
+          ? promoCode.discountValue + '%'
+          : promoCode.discountValue + ' EGP'
+      } discount`,
       targetModel: 'PromoCode',
       targetId: promoCode._id.toString(),
       targetName: promoCode.code,
@@ -14473,7 +14776,6 @@ const exportTeamMembers = async (req, res) => {
 
 // ==================== BULK SMS MESSAGING ====================
 
-
 // Get Bulk SMS Page
 const getBulkSMSPage = async (req, res) => {
   try {
@@ -14713,7 +15015,8 @@ const getBundleStudentsCount = async (req, res) => {
 // Send Bulk SMS
 const sendBulkSMS = async (req, res) => {
   try {
-    const { targetType, targetId, recipientType, selectedStudents, message } = req.body;
+    const { targetType, targetId, recipientType, selectedStudents, message } =
+      req.body;
 
     if (!message || message.trim().length < 10) {
       return res.status(400).json({
@@ -14921,9 +15224,11 @@ const sendBulkSMS = async (req, res) => {
     // Remove duplicates based on phoneNumber and countryCode combination
     const uniqueRecipients = recipients.filter(
       (recipient, index, self) =>
-        index === self.findIndex((r) => 
-          r.phoneNumber === recipient.phoneNumber && 
-          (r.countryCode || '') === (recipient.countryCode || '')
+        index ===
+        self.findIndex(
+          (r) =>
+            r.phoneNumber === recipient.phoneNumber &&
+            (r.countryCode || '') === (recipient.countryCode || '')
         )
     );
 
@@ -14974,7 +15279,7 @@ const sendBulkSMS = async (req, res) => {
 
           // All recipients in batch succeeded
           batch.forEach((recipient) => {
-            const fullPhone = recipient.countryCode 
+            const fullPhone = recipient.countryCode
               ? `${recipient.countryCode}${recipient.phoneNumber}`
               : recipient.phoneNumber;
             results.success.push({
@@ -14987,8 +15292,8 @@ const sendBulkSMS = async (req, res) => {
         } catch (error) {
           console.error(`Failed to send SMS batch:`, error);
 
-        // Extract error message from API response
-        let errorMessage = 'Unknown error';
+          // Extract error message from API response
+          let errorMessage = 'Unknown error';
 
           // Priority 1: Check if it's an API error with isApiError flag
           if (error.isApiError && error.message) {
@@ -14997,7 +15302,8 @@ const sendBulkSMS = async (req, res) => {
           // Priority 2: Check error.details for API error format (status: "error")
           else if (error.details && typeof error.details === 'object') {
             if (error.details.status === 'error') {
-              errorMessage = error.details.message || 'SMS API returned an error';
+              errorMessage =
+                error.details.message || 'SMS API returned an error';
             } else {
               errorMessage =
                 error.details.message ||
@@ -15014,7 +15320,8 @@ const sendBulkSMS = async (req, res) => {
           else if (error.response?.data) {
             const responseData = error.response.data;
             if (responseData.status === 'error') {
-              errorMessage = responseData.message || 'SMS API returned an error';
+              errorMessage =
+                responseData.message || 'SMS API returned an error';
             } else if (typeof responseData === 'object') {
               errorMessage =
                 responseData.message ||
@@ -15046,7 +15353,7 @@ const sendBulkSMS = async (req, res) => {
           // If bulk send fails, mark all recipients in batch as failed
           // If we can't determine which specific ones failed, mark all
           batch.forEach((recipient) => {
-            const fullPhone = recipient.countryCode 
+            const fullPhone = recipient.countryCode
               ? `${recipient.countryCode}${recipient.phoneNumber}`
               : recipient.phoneNumber;
             results.failed.push({
@@ -15064,13 +15371,13 @@ const sendBulkSMS = async (req, res) => {
     // Send WhatsApp messages to non-Egyptian recipients
     if (nonEgyptianRecipients.length > 0) {
       const wasender = require('../utils/wasender');
-      
+
       // Check if session API key is available
       if (!whatsappSMSNotificationService.sessionApiKey) {
         console.error('Session API key is not configured for WhatsApp');
         // Mark all non-Egyptian recipients as failed
         nonEgyptianRecipients.forEach((recipient) => {
-          const fullPhone = recipient.countryCode 
+          const fullPhone = recipient.countryCode
             ? `${recipient.countryCode}${recipient.phoneNumber}`
             : recipient.phoneNumber;
           results.failed.push({
@@ -15083,26 +15390,32 @@ const sendBulkSMS = async (req, res) => {
         });
       } else {
         // Remove WhatsApp link from message for WhatsApp delivery
-        const cleanedWhatsappMessage = whatsappSMSNotificationService.removeWhatsAppLink(message.trim());
+        const cleanedWhatsappMessage =
+          whatsappSMSNotificationService.removeWhatsAppLink(message.trim());
 
         // Send WhatsApp messages individually
         for (const recipient of nonEgyptianRecipients) {
           try {
             // Format phone number for WhatsApp
-            const formattedPhone = whatsappSMSNotificationService.formatPhoneNumber(
-              recipient.phoneNumber,
-              recipient.countryCode
-            );
+            const formattedPhone =
+              whatsappSMSNotificationService.formatPhoneNumber(
+                recipient.phoneNumber,
+                recipient.countryCode
+              );
 
             // Convert to WhatsApp JID format (remove + and add @s.whatsapp.net)
             let cleaned = formattedPhone.replace(/^\+/, '').replace(/\D/g, '');
             // If starts with 0, replace with country code if available
             if (cleaned.startsWith('0') && recipient.countryCode) {
-              cleaned = recipient.countryCode.replace(/^\+/, '').replace(/\D/g, '') + cleaned.substring(1);
+              cleaned =
+                recipient.countryCode.replace(/^\+/, '').replace(/\D/g, '') +
+                cleaned.substring(1);
             }
             const whatsappJid = `${cleaned}@s.whatsapp.net`;
 
-            console.log(`💬 Sending WhatsApp to non-Egyptian number: ${whatsappJid}`);
+            console.log(
+              `💬 Sending WhatsApp to non-Egyptian number: ${whatsappJid}`
+            );
 
             // Send message via WhatsApp
             const result = await wasender.sendTextMessage(
@@ -15112,10 +15425,12 @@ const sendBulkSMS = async (req, res) => {
             );
 
             if (result.success) {
-              const fullPhone = recipient.countryCode 
+              const fullPhone = recipient.countryCode
                 ? `${recipient.countryCode}${recipient.phoneNumber}`
                 : recipient.phoneNumber;
-              console.log(`✅ WhatsApp message sent to ${recipient.name} (${whatsappJid})`);
+              console.log(
+                `✅ WhatsApp message sent to ${recipient.name} (${whatsappJid})`
+              );
               results.success.push({
                 phone: fullPhone,
                 name: recipient.name,
@@ -15123,10 +15438,13 @@ const sendBulkSMS = async (req, res) => {
                 method: 'WhatsApp',
               });
             } else {
-              const fullPhone = recipient.countryCode 
+              const fullPhone = recipient.countryCode
                 ? `${recipient.countryCode}${recipient.phoneNumber}`
                 : recipient.phoneNumber;
-              console.error(`❌ Failed to send WhatsApp to ${recipient.name}:`, result.message);
+              console.error(
+                `❌ Failed to send WhatsApp to ${recipient.name}:`,
+                result.message
+              );
               results.failed.push({
                 phone: fullPhone,
                 name: recipient.name,
@@ -15136,10 +15454,13 @@ const sendBulkSMS = async (req, res) => {
               });
             }
           } catch (whatsappError) {
-            const fullPhone = recipient.countryCode 
+            const fullPhone = recipient.countryCode
               ? `${recipient.countryCode}${recipient.phoneNumber}`
               : recipient.phoneNumber;
-            console.error(`❌ WhatsApp sending error for ${recipient.name}:`, whatsappError);
+            console.error(
+              `❌ WhatsApp sending error for ${recipient.name}:`,
+              whatsappError
+            );
             results.failed.push({
               phone: fullPhone,
               name: recipient.name,
@@ -15155,8 +15476,10 @@ const sendBulkSMS = async (req, res) => {
     // Calculate total counts
     const successCount = results.success.length;
     const failedCount = results.failed.length;
-    const smsCount = results.success.filter(r => r.method === 'SMS').length;
-    const whatsappCount = results.success.filter(r => r.method === 'WhatsApp').length;
+    const smsCount = results.success.filter((r) => r.method === 'SMS').length;
+    const whatsappCount = results.success.filter(
+      (r) => r.method === 'WhatsApp'
+    ).length;
 
     res.json({
       success: true,
@@ -15207,7 +15530,7 @@ const uploadPDF = async (req, res) => {
     });
   } catch (error) {
     console.error('Error uploading PDF:', error);
-    
+
     // Delete file if it was uploaded but error occurred
     if (req.file && req.file.path) {
       try {

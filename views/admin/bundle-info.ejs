@@ -770,9 +770,6 @@
                     </td>
                     <td>
                       <div class="action-buttons">
-                        <a href="/admin/students/<%= student._id %>" class="btn btn-sm btn-outline-primary" title="View Profile">
-                          <i class="fas fa-eye"></i>
-                        </a>
                         <button class="btn btn-sm btn-outline-info" onclick="viewStudentProgress('<%= student._id %>')" title="View Progress">
                           <i class="fas fa-chart-line"></i>
                         </button>
@@ -3818,8 +3815,36 @@
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<!-- Bundle Data (safely embedded) -->
+<script type="application/json" id="bundle-data">
+<%- JSON.stringify({
+  bundleId: bundle._id,
+  bundleCode: bundle.bundleCode,
+  gradeDistribution: gradeDistribution || {},
+  financialAnalytics: financialAnalytics || {}
+}) %>
+</script>
+
 <!-- JavaScript for Interactive Features -->
 <script>
+  // Get bundle data from embedded JSON
+  function getBundleData() {
+    try {
+      const dataScript = document.getElementById('bundle-data');
+      if (dataScript && dataScript.textContent) {
+        return JSON.parse(dataScript.textContent);
+      }
+    } catch (error) {
+      console.error('Error parsing bundle data:', error);
+    }
+    return {
+      bundleId: '<%= bundle._id %>',
+      bundleCode: '<%= bundle.bundleCode || "" %>',
+      gradeDistribution: {},
+      financialAnalytics: {}
+    };
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     // Initialize all charts and animations
     initializeCharts();
@@ -3897,79 +3922,94 @@
     // Financial Chart (Doughnut Chart)
     const financialCtx = document.getElementById('financialChart');
     if (financialCtx) {
-      new Chart(financialCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Full Price', 'Discounted', 'Potential'],
-          datasets: [{
-            data: [
-              <%= financialAnalytics.fullPriceRevenue || 0 %>,
-              <%= financialAnalytics.discountedRevenue || 0 %>,
-              <%= financialAnalytics.totalPotentialRevenue || 0 %>
-            ],
-            backgroundColor: [
-              '#10b981',
-              '#f59e0b',
-              '#e5e7eb'
-            ],
-            borderWidth: 0,
-            cutout: '70%'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 20,
-                usePointStyle: true,
-                pointStyle: 'circle'
+      try {
+        const bundleData = getBundleData();
+        const financial = bundleData.financialAnalytics || {};
+        const fullPrice = Number(financial.fullPriceRevenue || 0) || 0;
+        const discounted = Number(financial.discountedRevenue || 0) || 0;
+        const potential = Number(financial.totalPotentialRevenue || 0) || 0;
+
+        new Chart(financialCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Full Price', 'Discounted', 'Potential'],
+            datasets: [{
+              data: [fullPrice, discounted, potential],
+              backgroundColor: [
+                '#10b981',
+                '#f59e0b',
+                '#e5e7eb'
+              ],
+              borderWidth: 0,
+              cutout: '70%'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20,
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                }
               }
             }
           }
-        }
-      });
+        });
+      } catch (error) {
+        console.error('Error initializing financial chart:', error);
+      }
     }
 
     // Grade Chart (Pie Chart)
     const gradeCtx = document.getElementById('gradeChart');
-    if (gradeCtx && <%= JSON.stringify(gradeDistribution || {}) %> !== '{}') {
-      const gradeData = <%= JSON.stringify(gradeDistribution || {}) %>;
-      const labels = Object.keys(gradeData);
-      const data = Object.values(gradeData);
-      const colors = [
-        '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', 
-        '#ef4444', '#06b6d4', '#84cc16', '#f97316'
-      ];
+    if (gradeCtx) {
+      try {
+        // Safely parse grade distribution data
+        const bundleData = getBundleData();
+        const gradeData = bundleData.gradeDistribution || {};
+        const labels = Object.keys(gradeData);
+        const data = Object.values(gradeData);
+        
+        if (labels.length > 0 && data.length > 0) {
+          const colors = [
+            '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', 
+            '#ef4444', '#06b6d4', '#84cc16', '#f97316'
+          ];
 
-      new Chart(gradeCtx, {
-        type: 'pie',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: colors.slice(0, labels.length),
-            borderWidth: 0,
-            hoverOffset: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 20,
-                usePointStyle: true,
-                pointStyle: 'circle'
+          new Chart(gradeCtx, {
+            type: 'pie',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 0,
+                hoverOffset: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    padding: 20,
+                    usePointStyle: true,
+                    pointStyle: 'circle'
+                  }
+                }
               }
             }
-          }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error initializing grade chart:', error);
+      }
     }
   }
 
@@ -4040,33 +4080,60 @@
 
   // Function to export student data
   function exportStudentData() {
-    const students = <%- JSON.stringify(studentsWithBundle) %>;
-    const csvContent = "data:text/csv;charset=utf-8,Name,Email,Grade,School,Enrollment Date,Status\n" +
-      students.map(student => {
-        const bundlePurchase = student.purchasedBundles.find(pb =>
-          pb.bundle._id === '<%= bundle._id %>' || pb.bundle === '<%= bundle._id %>'
-        );
-        const enrollmentDate = bundlePurchase ?
-          new Date(bundlePurchase.purchasedAt).toLocaleDateString() :
-          new Date(student.createdAt).toLocaleDateString();
+    try {
+      // Safely get students data from the page
+      const studentsTable = document.querySelector('.table tbody');
+      if (!studentsTable) {
+        alert('No students data available');
+        return;
+      }
 
-        return [
-          `"${student.firstName} ${student.lastName}"`,
-          student.studentEmail,
-          student.grade,
-          `"${student.schoolName}"`,
-          enrollmentDate,
-          student.isActive ? 'Active' : 'Inactive'
-        ].join(',');
-      }).join('\n');
+      const rows = studentsTable.querySelectorAll('tr');
+      if (rows.length === 0) {
+        alert('No students to export');
+        return;
+      }
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'bundle-students-<%= bundle.bundleCode %>.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Build CSV from table data
+      const csvRows = ['Name,Email,Grade,School,Enrollment Date,Status'];
+      
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 5) {
+          const name = cells[0].querySelector('.student-name')?.textContent.trim() || '';
+          const email = cells[1].querySelector('.email')?.textContent.replace(/.*\s/, '').trim() || '';
+          const grade = cells[2].querySelector('.grade-badge')?.textContent.trim() || '';
+          const school = cells[2].querySelector('.school')?.textContent.trim() || '';
+          const enrollmentDate = cells[3].querySelector('.date')?.textContent.trim() || '';
+          const status = cells[4].querySelector('.status-badge')?.textContent.trim() || '';
+
+          csvRows.push([
+            `"${name}"`,
+            email,
+            grade,
+            `"${school}"`,
+            enrollmentDate,
+            status
+          ].join(','));
+        }
+      });
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'bundle-students-<%= bundle.bundleCode || bundle._id %>.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting student data:', error);
+      alert('Failed to export student data. Please try again.');
+    }
   }
 
   // Function to view student progress
@@ -4128,44 +4195,101 @@
 
   // Load students for enrollment
   async function loadStudentsForEnrollment(search = '') {
+    const container = document.getElementById('studentListContainer');
+    if (!container) return;
+
     try {
-      const response = await fetch(`/admin/api/students-for-enrollment?search=${encodeURIComponent(search)}&bundleId=<%= bundle._id %>&page=1&limit=50`);
+      // Show loading state
+      container.innerHTML = `
+        <div class="text-center py-4">
+          <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+          <p class="text-muted mt-2">Loading students...</p>
+        </div>
+      `;
+
+      const bundleId = '<%= bundle._id %>';
+      const searchParam = encodeURIComponent(search || '');
+      const response = await fetch(`/admin/api/students-for-enrollment?search=${searchParam}&bundleId=${bundleId}&page=1&limit=50`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
-      if (data.success) {
+      if (data.success && Array.isArray(data.students)) {
         renderStudentList(data.students);
+      } else {
+        container.innerHTML = `
+          <div class="alert alert-warning text-center">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${data.message || 'No students available for enrollment'}
+          </div>
+        `;
       }
     } catch (error) {
       console.error('Error loading students:', error);
-      alert('Failed to load students');
+      container.innerHTML = `
+        <div class="alert alert-danger text-center">
+          <i class="fas fa-exclamation-circle me-2"></i>
+          Failed to load students. Please try again.
+        </div>
+      `;
     }
   }
 
   // Render student list in modal
   function renderStudentList(students) {
     const container = document.getElementById('studentListContainer');
-    if (students.length === 0) {
+    if (!container) return;
+    
+    if (!students || students.length === 0) {
       container.innerHTML = '<p class="text-muted text-center">No students found (all students are already enrolled)</p>';
       return;
     }
 
-    container.innerHTML = students.map(student => `
-      <div class="student-item d-flex align-items-center justify-content-between p-3 border rounded mb-2">
-        <div class="d-flex align-items-center">
-          <input type="checkbox" class="form-check-input me-3" value="${student._id}" onchange="toggleStudentSelection('${student._id}')">
-          <div class="student-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-            ${student.firstName.charAt(0)}${student.lastName.charAt(0)}
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Helper function to get initials
+    function getInitials(firstName, lastName) {
+      const first = (firstName || '').charAt(0).toUpperCase();
+      const last = (lastName || '').charAt(0).toUpperCase();
+      return first + last;
+    }
+
+    container.innerHTML = students.map((student, index) => {
+      const studentId = escapeHtml(String(student._id || ''));
+      const firstName = escapeHtml(student.firstName || '');
+      const lastName = escapeHtml(student.lastName || '');
+      const email = escapeHtml(student.studentEmail || '');
+      const code = escapeHtml(student.studentCode || '');
+      const grade = escapeHtml(student.grade || 'N/A');
+      const initials = getInitials(student.firstName, student.lastName);
+
+      return `
+        <div class="student-item d-flex align-items-center justify-content-between p-3 border rounded mb-2">
+          <div class="d-flex align-items-center">
+            <input type="checkbox" class="form-check-input me-3" value="${studentId}" id="student-checkbox-${index}" onchange="toggleStudentSelection('${studentId}')">
+            <div class="student-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight: 600;">
+              ${initials}
+            </div>
+            <div class="ms-3">
+              <div class="fw-bold">${firstName} ${lastName}</div>
+              <div class="text-muted small">${email}${code ? ' | ' + code : ''}</div>
+            </div>
           </div>
-          <div class="ms-3">
-            <div class="fw-bold">${student.firstName} ${student.lastName}</div>
-            <div class="text-muted small">${student.studentEmail} | ${student.studentCode}</div>
+          <div class="text-muted small">
+            ${grade}
           </div>
         </div>
-        <div class="text-muted small">
-          ${student.grade || 'N/A'}
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // Toggle student selection
@@ -4196,12 +4320,15 @@
       return;
     }
 
+    const btn = document.getElementById('confirmEnrollBtn');
+    if (!btn) return;
+
     try {
-      const btn = document.getElementById('confirmEnrollBtn');
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enrolling...';
 
-      const response = await fetch(`/admin/bundles/<%= bundle._id %>/enroll`, {
+      const bundleId = '<%= bundle._id %>';
+      const response = await fetch(`/admin/bundles/${bundleId}/enroll`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -4211,23 +4338,41 @@
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
-        alert(data.message);
-        bootstrap.Modal.getInstance(document.getElementById('manualEnrollModal')).hide();
+        // Close modal first
+        const modalElement = document.getElementById('manualEnrollModal');
+        if (modalElement) {
+          const modal = bootstrap.Modal.getInstance(modalElement);
+          if (modal) modal.hide();
+        }
+        
+        // Clear selections
         selectedStudents.clear();
         
+        // Reset checkboxes
+        document.querySelectorAll('#studentListContainer input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+        });
+        
+        // Show success message
+        alert(data.message || 'Students enrolled successfully!');
+        
         // Reload page to show updated student list
-        setTimeout(() => window.location.reload(), 1500);
+        window.location.reload();
       } else {
         alert(data.message || 'Failed to enroll students');
+        btn.disabled = false;
+        btn.innerHTML = `Enroll ${selectedStudents.size} Student(s)`;
       }
     } catch (error) {
       console.error('Error enrolling students:', error);
-      alert('Failed to enroll students');
-    } finally {
-      const btn = document.getElementById('confirmEnrollBtn');
+      alert('Failed to enroll students. Please try again.');
       btn.disabled = false;
       btn.innerHTML = `Enroll ${selectedStudents.size} Student(s)`;
     }
@@ -4273,18 +4418,33 @@
 
   // Show bulk enrollment results
   function showBulkEnrollResults(results) {
-    const modal = new bootstrap.Modal(document.getElementById('bulkEnrollResultsModal'));
-    document.getElementById('bulkEnrollResultsContent').innerHTML = `
+    const resultsContainer = document.getElementById('bulkEnrollResultsContent');
+    if (!resultsContainer) return;
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    const successCount = results.success ? results.success.length : 0;
+    const failedCount = results.failed ? results.failed.length : 0;
+    const alreadyEnrolledCount = results.alreadyEnrolled ? results.alreadyEnrolled.length : 0;
+    const message = escapeHtml(results.message || 'Bulk enrollment completed');
+
+    let html = `
       <div class="alert alert-success">
         <i class="fas fa-check-circle me-2"></i>
-        ${results.message}
+        ${message}
       </div>
       
       <div class="row mb-3">
         <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
-              <h3 class="text-success">${results.success.length}</h3>
+              <h3 class="text-success">${successCount}</h3>
               <p class="mb-0">Successful</p>
             </div>
           </div>
@@ -4292,7 +4452,7 @@
         <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
-              <h3 class="text-danger">${results.failed.length}</h3>
+              <h3 class="text-danger">${failedCount}</h3>
               <p class="mb-0">Failed</p>
             </div>
           </div>
@@ -4300,54 +4460,98 @@
         <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
-              <h3 class="text-warning">${results.alreadyEnrolled.length}</h3>
+              <h3 class="text-warning">${alreadyEnrolledCount}</h3>
               <p class="mb-0">Already Enrolled</p>
             </div>
           </div>
         </div>
       </div>
+    `;
 
-      ${results.failed.length > 0 ? `
+    if (failedCount > 0 && Array.isArray(results.failed)) {
+      html += `
         <div class="mb-3">
           <h6 class="text-danger">Failed Imports:</h6>
           <ul class="list-group">
-            ${results.failed.map(f => `
-              <li class="list-group-item">
-                <strong>Row ${f.row}:</strong> ${f.identifier || 'N/A'} - ${f.reason}
-              </li>
-            `).join('')}
+            ${results.failed.map(f => {
+              const row = escapeHtml(f.row || 'N/A');
+              const identifier = escapeHtml(f.identifier || 'N/A');
+              const reason = escapeHtml(f.reason || 'Unknown error');
+              return `<li class="list-group-item"><strong>Row ${row}:</strong> ${identifier} - ${reason}</li>`;
+            }).join('')}
           </ul>
         </div>
-      ` : ''}
+      `;
+    }
 
-      ${results.alreadyEnrolled.length > 0 ? `
+    if (alreadyEnrolledCount > 0 && Array.isArray(results.alreadyEnrolled)) {
+      html += `
         <div class="mb-3">
           <h6 class="text-warning">Already Enrolled:</h6>
           <ul class="list-group">
-            ${results.alreadyEnrolled.map(e => `
-              <li class="list-group-item">
-                <strong>Row ${e.row}:</strong> ${e.studentName} (${e.identifier})
-              </li>
-            `).join('')}
+            ${results.alreadyEnrolled.map(e => {
+              const row = escapeHtml(e.row || 'N/A');
+              const studentName = escapeHtml(e.studentName || 'N/A');
+              const identifier = escapeHtml(e.identifier || 'N/A');
+              return `<li class="list-group-item"><strong>Row ${row}:</strong> ${studentName} (${identifier})</li>`;
+            }).join('')}
           </ul>
         </div>
-      ` : ''}
-    `;
+      `;
+    }
+
+    resultsContainer.innerHTML = html;
+    
+    const modal = new bootstrap.Modal(document.getElementById('bulkEnrollResultsModal'));
     modal.show();
     
     // Close bulk enroll modal
-    bootstrap.Modal.getInstance(document.getElementById('bulkEnrollModal')).hide();
+    const bulkModalElement = document.getElementById('bulkEnrollModal');
+    if (bulkModalElement) {
+      const bulkModal = bootstrap.Modal.getInstance(bulkModalElement);
+      if (bulkModal) bulkModal.hide();
+    }
   }
 
   // Search students in manual enrollment modal
   let searchTimeout;
   function searchStudentsForEnrollment() {
     clearTimeout(searchTimeout);
+    const searchInput = document.getElementById('studentSearchInput');
+    if (!searchInput) return;
+    
     searchTimeout = setTimeout(() => {
-      const search = document.getElementById('studentSearchInput').value;
-      loadStudentsForEnrollment(search);
+      const searchTerm = searchInput.value.trim();
+      loadStudentsForEnrollment(searchTerm);
     }, 500);
   }
+
+  // Initialize modal event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    // Reset student list when manual enroll modal is shown
+    const manualEnrollModal = document.getElementById('manualEnrollModal');
+    if (manualEnrollModal) {
+      manualEnrollModal.addEventListener('show.bs.modal', function() {
+        selectedStudents.clear();
+        const searchInput = document.getElementById('studentSearchInput');
+        if (searchInput) {
+          searchInput.value = '';
+        }
+        updateEnrollButton();
+      });
+    }
+
+    // Reset bulk enroll form when modal is shown
+    const bulkEnrollModal = document.getElementById('bulkEnrollModal');
+    if (bulkEnrollModal) {
+      bulkEnrollModal.addEventListener('show.bs.modal', function() {
+        const form = document.getElementById('bulkEnrollForm');
+        if (form) {
+          form.reset();
+        }
+      });
+    }
+  });
 </script>
 
 <!-- Manual Enrollment Modal -->
