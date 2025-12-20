@@ -1394,15 +1394,11 @@ const duplicateCourse = async (req, res) => {
     session.startTransaction();
 
     try {
-      // Determine the new order (auto-assign next available order in bundle)
-      const existingCourses = await Course.find({
+      // Determine the new order (count existing courses and assign next sequential order)
+      const existingCoursesCount = await Course.countDocuments({
         bundle: originalCourse.bundle._id,
-      })
-        .sort({ order: -1 })
-        .limit(1)
-        .session(session);
-      const newOrder =
-        existingCourses.length > 0 ? (existingCourses[0].order || 0) + 1 : 1;
+      }).session(session);
+      const newOrder = existingCoursesCount + 1;
 
       // Create new course with copied data
       const newCourseData = {
