@@ -12629,6 +12629,20 @@ const enrollStudentsToBundle = async (req, res) => {
     const enrolledStudents = [];
     const enrolledStudentIds = [];
 
+    // Get unique course IDs from bundle (handle both ObjectId and string formats)
+    const uniqueCourseIds = [...new Set(
+      bundle.courses.map(courseId => 
+        (courseId && courseId._id ? courseId._id : courseId).toString()
+      )
+    )].map(id => new mongoose.Types.ObjectId(id));
+
+    // Verify courses exist and filter out invalid ones
+    const Course = mongoose.model('Course');
+    const existingCourses = await Course.find({ _id: { $in: uniqueCourseIds } }).select('_id');
+    const validCourseIds = existingCourses.map(c => c._id);
+    
+    console.log(`📦 Bundle ${bundle.bundleCode} has ${bundle.courses.length} courses in array, ${uniqueCourseIds.length} unique, ${validCourseIds.length} valid courses`);
+
     for (const student of students) {
       // Add bundle to student's purchasedBundles
       student.purchasedBundles.push({
@@ -12639,8 +12653,8 @@ const enrollStudentsToBundle = async (req, res) => {
         status: 'active',
       });
 
-      // Also enroll in all courses in the bundle using safe enrollment
-      for (const courseId of bundle.courses) {
+      // Also enroll in all unique valid courses in the bundle using safe enrollment
+      for (const courseId of validCourseIds) {
         await student.safeEnrollInCourse(courseId);
       }
 
@@ -12679,11 +12693,12 @@ const enrollStudentsToBundle = async (req, res) => {
       targetModel: 'BundleCourse',
       targetId: bundleId,
       targetName: bundle.title,
-      metadata: {
+        metadata: {
         bundleCode: bundle.bundleCode,
         studentCount: enrolledStudents.length,
         studentNames: enrolledStudents,
         coursesCount: bundle.courses.length,
+        uniqueCoursesEnrolled: validCourseIds.length,
       },
     });
 
@@ -12939,6 +12954,20 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
       total: data.length,
     };
 
+    // Get unique course IDs from bundle (handle both ObjectId and string formats) - do this once outside the loop
+    const uniqueCourseIds = [...new Set(
+      bundle.courses.map(courseId => 
+        (courseId && courseId._id ? courseId._id : courseId).toString()
+      )
+    )].map(id => new mongoose.Types.ObjectId(id));
+
+    // Verify courses exist and filter out invalid ones - do this once outside the loop
+    const Course = mongoose.model('Course');
+    const existingCourses = await Course.find({ _id: { $in: uniqueCourseIds } }).select('_id');
+    const validCourseIds = existingCourses.map(c => c._id);
+    
+    console.log(`📦 Bulk enrollment: Bundle ${bundle.bundleCode} has ${bundle.courses.length} courses in array, ${uniqueCourseIds.length} unique, ${validCourseIds.length} valid courses`);
+
     // Helper function to get value by key
     const getValueByKey = (obj, possibleKeys) => {
       for (const key of possibleKeys) {
@@ -13030,8 +13059,8 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
           status: 'active',
         });
 
-        // Also enroll in all courses in the bundle
-        for (const courseId of bundle.courses) {
+        // Also enroll in all unique valid courses in the bundle (validCourseIds already computed outside loop)
+        for (const courseId of validCourseIds) {
           const isAlreadyEnrolledInCourse = student.enrolledCourses.some(
             (enrollment) =>
               enrollment.course &&
