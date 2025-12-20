@@ -994,6 +994,8 @@ const getCourseData = async (req, res) => {
         isFeatured: course.isFeatured || false,
         isFullyBooked: course.isFullyBooked || false,
         fullyBookedMessage: course.fullyBookedMessage || 'FULLY BOOKED',
+        requiresSequential: course.requiresSequential !== undefined ? course.requiresSequential : true,
+        order: course.order || 0,
         tags: course.tags || [],
         thumbnail: course.thumbnail || '',
         bundle: course.bundle
@@ -1030,6 +1032,16 @@ const updateCourse = async (req, res) => {
       updateData.shortDescription = updateData.shortDescription
         ? updateData.shortDescription.trim()
         : '';
+    }
+
+    // Handle boolean fields (checkboxes)
+    // Convert string 'true'/'false' or 'on' to boolean, or keep boolean as is
+    if (updateData.requiresSequential !== undefined) {
+      if (typeof updateData.requiresSequential === 'string') {
+        updateData.requiresSequential = updateData.requiresSequential === 'true' || updateData.requiresSequential === 'on';
+      } else {
+        updateData.requiresSequential = Boolean(updateData.requiresSequential);
+      }
     }
 
     // Remove empty fields (but keep description fields as they can be empty strings)

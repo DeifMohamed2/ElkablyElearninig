@@ -2419,6 +2419,22 @@
                   </div>
                 </div>
 
+                <!-- Sequential Requirement Section -->
+                <div class="row mt-3">
+                  <div class="col-12">
+                    <div class="admin-form-group">
+                      <div class="admin-form-check mb-3">
+                        <input type="checkbox" class="admin-form-check-input" id="editCourseRequiresSequential" name="requiresSequential">
+                        <label class="admin-form-check-label" for="editCourseRequiresSequential">
+                          <i class="fas fa-list-ol me-2"></i>
+                          Require Sequential Completion
+                        </label>
+                      </div>
+                      <small class="admin-form-text">When enabled, students must complete previous courses in the bundle before accessing this course. When disabled, students can access this course without completing prerequisites.</small>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Fully Booked Section -->
                 <div class="row mt-3">
                   <div class="col-12">
@@ -6515,6 +6531,9 @@ function getContentIcon(type) {
     document.getElementById('editCourseStatus').value = course.status || 'draft';
     document.getElementById('editCourseFeatured').checked = course.isFeatured || false;
 
+    // Sequential requirement
+    document.getElementById('editCourseRequiresSequential').checked = course.requiresSequential !== undefined ? course.requiresSequential : true;
+
     // Fully booked
     const isFullyBooked = course.isFullyBooked || false;
     document.getElementById('editCourseIsFullyBooked').checked = isFullyBooked;
@@ -6723,6 +6742,7 @@ function getContentIcon(type) {
     // Add checkbox values
     data.isFeatured = document.getElementById('editCourseFeatured').checked;
     data.isFullyBooked = document.getElementById('editCourseIsFullyBooked').checked;
+    data.requiresSequential = document.getElementById('editCourseRequiresSequential').checked;
     
     // Handle fully booked message - use custom if "other" is selected, otherwise use dropdown value
     const fullyBookedMessageSelect = document.getElementById('editCourseFullyBookedMessage');
