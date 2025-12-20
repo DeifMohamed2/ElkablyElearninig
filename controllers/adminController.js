@@ -8365,7 +8365,7 @@ const exportStudentData = async (req, res) => {
         path: 'purchasedBundles.bundle',
         select: 'title bundleCode',
       })
-      .select('-password')
+      .select('-password +studentEmail')
       .lean();
 
     // Add analytics to each student
@@ -12461,6 +12461,66 @@ const downloadBulkImportSample = async (req, res) => {
   }
 };
 
+// Download Excel enrollment template
+const downloadEnrollmentTemplate = async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    
+    // Excel template with sample data
+    // Users can use any one of: Email, Phone, or Code columns
+    const sampleRows = [
+      {
+        'Email': 'student1@example.com',
+        'Phone': '+966501234567',
+        'Code': 'STU001'
+      },
+      {
+        'Email': 'student2@example.com',
+        'Phone': '',
+        'Code': 'STU002'
+      },
+      {
+        'Email': '',
+        'Phone': '+966501234568',
+        'Code': 'STU003'
+      },
+      {
+        'Email': 'student4@example.com',
+        'Phone': '',
+        'Code': ''
+      },
+      {
+        'Email': '',
+        'Phone': '+966501234569',
+        'Code': ''
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="enrollment-template.xlsx"'
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    return res.send(buffer);
+  } catch (error) {
+    console.error('Error generating enrollment template:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate template file',
+    });
+  }
+};
+
 // ==================== STUDENT ENROLLMENT ====================
 
 // Enroll students manually to a course
@@ -12880,6 +12940,11 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
         // Enroll student using safe enrollment
         await student.safeEnrollInCourse(courseId);
 
+        // Update course's enrolledStudents array
+        if (!course.enrolledStudents.includes(student._id)) {
+          course.enrolledStudents.push(student._id);
+        }
+
         results.success.push({
           row: rowNumber,
           studentName:
@@ -12893,6 +12958,11 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
           reason: error.message,
         });
       }
+    }
+
+    // Save course with updated enrolledStudents
+    if (results.success.length > 0) {
+      await course.save();
     }
 
     // Clean up uploaded file
@@ -13089,6 +13159,13 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
               status: 'active',
               contentProgress: [],
             });
+
+            // Update course's enrolledStudents array
+            const course = await Course.findById(courseId);
+            if (course && !course.enrolledStudents.includes(student._id)) {
+              course.enrolledStudents.push(student._id);
+              await course.save();
+            }
           }
         }
 
@@ -15689,6 +15766,7 @@ module.exports = {
   // Bulk Import
   bulkImportStudents,
   downloadBulkImportSample,
+  downloadEnrollmentTemplate,
   // Student Enrollment
   enrollStudentsToCourse,
   enrollStudentsToBundle,

@@ -347,7 +347,7 @@ class ExcelExporter {
       studentCode: student.studentCode || '',
       firstName: student.firstName || '',
       lastName: student.lastName || '',
-      email: student.studentEmail || '',
+      email: student.studentEmail || student.email || '',
       username: student.username || '',
       grade: student.grade || '',
       schoolName: student.schoolName || '',

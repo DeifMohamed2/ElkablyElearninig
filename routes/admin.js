@@ -163,6 +163,7 @@ const {
   enrollStudentsToBundle,
   bulkEnrollStudentsToCourse,
   bulkEnrollStudentsToBundle,
+  downloadEnrollmentTemplate,
   getStudentsForEnrollment,
   removeStudentFromCourse,
   removeStudentFromBundle,
@@ -388,6 +389,7 @@ router.get('/api/bundles', isAdmin, getBundlesAPI);
 router.get('/students', isAdmin, getStudents);
 router.get('/students/export', isAdmin, exportStudentData);
 router.get('/students/bulk-import/sample', isAdmin, downloadBulkImportSample);
+router.get('/enrollment-template.xlsx', isAdmin, downloadEnrollmentTemplate);
 router.post(
   '/students/bulk-import',
   isAdmin,
