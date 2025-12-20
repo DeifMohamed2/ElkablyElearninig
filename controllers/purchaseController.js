@@ -110,8 +110,9 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     console.log(`📚 Is Egypt: ${isEgypt}`);
     
     // Library phone numbers - Both Egypt and International use same number
-    const egyptLibraryPhone = '01055200152';
-    const internationalLibraryPhone = '01055200152';
+        // Library phone numbers (local Egyptian format, will be converted to international format)
+    const egyptLibraryPhone = '01023680795'; // Egypt library
+    const internationalLibraryPhone = '01026652507'; // International library
     const libraryPhone = isEgypt ? egyptLibraryPhone : internationalLibraryPhone;
 
     // Format phone number for WhatsApp
