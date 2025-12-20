@@ -163,8 +163,33 @@ app.use('/admin/quizzes', quizRoutes);
 app.use('/purchase', purchaseRoutes);
 app.use('/zoom', zoomRoutes);
 
+// Global error handler - must be before 404 handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  // If it's an API route (starts with /admin/ and expects JSON), return JSON
+  if (req.path.startsWith('/admin/') && (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')) {
+    return res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'An error occurred',
+      error: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    });
+  }
+  
+  // Otherwise, pass to next error handler or render error page
+  next(err);
+});
+
 // 404 Error handler
 app.use((req, res) => {
+  // If it's an API route expecting JSON, return JSON 404
+  if (req.path.startsWith('/admin/') && (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')) {
+    return res.status(404).json({
+      success: false,
+      message: 'Route not found',
+    });
+  }
+  
   res.status(404).render('404', {
     title: '404 - Page Not Found',
     theme: req.cookies.theme || 'light',

@@ -12842,8 +12842,41 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
       });
     }
 
+    // Validate file path exists
+    if (!fs.existsSync(req.file.path)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Uploaded file not found',
+      });
+    }
+
     const XLSX = require('xlsx');
-    const workbook = XLSX.readFile(req.file.path);
+    let workbook;
+    try {
+      workbook = XLSX.readFile(req.file.path);
+    } catch (xlsxError) {
+      console.error('Error reading Excel file:', xlsxError);
+      // Clean up file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to read Excel file. Please ensure it is a valid Excel file.',
+      });
+    }
+
+    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+      // Clean up file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Excel file is empty or invalid',
+      });
+    }
+
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
@@ -12966,9 +12999,13 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
     }
 
     // Clean up uploaded file
-    const fs = require('fs');
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    try {
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up uploaded file:', cleanupError);
+      // Don't fail the request if cleanup fails
     }
 
     // Log admin action
@@ -12996,9 +13033,21 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
     });
   } catch (error) {
     console.error('Error bulk enrolling students:', error);
+    
+    // Clean up uploaded file on error
+    try {
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up file on error:', cleanupError);
+    }
+
+    // Ensure we always return JSON, not HTML
     res.status(500).json({
       success: false,
       message: 'Failed to bulk enroll students',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -13023,8 +13072,41 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
       });
     }
 
+    // Validate file path exists
+    if (!fs.existsSync(req.file.path)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Uploaded file not found',
+      });
+    }
+
     const XLSX = require('xlsx');
-    const workbook = XLSX.readFile(req.file.path);
+    let workbook;
+    try {
+      workbook = XLSX.readFile(req.file.path);
+    } catch (xlsxError) {
+      console.error('Error reading Excel file:', xlsxError);
+      // Clean up file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to read Excel file. Please ensure it is a valid Excel file.',
+      });
+    }
+
+    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+      // Clean up file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Excel file is empty or invalid',
+      });
+    }
+
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
@@ -13197,9 +13279,13 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
     }
 
     // Clean up uploaded file
-    const fs = require('fs');
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    try {
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up uploaded file:', cleanupError);
+      // Don't fail the request if cleanup fails
     }
 
     res.json({
@@ -13209,9 +13295,21 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
     });
   } catch (error) {
     console.error('Error bulk enrolling students to bundle:', error);
+    
+    // Clean up uploaded file on error
+    try {
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up file on error:', cleanupError);
+    }
+
+    // Ensure we always return JSON, not HTML
     res.status(500).json({
       success: false,
       message: 'Failed to bulk enroll students',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
