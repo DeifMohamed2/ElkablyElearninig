@@ -131,30 +131,45 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     const libraryJid = `${formattedLibraryPhone}@s.whatsapp.net`;
     console.log(`📚 Library WhatsApp JID: ${libraryJid}`);
 
+    // Helper function to format phone number with country code
+    const formatPhoneNumber = (countryCode, phoneNumber) => {
+      if (!phoneNumber || phoneNumber === 'N/A') return 'N/A';
+      if (!countryCode) return phoneNumber;
+      // Ensure country code has + sign
+      const code = countryCode.startsWith('+') ? countryCode : `+${countryCode}`;
+      return `${code}${phoneNumber}`;
+    };
+
     // Build WhatsApp message
     let message = '📚 *طلب جديد*\n\n';
     message += '═══════════════════\n\n';
     
     // Add order details for each book
-    for (const bookOrder of bookOrders) {
+    for (let i = 0; i < bookOrders.length; i++) {
+      const bookOrder = bookOrders[i];
       message += `*رقم الطلب:* ${bookOrder.orderNumber || 'N/A'}\n`;
       message += `*معرف الطلب:* ${bookOrder._id}\n`;
       message += `*اسم الكتاب:* ${bookOrder.bookName || 'N/A'}\n`;
       message += `*اسم الكورس:* ${bookOrder.bundle?.title || 'N/A'}\n`;
-      message += `*سعر الكتاب:* ${bookOrder.bookPrice || 0} جنيه\n\n`;
+      message += `*سعر الكتاب:* ${bookOrder.bookPrice || 0} جنيه\n`;
+      if (i < bookOrders.length - 1) {
+        message += '\n';
+      }
     }
+
+    message += '\n';
 
     // Add shipping address
     if (firstBookOrder.shippingAddress) {
       const address = firstBookOrder.shippingAddress;
       message += '*عنوان الشحن:*\n';
-      message += `*الاسم:* ${address.firstName || ''} ${address.lastName || ''}\n`;
+      message += `*الاسم:* ${(address.firstName || '').trim()} ${(address.lastName || '').trim()}\n`;
       message += `*البريد الإلكتروني:* ${address.email || 'N/A'}\n`;
       message += `*رقم الهاتف:* ${address.phone || 'N/A'}\n`;
       
       // Street address details
       if (address.streetName) {
-        message += `*اسم الشارع:* ${address.streetName}\n`;
+        message += `*اسم الشارع:* ${address.streetName.trim()}\n`;
       }
       if (address.buildingNumber) {
         message += `*رقم المبنى:* ${address.buildingNumber}\n`;
@@ -173,7 +188,9 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
         message += `*المنطقة:* ${address.city}\n`;
       }
       message += `*البلد:* ${address.country || 'N/A'}\n`;
-      message += `*الرمز البريدي:* ${address.zipCode || 'N/A'}\n`;
+      // if (address.zipCode) {
+      //   message += `*الرمز البريدي:* ${address.zipCode}\n`;
+      // }
       
       // Location on map with Google Maps link
       if (address.location && (address.location.link || (address.location.lat && address.location.lng))) {
@@ -187,19 +204,28 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     // Add student and parent contact info
     if (user) {
       message += '*معلومات الطالب والوالد:*\n';
-      message += `*اسم الطالب:* ${user.firstName || ''} ${user.lastName || ''}\n`;
-      message += `*رقم هاتف الطالب:* ${user.studentCountryCode || ''}${user.studentNumber || 'N/A'}\n`;
-      message += `*رقم هاتف الوالد:* ${user.parentCountryCode || ''}${user.parentNumber || 'N/A'}\n`;
+      message += `*اسم الطالب:* ${(user.firstName || '').trim()} ${(user.lastName || '').trim()}\n`;
+      const studentPhone = formatPhoneNumber(user.studentCountryCode, user.studentNumber);
+      message += `*رقم هاتف الطالب:* ${studentPhone}\n`;
+      const parentPhone = formatPhoneNumber(user.parentCountryCode, user.parentNumber);
+      message += `*رقم هاتف الوالد:* ${parentPhone}\n`;
     }
 
     message += '═══════════════════\n';
-    message += `*التاريخ:* ${new Date().toLocaleDateString('ar-EG', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })}\n`;
+    // Format date in Arabic
+    const date = new Date();
+    const arabicMonths = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+    const day = date.getDate();
+    const month = arabicMonths[date.getMonth()];
+    const year = date.getFullYear();
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const period = hour >= 12 ? 'م' : 'ص';
+    const hour12 = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+    message += `*التاريخ:* ${day} ${month} ${year} في ${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}\n`;
     
     console.log('📚 Message built - length:', message.length, 'characters');
 
