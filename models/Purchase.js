@@ -197,6 +197,15 @@ const PurchaseSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    libraryNotificationSent: {
+      type: Boolean,
+      default: false,
+      index: true, // Add index for faster lookups
+    },
+    libraryNotificationSentAt: {
+      type: Date,
+      default: null,
+    },
     // Book orders reference
     bookOrders: [{
       type: mongoose.Schema.Types.ObjectId,

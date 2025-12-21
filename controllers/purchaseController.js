@@ -87,6 +87,21 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     
     const firstBookOrder = bookOrders[0];
     
+    // Check if library notification was already sent for this purchase
+    const Purchase = require('../models/Purchase');
+    const purchase = await Purchase.findById(firstBookOrder.purchase);
+    
+    if (purchase && purchase.libraryNotificationSent) {
+      console.log('⚠️ Library notification already sent for this purchase:', purchase.orderNumber);
+      console.log('📚 Notification was sent at:', purchase.libraryNotificationSentAt);
+      return { 
+        success: true, 
+        message: 'Library notification already sent', 
+        alreadySent: true,
+        sentAt: purchase.libraryNotificationSentAt
+      };
+    }
+    
     // Validate shipping address
     if (!firstBookOrder.shippingAddress) {
       console.error('❌ Book order missing shippingAddress:', firstBookOrder._id);
@@ -237,6 +252,14 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     console.log('📚 WhatsApp API Response:', JSON.stringify(result, null, 2));
 
     if (result.success) {
+      // Mark library notification as sent in Purchase document
+      if (purchase) {
+        purchase.libraryNotificationSent = true;
+        purchase.libraryNotificationSentAt = new Date();
+        await purchase.save();
+        console.log('✅ Purchase marked with library notification sent flag');
+      }
+      
       console.log('✅ Library notification sent successfully!');
       console.log('📚 ========== END LIBRARY NOTIFICATION (SUCCESS) ==========\n');
       return { 
