@@ -111,7 +111,7 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     
     // Library phone numbers - Both Egypt and International use same number
         // Library phone numbers (local Egyptian format, will be converted to international format)
-    const egyptLibraryPhone = '01156012078'; // Egypt library
+    const egyptLibraryPhone = '01023680795'; // Egypt library
     const internationalLibraryPhone = '01026652507'; // International library
     const libraryPhone = isEgypt ? egyptLibraryPhone : internationalLibraryPhone;
 
