@@ -1508,6 +1508,14 @@ const completeStudentData = async (req, res) => {
 // Create student from external system (similar to bulk import)
 const createStudentFromExternalSystem = async (req, res) => {
   try {
+    console.log('External system request received:', {
+      method: req.method,
+      path: req.path,
+      ip: req.ip || req.connection.remoteAddress,
+      headers: req.headers['content-type'],
+      bodyKeys: Object.keys(req.body || {}),
+    });
+    
     const { studentName, studentPhone, parentPhone, studentCode, apiKey } =
       req.body;
 

@@ -263,9 +263,10 @@ const PORT = process.env.PORT || 4091;
 mongoose
   .connect(dbURI)
   .then((result) => {
-    server.listen(PORT, '82.25.101.207', () => {
+    server.listen(PORT, '0.0.0.0', () => {
       console.log('Connected to database and listening on port', PORT);
-      console.log('Server is running on http://82.25.101.207:' + PORT);
+      console.log('Server is running on http://0.0.0.0:' + PORT);
+      console.log('Server accessible on http://82.25.101.207:' + PORT);
     });
   })
   .catch((err) => {
