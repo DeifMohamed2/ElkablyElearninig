@@ -1131,7 +1131,7 @@ const logoutUser = async (req, res) => {
 const sendStudentToOnlineSystem = async (studentData) => {
   try {
     const apiUrl =
-      'https://942dd72bdca3.ngrok-free.app/api/createOnlineStudent';
+      'https://elkably.org/api/createOnlineStudent';
     const apiKey = 'SNFIDNWL11SGNDWJD@##SSNWLSGNE!21121';
 
     const payload = {
@@ -1513,8 +1513,7 @@ const createStudentFromExternalSystem = async (req, res) => {
 
     // Validate API key for security
     const validApiKey =
-      process.env.EXTERNAL_SYSTEM_API_KEY ||
-      'SNFIDNWL11SGNDWJD@##SSNWLSGNE!21121';
+      process.env.EXTERNAL_SYSTEM_API_ACCEPT_KEY ;
     if (!apiKey || apiKey !== validApiKey) {
       return res.status(401).json({
         success: false,
