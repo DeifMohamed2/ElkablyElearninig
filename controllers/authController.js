@@ -1685,7 +1685,7 @@ const createStudentFromExternalSystem = async (req, res) => {
       howDidYouKnow: 'External System Import',
       studentCode: studentCode.toString(),
       isCompleteData: false,
-      isActive: false, // External imports still require admin activation
+      isActive: true, // External students are automatically active
     });
 
     const savedStudent = await newStudent.save();
