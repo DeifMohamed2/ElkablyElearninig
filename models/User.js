@@ -35,8 +35,10 @@ const UserSchema = new mongoose.Schema(
           if (!expected) return value.length >= 8 && value.length <= 15; // fallback
           return value.length === expected;
         },
-        message: (props) =>
-          `Student number length is invalid for country code ${props.instance.studentCountryCode}`,
+        message: (props) => {
+          const countryCode = props.instance?.studentCountryCode || props.value?.studentCountryCode || 'unknown';
+          return `Student number length is invalid for country code ${countryCode}`;
+        },
       },
     },
     parentNumber: {
@@ -56,8 +58,10 @@ const UserSchema = new mongoose.Schema(
           if (!expected) return value.length >= 8 && value.length <= 15; // fallback
           return value.length === expected;
         },
-        message: (props) =>
-          `Parent number length is invalid for country code ${props.instance.parentCountryCode}`,
+        message: (props) => {
+          const countryCode = props.instance?.parentCountryCode || props.value?.parentCountryCode || 'unknown';
+          return `Parent number length is invalid for country code ${countryCode}`;
+        },
       },
     },
     parentCountryCode: {

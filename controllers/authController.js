@@ -1131,7 +1131,7 @@ const logoutUser = async (req, res) => {
 const sendStudentToOnlineSystem = async (studentData) => {
   try {
     const apiUrl =
-      'https://elkably.org/api/createOnlineStudent';
+      'http://82.25.101.207:8400/createOnlineStudent';
     const apiKey = 'SNFIDNWL11SGNDWJD@##SSNWLSGNE!21121';
 
     const payload = {
@@ -1548,7 +1548,7 @@ const createStudentFromExternalSystem = async (req, res) => {
     const firstName = nameParts[0] || 'Unknown';
     const lastName = nameParts.slice(1).join(' ') || 'Student';
 
-    // Parse phone numbers (expecting format: +966XXXXXXXXX or just XXXXXXXXX)
+    // Parse phone numbers (expecting format: +966XXXXXXXXX or just XXXXXXXXX or 20XXXXXXXXXXX)
     let studentNumber = studentPhone.toString().trim();
     let parentNumber = parentPhone.toString().trim();
 
@@ -1560,46 +1560,78 @@ const createStudentFromExternalSystem = async (req, res) => {
     let studentCountryCode = '+20';
     let parentCountryCode = '+20';
 
-    // Handle student phone country code
-    if (studentNumber.startsWith('+')) {
-      if (studentNumber.startsWith('+966')) {
-        studentCountryCode = '+966';
-        studentNumber = studentNumber.substring(4);
-      } else if (studentNumber.startsWith('+20')) {
-        studentCountryCode = '+20';
-        studentNumber = studentNumber.substring(3);
-      } else if (studentNumber.startsWith('+971')) {
-        studentCountryCode = '+971';
-        studentNumber = studentNumber.substring(4);
-      } else if (studentNumber.startsWith('+965')) {
-        studentCountryCode = '+965';
-        studentNumber = studentNumber.substring(4);
+    // Helper function to extract country code and number
+    const extractCountryCode = (phoneNumber) => {
+      // Check for + prefix first
+      if (phoneNumber.startsWith('+')) {
+        if (phoneNumber.startsWith('+966')) {
+          return { code: '+966', number: phoneNumber.substring(4) };
+        } else if (phoneNumber.startsWith('+20')) {
+          return { code: '+20', number: phoneNumber.substring(3) };
+        } else if (phoneNumber.startsWith('+971')) {
+          return { code: '+971', number: phoneNumber.substring(4) };
+        } else if (phoneNumber.startsWith('+965')) {
+          return { code: '+965', number: phoneNumber.substring(4) };
       } else {
-        // If starts with + but not a recognized code, default to +966
-        studentCountryCode = '+20';
-        studentNumber = studentNumber.substring(1);
+          // Unknown country code with +, default to +20
+          return { code: '+20', number: phoneNumber.substring(1) };
+        }
       }
+      
+      // Check for country codes without + prefix
+      if (phoneNumber.startsWith('966') && phoneNumber.length >= 12) {
+        return { code: '+966', number: phoneNumber.substring(3) };
+      } else if (phoneNumber.startsWith('20') && phoneNumber.length >= 13) {
+        return { code: '+20', number: phoneNumber.substring(2) };
+      } else if (phoneNumber.startsWith('971') && phoneNumber.length >= 12) {
+        return { code: '+971', number: phoneNumber.substring(3) };
+      } else if (phoneNumber.startsWith('965') && phoneNumber.length >= 11) {
+        return { code: '+965', number: phoneNumber.substring(3) };
+      }
+      
+      // Default: assume Egypt (+20) and use the whole number
+      // This handles cases where the number is already without country code
+      return { code: '+20', number: phoneNumber };
+    };
+
+    // Extract country codes and numbers
+    const studentPhoneData = extractCountryCode(studentNumber);
+    studentCountryCode = studentPhoneData.code;
+    studentNumber = studentPhoneData.number;
+
+    const parentPhoneData = extractCountryCode(parentNumber);
+    parentCountryCode = parentPhoneData.code;
+    parentNumber = parentPhoneData.number;
+
+    // Validate phone number lengths
+    const phoneLengthStandards = {
+      '+966': 9, // Saudi Arabia
+      '+20': 11, // Egypt
+      '+971': 9, // UAE
+      '+965': 8, // Kuwait
+    };
+
+    const expectedStudentLength = phoneLengthStandards[studentCountryCode] || 11;
+    const expectedParentLength = phoneLengthStandards[parentCountryCode] || 11;
+
+    if (studentNumber.length !== expectedStudentLength) {
+      return res.status(400).json({
+        success: false,
+        message: `Student phone number length is invalid. Expected ${expectedStudentLength} digits for ${studentCountryCode}, got ${studentNumber.length} digits.`,
+        received: studentPhone,
+        parsed: { countryCode: studentCountryCode, number: studentNumber, length: studentNumber.length },
+        expected: { countryCode: studentCountryCode, length: expectedStudentLength },
+      });
     }
 
-    // Handle parent phone country code
-    if (parentNumber.startsWith('+')) {
-      if (parentNumber.startsWith('+966')) {
-        parentCountryCode = '+966';
-        parentNumber = parentNumber.substring(4);
-      } else if (parentNumber.startsWith('+20')) {
-        parentCountryCode = '+20';
-        parentNumber = parentNumber.substring(3);
-      } else if (parentNumber.startsWith('+971')) {
-        parentCountryCode = '+971';
-        parentNumber = parentNumber.substring(4);
-      } else if (parentNumber.startsWith('+965')) {
-        parentCountryCode = '+965';
-        parentNumber = parentNumber.substring(4);
-      } else {
-        // If starts with + but not a recognized code, default to +966
-        parentCountryCode = '+20';
-        parentNumber = parentNumber.substring(1);
-      }
+    if (parentNumber.length !== expectedParentLength) {
+      return res.status(400).json({
+        success: false,
+        message: `Parent phone number length is invalid. Expected ${expectedParentLength} digits for ${parentCountryCode}, got ${parentNumber.length} digits.`,
+        received: parentPhone,
+        parsed: { countryCode: parentCountryCode, number: parentNumber, length: parentNumber.length },
+        expected: { countryCode: parentCountryCode, length: expectedParentLength },
+      });
     }
 
     // Check if student code already exists
@@ -1678,27 +1710,40 @@ const createStudentFromExternalSystem = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating student from external system:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      keyPattern: error.keyPattern,
+      errors: error.errors,
+    });
 
     // Handle duplicate key errors
     if (error.name === 'MongoServerError' && error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
+      const field = Object.keys(error.keyPattern || {})[0] || 'unknown';
       return res.status(409).json({
         success: false,
         message: 'Duplicate entry',
         field: field,
         error: `The ${field} is already in use.`,
+        details: error.message,
       });
     }
 
     // Handle validation errors
     if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map(
-        (e) => e.message
-      );
+      const validationErrors = {};
+      if (error.errors) {
+        Object.keys(error.errors).forEach((key) => {
+          validationErrors[key] = error.errors[key].message;
+        });
+      }
       return res.status(400).json({
         success: false,
         message: 'Validation error',
         errors: validationErrors,
+        details: error.message,
       });
     }
 
@@ -1707,6 +1752,8 @@ const createStudentFromExternalSystem = async (req, res) => {
       success: false,
       message: 'Internal server error',
       error: error.message,
+      errorType: error.name,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
     });
   }
 };
