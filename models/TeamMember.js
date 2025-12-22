@@ -18,9 +18,11 @@ const teamMemberSchema = new mongoose.Schema({
     default: null,
     validate: {
       validator: function(v) {
-        return !v || /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
+        if (!v) return true;
+        // Accept both HTTP/HTTPS URLs and local paths
+        return /^(https?:\/\/.+\.(jpg|jpeg|png|gif|webp)|(\/uploads\/.+\.(jpg|jpeg|png|gif|webp)))$/i.test(v);
       },
-      message: 'Image must be a valid URL'
+      message: 'Image must be a valid URL or local path'
     }
   },
   fallbackInitials: {

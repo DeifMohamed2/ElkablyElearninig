@@ -23,26 +23,23 @@ cloudinary.config({
     process.env.CLOUDINARY_API_SECRET || 'rFWFSn4g-dHGj48o3Uu1YxUMZww',
 });
 
-// Configure multer for file uploads
+// Configure multer for document uploads (PDFs, etc. - 100MB limit)
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
+    fileSize: 100 * 1024 * 1024, // 100MB limit for documents
   },
   fileFilter: (req, file, cb) => {
-    // Allow specific file types
+    // Allow specific file types (documents only, images handled separately)
     const allowedMimeTypes = [
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'text/plain',
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
     ];
 
-    const allowedExtensions = /\.(pdf|doc|docx|txt|jpg|jpeg|png)$/i;
+    const allowedExtensions = /\.(pdf|doc|docx|txt)$/i;
 
     if (
       allowedMimeTypes.includes(file.mimetype) &&
@@ -50,7 +47,37 @@ const upload = multer({
     ) {
       return cb(null, true);
     } else {
-      cb(new Error('Only PDF, DOC, DOCX, TXT, and image files are allowed'));
+      cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'));
+    }
+  },
+});
+
+// Configure multer for image uploads (5MB limit)
+const imageStorage = multer.memoryStorage();
+const imageUpload = multer({
+  storage: imageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for images
+  },
+  fileFilter: (req, file, cb) => {
+    // Only allow image files
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ];
+
+    const allowedExtensions = /\.(jpg|jpeg|png|webp|gif)$/i;
+
+    if (
+      allowedMimeTypes.includes(file.mimetype) &&
+      allowedExtensions.test(file.originalname)
+    ) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, JPG, WebP, GIF) are allowed. Maximum size is 5MB.'));
     }
   },
 });
@@ -64,9 +91,12 @@ const app = express();
 const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
+      // Check if it's an image upload (5MB limit) or document upload (100MB limit)
+      const isImageUpload = req.path.includes('/upload/image') || req.file?.mimetype?.startsWith('image/');
+      const maxSize = isImageUpload ? '5MB' : '100MB';
       return res.status(413).json({
         success: false,
-        message: 'File too large. Maximum file size is 100MB.',
+        message: `File too large. Maximum file size is ${maxSize}.`,
       });
     }
     return res.status(400).json({
@@ -74,6 +104,15 @@ const handleMulterError = (err, req, res, next) => {
       message: `File upload error: ${err.message}`,
     });
   }
+  
+  // Handle custom file filter errors
+  if (err.message && (err.message.includes('Only image files') || err.message.includes('Maximum size is 5MB'))) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+  
   next(err);
 };
 
@@ -101,8 +140,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl:
-        'mongodb+srv://deif:1qaz2wsx@3devway.aa4i6ga.mongodb.net/Elkably-Elearning?retryWrites=true&w=majority&appName=Cluster0',
+      mongoUrl:process.env.DATABASE_URL,
       touchAfter: 24 * 3600, // lazy session update - only touch the session if it's been more than 24 hours
       ttl: 7 * 24 * 60 * 60, // 7 days session expiration
     }),
@@ -135,6 +173,7 @@ app.use((req, res, next) => {
   res.locals.cart = req.session.cart || [];
   res.locals.cartCount = req.session.cart ? req.session.cart.length : 0;
   res.locals.upload = upload;
+  res.locals.imageUpload = imageUpload;
   res.locals.cloudinary = cloudinary;
 
   // Populate req.user for backward compatibility
@@ -151,6 +190,7 @@ const studentRoutes = require('./routes/student');
 const quizRoutes = require('./routes/quiz');
 const purchaseRoutes = require('./routes/purchase');
 const zoomRoutes = require('./routes/zoom');
+const uploadRoutes = require('./routes/upload');
 
 // Special handling for webhook routes that need raw body
 app.use('/purchase/webhook', express.raw({ type: 'application/json' }));
@@ -162,6 +202,7 @@ app.use('/student', studentRoutes);
 app.use('/admin/quizzes', quizRoutes);
 app.use('/purchase', purchaseRoutes);
 app.use('/zoom', zoomRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Global error handler - must be before 404 handler
 app.use((err, req, res, next) => {
@@ -216,9 +257,7 @@ app.set('io', io);
 console.log('Socket.IO initialized', io.engine.clientsCount);
 
 // Database connection and server startup
-const dbURI =
-  'mongodb+srv://deif:1qaz2wsx@3devway.aa4i6ga.mongodb.net/Elkably-Elearning?retryWrites=true&w=majority&appName=Cluster0';
-  // 'mongodb://localhost:27017/Elkably-Elearning';
+const dbURI =process.env.DATABASE_URL;
 const PORT = process.env.PORT || 4091;
 
 mongoose

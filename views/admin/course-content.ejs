@@ -2536,8 +2536,8 @@ function getContentIcon(type) {
 
 <%- include('./partials/admin-footer') %>
 
-<!-- Cloudinary Upload Script (for images only) -->
-<script src="/js/cloudinary-upload.js"></script>
+<!-- Local Upload Script (for images only) -->
+<script src="/js/local-upload.js"></script>
 
 <script>
   // Course content management functions
@@ -6810,7 +6810,7 @@ function getContentIcon(type) {
       });
   }
 
-  // Setup thumbnail upload for edit modal using Cloudinary
+  // Setup thumbnail upload for edit modal using Local Upload
   function setupEditThumbnailUpload() {
     const thumbnailInput = document.getElementById('editCourseThumbnail');
     const preview = document.getElementById('editCourseThumbnailPreview');
@@ -6822,17 +6822,16 @@ function getContentIcon(type) {
       return;
     }
 
-    // Cloudinary configuration
-    const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dusod9wxt/upload';
-    const CLOUDINARY_UPLOAD_PRESET = 'order_project';
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    // Local upload configuration
+    const UPLOAD_ENDPOINT = '/api/upload/image';
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'];
 
     // Handle file selection
     thumbnailInput.addEventListener('change', function() {
       const file = this.files[0];
       if (file) {
-        uploadEditThumbnailToCloudinary(file);
+        uploadEditThumbnailToLocal(file);
       }
     });
 
@@ -6847,18 +6846,18 @@ function getContentIcon(type) {
       preview.classList.remove('drag-over');
     });
 
-    preview.addEventListener('drop', (e) => {
+      preview.addEventListener('drop', (e) => {
       e.preventDefault();
       preview.classList.remove('drag-over');
       const file = e.dataTransfer.files[0];
       if (file) {
         thumbnailInput.files = e.dataTransfer.files;
-        uploadEditThumbnailToCloudinary(file);
+        uploadEditThumbnailToLocal(file);
       }
     });
 
     // Upload function
-    function uploadEditThumbnailToCloudinary(file) {
+    function uploadEditThumbnailToLocal(file) {
       // Validate file
       if (!validateEditFile(file)) {
         return;
@@ -6870,10 +6869,10 @@ function getContentIcon(type) {
       // Show progress
       showEditProgress(progress, 0);
 
-      // Upload to Cloudinary
+      // Upload to local server
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      formData.append('image', file);
+      formData.append('uploadType', 'course-thumbnails');
 
       const xhr = new XMLHttpRequest();
 
@@ -6888,11 +6887,24 @@ function getContentIcon(type) {
       // Upload complete
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
-          const response = JSON.parse(xhr.responseText);
-          urlInput.value = response.secure_url;
-          showEditSuccess(preview, progress, response.secure_url);
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.success && response.url) {
+              urlInput.value = response.url;
+              showEditSuccess(preview, progress, response.url);
+            } else {
+              showEditError(preview, progress, response.message || 'Upload failed. Please try again.');
+            }
+          } catch (e) {
+            showEditError(preview, progress, 'Invalid response from server. Please try again.');
+          }
         } else {
-          showEditError(preview, progress, 'Upload failed. Please try again.');
+          try {
+            const response = JSON.parse(xhr.responseText);
+            showEditError(preview, progress, response.message || `Upload failed with status ${xhr.status}. Please try again.`);
+          } catch (e) {
+            showEditError(preview, progress, `Upload failed with status ${xhr.status}. Please try again.`);
+          }
         }
       });
 
@@ -6902,19 +6914,21 @@ function getContentIcon(type) {
       });
 
       // Start upload
-      xhr.open('POST', CLOUDINARY_URL, true);
+      xhr.open('POST', UPLOAD_ENDPOINT, true);
       xhr.send(formData);
     }
 
     // Helper functions
     function validateEditFile(file) {
       if (file.size > maxFileSize) {
-        showEditError(preview, progress, `File size must be less than ${maxFileSize / (1024 * 1024)}MB`);
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const maxSizeMB = maxFileSize / (1024 * 1024);
+        showEditError(preview, progress, `File size (${fileSizeMB}MB) exceeds maximum allowed size of ${maxSizeMB}MB. Please choose a smaller image.`);
         return false;
       }
 
       if (!allowedTypes.includes(file.type)) {
-        showEditError(preview, progress, 'Only images (JPEG, PNG, JPG, WebP) are allowed');
+        showEditError(preview, progress, 'Only images (JPEG, PNG, JPG, WebP, GIF) are allowed. Maximum size is 5MB.');
         return false;
       }
 
@@ -6954,7 +6968,7 @@ function getContentIcon(type) {
       <div class="preview-overlay" style="opacity: 1; background: rgba(40, 167, 69, 0.9);">
         <i class="fas fa-check-circle" style="color: white;"></i>
         <p>Upload Successful!</p>
-        <small>Image uploaded to Cloudinary</small>
+        <small>Image saved to server</small>
       </div>
     `;
       progress.style.display = 'none';

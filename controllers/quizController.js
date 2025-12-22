@@ -1288,13 +1288,11 @@ const uploadQuizThumbnail = async (req, res) => {
       });
     }
 
-    // Upload to Cloudinary
+    // Upload image (uses local storage by default)
     const thumbnailData = await uploadImage(req.file.buffer, {
       folder: 'quiz-thumbnails',
-      transformation: [
-        { width: 400, height: 300, crop: 'fill', quality: 'auto' },
-        { format: 'auto' },
-      ],
+      originalName: req.file.originalname,
+      mimetype: req.file.mimetype,
     });
 
     res.json({

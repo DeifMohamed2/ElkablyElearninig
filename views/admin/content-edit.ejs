@@ -684,8 +684,8 @@ function getContentTypeColor(type) {
 }
 </style>
 
-<!-- Cloudinary Upload Script -->
-<script src="/js/cloudinary-upload.js"></script>
+<!-- Local Upload Script -->
+<script src="/js/local-upload.js"></script>
 
 <script>
 // Pass content data to JavaScript
@@ -2547,15 +2547,20 @@ document.addEventListener('DOMContentLoaded', function() {
     saveBtn.addEventListener('click', saveContentChanges);
   }
 
-  // Setup file upload for content using CloudinaryUploader
-  if (typeof CloudinaryUploader !== 'undefined') {
-    const uploader = new CloudinaryUploader();
-    uploader.initContentUpload(
-      '#contentFile',
-      '#contentFilePreview',
-      '#contentFileProgress',
-      '#contentUrl'
-    );
+  // Setup file upload for content using LocalUploader
+  if (typeof LocalUploader !== 'undefined') {
+    const uploader = new LocalUploader();
+    // Note: Content files (PDFs) are handled separately via /admin/upload/pdf endpoint
+    // This is for image uploads only
+    if (document.querySelector('#contentFile')) {
+      uploader.init(
+        '#contentForm',
+        '#contentFile',
+        '#contentFilePreview',
+        '#contentFileProgress',
+        'contentUrl'
+      );
+    }
   }
 });
 

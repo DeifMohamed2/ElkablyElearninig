@@ -254,8 +254,8 @@
         </div>
       </div>
 
-      <!-- Cloudinary Upload Script -->
-      <script src="/js/cloudinary-upload.js"></script>
+      <!-- Local Upload Script -->
+      <script src="/js/local-upload.js"></script>
       
       <!-- CropperJS CSS and JS -->
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -322,9 +322,9 @@
         let currentImageProgress = null;
         let currentImageUrlInput = null;
 
-        // Initialize Cloudinary upload functionality
+        // Initialize local upload functionality
         document.addEventListener('DOMContentLoaded', function() {
-          // Initialize Cloudinary upload functionality and Bootstrap modal instance
+          // Initialize local upload functionality and Bootstrap modal instance
           const modalEl = document.getElementById('memberModal');
           if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             // Make instance globally accessible for other functions
@@ -336,13 +336,12 @@
             console.warn('Bootstrap Modal API not available');
           }
 
-          const uploader = new CloudinaryUploader();
-          // Initialize image upload for member photos
-          setupMemberImageUpload(uploader);
+          // Initialize image upload for member photos (using local upload)
+          setupMemberImageUpload();
         });
 
         // Setup member image upload functionality
-        function setupMemberImageUpload(uploader) {
+        function setupMemberImageUpload() {
           const imageFileInput = document.getElementById('memberImageFile');
           const imagePreview = document.getElementById('memberImagePreview');
           const imageProgress = document.getElementById('memberImageProgress');
@@ -573,10 +572,19 @@
                 showMemberImageProgress(currentImageProgress, 0);
               }
 
-              // Create form data for Cloudinary
+              // Validate file size (max 5MB)
+              if (blob.size > 5 * 1024 * 1024) {
+                const fileSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+                showNotification(`Image size (${fileSizeMB}MB) exceeds maximum allowed size of 5MB. Please choose a smaller image.`, 'error');
+                uploadBtn.innerHTML = originalContent;
+                uploadBtn.disabled = false;
+                return;
+              }
+
+              // Create form data for local upload
               const formData = new FormData();
-              formData.append('file', blob, currentImageFile.name);
-              formData.append('upload_preset', 'order_project');
+              formData.append('image', blob, currentImageFile.name);
+              formData.append('uploadType', 'team-members');
 
               const xhr = new XMLHttpRequest();
 
@@ -591,13 +599,29 @@
               // Upload complete
               xhr.addEventListener('load', () => {
                 if (xhr.status === 200) {
-                  const response = JSON.parse(xhr.responseText);
-                  if (currentImagePreview && currentImageProgress && currentImageUrlInput) {
-                    showMemberImageSuccess(currentImagePreview, currentImageProgress, response.secure_url, currentImageUrlInput);
+                  try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success && response.url) {
+                      if (currentImagePreview && currentImageProgress && currentImageUrlInput) {
+                        showMemberImageSuccess(currentImagePreview, currentImageProgress, response.url, currentImageUrlInput);
+                      }
+                      closeCropModal();
+                    } else {
+                      throw new Error(response.message || 'Upload failed');
+                    }
+                  } catch (e) {
+                    showNotification('Invalid response from server. Please try again.', 'error');
+                    if (currentImagePreview && currentImageProgress) {
+                      resetMemberImageUpload(currentImagePreview, currentImageProgress);
+                    }
                   }
-                  closeCropModal();
                 } else {
-                  showNotification('Upload failed. Please try again.', 'error');
+                  try {
+                    const error = JSON.parse(xhr.responseText);
+                    showNotification(error.message || `Upload failed with status ${xhr.status}`, 'error');
+                  } catch (e) {
+                    showNotification(`Upload failed with status ${xhr.status}. Please try again.`, 'error');
+                  }
                   if (currentImagePreview && currentImageProgress) {
                     resetMemberImageUpload(currentImagePreview, currentImageProgress);
                   }
@@ -608,7 +632,7 @@
 
               // Upload error
               xhr.addEventListener('error', () => {
-                showNotification('Upload failed. Please check your connection.', 'error');
+                showNotification('Upload failed. Please check your connection and try again.', 'error');
                 if (currentImagePreview && currentImageProgress) {
                   resetMemberImageUpload(currentImagePreview, currentImageProgress);
                 }
@@ -617,7 +641,7 @@
               });
 
               // Start upload
-              xhr.open('POST', 'https://api.cloudinary.com/v1_1/dusod9wxt/upload', true);
+              xhr.open('POST', '/api/upload/image', true);
               xhr.send(formData);
             }, 'image/jpeg', 0.9);
           } catch (error) {
@@ -642,7 +666,7 @@
             <div class="preview-overlay" style="opacity: 1; background: rgba(40, 167, 69, 0.9);">
               <i class="fas fa-check-circle" style="color: white;"></i>
               <p>Upload Successful!</p>
-              <small>Image uploaded to Cloudinary</small>
+              <small>Image saved to server</small>
             </div>
           `;
 

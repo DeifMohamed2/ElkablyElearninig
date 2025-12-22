@@ -8516,8 +8516,7 @@ const updateStudent = async (req, res) => {
 
     // Handle profile picture upload if provided
     if (req.file) {
-      // If using Cloudinary or similar, upload the file
-      // For now, we'll store the file path
+      // Store the local file path
       updateData.profilePicture = `/uploads/${req.file.filename}`;
     }
 
@@ -11884,14 +11883,14 @@ const endZoomMeeting = async (req, res) => {
       // Generate Excel buffer
       const excelBuffer = await excelExporter.generateBuffer();
 
-      // Upload Excel file to Cloudinary
+      // Upload Excel file (uses local storage by default)
       const cloudinary = require('../utils/cloudinary');
       const fileName = `Zoom_Attendance_${zoomMeeting.meetingName.replace(
         /[^a-zA-Z0-9]/g,
         '_'
       )}_${Date.now()}.xlsx`;
 
-      console.log('📤 Uploading Excel file to Cloudinary...');
+      console.log('📤 Uploading Excel file...');
       const uploadResult = await cloudinary.uploadDocument(
         excelBuffer,
         fileName,
@@ -11901,7 +11900,7 @@ const endZoomMeeting = async (req, res) => {
         }
       );
 
-      console.log('✅ Excel file uploaded to Cloudinary:', uploadResult.url);
+      console.log('✅ Excel file uploaded:', uploadResult.url);
 
       // Send Excel file via WhatsApp to admin number
       const adminPhoneNumber = '01223333625'; // Admin WhatsApp number

@@ -67,9 +67,10 @@ const brilliantStudentSchema = new mongoose.Schema({
     validate: {
       validator: function(image) {
         if (!image) return true;
-        return /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(image);
+        // Accept both HTTP/HTTPS URLs and local paths
+        return /^(https?:\/\/.+\.(jpg|jpeg|png|gif|webp)|(\/uploads\/.+\.(jpg|jpeg|png|gif|webp)))$/i.test(image);
       },
-      message: 'Please provide a valid image URL'
+      message: 'Please provide a valid image URL or local path'
     }
   },
   

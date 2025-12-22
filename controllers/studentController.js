@@ -2132,31 +2132,19 @@ const updateProfilePicture = async (req, res) => {
       });
     }
 
-    // Upload to Cloudinary
-    const { uploadImage } = require('../utils/cloudinary');
+    // Upload image (uses local storage by default)
+    const { uploadImage, deleteImage } = require('../utils/cloudinary');
     const uploadResult = await uploadImage(req.file.buffer, {
       folder: 'profile-pictures',
-      transformation: [
-        {
-          width: 300,
-          height: 300,
-          crop: 'fill',
-          gravity: 'face',
-          quality: 'auto',
-        },
-        { format: 'auto' },
-      ],
+      originalName: req.file.originalname,
+      mimetype: req.file.mimetype,
     });
 
-    // Delete old profile picture if it exists
-    if (
-      student.profilePicture &&
-      student.profilePicture.includes('cloudinary')
-    ) {
+    // Delete old profile picture if it exists (handles both Cloudinary and local)
+    if (student.profilePicture) {
       try {
-        const { deleteImage } = require('../utils/cloudinary');
-        const publicId = student.profilePicture.split('/').pop().split('.')[0];
-        await deleteImage(`profile-pictures/${publicId}`);
+        // deleteImage now handles both Cloudinary URLs and local paths
+        await deleteImage(student.profilePicture);
       } catch (deleteError) {
         console.error('Error deleting old profile picture:', deleteError);
         // Continue even if deletion fails
