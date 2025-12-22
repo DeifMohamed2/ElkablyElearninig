@@ -205,6 +205,12 @@ const {
   getBundleStudentsCount,
   sendBulkSMS,
   uploadPDF,
+  // OTP Master Generator
+  getOTPMasterGenerator,
+  generateMasterOTP,
+  validateMasterOTP,
+  getActiveMasterOTPs,
+  revokeMasterOTP,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -641,6 +647,13 @@ router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
 
 // Duplicate cleanup routes
 router.post('/cleanup-duplicates/:userId', isAdmin, cleanupUserDuplicates);
+
+// OTP Master Generator Routes
+router.get('/otp-master', isAdmin, getOTPMasterGenerator);
+router.post('/otp-master/generate', isAdmin, generateMasterOTP);
+router.post('/otp-master/validate', isAdmin, validateMasterOTP);
+router.get('/otp-master/active', isAdmin, getActiveMasterOTPs);
+router.delete('/otp-master/:otpId/revoke', isAdmin, revokeMasterOTP);
 
 // Admin Logs Routes (Super Admin Only)
 router.get('/logs', isAdmin, isSuperAdmin, getAdminLogs);

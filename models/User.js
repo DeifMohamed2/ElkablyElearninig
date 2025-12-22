@@ -121,7 +121,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 5,
+      minlength: 4,
     },
     howDidYouKnow: {
       type: String,

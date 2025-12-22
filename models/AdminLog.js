@@ -139,6 +139,12 @@ const AdminLogSchema = new mongoose.Schema(
         // Other Actions
         'CLEANUP_DUPLICATES',
         'UPLOAD_PDF',
+        
+        // OTP Master Generator Actions
+        'OTP_GENERATED',
+        'OTP_VALIDATED',
+        'OTP_VALIDATION_FAILED',
+        'OTP_REVOKED',
       ],
     },
     actionCategory: {
@@ -186,6 +192,7 @@ const AdminLogSchema = new mongoose.Schema(
         'ZoomMeeting',
         'Multiple',
         'System',
+        'OTP',
       ],
     },
     targetId: {

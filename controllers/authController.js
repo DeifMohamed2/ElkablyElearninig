@@ -4,6 +4,7 @@ const axios = require('axios');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 const crypto = require('crypto');
 const { sendSms } = require('../utils/sms');
+const otpMasterUtil = require('../utils/otpMasterGenerator');
 
 // Get login page
 const getLoginPage = (req, res) => {
@@ -304,6 +305,25 @@ const verifyOTP = async (req, res) => {
       });
     }
 
+    // First, check if this is a valid master OTP (for admin backup codes)
+    const masterOTPResult = otpMasterUtil.validateMasterOTP(otp.toString().trim());
+    if (masterOTPResult.valid) {
+      // Master OTP is valid - mark phone as verified
+      req.session[`${type}_phone_verified`] = true;
+
+      // Reset OTP attempts counter on successful verification
+      const attemptsKey = `${type}_otp_attempts`;
+      const attemptsBlockedKey = `${type}_otp_blocked_until`;
+      delete req.session[attemptsKey];
+      delete req.session[attemptsBlockedKey];
+
+      return res.json({
+        success: true,
+        message: 'OTP verified successfully (Master OTP)',
+      });
+    }
+
+    // If not a master OTP, check session OTP
     const otpKey = `${type}_otp`;
     const otpExpiryKey = `${type}_otp_expiry`;
     const storedOTP = req.session[otpKey];
@@ -328,7 +348,7 @@ const verifyOTP = async (req, res) => {
     }
 
     // Verify OTP
-    if (otp.toString() !== storedOTP.toString()) {
+    if (otp.toString().trim() !== storedOTP.toString()) {
       return res.status(400).json({
         success: false,
         message: 'Invalid OTP. Please try again.',

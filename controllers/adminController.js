@@ -22,6 +22,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { createLog } = require('../middlewares/adminLogger');
+const otpMasterUtil = require('../utils/otpMasterGenerator');
 
 // Admin Dashboard with Real Data
 const getAdminDashboard = async (req, res) => {
@@ -15762,6 +15763,208 @@ const uploadPDF = async (req, res) => {
   }
 };
 
+// ==================== OTP MASTER GENERATOR ====================
+
+/**
+ * Get OTP Master Generator page
+ */
+const getOTPMasterGenerator = async (req, res) => {
+  try {
+    const activeOTPs = otpMasterUtil.getActiveMasterOTPs();
+    const stats = otpMasterUtil.getOTPStats();
+
+    res.render('admin/otp-master', {
+      title: 'OTP Master Generator | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      currentPage: 'otp-master',
+      admin: req.user,
+      activeOTPs,
+      stats,
+      expiryMinutes: otpMasterUtil.OTP_EXPIRY_MINUTES,
+    });
+  } catch (error) {
+    console.error('Error loading OTP Master Generator page:', error);
+    res.status(500).render('error', {
+      message: 'Error loading OTP Master Generator page',
+      error: error,
+    });
+  }
+};
+
+/**
+ * Generate a new master OTP
+ */
+const generateMasterOTP = async (req, res) => {
+  try {
+    const { purpose } = req.body;
+    
+    // Always fetch admin from database to get the correct userName
+    let generatedBy = 'Unknown Admin';
+    
+    if (req.session?.user?.id) {
+      try {
+        const admin = await Admin.findById(req.session.user.id);
+        if (admin) {
+          // Use userName from Admin model (required field)
+          generatedBy = admin.userName || admin.email || 'Unknown Admin';
+        }
+      } catch (err) {
+        console.error('Error fetching admin:', err);
+        // Fallback to session data if database fetch fails
+        generatedBy = req.session?.user?.name || 
+                      req.user?.userName || 
+                      req.user?.email || 
+                      'Unknown Admin';
+      }
+    } else {
+      // Fallback if no session ID
+      generatedBy = req.session?.user?.name || 
+                    req.user?.userName || 
+                    req.user?.email || 
+                    'Unknown Admin';
+    }
+
+    const otpData = otpMasterUtil.generateMasterOTP(generatedBy, purpose);
+
+    // Log the action
+    await createLog(req, {
+      action: 'OTP_GENERATED',
+      actionCategory: 'SYSTEM',
+      description: `Generated master OTP${purpose ? ` for: ${purpose}` : ''}`,
+      targetModel: 'OTP',
+      targetId: otpData.id,
+      metadata: {
+        otpId: otpData.id,
+        purpose: purpose || 'No purpose specified',
+        expiresAt: otpData.expiresAt,
+        generatedBy: generatedBy,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'OTP generated successfully',
+      otp: {
+        ...otpData,
+        generatedBy: generatedBy,
+      },
+    });
+  } catch (error) {
+    console.error('Error generating master OTP:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error generating OTP: ' + error.message,
+    });
+  }
+};
+
+/**
+ * Validate a master OTP
+ */
+const validateMasterOTP = async (req, res) => {
+  try {
+    const { otpCode } = req.body;
+
+    if (!otpCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP code is required',
+      });
+    }
+
+    const validationResult = otpMasterUtil.validateMasterOTP(otpCode);
+
+    // Log the validation attempt
+    await createLog(req, {
+      action: validationResult.valid ? 'OTP_VALIDATED' : 'OTP_VALIDATION_FAILED',
+      actionCategory: 'SYSTEM',
+      description: `OTP validation ${validationResult.valid ? 'succeeded' : 'failed'}: ${validationResult.message}`,
+      targetModel: 'OTP',
+      status: validationResult.valid ? 'SUCCESS' : 'FAILED',
+      metadata: {
+        otpCode: otpCode,
+        result: validationResult.message,
+        otpData: validationResult.otpData || null,
+      },
+    });
+
+    res.json({
+      success: validationResult.valid,
+      message: validationResult.message,
+      otpData: validationResult.otpData,
+    });
+  } catch (error) {
+    console.error('Error validating master OTP:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error validating OTP: ' + error.message,
+    });
+  }
+};
+
+/**
+ * Get all active master OTPs
+ */
+const getActiveMasterOTPs = async (req, res) => {
+  try {
+    const activeOTPs = otpMasterUtil.getActiveMasterOTPs();
+    const stats = otpMasterUtil.getOTPStats();
+
+    res.json({
+      success: true,
+      activeOTPs,
+      stats,
+    });
+  } catch (error) {
+    console.error('Error getting active OTPs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting active OTPs: ' + error.message,
+    });
+  }
+};
+
+/**
+ * Revoke a master OTP
+ */
+const revokeMasterOTP = async (req, res) => {
+  try {
+    const { otpId } = req.params;
+
+    const success = otpMasterUtil.revokeMasterOTP(otpId);
+
+    if (success) {
+      // Log the action
+      await createLog(req, {
+        action: 'OTP_REVOKED',
+        actionCategory: 'SYSTEM',
+        description: `Revoked master OTP: ${otpId}`,
+        targetModel: 'OTP',
+        targetId: otpId,
+        metadata: {
+          otpId: otpId,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'OTP revoked successfully',
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'OTP not found',
+      });
+    }
+  } catch (error) {
+    console.error('Error revoking master OTP:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error revoking OTP: ' + error.message,
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -15906,4 +16109,10 @@ module.exports = {
   sendBulkSMS,
   // Simple PDF Upload
   uploadPDF,
+  // OTP Master Generator
+  getOTPMasterGenerator,
+  generateMasterOTP,
+  validateMasterOTP,
+  getActiveMasterOTPs,
+  revokeMasterOTP,
 };
