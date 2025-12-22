@@ -301,25 +301,55 @@
 
       <!-- Pagination -->
       <% if (pagination && pagination.totalPages > 1) { %>
+      <%
+        // Helper function to build query string with only non-empty filter values
+        const buildQueryString = (pageNum) => {
+          const params = new URLSearchParams();
+          params.set('page', pageNum);
+          if (filters.adminId) params.set('adminId', filters.adminId);
+          if (filters.action) params.set('action', filters.action);
+          if (filters.actionCategory) params.set('actionCategory', filters.actionCategory);
+          if (filters.targetModel) params.set('targetModel', filters.targetModel);
+          if (filters.startDate) params.set('startDate', filters.startDate);
+          if (filters.endDate) params.set('endDate', filters.endDate);
+          if (filters.status) params.set('status', filters.status);
+          if (filters.search) params.set('search', filters.search);
+          if (filters.sortBy) params.set('sortBy', filters.sortBy);
+          if (filters.sortOrder) params.set('sortOrder', filters.sortOrder);
+          return params.toString();
+        };
+      %>
       <div class="logs-pagination">
         <div class="logs-pagination-info">
           Showing <%= ((pagination.page - 1) * 50) + 1 %> to <%= Math.min(pagination.page * 50, pagination.total) %> of <%= pagination.total %> logs
         </div>
         <div class="logs-pagination-nav">
-          <a href="?page=<%= pagination.page - 1 %>&<%= new URLSearchParams(filters).toString() %>" 
-             class="logs-pagination-btn <%= pagination.page === 1 ? 'disabled' : '' %>">
-            <i class="fas fa-chevron-left"></i>
-          </a>
+          <% if (pagination.page > 1) { %>
+            <a href="?<%= buildQueryString(pagination.page - 1) %>" 
+               class="logs-pagination-btn">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          <% } else { %>
+            <span class="logs-pagination-btn disabled">
+              <i class="fas fa-chevron-left"></i>
+            </span>
+          <% } %>
           <% for (let i = Math.max(1, pagination.page - 2); i <= Math.min(pagination.totalPages, pagination.page + 2); i++) { %>
-            <a href="?page=<%= i %>&<%= new URLSearchParams(filters).toString() %>" 
+            <a href="?<%= buildQueryString(i) %>" 
                class="logs-pagination-btn <%= i === pagination.page ? 'active' : '' %>">
               <%= i %>
             </a>
           <% } %>
-          <a href="?page=<%= pagination.page + 1 %>&<%= new URLSearchParams(filters).toString() %>" 
-             class="logs-pagination-btn <%= pagination.page === pagination.totalPages ? 'disabled' : '' %>">
-            <i class="fas fa-chevron-right"></i>
-          </a>
+          <% if (pagination.page < pagination.totalPages) { %>
+            <a href="?<%= buildQueryString(pagination.page + 1) %>" 
+               class="logs-pagination-btn">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          <% } else { %>
+            <span class="logs-pagination-btn disabled">
+              <i class="fas fa-chevron-right"></i>
+            </span>
+          <% } %>
         </div>
       </div>
       <% } %>
