@@ -118,9 +118,6 @@ const dashboard = async (req, res) => {
 const enrolledCourses = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    const page = parseInt(req.query.page) || 1;
-    const limit = 12;
-    const skip = (page - 1) * limit;
 
     // Get filter parameters
     const searchQuery = req.query.search || '';
@@ -244,10 +241,9 @@ const enrolledCourses = async (req, res) => {
       })
     );
 
-    // Paginate results
+    // Display all results without pagination
     const totalCourses = coursesWithUnlockStatus.length;
-    const totalPages = Math.ceil(totalCourses / limit);
-    const enrolledCourses = coursesWithUnlockStatus.slice(skip, skip + limit);
+    const enrolledCourses = coursesWithUnlockStatus;
 
     // Get available bundles for filter dropdown
     const BundleCourse = require('../models/BundleCourse');
@@ -264,7 +260,7 @@ const enrolledCourses = async (req, res) => {
       title: 'My Enrolled Weeks | ELKABLY',
       student,
       enrolledCourses,
-      totalCourses: totalCourses, // Add this for the counter
+      totalCourses: totalCourses,
       availableBundles,
       filters: {
         search: searchQuery,
@@ -273,13 +269,13 @@ const enrolledCourses = async (req, res) => {
         sort: sortBy,
       },
       pagination: {
-        currentPage: page,
-        totalPages,
-        totalCourses, // Add this for the counter
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-        nextPage: page + 1,
-        prevPage: page - 1,
+        currentPage: 1,
+        totalPages: 1,
+        totalCourses: totalCourses,
+        hasNext: false,
+        hasPrev: false,
+        nextPage: 1,
+        prevPage: 1,
       },
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });

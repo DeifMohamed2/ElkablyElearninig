@@ -9377,12 +9377,12 @@ const getBrilliantStudents = async (req, res) => {
       filter.testType = req.query.testType;
     }
 
-    if (req.query.isActive !== undefined) {
+    if (req.query.isActive !== undefined && req.query.isActive !== '') {
       filter.isActive = req.query.isActive === 'true';
     }
 
-    if (req.query.search) {
-      filter.name = { $regex: req.query.search, $options: 'i' };
+    if (req.query.search && req.query.search.trim() !== '') {
+      filter.name = { $regex: req.query.search.trim(), $options: 'i' };
     }
 
     // Get students with pagination
@@ -9868,13 +9868,17 @@ const exportBrilliantStudents = async (req, res) => {
   try {
     const testType = req.query.testType;
     const isActive = req.query.isActive;
+    const search = req.query.search;
 
     const filter = {};
     if (testType && testType !== 'all') {
       filter.testType = testType;
     }
-    if (isActive !== undefined) {
+    if (isActive !== undefined && isActive !== '') {
       filter.isActive = isActive === 'true';
+    }
+    if (search && search.trim() !== '') {
+      filter.name = { $regex: search.trim(), $options: 'i' };
     }
 
     const students = await BrilliantStudent.find(filter).sort({

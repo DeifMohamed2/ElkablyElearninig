@@ -196,8 +196,23 @@
         <!-- Pagination -->
         <% if (pagination.totalPages > 1) { %>
         <div class="brilliant-students-pagination">
+          <% 
+            // Build query parameters for pagination links
+            const queryParts = [];
+            if (filters.testType && filters.testType !== 'all') {
+              queryParts.push('testType=' + encodeURIComponent(filters.testType));
+            }
+            if (filters.isActive) {
+              queryParts.push('isActive=' + encodeURIComponent(filters.isActive));
+            }
+            if (filters.search) {
+              queryParts.push('search=' + encodeURIComponent(filters.search));
+            }
+            const queryString = queryParts.length > 0 ? queryParts.join('&') : '';
+            const paginationPrefix = queryString ? '?' + queryString + '&' : '?';
+          %>
           <% if (pagination.hasPrev) { %>
-          <a href="?page=<%= pagination.prevPage %>" class="admin-pagination-btn">
+          <a href="<%= paginationPrefix %>page=<%= pagination.prevPage %>" class="admin-pagination-btn">
             <i class="fas fa-chevron-left"></i>
             Previous
           </a>
@@ -207,12 +222,12 @@
           <% if (i === pagination.currentPage) { %>
           <span class="admin-pagination-btn active"><%= i %></span>
           <% } else { %>
-          <a href="?page=<%= i %>" class="admin-pagination-btn"><%= i %></a>
+          <a href="<%= paginationPrefix %>page=<%= i %>" class="admin-pagination-btn"><%= i %></a>
           <% } %>
           <% } %>
 
           <% if (pagination.hasNext) { %>
-          <a href="?page=<%= pagination.nextPage %>" class="admin-pagination-btn">
+          <a href="<%= paginationPrefix %>page=<%= pagination.nextPage %>" class="admin-pagination-btn">
             Next
             <i class="fas fa-chevron-right"></i>
           </a>

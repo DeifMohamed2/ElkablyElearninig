@@ -349,42 +349,6 @@
         <% }); %>
         </div>
 
-        <!-- Pagination -->
-        <% if (pagination.totalPages > 1) { %>
-        <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: var(--spacing-xl);">
-          <% 
-            // Build query string to preserve filters
-            let queryParams = [];
-            if (filters.search) queryParams.push('search=' + encodeURIComponent(filters.search));
-            if (filters.progress !== 'all') queryParams.push('progress=' + filters.progress);
-            if (filters.bundle !== 'all') queryParams.push('bundle=' + filters.bundle);
-            if (filters.sort !== 'lastAccessed') queryParams.push('sort=' + filters.sort);
-            const queryString = queryParams.join('&');
-            const baseUrl = queryString ? '?' + queryString + '&' : '?';
-          %>
-          
-          <% if (pagination.hasPrev) { %>
-          <a href="<%= baseUrl %>page=<%= pagination.prevPage %>" class="pagination-item" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-decoration: none; transition: all 0.3s ease;">
-            <i class="fas fa-chevron-left"></i>
-          </a>
-          <% } %>
-
-          <% for (let i = 1; i <= pagination.totalPages; i++) { %>
-          <% if (i === pagination.currentPage) { %>
-          <span class="pagination-item active" style="padding: 8px 12px; background: var(--primary-color); color: white; border-radius: 6px; font-weight: 500;"><%= i %></span>
-          <% } else { %>
-          <a href="<%= baseUrl %>page=<%= i %>" class="pagination-item" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-decoration: none; transition: all 0.3s ease;"><%= i %></a>
-          <% } %>
-          <% } %>
-
-          <% if (pagination.hasNext) { %>
-          <a href="<%= baseUrl %>page=<%= pagination.nextPage %>" class="pagination-item" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); text-decoration: none; transition: all 0.3s ease;">
-            <i class="fas fa-chevron-right"></i>
-          </a>
-          <% } %>
-        </div>
-        <% } %>
-
         <% } else { %>
         <!-- Empty State -->
         <div class="empty-state" style="text-align: center; padding: var(--spacing-2xl);">
