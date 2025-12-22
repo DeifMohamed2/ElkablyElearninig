@@ -191,9 +191,14 @@ const quizRoutes = require('./routes/quiz');
 const purchaseRoutes = require('./routes/purchase');
 const zoomRoutes = require('./routes/zoom');
 const uploadRoutes = require('./routes/upload');
+const { createStudentFromExternalSystem } = require('./controllers/authController');
 
 // Special handling for webhook routes that need raw body
 app.use('/purchase/webhook', express.raw({ type: 'application/json' }));
+
+// External System API - Register endpoint (for external systems to create students)
+// This endpoint accepts POST requests from external systems
+app.post('/Register', express.json(), createStudentFromExternalSystem);
 
 app.use('/', indexRoutes);
 app.use('/auth', authRoutes);
