@@ -1530,10 +1530,10 @@
                   <i class="fas fa-target"></i>
                   <span class="detail-label">Pass</span>
                   <span class="detail-value">
-                    <% if (contentItem.quizSettings && contentItem.quizSettings.passingScore) { %>
+                    <% if (contentItem.quizSettings && contentItem.quizSettings.passingScore !== undefined) { %>
                     <%= contentItem.quizSettings.passingScore %>%
                     <% } else { %>
-                    60%
+                    50%
                     <% } %>
                   </span>
                 </div>
@@ -1632,7 +1632,16 @@
           <div class="homework-content">
             <div class="homework-info">
               <h3>Homework Assignment</h3>
-              <p>This is a homework assignment. Complete the requirements and submit your work.</p>
+              <% 
+                const homeworkPassingScore = contentItem.homeworkSettings && contentItem.homeworkSettings.passingScore !== undefined 
+                  ? contentItem.homeworkSettings.passingScore 
+                  : 0;
+              %>
+              <% if (homeworkPassingScore === 0) { %>
+                <p>This is a homework assignment. Simply submit your work to complete it - no minimum score required.</p>
+              <% } else { %>
+                <p>This is a homework assignment. Complete the requirements and submit your work. You need to score at least <%= homeworkPassingScore %>% to pass.</p>
+              <% } %>
 
               <!-- Compact Homework Details Row -->
               <div class="homework-details-compact">
@@ -1645,10 +1654,10 @@
                   <i class="fas fa-target"></i>
                   <span class="detail-label">Pass</span>
                   <span class="detail-value">
-                    <% if (contentItem.homeworkSettings && contentItem.homeworkSettings.passingScore) { %>
+                    <% if (contentItem.homeworkSettings && contentItem.homeworkSettings.passingScore !== undefined) { %>
                     <%= contentItem.homeworkSettings.passingScore %>%
                     <% } else { %>
-                    60%
+                    0%
                     <% } %>
                   </span>
                 </div>

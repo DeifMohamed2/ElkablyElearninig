@@ -3578,9 +3578,9 @@ const addTopicContent = async (req, res) => {
       contentItem.homeworkSettings = {
         passingCriteria: 'pass',
         passingScore:
-          homeworkPassingScore && !isNaN(parseInt(homeworkPassingScore))
+          (homeworkPassingScore !== null && homeworkPassingScore !== undefined && homeworkPassingScore !== '' && !isNaN(parseInt(homeworkPassingScore)))
             ? parseInt(homeworkPassingScore)
-            : 60,
+            : 0,
         maxAttempts:
           homeworkMaxAttempts && !isNaN(parseInt(homeworkMaxAttempts))
             ? parseInt(homeworkMaxAttempts)
@@ -3880,11 +3880,11 @@ const updateTopicContent = async (req, res) => {
           : quizData?.duration
           ? parseInt(quizData.duration)
           : contentItem.quizSettings?.duration || 30,
-        passingScore: quizPassingScore
+        passingScore: (quizPassingScore !== null && quizPassingScore !== undefined && quizPassingScore !== '')
           ? parseInt(quizPassingScore)
-          : quizData?.passingScore
+          : (quizData?.passingScore !== null && quizData?.passingScore !== undefined && quizData?.passingScore !== '')
           ? parseInt(quizData.passingScore)
-          : contentItem.quizSettings?.passingScore || 60,
+          : (contentItem.quizSettings?.passingScore !== undefined ? contentItem.quizSettings.passingScore : 50),
         maxAttempts: quizMaxAttempts
           ? parseInt(quizMaxAttempts)
           : quizData?.maxAttempts
@@ -3997,11 +3997,11 @@ const updateTopicContent = async (req, res) => {
 
       // Update homework settings
       contentItem.homeworkSettings = {
-        passingScore: homeworkPassingScore
+        passingScore: (homeworkPassingScore !== null && homeworkPassingScore !== undefined && homeworkPassingScore !== '')
           ? parseInt(homeworkPassingScore)
-          : homeworkData?.passingScore
+          : (homeworkData?.passingScore !== null && homeworkData?.passingScore !== undefined && homeworkData?.passingScore !== '')
           ? parseInt(homeworkData.passingScore)
-          : contentItem.homeworkSettings?.passingScore || 60,
+          : (contentItem.homeworkSettings?.passingScore !== undefined ? contentItem.homeworkSettings.passingScore : 0),
         maxAttempts: homeworkMaxAttempts
           ? parseInt(homeworkMaxAttempts)
           : homeworkData?.maxAttempts
@@ -4225,7 +4225,7 @@ const getContentDetailsForEdit = async (req, res) => {
       if (contentItem.type === 'quiz') {
         contentData.quizSettings = {
           duration: settings?.duration || 30,
-          passingScore: settings?.passingScore || 60,
+          passingScore: settings?.passingScore !== undefined ? settings.passingScore : 50,
           maxAttempts: settings?.maxAttempts || 3,
           shuffleQuestions: settings?.shuffleQuestions || false,
           shuffleOptions: settings?.shuffleOptions || false,
@@ -4235,7 +4235,7 @@ const getContentDetailsForEdit = async (req, res) => {
         };
       } else {
         contentData.homeworkSettings = {
-          passingScore: settings?.passingScore || 60,
+          passingScore: settings?.passingScore !== undefined ? settings.passingScore : 0,
           maxAttempts: settings?.maxAttempts || 1,
           shuffleQuestions: settings?.shuffleQuestions || false,
           shuffleOptions: settings?.shuffleOptions || false,
@@ -5596,7 +5596,7 @@ const addQuizContent = async (req, res) => {
       })),
       quizSettings: {
         duration: parseInt(duration) || 30,
-        passingScore: parseInt(passingScore) || 60,
+        passingScore: passingScore !== null && passingScore !== undefined && passingScore !== '' ? parseInt(passingScore) : 50,
         maxAttempts: parseInt(maxAttempts) || 3,
         shuffleQuestions:
           shuffleQuestions === 'on' || shuffleQuestions === true,
@@ -5778,7 +5778,7 @@ const addHomeworkContent = async (req, res) => {
       })),
       homeworkSettings: {
         passingCriteria: 'pass',
-        passingScore: parseInt(passingScore) || 60,
+        passingScore: passingScore !== null && passingScore !== undefined && passingScore !== '' ? parseInt(passingScore) : 0,
         maxAttempts: parseInt(maxAttempts) || 1,
         shuffleQuestions:
           shuffleQuestions === 'on' || shuffleQuestions === true,
@@ -10245,7 +10245,7 @@ const exportCourseDetails = async (req, res) => {
               averageScore = Math.round(
                 scores.reduce((sum, score) => sum + score, 0) / scores.length
               );
-              const passingScore = content.quizSettings?.passingScore || 60;
+              const passingScore = content.quizSettings?.passingScore !== undefined ? content.quizSettings.passingScore : 50;
               passRate = Math.round(
                 (scores.filter((s) => s >= passingScore).length /
                   scores.length) *

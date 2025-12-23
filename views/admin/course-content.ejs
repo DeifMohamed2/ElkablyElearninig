@@ -813,7 +813,7 @@
                           <i class="fas fa-percentage me-2"></i>
                           Passing Score (%)
                         </label>
-                        <input type="number" class="admin-form-control" id="quizPassingScore" name="quizPassingScore" value="60" min="0" max="100">
+                        <input type="number" class="admin-form-control" id="quizPassingScore" name="quizPassingScore" value="50" min="0" max="100">
                       </div>
                     </div>
                   </div>
@@ -1080,7 +1080,8 @@
                           <i class="fas fa-percentage me-2"></i>
                           Passing Score (%)
                         </label>
-                        <input type="number" class="admin-form-control" id="homeworkPassingScore" name="homeworkPassingScore" value="60" min="0" max="100">
+                        <input type="number" class="admin-form-control" id="homeworkPassingScore" name="homeworkPassingScore" value="0" min="0" max="100">
+                        <small class="admin-form-text">Set to 0% to allow students to pass by simply submitting (no minimum score required)</small>
                       </div>
                     </div>
                     <div class="col-md-6">
@@ -1701,7 +1702,7 @@
                           <i class="fas fa-percentage me-2"></i>
                           Passing Score (%)
                         </label>
-                        <input type="number" class="admin-form-control" id="editQuizPassingScore" name="quizPassingScore" value="60" min="0" max="100">
+                        <input type="number" class="admin-form-control" id="editQuizPassingScore" name="quizPassingScore" value="50" min="0" max="100">
                       </div>
                     </div>
                   </div>
@@ -1968,7 +1969,8 @@
                           <i class="fas fa-percentage me-2"></i>
                           Passing Score (%)
                         </label>
-                        <input type="number" class="admin-form-control" id="editHomeworkPassingScore" name="homeworkPassingScore" value="60" min="0" max="100">
+                        <input type="number" class="admin-form-control" id="editHomeworkPassingScore" name="homeworkPassingScore" value="0" min="0" max="100">
+                        <small class="admin-form-text">Set to 0% to allow students to pass by simply submitting (no minimum score required)</small>
                       </div>
                     </div>
                     <div class="col-md-6">
@@ -3222,7 +3224,7 @@ function getContentIcon(type) {
       prerequisites: '', // Default no prerequisites
       // Quiz specific fields
       quizDuration: 30,
-      quizPassingScore: 60,
+      quizPassingScore: 50,
       quizMaxAttempts: 3,
       quizShuffleQuestions: false,
       quizShuffleOptions: false,
@@ -3230,7 +3232,7 @@ function getContentIcon(type) {
       quizShowResults: true,
       quizInstructions: '',
       // Homework specific fields
-      homeworkPassingScore: 60,
+      homeworkPassingScore: 0,
       homeworkMaxAttempts: 1,
       homeworkShuffleQuestions: false,
       homeworkShuffleOptions: false,
@@ -3425,7 +3427,7 @@ function getContentIcon(type) {
     // Populate Quiz fields if quiz type
     if (contentData.type === 'quiz' && contentData.quizSettings) {
       document.getElementById('editQuizDuration').value = contentData.quizSettings.duration || 30;
-      document.getElementById('editQuizPassingScore').value = contentData.quizSettings.passingScore || 60;
+      document.getElementById('editQuizPassingScore').value = contentData.quizSettings.passingScore !== undefined ? contentData.quizSettings.passingScore : 50;
       document.getElementById('editQuizMaxAttempts').value = contentData.quizSettings.maxAttempts || 3;
       document.getElementById('editQuizShuffleQuestions').checked = contentData.quizSettings.shuffleQuestions || false;
       document.getElementById('editQuizShuffleOptions').checked = contentData.quizSettings.shuffleOptions || false;
@@ -3436,7 +3438,7 @@ function getContentIcon(type) {
 
     // Populate Homework fields if homework type
     if (contentData.type === 'homework' && contentData.homeworkSettings) {
-      document.getElementById('editHomeworkPassingScore').value = contentData.homeworkSettings.passingScore || 60;
+      document.getElementById('editHomeworkPassingScore').value = contentData.homeworkSettings.passingScore !== undefined ? contentData.homeworkSettings.passingScore : 0;
       document.getElementById('editHomeworkMaxAttempts').value = contentData.homeworkSettings.maxAttempts || 1;
       document.getElementById('editHomeworkShuffleQuestions').checked = contentData.homeworkSettings.shuffleQuestions || false;
       document.getElementById('editHomeworkShuffleOptions').checked = contentData.homeworkSettings.shuffleOptions || false;
@@ -3834,7 +3836,10 @@ function getContentIcon(type) {
         questionBanks: selectedBankIds.length > 0 ? selectedBankIds : undefined, // Only send if changed
         selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : undefined, // Only send if changed
         quizDuration: parseInt(document.getElementById('editQuizDuration')?.value) || 30,
-        quizPassingScore: parseInt(document.getElementById('editQuizPassingScore')?.value) || 60,
+        quizPassingScore: (() => {
+          const value = document.getElementById('editQuizPassingScore')?.value;
+          return value !== null && value !== undefined && value !== '' ? parseInt(value) : 50;
+        })(),
         quizMaxAttempts: parseInt(document.getElementById('editQuizMaxAttempts')?.value) || 3,
         quizShuffleQuestions: document.getElementById('editQuizShuffleQuestions')?.checked || false,
         quizShuffleOptions: document.getElementById('editQuizShuffleOptions')?.checked || false,
@@ -3915,7 +3920,10 @@ function getContentIcon(type) {
         content: 'homework',
         questionBanks: selectedBankIds.length > 0 ? selectedBankIds : undefined, // Only send if changed
         selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : undefined, // Only send if changed
-        homeworkPassingScore: parseInt(document.getElementById('editHomeworkPassingScore')?.value) || 60,
+        homeworkPassingScore: (() => {
+          const value = document.getElementById('editHomeworkPassingScore')?.value;
+          return value !== null && value !== undefined && value !== '' ? parseInt(value) : 0;
+        })(),
         homeworkMaxAttempts: parseInt(document.getElementById('editHomeworkMaxAttempts')?.value) || 1,
         homeworkShuffleQuestions: document.getElementById('editHomeworkShuffleQuestions')?.checked || false,
         homeworkShuffleOptions: document.getElementById('editHomeworkShuffleOptions')?.checked || false,
@@ -8681,7 +8689,10 @@ function getContentIcon(type) {
         questionBanks: selectedQuizQuestionBankIds,
         selectedQuestions: selectedQuizQuestions,
         duration: parseInt(document.getElementById('quizDuration')?.value) || 30,
-        passingScore: parseInt(document.getElementById('quizPassingScore')?.value) || 60,
+        passingScore: (() => {
+          const value = document.getElementById('quizPassingScore')?.value;
+          return value !== null && value !== undefined && value !== '' ? parseInt(value) : 50;
+        })(),
         maxAttempts: parseInt(document.getElementById('quizMaxAttempts')?.value) || 3,
         shuffleQuestions: document.getElementById('quizShuffleQuestions')?.checked || false,
         shuffleOptions: document.getElementById('quizShuffleOptions')?.checked || false,
@@ -8772,7 +8783,10 @@ function getContentIcon(type) {
         description: document.getElementById('contentDescription').value.trim(),
         questionBanks: selectedHomeworkQuestionBankIds,
         selectedQuestions: selectedHomeworkQuestions,
-        passingScore: parseInt(document.getElementById('homeworkPassingScore')?.value) || 60,
+        passingScore: (() => {
+          const value = document.getElementById('homeworkPassingScore')?.value;
+          return value !== null && value !== undefined && value !== '' ? parseInt(value) : 60;
+        })(),
         maxAttempts: parseInt(document.getElementById('homeworkMaxAttempts')?.value) || 1,
         shuffleQuestions: document.getElementById('homeworkShuffleQuestions')?.checked || false,
         shuffleOptions: document.getElementById('homeworkShuffleOptions')?.checked || false,

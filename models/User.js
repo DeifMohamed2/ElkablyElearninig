@@ -1810,8 +1810,8 @@ UserSchema.methods.addQuizAttempt = async function (
     0
   );
 
-  // Update completion status based on passing score
-  const passingScore = attemptData.passingScore || 60;
+  // Update completion status based on passing score (allow 0% - students just need to submit)
+  const passingScore = attemptData.passingScore !== undefined ? attemptData.passingScore : 60;
   if (attemptData.score >= passingScore) {
     contentProgress.completionStatus = 'completed';
     contentProgress.progressPercentage = 100;

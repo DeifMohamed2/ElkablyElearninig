@@ -2705,11 +2705,11 @@ const submitContentQuiz = async (req, res) => {
         ? Math.round((correctAnswers / totalQuestions) * 100)
         : 0;
 
-    // Get passing score
+    // Get passing score (default: Quiz 50%, Homework 0% - students just need to submit)
     const passingScore =
       contentType === 'quiz'
-        ? contentItem.quizSettings?.passingScore || 60
-        : contentItem.homeworkSettings?.passingScore || 60;
+        ? (contentItem.quizSettings?.passingScore !== undefined ? contentItem.quizSettings.passingScore : 50)
+        : (contentItem.homeworkSettings?.passingScore !== undefined ? contentItem.homeworkSettings.passingScore : 0);
 
     const passed = score >= passingScore;
 
