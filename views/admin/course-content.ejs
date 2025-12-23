@@ -267,6 +267,9 @@
                         <button class="btn btn-sm btn-outline-info" onclick="viewContentDetails('<%= topic._id %>', '<%= contentItem._id %>')" title="View Details">
                           <i class="fas fa-chart-line"></i>
                         </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="shareContentLink('<%= course.courseCode %>', '<%= topic._id %>', '<%= contentItem._id %>', '<%= contentItem.title %>')" title="Share Content">
+                          <i class="fas fa-share-alt"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline-primary" onclick="editContent('<%= topic._id %>', '<%= contentItem._id %>')">
                           <i class="fas fa-edit"></i>
                         </button>
@@ -9290,6 +9293,258 @@ function getContentIcon(type) {
       showNotification('Failed to ' + (isEditing ? 'update' : 'add') + ' recording link. Please try again.', 'error');
     }
   }
+
+  // ==========================================
+  // SHARE FUNCTIONALITY
+  // ==========================================
+  
+  /**
+   * Get the base URL for sharing (production or development)
+   */
+  function getShareBaseUrl() {
+    // In production, use elkably.com
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return 'https://elkably.com';
+    }
+    // In development, use current origin
+    return window.location.origin;
+  }
+  
+  /**
+   * Share a topic link with students
+   */
+  function shareTopicLink(courseCode, topicId, topicTitle) {
+    const baseUrl = getShareBaseUrl();
+    // Course content page with topic parameter to auto-expand that topic
+    const courseId = '<%= course._id %>';
+    const shareUrl = `${baseUrl}/student/course/${courseId}/content?topic=${topicId}`;
+    
+    showShareModal({
+      title: topicTitle,
+      type: 'Topic',
+      url: shareUrl,
+      description: 'Share this topic with your students. They can access it directly using this link.'
+    });
+  }
+
+  /**
+   * Share a content item link with students
+   */
+  function shareContentLink(courseCode, topicId, contentId, contentTitle) {
+    const baseUrl = getShareBaseUrl();
+    // Direct link to specific content item
+    const shareUrl = `${baseUrl}/student/content/${contentId}`;
+    
+    showShareModal({
+      title: contentTitle,
+      type: 'Content',
+      url: shareUrl,
+      description: 'Share this content with your students. They can access it directly using this link.'
+    });
+  }
+
+  /**
+   * Display the share modal with the shareable link
+   */
+  function showShareModal(data) {
+    const { title, type, url, description } = data;
+    
+    Swal.fire({
+      title: `<i class="fas fa-share-alt"></i> Share ${type}`,
+      html: `
+        <div class="share-modal-content">
+          <div class="share-item-info">
+            <div class="share-item-icon">
+              <i class="fas fa-${type === 'Topic' ? 'layer-group' : 'file-alt'}"></i>
+            </div>
+            <div class="share-item-details">
+              <h4 class="share-item-title">${title}</h4>
+              <p class="share-item-description">${description}</p>
+            </div>
+          </div>
+          
+          <div class="share-link-container">
+            <label class="share-link-label">
+              <i class="fas fa-link"></i> Shareable Link
+            </label>
+            <div class="share-link-input-wrapper">
+              <input 
+                type="text" 
+                class="share-link-input" 
+                id="shareUrlInput" 
+                value="${url}" 
+                readonly
+              />
+              <button class="share-copy-btn" onclick="copyShareLink()">
+                <i class="fas fa-copy"></i>
+                <span>Copy</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="share-actions">
+            <button class="share-action-btn whatsapp" onclick="shareViaWhatsApp('${url}', '${title}')">
+              <i class="fab fa-whatsapp"></i>
+              WhatsApp
+            </button>
+            <button class="share-action-btn email" onclick="shareViaEmail('${url}', '${title}')">
+              <i class="fas fa-envelope"></i>
+              Email
+            </button>
+            <button class="share-action-btn telegram" onclick="shareViaTelegram('${url}', '${title}')">
+              <i class="fab fa-telegram"></i>
+              Telegram
+            </button>
+          </div>
+
+          <div class="share-qr-section">
+            <button class="share-qr-btn" onclick="generateQRCode('${url}')">
+              <i class="fas fa-qrcode"></i>
+              Generate QR Code
+            </button>
+          </div>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      width: '600px',
+      customClass: {
+        popup: 'share-modal-popup',
+        closeButton: 'share-modal-close'
+      },
+      didOpen: () => {
+        // Auto-select the URL for easy copying
+        const input = document.getElementById('shareUrlInput');
+        if (input) {
+          input.select();
+        }
+      }
+    });
+  }
+
+  /**
+   * Copy share link to clipboard
+   */
+  function copyShareLink() {
+    const input = document.getElementById('shareUrlInput');
+    if (!input) return;
+
+    input.select();
+    input.setSelectionRange(0, 99999); // For mobile devices
+
+    try {
+      document.execCommand('copy');
+      
+      // Update button to show success
+      const btn = document.querySelector('.share-copy-btn');
+      if (btn) {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i><span>Copied!</span>';
+        btn.classList.add('copied');
+        
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+          btn.classList.remove('copied');
+        }, 2000);
+      }
+
+      showNotification('✅ Link copied to clipboard!', 'success');
+    } catch (err) {
+      showNotification('❌ Failed to copy link', 'error');
+    }
+  }
+
+  /**
+   * Share via WhatsApp
+   */
+  function shareViaWhatsApp(url, title) {
+    const message = encodeURIComponent(`Check out this: ${title}\n${url}`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  }
+
+  /**
+   * Share via Email
+   */
+  function shareViaEmail(url, title) {
+    const subject = encodeURIComponent(`Check out: ${title}`);
+    const body = encodeURIComponent(`I wanted to share this with you:\n\n${title}\n\n${url}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
+  /**
+   * Share via Telegram
+   */
+  function shareViaTelegram(url, title) {
+    const text = encodeURIComponent(`${title}\n${url}`);
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`, '_blank');
+  }
+
+  /**
+   * Generate QR Code for the share link
+   */
+  function generateQRCode(url) {
+    Swal.fire({
+      title: '<i class="fas fa-qrcode"></i> QR Code',
+      html: `
+        <div class="qr-code-container">
+          <p class="qr-code-description">Scan this QR code to access the link</p>
+          <div id="qrcode" class="qr-code-display"></div>
+          <p class="qr-code-url">${url}</p>
+          <button class="qr-download-btn" onclick="downloadQRCode('${url}')" style="margin-top: 1rem;">
+            <i class="fas fa-download"></i>
+            Download QR Code
+          </button>
+        </div>
+      `,
+      showConfirmButton: true,
+      confirmButtonText: 'Close',
+      width: '500px',
+      customClass: {
+        popup: 'qr-modal-popup'
+      },
+      didOpen: () => {
+        // Generate QR code using a simple API
+        const qrContainer = document.getElementById('qrcode');
+        if (qrContainer) {
+          const qrSize = 250;
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(url)}`;
+          qrContainer.innerHTML = `<img id="qrCodeImage" src="${qrUrl}" alt="QR Code" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />`;
+        }
+      }
+    });
+  }
+
+  /**
+   * Download QR Code as image
+   */
+  async function downloadQRCode(url) {
+    try {
+      const qrSize = 500; // Higher resolution for download
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(url)}`;
+      
+      // Fetch the QR code image
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      
+      // Create a blob URL and trigger download
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `qr-code-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      window.URL.revokeObjectURL(blobUrl);
+      
+      showNotification('✅ QR Code downloaded successfully!', 'success');
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      showNotification('❌ Failed to download QR code', 'error');
+    }
+  }
+
 </script>
 
 <!-- Custom Styles for Zoom Meeting Controls -->
@@ -9899,4 +10154,424 @@ function getContentIcon(type) {
       grid-template-columns: repeat(2, 1fr) !important;
     }
   }
+
+  /* ==========================================
+     SHARE MODAL STYLES
+     ========================================== */
+  
+  /* Share Modal Popup */
+  .share-modal-popup {
+    border-radius: 20px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .share-modal-popup .swal2-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem 2rem 0;
+  }
+
+  .share-modal-popup .swal2-html-container {
+    padding: 0 2rem 2rem;
+    margin: 0;
+  }
+
+  .share-modal-close {
+    font-size: 1.5rem !important;
+    color: #6b7280 !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .share-modal-close:hover {
+    color: #dc2626 !important;
+    transform: rotate(90deg);
+  }
+
+  /* Share Modal Content */
+  .share-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Share Item Info */
+  .share-item-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    border-radius: 12px;
+    border-left: 4px solid #dc2626;
+  }
+
+  .share-item-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  }
+
+  .share-item-details {
+    flex: 1;
+    text-align: left;
+  }
+
+  .share-item-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .share-item-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* Share Link Container */
+  .share-link-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .share-link-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .share-link-label i {
+    color: #dc2626;
+  }
+
+  .share-link-input-wrapper {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .share-link-input {
+    flex: 1;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    color: #1f2937;
+    background: #f9fafb;
+    transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
+  }
+
+  .share-link-input:focus {
+    outline: none;
+    border-color: #dc2626;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+
+  .share-copy-btn {
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  }
+
+  .share-copy-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+  }
+
+  .share-copy-btn:active {
+    transform: translateY(0);
+  }
+
+  .share-copy-btn.copied {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Share Actions */
+  .share-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  .share-action-btn {
+    padding: 0.875rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: white;
+    color: #374151;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .share-action-btn i {
+    font-size: 1.1rem;
+  }
+
+  .share-action-btn.whatsapp {
+    border-color: #25D366;
+    color: #25D366;
+  }
+
+  .share-action-btn.whatsapp:hover {
+    background: #25D366;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+  }
+
+  .share-action-btn.email {
+    border-color: #3b82f6;
+    color: #3b82f6;
+  }
+
+  .share-action-btn.email:hover {
+    background: #3b82f6;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  .share-action-btn.telegram {
+    border-color: #0088cc;
+    color: #0088cc;
+  }
+
+  .share-action-btn.telegram:hover {
+    background: #0088cc;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+  }
+
+  /* QR Section */
+  .share-qr-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .share-qr-btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .share-qr-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  .share-qr-btn i {
+    font-size: 1.1rem;
+  }
+
+  /* QR Code Modal */
+  .qr-modal-popup {
+    border-radius: 20px !important;
+    padding: 2rem !important;
+  }
+
+  .qr-code-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .qr-code-description {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .qr-code-display {
+    padding: 1.5rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .qr-code-url {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 0;
+    word-break: break-all;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+  }
+
+  .qr-download-btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .qr-download-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+  }
+
+  .qr-download-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Share Button Styling in Topic Actions */
+  .action-btn.share-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+  }
+
+  .action-btn.share-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .action-btn.share-btn i {
+    color: white;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 640px) {
+    .share-modal-popup {
+      width: 95% !important;
+      margin: 0 auto;
+    }
+
+    .share-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .share-link-input-wrapper {
+      flex-direction: column;
+    }
+
+    .share-copy-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .share-item-info {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .share-item-details {
+      text-align: center;
+    }
+  }
+
+  /* Dark Theme Support */
+  .dark-theme .share-modal-popup .swal2-title {
+    color: #f9fafb;
+  }
+
+  .dark-theme .share-item-info {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  }
+
+  .dark-theme .share-item-title {
+    color: #f9fafb;
+  }
+
+  .dark-theme .share-item-description {
+    color: #d1d5db;
+  }
+
+  .dark-theme .share-link-label {
+    color: #e5e7eb;
+  }
+
+  .dark-theme .share-link-input {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+
+  .dark-theme .share-link-input:focus {
+    background: #111827;
+    border-color: #dc2626;
+  }
+
+  .dark-theme .share-action-btn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #d1d5db;
+  }
+
+  .dark-theme .share-qr-section {
+    border-top-color: #374151;
+  }
+
+  .dark-theme .qr-code-description {
+    color: #d1d5db;
+  }
+
+  .dark-theme .qr-code-url {
+    color: #6b7280;
+  }
+
 </style>
