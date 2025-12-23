@@ -2164,8 +2164,11 @@
                 optionElement.onclick = () => selectOption(index);
                 
                 // Check if this option is already selected
+                // Support both text-based (new) and index-based (old) saved answers
                 const questionId = currentQuestion._id;
-                if (answers[questionId] === index.toString()) {
+                const savedAnswer = answers[questionId];
+                const isSelected = savedAnswer === option.text || savedAnswer === index.toString();
+                if (isSelected) {
                     optionElement.classList.add('selected');
                 }
                 
@@ -2190,6 +2193,7 @@
             }
             
             const questionId = currentQuestion._id;
+            const selectedOption = currentQuestion.options[optionIndex];
             
             // Remove previous selection
             document.querySelectorAll('.option-item').forEach(item => {
@@ -2199,8 +2203,9 @@
             // Add selection to clicked option
             document.querySelectorAll('.option-item')[optionIndex].classList.add('selected');
             
-            // Store answer
-            answers[questionId] = optionIndex.toString();
+            // Store answer as option TEXT (shuffle-safe) instead of index
+            // This ensures correct grading regardless of option order
+            answers[questionId] = selectedOption.text;
             
             // Persist after selection
             saveState();

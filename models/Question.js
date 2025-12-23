@@ -233,23 +233,29 @@ QuestionSchema.methods.isCorrectMCQAnswer = function (userAnswer) {
     return false;
   }
 
-  // For MCQ questions, handle index-based answers
+  // For MCQ questions, handle both text-based and index-based answers
+  // Text-based answers are shuffle-safe, index-based are for backward compatibility
+  
+  // First, try to match by option text (shuffle-safe approach)
+  const userText = userAnswer.toString().trim();
+  const textMatchIndex = this.options.findIndex(
+    (opt) => opt.text && opt.text.trim() === userText
+  );
+  
+  if (textMatchIndex !== -1) {
+    // Found a text match - check if this option is correct
+    return this.options[textMatchIndex].isCorrect === true;
+  }
+  
+  // If no text match, try index-based matching (backward compatibility)
   let answerIndex;
   if (typeof userAnswer === 'string' && !isNaN(userAnswer)) {
     answerIndex = parseInt(userAnswer);
   } else if (typeof userAnswer === 'number') {
     answerIndex = userAnswer;
   } else {
-    // If it's text, try to find the matching option
-    const userText = userAnswer.toString().toLowerCase().trim();
-    answerIndex = this.options.findIndex(
-      (opt) => opt.text && opt.text.toLowerCase().trim() === userText
-    );
-
-    // If no text match found, return false
-    if (answerIndex === -1) {
-      return false;
-    }
+    // Not a valid index and no text match found
+    return false;
   }
 
   // Check if the answer index is valid

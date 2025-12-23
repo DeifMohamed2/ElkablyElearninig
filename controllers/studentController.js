@@ -1207,8 +1207,9 @@ const submitQuiz = async (req, res) => {
         // Handle written questions with multiple correct answers using helper method
         isCorrect = question.isCorrectWrittenAnswer(userAnswer);
       } else {
-        // Handle MCQ and True/False questions
-        isCorrect = userAnswer === question.correctAnswer;
+        // Handle MCQ and True/False questions using the improved method
+        // This now supports both text-based (shuffle-safe) and index-based (backward compatible) answers
+        isCorrect = question.isCorrectMCQAnswer(userAnswer);
       }
 
       if (isCorrect) {
@@ -2665,12 +2666,9 @@ const submitContentQuiz = async (req, res) => {
         // Handle written questions with multiple correct answers using helper method
         isCorrect = question.isCorrectWrittenAnswer(userAnswer);
       } else {
-        // Handle MCQ and True/False questions
-        const correctAnswer = question.correctAnswer;
-        const correctAnswerStr = Array.isArray(correctAnswer)
-          ? correctAnswer[0]
-          : correctAnswer;
-        isCorrect = userAnswer === correctAnswerStr;
+        // Handle MCQ and True/False questions using the improved method
+        // This now supports both text-based (shuffle-safe) and index-based (backward compatible) answers
+        isCorrect = question.isCorrectMCQAnswer(userAnswer);
       }
 
       if (isCorrect) {
