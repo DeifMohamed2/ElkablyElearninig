@@ -211,6 +211,10 @@ const PurchaseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'BookOrder',
     }],
+    isBookOnly: {
+      type: Boolean,
+      default: false,
+    },
     booksSubtotal: {
       type: Number,
       default: 0,
@@ -293,7 +297,9 @@ PurchaseSchema.virtual('paymentStatusDisplay').get(function () {
 
 // Virtuals for analytics
 PurchaseSchema.virtual('itemCount').get(function () {
-  return Array.isArray(this.items) ? this.items.length : 0;
+  const itemsCount = Array.isArray(this.items) ? this.items.length : 0;
+  const booksCount = Array.isArray(this.bookOrders) ? this.bookOrders.length : 0;
+  return itemsCount + booksCount;
 });
 
 PurchaseSchema.virtual('isRefunded').get(function () {

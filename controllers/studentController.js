@@ -247,6 +247,7 @@ const enrolledCourses = async (req, res) => {
 
     // Get available bundles for filter dropdown
     const BundleCourse = require('../models/BundleCourse');
+    const BookOrder = require('../models/BookOrder');
     const bundleIds = validEnrollments
       .map((e) => e.course.bundle?._id)
       .filter(Boolean)
@@ -256,12 +257,44 @@ const enrolledCourses = async (req, res) => {
       _id: { $in: bundleIds },
     }).select('_id title');
 
+    // Get book purchase info for each bundle
+    const bundleBookInfo = {};
+    for (const bundleId of bundleIds) {
+      const bundle = await BundleCourse.findById(bundleId)
+        .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
+      
+      if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
+        // Check if student has purchased the bundle
+        const hasPurchasedBundle = student.hasPurchasedBundle(bundleId.toString());
+        
+        if (hasPurchasedBundle) {
+          // Check if student has already ordered the book
+          const hasOrderedBook = await BookOrder.hasUserOrderedBook(
+            studentId,
+            bundleId
+          );
+          
+          if (!hasOrderedBook) {
+            bundleBookInfo[bundleId.toString()] = {
+              bundleId: bundle._id.toString(),
+              bundleTitle: bundle.title,
+              bundleCode: bundle.bundleCode,
+              bookName: bundle.bookName,
+              bookPrice: bundle.bookPrice,
+              thumbnail: bundle.thumbnail || '/images/bundle-placeholder.jpg',
+            };
+          }
+        }
+      }
+    }
+
     res.render('student/enrolled-courses', {
       title: 'My Enrolled Weeks | ELKABLY',
       student,
       enrolledCourses,
       totalCourses: totalCourses,
       availableBundles,
+      bundleBookInfo, // Pass book purchase info for bundles
       filters: {
         search: searchQuery,
         progress: progressFilter,
@@ -333,6 +366,40 @@ const courseDetails = async (req, res) => {
       })
     );
 
+    // Check if course has a bundle and if student can purchase the book
+    let bookPurchaseInfo = null;
+    if (course.bundle) {
+      const BundleCourse = require('../models/BundleCourse');
+      const BookOrder = require('../models/BookOrder');
+      
+      const bundle = await BundleCourse.findById(course.bundle._id || course.bundle)
+        .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
+      
+      if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
+        // Check if student has purchased the bundle
+        const hasPurchasedBundle = student.hasPurchasedBundle(bundle._id.toString());
+        
+        if (hasPurchasedBundle) {
+          // Check if student has already ordered the book
+          const hasOrderedBook = await BookOrder.hasUserOrderedBook(
+            studentId,
+            bundle._id
+          );
+          
+          if (!hasOrderedBook) {
+            bookPurchaseInfo = {
+              bundleId: bundle._id.toString(),
+              bundleTitle: bundle.title,
+              bundleCode: bundle.bundleCode,
+              bookName: bundle.bookName,
+              bookPrice: bundle.bookPrice,
+              thumbnail: bundle.thumbnail || '/images/bundle-placeholder.jpg',
+            };
+          }
+        }
+      }
+    }
+
     res.render('student/course-details', {
       title: `${course.title} - Course Details | ELKABLY`,
       student,
@@ -340,6 +407,7 @@ const courseDetails = async (req, res) => {
       enrollment,
       topicsWithProgress,
       courseProgress,
+      bookPurchaseInfo, // Pass book purchase info to view
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
   } catch (error) {
@@ -495,6 +563,40 @@ const courseContent = async (req, res) => {
       })
     );
 
+    // Check if course has a bundle and if student can purchase the book
+    let bookPurchaseInfo = null;
+    if (course.bundle) {
+      const BundleCourse = require('../models/BundleCourse');
+      const BookOrder = require('../models/BookOrder');
+      
+      const bundle = await BundleCourse.findById(course.bundle._id || course.bundle)
+        .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
+      
+      if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
+        // Check if student has purchased the bundle
+        const hasPurchasedBundle = student.hasPurchasedBundle(bundle._id.toString());
+        
+        if (hasPurchasedBundle) {
+          // Check if student has already ordered the book
+          const hasOrderedBook = await BookOrder.hasUserOrderedBook(
+            studentId,
+            bundle._id
+          );
+          
+          if (!hasOrderedBook) {
+            bookPurchaseInfo = {
+              bundleId: bundle._id.toString(),
+              bundleTitle: bundle.title,
+              bundleCode: bundle.bundleCode,
+              bookName: bundle.bookName,
+              bookPrice: bundle.bookPrice,
+              thumbnail: bundle.thumbnail || '/images/bundle-placeholder.jpg',
+            };
+          }
+        }
+      }
+    }
+
     res.render('student/course-content', {
       title: `${course.title} - Course Content | ELKABLY`,
       student,
@@ -503,6 +605,7 @@ const courseContent = async (req, res) => {
       topicsWithProgress,
       user: req.session.user, // Pass user session for admin checks
       getContentIcon, // Pass the helper function to the template
+      bookPurchaseInfo, // Pass book purchase info to view
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
   } catch (error) {

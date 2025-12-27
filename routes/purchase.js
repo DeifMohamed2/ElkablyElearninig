@@ -7,6 +7,7 @@ const {
   addToCart,
   removeFromCart,
   getCheckout,
+  getBookCheckout,
   directCheckout,
   processPayment,
   handlePaymentSuccess,
@@ -27,6 +28,13 @@ router.post('/cart', getCart);
 router.post('/cart/add', ensureAuthenticated, addToCart);
 router.post('/cart/remove', ensureAuthenticated, removeFromCart);
 router.post('/cart/clear', ensureAuthenticated, clearCartAPI);
+
+// Book checkout route (no cart validation needed)
+router.get(
+  '/checkout/book',
+  ensureAuthenticated,
+  getBookCheckout
+);
 
 // Checkout routes (with cart validation middleware)
 router.get(

@@ -51,8 +51,10 @@ async function getStudentStartingOrderInBundle(userId, bundleId) {
 /**
  * Process successful payment - Centralized function for webhook and redirect handlers
  * This is the SINGLE SOURCE OF TRUTH for payment success processing
+ * @param {Object} purchase - The purchase object or ID
+ * @param {Object} req - Optional request object for clearing session (only available in redirect handlers)
  */
-async function processSuccessfulPayment(purchase) {
+async function processSuccessfulPayment(purchase, req = null) {
   try {
     // Reload purchase to ensure we have latest data
     const freshPurchase = await Purchase.findById(purchase._id || purchase)
@@ -75,6 +77,20 @@ async function processSuccessfulPayment(purchase) {
     freshPurchase.status = 'completed';
     freshPurchase.paymentStatus = 'completed';
     await freshPurchase.save();
+
+    // Update book orders status to 'processing' when payment is completed
+    if (freshPurchase.bookOrders && freshPurchase.bookOrders.length > 0) {
+      await BookOrder.updateMany(
+        { _id: { $in: freshPurchase.bookOrders } },
+        { 
+          status: 'processing',
+          $unset: { cancelledAt: '' } // Remove cancelledAt if it exists
+        }
+      );
+      console.log(
+        `📚 Updated ${freshPurchase.bookOrders.length} book order(s) to 'processing' status`
+      );
+    }
 
     console.log(
       `✅ Processing successful payment for order: ${freshPurchase.orderNumber}`
@@ -188,6 +204,17 @@ async function processSuccessfulPayment(purchase) {
       } catch (libraryError) {
         console.error(`❌ Library notification error:`, libraryError);
         // Don't fail the payment if library notification fails
+      }
+    }
+
+    // Clear cart and book-only purchase session after payment is confirmed completed
+    if (req && req.session) {
+      clearCart(req, 'payment completed');
+      
+      // Clear book-only purchase session
+      if (req.session.bookOnlyPurchase) {
+        delete req.session.bookOnlyPurchase;
+        req.session.save();
       }
     }
 
@@ -954,6 +981,22 @@ function clearCart(req, reason = 'successful payment') {
 // Middleware to validate and recalculate cart items from database
 const validateCartMiddleware = async (req, res, next) => {
   try {
+    // Check if this is a book-only purchase - skip cart validation
+    const isBookOnly = req.session.bookOnlyPurchase;
+    
+    if (isBookOnly) {
+      // For book-only purchases, set validated cart to empty but allow it
+      req.validatedCart = {
+        items: [],
+        subtotal: 0,
+        total: 0,
+        cartCount: 0,
+        isBookOnly: true, // Flag to indicate book-only purchase
+      };
+      console.log('Book-only purchase detected, skipping cart validation');
+      return next();
+    }
+
     if (req.session.cart && req.session.cart.length > 0) {
       console.log('Validating cart items from database...');
       const userId = req.session.user ? req.session.user.id : null;
@@ -971,6 +1014,7 @@ const validateCartMiddleware = async (req, res, next) => {
         subtotal: recalculatedCart.subtotal,
         total: recalculatedCart.total,
         cartCount: recalculatedCart.items.length,
+        isBookOnly: false,
       };
 
       console.log(
@@ -982,6 +1026,7 @@ const validateCartMiddleware = async (req, res, next) => {
         subtotal: 0,
         total: 0,
         cartCount: 0,
+        isBookOnly: false,
       };
     }
 
@@ -995,6 +1040,7 @@ const validateCartMiddleware = async (req, res, next) => {
       subtotal: 0,
       total: 0,
       cartCount: 0,
+      isBookOnly: false,
     };
     next();
   }
@@ -1541,12 +1587,154 @@ const updateCartQuantity = async (req, res) => {
   }
 };
 
+// Direct book purchase checkout - for students who already purchased bundle but not the book
+const getBookCheckout = async (req, res) => {
+  try {
+    if (!req.session.user) {
+      req.flash('error_msg', 'Please login to proceed to checkout');
+      return res.redirect('/auth/login');
+    }
+
+    const bundleId = req.query.bundle;
+    if (!bundleId) {
+      req.flash('error_msg', 'Bundle ID is required');
+      return res.redirect('/student/enrolled-courses');
+    }
+
+    const user = await User.findById(req.session.user.id);
+    if (!user) {
+      req.flash('error_msg', 'User not found');
+      return res.redirect('/auth/login');
+    }
+
+    // Check if user has purchased the bundle
+    if (!user.hasPurchasedBundle(bundleId)) {
+      req.flash('error_msg', 'You must purchase the bundle first before buying the book');
+      return res.redirect('/student/enrolled-courses');
+    }
+
+    // Check if user has already ordered the book
+    const hasOrderedBook = await BookOrder.hasUserOrderedBook(
+      user._id,
+      bundleId
+    );
+
+    if (hasOrderedBook) {
+      req.flash('error_msg', 'You have already purchased this book');
+      return res.redirect('/student/enrolled-courses');
+    }
+
+    // Get bundle details
+    const bundle = await BundleCourse.findById(bundleId)
+      .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
+
+    if (!bundle || !bundle.hasBook || bundle.bookPrice <= 0) {
+      req.flash('error_msg', 'Book is not available for this bundle');
+      return res.redirect('/student/enrolled-courses');
+    }
+
+    // Clear cart and set up book-only purchase
+    req.session.cart = [];
+    
+    // Create a book-only cart item (we'll handle this specially in checkout)
+    req.session.bookOnlyPurchase = {
+      bundleId: bundle._id.toString(),
+      bundleTitle: bundle.title,
+      bundleCode: bundle.bundleCode,
+      bookName: bundle.bookName,
+      bookPrice: bundle.bookPrice,
+      thumbnail: bundle.thumbnail || '/images/bundle-placeholder.jpg',
+    };
+
+    // Save session before redirect to ensure it's persisted
+    req.session.save((err) => {
+      if (err) {
+        console.error('Error saving session in getBookCheckout:', err);
+      }
+      // Redirect to checkout with book-only flag
+      return res.redirect('/purchase/checkout?bookOnly=true');
+    });
+  } catch (error) {
+    console.error('Error in getBookCheckout:', error);
+    req.flash('error_msg', 'Error loading book checkout');
+    return res.redirect('/student/enrolled-courses');
+  }
+};
+
 // Get checkout page
 const getCheckout = async (req, res) => {
   try {
     if (!req.session.user) {
       req.flash('error_msg', 'Please login to proceed to checkout');
       return res.redirect('/auth/login');
+    }
+
+    // Check if this is a book-only purchase (check session first, then query param)
+    // Session is the source of truth, query param is just for the redirect
+    const isBookOnly = req.session.bookOnlyPurchase && (req.query.bookOnly === 'true' || req.session.bookOnlyPurchase);
+    
+    if (isBookOnly) {
+      // Handle book-only checkout
+      const bookPurchase = req.session.bookOnlyPurchase;
+      
+      // Validate the book purchase is still valid
+      const user = await User.findById(req.session.user.id);
+      if (!user.hasPurchasedBundle(bookPurchase.bundleId)) {
+        delete req.session.bookOnlyPurchase;
+        req.flash('error_msg', 'You must purchase the bundle first before buying the book');
+        return res.redirect('/student/enrolled-courses');
+      }
+
+      const hasOrderedBook = await BookOrder.hasUserOrderedBook(
+        user._id,
+        bookPurchase.bundleId
+      );
+
+      if (hasOrderedBook) {
+        delete req.session.bookOnlyPurchase;
+        req.flash('error_msg', 'You have already purchased this book');
+        return res.redirect('/student/enrolled-courses');
+      }
+
+      // Render checkout with book-only data
+      const availableBooks = [{
+        bundleId: bookPurchase.bundleId,
+        bundleTitle: bookPurchase.bundleTitle,
+        bundleCode: bookPurchase.bundleCode,
+        bookName: bookPurchase.bookName,
+        bookPrice: bookPurchase.bookPrice,
+        thumbnail: bookPurchase.thumbnail,
+      }];
+
+      // Check if there's an applied promo code in session
+      let appliedPromo = null;
+      if (req.session.appliedPromoCode) {
+        appliedPromo = {
+          code: req.session.appliedPromoCode.code,
+          discountAmount: req.session.appliedPromoCode.discountAmount,
+          finalAmount: req.session.appliedPromoCode.finalAmount,
+          originalAmount: req.session.appliedPromoCode.originalAmount,
+        };
+      }
+
+      return res.render('checkout', {
+        title: 'Book Checkout | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        cart: [], // Empty cart for book-only purchase
+        subtotal: bookPurchase.bookPrice,
+        total: bookPurchase.bookPrice,
+        user: req.session.user,
+        availableBooks: availableBooks,
+        appliedPromoCode: appliedPromo,
+        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+        isBookOnly: true, // Flag to indicate book-only purchase
+        bookPurchaseInfo: bookPurchase, // Pass book info
+        paymentMethods: {
+          card: !!process.env.PAYMOB_INTEGRATION_ID_CARD,
+          wallet: !!process.env.PAYMOB_INTEGRATION_ID_WALLET,
+          kiosk: !!process.env.PAYMOB_INTEGRATION_ID_KIOSK,
+        },
+      });
     }
 
     // Check if bundle or course query parameter is present (for "Buy Now" functionality)
@@ -1752,7 +1940,10 @@ const getCheckout = async (req, res) => {
       };
     }
 
-    if (validatedCart.cartCount === 0) {
+    // Don't redirect if this is a book-only purchase (check both query param and session)
+    const isBookOnlyRequest = req.query.bookOnly === 'true' || req.session.bookOnlyPurchase;
+    
+    if (validatedCart.cartCount === 0 && !isBookOnlyRequest) {
       req.flash('error_msg', 'Your cart is empty or contains invalid items');
       return res.redirect('/');
     }
@@ -1847,6 +2038,7 @@ const getCheckout = async (req, res) => {
       user: req.session.user,
       availableBooks: availableBooks,
       appliedPromoCode: appliedPromo, // Pass promo code to view
+      isBookOnly: false, // Regular checkout, not book-only
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '', // Pass Google Maps API key
       // Payment method availability
       paymentMethods: {
@@ -2059,49 +2251,105 @@ const processPayment = async (req, res) => {
       });
     }
 
-    // Use validated cart data from middleware
-    const validatedCart = req.validatedCart;
+    // Check if this is a book-only purchase
+    const isBookOnly = req.session.bookOnlyPurchase;
+    let validatedCart = req.validatedCart;
+    let selectedBooks = [];
 
-    if (validatedCart.cartCount === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cart is empty or contains invalid items',
-      });
-    }
+    if (isBookOnly) {
+      // Handle book-only purchase
+      const bookPurchase = req.session.bookOnlyPurchase;
+      const user = await User.findById(req.session.user.id);
 
-    // Validate course ordering at checkout
-    const cartOrderValidation = await validateCartOrdering(
-      validatedCart.items,
-      req.session.user.id
-    );
+      // Validate user has purchased the bundle
+      if (!user.hasPurchasedBundle(bookPurchase.bundleId)) {
+        delete req.session.bookOnlyPurchase;
+        return res.status(400).json({
+          success: false,
+          message: 'You must purchase the bundle first before buying the book',
+        });
+      }
 
-    if (!cartOrderValidation.valid) {
-      return res.status(400).json({
-        success: false,
-        message: cartOrderValidation.message,
-        missingCourse: cartOrderValidation.missingCourse
-      });
-    }
+      // Validate user hasn't already ordered the book
+      const hasOrderedBook = await BookOrder.hasUserOrderedBook(
+        user._id,
+        bookPurchase.bundleId
+      );
 
-    // Check if user already purchased any of the items in cart
-    const user = await User.findById(req.session.user.id);
-    const alreadyPurchasedItems = [];
+      if (hasOrderedBook) {
+        delete req.session.bookOnlyPurchase;
+        return res.status(400).json({
+          success: false,
+          message: 'You have already purchased this book',
+        });
+      }
 
-    for (const item of validatedCart.items) {
-      if (item.type === 'bundle' && user.hasPurchasedBundle(item.id)) {
-        alreadyPurchasedItems.push(`${item.title} (bundle)`);
-      } else if (item.type === 'course' && user.hasAccessToCourse(item.id)) {
-        alreadyPurchasedItems.push(`${item.title} (course)`);
+      // Set up book-only cart structure
+      validatedCart = {
+        items: [],
+        subtotal: bookPurchase.bookPrice,
+        total: bookPurchase.bookPrice,
+        cartCount: 0,
+      };
+
+      // Mark the book as selected
+      selectedBooks = [bookPurchase.bundleId];
+    } else {
+      // Use validated cart data from middleware
+      validatedCart = req.validatedCart;
+
+      if (validatedCart.cartCount === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cart is empty or contains invalid items',
+        });
+      }
+
+      // Get selected books from form
+      const { selectedBooks: formSelectedBooks } = req.body;
+      if (formSelectedBooks && Array.isArray(formSelectedBooks)) {
+        selectedBooks = formSelectedBooks;
+      } else if (formSelectedBooks) {
+        selectedBooks = [formSelectedBooks];
       }
     }
 
-    if (alreadyPurchasedItems.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `You already have access to: ${alreadyPurchasedItems.join(
-          ', '
-        )}. Please remove these items from your cart.`,
-      });
+    // Skip cart validation for book-only purchases
+    if (!isBookOnly) {
+      // Validate course ordering at checkout
+      const cartOrderValidation = await validateCartOrdering(
+        validatedCart.items,
+        req.session.user.id
+      );
+
+      if (!cartOrderValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: cartOrderValidation.message,
+          missingCourse: cartOrderValidation.missingCourse
+        });
+      }
+
+      // Check if user already purchased any of the items in cart
+      const user = await User.findById(req.session.user.id);
+      const alreadyPurchasedItems = [];
+
+      for (const item of validatedCart.items) {
+        if (item.type === 'bundle' && user.hasPurchasedBundle(item.id)) {
+          alreadyPurchasedItems.push(`${item.title} (bundle)`);
+        } else if (item.type === 'course' && user.hasAccessToCourse(item.id)) {
+          alreadyPurchasedItems.push(`${item.title} (course)`);
+        }
+      }
+
+      if (alreadyPurchasedItems.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `You already have access to: ${alreadyPurchasedItems.join(
+            ', '
+          )}. Please remove these items from your cart.`,
+        });
+      }
     }
 
     const { paymentMethod = 'paymob', billingAddress } = req.body;
@@ -2130,26 +2378,65 @@ const processPayment = async (req, res) => {
     // Generate unique merchant order ID
     const merchantOrderId = generateUUID();
 
+    // Handle book orders first to get correct subtotal for promo code calculation
+    let booksSubtotal = 0;
+    const bookOrders = [];
+
+    if (isBookOnly) {
+      // For book-only purchase, use the book price from session
+      booksSubtotal = req.session.bookOnlyPurchase.bookPrice;
+    } else {
+      // Get selected books from form
+      const formSelectedBooks = req.body.selectedBooks || [];
+      if (formSelectedBooks.length > 0) {
+        // Validate and calculate book prices
+        const bundles = await BundleCourse.find({
+          _id: { $in: formSelectedBooks },
+          hasBook: true,
+          bookPrice: { $gt: 0 },
+        }).select('_id bookName bookPrice');
+
+        for (const bundle of bundles) {
+          booksSubtotal += bundle.bookPrice;
+        }
+      }
+    }
+
+    // Calculate base subtotal (cart items + books)
+    const baseSubtotal = isBookOnly 
+      ? booksSubtotal 
+      : validatedCart.subtotal + booksSubtotal;
+
     // Handle promo code if applied - SECURITY: Always recalculate from server
-    let finalSubtotal = validatedCart.subtotal;
-    let finalTotal = validatedCart.total;
+    let finalSubtotal = baseSubtotal;
+    let finalTotal = baseSubtotal;
     let appliedPromoCode = null;
     let discountAmount = 0;
 
     if (req.session.appliedPromoCode) {
+      // For book-only purchases, create a dummy item for promo validation
+      const itemsForPromo = isBookOnly 
+        ? [{
+            id: req.session.bookOnlyPurchase.bundleId,
+            type: 'book',
+            title: req.session.bookOnlyPurchase.bookName,
+            price: booksSubtotal,
+          }]
+        : validatedCart.items;
+
       // SECURITY: Re-validate promo code and recalculate amounts from server
       const promoValidation = await validateAndApplyPromoCode(
         req.session.appliedPromoCode.code,
         req.session.user.id,
-        validatedCart.items,
-        validatedCart.subtotal,
+        itemsForPromo,
+        baseSubtotal,
         req.session.user.email || req.session.user.studentEmail
       );
 
       if (promoValidation.success) {
         appliedPromoCode = promoValidation.promoCode;
         discountAmount = promoValidation.discountAmount;
-        finalSubtotal = validatedCart.subtotal; // Keep original subtotal
+        finalSubtotal = baseSubtotal; // Keep original subtotal (with books)
         finalTotal = promoValidation.finalAmount; // Use server-calculated final amount
 
         // SECURITY: Validate that session promo code data matches server calculation
@@ -2173,10 +2460,11 @@ const processPayment = async (req, res) => {
         }
 
         console.log('Promo code applied successfully:', {
-          originalAmount: validatedCart.subtotal,
+          originalAmount: baseSubtotal,
           discountAmount: discountAmount,
           finalAmount: finalTotal,
           promoCode: appliedPromoCode.code,
+          isBookOnly: !!isBookOnly,
         });
       } else {
         // Remove invalid promo code from session
@@ -2188,39 +2476,27 @@ const processPayment = async (req, res) => {
       }
     }
 
-    // Handle book orders if selected
-    const selectedBooks = req.body.selectedBooks || [];
-    let booksSubtotal = 0;
-    const bookOrders = [];
-
-    if (selectedBooks.length > 0) {
-      // Validate and calculate book prices
-      const bundles = await BundleCourse.find({
-        _id: { $in: selectedBooks },
-        hasBook: true,
-        bookPrice: { $gt: 0 },
-      }).select('_id bookName bookPrice');
-
-      for (const bundle of bundles) {
-        booksSubtotal += bundle.bookPrice;
-      }
-    }
-
-    // Update totals to include books
-    const totalWithBooks = finalTotal + booksSubtotal;
+    // Final total is already calculated (includes books and promo discount)
+    const totalWithBooks = finalTotal;
 
     // Create purchase record with pending status using validated cart data
+    const purchaseItems = isBookOnly 
+      ? [] // Empty items for book-only purchase
+      : validatedCart.items.map((item) => ({
+          itemType: item.type,
+          itemTypeModel: item.type === 'bundle' ? 'BundleCourse' : 'Course',
+          item: item.id,
+          title: item.title,
+          price: item.price, // Database-validated price
+          quantity: 1,
+        }));
+
     const purchase = new Purchase({
       user: req.session.user.id,
-      items: validatedCart.items.map((item) => ({
-        itemType: item.type,
-        itemTypeModel: item.type === 'bundle' ? 'BundleCourse' : 'Course',
-        item: item.id,
-        title: item.title,
-        price: item.price, // Database-validated price
-        quantity: 1,
-      })),
-      subtotal: finalSubtotal + booksSubtotal,
+      items: purchaseItems,
+      // For book-only purchases, finalSubtotal already includes booksSubtotal
+      // For regular purchases, we need to add booksSubtotal to finalSubtotal
+      subtotal: isBookOnly ? finalSubtotal : (finalSubtotal + booksSubtotal),
       total: totalWithBooks,
       booksSubtotal: booksSubtotal,
       currency: 'EGP',
@@ -2229,19 +2505,24 @@ const processPayment = async (req, res) => {
       status: 'pending',
       paymentStatus: 'pending',
       paymentIntentId: merchantOrderId,
+      isBookOnly: !!isBookOnly, // Flag to indicate book-only purchase
       // Add promo code information
       appliedPromoCode: appliedPromoCode ? appliedPromoCode._id : null,
       discountAmount: discountAmount,
-      originalAmount: validatedCart.subtotal,
+      originalAmount: isBookOnly ? booksSubtotal : validatedCart.subtotal,
       promoCodeUsed: appliedPromoCode ? appliedPromoCode.code : null,
     });
 
     await purchase.save();
 
-    // Create book orders if books were selected
-    if (selectedBooks.length > 0) {
+    // Create book orders if books were selected (or if book-only purchase)
+    const bookBundleIds = isBookOnly 
+      ? [req.session.bookOnlyPurchase.bundleId]
+      : selectedBooks;
+
+    if (bookBundleIds.length > 0) {
       const bundles = await BundleCourse.find({
-        _id: { $in: selectedBooks },
+        _id: { $in: bookBundleIds },
         hasBook: true,
         bookPrice: { $gt: 0 },
       }).select('_id bookName bookPrice title bundleCode');
@@ -2267,19 +2548,21 @@ const processPayment = async (req, res) => {
     }
 
     // Create Paymob payment session using validated data
-    const orderItems = validatedCart.items.map((item) => ({
-      title: item.title,
-      price: item.price, // Database-validated price
-      quantity: 1,
-      description: `${item.type === 'bundle' ? 'Bundle' : 'Course'}: ${
-        item.title
-      }`,
-    }));
+    const orderItems = isBookOnly 
+      ? [] // Empty items for book-only purchase
+      : validatedCart.items.map((item) => ({
+          title: item.title,
+          price: item.price, // Database-validated price
+          quantity: 1,
+          description: `${item.type === 'bundle' ? 'Bundle' : 'Course'}: ${
+            item.title
+          }`,
+        }));
 
     // Add book items to order
-    if (selectedBooks.length > 0) {
+    if (bookBundleIds.length > 0) {
       const bundles = await BundleCourse.find({
-        _id: { $in: selectedBooks },
+        _id: { $in: bookBundleIds },
         hasBook: true,
         bookPrice: { $gt: 0 },
       }).select('_id bookName bookPrice');
@@ -2300,15 +2583,19 @@ const processPayment = async (req, res) => {
       items: orderItems,
     };
 
+    // DON'T clear book-only purchase session here - wait until payment is completed
+    // The session will be cleared in processSuccessfulPayment after payment is confirmed
+
     // Log payment data for debugging
     console.log('Creating payment session with data:', {
-      originalSubtotal: validatedCart.subtotal,
+      isBookOnly: !!isBookOnly,
+      originalSubtotal: isBookOnly ? booksSubtotal : validatedCart.subtotal,
       booksSubtotal: booksSubtotal,
       finalTotal: totalWithBooks,
       discountAmount: discountAmount,
       promoCode: appliedPromoCode ? appliedPromoCode.code : 'none',
       merchantOrderId: merchantOrderId,
-      booksCount: selectedBooks.length,
+      booksCount: bookBundleIds.length,
     });
 
     // Add redirect URL to billing address for Paymob iframe
@@ -2727,7 +3014,8 @@ const handlePaymentSuccess = async (req, res) => {
             await purchase.save();
 
             // Process successful payment using centralized function
-            await processSuccessfulPayment(purchase);
+            // Pass req to clear session after payment is confirmed completed
+            await processSuccessfulPayment(purchase, req);
 
             // Reload purchase to get updated data
             purchase = await Purchase.findOne({
@@ -2778,8 +3066,17 @@ const handlePaymentSuccess = async (req, res) => {
       }
     }
 
-    // Clear the cart after successful payment
-    clearCart(req, 'payment success page');
+    // Only clear cart if payment is actually completed
+    // Don't clear if still pending - user might come back to complete payment
+    if (purchase.status === 'completed' && purchase.paymentStatus === 'completed') {
+      clearCart(req, 'payment success page');
+      
+      // Also clear book-only purchase session if it exists
+      if (req.session.bookOnlyPurchase) {
+        delete req.session.bookOnlyPurchase;
+        req.session.save();
+      }
+    }
 
     // Populate book orders if they exist
     const purchaseObj = purchase.toObject();
@@ -3033,7 +3330,8 @@ const handlePaymobWebhook = async (req, res) => {
 
       // Use centralized function to process successful payment
       // This handles enrollments, promo codes, notifications, etc.
-      await processSuccessfulPayment(purchase);
+      // Note: req is not available in webhook, so session clearing happens in redirect handler
+      await processSuccessfulPayment(purchase, null);
 
       return res.status(200).send('OK');
     }
@@ -3167,7 +3465,8 @@ const handlePaymobWebhookRedirect = async (req, res) => {
         await purchase.save();
 
         // Process successful payment using centralized function
-        await processSuccessfulPayment(purchase);
+        // Pass req to clear session after payment is confirmed completed
+        await processSuccessfulPayment(purchase, req);
 
         return res.redirect(
           `/purchase/payment/success?merchantOrderId=${merchantOrderId}`
@@ -3208,6 +3507,7 @@ module.exports = {
   addToCart,
   removeFromCart,
   getCheckout,
+  getBookCheckout,
   directCheckout,
   processPayment,
   handlePaymentSuccess,
@@ -3225,3 +3525,4 @@ module.exports = {
   removePromoCode,
   clearInvalidPromoCode,
 };
+

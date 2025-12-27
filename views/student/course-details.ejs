@@ -83,6 +83,35 @@
                 </div>
             </div>
 
+            <!-- Buy Book Section -->
+            <% if (bookPurchaseInfo) { %>
+            <div class="card book-purchase-card mb-4">
+                <div class="card-body">
+                    <div class="book-purchase-content">
+                        <div class="book-purchase-info">
+                            <div class="book-purchase-icon">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <div class="book-purchase-details">
+                                <h5 class="book-purchase-title"><%= bookPurchaseInfo.bookName %></h5>
+                                <p class="book-purchase-description">Purchase the physical book for this bundle</p>
+                            </div>
+                        </div>
+                        <a href="/purchase/checkout/book?bundle=<%= bookPurchaseInfo.bundleId %>" class="btn-buy-book">
+                            <div class="btn-buy-book-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="btn-buy-book-content">
+                                <span class="btn-buy-book-label">Buy Book</span>
+                                <span class="btn-buy-book-price">EGP <%= bookPurchaseInfo.bookPrice.toFixed(2) %></span>
+                            </div>
+                            <i class="fas fa-arrow-right btn-buy-book-arrow"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+
             <!-- Topics Section -->
             <div class="card">
                 <div class="card-header">
@@ -293,6 +322,158 @@
     margin: 0;
     font-size: 12px;
     color: #6c757d;
+}
+
+/* Enhanced Buy Book Button Styles */
+.book-purchase-card {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+    overflow: hidden;
+}
+
+.book-purchase-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px;
+    flex-wrap: wrap;
+}
+
+.book-purchase-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 250px;
+}
+
+.book-purchase-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    flex-shrink: 0;
+}
+
+.book-purchase-details {
+    flex: 1;
+}
+
+.book-purchase-title {
+    margin: 0 0 6px 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.book-purchase-description {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #78350f;
+    opacity: 0.9;
+}
+
+.btn-buy-book {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-buy-book:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: white;
+    text-decoration: none;
+}
+
+.btn-buy-book-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.btn-buy-book-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.btn-buy-book-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.btn-buy-book-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.btn-buy-book-arrow {
+    font-size: 14px;
+    opacity: 0.8;
+    transition: transform 0.3s ease;
+}
+
+.btn-buy-book:hover .btn-buy-book-arrow {
+    transform: translateX(4px);
+}
+
+/* Dark theme support */
+.dark-theme .book-purchase-card {
+    background: linear-gradient(135deg, #451a03 0%, #78350f 100%);
+    border-color: #f59e0b;
+}
+
+.dark-theme .book-purchase-title {
+    color: #fbbf24;
+}
+
+.dark-theme .book-purchase-description {
+    color: #fcd34d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .book-purchase-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .book-purchase-info {
+        min-width: auto;
+    }
+    
+    .btn-buy-book {
+        width: 100%;
+        justify-content: center;
+    }
 }
 </style>
 

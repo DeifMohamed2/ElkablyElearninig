@@ -78,6 +78,7 @@
             <h3><i class="fas fa-shopping-bag"></i> Purchased Items</h3>
           </div>
           <div class="card-body">
+            <% if (purchase.items && purchase.items.length > 0) { %>
             <% purchase.items.forEach(item => { %>
             <div class="purchased-item">
               <div class="item-icon">
@@ -97,7 +98,8 @@
                 <span class="price">EGP <%= item.price.toFixed(2) %></span>
               </div>
             </div>
-            <% }) %>
+            <% }); %>
+            <% } %>
 
             <!-- Book Orders -->
             <% if (purchase.bookOrders && purchase.bookOrders.length > 0) { %>
@@ -131,23 +133,33 @@
           <div class="card-body">
             <% 
               // Calculate courses/bundles subtotal (excluding books)
-              const coursesSubtotal = purchase.items.reduce((sum, item) => sum + (item.price || 0), 0);
+              const coursesSubtotal = purchase.items && purchase.items.length > 0 
+                ? purchase.items.reduce((sum, item) => sum + (item.price || 0), 0) 
+                : 0;
               const booksSubtotal = purchase.booksSubtotal || 0;
+              
+              // For book-only purchases (isBookOnly flag or empty items with books)
+              const isBookOnly = purchase.isBookOnly || (coursesSubtotal === 0 && booksSubtotal > 0);
+              
+              // For book-only purchases, subtotal should equal booksSubtotal (not double)
+              // For regular purchases, subtotal = coursesSubtotal + booksSubtotal
+              // Use purchase.total as the source of truth for subtotal (it's already calculated correctly)
+              const actualSubtotal = isBookOnly 
+                ? booksSubtotal  // For book-only, subtotal = book price only
+                : (purchase.subtotal || (coursesSubtotal + booksSubtotal));
             %>
+            <% if (coursesSubtotal > 0) { %>
             <div class="total-row">
               <span class="label">Courses/Bundles:</span>
               <span class="value">EGP <%= coursesSubtotal.toFixed(2) %></span>
             </div>
+            <% } %>
             <% if (booksSubtotal > 0) { %>
             <div class="total-row">
               <span class="label">Books:</span>
               <span class="value">EGP <%= booksSubtotal.toFixed(2) %></span>
             </div>
             <% } %>
-            <div class="total-row">
-              <span class="label">Subtotal:</span>
-              <span class="value">EGP <%= purchase.subtotal.toFixed(2) %></span>
-            </div>
             <div class="total-row final-total">
               <span class="label">Total:</span>
               <span class="value">EGP <%= purchase.total.toFixed(2) %></span>

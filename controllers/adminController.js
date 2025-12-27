@@ -4441,6 +4441,7 @@ const getOrders = async (req, res) => {
         Purchase.find(filter)
           .populate('user', 'firstName lastName studentEmail studentCode')
           .populate('items.item')
+          .populate('bookOrders', 'bookName bookPrice bundle')
           .sort(sort)
           .skip(skip)
           .limit(parseInt(limit))
@@ -4564,6 +4565,14 @@ const getOrderDetails = async (req, res) => {
       return res.redirect('/admin/orders');
     }
 
+    // Fetch book orders related to this purchase (before creating itemsSummary)
+    const BookOrder = require('../models/BookOrder');
+    const bookOrders = await BookOrder.find({ purchase: order._id })
+      .populate('user', 'firstName lastName studentEmail studentCode')
+      .populate('bundle', 'title bundleCode thumbnail')
+      .sort({ createdAt: -1 })
+      .lean();
+
     // If we need to populate courses for bundle items, do it separately
     if (order.items && order.items.length > 0) {
       for (const item of order.items) {
@@ -4580,7 +4589,7 @@ const getOrderDetails = async (req, res) => {
     }
 
     // Compute detailed item summaries with thumbnails and codes
-    const itemsSummary = order.items.map((it) => {
+    const itemsSummary = (order.items || []).map((it) => {
       // Extract item details
       const itemDetails = it.item || {};
 
@@ -4620,6 +4629,28 @@ const getOrderDetails = async (req, res) => {
       };
     });
 
+    // Add book orders to items summary
+    if (bookOrders && bookOrders.length > 0) {
+      bookOrders.forEach((bookOrder) => {
+        const bundleDetails = bookOrder.bundle || {};
+        itemsSummary.push({
+          title: bookOrder.bookName || 'Book',
+          type: 'book',
+          price: bookOrder.bookPrice || 0,
+          quantity: 1,
+          total: bookOrder.bookPrice || 0,
+          refId: bookOrder.bundle,
+          thumbnail: bundleDetails.thumbnail || '/images/book-placeholder.jpg',
+          courseCode: null,
+          bundleCode: bundleDetails.bundleCode || null,
+          description: `Physical Book - ${bundleDetails.title || 'N/A'}`,
+          courses: [],
+          bookOrderId: bookOrder._id,
+          bookOrderStatus: bookOrder.status,
+        });
+      });
+    }
+
     // Get customer purchase history count
     const customerPurchaseCount = await Purchase.countDocuments({
       'billingAddress.email': order.billingAddress.email,
@@ -4637,25 +4668,19 @@ const getOrderDetails = async (req, res) => {
     );
 
     // Enhanced order summary
+    // Include book orders in item count
+    const itemCount = (order.items ? order.items.length : 0) + (bookOrders ? bookOrders.length : 0);
     const summary = {
       subtotal: order.subtotal,
       tax: order.tax,
       total: order.total,
       currency: order.currency || 'EGP',
-      itemCount: order.items.length,
+      itemCount: itemCount,
       customerStats: {
         orderCount: customerPurchaseCount,
         totalSpent: totalSpent.toFixed(2),
       },
     };
-
-    // Fetch book orders related to this purchase
-    const BookOrder = require('../models/BookOrder');
-    const bookOrders = await BookOrder.find({ purchase: order._id })
-      .populate('user', 'firstName lastName studentEmail studentCode')
-      .populate('bundle', 'title bundleCode thumbnail')
-      .sort({ createdAt: -1 })
-      .lean();
 
     return res.render('admin/order-details', {
       title: `Order ${order.orderNumber} | ELKABLY`,

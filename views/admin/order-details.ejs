@@ -97,19 +97,25 @@
                   <tr>
                     <td>
                       <div class="d-flex align-items-center">
-                        <img src="<%= item.thumbnail || (item.type === 'bundle' ? '/images/bundle-placeholder.png' : (item.type === 'course' ? '/images/course-placeholder.png' : '/images/quiz-placeholder.png')) %>" alt="<%= item.title %>" class="product-thumbnail me-3" onerror="this.src='https://via.placeholder.com/60x60?text=<%= item.type %>'">
+                        <img src="<%= item.thumbnail || (item.type === 'book' ? '/images/book-placeholder.jpg' : (item.type === 'bundle' ? '/images/bundle-placeholder.png' : (item.type === 'course' ? '/images/course-placeholder.png' : '/images/quiz-placeholder.png'))) %>" alt="<%= item.title %>" class="product-thumbnail me-3" onerror="this.src='https://via.placeholder.com/60x60?text=<%= item.type %>'">
                         <div class="product-details">
                           <h6 class="mb-1"><%= item.title %></h6>
+                          <% if (item.type === 'book' && item.description) { %>
+                          <small class="text-muted"><%= item.description %></small>
+                          <% } %>
                           <% if (item.courseCode || item.bundleCode) { %>
-                          <small class="text-muted">Code: <%= item.courseCode || item.bundleCode %></small>
+                          <br><small class="text-muted">Code: <%= item.courseCode || item.bundleCode %></small>
                           <% } %>
                         </div>
                       </div>
                     </td>
                     <td>
                       <span class="product-type <%= item.type.toLowerCase() %>">
-                        <%= item.type %>
+                        <%= item.type === 'book' ? 'Physical Book' : item.type.charAt(0).toUpperCase() + item.type.slice(1) %>
                       </span>
+                      <% if (item.type === 'book' && item.description) { %>
+                      <br><small class="text-muted"><%= item.description %></small>
+                      <% } %>
                     </td>
                     <td class="text-end fw-bold">
                       <%= order.currency %> <%= item.price.toFixed(2) %>

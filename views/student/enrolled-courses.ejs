@@ -205,6 +205,26 @@
                     </div>
                   </div>
                 </div>
+                
+                <!-- Buy Book Button -->
+                <% 
+                  const bundleIdStr = bundleGroup.bundleId.toString();
+                  if (bundleBookInfo && bundleBookInfo[bundleIdStr]) { 
+                %>
+                <% const bookInfo = bundleBookInfo[bundleIdStr]; %>
+                <div class="bundle-book-purchase" style="flex-shrink: 0;" onclick="event.stopPropagation();">
+                  <a href="/purchase/checkout/book?bundle=<%= bookInfo.bundleId %>" class="btn-buy-book">
+                    <div class="btn-buy-book-icon">
+                      <i class="fas fa-book"></i>
+                    </div>
+                    <div class="btn-buy-book-content">
+                      <span class="btn-buy-book-label">Buy Book</span>
+                      <span class="btn-buy-book-price">EGP <%= bookInfo.bookPrice.toFixed(2) %></span>
+                    </div>
+                    <i class="fas fa-arrow-right btn-buy-book-arrow"></i>
+                  </a>
+                </div>
+                <% } %>
               </div>
             </div>
           </div>
@@ -403,6 +423,86 @@
     .filter-row {
       gap: 12px;
     }
+
+    /* Enhanced Buy Book Button Styles for Bundle Header */
+    .bundle-book-purchase {
+      margin-left: auto;
+    }
+
+    .btn-buy-book {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+      white-space: nowrap;
+    }
+
+    .btn-buy-book:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+      background: linear-gradient(135deg, #d97706, #b45309);
+      color: white;
+      text-decoration: none;
+    }
+
+    .btn-buy-book-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .btn-buy-book-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .btn-buy-book-label {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    .btn-buy-book-price {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .btn-buy-book-arrow {
+      font-size: 12px;
+      opacity: 0.8;
+      transition: transform 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-buy-book:hover .btn-buy-book-arrow {
+      transform: translateX(4px);
+    }
+
+    /* Dark theme support */
+    .dark-theme .btn-buy-book {
+      background: linear-gradient(135deg, #d97706, #b45309);
+    }
+
+    .dark-theme .btn-buy-book:hover {
+      background: linear-gradient(135deg, #b45309, #92400e);
+    }
     
     @media (max-width: 768px) {
       .filter-row {
@@ -443,6 +543,17 @@
       
       .bundle-name-display > div > div:first-child > div:last-child {
         width: 100%;
+      }
+
+      .bundle-book-purchase {
+        margin-left: 0;
+        margin-top: var(--spacing-md);
+        width: 100%;
+      }
+
+      .btn-buy-book {
+        width: 100%;
+        justify-content: center;
       }
     }
   </style>
