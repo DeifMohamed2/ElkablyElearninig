@@ -10,6 +10,7 @@ class PaymobService {
     this.integrationIdCard = process.env.PAYMOB_INTEGRATION_ID_CARD;
     this.integrationIdWallet = process.env.PAYMOB_INTEGRATION_ID_WALLET;
     this.integrationIdKiosk = process.env.PAYMOB_INTEGRATION_ID_KIOSK;
+    this.integrationIdApplePay = process.env.PAYMOB_INTEGRATION_ID_APPLE_PAY;
     this.webhookSecret = process.env.PAYMOB_WEBHOOK_SECRET;
 
     // Unified Checkout API credentials (new API)
@@ -59,6 +60,11 @@ class PaymobService {
       console.log(`✅ Kiosk: ${this.integrationIdKiosk}`);
     } else {
       console.log('⚠️ Kiosk: Not configured (optional)');
+    }
+    if (this.integrationIdApplePay) {
+      console.log(`✅ Apple Pay: ${this.integrationIdApplePay}`);
+    } else {
+      console.log('⚠️ Apple Pay: Not configured (optional)');
     }
     console.log('');
   }
@@ -314,6 +320,8 @@ class PaymobService {
         methods.push(parseInt(this.integrationIdWallet));
       if (this.integrationIdKiosk)
         methods.push(parseInt(this.integrationIdKiosk));
+      if (this.integrationIdApplePay)
+        methods.push(parseInt(this.integrationIdApplePay));
 
       if (methods.length === 0) {
         throw new Error(
@@ -627,12 +635,12 @@ class PaymobService {
 
   /**
    * Create complete payment session (order + payment key)
-   * Uses old API for card payments, new unified checkout for mobile wallet
+   * Uses old API for card payments, new unified checkout for mobile wallet, kiosk, and Apple Pay
    */
   async createPaymentSession(orderData, billingData, paymentMethod = 'card') {
     try {
-      // Use unified checkout API for mobile wallet and kiosk payments
-      if (paymentMethod === 'wallet' || paymentMethod === 'kiosk') {
+      // Use unified checkout API for mobile wallet, kiosk, and Apple Pay payments
+      if (paymentMethod === 'wallet' || paymentMethod === 'kiosk' || paymentMethod === 'applePay') {
         // Validate integration ID exists before proceeding
         if (paymentMethod === 'wallet' && !this.integrationIdWallet) {
           console.error(
@@ -656,6 +664,17 @@ class PaymobService {
           };
         }
 
+        if (paymentMethod === 'applePay' && !this.integrationIdApplePay) {
+          console.error(
+            '❌ Apple Pay selected but PAYMOB_INTEGRATION_ID_APPLE_PAY is not configured'
+          );
+          return {
+            success: false,
+            error:
+              'Apple Pay is not available at this time. Please use Card or Mobile Wallet.',
+          };
+        }
+
         // Determine which integration ID to use based on payment method
         let specificIntegrationId = null;
 
@@ -665,6 +684,9 @@ class PaymobService {
         } else if (paymentMethod === 'kiosk') {
           specificIntegrationId = [parseInt(this.integrationIdKiosk)];
           console.log('🟣 Using Kiosk integration ID:', specificIntegrationId);
+        } else if (paymentMethod === 'applePay') {
+          specificIntegrationId = [parseInt(this.integrationIdApplePay)];
+          console.log('🍎 Using Apple Pay integration ID:', specificIntegrationId);
         }
 
         // Use unified checkout with specific integration ID
@@ -910,8 +932,9 @@ class PaymobService {
       String(payload?.obj?.transaction_status).toUpperCase() === 'CAPTURED' ||
       String(payload?.transaction_status).toUpperCase() === 'CAPTURED' ||
       // Query-based success checks (for redirect callbacks)
+      // FIXED: Changed pending check from === 'false' to !== 'true' to handle missing pending param
       (queryParams?.success === 'true' &&
-        queryParams?.pending === 'false' &&
+        queryParams?.pending !== 'true' &&
         queryParams?.error_occured !== 'true') ||
       // Additional success indicators for unified checkout
       (queryParams?.success === 'true' &&
@@ -922,7 +945,13 @@ class PaymobService {
           queryParams?.acq_response_code === '00' ||
           queryParams?.txn_response_code === 'APPROVED' ||
           queryParams?.is_capture === 'true' ||
-          queryParams?.is_auth === 'true'));
+          queryParams?.is_auth === 'true')) ||
+      // ADDED: If success=true and no explicit failure indicators, treat as success
+      // This fixes the issue where bank confirms payment but system shows failed
+      (queryParams?.success === 'true' &&
+        queryParams?.error_occured !== 'true' &&
+        queryParams?.is_voided !== 'true' &&
+        queryParams?.is_refunded !== 'true');
 
     // Comprehensive failure indicators (expanded to match standalone app)
     const failedIndicators = [

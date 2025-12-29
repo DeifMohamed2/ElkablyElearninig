@@ -1978,28 +1978,13 @@
                     <i class="fas fa-play-circle"></i>
                     <span>Recording Available</span>
                   </div>
-                  <% if (!contentProgress.isCompleted) { %>
-                  <div class="recording-progress-hint">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Watch to the end to complete</span>
-                  </div>
-                  <% } else { %>
+                  <% if (contentProgress.isCompleted) { %>
                   <div class="recording-completed-badge">
                     <i class="fas fa-check-circle"></i>
                     <span>Completed</span>
                   </div>
                   <% } %>
                 </div>
-
-                <!-- Recording Progress Bar -->
-                <% if (!contentProgress.isCompleted) { %>
-                <div class="recording-progress-container">
-                  <div class="recording-progress-bar">
-                    <div class="recording-progress-fill" id="recordingProgressFill" style="width: 0%"></div>
-                  </div>
-                  <span class="recording-progress-text" id="recordingProgressText">0%</span>
-                </div>
-                <% } %>
 
                 <!-- Video Player Container - Supports both Bunny and YouTube with Watermark -->
                 <div class="recording-player-wrapper">
@@ -2043,12 +2028,30 @@
                           zoomMeeting.recordingUrl.trim().startsWith('<')
                         );
                       %>
-                      <div class="video-player-container" style="position: relative; padding-top: 56.25%; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+                      <div class="video-player-container recording-video-container" style="position: relative; padding-top: 56.25%; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
                         <% if (isEmbedCode) { %>
                           <!-- Render embed code directly (Bunny CDN embed) -->
-                          <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                          <div class="bunny-embed-wrapper" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
                             <%- zoomMeeting.recordingUrl %>
                           </div>
+                          <style>
+                            /* Ensure Bunny embed iframe fills its container */
+                            .bunny-embed-wrapper iframe,
+                            .bunny-embed-wrapper > div,
+                            .bunny-embed-wrapper > div > iframe {
+                              position: absolute !important;
+                              top: 0 !important;
+                              left: 0 !important;
+                              width: 100% !important;
+                              height: 100% !important;
+                              border: 0 !important;
+                            }
+                            .bunny-embed-wrapper > div {
+                              position: absolute !important;
+                              width: 100% !important;
+                              height: 100% !important;
+                            }
+                          </style>
                         <% } else { %>
                           <!-- Regular URL - use iframe -->
                           <iframe id="recordingPlayer" 
@@ -2087,6 +2090,20 @@
                     <% } %>
                   </div>
                 </div>
+
+                <!-- Mark as Watched Button -->
+                <% if (!contentProgress.isCompleted) { %>
+                <div class="recording-mark-watched-section mt-4">
+                  <button class="btn btn-primary btn-lg recording-mark-watched-btn" onclick="markRecordingAsWatched(event)">
+                    <i class="fas fa-check-circle me-2"></i>
+                    I Have Watched This Recording
+                  </button>
+                  <p class="recording-mark-watched-hint mt-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Click the button above after finishing the recording to mark it as completed
+                  </p>
+                </div>
+                <% } %>
               </div>
               <% } else { %>
               <!-- Waiting for recording message -->
@@ -4485,18 +4502,9 @@
       const meetingEnded = '<%= contentItem.zoomMeeting && contentItem.zoomMeeting.status === "ended" ? "true" : "false" %>' === 'true';
       const isAlreadyCompleted = '<%= contentProgress.isCompleted ? "true" : "false" %>' === 'true';
 
-      if (isZoomContent && hasRecording && meetingEnded) {
-        // Check if recording is YouTube video
-        if (window.recordingYoutubeVideoId) {
-          // Initialize YouTube player for recording
-          if (typeof window.initializeRecordingYouTubePlayer === 'function') {
-            window.initializeRecordingYouTubePlayer(isAlreadyCompleted);
-          }
-        } else {
-          // Initialize PlayerJS for Bunny/regular videos
-          initializeRecordingPlayerJS(isAlreadyCompleted);
-        }
-      }
+      // Recording completion is now handled by the "I Have Watched" button
+      // Automatic progress tracking is disabled for a simpler, more professional workflow
+      // Students click the button after watching the recording to mark it as complete
     });
 
     function initializeRecordingPlayerJS(isAlreadyCompleted) {
@@ -4643,6 +4651,23 @@
     function handleLinkVisitAcknowledge(event) {
       // Open link in new tab, then mark as completed
       setTimeout(() => acknowledgeAndComplete(), 1000);
+    }
+
+    // Mark recording as watched - simple completion for Zoom recordings
+    function markRecordingAsWatched(event) {
+      // Disable button immediately to prevent multiple clicks
+      const button = (event && event.target) || document.querySelector('.recording-mark-watched-btn');
+      if (button && !button.disabled) {
+        button.disabled = true;
+        button.style.opacity = '0.6';
+        button.style.cursor = 'not-allowed';
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Marking as completed...';
+        button.dataset.originalText = originalText;
+      }
+      
+      // Mark as completed
+      updateContentProgressSmooth('completed', 100);
     }
 
     // ==================== ZOOM MEETING FUNCTIONS ====================
@@ -5485,6 +5510,71 @@
       background: linear-gradient(135deg, #064e3b, #065f46);
       border-color: #10b981;
       color: #a7f3d0;
+    }
+
+    /* Mark as Watched Button Section */
+    .recording-mark-watched-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 20px;
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border: 1px solid #86efac;
+      border-radius: 12px;
+    }
+
+    .recording-mark-watched-btn {
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 50px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .recording-mark-watched-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      background: linear-gradient(135deg, #059669, #047857);
+    }
+
+    .recording-mark-watched-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .recording-mark-watched-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .recording-mark-watched-hint {
+      font-size: 13px;
+      color: #059669;
+      margin: 0;
+      text-align: center;
+    }
+
+    .recording-mark-watched-hint i {
+      color: #10b981;
+    }
+
+    /* Dark theme mark as watched styles */
+    .dark-theme .recording-mark-watched-section {
+      background: linear-gradient(135deg, #064e3b, #065f46);
+      border-color: #10b981;
+    }
+
+    .dark-theme .recording-mark-watched-hint {
+      color: #a7f3d0;
+    }
+
+    .dark-theme .recording-mark-watched-hint i {
+      color: #6ee7b7;
     }
 
     /* ==================== VIDEO WATERMARK STYLES ==================== */

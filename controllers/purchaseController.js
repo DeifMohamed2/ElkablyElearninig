@@ -360,8 +360,8 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     
     // Library phone numbers - Both Egypt and International use same number
         // Library phone numbers (local Egyptian format, will be converted to international format)
-    const egyptLibraryPhone = '01023680795'; // Egypt library
-    const internationalLibraryPhone = '01026652507'; // International library
+    const egyptLibraryPhone = ''; // Egypt library
+    const internationalLibraryPhone = ''; // International library
     const libraryPhone = isEgypt ? egyptLibraryPhone : internationalLibraryPhone;
 
     // Format phone number for WhatsApp
@@ -1113,7 +1113,7 @@ const validatePromoCode = async (req, res) => {
       });
     }
 
-    const { promoCode } = req.body;
+    const { promoCode, booksSubtotal = 0 } = req.body;
     const validatedCart = req.validatedCart;
 
     if (!promoCode) {
@@ -1123,29 +1123,50 @@ const validatePromoCode = async (req, res) => {
       });
     }
 
-    if (validatedCart.cartCount === 0) {
+    // For book-only purchases or regular cart with books, include books in total
+    const isBookOnly = validatedCart.isBookOnly;
+    
+    // Allow promo code validation for book-only purchases or regular cart
+    if (validatedCart.cartCount === 0 && !isBookOnly && booksSubtotal <= 0) {
       return res.status(400).json({
         success: false,
         message: 'Cart is empty',
       });
     }
 
+    // Calculate total amount including books
+    const parsedBooksSubtotal = parseFloat(booksSubtotal) || 0;
+    const totalAmount = validatedCart.subtotal + parsedBooksSubtotal;
+
+    // Create items array that includes books for promo validation
+    const itemsForPromo = [...validatedCart.items];
+    if (parsedBooksSubtotal > 0) {
+      // Add a dummy book item for promo validation
+      itemsForPromo.push({
+        id: 'books',
+        type: 'book',
+        title: 'Selected Books',
+        price: parsedBooksSubtotal,
+      });
+    }
+
     const result = await validateAndApplyPromoCode(
       promoCode,
       req.session.user.id,
-      validatedCart.items,
-      validatedCart.subtotal,
+      itemsForPromo,
+      totalAmount, // Use total including books
       req.session.user.email || req.session.user.studentEmail
     );
 
     if (result.success) {
-      // Store promo code in session for checkout
+      // Store promo code in session for checkout (with total including books)
       req.session.appliedPromoCode = {
         code: result.promoCode.code,
         id: result.promoCode._id,
         discountAmount: result.discountAmount,
         finalAmount: result.finalAmount,
         originalAmount: result.originalAmount,
+        booksSubtotal: parsedBooksSubtotal, // Store books subtotal for verification
       };
 
       res.json({
@@ -1170,6 +1191,7 @@ const validatePromoCode = async (req, res) => {
     });
   }
 };
+
 
 // API endpoint to remove promo code
 const removePromoCode = async (req, res) => {
@@ -1733,6 +1755,7 @@ const getCheckout = async (req, res) => {
           card: !!process.env.PAYMOB_INTEGRATION_ID_CARD,
           wallet: !!process.env.PAYMOB_INTEGRATION_ID_WALLET,
           kiosk: !!process.env.PAYMOB_INTEGRATION_ID_KIOSK,
+          applePay: !!process.env.PAYMOB_INTEGRATION_ID_APPLE_PAY,
         },
       });
     }
@@ -2045,6 +2068,7 @@ const getCheckout = async (req, res) => {
         card: !!process.env.PAYMOB_INTEGRATION_ID_CARD,
         wallet: !!process.env.PAYMOB_INTEGRATION_ID_WALLET,
         kiosk: !!process.env.PAYMOB_INTEGRATION_ID_KIOSK,
+        applePay: !!process.env.PAYMOB_INTEGRATION_ID_APPLE_PAY,
       },
     });
   } catch (error) {
@@ -2598,6 +2622,67 @@ const processPayment = async (req, res) => {
       booksCount: bookBundleIds.length,
     });
 
+    // Handle zero-payment orders (100% discount)
+    if (totalWithBooks <= 0) {
+      console.log('💯 Zero payment order detected - completing order directly without payment gateway');
+      
+      try {
+        // Process the successful payment directly
+        const result = await processSuccessfulPayment(purchase, req);
+        
+        if (result.success) {
+          console.log(`✅ Zero-payment order completed successfully: ${purchase.orderNumber}`);
+          
+          // Clear cart and book-only purchase session
+          clearCart(req, 'zero payment order');
+          if (req.session.bookOnlyPurchase) {
+            delete req.session.bookOnlyPurchase;
+          }
+          // Clear applied promo code from session
+          if (req.session.appliedPromoCode) {
+            delete req.session.appliedPromoCode;
+          }
+          
+          // Save session
+          req.session.save();
+          
+          return res.json({
+            success: true,
+            message: 'Order completed successfully with 100% discount!',
+            skipPayment: true, // Flag to tell frontend to skip payment iframe
+            paymentData: {
+              orderNumber: purchase.orderNumber,
+              total: 0,
+              currency: 'EGP',
+            },
+          });
+        } else {
+          throw new Error(result.error || 'Failed to process zero-payment order');
+        }
+      } catch (zeroPaymentError) {
+        console.error('Error processing zero-payment order:', zeroPaymentError);
+        
+        // Update purchase status to failed
+        purchase.status = 'failed';
+        purchase.paymentStatus = 'failed';
+        purchase.failureReason = 'Zero-payment order processing failed';
+        await purchase.save();
+        
+        // Cancel book orders
+        if (purchase.bookOrders && purchase.bookOrders.length > 0) {
+          await BookOrder.updateMany(
+            { _id: { $in: purchase.bookOrders } },
+            { status: 'cancelled' }
+          );
+        }
+        
+        return res.status(500).json({
+          success: false,
+          message: 'Error completing your order. Please try again.',
+        });
+      }
+    }
+
     // Add redirect URL to billing address for Paymob iframe
     const enhancedBillingAddress = {
       ...billingAddress,
@@ -2897,27 +2982,33 @@ const handlePaymentSuccess = async (req, res) => {
     // Handle both direct merchant order ID and Paymob redirect parameters
     let merchantOrderId =
       req.query.merchantOrderId || req.query.merchant_order_id;
+    
+    // Also accept orderNumber for zero-payment orders (100% discount)
+    const orderNumber = req.query.orderNumber;
 
     // If no merchant order ID in query, check if this is a Paymob redirect
     if (!merchantOrderId && req.query.success === 'true') {
       merchantOrderId = req.query.merchant_order_id;
     }
 
-    if (!merchantOrderId) {
-      console.error('Payment success: No merchant order ID provided');
-      return res.render('payment-fail', {
-        title: 'Payment Error | ELKABLY',
-        theme: req.cookies.theme || 'light',
-        message: 'Invalid payment reference',
-      });
+    // Find purchase by merchant order ID or order number
+    let purchase = null;
+    
+    if (orderNumber) {
+      // Zero-payment order - find by order number
+      purchase = await Purchase.findOne({
+        orderNumber: orderNumber,
+      })
+        .populate('items.item')
+        .populate('user');
+    } else if (merchantOrderId) {
+      // Normal Paymob payment - find by merchant order ID
+      purchase = await Purchase.findOne({
+        paymentIntentId: merchantOrderId,
+      })
+        .populate('items.item')
+        .populate('user');
     }
-
-    // Find purchase by merchant order ID
-    let purchase = await Purchase.findOne({
-      paymentIntentId: merchantOrderId,
-    })
-      .populate('items.item')
-      .populate('user');
 
     if (!purchase) {
       console.error('Payment success: Purchase not found');
@@ -2927,6 +3018,7 @@ const handlePaymentSuccess = async (req, res) => {
         message: 'Payment record not found',
       });
     }
+
 
     // If purchase is marked as failed, show failure page
     if (purchase.status === 'failed' || purchase.paymentStatus === 'failed') {
@@ -3446,14 +3538,81 @@ const handlePaymobWebhookRedirect = async (req, res) => {
       return res.redirect(`/purchase/payment/fail?reason=${reason}`);
     } else if (purchase.status === 'pending') {
       // Payment still pending - webhook might not have arrived yet
-      // Process query parameters to determine status
+      // IMPROVED: Wait briefly for webhook to arrive, then use Transaction Inquiry API
+      console.log('🔀 [Redirect] Payment pending, waiting for webhook...');
+      
+      // Wait 2 seconds to give webhook time to arrive (it's usually faster than redirect)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Re-fetch purchase status after waiting
+      const updatedPurchase = await Purchase.findById(purchase._id);
+      
+      if (updatedPurchase.status === 'completed') {
+        console.log('🔀 [Redirect] Webhook processed payment successfully during wait');
+        return res.redirect(`/purchase/payment/success?merchantOrderId=${merchantOrderId}`);
+      } else if (updatedPurchase.status === 'failed') {
+        console.log('🔀 [Redirect] Webhook marked payment as failed during wait');
+        const reason = updatedPurchase.failureReason ? encodeURIComponent(updatedPurchase.failureReason) : 'payment_failed';
+        return res.redirect(`/purchase/payment/fail?reason=${reason}`);
+      }
+      
+      // Still pending - try Transaction Inquiry API as definitive source
+      console.log('🔀 [Redirect] Still pending, querying Paymob Transaction Inquiry API...');
+      
+      try {
+        const transactionStatus = await paymobService.queryTransactionStatus(merchantOrderId);
+        
+        if (transactionStatus) {
+          const apiWebhookData = paymobService.processWebhookPayload(transactionStatus);
+          
+          if (apiWebhookData.isSuccess) {
+            console.log('🔀 [Redirect] Transaction Inquiry confirms SUCCESS, processing payment...');
+            
+            // Save Paymob transaction details
+            if (apiWebhookData.transactionId) {
+              purchase.paymobTransactionId = String(apiWebhookData.transactionId);
+            }
+            purchase.paymentGatewayResponse = {
+              apiResponse: transactionStatus,
+              processedAt: new Date(),
+              status: 'completed',
+              source: 'transaction_inquiry_api',
+            };
+            await purchase.save();
+            
+            await processSuccessfulPayment(purchase, req);
+            return res.redirect(`/purchase/payment/success?merchantOrderId=${merchantOrderId}`);
+          } else if (apiWebhookData.isFailed) {
+            console.log('🔀 [Redirect] Transaction Inquiry confirms FAILED');
+            
+            const failureReason = transactionStatus?.obj?.data?.message || 
+                                  transactionStatus?.data?.message || 
+                                  'Payment declined or failed';
+            
+            await processFailedPayment(purchase, failureReason, {
+              apiResponse: transactionStatus,
+              processedAt: new Date(),
+              status: 'failed',
+              source: 'transaction_inquiry_api',
+            });
+            
+            return res.redirect(`/purchase/payment/fail?reason=${encodeURIComponent(failureReason)}`);
+          }
+        }
+      } catch (inquiryError) {
+        console.warn('🔀 [Redirect] Transaction Inquiry failed:', inquiryError.message);
+        // Fall back to query parameters
+      }
+      
+      // Fall back to processing query parameters
+      console.log('🔀 [Redirect] Falling back to query parameter processing...');
       const webhookData = paymobService.processWebhookPayload({}, req.query);
 
       if (webhookData.isSuccess) {
         // Payment appears successful but webhook hasn't processed it yet
         // Save the data and let webhook process it, or process it now as fallback
         console.log(
-          '🔀 [Redirect] Payment appears successful, processing as fallback...'
+          '🔀 [Redirect] Payment appears successful from query params, processing as fallback...'
         );
 
         purchase.paymentGatewayResponse = {
@@ -3488,8 +3647,9 @@ const handlePaymobWebhookRedirect = async (req, res) => {
           `/purchase/payment/fail?reason=${encodeURIComponent(failureReason)}`
         );
       } else {
-        // Still pending - redirect to pending message
-        return res.redirect('/purchase/payment/fail?reason=payment_pending');
+        // Still pending after all checks - show a more helpful message
+        console.log('🔀 [Redirect] Payment status still unclear, showing pending message');
+        return res.redirect('/purchase/payment/fail?reason=payment_pending_verification');
       }
     } else {
       // Unknown status

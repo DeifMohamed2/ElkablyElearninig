@@ -331,10 +331,24 @@
                 </label>
               </div>
 
-              <div class="checkout-payment-option apple-pay disabled">
-                <input type="radio" id="applePay" name="selectedPaymentMethod" value="apple_pay" disabled>
-                <label for="applePay" class="checkout-payment-label apple-pay-label disabled">
-                  <div class="checkout-payment-icon apple-pay-icon">
+              <% if (typeof paymentMethods !== 'undefined' && paymentMethods.applePay) { %>
+              <div class="checkout-payment-option">
+                <input type="radio" id="applePay" name="selectedPaymentMethod" value="applePay">
+                <label for="applePay" class="checkout-payment-label">
+                  <div class="checkout-payment-icon">
+                    <i class="fab fa-apple-pay"></i>
+                  </div>
+                  <div class="checkout-payment-info">
+                    <span class="checkout-payment-name">Apple Pay</span>
+                    <span class="checkout-payment-desc">Pay securely with Face ID, Touch ID, or passcode</span>
+                  </div>
+                </label>
+              </div>
+              <% } else { %>
+              <div class="checkout-payment-option disabled">
+                <input type="radio" id="applePay" name="selectedPaymentMethod" value="applePay" disabled>
+                <label for="applePay" class="checkout-payment-label disabled">
+                  <div class="checkout-payment-icon">
                     <i class="fab fa-apple-pay"></i>
                   </div>
                   <div class="checkout-payment-info">
@@ -344,6 +358,7 @@
                   </div>
                 </label>
               </div>
+              <% } %>
             </div>
 
             <div class="paymob-security-notice">
@@ -383,11 +398,20 @@
           </div>
 
           <!-- Order Summary -->
-          <div class="checkout-form-section">
+          <div class="checkout-form-section" style="position: relative;">
+            <!-- Loading overlay for when promo is being recalculated -->
+            <div id="orderSummaryLoadingOverlay" class="order-summary-loading-overlay" style="display: none;">
+              <div class="order-summary-loading-content">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Updating...</span>
+              </div>
+            </div>
+            
             <h3 class="checkout-section-title">
               <i class="fas fa-shopping-bag"></i>
               Order Summary
             </h3>
+
 
             <div class="checkout-order-items">
               <% if (typeof isBookOnly !== 'undefined' && isBookOnly && bookPurchaseInfo) { %>
@@ -981,14 +1005,41 @@
     // Handle book selection - only if books are available and not book-only purchase
     <% if (!isBookOnlyFlag) { %>
     const bookCheckboxes = document.querySelectorAll('.book-checkbox');
+    const orderSummaryOverlay = document.getElementById('orderSummaryLoadingOverlay');
+    
+    // Helper functions for loading overlay
+    function showOrderSummaryLoading() {
+      if (orderSummaryOverlay) {
+        orderSummaryOverlay.style.display = 'flex';
+      }
+    }
+    
+    function hideOrderSummaryLoading() {
+      if (orderSummaryOverlay) {
+        orderSummaryOverlay.style.display = 'none';
+      }
+    }
+    
     if (bookCheckboxes.length > 0) {
       bookCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
+        checkbox.addEventListener('change', async function() {
           updateBooksSubtotal();
           updateOrderSummaryWithBooks();
+          
+          // Show loading if there's a promo code to revalidate
+          if (currentPromoCode) {
+            showOrderSummaryLoading();
+          }
+          
+          // Re-validate promo code if one is applied to include books in discount
+          await revalidatePromoWithBooks();
+          
+          // Hide loading after revalidation
+          hideOrderSummaryLoading();
         });
       });
     }
+
 
     function updateBooksSubtotal() {
       booksSubtotal = 0;
@@ -999,17 +1050,70 @@
         }
       });
     }
+
+    // Re-validate promo code when books change to recalculate discount including books
+    async function revalidatePromoWithBooks() {
+      // Only revalidate if a promo code is currently applied
+      if (!currentPromoCode) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/purchase/promo-code/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            promoCode: currentPromoCode,
+            booksSubtotal: booksSubtotal || 0
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Update currentPromoDiscount FIRST before updating displays
+          currentPromoDiscount = data.discountAmount;
+          
+          // Update the promo discount with new calculation including books
+          updateOrderSummary(data.originalAmount, data.discountAmount, data.finalAmount, data.promoCode);
+          
+          // Update the applied promo code badge to match
+          showAppliedPromoCode(data.promoCode, data.discountAmount);
+          
+          // Re-update the order summary with correct discount value
+          updateOrderSummaryWithBooks();
+          
+          console.log('Promo code re-validated with books:', {
+            originalAmount: data.originalAmount,
+            discountAmount: data.discountAmount,
+            finalAmount: data.finalAmount,
+            booksSubtotal: booksSubtotal
+          });
+        }
+      } catch (error) {
+        console.error('Error re-validating promo code with books:', error);
+      }
+    }
     <% } %>
+
 
     function updateOrderSummaryWithBooks() {
       // For book-only purchases, originalTotal already includes the book price
       const newSubtotal = isBookOnly 
         ? originalSubtotal 
         : (originalSubtotal || 0) + (booksSubtotal || 0);
-      // Apply promo discount to the total
-      const newTotal = isBookOnly
-        ? (originalTotal || 0) - (currentPromoDiscount || 0)
-        : (originalTotal || 0) + (booksSubtotal || 0) - (currentPromoDiscount || 0);
+      
+      // If a promo code is applied, use the backend-calculated value (stored in window.currentTotal)
+      // because backend already includes books in its calculation
+      const hasPromoApplied = currentPromoCode && currentPromoDiscount > 0;
+      const newTotal = hasPromoApplied 
+        ? (window.currentTotal || 0)  // Use backend value - already includes books
+        : (isBookOnly
+            ? (originalTotal || 0)
+            : (originalTotal || 0) + (booksSubtotal || 0));
+
 
       // Update selected books summary
       const selectedBooksSummary = document.getElementById('selectedBooksSummary');
@@ -1095,25 +1199,30 @@
 
       // Update order total
       if (orderTotalDisplay) {
-        orderTotalDisplay.textContent = `EGP ${newTotal.toFixed(2)}`;
+        orderTotalDisplay.textContent = `EGP ${Math.max(0, newTotal).toFixed(2)}`;
       }
 
-      // Update subtotal display (in summary card)
-      const subtotalValue = document.getElementById('subtotalValue');
-      if (subtotalValue) {
-        subtotalValue.textContent = `EGP ${(newSubtotal || 0).toFixed(2)}`;
+      // Update subtotal display (in summary card) - only if no promo
+      if (!hasPromoApplied) {
+        const subtotalValue = document.getElementById('subtotalValue');
+        if (subtotalValue) {
+          subtotalValue.textContent = `EGP ${(newSubtotal || 0).toFixed(2)}`;
+        }
       }
 
       // Update total display (in summary card)
       const totalValue = document.getElementById('totalValue');
       if (totalValue) {
-        totalValue.textContent = `EGP ${(newTotal || 0).toFixed(2)}`;
+        totalValue.textContent = `EGP ${Math.max(0, newTotal).toFixed(2)}`;
       }
 
-      // Store updated values for form submission
-      window.currentSubtotal = newSubtotal || 0;
-      window.currentTotal = newTotal || 0;
+      // Store updated values for form submission - only if no promo
+      if (!hasPromoApplied) {
+        window.currentSubtotal = newSubtotal || 0;
+        window.currentTotal = newTotal || 0;
+      }
     }
+
 
     // Initialize promo code display on page load
     function initializePromoCode() {
@@ -1164,7 +1273,8 @@
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            promoCode
+            promoCode,
+            booksSubtotal: booksSubtotal || 0 // Include books in promo calculation
           })
         });
 
@@ -1187,7 +1297,12 @@
       }
     }
 
+
     async function removePromoCode() {
+      // Show loading state on remove button
+      removePromoBtn.disabled = true;
+      removePromoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      
       try {
         const response = await fetch('/purchase/promo-code/remove', {
           method: 'POST',
@@ -1208,8 +1323,13 @@
       } catch (error) {
         console.error('Error removing promo code:', error);
         showPromoMessage('Error removing promo code. Please try again.', 'error');
+      } finally {
+        // Reset button state
+        removePromoBtn.disabled = false;
+        removePromoBtn.innerHTML = '<i class="fas fa-times"></i>';
       }
     }
+
 
     function showPromoMessage(message, type) {
       promoCodeMessage.textContent = message;
@@ -1223,6 +1343,8 @@
 
     function updateOrderSummary(originalAmount, discountAmount, finalAmount, promoCode) {
       // SECURITY: Use server-calculated amounts only
+      // NOTE: originalAmount and finalAmount from backend ALREADY include books
+      // because we send booksSubtotal to the validation endpoint
       const discount = parseFloat(discountAmount || 0) || 0;
       const final = parseFloat(finalAmount || 0) || 0;
       const original = parseFloat(originalAmount || 0) || 0;
@@ -1236,13 +1358,14 @@
         promoDiscountValue.textContent = `-EGP ${discount.toFixed(2)}`;
       }
       if (totalValue) {
-        totalValue.textContent = `EGP ${final.toFixed(2)}`;
+        // Use finalAmount directly - it already includes books from backend
+        totalValue.textContent = `EGP ${Math.max(0, final).toFixed(2)}`;
       }
       if (promoCodeDiscountRow) {
         promoCodeDiscountRow.style.display = 'flex';
       }
 
-      // Update the subtotal display to show original amount
+      // Update the subtotal display to show original amount (includes books)
       const subtotalValue = document.getElementById('subtotalValue');
       if (subtotalValue) {
         subtotalValue.textContent = `EGP ${original.toFixed(2)}`;
@@ -1260,17 +1383,14 @@
         promoDiscountBreakdown.textContent = `-EGP ${discount.toFixed(2)}`;
       }
       if (orderTotalDisplay) {
-        // Recalculate with books if any
-        const totalWithBooks = final + (booksSubtotal || 0);
-        orderTotalDisplay.textContent = `EGP ${totalWithBooks.toFixed(2)}`;
+        // Use finalAmount directly - it already includes books from backend
+        orderTotalDisplay.textContent = `EGP ${Math.max(0, final).toFixed(2)}`;
       }
       
-      // Update the sidebar total to include books
-      if (totalValue) {
-        const totalWithBooks = final + (booksSubtotal || 0);
-        totalValue.textContent = `EGP ${totalWithBooks.toFixed(2)}`;
-      }
+      // Store the backend-calculated final amount for form submission
+      window.currentTotal = Math.max(0, final);
     }
+
 
     function resetOrderSummary() {
       // Reset global promo state
@@ -1501,6 +1621,16 @@
         });
 
         const data = await response.json();
+
+        // Handle zero-payment orders (100% discount)
+        if (data.success && data.skipPayment) {
+          showNotification('Order completed successfully with 100% discount!', 'success');
+          // Redirect to success page
+          setTimeout(() => {
+            window.location.href = `/purchase/payment/success?orderNumber=${data.paymentData.orderNumber}`;
+          }, 1500);
+          return;
+        }
 
         if (data.success && data.paymentData && (data.paymentData.iframeUrl || data.paymentData.checkoutUrl)) {
           showNotification('Redirecting to payment gateway...', 'success');
