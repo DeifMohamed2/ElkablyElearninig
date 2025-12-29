@@ -1,0 +1,836 @@
+<%- include('partials/header', { title: 'Recovery Courses' }) %>
+
+<!-- Floating Math Elements -->
+<div class="floating-math-elements-professor" id="floatingMath">
+  <div class="math-element-professor" data-equation="∂">∂</div>
+  <div class="math-element-professor" data-equation="∇">∇</div>
+  <div class="math-element-professor" data-equation="∫">∫</div>
+  <div class="math-element-professor" data-equation="∑">∑</div>
+  <div class="math-element-professor" data-equation="∏">∏</div>
+  <div class="math-element-professor" data-equation="∞">∞</div>
+  <div class="math-element-professor" data-equation="∃">∃</div>
+  <div class="math-element-professor" data-equation="∀">∀</div>
+  <div class="math-element-professor" data-equation="ℝ">ℝ</div>
+  <div class="math-element-professor" data-equation="ℂ">ℂ</div>
+</div>
+
+
+<!-- Recovery Courses Section -->
+<section class="online-courses-section scroll-reveal" id="recovery-courses" data-aos="fade-up" style=" margin-top: 80px;">
+  <div class="container"> 
+    <div class="section-header-new text-center">
+      <h2 class="section-title-new">Our <span class="highlight-red">Recovery Courses</span></h2>
+      <p class="section-subtitle-new">Get back on track with our comprehensive recovery course collection</p>
+    </div>
+
+    <!-- Enhanced Search and Filter Section -->
+    <div class="courses-filter-section-enhanced mb-5">
+      <div class="filter-container">
+        <form class="filter-form-enhanced" id="filterForm">
+          <div class="row align-items-end g-3">
+            <!-- Search Input -->
+            <div class="col-12 col-md-4 col-lg-3">
+              <div class="search-form-enhanced">
+                <input type="text" name="search" class="form-control search-input-enhanced" placeholder="Search recovery courses..." value="<%= currentFilters.search || '' %>">
+              </div>
+            </div>
+            
+            <!-- Test Type Filter -->
+            <div class="col-12 col-md-4 col-lg-3">
+              <div class="filter-group">
+                <label class="filter-label">
+                  <i class="fas fa-certificate"></i>
+                  Test Type
+                </label>
+                <select name="testType" class="form-control filter-select-enhanced">
+                  <option value="">All Test Types</option>
+                  <option value="EST" <%= currentFilters.testType === 'EST' ? 'selected' : '' %>>EST</option>
+                  <option value="SAT" <%= currentFilters.testType === 'SAT' ? 'selected' : '' %>>SAT</option>
+                  <option value="ACT" <%= currentFilters.testType === 'ACT' ? 'selected' : '' %>>ACT</option>
+                  <option value="EST&SAT" <%= currentFilters.testType === 'EST&SAT' ? 'selected' : '' %>>EST&SAT</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Level Filter -->
+            <div class="col-12 col-md-4 col-lg-3">
+              <div class="filter-group">
+                <label class="filter-label">
+                  <i class="fas fa-book"></i>
+                  Level
+                </label>
+                <select name="subject" class="form-control filter-select-enhanced">
+                  <option value="">All Levels</option>
+                  <option value="Basics" <%= currentFilters.subject === 'Basics' ? 'selected' : '' %>>Basics</option>
+                  <option value="Advanced" <%= currentFilters.subject === 'Advanced' ? 'selected' : '' %>>Advanced</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Apply Button -->
+            <div class="col-12 col-md-12 col-lg-3">
+              <div class="filter-group">
+                <button type="submit" class="btn btn-primary filter-apply-btn w-100">
+                  <i class="fas fa-filter"></i>
+                  <span class="apply-text">Apply Filters</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Enhanced Results Count -->
+    <div class="results-count-enhanced mb-4">
+      <div class="results-info">
+        <div class="results-stats">
+          <span class="results-number"><%= bundles.length %></span>
+          <span class="results-label">/ <%= pagination.totalBundles %> Courses</span>
+        </div>
+        <div class="results-type">
+          <i class="fas fa-redo"></i>
+          <span>Recovery Courses</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="courses-grid">
+      <% if (bundles.length > 0) { %>
+      <% bundles.forEach((bundle, index) => { %>
+      <article class="course-card-enhanced" data-aos="fade-up" data-aos-delay="<%= (index + 1) * 100 %>">
+        <div class="course-card-header">
+          <div class="course-favorite-btn-enhanced" onclick="toggleWishlist('<%= bundle._id %>', 'bundle')" title="Add to Wishlist">
+            <% if (user && user.isBundleInWishlist(bundle._id.toString())) { %>
+            <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+            <% } else { %>
+            <i class="far fa-heart"></i>
+            <% } %>
+          </div>
+          <div class="course-badge-container">
+            <% if (bundle.discountPrice) { %>
+            <div class="course-offer-badge-enhanced discount">
+              <i class="fas fa-percentage"></i>
+              <span>Save <%= bundle.savingsPercentage %>%</span>
+            </div>
+            <% } else { %>
+            <div class="course-offer-badge-enhanced recovery">
+              <i class="fas fa-redo"></i>
+              <span>Recovery</span>
+            </div>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="course-card-media-enhanced">
+          <img src="<%= bundle.thumbnail || '/images/adad.png' %>" alt="<%= bundle.title %>" loading="lazy">
+          <div class="course-overlay-enhanced">
+            <div class="course-quick-actions">
+              <% if (user && user.hasPurchasedBundle(bundle._id.toString())) { %>
+              <button class="quick-action-btn purchased" title="Already Purchased" disabled>
+                <i class="fas fa-check-circle"></i>
+              </button>
+              <% } else if (bundle.isFullyBooked) { %>
+              <button class="quick-action-btn" title="<%= bundle.fullyBookedMessage || 'FULLY BOOKED' %>" disabled style="background-color: #dc3545; cursor: not-allowed;">
+                <i class="fas fa-ban"></i>
+              </button>
+              <% } else { %>
+              <button class="quick-action-btn" onclick="addBundleToCart('<%= bundle._id %>')" title="Add to Cart">
+                <i class="fas fa-shopping-cart"></i>
+              </button>
+              <% } %>
+              <a href="/bundle/<%= bundle._id.toString() %>" class="quick-action-btn" title="View Details">
+                <i class="fas fa-eye"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="course-card-body-enhanced">
+          <div class="course-meta">
+
+            <span class="course-subject"><%= bundle.subject %></span>
+            <span class="course-type"><%= bundle.testType %></span>
+          </div>
+
+          <h3 class="course-card-title-enhanced"><%= bundle.title %></h3>
+          <p class="course-card-description-enhanced"><%= bundle.shortDescription %></p>
+
+          <div class="course-stats-enhanced">
+            <div class="stat-item">
+              <i class="fas fa-book"></i>
+              <span><%= bundle.courses.length %> Weeks</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-clock"></i>
+              <span><%= bundle.duration || 0 %> Hours</span>
+            </div>
+
+          </div>
+
+          <div class="course-price-container-enhanced">
+            <% if (bundle.discountPrice) { %>
+            <div class="price-wrapper">
+              <span class="course-price-original-enhanced">EGP<%= bundle.price %></span>
+              <span class="course-price-current-enhanced">EGP<%= bundle.finalPrice.toFixed(2) %></span>
+            </div>
+            <div class="savings-info">
+              <span class="savings-amount">Save EGP<%= bundle.savings.toFixed(2) %></span>
+            </div>
+            <% } else { %>
+            <div class="price-wrapper">
+              <span class="course-price-current-enhanced">EGP<%= bundle.price %></span>
+            </div>
+            <% } %>
+          </div>
+
+          <div class="course-actions-enhanced">
+            <a href="/bundle/<%= bundle._id.toString() %>" class="btn-view-details-enhanced">
+              <span>View Details</span>
+              <i class="fas fa-arrow-right"></i>
+            </a>
+            <% if (user && user.hasPurchasedBundle(bundle._id.toString())) { %>
+            <button class="btn-purchased-enhanced" disabled>
+              <i class="fas fa-check-circle"></i>
+              <span>Already Purchased</span>
+            </button>
+            <% } else if (bundle.isFullyBooked) { %>
+            <button class="btn-fully-booked-enhanced" disabled>
+              <i class="fas fa-ban"></i>
+              <span class="fully-booked-text"><%= bundle.fullyBookedMessage || 'FULLY BOOKED' %></span>
+            </button>
+            <% } else { %>
+            <button class="btn-add-to-cart-enhanced" onclick="addBundleToCart('<%= bundle._id %>')">
+              <i class="fas fa-shopping-cart"></i>
+              <span>Add to Cart</span>
+            </button>
+            <% } %>
+          </div>
+        </div>
+      </article>
+      <% }); %>
+      <% } else { %>
+      <div class="no-courses-found-enhanced">
+        <div class="no-courses-content">
+          <div class="no-courses-icon-enhanced">
+            <div class="icon-background">
+              <i class="fas fa-search"></i>
+            </div>
+          </div>
+          <h3 class="no-courses-title">No Recovery Courses Found</h3>
+          <p class="no-courses-description">
+            We couldn't find any recovery courses matching your criteria.
+            Try adjusting your search filters or browse our complete collection.
+          </p>
+          <div class="no-courses-actions">
+            <a href="/courses/recovery" class="btn-primary-enhanced">
+              <i class="fas fa-redo"></i>
+              <span>Browse All Recovery Courses</span>
+            </a>
+            <button class="btn-secondary-enhanced" onclick="clearFilters()">
+              <i class="fas fa-refresh"></i>
+              <span>Clear Filters</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Show More/Less Button -->
+    <div class="courses-show-more-container text-center mt-5">
+      <button class="btn-show-more" id="showMoreRecoveryCourses">
+        <span class="show-more-text">Show More Courses</span>
+        <i class="fas fa-chevron-down show-more-icon"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<script>
+  // AJAX Filter Form Submission
+  document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    const searchBtn = document.querySelector('.search-btn-enhanced');
+    const applyBtn = document.querySelector('.filter-apply-btn');
+    const searchInput = document.querySelector('.search-input-enhanced');
+    const testTypeSelect = document.querySelector('select[name="testType"]');
+    const subjectSelect = document.querySelector('select[name="subject"]');
+    const coursesGrid = document.querySelector('.courses-grid');
+    const resultsCount = document.querySelector('.results-count-enhanced');
+
+    function showLoadingState(button, isSearch = false) {
+      const textSpan = button.querySelector(isSearch ? '.search-text' : '.apply-text');
+      const icon = button.querySelector(isSearch ? '.search-icon-btn' : 'i');
+
+      button.disabled = true;
+      textSpan.textContent = 'Loading...';
+      if (icon) {
+        icon.classList.remove(isSearch ? 'fa-arrow-right' : 'fa-filter');
+        icon.classList.add('fa-spinner', 'fa-spin');
+      }
+    }
+
+    function hideLoadingState(button, isSearch = false) {
+      const textSpan = button.querySelector(isSearch ? '.search-text' : '.apply-text');
+      const icon = button.querySelector(isSearch ? '.search-icon-btn' : 'i');
+
+      button.disabled = false;
+      textSpan.textContent = isSearch ? 'Search' : 'Apply';
+      if (icon) {
+        icon.classList.remove('fa-spinner', 'fa-spin');
+        icon.classList.add(isSearch ? 'fa-arrow-right' : 'fa-filter');
+      }
+    }
+
+    function submitFilters() {
+      const formData = new FormData(filterForm);
+      const params = new URLSearchParams(formData);
+
+      // Show loading state on courses grid
+      coursesGrid.style.opacity = '0.6';
+      coursesGrid.style.pointerEvents = 'none';
+
+      // Show loading on both buttons
+      showLoadingState(searchBtn, true);
+      showLoadingState(applyBtn);
+
+      fetch(`/courses/recovery?${params.toString()}`, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.text())
+        .then(html => {
+          // Parse the response to extract just the courses grid and results count
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const newCoursesGrid = doc.querySelector('.courses-grid');
+          const newResultsCount = doc.querySelector('.results-count-enhanced');
+
+          if (newCoursesGrid) {
+            coursesGrid.innerHTML = newCoursesGrid.innerHTML;
+          }
+          if (newResultsCount) {
+            resultsCount.innerHTML = newResultsCount.innerHTML;
+          }
+
+          // Update URL without page reload
+          const url = new URL(window.location);
+          url.search = params.toString();
+          window.history.pushState({}, '', url);
+        })
+        .catch(error => {
+          console.error('Error filtering courses:', error);
+          showCartNotification('Error loading courses. Please try again.', 'error');
+        })
+        .finally(() => {
+          // Hide loading states
+          coursesGrid.style.opacity = '1';
+          coursesGrid.style.pointerEvents = 'auto';
+          hideLoadingState(searchBtn, true);
+          hideLoadingState(applyBtn);
+        });
+    }
+
+    // Form submission handlers
+    filterForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      submitFilters();
+    });
+
+    // Search button click
+    if (searchBtn) {
+      searchBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        submitFilters();
+      });
+    }
+
+    // Apply button click
+    applyBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      submitFilters();
+    });
+
+    // Enter key in search input
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitFilters();
+      }
+    });
+  });
+
+  // Recovery Courses Show More/Less Functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const showMoreBtn = document.getElementById('showMoreRecoveryCourses');
+    if (!showMoreBtn) return;
+    
+    const hiddenCards = document.querySelectorAll('.course-card-hidden');
+    const showMoreText = showMoreBtn.querySelector('.show-more-text');
+    const showMoreIcon = showMoreBtn.querySelector('.show-more-icon');
+
+    let isExpanded = false;
+
+    showMoreBtn.addEventListener('click', function() {
+      isExpanded = !isExpanded;
+
+      if (isExpanded) {
+        // Show hidden cards
+        hiddenCards.forEach((card, index) => {
+          setTimeout(() => {
+            card.classList.remove('course-card-hidden');
+            card.classList.add('course-card-visible');
+          }, index * 100);
+        });
+
+        showMoreText.textContent = 'Show Less Courses';
+        showMoreIcon.style.transform = 'rotate(180deg)';
+
+        // Scroll to show the new cards
+        setTimeout(() => {
+          showMoreBtn.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }, 300);
+      } else {
+        // Hide cards
+        hiddenCards.forEach((card, index) => {
+          setTimeout(() => {
+            card.classList.remove('course-card-visible');
+            card.classList.add('course-card-hidden');
+          }, index * 50);
+        });
+
+        showMoreText.textContent = 'Show More Courses';
+        showMoreIcon.style.transform = 'rotate(0deg)';
+      }
+    });
+  });
+</script>
+
+<!-- Shopping Cart Sidebar -->
+<div class="cart-sidebar" id="cartSidebar">
+  <div class="cart-sidebar-overlay" id="cartSidebarOverlay"></div>
+  <div class="cart-sidebar-content">
+    <div class="cart-sidebar-header">
+      <h3 class="cart-sidebar-title">
+        <i class="fas fa-shopping-cart"></i>
+        Shopping Cart
+      </h3>
+      <button class="cart-sidebar-close" id="cartSidebarClose">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="cart-sidebar-body">
+      <div class="cart-items" id="cartItems">
+        <div class="cart-empty">
+          <div class="cart-empty-icon">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <h4>Your cart is empty</h4>
+          <p>Add some courses to get started!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cart-sidebar-footer">
+      <div class="cart-total" id="cartTotal">
+        <div class="cart-total-row">
+          <span>Subtotal:</span>
+          <span class="cart-subtotal">EGP0.00</span>
+        </div>
+        <div class="cart-total-row cart-total-final">
+          <span>Total:</span>
+          <span class="cart-total-amount">EGP0.00</span>
+        </div>
+      </div>
+
+      <div class="cart-actions">
+        <button class="btn-cart-checkout" id="cartCheckout" disabled>
+          <i class="fas fa-credit-card"></i>
+          Proceed to Checkout
+        </button>
+        <button class="btn-cart-continue" id="cartContinue">
+          Continue Shopping
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shopping Cart Functionality -->
+<script>
+  // Add bundle to cart functionality
+  function addBundleToCart(bundleId) {
+    // Check if user is logged in
+    <% if (!user) { %>
+    showCartNotification('Please login to add items to cart', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 3500);
+    return;
+    <% } %>
+
+    // Find the bundle button for visual feedback
+    const bundleCard = document.querySelector(`[onclick="addBundleToCart('${bundleId}')"]`).closest('.course-card-enhanced');
+    const btn = bundleCard.querySelector('.btn-add-to-cart-enhanced');
+    const originalText = btn.querySelector('span').textContent;
+    const icon = btn.querySelector('i');
+
+    // Show loading state
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Adding...';
+    icon.classList.remove('fa-shopping-cart');
+    icon.classList.add('fa-spinner', 'fa-spin');
+
+    // Add to cart via API
+    fetch('/purchase/cart/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: bundleId,
+          itemType: 'bundle'
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Visual feedback
+          btn.style.background = '#27ae60';
+          btn.querySelector('span').textContent = 'Added!';
+          icon.classList.remove('fa-spinner', 'fa-spin');
+          icon.classList.add('fa-check');
+
+          showCartNotification(data.message, 'success');
+
+          // Update global cart count
+          if (window.globalCart) {
+            window.globalCart.refreshCartData();
+          }
+
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.style.background = '';
+            btn.querySelector('span').textContent = originalText;
+            icon.classList.remove('fa-check');
+            icon.classList.add('fa-shopping-cart');
+          }, 2000);
+        } else {
+          btn.disabled = false;
+          btn.querySelector('span').textContent = originalText;
+          icon.classList.remove('fa-spinner', 'fa-spin');
+          icon.classList.add('fa-shopping-cart');
+
+          showCartNotification(data.message || 'Failed to add item to cart', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        btn.querySelector('span').textContent = originalText;
+        icon.classList.remove('fa-spinner', 'fa-spin');
+        icon.classList.add('fa-shopping-cart');
+
+        showCartNotification('Network error. Please try again.', 'error');
+      });
+  }
+
+  // Show cart notification
+  function showCartNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `cart-notification cart-notification-${type}`;
+
+    const iconClass = type === 'success' ? 'fas fa-check-circle' :
+      type === 'error' ? 'fas fa-exclamation-circle' :
+      'fas fa-info-circle';
+
+    notification.innerHTML = `
+    <div class="cart-notification-content">
+      <i class="${iconClass}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => notification.classList.add('show'), 100);
+
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => notification.remove(), 300);
+    }, 4000);
+  }
+
+  // Clear filters function
+  function clearFilters() {
+    window.location.href = '/courses/recovery';
+  }
+
+  // Toggle wishlist function
+  function toggleWishlist(itemId, itemType) {
+    <% if (!user) { %>
+    showCartNotification('Please login to manage your wishlist', 'error');
+    setTimeout(() => {
+      window.location.href = '/auth/login';
+    }, 3500);
+    return;
+    <% } %>
+
+    const heartIcon = event.target.closest('.course-favorite-btn-enhanced').querySelector('i');
+    const isCurrentlyInWishlist = heartIcon.classList.contains('fas');
+
+    heartIcon.classList.add('fa-spinner', 'fa-spin');
+    heartIcon.classList.remove('fas', 'far');
+
+    fetch('/purchase/wishlist/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: itemId,
+          itemType: itemType
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          heartIcon.classList.remove('fa-spinner', 'fa-spin');
+          if (data.isInWishlist) {
+            heartIcon.classList.add('fas');
+            heartIcon.classList.remove('far');
+            heartIcon.style.color = '#ff6b6b';
+          } else {
+            heartIcon.classList.add('far');
+            heartIcon.classList.remove('fas');
+            heartIcon.style.color = '';
+          }
+
+          showCartNotification(data.message, 'success');
+        } else {
+          heartIcon.classList.remove('fa-spinner', 'fa-spin');
+          if (isCurrentlyInWishlist) {
+            heartIcon.classList.add('fas');
+            heartIcon.classList.remove('far');
+            heartIcon.style.color = '#ff6b6b';
+          } else {
+            heartIcon.classList.add('far');
+            heartIcon.classList.remove('fas');
+            heartIcon.style.color = '';
+          }
+
+          showCartNotification(data.message, 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        heartIcon.classList.remove('fa-spinner', 'fa-spin');
+        if (isCurrentlyInWishlist) {
+          heartIcon.classList.add('fas');
+          heartIcon.classList.remove('far');
+          heartIcon.style.color = '#ff6b6b';
+        } else {
+          heartIcon.classList.add('far');
+          heartIcon.classList.remove('fas');
+          heartIcon.style.color = '';
+        }
+
+        showCartNotification('Error updating wishlist', 'error');
+      });
+  }
+</script>
+
+<!-- Import index-specific CSS -->
+<link rel="stylesheet" href="/css/index.css">
+
+<style>
+  .btn-purchased-enhanced {
+    background: #27ae60 !important;
+    color: white !important;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  .quick-action-btn.purchased {
+    background: #27ae60 !important;
+    color: white !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  /* Cart notification styles */
+  .cart-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  .cart-notification.show {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+
+  .cart-notification-success {
+    border-left: 4px solid #27ae60;
+  }
+
+  .cart-notification-error {
+    border-left: 4px solid #e74c3c;
+  }
+
+  .cart-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .cart-notification-success .cart-notification-content i {
+    color: #27ae60;
+  }
+
+  .cart-notification-error .cart-notification-content i {
+    color: #e74c3c;
+  }
+
+  /* Filter Apply Button Styles */
+  .filter-apply-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    min-height: 44px;
+  }
+
+  .filter-apply-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+  }
+
+  .filter-apply-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Recovery course badge styling */
+  .course-offer-badge-enhanced.recovery {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+  }
+
+  .course-offer-badge-enhanced.recovery i {
+    font-size: 0.875rem;
+  }
+
+  /* Fix course and bundle image display */
+  .course-card-media-enhanced {
+    position: relative;
+    height: 240px;
+    width: 100%;
+    overflow: hidden;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .course-card-media-enhanced img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    transition: all 0.4s ease;
+    display: block;
+  }
+
+  .course-card-enhanced {
+    overflow: hidden;
+  }
+
+  /* Fully Booked Button Enhanced Styles */
+  .btn-fully-booked-enhanced {
+    background: linear-gradient(135deg, #dc3545, #c82333) !important;
+    color: white !important;
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: not-allowed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-fully-booked-enhanced::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-fully-booked-enhanced:hover::before {
+    left: 100%;
+  }
+
+  .fully-booked-text {
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+</style>
+
+<!-- Import index-specific JavaScript -->
+<script src="/js/index.js"></script>
+<script src="/js/enhanced-scroll-effects.js"></script>
+
+<%- include('partials/footer') %>
+

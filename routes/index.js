@@ -6,6 +6,7 @@ const {
   getOnlineCourses,
   getOngroundCourses,
   getRecordedCourses,
+  getRecoveryCourses,
   getBundleContent,
   getESTTests,
   getSATTests,
@@ -23,6 +24,9 @@ router.get('/courses/onground', getOngroundCourses);
 
 // Recorded courses page route
 router.get('/courses/recorded', getRecordedCourses);
+
+// Recovery courses page route
+router.get('/courses/recovery', getRecoveryCourses);
 
 // Bundle course details route
 router.get('/bundle/:id', getBundleContent);

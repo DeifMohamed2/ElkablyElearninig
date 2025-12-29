@@ -39,7 +39,7 @@ const BundleCourseSchema = new mongoose.Schema(
     },
     courseType: {
       type: String,
-      enum: ['online', 'onground', 'recorded'],
+      enum: ['online', 'onground', 'recorded', 'recovery'],
       required: true,
       default: 'online',
     },

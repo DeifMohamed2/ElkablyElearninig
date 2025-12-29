@@ -270,6 +270,7 @@ mongoose
   .then((result) => {
     server.listen(PORT, '0.0.0.0', () => {
       console.log('Connected to database and listening on port', PORT);
+      console.log('server is running in', 'http://localhost:' + PORT);
       console.log('Server is running on http://0.0.0.0:' + PORT);
       console.log('Server accessible on http://82.25.101.207:' + PORT);
     });

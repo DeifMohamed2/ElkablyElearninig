@@ -14,6 +14,7 @@ const getLandingPage = async (req, res) => {
       onlineBundles,
       ongroundBundles,
       recordedBundles,
+      recoveryBundles,
       featuredQuizzes,
       testCounts,
       featuredGameRooms,
@@ -45,6 +46,16 @@ const getLandingPage = async (req, res) => {
 
       BundleCourse.find({
         courseType: 'recorded',
+        status: 'published',
+        isActive: true,
+      })
+        .select('title shortDescription price image courseType createdAt')
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean(),
+
+      BundleCourse.find({
+        courseType: 'recovery',
         status: 'published',
         isActive: true,
       })
@@ -97,6 +108,11 @@ const getLandingPage = async (req, res) => {
           status: 'published',
           isActive: true,
         }),
+        BundleCourse.countDocuments({
+          courseType: 'recovery',
+          status: 'published',
+          isActive: true,
+        }),
         Quiz.countDocuments({ status: 'active' }),
         GameRoom.countDocuments({
           isActive: true,
@@ -107,10 +123,11 @@ const getLandingPage = async (req, res) => {
           { $project: { enrolledCount: { $size: '$enrolledStudents' } } },
           { $group: { _id: null, total: { $sum: '$enrolledCount' } } },
         ])
-      ]).then(([onlineBundles, ongroundBundles, recordedBundles, totalQuizzes, totalGameRooms, totalStudents]) => ({
+      ]).then(([onlineBundles, ongroundBundles, recordedBundles, recoveryBundles, totalQuizzes, totalGameRooms, totalStudents]) => ({
         onlineBundles,
         ongroundBundles,
         recordedBundles,
+        recoveryBundles,
         totalQuizzes,
         totalGameRooms,
         totalStudents: totalStudents[0]?.total || 0,
@@ -138,6 +155,7 @@ const getLandingPage = async (req, res) => {
       onlineBundles,
       ongroundBundles,
       recordedBundles,
+      recoveryBundles,
       featuredQuizzes,
       featuredGameRooms,
       user,
@@ -155,6 +173,7 @@ const getLandingPage = async (req, res) => {
       onlineBundles: [],
       ongroundBundles: [],
       recordedBundles: [],
+      recoveryBundles: [],
       featuredQuizzes: [],
       featuredGameRooms: [],
       cart: req.session.cart || [],
@@ -169,6 +188,7 @@ const getLandingPage = async (req, res) => {
         onlineBundles: 0,
         ongroundBundles: 0,
         recordedBundles: 0,
+        recoveryBundles: 0,
         totalQuizzes: 0,
         totalGameRooms: 0,
         totalStudents: 0,
@@ -447,6 +467,98 @@ const getRecordedCourses = async (req, res) => {
     req.flash('error_msg', 'Error loading recorded courses');
     res.render('recorded-courses', {
       title: 'Recorded Courses | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      bundles: [],
+      cart: req.session.cart || [],
+      filterOptions: { subjects: [], testTypes: [] },
+      currentFilters: {},
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalBundles: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    });
+  }
+};
+
+// Get recovery courses page
+const getRecoveryCourses = async (req, res) => {
+  try {
+    const { page = 1, limit = 12, search, subject, testType } = req.query;
+
+    const filter = {
+      courseType: 'recovery',
+      status: 'published',
+      isActive: true,
+    };
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { shortDescription: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (subject) filter.subject = subject;
+    if (testType) filter.testType = testType;
+
+    console.log('Recovery courses filter:', filter);
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const bundles = await BundleCourse.find(filter)
+      .populate('courses')
+      .populate('createdBy', 'userName')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    console.log('Found recovery bundles:', bundles.length);
+
+    const totalBundles = await BundleCourse.countDocuments(filter);
+    const totalPages = Math.ceil(totalBundles / parseInt(limit));
+
+    // Get filter options
+    const subjects = await BundleCourse.distinct('subject', {
+      courseType: 'recovery',
+      status: 'published',
+      isActive: true,
+    });
+    const testTypes = await BundleCourse.distinct('testType', {
+      courseType: 'recovery',
+      status: 'published',
+      isActive: true,
+    });
+
+    // Get user with purchase information if logged in
+    let user = null;
+    if (req.session.user) {
+      user = await User.findById(req.session.user.id);
+    }
+
+    res.render('recovery-courses', {
+      title: 'Recovery Courses | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      bundles,
+      user,
+      cart: req.session.cart || [],
+      filterOptions: { subjects, testTypes },
+      currentFilters: { search, subject, testType },
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalBundles,
+        hasNext: parseInt(page) < totalPages,
+        hasPrev: parseInt(page) > 1,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching recovery courses:', error);
+    req.flash('error_msg', 'Error loading recovery courses');
+    res.render('recovery-courses', {
+      title: 'Recovery Courses | ELKABLY',
       theme: req.cookies.theme || 'light',
       bundles: [],
       cart: req.session.cart || [],
@@ -762,6 +874,7 @@ module.exports = {
   getOnlineCourses,
   getOngroundCourses,
   getRecordedCourses,
+  getRecoveryCourses,
   getBundleContent,
   getESTTests,
   getSATTests,

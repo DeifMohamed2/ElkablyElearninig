@@ -5848,11 +5848,12 @@ const addHomeworkContent = async (req, res) => {
 // Bundle Course Management
 const getBundles = async (req, res) => {
   try {
-    const { status, subject, search, page = 1, limit = 12 } = req.query;
+    const { status, subject, courseType, search, page = 1, limit = 12 } = req.query;
 
     const filter = {};
     if (status && status !== 'all') filter.status = status;
     if (subject) filter.subject = subject;
+    if (courseType && courseType !== 'all') filter.courseType = courseType;
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -5882,7 +5883,7 @@ const getBundles = async (req, res) => {
       bundles,
       stats,
       filterOptions,
-      currentFilters: { status, subject, search },
+      currentFilters: { status, subject, courseType, search },
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -6332,6 +6333,10 @@ const getBundleStats = async () => {
     courseType: 'recorded',
     status: 'published',
   });
+  const recoveryBundles = await BundleCourse.countDocuments({
+    courseType: 'recovery',
+    status: 'published',
+  });
 
   const totalEnrollments = await BundleCourse.aggregate([
     { $group: { _id: null, total: { $sum: '$enrolledStudents' } } },
@@ -6344,6 +6349,7 @@ const getBundleStats = async () => {
     onlineBundles,
     ongroundBundles,
     recordedBundles,
+    recoveryBundles,
     totalEnrollments: totalEnrollments[0]?.total || 0,
   };
 };

@@ -136,6 +136,20 @@
             <h3 class="admin-stat-number"><%= stats ? stats.recordedBundles : 0 %></h3>
             <p class="admin-stat-label">Recorded Courses</p>
           </div>
+
+          <div class="admin-stat-card admin-slide-in">
+            <div class="admin-stat-header">
+              <div class="admin-stat-icon recovery">
+                <i class="fas fa-redo"></i>
+              </div>
+              <div class="admin-stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                +10%
+              </div>
+            </div>
+            <h3 class="admin-stat-number"><%= stats ? stats.recoveryBundles : 0 %></h3>
+            <p class="admin-stat-label">Recovery Courses</p>
+          </div>
         </div>
 
         <!-- Advanced Filters -->
@@ -144,7 +158,6 @@
             <h5><i class="fas fa-filter me-2"></i>Advanced Filters</h5>
             <form method="GET" action="/admin/bundles" class="admin-filters-form">
               <div class="row g-3">
-                
                 <div class="col-md-2">
                   <label class="form-label">Status</label>
                   <select name="status" class="form-select">
@@ -154,7 +167,17 @@
                     <option value="archived" <%= currentFilters.status === 'archived' ? 'selected' : '' %>>Archived</option>
                   </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-2">
+                  <label class="form-label">Course Type</label>
+                  <select name="courseType" class="form-select">
+                    <option value="all" <%= !currentFilters.courseType || currentFilters.courseType === 'all' ? 'selected' : '' %>>All Types</option>
+                    <option value="online" <%= currentFilters.courseType === 'online' ? 'selected' : '' %>>Online</option>
+                    <option value="onground" <%= currentFilters.courseType === 'onground' ? 'selected' : '' %>>On-Ground</option>
+                    <option value="recorded" <%= currentFilters.courseType === 'recorded' ? 'selected' : '' %>>Recorded</option>
+                    <option value="recovery" <%= currentFilters.courseType === 'recovery' ? 'selected' : '' %>>Recovery</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
                   <label class="form-label">Search</label>
                   <input type="text" name="search" class="form-control" placeholder="Search bundles..." value="<%= currentFilters.search || '' %>">
                 </div>
@@ -401,8 +424,9 @@
                     <option value="online">Online Course</option>
                     <option value="onground">On-Ground Course</option>
                     <option value="recorded">Recorded Course</option>
+                    <option value="recovery">Recovery Course</option>
                   </select>
-                  <small class="admin-form-text">Choose whether this bundle contains online, onground, or recorded courses</small>
+                  <small class="admin-form-text">Choose whether this bundle contains online, onground, recorded, or recovery courses</small>
                 </div>
 
                 <div class="admin-form-group">
