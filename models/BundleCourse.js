@@ -29,7 +29,7 @@ const BundleCourseSchema = new mongoose.Schema(
     },
     subject: {
       type: String,
-      enum: ['Basics', 'Advanced', 'Basics & Advanced'],
+      enum: ['Basics', 'Advanced', 'Basics & Advanced', 'Number2'],
       required: true,
     },
     testType: {
@@ -184,6 +184,8 @@ BundleCourseSchema.pre('save', async function (next) {
     let subjectPrefix;
     if (this.subject === 'Basics & Advanced') {
       subjectPrefix = 'BAA'; // Basics & Advanced
+    } else if (this.subject === 'Number2') {
+      subjectPrefix = 'N2'; // Number2
     } else {
       subjectPrefix = this.subject.substring(0, 3).toUpperCase();
     }

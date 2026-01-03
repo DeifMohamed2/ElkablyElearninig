@@ -11453,7 +11453,7 @@ const startZoomMeeting = async (req, res) => {
     const { meetingId } = req.params;
 
     // Double-check admin permissions (additional safety)
-    if (!req.session.user || req.session.user.role !== 'admin') {
+    if (!req.session.user || (req.session.user.role !== 'admin' && req.session.user.role !== 'superAdmin')) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin privileges required to start meetings.',
@@ -11504,7 +11504,7 @@ const endZoomMeeting = async (req, res) => {
     const { recordingUrl } = req.body; // Get recording URL from request body
 
     // Double-check admin permissions (additional safety)
-    if (!req.session.user || req.session.user.role !== 'admin') {
+    if (!req.session.user || (req.session.user.role !== 'admin' && req.session.user.role !== 'superAdmin')) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin privileges required to end meetings.',
