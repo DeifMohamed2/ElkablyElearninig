@@ -484,9 +484,12 @@ const courseContent = async (req, res) => {
     // Get completed content IDs for this course
     const completedContentIds = student.getCompletedContentIds(courseId);
 
+    // Filter out unpublished (draft) topics - only show published topics to students
+    const publishedTopics = course.topics.filter(topic => topic.isPublished === true);
+
     // Process topics with enhanced content status
     const topicsWithProgress = await Promise.all(
-      course.topics.map(async (topic) => {
+      publishedTopics.map(async (topic) => {
         const topicCompleted = enrollment.completedTopics.includes(topic._id);
 
         // Calculate topic progress based on actual completion percentages

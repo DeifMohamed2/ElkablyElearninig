@@ -1645,8 +1645,22 @@ UserSchema.methods.isContentUnlocked = function (
           'Meeting not started yet - waiting for instructor to start the session',
       };
     } else if (meetingStatus === 'ended') {
-      // Allow access to ended meetings for viewing details/recordings
-      return { unlocked: true, reason: 'Meeting has ended - viewing details' };
+      // For ended meetings, check if student attended the live session
+      // If they attended, allow access regardless of prerequisites (they earned it)
+      const studentIdStr = this._id.toString();
+      const attendedLive =
+        contentData.zoomMeeting.studentsAttended &&
+        contentData.zoomMeeting.studentsAttended.some(
+          (attendance) => attendance.student && attendance.student.toString() === studentIdStr
+        );
+      
+      if (attendedLive) {
+        // Student attended live - allow access to recording
+        return { unlocked: true, reason: 'Attended live session - full access to recording' };
+      }
+      
+      // Student did NOT attend live - they must complete prerequisites to watch recording
+      // Continue to normal prerequisite checking below
     } else if (meetingStatus === 'active') {
       // Meeting is active, check regular prerequisites
       // Continue with normal prerequisite checking below
