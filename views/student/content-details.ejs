@@ -327,8 +327,10 @@
     /* Responsive watermark positioning */
     @media (max-width: 768px) {
       .video-watermark {
-        font-size: 12px;
-        padding: 8px 16px;
+        font-size: 8px !important;
+        padding: 4px 8px !important;
+        gap: 4px !important;
+        border-radius: 4px !important;
       }
 
       /* Mobile fullscreen optimizations */
@@ -405,6 +407,157 @@
       .video-player-container {
         height: 100vh !important;
         padding-top: 0 !important;
+      }
+    }
+
+    /* ==================== MOBILE VIDEO REDESIGN ==================== */
+    /* Full-width video, no padding, no borders on mobile */
+    @media (max-width: 768px) {
+      /* Remove card padding and borders on mobile for recording sections */
+      .meeting-ended-section,
+      .recording-available,
+      .recording-player-wrapper,
+      .content-main-section {
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+
+      /* Make video container full-width and bigger */
+      .video-player-wrapper-with-watermark,
+      .bunny-video-wrapper,
+      .video-player-container,
+      .recording-video-container {
+        min-height: 220px !important;
+        width: 100% !important;
+        border-radius: 8px !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+      
+      /* Ensure aspect ratio is maintained */
+      .recording-video-container {
+        padding-top: 56.25% !important;
+        position: relative !important;
+      }
+      
+      /* Recording header - more compact */
+      .recording-header {
+        padding: 10px 0 !important;
+        margin-bottom: 8px !important;
+      }
+      
+      .recording-badge {
+        padding: 6px 12px !important;
+        font-size: 12px !important;
+      }
+      
+      .recording-completed-badge {
+        padding: 4px 10px !important;
+        font-size: 11px !important;
+      }
+
+      /* HIDE the watch progress overlay inside video on mobile */
+      #videoWatchProgress,
+      #youtubeWatchProgress,
+      #recordingWatchProgressOverlay {
+        display: none !important;
+      }
+
+      /* Recording info section - more compact */
+      .recording-info {
+        padding: 8px 0 !important;
+        margin: 8px 0 !important;
+      }
+      
+      .recording-meta {
+        font-size: 12px !important;
+      }
+      
+      .recording-meta-item {
+        padding: 4px 0 !important;
+      }
+
+      /* Recording watch requirement / attended / completed badges - compact */
+      .recording-watch-requirement,
+      .recording-attended-badge,
+      .recording-completed-badge {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        margin: 8px 0 !important;
+        border-radius: 8px !important;
+      }
+
+      .recording-watch-requirement p,
+      .recording-attended-badge p,
+      .recording-completed-badge p {
+        font-size: 11px !important;
+        margin: 0 !important;
+        line-height: 1.3 !important;
+      }
+      
+      .recording-attended-badge i,
+      .recording-completed-badge i,
+      .recording-watch-requirement i {
+        font-size: 1rem !important;
+      }
+
+      /* Make watermark smaller on mobile */
+      .video-watermark {
+        font-size: 9px !important;
+        padding: 4px 8px !important;
+      }
+      
+      /* Ended time section */
+      .ended-time {
+        font-size: 14px !important;
+        padding: 8px 12px !important;
+      }
+      
+      /* Hide session recording header text to save space */
+      .meeting-ended-section h5 {
+        font-size: 14px !important;
+        margin-bottom: 4px !important;
+      }
+      
+      .meeting-ended-section .text-muted {
+        font-size: 11px !important;
+        margin-bottom: 4px !important;
+      }
+      
+      .meeting-ended-section .ended-icon {
+        font-size: 2rem !important;
+        margin-bottom: 8px !important;
+      }
+    }
+
+    /* Extra small screens - even more compact */
+    @media (max-width: 480px) {
+      .video-player-wrapper-with-watermark,
+      .bunny-video-wrapper,
+      .video-player-container,
+      .recording-video-container {
+        min-height: 200px !important;
+        border-radius: 6px !important;
+      }
+      
+      .video-watermark {
+        font-size: 8px !important;
+        padding: 3px 6px !important;
+      }
+      
+      .ended-time {
+        font-size: 12px !important;
+        padding: 6px 10px !important;
+      }
+      
+      .recording-watch-requirement,
+      .recording-attended-badge,
+      .recording-completed-badge {
+        padding: 6px 10px !important;
+        font-size: 11px !important;
       }
     }
 
@@ -1456,6 +1609,36 @@
                       <%- contentItem.content %>
                     </div>
                     <!-- Dynamic Moving Watermark - positioned on wrapper -->
+                    <style>
+                      @media (max-width: 768px) {
+                        #bunnyWatermark, #youtubeWatermark {
+                          position: relative !important;
+                          top: auto !important;
+                          left: auto !important;
+                          right: auto !important;
+                          bottom: auto !important;
+                          transform: none !important;
+                          animation: none !important;
+                          display: flex !important;
+                          justify-content: center !important;
+                          align-items: center !important;
+                          width: 100% !important;
+                          height: 16px !important;
+                          font-size: 6px !important;
+                          padding: 2px 6px !important;
+                          margin-top: 4px !important;
+                          gap: 2px !important;
+                          border-radius: 0 !important;
+                          background: rgba(0,0,0,0.7) !important;
+                          backdrop-filter: none !important;
+                          box-shadow: none !important;
+                        }
+                        #bunnyWatermark span, #youtubeWatermark span {
+                          font-size: 6px !important;
+                          text-shadow: none !important;
+                        }
+                      }
+                    </style>
                     <div class="video-watermark video-watermark-moving" id="bunnyWatermark">
                       <span class="watermark-text"><%= studentName %></span>
                       <% if (studentCode) { %>
@@ -1516,26 +1699,13 @@
           <div class="pdf-content">
             <div class="pdf-container">
               <% if (contentItem.content) { %>
-              <iframe src="<%= contentItem.content %>" width="100%" height="600" onload="handlePDFLoad(this)"></iframe>
-              <% if (!contentProgress.isCompleted) { %>
+              <iframe src="<%= contentItem.content %>" width="100%" height="600"></iframe>
               <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-                <a href="<%= contentItem.content %>" target="_blank" class="btn btn-outline btn-sm" onclick="handleDownloadAcknowledge(event)">
+                <a href="<%= contentItem.content %>" target="_blank" class="btn btn-outline btn-sm">
                   <i class="fas fa-download"></i>
                   Download PDF
                 </a>
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
-                  <i class="fas fa-check"></i>
-                  I have read this PDF
-                </button>
               </div>
-              <% } %>
-              <% if (!contentProgress.isCompleted) { %>
-              <div class="pdf-progress-indicator">
-                <div class="progress-text">
-                  <span>PDF will auto-complete after viewing</span>
-                </div>
-              </div>
-              <% } %>
               <% } else { %>
               <div class="placeholder-content">
                 <i class="fas fa-file-pdf"></i>
@@ -1779,24 +1949,9 @@
           <div class="reading-content">
             <div class="reading-text">
               <% if (contentItem.content) { %>
-              <div class="reading-content-text" onscroll="handleReadingScroll(this)">
+              <div class="reading-content-text">
                 <%= contentItem.content %>
               </div>
-              <% if (!contentProgress.isCompleted) { %>
-              <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
-                  <i class="fas fa-check"></i>
-                  I have read this content
-                </button>
-              </div>
-              <% } %>
-              <% if (!contentProgress.isCompleted) { %>
-              <div class="reading-progress-indicator">
-                <div class="progress-text">
-                  <span>Scroll to complete reading</span>
-                </div>
-              </div>
-              <% } %>
               <% } else { %>
               <div class="placeholder-content">
                 <i class="fas fa-book-open"></i>
@@ -1811,18 +1966,10 @@
               <h3>External Link</h3>
               <p>This content contains an external link to additional resources.</p>
               <% if (contentItem.content) { %>
-              <a href="<%= contentItem.content %>" target="_blank" class="btn btn-primary btn-lg" onclick="handleLinkVisitAcknowledge(event)">
+              <a href="<%= contentItem.content %>" target="_blank" class="btn btn-primary btn-lg">
                 <i class="fas fa-external-link-alt"></i>
                 Open Link
               </a>
-              <% if (!contentProgress.isCompleted) { %>
-              <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
-                  <i class="fas fa-check"></i>
-                  I have visited/read
-                </button>
-              </div>
-              <% } %>
               <% } else { %>
               <div class="placeholder-content">
                 <i class="fas fa-link"></i>
@@ -1835,19 +1982,13 @@
           <div class="assignment-content">
             <div class="assignment-info">
               <h3>Assignment</h3>
-              <p>Download the assignment materials. You can mark as read when done.</p>
+              <p>Download the assignment materials below.</p>
               <% if (contentItem.content) { %>
               <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
-                <a href="<%= contentItem.content %>" target="_blank" class="btn btn-outline btn-sm" onclick="handleDownloadAcknowledge(event)">
+                <a href="<%= contentItem.content %>" target="_blank" class="btn btn-outline btn-sm">
                   <i class="fas fa-download"></i>
                   Download Assignment
                 </a>
-                <% if (!contentProgress.isCompleted) { %>
-                <button class="btn btn-success btn-sm" onclick="acknowledgeAndComplete(event)">
-                  <i class="fas fa-check"></i>
-                  I have read/completed
-                </button>
-                <% } %>
               </div>
               <% } else { %>
               <div class="placeholder-content">
@@ -2063,6 +2204,36 @@
                           </iframe>
                         <% } %>
                         <!-- Dynamic Moving Watermark -->
+                        <style>
+                          @media (max-width: 768px) {
+                            #recordingBunnyWatermark, #recordingYoutubeWatermark {
+                              position: relative !important;
+                              top: auto !important;
+                              left: auto !important;
+                              right: auto !important;
+                              bottom: auto !important;
+                              transform: none !important;
+                              animation: none !important;
+                              display: flex !important;
+                              justify-content: center !important;
+                              align-items: center !important;
+                              width: 100% !important;
+                              height: 16px !important;
+                              font-size: 6px !important;
+                              padding: 2px 6px !important;
+                              margin-top: 4px !important;
+                              gap: 2px !important;
+                              border-radius: 0 !important;
+                              background: rgba(0,0,0,0.7) !important;
+                              backdrop-filter: none !important;
+                              box-shadow: none !important;
+                            }
+                            #recordingBunnyWatermark span, #recordingYoutubeWatermark span {
+                              font-size: 6px !important;
+                              text-shadow: none !important;
+                            }
+                          }
+                        </style>
                         <div class="video-watermark video-watermark-moving" id="recordingBunnyWatermark">
                           <span class="watermark-text"><%= recordingStudentName %></span>
                           <% if (recordingStudentCode) { %>
@@ -2070,6 +2241,41 @@
                           <span class="watermark-code"><%= recordingStudentCode %></span>
                           <% } %>
                         </div>
+                        <!-- Watch Progress Overlay for Non-Attendees (same as regular video) -->
+                        <% if (!studentAttendedLiveMeeting && !contentProgress.isCompleted) { %>
+                        <div id="recordingWatchProgressOverlay" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.85); color: white; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">
+                          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                            <i class="fas fa-eye" style="color: #10b981;"></i>
+                            <span style="font-size: 14px;">Watch Progress</span>
+                          </div>
+                          <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1;">
+                              <div style="font-size: 20px; color: #10b981; margin-bottom: 2px;" id="recWatchPercent">0%</div>
+                              <div style="font-size: 11px; opacity: 0.8;" id="recWatchTime">0:00 / 0:00</div>
+                            </div>
+                            <div style="width: 50px; height: 50px; position: relative;">
+                              <svg width="50" height="50" style="transform: rotate(-90deg);">
+                                <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"></circle>
+                                <circle id="recWatchCircle" cx="25" cy="25" r="20" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-linecap="round"></circle>
+                              </svg>
+                              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10px; font-weight: bold;" id="recWatchCircleText">0%</div>
+                            </div>
+                          </div>
+                          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px; opacity: 0.9;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                              <span>Required:</span>
+                              <span style="color: #fbbf24;">90%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                              <span>Remaining:</span>
+                              <span style="color: #ef4444;" id="recWatchRemaining">90%</span>
+                            </div>
+                            <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">
+                              <i class="fas fa-info-circle"></i> Can seek up to: <span id="recMaxSeekTime" style="color: #10b981;">0:00</span>
+                            </div>
+                          </div>
+                        </div>
+                        <% } %>
                       </div>
                     <% } %>
                   </div>
@@ -2091,17 +2297,48 @@
                   </div>
                 </div>
 
-                <!-- Mark as Watched Button -->
-                <% if (!contentProgress.isCompleted) { %>
-                <div class="recording-mark-watched-section mt-4">
-                  <button class="btn btn-primary btn-lg recording-mark-watched-btn" onclick="markRecordingAsWatched(event)">
-                    <i class="fas fa-check-circle me-2"></i>
-                    I Have Watched This Recording
-                  </button>
-                  <p class="recording-mark-watched-hint mt-2">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Click the button above after finishing the recording to mark it as completed
+                <!-- Recording watch status based on attendance -->
+                <% if (studentAttendedLiveMeeting) { %>
+                <!-- Student attended live meeting - free playback, already completed -->
+                <div class="recording-attended-badge mt-3" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+                  <i class="fas fa-user-check" style="font-size: 1.3rem;"></i>
+                  <div>
+                    <strong>You attended this live session</strong>
+                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.9;">You can watch the recording freely without restrictions.</p>
+                  </div>
+                </div>
+                <% } else if (!contentProgress.isCompleted) { %>
+                <!-- Student didn't attend and hasn't completed - needs to watch 90% -->
+                <div class="recording-watch-requirement mt-3" style="background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; padding: 12px 16px; border-radius: 8px;">
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <i class="fas fa-info-circle" style="color: #f59e0b; font-size: 1.3rem;"></i>
+                    <strong style="color: #92400e;">Watch Requirement</strong>
+                  </div>
+                  <p style="margin: 0; color: #78350f; font-size: 0.9rem;">
+                    Since you didn't attend the live session, you need to watch at least <strong>90%</strong> of this recording to complete it. Progress will be tracked automatically.
                   </p>
+                  <!-- Watch Progress Indicator for non-attendees -->
+                  <div id="recordingWatchProgress" class="mt-3" style="background: rgba(0,0,0,0.05); padding: 12px; border-radius: 6px; display: none;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                      <span style="color: #78350f; font-weight: 600;">Watch Progress</span>
+                      <span id="recordingWatchPercent" style="color: #f59e0b; font-weight: 700;">0%</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.1); border-radius: 4px; height: 8px; overflow: hidden;">
+                      <div id="recordingWatchBar" style="background: linear-gradient(90deg, #f59e0b, #10b981); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #92400e;">
+                      Required: <strong>90%</strong> | <span id="recordingWatchRemaining">90% remaining</span>
+                    </p>
+                  </div>
+                </div>
+                <% } else { %>
+                <!-- Student completed watching the recording - show completion status -->
+                <div class="recording-completed-badge mt-3" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05)); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+                  <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.3rem;"></i>
+                  <div>
+                    <strong style="color: #065f46;">Recording Completed</strong>
+                    <p style="margin: 0; font-size: 0.9rem; color: #047857;">You can watch the recording freely.</p>
+                  </div>
                 </div>
                 <% } %>
               </div>
@@ -2115,7 +2352,7 @@
                   <i class="fas fa-hourglass-half me-2"></i>Waiting for Recording
                 </h6>
                 <p class="text-muted" style="margin-bottom: 0;">
-                  The instructor is preparing the recording. Once it's uploaded, you'll be able to watch it here and mark it as completed to proceed to the next content.
+                  The instructor is preparing the recording. Once it's uploaded, you'll be able to watch it here.
                 </p>
                 <p class="text-muted mt-2" style="font-size: 0.9rem;">
                   <i class="fas fa-info-circle"></i> Please check back later or contact your instructor if you have questions.
@@ -4670,6 +4907,246 @@
       updateContentProgressSmooth('completed', 100);
     }
 
+    // ==================== RECORDING WATCH TRACKING FOR NON-ATTENDEES ====================
+    // Anti-skip protection with segment tracking (same as regular video)
+    
+    const isZoomContent = '<%= contentItem.type %>' === 'zoom';
+    const studentAttendedLive = <%= typeof studentAttendedLiveMeeting !== 'undefined' ? studentAttendedLiveMeeting : false %>;
+    const isRecordingComplete = <%= contentProgress.isCompleted ? 'true' : 'false' %>;
+    const needsRecordingWatchTracking = isZoomContent && !studentAttendedLive && !isRecordingComplete;
+    
+    // Recording anti-skip tracking state
+    let recWatchedSegments = [];
+    let recMaxWatchedTime = 0;
+    let recVideoDuration = 0;
+    let recIsPlaying = false;
+    let recLastTime = 0;
+    let recHasAutoCompleted = false;
+    let recPlayer = null;
+    const REC_REQUIRED_PERCENTAGE = 90;
+    
+    // Initialize recording watch tracking for non-attendees
+    if (needsRecordingWatchTracking) {
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initRecordingAntiSkipTracking, 1000);
+      });
+    }
+    
+    function initRecordingAntiSkipTracking() {
+      // Find the recording iframe
+      const recordingContainer = document.querySelector('.recording-video-container');
+      if (!recordingContainer) return;
+      
+      const iframe = recordingContainer.querySelector('iframe');
+      if (!iframe) {
+        // Try to find iframe in bunny-embed-wrapper
+        const bunnyWrapper = recordingContainer.querySelector('.bunny-embed-wrapper');
+        if (bunnyWrapper) {
+          const bunnyIframe = bunnyWrapper.querySelector('iframe');
+          if (bunnyIframe) {
+            setupRecordingPlayer(bunnyIframe);
+          }
+        }
+        return;
+      }
+      
+      setupRecordingPlayer(iframe);
+    }
+    
+    function setupRecordingPlayer(iframe) {
+      console.log('📹 Initializing recording anti-skip tracking for non-attendee');
+      
+      try {
+        if (typeof playerjs !== 'undefined') {
+          recPlayer = new playerjs.Player(iframe);
+          
+          recPlayer.on('ready', function() {
+            recPlayer.getDuration(function(duration) {
+              recVideoDuration = duration;
+              console.log('📹 Recording duration:', recVideoDuration);
+            });
+          });
+          
+          recPlayer.on('play', function() {
+            recIsPlaying = true;
+          });
+          
+          recPlayer.on('pause', function() {
+            recIsPlaying = false;
+          });
+          
+          recPlayer.on('timeupdate', function(data) {
+            if (recHasAutoCompleted) return;
+            
+            const currentTime = data.seconds;
+            
+            // ANTI-SKIP: Check if user tried to skip ahead
+            if (currentTime > recMaxWatchedTime + 2) {
+              // User tried to skip ahead - seek back to max watched position
+              console.log('📹 Anti-skip: Preventing skip from', currentTime, 'to', recMaxWatchedTime);
+              recPlayer.setCurrentTime(recMaxWatchedTime);
+              return;
+            }
+            
+            // Update max watched time
+            if (currentTime > recMaxWatchedTime) {
+              recMaxWatchedTime = currentTime;
+            }
+            
+            // Track watched segment (only if playing normally)
+            if (recIsPlaying && currentTime > recLastTime && currentTime - recLastTime < 2) {
+              // Add to watched segments
+              const segmentStart = recLastTime;
+              const segmentEnd = currentTime;
+              addRecordingWatchedSegment(segmentStart, segmentEnd);
+            }
+            
+            recLastTime = currentTime;
+            
+            // Calculate actual watched percentage from segments
+            if (recVideoDuration > 0) {
+              const totalWatchedTime = calculateRecordingWatchedTime();
+              const watchedPercentage = Math.min(100, (totalWatchedTime / recVideoDuration) * 100);
+              
+              // Update progress overlay UI
+              updateRecordingProgressUI(watchedPercentage, currentTime);
+              
+              // Auto-complete if watched enough
+              if (watchedPercentage >= REC_REQUIRED_PERCENTAGE && !recHasAutoCompleted) {
+                recHasAutoCompleted = true;
+                console.log('📹 Recording watch requirement met! Auto-completing...');
+                autoCompleteRecording();
+              }
+            }
+          });
+          
+          recPlayer.on('ended', function() {
+            if (recVideoDuration > 0 && !recHasAutoCompleted) {
+              const totalWatchedTime = calculateRecordingWatchedTime();
+              const watchedPercentage = (totalWatchedTime / recVideoDuration) * 100;
+              if (watchedPercentage >= REC_REQUIRED_PERCENTAGE - 5) {
+                recHasAutoCompleted = true;
+                autoCompleteRecording();
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.log('PlayerJS not available for recording:', e);
+      }
+    }
+    
+    function addRecordingWatchedSegment(start, end) {
+      if (end <= start) return;
+      
+      // Add segment and merge overlapping
+      recWatchedSegments.push({ start, end });
+      recWatchedSegments.sort((a, b) => a.start - b.start);
+      
+      // Merge overlapping segments
+      const merged = [];
+      for (const seg of recWatchedSegments) {
+        if (merged.length === 0) {
+          merged.push({ ...seg });
+        } else {
+          const last = merged[merged.length - 1];
+          if (seg.start <= last.end + 0.5) {
+            last.end = Math.max(last.end, seg.end);
+          } else {
+            merged.push({ ...seg });
+          }
+        }
+      }
+      recWatchedSegments = merged;
+    }
+    
+    function calculateRecordingWatchedTime() {
+      let total = 0;
+      for (const seg of recWatchedSegments) {
+        total += (seg.end - seg.start);
+      }
+      return total;
+    }
+    
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    function updateRecordingProgressUI(percentage, currentTime) {
+      // Update overlay elements
+      const percentEl = document.getElementById('recWatchPercent');
+      const timeEl = document.getElementById('recWatchTime');
+      const circleEl = document.getElementById('recWatchCircle');
+      const circleTextEl = document.getElementById('recWatchCircleText');
+      const remainingEl = document.getElementById('recWatchRemaining');
+      const maxSeekEl = document.getElementById('recMaxSeekTime');
+      
+      if (percentEl) percentEl.textContent = Math.round(percentage) + '%';
+      if (timeEl) timeEl.textContent = `${formatTime(calculateRecordingWatchedTime())} / ${formatTime(recVideoDuration)}`;
+      
+      // Update circular progress
+      if (circleEl) {
+        const circumference = 125.6;
+        const offset = circumference - (percentage / 100) * circumference;
+        circleEl.style.strokeDashoffset = offset;
+      }
+      if (circleTextEl) circleTextEl.textContent = Math.round(percentage) + '%';
+      
+      // Update remaining percentage
+      if (remainingEl) {
+        const remaining = Math.max(0, REC_REQUIRED_PERCENTAGE - percentage);
+        if (remaining > 0) {
+          remainingEl.textContent = Math.round(remaining) + '%';
+          remainingEl.style.color = '#ef4444';
+        } else {
+          remainingEl.textContent = 'Complete!';
+          remainingEl.style.color = '#10b981';
+        }
+      }
+      
+      // Update max seek time indicator
+      if (maxSeekEl) {
+        maxSeekEl.textContent = formatTime(recMaxWatchedTime);
+      }
+      
+      // Also update the non-overlay progress section
+      const progressSection = document.getElementById('recordingWatchProgress');
+      if (progressSection) {
+        const barEl = document.getElementById('recordingWatchBar');
+        const pctEl = document.getElementById('recordingWatchPercent');
+        if (barEl) barEl.style.width = percentage + '%';
+        if (pctEl) pctEl.textContent = Math.round(percentage) + '%';
+      }
+    }
+    
+    function autoCompleteRecording() {
+      console.log('📹 Auto-completing recording for non-attendee');
+      
+      // Hide the overlay
+      const overlay = document.getElementById('recordingWatchProgressOverlay');
+      if (overlay) overlay.style.display = 'none';
+      
+      // Update UI to show completing
+      const requirementDiv = document.querySelector('.recording-watch-requirement');
+      if (requirementDiv) {
+        requirementDiv.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 16px; border-radius: 8px;">
+            <i class="fas fa-check-circle" style="font-size: 1.3rem;"></i>
+            <div>
+              <strong>Watch Requirement Complete!</strong>
+              <p style="margin: 0; font-size: 0.9rem; opacity: 0.9;">Saving your progress...</p>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Call the completion function
+      updateContentProgressSmooth('completed', 100);
+    }
+
+
     // ==================== ZOOM MEETING FUNCTIONS ====================
 
     // Join Zoom Meeting - Works exactly like acknowledgeAndComplete for other content
@@ -5659,6 +6136,52 @@
         top: 8%;
         left: 8%;
         transform: translate(0, 0);
+      }
+    }
+
+    /* MOBILE WATERMARK - VERY SMALL */
+    @media (max-width: 768px) {
+      .video-watermark,
+      .video-watermark-moving,
+      #recordingBunnyWatermark,
+      #recordingYoutubeWatermark,
+      #bunnyWatermark,
+      #youtubeWatermark {
+        font-size: 7px !important;
+        padding: 3px 6px !important;
+        gap: 3px !important;
+        border-radius: 3px !important;
+        background: rgba(0, 0, 0, 0.6) !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+      }
+      
+      .video-watermark span,
+      .video-watermark .watermark-text,
+      .video-watermark .watermark-code,
+      .video-watermark .watermark-separator {
+        font-size: 7px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .video-watermark,
+      .video-watermark-moving,
+      #recordingBunnyWatermark,
+      #recordingYoutubeWatermark,
+      #bunnyWatermark,
+      #youtubeWatermark {
+        font-size: 6px !important;
+        padding: 2px 4px !important;
+        gap: 2px !important;
+        border-radius: 2px !important;
+      }
+      
+      .video-watermark span,
+      .video-watermark .watermark-text,
+      .video-watermark .watermark-code,
+      .video-watermark .watermark-separator {
+        font-size: 6px !important;
       }
     }
 

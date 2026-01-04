@@ -1,4 +1,4 @@
-const User = require('../models/User');
+ const User = require('../models/User');
 const Course = require('../models/Course');
 const Quiz = require('../models/Quiz');
 const Progress = require('../models/Progress');
@@ -689,13 +689,16 @@ const contentDetails = async (req, res) => {
       ? contentProgress.completionStatus === 'completed'
       : false;
 
+    // Track if student attended the live Zoom meeting (for recording restriction logic)
+    let studentAttendedLiveMeeting = false;
+
     // For Zoom content, check if student attended live OR watched recording
     if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
       const zoomMeeting = contentItem.zoomMeeting;
       const studentIdStr = studentId.toString();
 
       // Check if student attended the live session
-      const attendedLive =
+      studentAttendedLiveMeeting =
         zoomMeeting.studentsAttended &&
         zoomMeeting.studentsAttended.some(
           (attendance) => attendance.student.toString() === studentIdStr
@@ -710,14 +713,65 @@ const contentDetails = async (req, res) => {
             record.completedWatching
         );
 
-      // If student either attended live OR watched recording, mark as completed
-      if ((attendedLive || watchedRecording) && !isCompleted) {
+      // If student attended live, auto-mark as completed and save to DB
+      if (studentAttendedLiveMeeting && !isCompleted) {
         isCompleted = true;
-        // Note: We don't automatically update the progress here to avoid side effects
-        // The progress will be updated when they click "Mark as Watched" button
+        // Auto-save progress to database for students who attended live
+        try {
+          const enrollment = student.enrolledCourses.find(
+            (e) => e.course.toString() === course._id.toString()
+          );
+          if (enrollment) {
+            await student.updateContentProgress(
+              course._id,
+              topic._id,
+              contentId,
+              'zoom',
+              {
+                completionStatus: 'completed',
+                progressPercentage: 100,
+                lastAccessed: new Date(),
+                completedAt: new Date(),
+              }
+            );
+          }
+        } catch (autoCompleteError) {
+          console.error('Auto-complete error for Zoom attendee:', autoCompleteError);
+        }
+      } else if (watchedRecording && !isCompleted) {
+        // If student watched recording, mark as completed
+        isCompleted = true;
       }
 
     }
+
+    // AUTO-COMPLETE for PDF, reading, link, assignment content on page load
+    if (!isCompleted && ['pdf', 'reading', 'link', 'assignment'].includes(contentItem.type)) {
+      isCompleted = true;
+      // Auto-save progress to database
+      try {
+        const enrollment = student.enrolledCourses.find(
+          (e) => e.course.toString() === course._id.toString()
+        );
+        if (enrollment) {
+          await student.updateContentProgress(
+            course._id,
+            topic._id,
+            contentId,
+            contentItem.type,
+            {
+              completionStatus: 'completed',
+              progressPercentage: 100,
+              lastAccessed: new Date(),
+              completedAt: new Date(),
+            }
+          );
+        }
+      } catch (autoCompleteError) {
+        console.error('Auto-complete error for content:', autoCompleteError);
+      }
+    }
+
 
     const progressPercentage = contentProgress
       ? contentProgress.progressPercentage || 0
@@ -888,6 +942,7 @@ const contentDetails = async (req, res) => {
       timing: serverTiming,
       attemptPolicy: attemptPolicy,
       watchLimitInfo: watchLimitInfo,
+      studentAttendedLiveMeeting: studentAttendedLiveMeeting, // For recording restriction logic
       requiresAcknowledgment:
         !isCompleted &&
         ['pdf', 'reading', 'link', 'assignment'].includes(contentItem.type),

@@ -173,9 +173,13 @@ CourseSchema.pre('save', async function (next) {
     let attempts = 0;
 
     while (!isUnique && attempts < 10) {
-      const prefix = this.title.substring(0, 3).toUpperCase();
+      // Extract prefix from title - remove special characters and take first 3 alphanumeric characters
+      const titlePrefix = this.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
+      // If title has no alphanumeric chars, use default prefix
+      const prefix = titlePrefix.length >= 2 ? titlePrefix : 'CRS';
+      
       const timestamp = Date.now().toString().slice(-6);
-      const randomNum = Math.floor(Math.random() * 100);
+      const randomNum = Math.floor(Math.random() * 100).toString().padStart(2, '0');
       courseCode = `${prefix}${timestamp}${randomNum}`;
 
       // Check if this courseCode already exists
