@@ -275,6 +275,7 @@ class WhatsAppSMSNotificationService {
   /**
    * Generate SMS message for zoom meeting completion (140-160 chars) - Vertical format
    * Includes exact attendance percentage, camera status, and time spent
+   * Includes "Joined Late" status if student joined 30+ minutes after meeting start
    */
   getSmsZoomMeetingMessage(student, meetingData) {
     const studentName = (student.firstName || '').substring(0, 20);
@@ -294,10 +295,19 @@ class WhatsAppSMSNotificationService {
     const timeSpent = meetingData.timeSpent || 0;
     const timeSpentFormatted = this.formatTimeSpent(timeSpent);
     
+    // Check if student joined late (30+ minutes after meeting started)
+    const joinedLate = meetingData.joinedLate || false;
+    
     let message = `Live Session Update\nStudent: ${studentName}\nSession: ${meetingName}`;
     message += `\nCourse: ${courseTitle}`;
     message += `\nAttendance: ${attendancePercentFormatted}%`;
     message += `\nTime: ${timeSpentFormatted}`;
+    
+    // Add late status indicator if applicable
+    if (joinedLate) {
+      message += `\n⚠️ Joined Late`;
+    }
+    
     // message += `\n${cameraStatus}`;
     console.log(cameraStatus);
     if (attendancePercent >= 50) {

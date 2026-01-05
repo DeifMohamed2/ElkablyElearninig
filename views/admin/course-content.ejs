@@ -636,6 +636,11 @@
                       <span class="step-number">3</span>
                       <span class="quiz-step-label">Settings</span>
                     </div>
+                    <div class="progress-line"></div>
+                    <div class="quiz-step" data-step="4">
+                      <span class="step-number">4</span>
+                      <span class="quiz-step-label">Preview</span>
+                    </div>
                   </div>
                 </div>
 
@@ -864,6 +869,42 @@
                   </div>
                 </div>
 
+                <!-- Step 4: Quiz Preview -->
+                <div class="quiz-step-content" id="quizStep4" style="display: none;">
+                  <div class="preview-header mb-3">
+                    <h5 class="mb-2"><i class="fas fa-eye me-2"></i>Question Preview</h5>
+                    <p class="text-muted mb-0">Review how questions will appear to students before submitting.</p>
+                  </div>
+                  
+                  <!-- Preview Slider Container -->
+                  <div class="preview-slider-container">
+                    <div class="preview-navigation-top">
+                      <button type="button" class="preview-nav-btn" onclick="prevQuizPreviewQuestion()" id="quizPreviewPrevBtn">
+                        <i class="fas fa-chevron-left"></i>
+                      </button>
+                      <div class="preview-counter">
+                        <span id="quizPreviewCurrentNum">1</span> of <span id="quizPreviewTotalNum">0</span>
+                      </div>
+                      <button type="button" class="preview-nav-btn" onclick="nextQuizPreviewQuestion()" id="quizPreviewNextBtn">
+                        <i class="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="preview-question-card" id="quizPreviewQuestionCard">
+                      <!-- Question content will be rendered here -->
+                      <div class="preview-empty-state">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Preview Dots Navigation -->
+                    <div class="preview-dots-container" id="quizPreviewDots">
+                      <!-- Dots will be rendered here -->
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Quiz Navigation -->
                 <div class="quiz-navigation mt-4">
                   <div class="d-flex justify-content-between">
@@ -871,7 +912,7 @@
                       <i class="fas fa-arrow-left me-1"></i> Previous
                     </button>
                     <div class="quiz-step-indicator">
-                      Step <span id="quizCurrentStepNumber">1</span> of 3
+                      Step <span id="quizCurrentStepNumber">1</span> of 4
                     </div>
                     <button type="button" class="btn btn-primary" id="quizNextBtn" onclick="nextQuizStep()">
                       Next <i class="fas fa-arrow-right ms-1"></i>
@@ -907,6 +948,11 @@
                     <div class="homework-step" data-step="3">
                       <span class="step-number">3</span>
                       <span class="homework-step-label">Settings</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="homework-step" data-step="4">
+                      <span class="step-number">4</span>
+                      <span class="homework-step-label">Preview</span>
                     </div>
                   </div>
                 </div>
@@ -1124,6 +1170,42 @@
                   </div>
                 </div>
 
+                <!-- Step 4: Homework Preview -->
+                <div class="homework-step-content" id="homeworkStep4" style="display: none;">
+                  <div class="preview-header mb-3">
+                    <h5 class="mb-2"><i class="fas fa-eye me-2"></i>Question Preview</h5>
+                    <p class="text-muted mb-0">Review how questions will appear to students before submitting.</p>
+                  </div>
+                  
+                  <!-- Preview Slider Container -->
+                  <div class="preview-slider-container">
+                    <div class="preview-navigation-top">
+                      <button type="button" class="preview-nav-btn" onclick="prevHomeworkPreviewQuestion()" id="homeworkPreviewPrevBtn">
+                        <i class="fas fa-chevron-left"></i>
+                      </button>
+                      <div class="preview-counter">
+                        <span id="homeworkPreviewCurrentNum">1</span> of <span id="homeworkPreviewTotalNum">0</span>
+                      </div>
+                      <button type="button" class="preview-nav-btn" onclick="nextHomeworkPreviewQuestion()" id="homeworkPreviewNextBtn">
+                        <i class="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="preview-question-card" id="homeworkPreviewQuestionCard">
+                      <!-- Question content will be rendered here -->
+                      <div class="preview-empty-state">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Preview Dots Navigation -->
+                    <div class="preview-dots-container" id="homeworkPreviewDots">
+                      <!-- Dots will be rendered here -->
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Homework Navigation -->
                 <div class="homework-navigation mt-4">
                   <div class="d-flex justify-content-between">
@@ -1131,7 +1213,7 @@
                       <i class="fas fa-arrow-left me-1"></i> Previous
                     </button>
                     <div class="homework-step-indicator">
-                      Step <span id="homeworkCurrentStepNumber">1</span> of 3
+                      Step <span id="homeworkCurrentStepNumber">1</span> of 4
                     </div>
                     <button type="button" class="btn btn-success" id="homeworkNextBtn" onclick="nextHomeworkStep()">
                       Next <i class="fas fa-arrow-right ms-1"></i>
@@ -7113,7 +7195,7 @@ function getContentIcon(type) {
 
     if (prevBtn) prevBtn.disabled = currentQuizStep === 1;
     if (nextBtn) {
-      if (currentQuizStep === 3) {
+      if (currentQuizStep === 4) {
         nextBtn.style.display = 'none';
       } else {
         nextBtn.style.display = 'inline-block';
@@ -7132,8 +7214,13 @@ function getContentIcon(type) {
       // Load questions from selected banks
       loadQuizQuestions();
     }
+    
+    if (currentQuizStep === 3) {
+      // Moving to Step 4 (Preview) - render the preview
+      renderQuizPreview();
+    }
 
-    if (currentQuizStep < 3) {
+    if (currentQuizStep < 4) {
       currentQuizStep++;
       updateQuizStepDisplay();
     }
@@ -8010,7 +8097,7 @@ function getContentIcon(type) {
 
     if (prevBtn) prevBtn.disabled = currentHomeworkStep === 1;
     if (nextBtn) {
-      if (currentHomeworkStep === 3) {
+      if (currentHomeworkStep === 4) {
         nextBtn.style.display = 'none';
       } else {
         nextBtn.style.display = 'inline-block';
@@ -8029,8 +8116,13 @@ function getContentIcon(type) {
       // Load questions from selected banks
       loadHomeworkQuestions();
     }
+    
+    if (currentHomeworkStep === 3) {
+      // Moving to Step 4 (Preview) - render the preview
+      renderHomeworkPreview();
+    }
 
-    if (currentHomeworkStep < 3) {
+    if (currentHomeworkStep < 4) {
       currentHomeworkStep++;
       updateHomeworkStepDisplay();
     }
@@ -8041,6 +8133,374 @@ function getContentIcon(type) {
       currentHomeworkStep--;
       updateHomeworkStepDisplay();
     }
+  }
+
+  // ============================================
+  // Preview Functions for Quiz and Homework
+  // ============================================
+  
+  // Quiz Preview State
+  let currentQuizPreviewIndex = 0;
+  
+  // Homework Preview State
+  let currentHomeworkPreviewIndex = 0;
+  
+  function renderQuizPreview() {
+    const questions = selectedQuizQuestions;
+    const cardContainer = document.getElementById('quizPreviewQuestionCard');
+    const dotsContainer = document.getElementById('quizPreviewDots');
+    const totalNumEl = document.getElementById('quizPreviewTotalNum');
+    const currentNumEl = document.getElementById('quizPreviewCurrentNum');
+    
+    if (!questions || questions.length === 0) {
+      cardContainer.innerHTML = `
+        <div class="preview-empty-state">
+          <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+          <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+        </div>
+      `;
+      dotsContainer.innerHTML = '';
+      totalNumEl.textContent = '0';
+      currentNumEl.textContent = '0';
+      return;
+    }
+    
+    currentQuizPreviewIndex = 0;
+    totalNumEl.textContent = questions.length;
+    
+    // Render dots
+    dotsContainer.innerHTML = questions.map((_, index) => 
+      `<span class="preview-dot ${index === 0 ? 'active' : ''}" onclick="goToQuizPreviewQuestion(${index})"></span>`
+    ).join('');
+    
+    renderQuizPreviewQuestion(0);
+  }
+  
+  function renderQuizPreviewQuestion(index) {
+    const selectedQuestions = selectedQuizQuestions;
+    if (!selectedQuestions || index < 0 || index >= selectedQuestions.length) return;
+    
+    currentQuizPreviewIndex = index;
+    const selectedItem = selectedQuestions[index];
+    
+    // Look up the full question data from quizQuestions array
+    const questionId = selectedItem.question?.toString() || selectedItem.question;
+    const fullQuestion = quizQuestions.find(q => {
+      const qId = q._id?.toString() || q._id;
+      return qId === questionId;
+    });
+    
+    // Merge selected item data (like points) with full question data
+    const question = fullQuestion ? { ...fullQuestion, points: selectedItem.points || fullQuestion.points || 1 } : selectedItem;
+    
+    const cardContainer = document.getElementById('quizPreviewQuestionCard');
+    const currentNumEl = document.getElementById('quizPreviewCurrentNum');
+    const dotsContainer = document.getElementById('quizPreviewDots');
+    
+    currentNumEl.textContent = index + 1;
+    
+    // Update dots
+    dotsContainer.querySelectorAll('.preview-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === index);
+    });
+    
+    // Render question card
+    cardContainer.innerHTML = renderPreviewQuestionCard(question, index + 1);
+  }
+  
+  function renderPreviewQuestionCard(question, number) {
+    const difficulty = (question.difficulty || 'Medium').toLowerCase();
+    const points = question.points || 1;
+    
+    let optionsHtml = '';
+    
+    if (question.questionType === 'MCQ' && question.options && question.options.length > 0) {
+      optionsHtml = question.options.map((opt, i) => {
+        const isCorrect = opt.isCorrect;
+        const optionLetter = String.fromCharCode(65 + i);
+        const optionText = parseMathExpressionsPreview(opt.text || '');
+        return `
+          <div class="preview-option ${isCorrect ? 'correct' : ''}">
+            <span class="preview-option-letter">${optionLetter}</span>
+            <span class="preview-option-text">${optionText}</span>
+            ${isCorrect ? '<i class="fas fa-check-circle preview-correct-icon"></i>' : ''}
+          </div>
+        `;
+      }).join('');
+    } else if (question.questionType === 'True/False') {
+      const correctAnswer = question.correctAnswer === true || question.correctAnswer === 'true' || question.correctAnswer === 'True';
+      optionsHtml = `
+        <div class="preview-option ${correctAnswer ? 'correct' : ''}">
+          <span class="preview-option-letter">A</span>
+          <span class="preview-option-text">True</span>
+          ${correctAnswer ? '<i class="fas fa-check-circle preview-correct-icon"></i>' : ''}
+        </div>
+        <div class="preview-option ${!correctAnswer ? 'correct' : ''}">
+          <span class="preview-option-letter">B</span>
+          <span class="preview-option-text">False</span>
+          ${!correctAnswer ? '<i class="fas fa-check-circle preview-correct-icon"></i>' : ''}
+        </div>
+      `;
+    } else if (question.questionType === 'Written') {
+      const correctAnswers = question.correctAnswers || [];
+      let answersHtml = '';
+      
+      if (correctAnswers.length > 0) {
+        answersHtml = correctAnswers.map((answer, index) => {
+          let answerText = '';
+          let isMandatory = true;
+          
+          if (typeof answer === 'string') {
+            answerText = answer;
+          } else if (typeof answer === 'object' && answer.text) {
+            answerText = answer.text;
+            isMandatory = answer.isMandatory !== false;
+          }
+          
+          const parsedAnswerText = parseMathExpressionsPreview(answerText);
+          const letter = String.fromCharCode(65 + index);
+          const statusClass = isMandatory ? 'mandatory' : 'optional';
+          const statusIcon = isMandatory ? 'fas fa-lock' : 'fas fa-unlock';
+          const statusText = isMandatory ? 'Mandatory' : 'Optional';
+          
+          return `
+            <div class="preview-written-answer ${statusClass}">
+              <span class="preview-answer-letter">${letter}</span>
+              <span class="preview-answer-text">${parsedAnswerText}</span>
+              <span class="preview-answer-status">
+                <i class="${statusIcon}"></i> ${statusText}
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      optionsHtml = `
+        <div class="preview-written-indicator">
+          <i class="fas fa-pen-fancy me-2"></i>
+          <span>Written Answer Required</span>
+        </div>
+        ${answersHtml ? `
+          <div class="preview-correct-answers">
+            <div class="preview-answers-title"><i class="fas fa-check-circle me-2"></i>Correct Answers:</div>
+            ${answersHtml}
+          </div>
+        ` : ''}
+      `;
+    }
+    
+    const questionText = parseMathExpressionsPreview(question.questionText || question.question || '');
+    
+    const imageHtml = question.imageUrl || question.questionImage ? `
+      <div class="preview-question-image">
+        <img src="${question.imageUrl || question.questionImage}" alt="Question image">
+      </div>
+    ` : '';
+    
+    return `
+      <div class="preview-question-header-modern">
+        <div class="preview-header-left">
+          <span class="preview-question-badge">Q${number}</span>
+          <h3 class="preview-question-title-text">Question Preview</h3>
+        </div>
+        <div class="preview-header-right">
+          <span class="preview-difficulty-badge ${difficulty}">
+            <i class="fas fa-${difficulty === 'easy' ? 'check-circle' : difficulty === 'medium' ? 'exclamation-circle' : 'times-circle'} me-1"></i>
+            ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+          </span>
+          <span class="preview-points-badge">
+            <i class="fas fa-medal me-1"></i>
+            ${points} pts
+          </span>
+        </div>
+      </div>
+      <div class="preview-question-container">
+        <div class="preview-question-text-box">
+          <div class="preview-question-label">
+            <i class="fas fa-question-circle me-2"></i>Question:
+          </div>
+          <div class="preview-question-text-content">${questionText}</div>
+        </div>
+        ${imageHtml}
+        <div class="preview-options-wrapper">
+          <div class="preview-options-title">Answer Options:</div>
+          <div class="preview-options-grid">
+            ${optionsHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Parse math expressions and render with math-field elements
+  function parseMathExpressionsPreview(text) {
+    if (!text) return '';
+    
+    // Check if the text contains LaTeX markers even without $ delimiters
+    const hasLaTeXMarkers = /[\\^_{}]/.test(text) || /[α-ωΑ-Ωπ∞∫∑∏√≤≥≠≈]/.test(text);
+    const hasDelimiters = text.includes('$');
+
+    // If no $ delimiters but has LaTeX markers, treat the whole block as math
+    if (!hasDelimiters && hasLaTeXMarkers) {
+      const mathId = `preview-math-full-${Date.now()}`;
+      return `<math-field id="${mathId}" readonly style="display: inline-block; min-height: 24px; font-size: 16px; border: none; background: transparent; padding: 2px 4px; vertical-align: middle;" class="preview-math-field">${escapeHtmlPreview(text)}</math-field>`;
+    }
+
+    // Regular expression to match $...$ patterns (non-greedy)
+    const mathPattern = /\$([^$]+)\$/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    let mathIndex = 0;
+    
+    while ((match = mathPattern.exec(text)) !== null) {
+      // Add text before the math expression
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: text.substring(lastIndex, match.index)
+        });
+      }
+      
+      // Add the math expression
+      parts.push({
+        type: 'math',
+        content: match[1], // Content inside $...$
+        index: mathIndex++
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text after the last math expression
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex)
+      });
+    }
+    
+    // If no math expressions found, return escaped text
+    if (parts.length === 0) {
+      return escapeHtmlPreview(text);
+    }
+    
+    // Build HTML with MathLive fields for math expressions
+    let html = '';
+    parts.forEach(part => {
+      if (part.type === 'text') {
+        html += escapeHtmlPreview(part.content);
+      } else {
+        // Create a unique ID for each math field
+        const mathId = `preview-math-${Date.now()}-${part.index}`;
+        html += `<math-field id="${mathId}" readonly style="display: inline-block; min-height: 24px; font-size: 16px; border: none; background: transparent; padding: 2px 4px; vertical-align: middle;" class="preview-math-field">${escapeHtmlPreview(part.content)}</math-field>`;
+      }
+    });
+    
+    return html;
+  }
+  
+  // Escape HTML to prevent XSS
+  function escapeHtmlPreview(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  function prevQuizPreviewQuestion() {
+    if (currentQuizPreviewIndex > 0) {
+      renderQuizPreviewQuestion(currentQuizPreviewIndex - 1);
+    }
+  }
+  
+  function nextQuizPreviewQuestion() {
+    if (currentQuizPreviewIndex < selectedQuizQuestions.length - 1) {
+      renderQuizPreviewQuestion(currentQuizPreviewIndex + 1);
+    }
+  }
+  
+  function goToQuizPreviewQuestion(index) {
+    renderQuizPreviewQuestion(index);
+  }
+  
+  // Homework Preview Functions
+  function renderHomeworkPreview() {
+    const questions = selectedHomeworkQuestions;
+    const cardContainer = document.getElementById('homeworkPreviewQuestionCard');
+    const dotsContainer = document.getElementById('homeworkPreviewDots');
+    const totalNumEl = document.getElementById('homeworkPreviewTotalNum');
+    const currentNumEl = document.getElementById('homeworkPreviewCurrentNum');
+    
+    if (!questions || questions.length === 0) {
+      cardContainer.innerHTML = `
+        <div class="preview-empty-state">
+          <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+          <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+        </div>
+      `;
+      dotsContainer.innerHTML = '';
+      totalNumEl.textContent = '0';
+      currentNumEl.textContent = '0';
+      return;
+    }
+    
+    currentHomeworkPreviewIndex = 0;
+    totalNumEl.textContent = questions.length;
+    
+    // Render dots
+    dotsContainer.innerHTML = questions.map((_, index) => 
+      `<span class="preview-dot ${index === 0 ? 'active' : ''}" onclick="goToHomeworkPreviewQuestion(${index})"></span>`
+    ).join('');
+    
+    renderHomeworkPreviewQuestion(0);
+  }
+  
+  function renderHomeworkPreviewQuestion(index) {
+    const selectedQuestions = selectedHomeworkQuestions;
+    if (!selectedQuestions || index < 0 || index >= selectedQuestions.length) return;
+    
+    currentHomeworkPreviewIndex = index;
+    const selectedItem = selectedQuestions[index];
+    
+    // Look up the full question data from homeworkQuestions array
+    const questionId = selectedItem.question?.toString() || selectedItem.question;
+    const fullQuestion = homeworkQuestions.find(q => {
+      const qId = q._id?.toString() || q._id;
+      return qId === questionId;
+    });
+    
+    // Merge selected item data (like points) with full question data
+    const question = fullQuestion ? { ...fullQuestion, points: selectedItem.points || fullQuestion.points || 1 } : selectedItem;
+    
+    const cardContainer = document.getElementById('homeworkPreviewQuestionCard');
+    const currentNumEl = document.getElementById('homeworkPreviewCurrentNum');
+    const dotsContainer = document.getElementById('homeworkPreviewDots');
+    
+    currentNumEl.textContent = index + 1;
+    
+    // Update dots
+    dotsContainer.querySelectorAll('.preview-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === index);
+    });
+    
+    // Render question card (reuse the same render function)
+    cardContainer.innerHTML = renderPreviewQuestionCard(question, index + 1);
+  }
+  
+  function prevHomeworkPreviewQuestion() {
+    if (currentHomeworkPreviewIndex > 0) {
+      renderHomeworkPreviewQuestion(currentHomeworkPreviewIndex - 1);
+    }
+  }
+  
+  function nextHomeworkPreviewQuestion() {
+    if (currentHomeworkPreviewIndex < selectedHomeworkQuestions.length - 1) {
+      renderHomeworkPreviewQuestion(currentHomeworkPreviewIndex + 1);
+    }
+  }
+  
+  function goToHomeworkPreviewQuestion(index) {
+    renderHomeworkPreviewQuestion(index);
   }
 
   function loadHomeworkQuestionBanks() {

@@ -53,6 +53,35 @@
             color: var(--primary-color);
             font-weight: 600;
         }
+
+        .welcome-content-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--spacing-lg);
+        }
+
+        .back-home-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-normal);
+        }
+
+        .back-home-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .back-home-btn i {
+            font-size: 1.1rem;
+        }
         
         /* Mobile Responsive */
         @media (max-width: 1024px) {
@@ -82,6 +111,17 @@
         @media (max-width: 480px) {
             .welcome-title-simple {
                 font-size: 1.25rem;
+            }
+
+            .welcome-content-row {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .back-home-btn {
+                justify-content: center;
+                width: 100%;
             }
         }
         
@@ -125,39 +165,41 @@
             }
         }
         
-        /* Professional Learning Path Grouped Styles */
+        /* Professional Learning Path Integrated Styles */
         .learning-path-group {
             margin-bottom: var(--spacing-xl);
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-lg);
             overflow: hidden;
             transition: var(--transition-normal);
         }
         
         .learning-path-group:hover {
-            box-shadow: var(--shadow-sm);
-            border-color: var(--primary-color);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(220, 38, 38, 0.3);
         }
         
         .learning-path-header {
-            padding: var(--spacing-lg) var(--spacing-xl);
+            padding: var(--spacing-md) var(--spacing-lg);
             background: var(--bg-secondary);
-            border-bottom: 2px solid var(--border-color);
-            font-size: 1.1rem;
-            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1rem;
+            font-weight: 700;
             color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: var(--spacing-sm);
+            letter-spacing: 0.02em;
         }
         
         .learning-path-header i {
             color: var(--primary-color);
+            font-size: 0.9rem;
         }
         
         .learning-path-weeks {
-            padding: var(--spacing-md);
+            padding: 4px 0;
         }
         
         .learning-path-item {
@@ -165,54 +207,69 @@
             justify-content: space-between;
             align-items: center;
             padding: var(--spacing-md) var(--spacing-lg);
-            margin-bottom: var(--spacing-sm);
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            transition: var(--transition-normal);
-            border-left: 3px solid var(--primary-color);
+            background: transparent;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition-fast);
         }
         
         .learning-path-item:last-child {
-            margin-bottom: 0;
+            border-bottom: none;
         }
         
         .learning-path-item:hover {
-            background: var(--bg-secondary);
-            transform: translateX(4px);
-            box-shadow: var(--shadow-xs);
+            background: var(--primary-light);
+        }
+        
+        .dark-theme .learning-path-item:hover {
+            background: rgba(239, 68, 68, 0.05);
         }
         
         .learning-path-name {
             font-size: 0.95rem;
             font-weight: 500;
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.4;
             flex: 1;
             margin-right: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .learning-path-name::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--primary-color);
+            border-radius: 4px;
+            opacity: 0.6;
         }
         
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .learning-path-header {
-                padding: var(--spacing-md) var(--spacing-lg);
-                font-size: 1rem;
+                padding: var(--spacing-sm) var(--spacing-md);
+                font-size: 0.9rem;
             }
             
             .learning-path-item {
-                flex-direction: column;
-                align-items: flex-start;
+                flex-direction: row; /* Keep row layout but adjust spacing */
+                align-items: center;
                 gap: var(--spacing-md);
                 padding: var(--spacing-md);
             }
             
             .learning-path-name {
-                margin-right: 0;
-                width: 100%;
+                font-size: 0.85rem;
             }
             
             .learning-path-item .btn {
-                width: 100%;
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+
+            .learning-path-item .btn i {
+                display: none;
             }
         }
     </style>
@@ -236,9 +293,15 @@
             <div class="student-content">
                 <!-- Simple Welcome Section -->
                 <div class="welcome-section simple">
-                    <h1 class="welcome-title-simple">
-                        Welcome back, <span class="student-name-simple"><%= student.name %>!</span>
-                    </h1>
+                    <div class="welcome-content-row">
+                        <h1 class="welcome-title-simple">
+                            Welcome back, <span class="student-name-simple"><%= student.name %>!</span>
+                        </h1>
+                        <a href="/" class="btn btn-primary btn-lg back-home-btn">
+                            <i class="fas fa-home"></i>
+                            Back to Home
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Enhanced Stats Grid -->

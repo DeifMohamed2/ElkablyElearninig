@@ -11744,6 +11744,22 @@ const endZoomMeeting = async (req, res) => {
                     );
                   }
 
+                  // Calculate if student joined late (30+ minutes after meeting started)
+                  let joinedLate = false;
+                  const meetingActualStartTime = zoomMeeting.actualStartTime || refreshedMeeting.actualStartTime;
+                  const studentFirstJoinTime = attendance.firstJoinTime;
+                  
+                  if (meetingActualStartTime && studentFirstJoinTime) {
+                    const lateThresholdMs = 30 * 60 * 1000; // 30 minutes in milliseconds
+                    const joinDelayMs = new Date(studentFirstJoinTime) - new Date(meetingActualStartTime);
+                    joinedLate = joinDelayMs >= lateThresholdMs;
+                    
+                    if (joinedLate) {
+                      const minutesLate = Math.round(joinDelayMs / (1000 * 60));
+                      console.log(`⏰ Student ${student.firstName} joined ${minutesLate} minutes late (threshold: 30 min)`);
+                    }
+                  }
+
                   // Generate SMS message for zoom meeting completion
                   const smsMessage =
                     whatsappSMSNotificationService.getSmsZoomMeetingMessage(
@@ -11757,6 +11773,7 @@ const endZoomMeeting = async (req, res) => {
                         timeSpent: timeSpent, // Time student spent in meeting
                         courseTitle: course ? course.title : 'Course',
                         cameraOpened: cameraOpened,
+                        joinedLate: joinedLate, // Pass late status to SMS
                       }
                     );
 

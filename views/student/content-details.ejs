@@ -410,6 +410,71 @@
       }
     }
 
+    /* Meeting Compact Info Section */
+    .meeting-compact-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      gap: 15px;
+    }
+
+    .compact-info-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .compact-info-left i {
+      color: var(--primary-color);
+      font-size: 1.1rem;
+    }
+
+    .compact-info-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .compact-info-right.completed {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+
+    .dark-theme .meeting-compact-info {
+      background: var(--dark-card-bg);
+      border-color: var(--dark-border-color);
+    }
+
+    @media (max-width: 768px) {
+      .meeting-compact-info {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 15px;
+        gap: 8px;
+      }
+
+      .compact-info-left {
+        font-size: 0.85rem;
+      }
+      
+      .compact-info-right {
+        padding: 4px 10px;
+        font-size: 0.75rem;
+      }
+    }
+
     /* ==================== MOBILE VIDEO REDESIGN ==================== */
     /* Full-width video, no padding, no borders on mobile */
     @media (max-width: 768px) {
@@ -1421,20 +1486,13 @@
     <!-- Main Content -->
     <main class="student-main">
       <!-- Include Header -->
-      <%- include('partials/student-header', { title: 'Content', student: student, theme: theme, currentPage: 'content' }) %>
+      <%- include('partials/student-header', { title: 'Content', student: student, theme: theme, currentPage: 'content', backLink: `/student/course/${course._id}/content` }) %>
 
       <!-- Notification Container (Top Right, Above Header) -->
       <div id="notification-container" class="notification-container-top"></div>
 
       <!-- Content Details -->
       <div class="student-content">
-        <!-- Back Button -->
-        <div class="back-button-container">
-          <a href="/student/course/<%= course._id %>/content" class="btn btn-outline btn-sm">
-            <i class="fas fa-arrow-left"></i>
-            Back to Week Content
-          </a>
-        </div>
 
         <!-- Content Header -->
         <div class="content-header-section">
@@ -2102,30 +2160,22 @@
 
             <% } else if (zoomMeeting.status === 'ended') { %>
             <!-- Meeting Ended -->
-            <div class="meeting-ended-section">
-              <div class="ended-icon">
+            <div class="meeting-compact-info">
+              <div class="compact-info-left">
+                <i class="fas fa-video"></i>
+                <span>Session Recording: <%= zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A' %></span>
+              </div>
+              <% if (contentProgress.isCompleted) { %>
+              <div class="compact-info-right completed">
                 <i class="fas fa-check-circle"></i>
+                <span>Watched</span>
               </div>
-              <h5>Session Recording</h5>
-              <p class="text-muted">This live session took place on:</p>
-              <div class="ended-time">
-                <%= zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleString() : 'N/A' %>
-              </div>
+              <% } %>
+            </div>
 
-              <% if (zoomMeeting.recordingUrl) { %>
-              <div class="recording-available mt-4">
-                <div class="recording-header">
-                  <div class="recording-badge">
-                    <i class="fas fa-play-circle"></i>
-                    <span>Recording Available</span>
-                  </div>
-                  <% if (contentProgress.isCompleted) { %>
-                  <div class="recording-completed-badge">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Completed</span>
-                  </div>
-                  <% } %>
-                </div>
+            <% if (zoomMeeting.recordingUrl) { %>
+            <div class="recording-player-section">
+
 
                 <!-- Video Player Container - Supports both Bunny and YouTube with Watermark -->
                 <div class="recording-player-wrapper">
@@ -2359,8 +2409,8 @@
                 </p>
               </div>
               <% } %>
-            </div>
-            <% } %>
+<% } %>
+
           </div>
           <% } else { %>
           <div class="alert alert-warning">
