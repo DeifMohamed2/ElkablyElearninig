@@ -2066,7 +2066,23 @@
 
           <% if (zoomMeeting) { %>
           <div class="zoom-meeting-container">
-            <!-- Meeting Info Header Card -->
+            <!-- Meeting Info Header Card - Simplified for ended sessions -->
+            <% if (zoomMeeting.status === 'ended') { %>
+            <!-- Compact header for recordings -->
+            <div class="meeting-info-card-compact" style="background: linear-gradient(135deg, var(--primary-color), #b91c1c); color: white; padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-video" style="font-size: 1.1rem;"></i>
+                <span style="font-weight: 600; font-size: 1rem;"><%= zoomMeeting.meetingName %></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; font-size: 0.85rem; opacity: 0.95;">
+                <span><i class="fas fa-calendar-alt me-1"></i><%= new Date(zoomMeeting.actualStartTime || zoomMeeting.scheduledStartTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></span>
+                <% if (zoomMeeting.duration) { %>
+                <span><i class="fas fa-clock me-1"></i><%= zoomMeeting.duration %> min</span>
+                <% } %>
+              </div>
+            </div>
+            <% } else { %>
+            <!-- Full header for scheduled/active meetings -->
             <div class="meeting-info-card">
               <div class="meeting-status-badge status-<%= zoomMeeting.status %>">
                 <i class="fas fa-<%= zoomMeeting.status === 'scheduled' ? 'clock' : zoomMeeting.status === 'active' ? 'video' : 'check-circle' %>"></i>
@@ -2097,6 +2113,7 @@
                 </div>
               </div>
             </div>
+            <% } %>
 
             <!-- Meeting Status Sections -->
             <% if (zoomMeeting.status === 'scheduled') { %>
@@ -4975,11 +4992,57 @@
     let recPlayer = null;
     const REC_REQUIRED_PERCENTAGE = 90;
     
+    // Generate unique localStorage key for this recording
+    const recStorageKey = 'recProgress_<%= contentItem._id %>';
+    
+    // Save recording progress to localStorage
+    function saveRecordingProgress() {
+      if (!needsRecordingWatchTracking) return;
+      const data = {
+        segments: recWatchedSegments,
+        maxWatchedTime: recMaxWatchedTime,
+        duration: recVideoDuration,
+        savedAt: Date.now()
+      };
+      try {
+        localStorage.setItem(recStorageKey, JSON.stringify(data));
+        console.log('📹 Saved recording progress to localStorage');
+      } catch (e) {
+        console.warn('Could not save recording progress:', e);
+      }
+    }
+    
+    // Restore recording progress from localStorage
+    function restoreRecordingProgress() {
+      try {
+        const saved = localStorage.getItem(recStorageKey);
+        if (saved) {
+          const data = JSON.parse(saved);
+          // Only restore if saved within 30 days
+          if (data.savedAt && Date.now() - data.savedAt < 30 * 24 * 60 * 60 * 1000) {
+            recWatchedSegments = data.segments || [];
+            recMaxWatchedTime = data.maxWatchedTime || 0;
+            if (data.duration) recVideoDuration = data.duration;
+            console.log('📹 Restored recording progress from localStorage:', Math.round(recMaxWatchedTime) + 's watched');
+            return true;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not restore recording progress:', e);
+      }
+      return false;
+    }
+    
     // Initialize recording watch tracking for non-attendees
     if (needsRecordingWatchTracking) {
       document.addEventListener('DOMContentLoaded', function() {
+        restoreRecordingProgress();
         setTimeout(initRecordingAntiSkipTracking, 1000);
+        // Save progress every 5 seconds
+        setInterval(saveRecordingProgress, 5000);
       });
+      // Save on page unload
+      window.addEventListener('beforeunload', saveRecordingProgress);
     }
     
     function initRecordingAntiSkipTracking() {
@@ -5178,6 +5241,9 @@
       const overlay = document.getElementById('recordingWatchProgressOverlay');
       if (overlay) overlay.style.display = 'none';
       
+      // Show side notification in top-left corner
+      showRecordingCompletionNotification();
+      
       // Update UI to show completing
       const requirementDiv = document.querySelector('.recording-watch-requirement');
       if (requirementDiv) {
@@ -5192,8 +5258,99 @@
         `;
       }
       
+      // Clear localStorage since complete
+      try {
+        localStorage.removeItem(recStorageKey);
+        console.log('📹 Cleared recording progress from localStorage');
+      } catch (e) {}
+      
       // Call the completion function
       updateContentProgressSmooth('completed', 100);
+    }
+    
+    // Show side notification for recording completion
+    function showRecordingCompletionNotification() {
+      // Remove any existing notification
+      const existing = document.getElementById('recCompletionNotification');
+      if (existing) existing.remove();
+      
+      const notification = document.createElement('div');
+      notification.id = 'recCompletionNotification';
+      notification.innerHTML = `
+        <div style="
+          position: fixed;
+          top: 20px;
+          left: 20px;
+          z-index: 10000;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          padding: 16px 24px;
+          border-radius: 12px;
+          box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          animation: slideInLeft 0.5s ease-out;
+          max-width: 320px;
+        ">
+          <div style="
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+          ">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div>
+            <strong style="display: block; font-size: 1rem; margin-bottom: 2px;">Recording Complete!</strong>
+            <span style="font-size: 0.85rem; opacity: 0.9;">You've watched 90% of this recording.</span>
+          </div>
+          <button onclick="this.parentElement.remove()" style="
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            font-size: 14px;
+          "><i class="fas fa-times"></i></button>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      // Add CSS animation
+      if (!document.getElementById('recNotificationStyles')) {
+        const style = document.createElement('style');
+        style.id = 'recNotificationStyles';
+        style.textContent = `
+          @keyframes slideInLeft {
+            from {
+              opacity: 0;
+              transform: translateX(-100%);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      // Auto-remove after 6 seconds
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+          notification.style.opacity = '0';
+          notification.style.transform = 'translateX(-20px)';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, 6000);
     }
 
 
