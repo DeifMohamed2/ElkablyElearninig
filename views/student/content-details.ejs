@@ -5024,6 +5024,11 @@
             recMaxWatchedTime = data.maxWatchedTime || 0;
             if (data.duration) recVideoDuration = data.duration;
             console.log('📹 Restored recording progress from localStorage:', Math.round(recMaxWatchedTime) + 's watched');
+            
+            // Show restored alert if there's meaningful progress
+            if (recMaxWatchedTime > 10) {
+              showRecordingRestoredAlert(recMaxWatchedTime);
+            }
             return true;
           }
         }
@@ -5031,6 +5036,61 @@
         console.warn('Could not restore recording progress:', e);
       }
       return false;
+    }
+    
+    // Show alert when recording progress is restored
+    function showRecordingRestoredAlert(secondsWatched) {
+      const mins = Math.floor(secondsWatched / 60);
+      const secs = Math.floor(secondsWatched % 60);
+      const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+      
+      const alert = document.createElement('div');
+      alert.id = 'recRestoredAlert';
+      alert.innerHTML = `
+        <div style="
+          position: fixed;
+          top: 10px;
+          right: 20px;
+          z-index: 99999;
+          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+          color: white;
+          padding: 14px 20px;
+          border-radius: 10px;
+          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          animation: slideInRight 0.4s ease-out;
+          max-width: 300px;
+          font-size: 0.9rem;
+        ">
+          <i class="fas fa-history" style="font-size: 1.2rem;"></i>
+          <div>
+            <strong style="display: block; margin-bottom: 2px;">Progress Restored</strong>
+            <span style="opacity: 0.9;">Resuming from ${timeStr}</span>
+          </div>
+          <button onclick="this.parentElement.remove()" style="
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            font-size: 12px;
+          "><i class="fas fa-times"></i></button>
+        </div>
+      `;
+      document.body.appendChild(alert);
+      
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        if (alert.parentElement) {
+          alert.style.transition = 'opacity 0.3s ease-out';
+          alert.style.opacity = '0';
+          setTimeout(() => alert.remove(), 300);
+        }
+      }, 5000);
     }
     
     // Initialize recording watch tracking for non-attendees
@@ -5077,6 +5137,12 @@
             recPlayer.getDuration(function(duration) {
               recVideoDuration = duration;
               console.log('📹 Recording duration:', recVideoDuration);
+              
+              // Seek to restored position if available
+              if (recMaxWatchedTime > 10) {
+                console.log('📹 Seeking to restored position:', recMaxWatchedTime);
+                recPlayer.setCurrentTime(recMaxWatchedTime);
+              }
             });
           });
           
