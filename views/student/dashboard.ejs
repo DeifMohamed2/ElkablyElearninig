@@ -165,111 +165,80 @@
             }
         }
         
-        /* Professional Learning Path Integrated Styles */
-        .learning-path-group {
-            margin-bottom: var(--spacing-xl);
+        /* Active Learning Paths - Card style rows (closer to ELKABLY UI) */
+        .learning-path-card {
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
-            overflow: hidden;
+            border: 1px solid var(--border-color);
+            padding: var(--spacing-lg) var(--spacing-xl);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
             transition: var(--transition-normal);
         }
-        
-        .learning-path-group:hover {
+
+        .learning-path-card + .learning-path-card {
+            margin-top: var(--spacing-md);
+        }
+
+        .learning-path-card:hover {
             box-shadow: var(--shadow-md);
-            border-color: rgba(220, 38, 38, 0.3);
+            transform: translateY(-2px);
+            border-color: rgba(220, 38, 38, 0.25);
         }
-        
-        .learning-path-header {
-            padding: var(--spacing-md) var(--spacing-lg);
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            letter-spacing: 0.02em;
-        }
-        
-        .learning-path-header i {
-            color: var(--primary-color);
-            font-size: 0.9rem;
-        }
-        
-        .learning-path-weeks {
-            padding: 4px 0;
-        }
-        
-        .learning-path-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: var(--spacing-md) var(--spacing-lg);
-            background: transparent;
-            border-bottom: 1px solid var(--border-color);
-            transition: var(--transition-fast);
-        }
-        
-        .learning-path-item:last-child {
-            border-bottom: none;
-        }
-        
-        .learning-path-item:hover {
-            background: var(--primary-light);
-        }
-        
-        .dark-theme .learning-path-item:hover {
-            background: rgba(239, 68, 68, 0.05);
-        }
-        
-        .learning-path-name {
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            line-height: 1.4;
-            flex: 1;
-            margin-right: var(--spacing-md);
+
+        .learning-path-card-header {
             display: flex;
             align-items: center;
             gap: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        .learning-path-name::before {
-            content: '';
-            width: 4px;
-            height: 16px;
-            background: var(--primary-color);
-            border-radius: 4px;
-            opacity: 0.6;
+        .learning-path-card-header i {
+            color: #dc2626;
+            font-size: 0.9rem;
+        }
+
+        .learning-path-card-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .learning-path-course-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .learning-path-card-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        .learning-path-card-footer .btn-primary {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: #fff;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: 999px;
+        }
+
+        .learning-path-card-footer .btn-primary:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
         }
         
         /* Mobile Responsive */
         @media (max-width: 768px) {
-            .learning-path-header {
-                padding: var(--spacing-sm) var(--spacing-md);
-                font-size: 0.9rem;
-            }
-            
-            .learning-path-item {
-                flex-direction: row; /* Keep row layout but adjust spacing */
-                align-items: center;
-                gap: var(--spacing-md);
-                padding: var(--spacing-md);
-            }
-            
-            .learning-path-name {
-                font-size: 0.85rem;
-            }
-            
-            .learning-path-item .btn {
-                padding: 6px 12px;
-                font-size: 0.75rem;
+            .learning-path-card {
+                padding: var(--spacing-md) var(--spacing-lg);
             }
 
-            .learning-path-item .btn i {
-                display: none;
+            .learning-path-card-footer .btn-primary {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
@@ -378,40 +347,35 @@
                                 <% if (activeCourses && activeCourses.length > 0) { %>
                                     <div class="courses-list">
                                         <% 
-                                        // Group courses by bundle/course name
-                                        const groupedCourses = {};
-                                        activeCourses.forEach(course => {
-                                            const bundleName = course.bundle ? (course.bundle.title || 'Course') : 'Standalone Courses';
-                                            const bundleId = course.bundle ? course.bundle._id.toString() : 'standalone';
-                                            
-                                            if (!groupedCourses[bundleId]) {
-                                                groupedCourses[bundleId] = {
-                                                    name: bundleName,
-                                                    courses: []
-                                                };
-                                            }
-                                            groupedCourses[bundleId].courses.push(course);
-                                        });
-                                        
-                                        // Display grouped courses
-                                        Object.values(groupedCourses).forEach(group => { %>
-                                            <div class="learning-path-group">
-                                                <div class="learning-path-header">
+                                        // Render each active course as a separate clean card (similar to provided design)
+                                        activeCourses.forEach(course => { 
+                                            const courseTitle = course.title || 'Week';
+                                            const bundleTitle = course.bundle ? course.bundle.title : null;
+                                        %>
+                                            <div class="learning-path-card">
+                                                <div class="learning-path-card-header">
                                                     <i class="fas fa-book"></i>
-                                                    <%= group.name %>
+                                                    <span><%= bundleTitle ? bundleTitle : courseTitle %></span>
                                                 </div>
-                                                <div class="learning-path-weeks">
-                                                    <% group.courses.forEach(course => { 
-                                                        const weekName = course.title || 'Week';
-                                                    %>
-                                                        <div class="learning-path-item">
-                                                            <div class="learning-path-name"><%= weekName %></div>
-                                                            <a href="/student/course/<%= course._id %>/content" class="btn btn-primary btn-sm">
-                                                                <i class="fas fa-play"></i>
-                                                                Continue Learning
-                                                            </a>
-                                                        </div>
-                                                    <% }); %>
+                                                <div class="learning-path-card-subtitle">
+                                                    <% if (bundleTitle) { %>
+                                                        <span><%= courseTitle %></span>
+                                                    <% } else { %>
+                                                        <span>Session Notes</span>
+                                                    <% } %>
+                                                </div>
+                                                <div class="learning-path-course-meta">
+                                                    <% if (course.lastAccessed) { %>
+                                                        Last accessed: <%= new Date(course.lastAccessed).toLocaleDateString() %>
+                                                    <% } else { %>
+                                                        Status: <%= course.status || 'active' %>
+                                                    <% } %>
+                                                </div>
+                                                <div class="learning-path-card-footer">
+                                                    <a href="/student/course/<%= course._id %>/content" class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-play"></i>
+                                                        Continue Learning
+                                                    </a>
                                                 </div>
                                             </div>
                                         <% }); %>

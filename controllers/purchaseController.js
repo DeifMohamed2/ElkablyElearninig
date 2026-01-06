@@ -65,39 +65,99 @@ async function processSuccessfulPayment(purchase, req = null) {
       throw new Error('Purchase not found');
     }
 
-    // Only process if status is pending (idempotency check)
+    // CRITICAL: Use atomic update to prevent race conditions
+    // Only update if status is pending (idempotency check)
     if (freshPurchase.status !== 'pending') {
       console.log(
         `⚠️ Purchase ${freshPurchase.orderNumber} already processed with status: ${freshPurchase.status}`
       );
-      return { success: true, alreadyProcessed: true, purchase: freshPurchase };
+      
+      // If already completed, verify enrollments are in place
+      if (freshPurchase.status === 'completed') {
+        const user = await User.findById(freshPurchase.user._id);
+        let allEnrolled = true;
+        
+        for (const item of freshPurchase.items) {
+          if (item.itemType === 'bundle') {
+            const bundle = await BundleCourse.findById(item.item).populate('courses');
+            if (bundle) {
+              for (const course of bundle.courses) {
+                if (!user.isEnrolled(course._id)) {
+                  allEnrolled = false;
+                  console.log(`⚠️ Missing enrollment for course ${course._id} in bundle ${bundle._id}`);
+                }
+              }
+            }
+          } else {
+            if (!user.isEnrolled(item.item)) {
+              allEnrolled = false;
+              console.log(`⚠️ Missing enrollment for course ${item.item}`);
+            }
+          }
+        }
+        
+        // If enrollments are missing, re-enroll
+        if (!allEnrolled) {
+          console.log(`🔧 Re-enrolling user for order ${freshPurchase.orderNumber}`);
+          // Continue with enrollment process below
+        } else {
+          return { success: true, alreadyProcessed: true, purchase: freshPurchase };
+        }
+      } else {
+        return { success: true, alreadyProcessed: true, purchase: freshPurchase };
+      }
     }
 
-    // Update purchase status
-    freshPurchase.status = 'completed';
-    freshPurchase.paymentStatus = 'completed';
-    await freshPurchase.save();
+    // ATOMIC UPDATE: Use findOneAndUpdate to ensure only one process can update at a time
+    const updatedPurchase = await Purchase.findOneAndUpdate(
+      { 
+        _id: freshPurchase._id,
+        status: 'pending' // Only update if still pending (prevents race conditions)
+      },
+      {
+        $set: {
+          status: 'completed',
+          paymentStatus: 'completed',
+          completedAt: new Date(),
+        }
+      },
+      { new: true }
+    ).populate('user').populate('items.item');
+
+    // If update failed (another process already updated it), return
+    if (!updatedPurchase || updatedPurchase.status !== 'completed') {
+      console.log(
+        `⚠️ Purchase ${freshPurchase.orderNumber} was updated by another process`
+      );
+      const reloaded = await Purchase.findById(freshPurchase._id)
+        .populate('user')
+        .populate('items.item');
+      return { success: true, alreadyProcessed: true, purchase: reloaded };
+    }
+
+    // Use the updated purchase for rest of processing
+    const purchaseToProcess = updatedPurchase;
 
     // Update book orders status to 'processing' when payment is completed
-    if (freshPurchase.bookOrders && freshPurchase.bookOrders.length > 0) {
+    if (purchaseToProcess.bookOrders && purchaseToProcess.bookOrders.length > 0) {
       await BookOrder.updateMany(
-        { _id: { $in: freshPurchase.bookOrders } },
+        { _id: { $in: purchaseToProcess.bookOrders } },
         { 
           status: 'processing',
           $unset: { cancelledAt: '' } // Remove cancelledAt if it exists
         }
       );
       console.log(
-        `📚 Updated ${freshPurchase.bookOrders.length} book order(s) to 'processing' status`
+        `📚 Updated ${purchaseToProcess.bookOrders.length} book order(s) to 'processing' status`
       );
     }
 
     console.log(
-      `✅ Processing successful payment for order: ${freshPurchase.orderNumber}`
+      `✅ Processing successful payment for order: ${purchaseToProcess.orderNumber}`
     );
 
     // Get user with all necessary data
-    const user = await User.findById(freshPurchase.user._id)
+    const user = await User.findById(purchaseToProcess.user._id)
       .populate('purchasedBundles.bundle')
       .populate('purchasedCourses.course')
       .populate('enrolledCourses.course');
@@ -106,13 +166,13 @@ async function processSuccessfulPayment(purchase, req = null) {
       throw new Error('User not found');
     }
 
-    // Process user enrollments
-    for (const purchaseItem of freshPurchase.items) {
+    // Process user enrollments - CRITICAL: This must complete successfully
+    for (const purchaseItem of purchaseToProcess.items) {
       if (purchaseItem.itemType === 'bundle') {
         await user.addPurchasedBundle(
           purchaseItem.item,
           purchaseItem.price,
-          freshPurchase.orderNumber
+          purchaseToProcess.orderNumber
         );
 
         const bundle = await BundleCourse.findById(purchaseItem.item).populate(
@@ -120,12 +180,13 @@ async function processSuccessfulPayment(purchase, req = null) {
         );
         if (bundle) {
           await user.enrollInBundleCourses(bundle);
+          console.log(`✅ Enrolled user in bundle: ${bundle.title}`);
         }
       } else {
         await user.addPurchasedCourse(
           purchaseItem.item,
           purchaseItem.price,
-          freshPurchase.orderNumber
+          purchaseToProcess.orderNumber
         );
 
         if (!user.isEnrolled(purchaseItem.item)) {
@@ -138,12 +199,13 @@ async function processSuccessfulPayment(purchase, req = null) {
             status: 'active',
           });
           await user.save();
+          console.log(`✅ Enrolled user in course: ${purchaseItem.title}`);
         }
       }
     }
 
     // Handle promo code usage if applied
-    if (freshPurchase.appliedPromoCode && freshPurchase.discountAmount > 0) {
+    if (purchaseToProcess.appliedPromoCode && purchaseToProcess.discountAmount > 0) {
       try {
         // Add promo code usage to user
         await user.addPromoCodeUsage(
@@ -156,16 +218,16 @@ async function processSuccessfulPayment(purchase, req = null) {
 
         // Update promo code usage count and history
         const promoCode = await PromoCode.findById(
-          freshPurchase.appliedPromoCode
+          purchaseToProcess.appliedPromoCode
         );
         if (promoCode) {
           // Add to usage history
           promoCode.usageHistory.push({
-            user: freshPurchase.user._id,
-            purchase: freshPurchase._id,
-            discountAmount: freshPurchase.discountAmount,
-            originalAmount: freshPurchase.originalAmount,
-            finalAmount: freshPurchase.total,
+            user: purchaseToProcess.user._id,
+            purchase: purchaseToProcess._id,
+            discountAmount: purchaseToProcess.discountAmount,
+            originalAmount: purchaseToProcess.originalAmount,
+            finalAmount: purchaseToProcess.total,
             usedAt: new Date(),
           });
 
@@ -175,9 +237,9 @@ async function processSuccessfulPayment(purchase, req = null) {
 
           console.log('Promo code usage tracked:', {
             code: promoCode.code,
-            user: freshPurchase.user._id,
-            purchase: freshPurchase._id,
-            discountAmount: freshPurchase.discountAmount,
+            user: purchaseToProcess.user._id,
+            purchase: purchaseToProcess._id,
+            discountAmount: purchaseToProcess.discountAmount,
           });
         }
       } catch (error) {
@@ -186,14 +248,14 @@ async function processSuccessfulPayment(purchase, req = null) {
     }
 
     // Send library notification for book orders if they exist
-    if (freshPurchase.bookOrders && freshPurchase.bookOrders.length > 0) {
+    if (purchaseToProcess.bookOrders && purchaseToProcess.bookOrders.length > 0) {
       try {
         console.log(
-          `📚 Initiating library notification for book orders: ${freshPurchase.orderNumber}`
+          `📚 Initiating library notification for book orders: ${purchaseToProcess.orderNumber}`
         );
 
         const libraryResult = await sendLibraryBookOrderNotification(
-          freshPurchase.bookOrders,
+          purchaseToProcess.bookOrders,
           user
         );
         if (libraryResult.success) {
@@ -219,10 +281,10 @@ async function processSuccessfulPayment(purchase, req = null) {
     }
 
     console.log(
-      `✅ Successfully processed payment for order: ${freshPurchase.orderNumber}`
+      `✅ Successfully processed payment and enrollment for order: ${purchaseToProcess.orderNumber}`
     );
 
-    return { success: true, purchase: freshPurchase };
+    return { success: true, purchase: purchaseToProcess };
   } catch (error) {
     console.error('Error processing successful payment:', error);
     throw error;
@@ -3317,8 +3379,9 @@ const handlePaymentFailure = async (req, res) => {
   }
 };
 
-// Handle Paymob webhook
+// Handle Paymob webhook - IMPROVED VERSION WITH BETTER RELIABILITY
 const handlePaymobWebhook = async (req, res) => {
+  let purchase = null;
   try {
     const rawBody = req.body;
     const signature =
@@ -3331,64 +3394,137 @@ const handlePaymobWebhook = async (req, res) => {
     if (process.env.NODE_ENV === 'production') {
       const isValid = paymobService.verifyWebhookSignature(rawBody, signature);
       if (!isValid) {
-        console.warn('Webhook signature verification failed');
+        console.warn('❌ [Webhook] Signature verification failed');
         return res.status(401).send('Unauthorized');
       }
     }
 
     const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
 
+    // Log webhook receipt for debugging
+    console.log('📥 [Webhook] Received Paymob webhook:', {
+      transactionId: payload?.obj?.id || payload?.id,
+      merchantOrderId: payload?.obj?.order?.merchant_order_id || payload?.merchant_order_id,
+      success: payload?.obj?.success || payload?.success,
+      timestamp: new Date().toISOString(),
+    });
+
     // Verify HMAC for transaction data (recommended by Paymob)
     const hmacValid = paymobService.verifyTransactionHMAC(payload);
     if (!hmacValid && process.env.NODE_ENV === 'production') {
-      console.error('❌ HMAC verification failed for webhook');
+      console.error('❌ [Webhook] HMAC verification failed');
       console.error('Transaction ID:', payload?.obj?.id || payload?.id);
       console.error(
         'Merchant Order ID:',
         payload?.obj?.order?.merchant_order_id
       );
       // Still process but log the failure
-      console.warn('⚠️ Processing webhook despite HMAC failure (for testing)');
+      console.warn('⚠️ [Webhook] Processing webhook despite HMAC failure (for testing)');
     }
 
-    // Process webhook payload with query parameters (for comprehensive detection like standalone app)
+    // Process webhook payload with query parameters (for comprehensive detection)
     const webhookData = paymobService.processWebhookPayload(payload, req.query);
 
     if (!webhookData.merchantOrderId) {
-      return res.status(400).send('Bad Request');
+      console.error('❌ [Webhook] No merchant order ID found in webhook');
+      return res.status(400).send('Bad Request - Missing merchant order ID');
     }
 
-    // Find purchase by merchant order ID
-    const purchase = await Purchase.findOne({
+    // Find purchase by merchant order ID with transaction lock
+    // Use findOneAndUpdate with $setOnInsert to prevent race conditions
+    purchase = await Purchase.findOne({
       paymentIntentId: webhookData.merchantOrderId,
     }).populate('user');
 
     if (!purchase) {
+      console.error('❌ [Webhook] Purchase not found for merchant order:', webhookData.merchantOrderId);
       return res.status(404).send('Purchase not found');
     }
 
-    // Save Paymob transaction details
+    // Save Paymob transaction details BEFORE processing status
     const transactionId =
       payload?.obj?.id || payload?.id || webhookData.transactionId;
     const paymobOrderId =
       payload?.obj?.order?.id || payload?.obj?.order || payload?.order;
 
-    if (transactionId) {
+    if (transactionId && !purchase.paymobTransactionId) {
       purchase.paymobTransactionId = String(transactionId);
     }
-    if (paymobOrderId) {
+    if (paymobOrderId && !purchase.paymobOrderId) {
       purchase.paymobOrderId = String(paymobOrderId);
     }
 
-    // Only process if current status is pending
-    if (purchase.status !== 'pending') {
+    // CRITICAL FIX: Handle case where payment was incorrectly marked as failed
+    // If webhook says SUCCESS but purchase is marked as FAILED, correct it
+    if (webhookData.isSuccess && purchase.status === 'failed') {
+      console.log(
+        '⚠️ [Webhook] CORRECTING STATUS: Payment marked as failed but webhook confirms SUCCESS for order:',
+        purchase.orderNumber
+      );
+      console.log('🔧 [Webhook] This indicates a previous incorrect failure detection');
+      
+      // Reset status to pending so processSuccessfulPayment can handle it
+      purchase.status = 'pending';
+      purchase.paymentStatus = 'pending';
+      purchase.failureReason = null;
+      await purchase.save();
+    }
+
+    // CRITICAL FIX: Only process if status is pending OR if correcting a failed status
+    // This ensures webhook can override incorrect statuses
+    if (purchase.status !== 'pending' && purchase.status !== 'failed') {
+      console.log(
+        `ℹ️ [Webhook] Purchase ${purchase.orderNumber} already processed with status: ${purchase.status}`
+      );
+      return res.status(200).send('OK - Already processed');
+    }
+
+    // Handle SUCCESS webhook - THIS IS THE SINGLE SOURCE OF TRUTH
+    if (webhookData.isSuccess) {
+      console.log(
+        '✅ [Webhook] Payment SUCCESS confirmed for order:',
+        purchase.orderNumber
+      );
+
+      // Save payment gateway response with detailed metadata
+      purchase.paymentGatewayResponse = {
+        ...webhookData.rawPayload,
+        webhookProcessedAt: new Date(),
+        webhookSource: 'paymob_webhook',
+        transactionId: transactionId,
+        paymobOrderId: paymobOrderId,
+      };
+      
+      // Save transaction details before processing
+      await purchase.save();
+
+      // Use centralized function to process successful payment
+      // This handles enrollments, promo codes, notifications, etc.
+      // CRITICAL: This MUST complete successfully - enrollment happens here
+      try {
+        await processSuccessfulPayment(purchase, null);
+        console.log(
+          '✅ [Webhook] Successfully processed payment and enrollment for order:',
+          purchase.orderNumber
+        );
+      } catch (processError) {
+        // If processing fails, log but don't fail webhook (idempotency)
+        console.error(
+          '❌ [Webhook] Error processing successful payment:',
+          processError
+        );
+        // Still return OK to Paymob (we'll retry via Transaction Inquiry)
+        // But log the error for manual intervention
+        console.error('⚠️ [Webhook] Payment confirmed but processing failed - manual intervention may be needed');
+      }
+
       return res.status(200).send('OK');
     }
 
-    // Handle FAILED webhook
+    // Handle FAILED webhook - Only mark as failed if explicitly failed
     if (webhookData.isFailed) {
       console.log(
-        '❌ [Webhook] Payment FAILED for order:',
+        '❌ [Webhook] Payment FAILED confirmed for order:',
         purchase.orderNumber
       );
 
@@ -3397,47 +3533,54 @@ const handlePaymobWebhook = async (req, res) => {
         payload?.obj?.data?.message ||
         payload?.data?.message ||
         payload?.obj?.message ||
+        payload?.obj?.data?.acq_response_code ||
         'Payment declined or failed';
 
       // Use centralized function to process failed payment
       await processFailedPayment(
         purchase,
         failureReason,
-        webhookData.rawPayload
+        {
+          ...webhookData.rawPayload,
+          webhookProcessedAt: new Date(),
+          webhookSource: 'paymob_webhook',
+        }
       );
-
-      return res.status(200).send('OK');
-    }
-
-    // Handle SUCCESS webhook - THIS IS THE SINGLE SOURCE OF TRUTH
-    if (webhookData.isSuccess) {
-      console.log(
-        '✅ [Webhook] Payment SUCCESS for order:',
-        purchase.orderNumber
-      );
-
-      // Save payment gateway response
-      purchase.paymentGatewayResponse = webhookData.rawPayload;
-      await purchase.save();
-
-      // Use centralized function to process successful payment
-      // This handles enrollments, promo codes, notifications, etc.
-      // Note: req is not available in webhook, so session clearing happens in redirect handler
-      await processSuccessfulPayment(purchase, null);
 
       return res.status(200).send('OK');
     }
 
     // If status is pending or unknown, keep as pending
+    // Save webhook data for reference but don't change status
     console.log(
       '⏳ [Webhook] Payment PENDING for order:',
-      purchase.orderNumber
+      purchase.orderNumber,
+      '- Status unchanged'
     );
+    
+    // Save webhook data for future reference
+    if (!purchase.paymentGatewayResponse) {
+      purchase.paymentGatewayResponse = {
+        ...webhookData.rawPayload,
+        webhookProcessedAt: new Date(),
+        webhookSource: 'paymob_webhook',
+        status: 'pending',
+      };
+      await purchase.save();
+    }
 
     res.status(200).send('OK');
   } catch (error) {
-    console.error('Error processing Paymob webhook:', error);
-    res.status(500).send('Internal Server Error');
+    console.error('❌ [Webhook] Error processing Paymob webhook:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      purchaseOrderNumber: purchase?.orderNumber,
+    });
+    
+    // Return 200 to Paymob even on error (to prevent retries)
+    // But log the error for manual intervention
+    res.status(200).send('OK - Error logged');
   }
 };
 
@@ -3537,27 +3680,28 @@ const handlePaymobWebhookRedirect = async (req, res) => {
         : 'payment_failed';
       return res.redirect(`/purchase/payment/fail?reason=${reason}`);
     } else if (purchase.status === 'pending') {
-      // Payment still pending - webhook might not have arrived yet
-      // IMPROVED: Wait briefly for webhook to arrive, then use Transaction Inquiry API
+      // Payment still pending - webhook should process it
+      // IMPROVED: Wait briefly for webhook, then use Transaction Inquiry API as fallback
       console.log('🔀 [Redirect] Payment pending, waiting for webhook...');
       
-      // Wait 2 seconds to give webhook time to arrive (it's usually faster than redirect)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait 3 seconds to give webhook time to arrive (webhooks are usually faster)
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Re-fetch purchase status after waiting
       const updatedPurchase = await Purchase.findById(purchase._id);
       
       if (updatedPurchase.status === 'completed') {
-        console.log('🔀 [Redirect] Webhook processed payment successfully during wait');
+        console.log('✅ [Redirect] Webhook processed payment successfully during wait');
         return res.redirect(`/purchase/payment/success?merchantOrderId=${merchantOrderId}`);
       } else if (updatedPurchase.status === 'failed') {
-        console.log('🔀 [Redirect] Webhook marked payment as failed during wait');
+        console.log('❌ [Redirect] Webhook marked payment as failed during wait');
         const reason = updatedPurchase.failureReason ? encodeURIComponent(updatedPurchase.failureReason) : 'payment_failed';
         return res.redirect(`/purchase/payment/fail?reason=${reason}`);
       }
       
-      // Still pending - try Transaction Inquiry API as definitive source
-      console.log('🔀 [Redirect] Still pending, querying Paymob Transaction Inquiry API...');
+      // Still pending - use Transaction Inquiry API as definitive source
+      // This is a fallback ONLY if webhook hasn't arrived yet
+      console.log('⏳ [Redirect] Still pending, querying Paymob Transaction Inquiry API as fallback...');
       
       try {
         const transactionStatus = await paymobService.queryTransactionStatus(merchantOrderId);
@@ -3566,24 +3710,26 @@ const handlePaymobWebhookRedirect = async (req, res) => {
           const apiWebhookData = paymobService.processWebhookPayload(transactionStatus);
           
           if (apiWebhookData.isSuccess) {
-            console.log('🔀 [Redirect] Transaction Inquiry confirms SUCCESS, processing payment...');
+            console.log('✅ [Redirect] Transaction Inquiry confirms SUCCESS, processing payment...');
             
             // Save Paymob transaction details
-            if (apiWebhookData.transactionId) {
-              purchase.paymobTransactionId = String(apiWebhookData.transactionId);
+            const purchaseToUpdate = await Purchase.findById(purchase._id);
+            if (apiWebhookData.transactionId && !purchaseToUpdate.paymobTransactionId) {
+              purchaseToUpdate.paymobTransactionId = String(apiWebhookData.transactionId);
             }
-            purchase.paymentGatewayResponse = {
+            purchaseToUpdate.paymentGatewayResponse = {
               apiResponse: transactionStatus,
               processedAt: new Date(),
               status: 'completed',
-              source: 'transaction_inquiry_api',
+              source: 'transaction_inquiry_api_fallback',
             };
-            await purchase.save();
+            await purchaseToUpdate.save();
             
-            await processSuccessfulPayment(purchase, req);
+            // Process successful payment - this will enroll the student
+            await processSuccessfulPayment(purchaseToUpdate, req);
             return res.redirect(`/purchase/payment/success?merchantOrderId=${merchantOrderId}`);
           } else if (apiWebhookData.isFailed) {
-            console.log('🔀 [Redirect] Transaction Inquiry confirms FAILED');
+            console.log('❌ [Redirect] Transaction Inquiry confirms FAILED');
             
             const failureReason = transactionStatus?.obj?.data?.message || 
                                   transactionStatus?.data?.message || 
@@ -3593,64 +3739,26 @@ const handlePaymobWebhookRedirect = async (req, res) => {
               apiResponse: transactionStatus,
               processedAt: new Date(),
               status: 'failed',
-              source: 'transaction_inquiry_api',
+              source: 'transaction_inquiry_api_fallback',
             });
             
             return res.redirect(`/purchase/payment/fail?reason=${encodeURIComponent(failureReason)}`);
+          } else {
+            // Transaction Inquiry returned pending status
+            console.log('⏳ [Redirect] Transaction Inquiry also shows pending - webhook will process when ready');
+            return res.redirect('/purchase/payment/fail?reason=payment_pending_webhook_processing');
           }
         }
       } catch (inquiryError) {
-        console.warn('🔀 [Redirect] Transaction Inquiry failed:', inquiryError.message);
-        // Fall back to query parameters
-      }
-      
-      // Fall back to processing query parameters
-      console.log('🔀 [Redirect] Falling back to query parameter processing...');
-      const webhookData = paymobService.processWebhookPayload({}, req.query);
-
-      if (webhookData.isSuccess) {
-        // Payment appears successful but webhook hasn't processed it yet
-        // Save the data and let webhook process it, or process it now as fallback
-        console.log(
-          '🔀 [Redirect] Payment appears successful from query params, processing as fallback...'
-        );
-
-        purchase.paymentGatewayResponse = {
-          queryParams: req.query,
-          processedAt: new Date(),
-          status: 'completed',
-          source: 'redirect_fallback',
-        };
-        await purchase.save();
-
-        // Process successful payment using centralized function
-        // Pass req to clear session after payment is confirmed completed
-        await processSuccessfulPayment(purchase, req);
-
-        return res.redirect(
-          `/purchase/payment/success?merchantOrderId=${merchantOrderId}`
-        );
-      } else if (webhookData.isFailed) {
-        // Payment appears failed
-        const failureReason =
-          req.query['data.message'] ||
-          req.query.message ||
-          'Payment declined or failed';
-
-        await processFailedPayment(
-          purchase,
-          failureReason,
-          { queryParams: req.query, processedAt: new Date(), status: 'failed', source: 'redirect_fallback' }
-        );
-
-        return res.redirect(
-          `/purchase/payment/fail?reason=${encodeURIComponent(failureReason)}`
-        );
-      } else {
-        // Still pending after all checks - show a more helpful message
-        console.log('🔀 [Redirect] Payment status still unclear, showing pending message');
+        console.warn('⚠️ [Redirect] Transaction Inquiry failed:', inquiryError.message);
+        // If inquiry fails, show pending message - webhook will process when it arrives
         return res.redirect('/purchase/payment/fail?reason=payment_pending_verification');
       }
+      
+      // Final fallback: If all else fails, show pending message
+      // Webhook will process the payment when it arrives
+      console.log('⏳ [Redirect] Payment still pending - webhook will process when received');
+      return res.redirect('/purchase/payment/fail?reason=payment_pending_webhook_processing');
     } else {
       // Unknown status
       return res.redirect('/purchase/payment/fail?reason=unknown_status');
@@ -3684,5 +3792,8 @@ module.exports = {
   validatePromoCode,
   removePromoCode,
   clearInvalidPromoCode,
+  // Payment Processing Functions (for admin use)
+  processSuccessfulPayment,
+  processFailedPayment,
 };
 

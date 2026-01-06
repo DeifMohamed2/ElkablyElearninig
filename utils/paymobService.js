@@ -923,35 +923,54 @@ class PaymobService {
       queryParams?.txn_response_code,
     ];
 
-    // Comprehensive success detection (must be explicitly successful)
+    // IMPROVED: Comprehensive success detection (must be explicitly successful)
+    // Priority: Explicit success flags > Transaction status > Query params > Amount verification
     const explicitSuccess =
+      // Payload-based success indicators (highest priority)
       payload?.obj?.success === true ||
       payload?.success === true ||
       payload?.obj?.is_success === true ||
       payload?.is_success === true ||
+      // Transaction status indicators
       String(payload?.obj?.transaction_status).toUpperCase() === 'CAPTURED' ||
       String(payload?.transaction_status).toUpperCase() === 'CAPTURED' ||
+      String(payload?.obj?.transaction_status).toUpperCase() === 'SUCCESS' ||
+      String(payload?.transaction_status).toUpperCase() === 'SUCCESS' ||
+      // Payment status indicators
+      String(payload?.obj?.order?.payment_status).toUpperCase() === 'PAID' ||
+      String(payload?.order?.payment_status).toUpperCase() === 'PAID' ||
       // Query-based success checks (for redirect callbacks)
-      // FIXED: Changed pending check from === 'false' to !== 'true' to handle missing pending param
+      // CRITICAL FIX: If success=true and no failure indicators, treat as success
       (queryParams?.success === 'true' &&
         queryParams?.pending !== 'true' &&
-        queryParams?.error_occured !== 'true') ||
+        queryParams?.error_occured !== 'true' &&
+        queryParams?.is_voided !== 'true' &&
+        queryParams?.is_refunded !== 'true') ||
       // Additional success indicators for unified checkout
       (queryParams?.success === 'true' &&
         queryParams?.txn_response_code === '200') ||
       (queryParams?.success === 'true' &&
         (queryParams?.['data.message'] === 'Approved' ||
           queryParams?.['data.message']?.includes('completed successfully') ||
+          queryParams?.['data.message']?.includes('success') ||
           queryParams?.acq_response_code === '00' ||
           queryParams?.txn_response_code === 'APPROVED' ||
           queryParams?.is_capture === 'true' ||
           queryParams?.is_auth === 'true')) ||
-      // ADDED: If success=true and no explicit failure indicators, treat as success
+      // CRITICAL: If success=true and no explicit failure indicators, treat as success
       // This fixes the issue where bank confirms payment but system shows failed
       (queryParams?.success === 'true' &&
         queryParams?.error_occured !== 'true' &&
         queryParams?.is_voided !== 'true' &&
-        queryParams?.is_refunded !== 'true');
+        queryParams?.is_refunded !== 'true' &&
+        !queryParams?.pending) ||
+      // Amount-based success check: If paid_amount_cents matches amount_cents, payment succeeded
+      (payload?.obj?.order?.paid_amount_cents !== undefined &&
+        payload?.obj?.amount_cents !== undefined &&
+        payload?.obj?.order?.paid_amount_cents > 0 &&
+        payload?.obj?.order?.paid_amount_cents >= payload?.obj?.amount_cents &&
+        payload?.obj?.success !== false &&
+        payload?.obj?.error_occured !== true);
 
     // Comprehensive failure indicators (expanded to match standalone app)
     const failedIndicators = [
@@ -1068,18 +1087,31 @@ class PaymobService {
         String(payload?.order?.payment_status).toUpperCase() === 'FAILED');
 
     // Determine final status
+    // CRITICAL: Only mark as failed if we have strong evidence of failure
+    // Don't mark as failed if we have success indicators (even if some failure indicators exist)
     const isFailed =
-      explicitFailure ||
-      statusFailure ||
-      messageFailure ||
-      responseCodeFailure ||
-      zeroPaidAmount ||
-      responseCodeIndicatesFailure ||
-      paymentStatusFailure;
+      // Only fail if we have explicit failure AND no success indicators
+      (explicitFailure && !explicitSuccess) ||
+      // Or if we have multiple failure indicators and no success
+      ((statusFailure || messageFailure || responseCodeFailure || paymentStatusFailure) &&
+        !explicitSuccess &&
+        !explicitFailure); // Don't fail if explicitSuccess is true
 
-    const isSuccess = explicitSuccess && !isFailed; // Success only if explicitly successful AND not failed
+    // CRITICAL FIX: Success if explicitly successful OR if we have strong success indicators
+    // Even if some ambiguous failure indicators exist, prioritize success if explicitly indicated
+    const isSuccess = explicitSuccess && !explicitFailure; // Success if explicitly successful AND not explicitly failed
+    
+    // Additional check: If we have amount verification showing payment, treat as success
+    const amountVerifiedSuccess = 
+      payload?.obj?.order?.paid_amount_cents !== undefined &&
+      payload?.obj?.amount_cents !== undefined &&
+      payload?.obj?.order?.paid_amount_cents > 0 &&
+      payload?.obj?.order?.paid_amount_cents >= payload?.obj?.amount_cents &&
+      !explicitFailure;
+    
+    const finalIsSuccess = isSuccess || (amountVerifiedSuccess && !isFailed);
 
-    console.log('Payment Status Analysis (Enhanced):', {
+    console.log('💳 Payment Status Analysis (Enhanced):', {
       explicitSuccess,
       explicitFailure,
       statusFailure,
@@ -1090,8 +1122,9 @@ class PaymobService {
       responseCodeIndicatesFailure,
       paymentStatusFailure,
       hasPaymentStatusField,
-      finalIsSuccess: isSuccess,
-      finalIsFailed: isFailed,
+      amountVerifiedSuccess,
+      finalIsSuccess: finalIsSuccess,
+      finalIsFailed: isFailed && !finalIsSuccess,
       statusCandidates: statusCandidates.filter(Boolean),
       successField:
         payload?.obj?.success || payload?.success || queryParams?.success,
@@ -1103,8 +1136,12 @@ class PaymobService {
       paidAmount:
         payload?.obj?.order?.paid_amount_cents ||
         payload?.order?.paid_amount_cents,
+      amountCents:
+        payload?.obj?.amount_cents || payload?.amount_cents,
       paymentStatus:
         payload?.obj?.order?.payment_status || payload?.order?.payment_status,
+      transactionStatus:
+        payload?.obj?.transaction_status || payload?.transaction_status,
     });
 
     return {
@@ -1114,9 +1151,9 @@ class PaymobService {
         payload?.merchant_order_id ||
         queryParams?.merchant_order_id,
       transactionId: payload?.obj?.id || payload?.id || queryParams?.id,
-      isSuccess,
-      isFailed,
-      isPending: !isSuccess && !isFailed,
+      isSuccess: finalIsSuccess, // Use final success determination
+      isFailed: isFailed && !finalIsSuccess, // Only fail if not successful
+      isPending: !finalIsSuccess && !isFailed,
       amount: payload?.obj?.amount_cents || payload?.amount_cents,
       currency: payload?.obj?.currency || payload?.currency,
       rawPayload: payload,

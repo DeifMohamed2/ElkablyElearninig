@@ -275,10 +275,19 @@
                     </div>
                   </td>
                   <td style="padding: 20px 24px; border-bottom: 1px solid var(--admin-border-light); vertical-align: middle;">
-                    <div class="d-flex justify-content-end gap-1">
+                    <div class="d-flex justify-content-end gap-2">
                       <a class="btn btn-sm btn-outline-primary order-action-button" href="/admin/orders/<%= o.orderNumber %>" title="View Order Details">
                         <i class="fas fa-eye"></i>
                       </a>
+                      <% if (o.status === 'failed' && o.paymentStatus === 'failed') { %>
+                      <button class="btn btn-sm order-action-button-complete" 
+                              onclick="openCompletePaymentModal('<%= o.orderNumber %>', '<%= o._id %>')" 
+                              title="Complete Failed Payment & Enroll Student"
+                      >
+                        <i class="fas fa-magic"></i>
+                        <span>Fix Payment</span>
+                      </button>
+                      <% } %>
                       <% if (o.status !== 'refunded' && o.paymentStatus === 'completed') { %>
                       <a class="btn btn-sm btn-outline-danger order-action-button" href="/admin/orders/<%= o.orderNumber %>" title="Process Refund" onclick="return confirm('Navigate to order details to process refund?')">
                         <i class="fas fa-undo"></i>
@@ -321,10 +330,183 @@
   </main>
 </div>
 
+<!-- Complete Failed Payment Modal -->
+<div class="modal fade" id="completePaymentModal" tabindex="-1" aria-labelledby="completePaymentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+      <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px 16px 0 0; border: none; padding: 24px;">
+        <h5 class="modal-title" id="completePaymentModalLabel" style="color: white; font-weight: 700; font-size: 20px; display: flex; align-items: center; gap: 12px;">
+          <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+          Complete Failed Payment
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="padding: 32px;">
+        <div id="completePaymentModalContent">
+          <!-- Confirmation Content -->
+          <div id="completePaymentConfirmContent">
+            <div class="mb-4" style="text-align: center;">
+              <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: white;"></i>
+              </div>
+              <h4 style="font-weight: 700; color: var(--admin-text-light); margin-bottom: 12px;">Confirm Payment Completion</h4>
+              <p style="color: #64748b; font-size: 15px; margin-bottom: 0;">Order: <strong id="modalOrderNumber" style="color: var(--admin-primary);">#</strong></p>
+            </div>
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+              <p style="font-weight: 600; color: var(--admin-text-light); margin-bottom: 16px; font-size: 15px;">This action will:</p>
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="padding: 8px 0; color: #64748b; font-size: 14px; display: flex; align-items: start; gap: 10px;">
+                  <i class="fas fa-check-circle" style="color: #10b981; margin-top: 4px;"></i>
+                  <span>Mark payment as <strong>completed</strong></span>
+                </li>
+                <li style="padding: 8px 0; color: #64748b; font-size: 14px; display: flex; align-items: start; gap: 10px;">
+                  <i class="fas fa-check-circle" style="color: #10b981; margin-top: 4px;"></i>
+                  <span>Enroll student in courses/bundles</span>
+                </li>
+                <li style="padding: 8px 0; color: #64748b; font-size: 14px; display: flex; align-items: start; gap: 10px;">
+                  <i class="fas fa-check-circle" style="color: #10b981; margin-top: 4px;"></i>
+                  <span>Process book orders (if any)</span>
+                </li>
+                <li style="padding: 8px 0; color: #64748b; font-size: 14px; display: flex; align-items: start; gap: 10px;">
+                  <i class="fas fa-exclamation-triangle" style="color: #f59e0b; margin-top: 4px;"></i>
+                  <span><strong>This action cannot be undone</strong></span>
+                </li>
+              </ul>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="padding: 12px 24px; border-radius: 12px; font-weight: 600;">
+                <i class="fas fa-times me-2"></i>Cancel
+              </button>
+              <button type="button" class="btn btn-success" id="confirmCompletePaymentBtn" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; background: linear-gradient(135deg, #10b981, #059669); border: none;">
+                <i class="fas fa-check-circle me-2"></i>Complete Payment
+              </button>
+            </div>
+          </div>
+          <!-- Processing Content -->
+          <div id="completePaymentProcessingContent" style="display: none; text-align: center;">
+            <div class="mb-4">
+              <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 40px; color: white;"></i>
+              </div>
+              <h4 style="font-weight: 700; color: var(--admin-text-light); margin-bottom: 12px;">Processing Payment...</h4>
+              <p style="color: #64748b; font-size: 15px;">Please wait while we complete the payment and enroll the student.</p>
+            </div>
+          </div>
+          <!-- Success Content -->
+          <div id="completePaymentSuccessContent" style="display: none; text-align: center;">
+            <div class="mb-4">
+              <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-check-circle" style="font-size: 40px; color: white;"></i>
+              </div>
+              <h4 style="font-weight: 700; color: #10b981; margin-bottom: 12px;">Payment Completed Successfully!</h4>
+              <p style="color: #64748b; font-size: 15px;">Order has been marked as completed and the student has been enrolled.</p>
+            </div>
+            <button type="button" class="btn btn-success" onclick="window.location.reload()" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; background: linear-gradient(135deg, #10b981, #059669); border: none;">
+              <i class="fas fa-check me-2"></i>OK
+            </button>
+          </div>
+          <!-- Error Content -->
+          <div id="completePaymentErrorContent" style="display: none; text-align: center;">
+            <div class="mb-4">
+              <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-times-circle" style="font-size: 40px; color: white;"></i>
+              </div>
+              <h4 style="font-weight: 700; color: #ef4444; margin-bottom: 12px;">Error Completing Payment</h4>
+              <p id="completePaymentErrorMessage" style="color: #64748b; font-size: 15px;"></p>
+            </div>
+            <button type="button" class="btn btn-danger" data-bs-dismiss="modal" style="padding: 12px 24px; border-radius: 12px; font-weight: 600;">
+              <i class="fas fa-times me-2"></i>Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- Orders Page JS -->
 <script>
+  let currentOrderNumber = '';
+  let currentOrderId = '';
+  let currentButton = null;
+
+  // Complete Failed Payment Function
+  function openCompletePaymentModal(orderNumber, orderId) {
+    currentOrderNumber = orderNumber;
+    currentOrderId = orderId;
+    currentButton = event.target.closest('button');
+    
+    // Set order number in modal
+    document.getElementById('modalOrderNumber').textContent = `#${orderNumber}`;
+    
+    // Reset modal content to confirmation
+    document.getElementById('completePaymentConfirmContent').style.display = 'block';
+    document.getElementById('completePaymentProcessingContent').style.display = 'none';
+    document.getElementById('completePaymentSuccessContent').style.display = 'none';
+    document.getElementById('completePaymentErrorContent').style.display = 'none';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('completePaymentModal'));
+    modal.show();
+  }
+
+  // Handle confirm button click
+  document.getElementById('confirmCompletePaymentBtn').addEventListener('click', async function() {
+    // Hide confirmation, show processing
+    document.getElementById('completePaymentConfirmContent').style.display = 'none';
+    document.getElementById('completePaymentProcessingContent').style.display = 'block';
+    
+    // Disable close button during processing
+    const modalElement = document.getElementById('completePaymentModal');
+    const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+    closeButtons.forEach(btn => btn.style.display = 'none');
+
+    const originalHTML = currentButton.innerHTML;
+    currentButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    currentButton.disabled = true;
+
+    try {
+      const response = await fetch(`/admin/orders/${currentOrderNumber}/complete-failed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId: currentOrderId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Show success content
+        document.getElementById('completePaymentProcessingContent').style.display = 'none';
+        document.getElementById('completePaymentSuccessContent').style.display = 'block';
+        
+        // Auto-reload after 2 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        throw new Error(data.message || 'Failed to complete payment');
+      }
+    } catch (error) {
+      console.error('Error completing failed payment:', error);
+      
+      // Show error content
+      document.getElementById('completePaymentProcessingContent').style.display = 'none';
+      document.getElementById('completePaymentErrorContent').style.display = 'block';
+      document.getElementById('completePaymentErrorMessage').textContent = error.message || 'Failed to complete payment. Please try again.';
+      
+      // Re-enable close button
+      closeButtons.forEach(btn => btn.style.display = 'block');
+      
+      // Reset button
+      currentButton.innerHTML = originalHTML;
+      currentButton.disabled = false;
+    }
+  });
+
   // Excel Export Function
   function exportOrdersToExcel() {
     // Show loading state

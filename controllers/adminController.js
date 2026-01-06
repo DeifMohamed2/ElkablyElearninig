@@ -5248,7 +5248,98 @@ const refundOrder = async (req, res) => {
         .json({ success: false, message: 'Failed to process refund' });
     }
     req.flash('error_msg', 'Failed to process refund');
-    return res.redirect('/admin/orders');
+    return res.redirect(`/admin/orders/${orderNumber}`);
+  }
+};
+
+// Complete failed payment manually (Admin action)
+const completeFailedPayment = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const { orderId } = req.body;
+
+    // Find the purchase
+    const purchase = await Purchase.findOne({
+      $or: [
+        { orderNumber: orderNumber },
+        { _id: orderId }
+      ]
+    })
+      .populate('user')
+      .populate('items.item');
+
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    // Verify that the order is actually failed
+    if (purchase.status !== 'failed' && purchase.paymentStatus !== 'failed') {
+      return res.status(400).json({
+        success: false,
+        message: `Order is not in failed status. Current status: ${purchase.status}, Payment status: ${purchase.paymentStatus}`,
+      });
+    }
+
+    // Import the processSuccessfulPayment function from purchaseController
+    // We need to require it dynamically to avoid circular dependencies
+    const purchaseController = require('./purchaseController');
+    
+    // Use the centralized processSuccessfulPayment function
+    // This ensures all enrollments, notifications, etc. are handled correctly
+    try {
+      // Reset status to pending so processSuccessfulPayment can process it
+      purchase.status = 'pending';
+      purchase.paymentStatus = 'pending';
+      purchase.failureReason = null;
+      await purchase.save();
+
+      // Process the successful payment (this will enroll the student)
+      await purchaseController.processSuccessfulPayment(purchase, null);
+
+      // Log admin action using the createLog helper
+      await createLog(req, {
+        action: 'COMPLETE_FAILED_PAYMENT',
+        actionCategory: 'ORDER_MANAGEMENT',
+        description: `Manually completed failed payment for order #${orderNumber}`,
+        targetModel: 'Purchase',
+        targetId: purchase._id.toString(),
+        targetName: `Order #${orderNumber}`,
+        metadata: {
+          orderNumber: purchase.orderNumber,
+          previousStatus: 'failed',
+          newStatus: 'completed',
+          total: purchase.total,
+          userId: purchase.user._id.toString(),
+        },
+        status: 'SUCCESS',
+      });
+
+      console.log(`✅ Admin ${req.session.user.id} manually completed failed payment for order #${orderNumber}`);
+
+      return res.json({
+        success: true,
+        message: 'Payment completed successfully. Student has been enrolled.',
+        orderNumber: purchase.orderNumber,
+      });
+    } catch (processError) {
+      console.error('Error processing successful payment:', processError);
+      
+      // Revert status if processing failed
+      purchase.status = 'failed';
+      purchase.paymentStatus = 'failed';
+      await purchase.save();
+
+      throw processError;
+    }
+  } catch (error) {
+    console.error('Error completing failed payment:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to complete payment',
+    });
   }
 };
 
@@ -8393,7 +8484,7 @@ const exportStudentData = async (req, res) => {
         path: 'purchasedBundles.bundle',
         select: 'title bundleCode',
       })
-      .select('-password +studentEmail')
+      .select('-password')
       .lean();
 
     // Add analytics to each student
@@ -16077,6 +16168,7 @@ module.exports = {
   getOrderDetails,
   generateInvoice,
   refundOrder,
+  completeFailedPayment,
   getBookOrders,
   updateBookOrderStatus,
   bulkUpdateBookOrdersStatus,

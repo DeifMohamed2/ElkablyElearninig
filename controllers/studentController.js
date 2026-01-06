@@ -451,6 +451,7 @@ const courseContent = async (req, res) => {
     const course = await Course.findById(courseId)
       .populate({
         path: 'topics',
+        options: { sort: { order: 1 } },
         populate: [
           {
             path: 'content',
@@ -485,7 +486,10 @@ const courseContent = async (req, res) => {
     const completedContentIds = student.getCompletedContentIds(courseId);
 
     // Filter out unpublished (draft) topics - only show published topics to students
-    const publishedTopics = course.topics.filter(topic => topic.isPublished === true);
+    // Sort by order field to match admin view ordering
+    const publishedTopics = course.topics
+      .filter(topic => topic.isPublished === true)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     // Process topics with enhanced content status
     const topicsWithProgress = await Promise.all(
@@ -600,12 +604,16 @@ const courseContent = async (req, res) => {
       }
     }
 
+    // Get locked content ID from query parameter (if redirected from locked content)
+    const lockedContentId = req.query.lockedContent || null;
+
     res.render('student/course-content', {
       title: `${course.title} - Course Content | ELKABLY`,
       student,
       course,
       enrollment,
       topicsWithProgress,
+      lockedContentId, // Pass locked content ID to highlight it
       user: req.session.user, // Pass user session for admin checks
       getContentIcon, // Pass the helper function to the template
       bookPurchaseInfo, // Pass book purchase info to view
@@ -678,7 +686,7 @@ const contentDetails = async (req, res) => {
     );
     if (!unlockStatus.unlocked) {
       req.flash('error_msg', `Content is locked: ${unlockStatus.reason}`);
-      return res.redirect(`/student/course/${course._id}/content`);
+      return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
     }
 
     // Get content progress with detailed data
@@ -2539,7 +2547,7 @@ const takeContentQuiz = async (req, res) => {
     );
     if (!unlockStatus.unlocked) {
       req.flash('error_msg', `Content is locked: ${unlockStatus.reason}`);
-      return res.redirect(`/student/course/${course._id}/content`);
+      return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
     }
 
     // Check attempt limits

@@ -83,6 +83,7 @@ const AdminLogSchema = new mongoose.Schema(
         
         // Order Actions
         'REFUND_ORDER',
+        'COMPLETE_FAILED_PAYMENT',
         'UPDATE_BOOK_ORDER_STATUS',
         'BULK_UPDATE_BOOK_ORDERS',
         

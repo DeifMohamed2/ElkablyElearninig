@@ -127,6 +127,7 @@ const {
   getOrderDetails,
   generateInvoice,
   refundOrder,
+  completeFailedPayment,
   getBookOrders,
   updateBookOrderStatus,
   bulkUpdateBookOrdersStatus,
@@ -457,6 +458,7 @@ router.get('/orders/export', isAdmin, exportOrders);
 router.get('/orders/:orderNumber', isAdmin, getOrderDetails);
 router.get('/orders/:orderNumber/invoice', isAdmin, generateInvoice);
 router.post('/orders/:orderNumber/refund', isAdmin, refundOrder);
+router.post('/orders/:orderNumber/complete-failed', isAdmin, completeFailedPayment);
 
 // Book Orders Management
 router.get('/book-orders', isAdmin, getBookOrders);
