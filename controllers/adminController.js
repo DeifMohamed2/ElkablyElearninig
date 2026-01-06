@@ -7808,10 +7808,63 @@ const toggleStudentStatus = async (req, res) => {
   }
 };
 
-// Bulk toggle student status (activate/deactivate multiple students)
+// Toggle parent phone checked status for a single student
+const toggleParentPhoneStatus = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { isParentPhoneChecked } = req.body;
+
+    if (typeof isParentPhoneChecked !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid isParentPhoneChecked value (true or false)',
+      });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Student not found' });
+    }
+
+    student.isParentPhoneChecked = isParentPhoneChecked;
+    await student.save();
+
+    await createLog(req, {
+      action: 'TOGGLE_PARENT_PHONE_STATUS',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Marked parent phone as ${
+        isParentPhoneChecked ? 'checked' : 'unchecked'
+      } for student "${student.firstName} ${student.lastName}" (${student.username})`,
+      targetModel: 'User',
+      targetId: student._id.toString(),
+      targetName: `${student.firstName} ${student.lastName}`,
+      metadata: {
+        isParentPhoneChecked,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: `Parent phone has been marked as ${
+        isParentPhoneChecked ? 'checked' : 'unchecked'
+      }`,
+      isParentPhoneChecked: student.isParentPhoneChecked,
+    });
+  } catch (error) {
+    console.error('Error toggling parent phone status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while updating parent phone status',
+    });
+  }
+};
+
+// Bulk toggle student status (activate/deactivate multiple students) or mark parent phone checked
 const bulkToggleStudentStatus = async (req, res) => {
   try {
-    const { studentIds, isActive } = req.body;
+    const { studentIds, isActive, isParentPhoneChecked } = req.body;
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
       return res.status(400).json({
@@ -7820,68 +7873,93 @@ const bulkToggleStudentStatus = async (req, res) => {
       });
     }
 
-    if (typeof isActive !== 'boolean') {
+    // At least one of isActive or isParentPhoneChecked must be provided
+    const hasIsActive = typeof isActive === 'boolean';
+    const hasParentFlag = typeof isParentPhoneChecked === 'boolean';
+
+    if (!hasIsActive && !hasParentFlag) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid isActive status (true or false)',
+        message:
+          'Please provide a valid isActive or isParentPhoneChecked value (true or false)',
       });
+    }
+
+    // Build $set object based on provided fields
+    const setFields = {};
+    if (hasIsActive) {
+      setFields.isActive = isActive;
+    }
+    if (hasParentFlag) {
+      setFields.isParentPhoneChecked = isParentPhoneChecked;
     }
 
     // Update all students
     const updateResult = await User.updateMany(
       { _id: { $in: studentIds } },
-      { $set: { isActive } }
+      { $set: setFields }
     );
 
     // Get updated students for logging and notifications
     const updatedStudents = await User.find({ _id: { $in: studentIds } });
 
-    // Send SMS notifications (non-blocking)
-    updatedStudents.forEach((student) => {
-      if (student.studentNumber && student.studentCountryCode) {
-        const recipient =
-          `${student.studentCountryCode}${student.studentNumber}`.replace(
-            /[^\d+]/g,
-            ''
+    // Send SMS notifications for activation status changes only (non-blocking)
+    if (hasIsActive) {
+      updatedStudents.forEach((student) => {
+        if (student.studentNumber && student.studentCountryCode) {
+          const recipient =
+            `${student.studentCountryCode}${student.studentNumber}`.replace(
+              /[^\d+]/g,
+              ''
+            );
+          const message = isActive
+            ? `Your Elkably account has been activated. You can now log in and start learning.`
+            : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
+          sendSms({ recipient, message }).catch((err) =>
+            console.error(
+              'SMS send error (bulk toggle status):',
+              err?.message || err
+            )
           );
-        const message = isActive
-          ? `Your Elkably account has been activated. You can now log in and start learning.`
-          : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
-        sendSms({ recipient, message }).catch((err) =>
-          console.error(
-            'SMS send error (bulk toggle status):',
-            err?.message || err
-          )
-        );
-      }
-    });
+        }
+      });
+    }
 
     // Log the action
     await createLog(req, {
       action: 'BULK_TOGGLE_STUDENT_STATUS',
       actionCategory: 'STUDENT_MANAGEMENT',
-      description: `Bulk ${isActive ? 'activated' : 'deactivated'} ${
-        updateResult.modifiedCount
-      } student(s)`,
+      description: `Bulk updated ${
+        hasIsActive ? `status (${isActive ? 'activated' : 'deactivated'})` : ''
+      }${
+        hasIsActive && hasParentFlag ? ' and ' : ''
+      }${
+        hasParentFlag
+          ? `parent phone flag (set to ${isParentPhoneChecked ? 'checked' : 'unchecked'})`
+          : ''
+      } for ${updateResult.modifiedCount} student(s)`,
       targetModel: 'User',
       metadata: {
         studentCount: updateResult.modifiedCount,
-        isActive,
+        isActive: hasIsActive ? isActive : undefined,
+        isParentPhoneChecked: hasParentFlag ? isParentPhoneChecked : undefined,
         studentIds: studentIds.slice(0, 10), // Log first 10 IDs
       },
     });
 
     console.log(
-      `Admin ${req.session.user.username || 'admin'} bulk ${
-        isActive ? 'activated' : 'deactivated'
-      } ${updateResult.modifiedCount} students`
+      `Admin ${req.session.user.username || 'admin'} bulk updated ${
+        updateResult.modifiedCount
+      } students (isActive: ${
+        hasIsActive ? String(isActive) : 'unchanged'
+      }, isParentPhoneChecked: ${
+        hasParentFlag ? String(isParentPhoneChecked) : 'unchanged'
+      })`
     );
 
     return res.json({
       success: true,
-      message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${
-        updateResult.modifiedCount
-      } student(s)`,
+      message: `Successfully updated ${updateResult.modifiedCount} student(s)`,
       modifiedCount: updateResult.modifiedCount,
     });
   } catch (error) {
@@ -8636,6 +8714,13 @@ const updateStudent = async (req, res) => {
     // Handle checkbox for isActive (checkboxes don't send false values)
     updateData.isActive =
       updateData.isActive === 'on' || updateData.isActive === true;
+
+    // Handle checkbox for isParentPhoneChecked
+    if (Object.prototype.hasOwnProperty.call(updateData, 'isParentPhoneChecked')) {
+      updateData.isParentPhoneChecked =
+        updateData.isParentPhoneChecked === 'on' ||
+        updateData.isParentPhoneChecked === true;
+    }
 
     // Handle profile picture upload if provided
     if (req.file) {
@@ -16149,6 +16234,7 @@ module.exports = {
   getStudentDetails,
   getStudentEditPage,
   toggleStudentStatus,
+  toggleParentPhoneStatus,
   bulkToggleStudentStatus,
   exportStudentData,
   updateStudent,

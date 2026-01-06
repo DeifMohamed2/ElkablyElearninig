@@ -64,6 +64,12 @@ const UserSchema = new mongoose.Schema(
         },
       },
     },
+    // Admin flag: has the parent phone number been manually verified by admin?
+    isParentPhoneChecked: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     parentCountryCode: {
       type: String,
       required: true,

@@ -641,7 +641,7 @@
     .students-table th:nth-child(1),
     .students-table td:nth-child(1) {
       width: 25%;
-      min-width: 200px;
+      min-width: 50px;
     }
 
     .students-table th {
@@ -1721,6 +1721,7 @@
       border-radius: 20px;
       font-size: 0.8rem;
       font-weight: 600;
+      transition: all 0.2s ease;
     }
 
     .status-badge-table.active {
@@ -1740,6 +1741,31 @@
       height: 6px;
       border-radius: 50%;
       background: currentColor;
+    }
+
+    /* Clickable Badge Styles */
+    .status-badge-table.clickable-badge {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .status-badge-table.clickable-badge:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .status-badge-table.clickable-badge.active:hover {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .status-badge-table.clickable-badge.inactive:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .status-badge-table.clickable-badge:active {
+      transform: translateY(0);
     }
 
     /* Responsive bulk actions */
@@ -2028,6 +2054,10 @@
               <i class="fas fa-ban"></i>
               Deactivate Selected
             </button>
+            <button class="bulk-action-btn activate" onclick="bulkMarkParentPhoneChecked()" id="bulkParentPhoneBtn">
+              <i class="fas fa-phone"></i>
+              Mark Parent Phone Checked
+            </button>
             <button class="bulk-action-btn" onclick="clearSelection()">
               <i class="fas fa-times"></i>
               Clear Selection
@@ -2045,6 +2075,7 @@
                 </th>
                 <th>Student</th>
                 <th>Status</th>
+                <th>Parent Phone</th>
                 <th>Student Code</th>
                 <th>Grade</th>
                 <th>Courses</th>
@@ -2079,6 +2110,17 @@
                   <span class="status-badge-table <%= student.isActive !== false ? 'active' : 'inactive' %>">
                     <span class="status-icon-table"></span>
                     <%= student.isActive !== false ? 'Active' : 'Inactive' %>
+                  </span>
+                </td>
+                <td>
+                  <span class="status-badge-table <%= student.isParentPhoneChecked ? 'active' : 'inactive' %> clickable-badge" 
+                        data-student-id="<%= student._id %>"
+                        data-current-status="<%= student.isParentPhoneChecked %>"
+                        onclick="toggleParentPhoneStatus(this)"
+                        title="Click to toggle parent phone verification status"
+                        style="cursor: pointer;">
+                    <span class="status-icon-table"></span>
+                    <%= student.isParentPhoneChecked ? 'Verified' : 'Not Verified' %>
                   </span>
                 </td>
                 <td>
@@ -2913,6 +2955,112 @@
         if (bulkDeactivateBtn) {
           bulkDeactivateBtn.disabled = false;
           bulkDeactivateBtn.innerHTML = originalText;
+        }
+      }
+    }
+
+    // Toggle individual parent phone status
+    async function toggleParentPhoneStatus(badgeElement) {
+      const studentId = badgeElement.getAttribute('data-student-id');
+      const currentStatus = badgeElement.getAttribute('data-current-status') === 'true';
+      const newStatus = !currentStatus;
+      const originalContent = badgeElement.innerHTML;
+      
+      // Show loading state
+      badgeElement.style.opacity = '0.6';
+      badgeElement.style.pointerEvents = 'none';
+      badgeElement.innerHTML = '<span class="status-icon-table"></span> Updating...';
+
+      try {
+        const response = await fetch(`/admin/students/${studentId}/parent-phone-status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isParentPhoneChecked: newStatus,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast('success', 'Success', `Parent phone status ${newStatus ? 'verified' : 'unverified'} successfully.`);
+          
+          // Update badge immediately
+          badgeElement.className = `status-badge-table ${newStatus ? 'active' : 'inactive'} clickable-badge`;
+          badgeElement.setAttribute('data-current-status', newStatus.toString());
+          badgeElement.innerHTML = `<span class="status-icon-table"></span>${newStatus ? 'Verified' : 'Not Verified'}`;
+          badgeElement.style.opacity = '1';
+          badgeElement.style.pointerEvents = 'auto';
+        } else {
+          showToast('error', 'Error', data.message || 'Failed to update parent phone status. Please try again.');
+          badgeElement.innerHTML = originalContent;
+          badgeElement.style.opacity = '1';
+          badgeElement.style.pointerEvents = 'auto';
+        }
+      } catch (error) {
+        console.error('Error toggling parent phone status:', error);
+        showToast('error', 'Error', 'Network error occurred. Please try again.');
+        badgeElement.innerHTML = originalContent;
+        badgeElement.style.opacity = '1';
+        badgeElement.style.pointerEvents = 'auto';
+      }
+    }
+
+    // Bulk mark parent phone as checked
+    async function bulkMarkParentPhoneChecked() {
+      const selectedIds = getSelectedStudentIds();
+      
+      if (selectedIds.length === 0) {
+        alert('Please select at least one student to update.');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to mark the parent phone as verified for ${selectedIds.length} student(s)?`)) {
+        return;
+      }
+
+      const bulkParentPhoneBtn = document.getElementById('bulkParentPhoneBtn');
+      const originalText = bulkParentPhoneBtn ? bulkParentPhoneBtn.innerHTML : '';
+      
+      if (bulkParentPhoneBtn) {
+        bulkParentPhoneBtn.disabled = true;
+        bulkParentPhoneBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+      }
+
+      try {
+        const response = await fetch('/admin/students/bulk-status', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            studentIds: selectedIds,
+            isParentPhoneChecked: true,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast('success', 'Success', `Successfully updated ${data.modifiedCount} student(s).`);
+          setTimeout(() => {
+            location.reload();
+          }, 1500);
+        } else {
+          showToast('error', 'Error', data.message || 'Failed to update students. Please try again.');
+          if (bulkParentPhoneBtn) {
+            bulkParentPhoneBtn.disabled = false;
+            bulkParentPhoneBtn.innerHTML = originalText;
+          }
+        }
+      } catch (error) {
+        console.error('Error updating parent phone status:', error);
+        showToast('error', 'Error', 'Network error occurred. Please try again.');
+        if (bulkParentPhoneBtn) {
+          bulkParentPhoneBtn.disabled = false;
+          bulkParentPhoneBtn.innerHTML = originalText;
         }
       }
     }

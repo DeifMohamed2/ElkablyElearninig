@@ -746,7 +746,7 @@ const registerUser = async (req, res) => {
       englishTeacher: englishTeacher.trim(),
       password,
       howDidYouKnow: howDidYouKnow.trim(),
-      isActive: false, // Require admin activation before login
+      isActive: true, // Students are automatically active upon registration
       isCompleteData: true, // Normal registration provides all required data
     });
 

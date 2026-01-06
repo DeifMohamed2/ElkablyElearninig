@@ -109,6 +109,7 @@ const {
   getStudentDetails,
   getStudentEditPage,
   toggleStudentStatus,
+  toggleParentPhoneStatus,
   bulkToggleStudentStatus,
   exportStudentData,
   updateStudent,
@@ -418,6 +419,11 @@ router.post(
 router.get('/students/:studentId', isAdmin, getStudentDetails);
 router.get('/students/:studentId/export', isAdmin, exportStudentData);
 router.put('/students/:studentId/status', isAdmin, toggleStudentStatus);
+router.put(
+  '/students/:studentId/parent-phone-status',
+  isAdmin,
+  toggleParentPhoneStatus
+);
 router.put('/students/bulk-status', isAdmin, bulkToggleStudentStatus);
 router.put('/students/:studentId', isAdmin, updateStudent);
 router.delete('/students/:studentId', isAdmin, deleteStudent);
