@@ -1706,6 +1706,7 @@ const createStudentFromExternalSystem = async (req, res) => {
       studentCode: studentCode.toString(),
       isCompleteData: false,
       isActive: true, // External students are automatically active
+      isParentPhoneChecked: true,
     });
 
     const savedStudent = await newStudent.save();
