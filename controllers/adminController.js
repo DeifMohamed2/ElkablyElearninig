@@ -7106,7 +7106,7 @@ const getStudents = async (req, res) => {
       sortBy = 'createdAt',
       sortOrder = 'desc',
       page = 1,
-      limit = 20,
+      limit = 40,
       enrollmentStart,
       enrollmentEnd,
       lastActivityStart,
