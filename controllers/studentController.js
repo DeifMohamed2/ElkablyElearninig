@@ -1062,9 +1062,15 @@ const updateContentProgress = async (req, res) => {
       
       // ==================== ANTI-SKIP VALIDATION ====================
       // Validate that student actually watched 90% of the video (not just skipped to the end)
+      // NOTE: We use a slightly lower threshold (85%) on backend to account for:
+      // - Mobile browser timing issues with timeupdate events
+      // - Edge cases where last few seconds aren't tracked
+      // - Network latency causing segment gaps
+      // The frontend still enforces 90% before sending the completion request
       if (progressData.watchData) {
         const watchData = progressData.watchData;
-        const REQUIRED_WATCH_PERCENTAGE = 90;
+        const REQUIRED_WATCH_PERCENTAGE = 85; // Backend threshold (frontend uses 90%)
+        const FRONTEND_REPORTED_PERCENTAGE = watchData.watchPercentage || 0;
         
         // Backend validation: Calculate actual watched time from segments
         let totalWatchedTime = 0;
@@ -1076,13 +1082,14 @@ const updateContentProgress = async (req, res) => {
             .sort((a, b) => a.start - b.start);
           
           // Merge overlapping segments to get accurate total
+          // Use larger tolerance for mobile compatibility
           const mergedSegments = [];
           for (const segment of segments) {
             if (mergedSegments.length === 0) {
               mergedSegments.push({start: segment.start, end: segment.end});
             } else {
               const last = mergedSegments[mergedSegments.length - 1];
-              if (segment.start <= last.end + 0.5) {
+              if (segment.start <= last.end + 2) { // Increased tolerance from 0.5 to 2 seconds
                 // Overlapping or adjacent - merge
                 last.end = Math.max(last.end, segment.end);
               } else {
@@ -1107,16 +1114,26 @@ const updateContentProgress = async (req, res) => {
           // Log for debugging
           console.log(`Video Watch Validation - Student: ${studentId}, Content: ${contentId}`);
           console.log(`  Duration: ${videoDuration}s, Watched: ${totalWatchedTime.toFixed(2)}s (${actualWatchPercentage.toFixed(2)}%)`);
-          console.log(`  Required: ${REQUIRED_WATCH_PERCENTAGE}%, Result: ${actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE ? 'PASS' : 'FAIL'}`);
+          console.log(`  Frontend reported: ${FRONTEND_REPORTED_PERCENTAGE.toFixed(2)}%`);
+          console.log(`  Backend threshold: ${REQUIRED_WATCH_PERCENTAGE}%, Result: ${actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE ? 'PASS' : 'FAIL'}`);
           
-          // Reject if student didn't watch enough
-          if (actualWatchPercentage < REQUIRED_WATCH_PERCENTAGE) {
+          // Accept if either:
+          // 1. Backend calculation shows enough watched (85%+)
+          // 2. Frontend reported 90%+ AND backend shows at least 75% (accounts for tracking gaps)
+          const backendPass = actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE;
+          const frontendReportedEnough = FRONTEND_REPORTED_PERCENTAGE >= 90 && actualWatchPercentage >= 75;
+          
+          if (!backendPass && !frontendReportedEnough) {
             return res.status(400).json({
               success: false,
-              message: `You must watch at least ${REQUIRED_WATCH_PERCENTAGE}% of the video to complete it. You have watched ${actualWatchPercentage.toFixed(1)}%. Skipping is not allowed.`,
+              message: `You must watch at least 90% of the video to complete it. You have watched ${actualWatchPercentage.toFixed(1)}%. Skipping is not allowed.`,
               watchPercentage: actualWatchPercentage,
-              requiredPercentage: REQUIRED_WATCH_PERCENTAGE,
+              requiredPercentage: 90,
             });
+          }
+          
+          if (frontendReportedEnough && !backendPass) {
+            console.log(`  NOTE: Accepted based on frontend report (mobile compatibility)`);
           }
         }
       }

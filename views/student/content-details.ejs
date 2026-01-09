@@ -1739,12 +1739,6 @@
             <div class="pdf-container">
               <% if (contentItem.content) { %>
               <iframe src="<%= contentItem.content %>" width="100%" height="600"></iframe>
-              <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-                <a href="<%= contentItem.content %>" target="_blank" class="btn btn-outline btn-sm">
-                  <i class="fas fa-download"></i>
-                  Download PDF
-                </a>
-              </div>
               <% } else { %>
               <div class="placeholder-content">
                 <i class="fas fa-file-pdf"></i>
@@ -2045,7 +2039,6 @@
                 <span style="font-weight: 600; font-size: 1rem;"><%= zoomMeeting.meetingName %></span>
               </div>
               <div style="display: flex; align-items: center; gap: 12px; font-size: 0.85rem; opacity: 0.95;">
-                <span><i class="fas fa-calendar-alt me-1"></i><%= new Date(zoomMeeting.actualStartTime || zoomMeeting.scheduledStartTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></span>
                 <% if (zoomMeeting.duration) { %>
                 <span><i class="fas fa-clock me-1"></i><%= zoomMeeting.duration %> min</span>
                 <% } %>
@@ -2150,7 +2143,7 @@
             <div class="meeting-compact-info">
               <div class="compact-info-left">
                 <i class="fas fa-video"></i>
-                <span>Session Recording: <%= zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A' %></span>
+                <span>Session Recording</span>
               </div>
               <% if (contentProgress.isCompleted) { %>
               <div class="compact-info-right completed">
@@ -2321,10 +2314,6 @@
                 <!-- Recording Info -->
                 <div class="recording-info mt-3">
                   <div class="recording-meta">
-                    <span class="recording-meta-item">
-                      <i class="fas fa-calendar-alt"></i>
-                      Recorded: <%= zoomMeeting.actualStartTime ? new Date(zoomMeeting.actualStartTime).toLocaleDateString() : 'N/A' %>
-                    </span>
                     <% if (zoomMeeting.duration) { %>
                     <span class="recording-meta-item">
                       <i class="fas fa-clock"></i>
@@ -3412,7 +3401,9 @@
         let lastTrackedTime = 0;
         let isPlaying = false;
         const REQUIRED_WATCH_PERCENTAGE = 90; // Must watch 90% of video
-        const SEGMENT_TOLERANCE = 2; // Allow 2 second jumps without considering it a skip
+        const SEGMENT_TOLERANCE = 3; // Allow 3 second jumps without considering it a skip (increased for mobile)
+        const MAX_SEGMENT_LENGTH = 10; // Allow segments up to 10 seconds (increased for mobile compatibility)
+        const MAX_UPDATE_GAP = 5000; // Allow 5 second gaps between updates (increased for mobile)
         let skipAlertShown = false; // Track if we've shown the skip alert
         let progressIndicatorVisible = false;
         let maxWatchedTime = 0; // Track the furthest point watched
@@ -3493,8 +3484,9 @@
           });
           
           // REJECT if segment length is too large (indicates a jump, not playback)
-          if (segmentLength > 5) {
-            console.log('🚫 SEGMENT TOO LARGE: Rejected (length:', segmentLength.toFixed(2), 's)');
+          // Increased threshold for mobile compatibility where timeupdate events can be irregular
+          if (segmentLength > MAX_SEGMENT_LENGTH) {
+            console.log('🚫 SEGMENT TOO LARGE: Rejected (length:', segmentLength.toFixed(2), 's, max:', MAX_SEGMENT_LENGTH, 's)');
             return; // Don't add this segment at all!
           }
           
@@ -3983,13 +3975,26 @@
                 console.log('⬅️ Backward seek (no segment added)');
                 lastTrackedTime = currentSeconds;
                 updateProgressIndicator();
-              } else if (timeDiff >= 0 && timeDiff <= SEGMENT_TOLERANCE && isPlaying && timeSinceLastUpdate < 2000) {
-                // STRICT: Normal playback ONLY if:
+              } else if (timeDiff >= 0 && timeDiff <= SEGMENT_TOLERANCE && isPlaying && timeSinceLastUpdate < MAX_UPDATE_GAP) {
+                // Normal playback - more lenient for mobile compatibility:
                 // 1. Small time difference (not a jump)
                 // 2. Video is playing
-                // 3. Less than 2 seconds since last update (continuous playback)
+                // 3. Less than MAX_UPDATE_GAP since last update (allows for mobile's irregular updates)
                 
                 console.log('▶️ Normal playback - adding segment:', lastTrackedTime.toFixed(2), '→', currentSeconds.toFixed(2));
+                addWatchedSegment(lastTrackedTime, currentSeconds);
+                lastTrackedTime = currentSeconds;
+                lastUpdateTime = now;
+                
+                // Update progress indicator
+                updateProgressIndicator();
+                
+                // Check if completion criteria is met
+                checkVideoCompletion();
+              } else if (timeDiff >= 0 && timeDiff <= MAX_SEGMENT_LENGTH && isPlaying) {
+                // MOBILE FALLBACK: Allow larger time gaps if video is playing
+                // This handles cases where mobile browsers fire timeupdate less frequently
+                console.log('📱 Mobile-friendly playback - adding segment:', lastTrackedTime.toFixed(2), '→', currentSeconds.toFixed(2));
                 addWatchedSegment(lastTrackedTime, currentSeconds);
                 lastTrackedTime = currentSeconds;
                 lastUpdateTime = now;
@@ -4013,14 +4018,43 @@
 
             player.on("ended", () => {
               isPlaying = false;
-              // Add final segment
+              console.log('🏁 Video ended event fired');
+              
+              // Add final segment - ensure we capture the end
               if (lastTrackedTime >= 0 && videoDuration > 0) {
                 addWatchedSegment(lastTrackedTime, videoDuration);
+                // Also update maxWatchedTime to video duration
+                maxWatchedTime = Math.max(maxWatchedTime, videoDuration);
               }
               
               // Check completion one final time
               if (!autoCompleted) {
-                checkVideoCompletion();
+                const watchPercentage = getWatchPercentage();
+                console.log('🏁 Final watch percentage:', watchPercentage.toFixed(2) + '%');
+                
+                // If we're close to 90% (within 5%), consider it complete
+                // This handles edge cases where the last few seconds weren't tracked
+                if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE - 5) {
+                  console.log('✅ Close enough to 90% - marking as complete');
+                  autoCompleted = true;
+                  clearSavedProgress();
+                  
+                  showEnhancedNotification(
+                    `🎉 Congratulations!\n\nYou've watched ${watchPercentage.toFixed(1)}% of the video.\n\nMarking as completed...`,
+                    'success',
+                    'Video Completed!',
+                    4000
+                  );
+                  
+                  updateContentProgressWithWatchData('completed', 100, {
+                    watchedSegments: watchedSegments,
+                    totalWatchedTime: getTotalWatchedTime(),
+                    videoDuration: videoDuration,
+                    watchPercentage: watchPercentage
+                  });
+                } else {
+                  checkVideoCompletion();
+                }
               }
             });
 
@@ -4087,7 +4121,9 @@
     let youtubeLastTrackedTime = 0;
     let youtubeIsPlaying = false;
     const YOUTUBE_REQUIRED_WATCH_PERCENTAGE = 90;
-    const YOUTUBE_SEGMENT_TOLERANCE = 2;
+    const YOUTUBE_SEGMENT_TOLERANCE = 3; // Increased for mobile compatibility
+    const YOUTUBE_MAX_SEGMENT_LENGTH = 10; // Allow segments up to 10 seconds for mobile
+    const YOUTUBE_MAX_UPDATE_GAP = 5000; // Allow 5 second gaps between updates for mobile
     let youtubeSkipAlertShown = false;
     let youtubeProgressIndicatorVisible = false;
     let youtubeMaxWatchedTime = 0;
@@ -4159,9 +4195,9 @@
         segmentLength: segmentLength.toFixed(2)
       });
       
-      // REJECT if segment length is too large
-      if (segmentLength > 5) {
-        console.log('🚫 YOUTUBE SEGMENT TOO LARGE: Rejected (length:', segmentLength.toFixed(2), 's)');
+      // REJECT if segment length is too large (increased for mobile compatibility)
+      if (segmentLength > YOUTUBE_MAX_SEGMENT_LENGTH) {
+        console.log('🚫 YOUTUBE SEGMENT TOO LARGE: Rejected (length:', segmentLength.toFixed(2), 's, max:', YOUTUBE_MAX_SEGMENT_LENGTH, 's)');
         return;
       }
       
@@ -4563,13 +4599,42 @@
         }
       } else if (event.data === YT.PlayerState.ENDED) {
         youtubeIsPlaying = false;
-        // Add final segment
+        console.log('🏁 YouTube video ended event fired');
+        
+        // Add final segment - ensure we capture the end
         if (youtubeLastTrackedTime >= 0 && youtubeVideoDuration > 0) {
           addYouTubeWatchedSegment(youtubeLastTrackedTime, youtubeVideoDuration);
+          // Also update maxWatchedTime to video duration
+          youtubeMaxWatchedTime = Math.max(youtubeMaxWatchedTime, youtubeVideoDuration);
         }
         
         if (!youtubeAutoCompleted) {
-          checkYouTubeVideoCompletion();
+          const watchPercentage = getYouTubeWatchPercentage();
+          console.log('🏁 Final YouTube watch percentage:', watchPercentage.toFixed(2) + '%');
+          
+          // If we're close to 90% (within 5%), consider it complete
+          // This handles edge cases where the last few seconds weren't tracked
+          if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE - 5) {
+            console.log('✅ YouTube: Close enough to 90% - marking as complete');
+            youtubeAutoCompleted = true;
+            clearYouTubeSavedProgress();
+            
+            showEnhancedNotification(
+              `🎉 Congratulations!\n\nYou've watched ${watchPercentage.toFixed(1)}% of the video.\n\nMarking as completed...`,
+              'success',
+              'Video Completed!',
+              4000
+            );
+            
+            updateContentProgressWithWatchData('completed', 100, {
+              watchedSegments: youtubeWatchedSegments,
+              totalWatchedTime: getYouTubeTotalWatchedTime(),
+              videoDuration: youtubeVideoDuration,
+              watchPercentage: watchPercentage
+            });
+          } else {
+            checkYouTubeVideoCompletion();
+          }
         }
       }
     }
@@ -4580,6 +4645,8 @@
       try {
         const currentTime = youtubePlayer.getCurrentTime();
         const timeDiff = currentTime - youtubeLastTrackedTime;
+        const now = Date.now();
+        const timeSinceLastUpdate = now - youtubeLastUpdateTime;
         
         // Detect if user skipped forward
         if (timeDiff > YOUTUBE_SEGMENT_TOLERANCE) {
@@ -4623,10 +4690,24 @@
           // Just update tracking position (don't count twice)
           youtubeLastTrackedTime = currentTime;
           updateYouTubeProgressIndicator();
-        } else if (timeDiff >= 0 && timeDiff <= YOUTUBE_SEGMENT_TOLERANCE && youtubeIsPlaying) {
+        } else if (timeDiff >= 0 && timeDiff <= YOUTUBE_SEGMENT_TOLERANCE && youtubeIsPlaying && timeSinceLastUpdate < YOUTUBE_MAX_UPDATE_GAP) {
           // Normal playback - ONLY update maxWatchedTime during actual playback
           addYouTubeWatchedSegment(youtubeLastTrackedTime, currentTime);
           youtubeLastTrackedTime = currentTime;
+          youtubeLastUpdateTime = now;
+          
+          // Update progress indicator
+          updateYouTubeProgressIndicator();
+          
+          // Check if completion criteria is met
+          checkYouTubeVideoCompletion();
+        } else if (timeDiff >= 0 && timeDiff <= YOUTUBE_MAX_SEGMENT_LENGTH && youtubeIsPlaying) {
+          // MOBILE FALLBACK: Allow larger time gaps if video is playing
+          // This handles cases where mobile browsers fire progress updates less frequently
+          console.log('📱 YouTube mobile-friendly playback - adding segment:', youtubeLastTrackedTime.toFixed(2), '→', currentTime.toFixed(2));
+          addYouTubeWatchedSegment(youtubeLastTrackedTime, currentTime);
+          youtubeLastTrackedTime = currentTime;
+          youtubeLastUpdateTime = now;
           
           // Update progress indicator
           updateYouTubeProgressIndicator();
@@ -4961,6 +5042,8 @@
     let recHasAutoCompleted = false;
     let recPlayer = null;
     const REC_REQUIRED_PERCENTAGE = 90;
+    const REC_MAX_SEGMENT_LENGTH = 10; // Allow segments up to 10 seconds (increased for mobile)
+    const REC_SEGMENT_TOLERANCE = 3; // Allow 3 second jumps (increased for mobile)
     
     // Generate unique localStorage key for this recording
     const recStorageKey = 'recProgress_<%= contentItem._id %>';
@@ -5128,9 +5211,10 @@
             if (recHasAutoCompleted) return;
             
             const currentTime = data.seconds;
+            const timeDiff = currentTime - recLastTime;
             
-            // ANTI-SKIP: Check if user tried to skip ahead
-            if (currentTime > recMaxWatchedTime + 2) {
+            // ANTI-SKIP: Check if user tried to skip ahead (with increased tolerance for mobile)
+            if (currentTime > recMaxWatchedTime + REC_SEGMENT_TOLERANCE) {
               // User tried to skip ahead - seek back to max watched position
               console.log('📹 Anti-skip: Preventing skip from', currentTime, 'to', recMaxWatchedTime);
               recPlayer.setCurrentTime(recMaxWatchedTime);
@@ -5142,11 +5226,13 @@
               recMaxWatchedTime = currentTime;
             }
             
-            // Track watched segment (only if playing normally)
-            if (recIsPlaying && currentTime > recLastTime && currentTime - recLastTime < 2) {
+            // Track watched segment - more lenient for mobile compatibility
+            // Allow segments up to REC_MAX_SEGMENT_LENGTH seconds (handles irregular timeupdate on mobile)
+            if (recIsPlaying && currentTime > recLastTime && timeDiff > 0 && timeDiff <= REC_MAX_SEGMENT_LENGTH) {
               // Add to watched segments
               const segmentStart = recLastTime;
               const segmentEnd = currentTime;
+              console.log('📹 Adding recording segment:', segmentStart.toFixed(2), '→', segmentEnd.toFixed(2));
               addRecordingWatchedSegment(segmentStart, segmentEnd);
             }
             
@@ -5170,10 +5256,24 @@
           });
           
           recPlayer.on('ended', function() {
+            console.log('📹 Recording ended event fired');
+            recIsPlaying = false;
+            
+            // Add final segment to capture the end
+            if (recLastTime >= 0 && recVideoDuration > 0) {
+              addRecordingWatchedSegment(recLastTime, recVideoDuration);
+              recMaxWatchedTime = Math.max(recMaxWatchedTime, recVideoDuration);
+            }
+            
             if (recVideoDuration > 0 && !recHasAutoCompleted) {
               const totalWatchedTime = calculateRecordingWatchedTime();
               const watchedPercentage = (totalWatchedTime / recVideoDuration) * 100;
-              if (watchedPercentage >= REC_REQUIRED_PERCENTAGE - 5) {
+              console.log('📹 Final recording watch percentage:', watchedPercentage.toFixed(2) + '%');
+              
+              // If we're close to 90% (within 10%), consider it complete
+              // This handles edge cases where the last few seconds weren't tracked
+              if (watchedPercentage >= REC_REQUIRED_PERCENTAGE - 10) {
+                console.log('📹 Close enough to 90% - marking recording as complete');
                 recHasAutoCompleted = true;
                 autoCompleteRecording();
               }

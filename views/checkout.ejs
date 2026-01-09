@@ -84,47 +84,6 @@
               <input type="text" id="apartmentNumber" name="apartmentNumber" class="checkout-form-control" placeholder="Enter apartment number / أدخل رقم الشقة" required>
             </div>
 
-            <!-- Governorate/State -->
-            <div class="checkout-form-group">
-              <label for="governorate" class="checkout-form-label">Governorate / المحافظة *</label>
-              <select id="governorate" name="governorate" class="checkout-form-control" required>
-                <option value="">Select Governorate / اختر المحافظة</option>
-                <option value="Cairo|القاهرة">Cairo / القاهرة</option>
-                <option value="Giza|الجيزة">Giza / الجيزة</option>
-                <option value="Alexandria|الإسكندرية">Alexandria / الإسكندرية</option>
-                <option value="Dakahlia|الدقهلية">Dakahlia / الدقهلية</option>
-                <option value="Sharqia|الشرقية">Sharqia / الشرقية</option>
-                <option value="Qalyubia|القليوبية">Qalyubia / القليوبية</option>
-                <option value="Kafr El Sheikh|كفر الشيخ">Kafr El Sheikh / كفر الشيخ</option>
-                <option value="Gharbia|الغربية">Gharbia / الغربية</option>
-                <option value="Monufia|المنوفية">Monufia / المنوفية</option>
-                <option value="Beheira|البحيرة">Beheira / البحيرة</option>
-                <option value="Ismailia|الإسماعيلية">Ismailia / الإسماعيلية</option>
-                <option value="Port Said|بورسعيد">Port Said / بورسعيد</option>
-                <option value="Suez|السويس">Suez / السويس</option>
-                <option value="North Sinai|شمال سيناء">North Sinai / شمال سيناء</option>
-                <option value="South Sinai|جنوب سيناء">South Sinai / جنوب سيناء</option>
-                <option value="Damietta|دمياط">Damietta / دمياط</option>
-                <option value="Aswan|أسوان">Aswan / أسوان</option>
-                <option value="Asyut|أسيوط">Asyut / أسيوط</option>
-                <option value="Beni Suef|بني سويف">Beni Suef / بني سويف</option>
-                <option value="Faiyum|الفيوم">Faiyum / الفيوم</option>
-                <option value="Luxor|الأقصر">Luxor / الأقصر</option>
-                <option value="Minya|المنيا">Minya / المنيا</option>
-                <option value="New Valley|الوادي الجديد">New Valley / الوادي الجديد</option>
-                <option value="Qena|قنا">Qena / قنا</option>
-                <option value="Red Sea|البحر الأحمر">Red Sea / البحر الأحمر</option>
-                <option value="Sohag|سوهاج">Sohag / سوهاج</option>
-                <option value="Matruh|مطروح">Matruh / مطروح</option>
-              </select>
-            </div>
-
-            <!-- City/Zone -->
-            <div class="checkout-form-group">
-              <label for="city" class="checkout-form-label">Zone / المنطقة *</label>
-              <input type="text" id="city" name="city" class="checkout-form-control" placeholder="Enter zone name / أدخل اسم المنطقة" required>
-            </div>
-
             <!-- Country -->
             <div class="checkout-form-group">
               <label for="country" class="checkout-form-label">Country / البلد *</label>
@@ -143,8 +102,29 @@
                 <option value="UK">United Kingdom / المملكة المتحدة</option>
                 <option value="Canada">Canada / كندا</option>
                 <option value="Australia">Australia / أستراليا</option>
+                <option value="Germany">Germany / ألمانيا</option>
+                <option value="France">France / فرنسا</option>
+                <option value="Italy">Italy / إيطاليا</option>
+                <option value="Spain">Spain / إسبانيا</option>
+                <option value="Turkey">Turkey / تركيا</option>
                 <option value="Other">Other / أخرى</option>
               </select>
+            </div>
+
+            <!-- Governorate/State -->
+            <div class="checkout-form-group">
+              <label for="governorate" class="checkout-form-label">
+                <span id="governorateLabel">State/Province / الولاية/المحافظة</span> *
+              </label>
+              <select id="governorate" name="governorate" class="checkout-form-control" required disabled>
+                <option value="">Please select a country first / يرجى اختيار البلد أولاً</option>
+              </select>
+            </div>
+
+            <!-- City/Zone -->
+            <div class="checkout-form-group">
+              <label for="city" class="checkout-form-label">City/Zone / المدينة/المنطقة *</label>
+              <input type="text" id="city" name="city" class="checkout-form-control" placeholder="Enter city or zone name / أدخل اسم المدينة أو المنطقة" required>
             </div>
 
             <!-- Google Maps Location Picker -->
@@ -622,10 +602,32 @@
     let searchBox;
     let placesService;
 
+    // Country center coordinates for map initialization
+    const countryCenterMap = {
+      'Egypt': { lat: 30.0444, lng: 31.2357 },
+      'Saudi Arabia': { lat: 23.8859, lng: 45.0792 },
+      'UAE': { lat: 23.4241, lng: 53.8478 },
+      'Kuwait': { lat: 29.3117, lng: 47.4818 },
+      'Qatar': { lat: 25.3548, lng: 51.1839 },
+      'Bahrain': { lat: 26.0667, lng: 50.5577 },
+      'Oman': { lat: 21.4735, lng: 55.9754 },
+      'Jordan': { lat: 30.5852, lng: 36.2384 },
+      'Lebanon': { lat: 33.8547, lng: 35.8623 },
+      'USA': { lat: 37.0902, lng: -95.7129 },
+      'UK': { lat: 55.3781, lng: -3.4360 },
+      'Canada': { lat: 56.1304, lng: -106.3468 },
+      'Australia': { lat: -25.2744, lng: 133.7751 },
+      'Germany': { lat: 51.1657, lng: 10.4515 },
+      'France': { lat: 46.2276, lng: 2.2137 },
+      'Italy': { lat: 41.8719, lng: 12.5674 },
+      'Spain': { lat: 40.4637, lng: -3.7492 },
+      'Turkey': { lat: 38.9637, lng: 35.2433 }
+    };
+
     // Initialize Google Maps
     function initMap() {
       // Default center: Cairo, Egypt
-      const defaultCenter = { lat: 30.0444, lng: 31.2357 };
+      const defaultCenter = countryCenterMap['Egypt'] || { lat: 30.0444, lng: 31.2357 };
       
       // Create map
       map = new google.maps.Map(mapPicker, {
@@ -641,12 +643,37 @@
       geocoder = new google.maps.Geocoder();
       placesService = new google.maps.places.PlacesService(map);
 
+      // Country code mapping for Google Maps API
+      const countryCodeMap = {
+        'Egypt': 'eg',
+        'Saudi Arabia': 'sa',
+        'UAE': 'ae',
+        'Kuwait': 'kw',
+        'Qatar': 'qa',
+        'Bahrain': 'bh',
+        'Oman': 'om',
+        'Jordan': 'jo',
+        'Lebanon': 'lb',
+        'USA': 'us',
+        'UK': 'gb',
+        'Canada': 'ca',
+        'Australia': 'au',
+        'Germany': 'de',
+        'France': 'fr',
+        'Italy': 'it',
+        'Spain': 'es',
+        'Turkey': 'tr'
+      };
+
       // Initialize Autocomplete for search
       const searchInput = document.getElementById('mapSearchInput');
       if (searchInput) {
+        const selectedCountry = document.getElementById('country').value;
+        const countryCode = countryCodeMap[selectedCountry] || 'eg';
+        
         autocomplete = new google.maps.places.Autocomplete(searchInput, {
           types: ['geocode', 'establishment'],
-          componentRestrictions: { country: 'eg' }, // Restrict to Egypt
+          componentRestrictions: { country: countryCode },
           fields: ['geometry', 'formatted_address', 'name', 'place_id']
         });
 
@@ -977,9 +1004,456 @@
     if (governorateField) governorateField.addEventListener('change', updateCombinedAddress);
     if (countryField) countryField.addEventListener('change', updateCombinedAddress);
 
-    // Set default country to Egypt if not already selected
+    // Comprehensive data for governorates/states by country
+    const countryRegionsData = {
+      'Egypt': [
+        { value: 'Cairo|القاهرة', label: 'Cairo / القاهرة' },
+        { value: 'Giza|الجيزة', label: 'Giza / الجيزة' },
+        { value: 'Alexandria|الإسكندرية', label: 'Alexandria / الإسكندرية' },
+        { value: 'Dakahlia|الدقهلية', label: 'Dakahlia / الدقهلية' },
+        { value: 'Red Sea|البحر الأحمر', label: 'Red Sea / البحر الأحمر' },
+        { value: 'Beheira|البحيرة', label: 'Beheira / البحيرة' },
+        { value: 'Faiyum|الفيوم', label: 'Faiyum / الفيوم' },
+        { value: 'Gharbia|الغربية', label: 'Gharbia / الغربية' },
+        { value: 'Ismailia|الإسماعيلية', label: 'Ismailia / الإسماعيلية' },
+        { value: 'Monufia|المنوفية', label: 'Monufia / المنوفية' },
+        { value: 'Minya|المنيا', label: 'Minya / المنيا' },
+        { value: 'Qalyubia|القليوبية', label: 'Qalyubia / القليوبية' },
+        { value: 'New Valley|الوادي الجديد', label: 'New Valley / الوادي الجديد' },
+        { value: 'Suez|السويس', label: 'Suez / السويس' },
+        { value: 'Sharqia|الشرقية', label: 'Sharqia / الشرقية' },
+        { value: 'North Sinai|شمال سيناء', label: 'North Sinai / شمال سيناء' },
+        { value: 'South Sinai|جنوب سيناء', label: 'South Sinai / جنوب سيناء' },
+        { value: 'Port Said|بورسعيد', label: 'Port Said / بورسعيد' },
+        { value: 'Damietta|دمياط', label: 'Damietta / دمياط' },
+        { value: 'Aswan|أسوان', label: 'Aswan / أسوان' },
+        { value: 'Asyut|أسيوط', label: 'Asyut / أسيوط' },
+        { value: 'Beni Suef|بني سويف', label: 'Beni Suef / بني سويف' },
+        { value: 'Luxor|الأقصر', label: 'Luxor / الأقصر' },
+        { value: 'Qena|قنا', label: 'Qena / قنا' },
+        { value: 'Sohag|سوهاج', label: 'Sohag / سوهاج' },
+        { value: 'Kafr El Sheikh|كفر الشيخ', label: 'Kafr El Sheikh / كفر الشيخ' },
+        { value: 'Matruh|مطروح', label: 'Matruh / مطروح' }
+      ],
+      'Saudi Arabia': [
+        { value: 'Riyadh|الرياض', label: 'Riyadh / الرياض' },
+        { value: 'Makkah|مكة المكرمة', label: 'Makkah / مكة المكرمة' },
+        { value: 'Madinah|المدينة المنورة', label: 'Madinah / المدينة المنورة' },
+        { value: 'Eastern Province|المنطقة الشرقية', label: 'Eastern Province / المنطقة الشرقية' },
+        { value: 'Asir|عسير', label: 'Asir / عسير' },
+        { value: 'Tabuk|تبوك', label: 'Tabuk / تبوك' },
+        { value: 'Qassim|القصيم', label: 'Qassim / القصيم' },
+        { value: 'Ha\'il|حائل', label: 'Ha\'il / حائل' },
+        { value: 'Jazan|جازان', label: 'Jazan / جازان' },
+        { value: 'Najran|نجران', label: 'Najran / نجران' },
+        { value: 'Al Bahah|الباحة', label: 'Al Bahah / الباحة' },
+        { value: 'Northern Borders|الحدود الشمالية', label: 'Northern Borders / الحدود الشمالية' },
+        { value: 'Al Jouf|الجوف', label: 'Al Jouf / الجوف' }
+      ],
+      'UAE': [
+        { value: 'Abu Dhabi|أبو ظبي', label: 'Abu Dhabi / أبو ظبي' },
+        { value: 'Dubai|دبي', label: 'Dubai / دبي' },
+        { value: 'Sharjah|الشارقة', label: 'Sharjah / الشارقة' },
+        { value: 'Ajman|عجمان', label: 'Ajman / عجمان' },
+        { value: 'Umm Al Quwain|أم القيوين', label: 'Umm Al Quwain / أم القيوين' },
+        { value: 'Ras Al Khaimah|رأس الخيمة', label: 'Ras Al Khaimah / رأس الخيمة' },
+        { value: 'Fujairah|الفجيرة', label: 'Fujairah / الفجيرة' }
+      ],
+      'Kuwait': [
+        { value: 'Capital|العاصمة', label: 'Capital Governorate / محافظة العاصمة' },
+        { value: 'Hawalli|حولي', label: 'Hawalli / حولي' },
+        { value: 'Farwaniya|الفروانية', label: 'Farwaniya / الفروانية' },
+        { value: 'Mubarak Al-Kabeer|مبارك الكبير', label: 'Mubarak Al-Kabeer / مبارك الكبير' },
+        { value: 'Ahmadi|الأحمدي', label: 'Ahmadi / الأحمدي' },
+        { value: 'Jahra|الجهراء', label: 'Jahra / الجهراء' }
+      ],
+      'Qatar': [
+        { value: 'Doha|الدوحة', label: 'Doha / الدوحة' },
+        { value: 'Al Rayyan|الريان', label: 'Al Rayyan / الريان' },
+        { value: 'Al Wakrah|الوكرة', label: 'Al Wakrah / الوكرة' },
+        { value: 'Al Khor|الخور', label: 'Al Khor / الخور' },
+        { value: 'Al Shamal|الشمال', label: 'Al Shamal / الشمال' },
+        { value: 'Umm Salal|أم صلال', label: 'Umm Salal / أم صلال' },
+        { value: 'Al Daayen|الضعاين', label: 'Al Daayen / الضعاين' },
+        { value: 'Al Shahaniya|الشحانية', label: 'Al Shahaniya / الشحانية' }
+      ],
+      'Bahrain': [
+        { value: 'Capital|العاصمة', label: 'Capital Governorate / محافظة العاصمة' },
+        { value: 'Muharraq|المحرق', label: 'Muharraq / المحرق' },
+        { value: 'Northern|الشمالية', label: 'Northern / الشمالية' },
+        { value: 'Southern|الجنوبية', label: 'Southern / الجنوبية' }
+      ],
+      'Oman': [
+        { value: 'Muscat|مسقط', label: 'Muscat / مسقط' },
+        { value: 'Dhofar|ظفار', label: 'Dhofar / ظفار' },
+        { value: 'Musandam|مسندم', label: 'Musandam / مسندم' },
+        { value: 'Al Buraimi|البريمي', label: 'Al Buraimi / البريمي' },
+        { value: 'Ad Dakhiliyah|الداخلية', label: 'Ad Dakhiliyah / الداخلية' },
+        { value: 'North Al Batinah|شمال الباطنة', label: 'North Al Batinah / شمال الباطنة' },
+        { value: 'South Al Batinah|جنوب الباطنة', label: 'South Al Batinah / جنوب الباطنة' },
+        { value: 'North Al Sharqiyah|شمال الشرقية', label: 'North Al Sharqiyah / شمال الشرقية' },
+        { value: 'South Al Sharqiyah|جنوب الشرقية', label: 'South Al Sharqiyah / جنوب الشرقية' },
+        { value: 'Ad Dhahirah|الظاهرة', label: 'Ad Dhahirah / الظاهرة' },
+        { value: 'Al Wusta|الوسطى', label: 'Al Wusta / الوسطى' }
+      ],
+      'Jordan': [
+        { value: 'Amman|عمان', label: 'Amman / عمان' },
+        { value: 'Irbid|إربد', label: 'Irbid / إربد' },
+        { value: 'Zarqa|الزرقاء', label: 'Zarqa / الزرقاء' },
+        { value: 'Balqa|البلقاء', label: 'Balqa / البلقاء' },
+        { value: 'Mafraq|المفرق', label: 'Mafraq / المفرق' },
+        { value: 'Jerash|جرش', label: 'Jerash / جرش' },
+        { value: 'Ajloun|عجلون', label: 'Ajloun / عجلون' },
+        { value: 'Karak|الكرك', label: 'Karak / الكرك' },
+        { value: 'Tafilah|الطفيلة', label: 'Tafilah / الطفيلة' },
+        { value: 'Ma\'an|معان', label: 'Ma\'an / معان' },
+        { value: 'Aqaba|العقبة', label: 'Aqaba / العقبة' },
+        { value: 'Madaba|مادبا', label: 'Madaba / مادبا' }
+      ],
+      'Lebanon': [
+        { value: 'Beirut|بيروت', label: 'Beirut / بيروت' },
+        { value: 'Mount Lebanon|جبل لبنان', label: 'Mount Lebanon / جبل لبنان' },
+        { value: 'North|الشمال', label: 'North / الشمال' },
+        { value: 'South|الجنوب', label: 'South / الجنوب' },
+        { value: 'Bekaa|البقاع', label: 'Bekaa / البقاع' },
+        { value: 'Nabatieh|النبطية', label: 'Nabatieh / النبطية' },
+        { value: 'Akkar|عكار', label: 'Akkar / عكار' },
+        { value: 'Baalbek-Hermel|بعلبك الهرمل', label: 'Baalbek-Hermel / بعلبك الهرمل' }
+      ],
+      'USA': [
+        { value: 'Alabama', label: 'Alabama' },
+        { value: 'Alaska', label: 'Alaska' },
+        { value: 'Arizona', label: 'Arizona' },
+        { value: 'Arkansas', label: 'Arkansas' },
+        { value: 'California', label: 'California' },
+        { value: 'Colorado', label: 'Colorado' },
+        { value: 'Connecticut', label: 'Connecticut' },
+        { value: 'Delaware', label: 'Delaware' },
+        { value: 'Florida', label: 'Florida' },
+        { value: 'Georgia', label: 'Georgia' },
+        { value: 'Hawaii', label: 'Hawaii' },
+        { value: 'Idaho', label: 'Idaho' },
+        { value: 'Illinois', label: 'Illinois' },
+        { value: 'Indiana', label: 'Indiana' },
+        { value: 'Iowa', label: 'Iowa' },
+        { value: 'Kansas', label: 'Kansas' },
+        { value: 'Kentucky', label: 'Kentucky' },
+        { value: 'Louisiana', label: 'Louisiana' },
+        { value: 'Maine', label: 'Maine' },
+        { value: 'Maryland', label: 'Maryland' },
+        { value: 'Massachusetts', label: 'Massachusetts' },
+        { value: 'Michigan', label: 'Michigan' },
+        { value: 'Minnesota', label: 'Minnesota' },
+        { value: 'Mississippi', label: 'Mississippi' },
+        { value: 'Missouri', label: 'Missouri' },
+        { value: 'Montana', label: 'Montana' },
+        { value: 'Nebraska', label: 'Nebraska' },
+        { value: 'Nevada', label: 'Nevada' },
+        { value: 'New Hampshire', label: 'New Hampshire' },
+        { value: 'New Jersey', label: 'New Jersey' },
+        { value: 'New Mexico', label: 'New Mexico' },
+        { value: 'New York', label: 'New York' },
+        { value: 'North Carolina', label: 'North Carolina' },
+        { value: 'North Dakota', label: 'North Dakota' },
+        { value: 'Ohio', label: 'Ohio' },
+        { value: 'Oklahoma', label: 'Oklahoma' },
+        { value: 'Oregon', label: 'Oregon' },
+        { value: 'Pennsylvania', label: 'Pennsylvania' },
+        { value: 'Rhode Island', label: 'Rhode Island' },
+        { value: 'South Carolina', label: 'South Carolina' },
+        { value: 'South Dakota', label: 'South Dakota' },
+        { value: 'Tennessee', label: 'Tennessee' },
+        { value: 'Texas', label: 'Texas' },
+        { value: 'Utah', label: 'Utah' },
+        { value: 'Vermont', label: 'Vermont' },
+        { value: 'Virginia', label: 'Virginia' },
+        { value: 'Washington', label: 'Washington' },
+        { value: 'West Virginia', label: 'West Virginia' },
+        { value: 'Wisconsin', label: 'Wisconsin' },
+        { value: 'Wyoming', label: 'Wyoming' }
+      ],
+      'UK': [
+        { value: 'England', label: 'England' },
+        { value: 'Scotland', label: 'Scotland' },
+        { value: 'Wales', label: 'Wales' },
+        { value: 'Northern Ireland', label: 'Northern Ireland' }
+      ],
+      'Canada': [
+        { value: 'Alberta', label: 'Alberta' },
+        { value: 'British Columbia', label: 'British Columbia' },
+        { value: 'Manitoba', label: 'Manitoba' },
+        { value: 'New Brunswick', label: 'New Brunswick' },
+        { value: 'Newfoundland and Labrador', label: 'Newfoundland and Labrador' },
+        { value: 'Nova Scotia', label: 'Nova Scotia' },
+        { value: 'Ontario', label: 'Ontario' },
+        { value: 'Prince Edward Island', label: 'Prince Edward Island' },
+        { value: 'Quebec', label: 'Quebec' },
+        { value: 'Saskatchewan', label: 'Saskatchewan' },
+        { value: 'Northwest Territories', label: 'Northwest Territories' },
+        { value: 'Nunavut', label: 'Nunavut' },
+        { value: 'Yukon', label: 'Yukon' }
+      ],
+      'Australia': [
+        { value: 'New South Wales', label: 'New South Wales' },
+        { value: 'Victoria', label: 'Victoria' },
+        { value: 'Queensland', label: 'Queensland' },
+        { value: 'Western Australia', label: 'Western Australia' },
+        { value: 'South Australia', label: 'South Australia' },
+        { value: 'Tasmania', label: 'Tasmania' },
+        { value: 'Australian Capital Territory', label: 'Australian Capital Territory' },
+        { value: 'Northern Territory', label: 'Northern Territory' }
+      ],
+      'Germany': [
+        { value: 'Baden-Württemberg', label: 'Baden-Württemberg' },
+        { value: 'Bavaria|بافاريا', label: 'Bavaria / بافاريا' },
+        { value: 'Berlin|برلين', label: 'Berlin / برلين' },
+        { value: 'Brandenburg', label: 'Brandenburg' },
+        { value: 'Bremen', label: 'Bremen' },
+        { value: 'Hamburg|هامبورغ', label: 'Hamburg / هامبورغ' },
+        { value: 'Hesse', label: 'Hesse' },
+        { value: 'Lower Saxony', label: 'Lower Saxony' },
+        { value: 'Mecklenburg-Vorpommern', label: 'Mecklenburg-Vorpommern' },
+        { value: 'North Rhine-Westphalia', label: 'North Rhine-Westphalia' },
+        { value: 'Rhineland-Palatinate', label: 'Rhineland-Palatinate' },
+        { value: 'Saarland', label: 'Saarland' },
+        { value: 'Saxony', label: 'Saxony' },
+        { value: 'Saxony-Anhalt', label: 'Saxony-Anhalt' },
+        { value: 'Schleswig-Holstein', label: 'Schleswig-Holstein' },
+        { value: 'Thuringia', label: 'Thuringia' }
+      ],
+      'France': [
+        { value: 'Île-de-France|إيل دو فرانس', label: 'Île-de-France / إيل دو فرانس' },
+        { value: 'Auvergne-Rhône-Alpes', label: 'Auvergne-Rhône-Alpes' },
+        { value: 'Provence-Alpes-Côte d\'Azur', label: 'Provence-Alpes-Côte d\'Azur' },
+        { value: 'Occitanie', label: 'Occitanie' },
+        { value: 'Nouvelle-Aquitaine', label: 'Nouvelle-Aquitaine' },
+        { value: 'Grand Est', label: 'Grand Est' },
+        { value: 'Hauts-de-France', label: 'Hauts-de-France' },
+        { value: 'Normandy', label: 'Normandy' },
+        { value: 'Brittany', label: 'Brittany' },
+        { value: 'Pays de la Loire', label: 'Pays de la Loire' },
+        { value: 'Centre-Val de Loire', label: 'Centre-Val de Loire' },
+        { value: 'Bourgogne-Franche-Comté', label: 'Bourgogne-Franche-Comté' },
+        { value: 'Corsica', label: 'Corsica' }
+      ],
+      'Italy': [
+        { value: 'Lazio|لاتسيو', label: 'Lazio / لاتسيو' },
+        { value: 'Lombardy|لومبارديا', label: 'Lombardy / لومبارديا' },
+        { value: 'Campania|كامبانيا', label: 'Campania / كامبانيا' },
+        { value: 'Sicily|صقلية', label: 'Sicily / صقلية' },
+        { value: 'Veneto|فينيتو', label: 'Veneto / فينيتو' },
+        { value: 'Piedmont|بيدمونت', label: 'Piedmont / بيدمونت' },
+        { value: 'Emilia-Romagna', label: 'Emilia-Romagna' },
+        { value: 'Tuscany|توسكانا', label: 'Tuscany / توسكانا' },
+        { value: 'Apulia|بوليا', label: 'Apulia / بوليا' },
+        { value: 'Calabria|كالابريا', label: 'Calabria / كالابريا' },
+        { value: 'Sardinia|سردينيا', label: 'Sardinia / سردينيا' },
+        { value: 'Liguria', label: 'Liguria' },
+        { value: 'Marche', label: 'Marche' },
+        { value: 'Abruzzo', label: 'Abruzzo' },
+        { value: 'Friuli-Venezia Giulia', label: 'Friuli-Venezia Giulia' },
+        { value: 'Trentino-Alto Adige', label: 'Trentino-Alto Adige' },
+        { value: 'Umbria', label: 'Umbria' },
+        { value: 'Basilicata', label: 'Basilicata' },
+        { value: 'Molise', label: 'Molise' },
+        { value: 'Aosta Valley', label: 'Aosta Valley' }
+      ],
+      'Spain': [
+        { value: 'Madrid|مدريد', label: 'Madrid / مدريد' },
+        { value: 'Catalonia|كاتالونيا', label: 'Catalonia / كاتالونيا' },
+        { value: 'Andalusia|الأندلس', label: 'Andalusia / الأندلس' },
+        { value: 'Valencia|فالنسيا', label: 'Valencia / فالنسيا' },
+        { value: 'Galicia', label: 'Galicia' },
+        { value: 'Castile and León', label: 'Castile and León' },
+        { value: 'Basque Country|إقليم الباسك', label: 'Basque Country / إقليم الباسك' },
+        { value: 'Canary Islands|جزر الكناري', label: 'Canary Islands / جزر الكناري' },
+        { value: 'Castilla-La Mancha', label: 'Castilla-La Mancha' },
+        { value: 'Murcia|مرسية', label: 'Murcia / مرسية' },
+        { value: 'Aragon', label: 'Aragon' },
+        { value: 'Extremadura', label: 'Extremadura' },
+        { value: 'Balearic Islands|جزر البليار', label: 'Balearic Islands / جزر البليار' },
+        { value: 'Asturias', label: 'Asturias' },
+        { value: 'Navarre', label: 'Navarre' },
+        { value: 'Cantabria', label: 'Cantabria' },
+        { value: 'La Rioja', label: 'La Rioja' }
+      ],
+      'Turkey': [
+        { value: 'Istanbul|إسطنبول', label: 'Istanbul / إسطنبول' },
+        { value: 'Ankara|أنقرة', label: 'Ankara / أنقرة' },
+        { value: 'Izmir|إزمير', label: 'Izmir / إزمير' },
+        { value: 'Bursa|بورصة', label: 'Bursa / بورصة' },
+        { value: 'Antalya|أنطاليا', label: 'Antalya / أنطاليا' },
+        { value: 'Adana|أضنة', label: 'Adana / أضنة' },
+        { value: 'Konya|قونية', label: 'Konya / قونية' },
+        { value: 'Gaziantep|غازي عنتاب', label: 'Gaziantep / غازي عنتاب' },
+        { value: 'Şanlıurfa|شانلي أورفا', label: 'Şanlıurfa / شانلي أورفا' },
+        { value: 'Kocaeli', label: 'Kocaeli' },
+        { value: 'Mersin', label: 'Mersin' },
+        { value: 'Diyarbakır|ديار بكر', label: 'Diyarbakır / ديار بكر' },
+        { value: 'Hatay', label: 'Hatay' },
+        { value: 'Manisa', label: 'Manisa' },
+        { value: 'Kayseri', label: 'Kayseri' },
+        { value: 'Samsun', label: 'Samsun' },
+        { value: 'Denizli', label: 'Denizli' },
+        { value: 'Trabzon|طرابزون', label: 'Trabzon / طرابزون' }
+      ],
+      'Other': [
+        { value: 'Not Listed', label: 'Not Listed / غير مدرج' }
+      ]
+    };
+
+    // Update governorate label based on country
+    const governorateLabelMap = {
+      'Egypt': 'Governorate / المحافظة',
+      'Saudi Arabia': 'Region / المنطقة',
+      'UAE': 'Emirate / الإمارة',
+      'Kuwait': 'Governorate / المحافظة',
+      'Qatar': 'Municipality / البلدية',
+      'Bahrain': 'Governorate / المحافظة',
+      'Oman': 'Governorate / المحافظة',
+      'Jordan': 'Governorate / المحافظة',
+      'Lebanon': 'Governorate / المحافظة',
+      'USA': 'State / الولاية',
+      'UK': 'Country / البلد',
+      'Canada': 'Province/Territory / المقاطعة',
+      'Australia': 'State/Territory / الولاية',
+      'Germany': 'State / الولاية',
+      'France': 'Region / المنطقة',
+      'Italy': 'Region / المنطقة',
+      'Spain': 'Community / المجتمع',
+      'Turkey': 'Province / المحافظة',
+      'Other': 'State/Province / الولاية/المحافظة'
+    };
+
+    // Function to update governorates based on selected country
+    function updateGovernorateOptions(country) {
+      const governorateField = document.getElementById('governorate');
+      const governorateLabel = document.getElementById('governorateLabel');
+      
+      if (!governorateField) return;
+
+      // Clear existing options
+      governorateField.innerHTML = '';
+      
+      if (!country || country === '') {
+        governorateField.disabled = true;
+        governorateField.innerHTML = '<option value="">Please select a country first / يرجى اختيار البلد أولاً</option>';
+        if (governorateLabel) {
+          governorateLabel.textContent = 'State/Province / الولاية/المحافظة';
+        }
+        return;
+      }
+
+      // Update label based on country
+      if (governorateLabel && governorateLabelMap[country]) {
+        governorateLabel.textContent = governorateLabelMap[country];
+      }
+
+      // Add placeholder option
+      const placeholderText = governorateLabelMap[country] || 'State/Province / الولاية/المحافظة';
+      governorateField.innerHTML = `<option value="">Select ${placeholderText.split('/')[0].trim()} / اختر ${placeholderText.split('/')[1].trim()}</option>`;
+
+      // Get regions for selected country
+      const regions = countryRegionsData[country] || [];
+      
+      if (regions.length === 0) {
+        governorateField.innerHTML = '<option value="Not Listed">Not Listed / غير مدرج</option>';
+        governorateField.disabled = false;
+        return;
+      }
+
+      // Add region options
+      regions.forEach(region => {
+        const option = document.createElement('option');
+        option.value = region.value;
+        option.textContent = region.label;
+        governorateField.appendChild(option);
+      });
+
+      governorateField.disabled = false;
+    }
+
+    // Function to update map center and autocomplete restrictions based on country
+    function updateMapForCountry(country) {
+      if (!map || !country) return;
+      
+      // Country code mapping for Google Maps API
+      const countryCodeMap = {
+        'Egypt': 'eg',
+        'Saudi Arabia': 'sa',
+        'UAE': 'ae',
+        'Kuwait': 'kw',
+        'Qatar': 'qa',
+        'Bahrain': 'bh',
+        'Oman': 'om',
+        'Jordan': 'jo',
+        'Lebanon': 'lb',
+        'USA': 'us',
+        'UK': 'gb',
+        'Canada': 'ca',
+        'Australia': 'au',
+        'Germany': 'de',
+        'France': 'fr',
+        'Italy': 'it',
+        'Spain': 'es',
+        'Turkey': 'tr'
+      };
+
+      // Update map center
+      const newCenter = countryCenterMap[country] || countryCenterMap['Egypt'];
+      map.setCenter(newCenter);
+      map.setZoom(6);
+
+      // Reinitialize autocomplete with new country restriction
+      const searchInput = document.getElementById('mapSearchInput');
+      if (searchInput && window.google && window.google.maps && window.google.maps.places) {
+        const countryCode = countryCodeMap[country] || 'eg';
+        
+        // Remove old autocomplete listeners
+        if (autocomplete) {
+          google.maps.event.clearInstanceListeners(autocomplete);
+        }
+        
+        // Create new autocomplete with updated country restriction
+        autocomplete = new google.maps.places.Autocomplete(searchInput, {
+          types: ['geocode', 'establishment'],
+          componentRestrictions: { country: countryCode },
+          fields: ['geometry', 'formatted_address', 'name', 'place_id']
+        });
+
+        // Re-attach place_changed listener
+        autocomplete.addListener('place_changed', function() {
+          const place = autocomplete.getPlace();
+          if (!place.geometry) {
+            showNotification('No details available for this place. Please try another location.', 'error');
+            return;
+          }
+
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          setLocationFromCoordinates(lat, lng, place.formatted_address || place.name);
+        });
+      }
+    }
+
+    // Add event listener to country field
+    if (countryField) {
+      countryField.addEventListener('change', function() {
+        updateGovernorateOptions(this.value);
+        updateCombinedAddress();
+        
+        // Update map center and autocomplete when country changes
+        updateMapForCountry(this.value);
+      });
+    }
+
+    // Set default country to Egypt and update governorates
     if (countryField && !countryField.value) {
       countryField.value = 'Egypt';
+      updateGovernorateOptions('Egypt');
+    } else if (countryField && countryField.value) {
+      // If country is already set, update governorates accordingly
+      updateGovernorateOptions(countryField.value);
     }
 
     // Original totals - ensure they are numbers
@@ -3999,6 +4473,28 @@ document.addEventListener('DOMContentLoaded', function() {
       font-size: 0.9rem;
       padding: 0.75rem 0.875rem;
     }
+  }
+
+  /* Disabled governorate field styling */
+  .checkout-form-control:disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .dark-theme .checkout-form-control:disabled {
+    background-color: #1f2937;
+    opacity: 0.5;
+  }
+
+  /* Country/Governorate transition effects */
+  .checkout-form-control {
+    transition: all 0.3s ease;
+  }
+
+  .checkout-form-control:not(:disabled):focus {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(184, 1, 1, 0.15);
   }
 </style>
 
