@@ -16,6 +16,7 @@ const {
   updateQuestion,
   deleteQuestion,
   duplicateQuestion,
+  bulkDeleteQuestions,
 
   // Search and Filter Routes
   searchQuestions,
@@ -52,6 +53,9 @@ router.post(
   isAdmin,
   duplicateQuestion
 );
+
+// Bulk delete questions
+router.delete('/banks/:bankCode/questions/bulk-delete', isAdmin, bulkDeleteQuestions);
 
 // Search and Filter Routes
 router.get('/banks/:bankCode/questions/search', isAdmin, searchQuestions);

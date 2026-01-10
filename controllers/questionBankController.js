@@ -983,6 +983,87 @@ const duplicateQuestion = async (req, res) => {
   }
 };
 
+// Bulk delete questions
+const bulkDeleteQuestions = async (req, res) => {
+  try {
+    const { bankCode } = req.params;
+    const { questionIds } = req.body;
+
+    // Validate input
+    if (!questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No question IDs provided'
+      });
+    }
+
+    const questionBank = await QuestionBank.findOne({ bankCode });
+    if (!questionBank) {
+      return res.status(404).json({
+        success: false,
+        message: 'Question bank not found'
+      });
+    }
+
+    // Verify all questions belong to this bank
+    const questions = await Question.find({
+      _id: { $in: questionIds },
+      bank: questionBank._id
+    });
+
+    if (questions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No valid questions found to delete'
+      });
+    }
+
+    const validQuestionIds = questions.map(q => q._id.toString());
+
+    // Delete the questions
+    const deleteResult = await Question.deleteMany({
+      _id: { $in: validQuestionIds },
+      bank: questionBank._id
+    });
+
+    // Remove questions from bank's questions array
+    questionBank.questions = questionBank.questions.filter(
+      qId => !validQuestionIds.includes(qId.toString())
+    );
+    await questionBank.save();
+
+    // Update question bank counts
+    await questionBank.updateQuestionCounts();
+
+    // Log admin action
+    await createLog(req, {
+      action: 'BULK_DELETE_QUESTIONS',
+      actionCategory: 'QUESTION_BANK_MANAGEMENT',
+      description: `Bulk deleted ${deleteResult.deletedCount} questions from bank "${questionBank.name}"`,
+      targetModel: 'QuestionBank',
+      targetId: questionBank._id.toString(),
+      targetName: questionBank.name,
+      metadata: {
+        bankCode: questionBank.bankCode,
+        deletedCount: deleteResult.deletedCount,
+        questionIds: validQuestionIds
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} questions`,
+      deletedCount: deleteResult.deletedCount
+    });
+  } catch (error) {
+    console.error('Error bulk deleting questions:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete questions: ' + error.message
+    });
+  }
+};
+
 // ==================== HELPER FUNCTIONS ====================
 
 // Get question bank statistics
@@ -1190,6 +1271,7 @@ module.exports = {
   updateQuestion,
   deleteQuestion,
   duplicateQuestion,
+  bulkDeleteQuestions,
   
   // Search and Filter Controllers
   searchQuestions,

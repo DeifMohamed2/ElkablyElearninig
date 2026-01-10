@@ -253,8 +253,20 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
     // If student has a startingOrder set, they can access courses from that order onwards
     // BUT they still need to complete previous courses sequentially
     if (bundleStartingOrder !== null) {
-      // If this course is before the startingOrder, it's locked
+      // If this course is before the startingOrder, check if student already has progress
       if (course.order < bundleStartingOrder) {
+        // Check if student has already started this course (has any progress)
+        const courseProgress = student.getCourseProgress(courseId);
+        
+        // If student has progress on this course, allow them to continue
+        if (courseProgress > 0) {
+          return {
+            unlocked: true,
+            reason: `Course already started with ${courseProgress}% progress - access allowed`,
+          };
+        }
+        
+        // No progress, course remains locked
         return {
           unlocked: false,
           reason: `You were enrolled from week ${bundleStartingOrder + 1}. This course is from an earlier week.`,

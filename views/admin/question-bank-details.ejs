@@ -351,13 +351,71 @@
             </div>
           </div>
 
+          <!-- Bulk Actions Toolbar -->
+          <div id="bulkActionsToolbar" class="bulk-actions-toolbar">
+            <div class="bulk-actions-left">
+              <button type="button" class="btn btn-bulk-toggle" id="toggleBulkModeBtn" onclick="toggleBulkSelectionMode()">
+                <i class="fas fa-check-square me-2"></i>
+                <span id="bulkModeText">Bulk Select</span>
+              </button>
+              
+              <div id="bulkSelectionControls" class="bulk-selection-controls" style="display: none;">
+                <div class="bulk-divider"></div>
+                
+                <button type="button" class="btn btn-bulk-action" onclick="selectAllQuestions()">
+                  <i class="fas fa-check-double me-1"></i> Select All
+                </button>
+                
+                <button type="button" class="btn btn-bulk-action" onclick="deselectAllQuestions()">
+                  <i class="fas fa-times me-1"></i> Deselect All
+                </button>
+                
+                <div class="bulk-divider"></div>
+                
+                <div class="bulk-select-by-tag">
+                  <select id="bulkSelectByTag" class="bulk-select-dropdown" onchange="selectQuestionsByTag(this.value)">
+                    <option value="">Select by Tag...</option>
+                    <!-- Tags will be populated dynamically -->
+                  </select>
+                </div>
+                
+                <div class="bulk-select-by-numbers">
+                  <input type="text" id="bulkSelectByNumbers" class="bulk-input" placeholder="e.g., 1,3,5-10" title="Enter question numbers (e.g., 1,3,5-10)">
+                  <button type="button" class="btn btn-bulk-action" onclick="selectQuestionsByNumbers()">
+                    <i class="fas fa-hashtag me-1"></i> Select
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div id="bulkActionsRight" class="bulk-actions-right" style="display: none;">
+              <span class="bulk-selected-count">
+                <i class="fas fa-check-circle me-1"></i>
+                <span id="selectedCount">0</span> selected
+              </span>
+              
+              <button type="button" class="btn btn-bulk-delete" onclick="showBulkDeleteConfirmation()">
+                <i class="fas fa-trash-alt me-2"></i>
+                Delete Selected
+              </button>
+            </div>
+          </div>
+
           <!-- Questions Grid -->
           <div id="questionsContainer" class="questions-grid">
             <% if (questions && questions.length > 0) { %>
             <% questions.forEach((question, index) => { %>
-            <div class="question-card-modern" data-question-id="<%= question._id %>" data-difficulty="<%= question.difficulty %>" data-tags="<%= question.tags ? question.tags.join(',') : '' %>" data-points="<%= question.points %>" data-created-at="<%= question.createdAt %>">
+            <div class="question-card-modern" data-question-id="<%= question._id %>" data-question-number="<%= index + 1 %>" data-difficulty="<%= question.difficulty %>" data-tags="<%= question.tags ? question.tags.join(',') : '' %>" data-points="<%= question.points %>" data-created-at="<%= question.createdAt %>">
 
               <div class="question-card-header">
+                <!-- Bulk Selection Checkbox -->
+                <div class="bulk-checkbox-wrapper" style="display: none;">
+                  <label class="bulk-checkbox-label">
+                    <input type="checkbox" class="bulk-question-checkbox" data-question-id="<%= question._id %>" onchange="handleQuestionCheckboxChange(this)">
+                    <span class="bulk-checkbox-custom"></span>
+                  </label>
+                </div>
+                
                 <div class="question-number">
                   <span class="question-num"><%= index + 1 %></span>
                 </div>
@@ -556,6 +614,51 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Confirm Bulk Delete
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="bulk-delete-warning">
+          <div class="warning-icon">
+            <i class="fas fa-trash-alt"></i>
+          </div>
+          <h4>You are about to delete <span id="bulkDeleteCount" class="text-danger fw-bold">0</span> questions</h4>
+          <p class="text-muted mb-4">This action cannot be undone. Please review the questions below before confirming.</p>
+        </div>
+        
+        <div class="bulk-delete-questions-list">
+          <div class="list-header d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">
+              <i class="fas fa-list me-2"></i>Questions to be deleted:
+            </h6>
+            <span class="badge bg-danger" id="bulkDeleteListCount">0 questions</span>
+          </div>
+          <div id="bulkDeleteQuestionsList" class="questions-to-delete">
+            <!-- Questions will be populated here -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmBulkDeleteBtn" onclick="executeBulkDelete()">
+          <i class="fas fa-trash-alt me-2"></i>
+          Delete <span id="confirmDeleteCount">0</span> Questions
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1002,6 +1105,15 @@
                     </div>
                   </div>
                   <div id="editQuestionImageProgress" class="progress-container" style="display: none;"></div>
+                  <!-- Image action buttons (shown when image exists) -->
+                  <div id="editQuestionImageActions" class="image-actions mt-2" style="display: none;">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeEditQuestionImage()">
+                      <i class="fas fa-trash-alt me-1"></i> Remove Image
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="document.getElementById('editQuestionImageFile').click()">
+                      <i class="fas fa-exchange-alt me-1"></i> Change Image
+                    </button>
+                  </div>
                 </div>
                 <input type="hidden" name="questionImage" id="editQuestionImageUrl">
               </div>
@@ -1107,23 +1219,23 @@
               </div>
 
               <div class="admin-form-group">
-                <label for="editTags" class="admin-form-label">
+                <label for="editQuestionTags" class="admin-form-label">
                   Tags
                   <span class="badge bg-info ms-2" style="font-size: 9px; font-weight: 500;">
                     <i class="fas fa-mouse-pointer"></i> Click to remove
                   </span>
                 </label>
-                <input type="text" class="form-control admin-form-control" id="editTags" name="tags" placeholder="Enter tags separated by commas">
-                <small class="form-text text-muted" id="editTagsHelp" style="display: block; margin-top: 5px;">
+                <input type="text" class="form-control admin-form-control" id="editQuestionTags" name="tags" placeholder="Enter tags separated by commas">
+                <small class="form-text text-muted" id="editQuestionTagsHelp" style="display: block; margin-top: 5px;">
                   <i class="fas fa-info-circle"></i> Separate multiple tags with commas. Tags will appear below for easy removal.
                 </small>
-                <div id="editTagsPreview" class="mt-2" style="display: none;">
+                <div id="editQuestionTagsPreview" class="mt-2" style="display: none;">
                   <!-- Tag preview will be shown here -->
                 </div>
 
                 <!-- Previous Tags Selection -->
                 <div id="previousTagsSection" style="display: none;">
-                  <label class="admin-form-label mt-3">Previous Tags</label>
+                  <label class="admin-form-label mt-3">Previous Tags (from this bank)</label>
                   <div id="previousTagsContainer" class="previous-tags-container">
                     <!-- Previous tags will be populated here -->
                   </div>
@@ -1724,7 +1836,7 @@
     document.getElementById('editQuestionText').value = '';
     document.getElementById('editHiddenQuestionText').value = '';
     document.getElementById('editExplanation').value = '';
-    document.getElementById('editTags').value = '';
+    document.getElementById('editQuestionTags').value = '';
     document.getElementById('editQuestionImageUrl').value = '';
     document.getElementById('editPoints').value = '1';
     
@@ -1744,7 +1856,7 @@
       answersContainer.innerHTML = '';
     }
     
-    // Clear image preview
+    // Clear image preview and reset file input
     const imagePreview = document.getElementById('editQuestionImagePreview');
     if (imagePreview) {
       imagePreview.innerHTML = `
@@ -1754,10 +1866,26 @@
           <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
         </div>
       `;
+      imagePreview.onmouseenter = null;
+      imagePreview.onmouseleave = null;
+    }
+    
+    // Reset file input
+    const fileInput = document.getElementById('editQuestionImageFile');
+    if (fileInput) {
+      fileInput.value = '';
+      delete fileInput.dataset.uploaded;
+      delete fileInput.dataset.localUrl;
+    }
+    
+    // Hide image action buttons
+    const imageActions = document.getElementById('editQuestionImageActions');
+    if (imageActions) {
+      imageActions.style.display = 'none';
     }
     
     // Clear tags preview
-    const tagsPreview = document.getElementById('editTagsPreview');
+    const tagsPreview = document.getElementById('editQuestionTagsPreview');
     if (tagsPreview) {
       tagsPreview.innerHTML = '';
       tagsPreview.style.display = 'none';
@@ -1793,6 +1921,46 @@
     if (tagsBadge) {
       tagsBadge.style.display = 'none';
     }
+  }
+
+  // Remove question image from edit form
+  function removeEditQuestionImage() {
+    // Clear the hidden URL field
+    const imageUrl = document.getElementById('editQuestionImageUrl');
+    if (imageUrl) {
+      imageUrl.value = '';
+    }
+    
+    // Reset file input
+    const fileInput = document.getElementById('editQuestionImageFile');
+    if (fileInput) {
+      fileInput.value = '';
+      delete fileInput.dataset.uploaded;
+      delete fileInput.dataset.localUrl;
+    }
+    
+    // Reset preview to default state
+    const imagePreview = document.getElementById('editQuestionImagePreview');
+    if (imagePreview) {
+      imagePreview.innerHTML = `
+        <div class="preview-overlay">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p>Click or drag to upload</p>
+          <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
+        </div>
+      `;
+      imagePreview.onmouseenter = null;
+      imagePreview.onmouseleave = null;
+    }
+    
+    // Hide the action buttons
+    const imageActions = document.getElementById('editQuestionImageActions');
+    if (imageActions) {
+      imageActions.style.display = 'none';
+    }
+    
+    // Show success notification
+    showNotification('Image removed. Save to apply changes.', 'info');
   }
 
   // Populate edit form directly with question data (no fetch - used for cached data)
@@ -1841,17 +2009,17 @@
           document.getElementById('editPoints').value = question.points;
           
           // Populate tags - ensure they're properly set
-          const editTagsInput = document.getElementById('editTags');
+          const editTagsInput = document.getElementById('editQuestionTags');
           if (editTagsInput) {
             if (question.tags && Array.isArray(question.tags) && question.tags.length > 0) {
               const tagsString = question.tags.join(', ');
               editTagsInput.value = tagsString;
-            // Store original tags as data attribute for reference
-            editTagsInput.setAttribute('data-original-tags', tagsString);
-          } else {
-            editTagsInput.value = '';
-            editTagsInput.setAttribute('data-original-tags', '');
-          }
+              // Store original tags as data attribute for reference
+              editTagsInput.setAttribute('data-original-tags', tagsString);
+            } else {
+              editTagsInput.value = '';
+              editTagsInput.setAttribute('data-original-tags', '');
+            }
             
             // Function to remove a tag with animation
             const removeEditTag = function(tagToRemove, badgeElement) {
@@ -1879,8 +2047,8 @@
             const updateTagsPreview = function() {
               const originalTags = editTagsInput.getAttribute('data-original-tags') || '';
               const currentTags = editTagsInput.value.trim();
-              const tagsPreview = document.getElementById('editTagsPreview');
-              const tagsHelp = document.getElementById('editTagsHelp');
+              const tagsPreview = document.getElementById('editQuestionTagsPreview');
+              const tagsHelp = document.getElementById('editQuestionTagsHelp');
               const tagsBadge = document.getElementById('editQuestionTagsBadge');
               const tagsCount = document.getElementById('editQuestionTagsCount');
               
@@ -1970,19 +2138,47 @@
             // Initial preview
             updateTagsPreview();
           } else {
-            console.error('editTags input not found');
+            console.error('editQuestionTags input not found');
           }
           
           // Populate and display question image
           const editQuestionImageUrl = document.getElementById('editQuestionImageUrl');
           const editQuestionImagePreview = document.getElementById('editQuestionImagePreview');
+          const editQuestionImageActions = document.getElementById('editQuestionImageActions');
+          const editQuestionImageFile = document.getElementById('editQuestionImageFile');
+          
+          // Reset the file input
+          if (editQuestionImageFile) {
+            editQuestionImageFile.value = '';
+            delete editQuestionImageFile.dataset.uploaded;
+            delete editQuestionImageFile.dataset.localUrl;
+          }
+          
           if (question.questionImage && question.questionImage.trim()) {
             if (editQuestionImageUrl) editQuestionImageUrl.value = question.questionImage;
-            // Display the image preview
+            // Display the image preview with proper styling
             if (editQuestionImagePreview) {
               editQuestionImagePreview.innerHTML = `
                 <img src="${question.questionImage}" alt="Question Image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                <div class="preview-overlay" style="opacity: 0; transition: opacity 0.3s;">
+                  <i class="fas fa-image"></i>
+                  <p>Current Image</p>
+                  <small>Click buttons below to change or remove</small>
+                </div>
               `;
+              // Add hover effect for overlay
+              editQuestionImagePreview.onmouseenter = function() {
+                const overlay = this.querySelector('.preview-overlay');
+                if (overlay) overlay.style.opacity = '1';
+              };
+              editQuestionImagePreview.onmouseleave = function() {
+                const overlay = this.querySelector('.preview-overlay');
+                if (overlay) overlay.style.opacity = '0';
+              };
+            }
+            // Show image action buttons
+            if (editQuestionImageActions) {
+              editQuestionImageActions.style.display = 'flex';
             }
           } else {
             if (editQuestionImageUrl) editQuestionImageUrl.value = '';
@@ -1994,6 +2190,12 @@
                   <small>JPEG, PNG, JPG, WebP (max 10MB)</small>
                 </div>
               `;
+              editQuestionImagePreview.onmouseenter = null;
+              editQuestionImagePreview.onmouseleave = null;
+            }
+            // Hide image action buttons
+            if (editQuestionImageActions) {
+              editQuestionImageActions.style.display = 'none';
             }
           }
           
@@ -2865,7 +3067,7 @@
         }
 
         // Explicitly ensure tags are included from the input field
-        const tagsInput = document.getElementById('editTags');
+        const tagsInput = document.getElementById('editQuestionTags');
         if (tagsInput) {
           const tagsValue = tagsInput.value.trim();
           const originalTags = tagsInput.getAttribute('data-original-tags') || '';
@@ -2894,7 +3096,7 @@
         } else {
           // If input not found, set empty string to preserve existing behavior
           jsonData.tags = '';
-          console.warn('editTags input not found, setting tags to empty string');
+          console.warn('editQuestionTags input not found, setting tags to empty string');
         }
 
         // Debug logging
@@ -3398,20 +3600,26 @@
   function setupEditModalTagHandlers() {
     // Use event delegation since the modal might not be in DOM initially
     document.addEventListener('focus', function(e) {
-      if (e.target && e.target.id === 'editTags') {
+      if (e.target && e.target.id === 'editQuestionTags') {
         // Ensure previous tags are loaded when user focuses on tags input
+        // Get current question's tags from the input
+        const currentTags = e.target.value.trim();
+        const tagsArray = currentTags ? currentTags.split(',').map(t => t.trim()).filter(t => t) : [];
         setTimeout(function() {
-          loadPreviousTags();
+          loadPreviousTags(tagsArray);
         }, 100);
       }
     }, true); // Use capture phase to catch the event early
 
     // Also handle click events
     document.addEventListener('click', function(e) {
-      if (e.target && e.target.id === 'editTags') {
+      if (e.target && e.target.id === 'editQuestionTags') {
         // Ensure previous tags are loaded when user clicks on tags input
+        // Get current question's tags from the input
+        const currentTags = e.target.value.trim();
+        const tagsArray = currentTags ? currentTags.split(',').map(t => t.trim()).filter(t => t) : [];
         setTimeout(function() {
-          loadPreviousTags();
+          loadPreviousTags(tagsArray);
         }, 100);
       }
     });
@@ -3663,9 +3871,9 @@
   // Add tag to input field (for edit modal)
   function addTagToInput(tag, element) {
     console.log('addTagToInput called with tag:', tag);
-    const tagsInput = document.getElementById('editTags');
+    const tagsInput = document.getElementById('editQuestionTags');
     if (!tagsInput) {
-      console.error('editTags input not found');
+      console.error('editQuestionTags input not found');
       return;
     }
 
@@ -3754,6 +3962,411 @@
     if (questionsCount) {
       questionsCount.textContent = remainingQuestions;
     }
+  }
+
+  // ==================== BULK SELECTION AND DELETE ====================
+  
+  let bulkSelectionMode = false;
+  let selectedQuestions = new Set();
+  
+  // Toggle bulk selection mode
+  function toggleBulkSelectionMode() {
+    bulkSelectionMode = !bulkSelectionMode;
+    
+    const bulkModeBtn = document.getElementById('toggleBulkModeBtn');
+    const bulkModeText = document.getElementById('bulkModeText');
+    const bulkSelectionControls = document.getElementById('bulkSelectionControls');
+    const bulkActionsRight = document.getElementById('bulkActionsRight');
+    const checkboxWrappers = document.querySelectorAll('.bulk-checkbox-wrapper');
+    const questionCards = document.querySelectorAll('.question-card-modern');
+    
+    if (bulkSelectionMode) {
+      // Enable bulk mode
+      bulkModeBtn.classList.add('active');
+      bulkModeText.textContent = 'Exit Bulk Mode';
+      bulkSelectionControls.style.display = 'flex';
+      
+      // Show checkboxes
+      checkboxWrappers.forEach(wrapper => {
+        wrapper.style.display = 'flex';
+      });
+      
+      // Add bulk-mode class to question cards
+      questionCards.forEach(card => {
+        card.classList.add('bulk-mode');
+      });
+      
+      // Populate tag dropdown
+      populateBulkTagDropdown();
+    } else {
+      // Disable bulk mode
+      bulkModeBtn.classList.remove('active');
+      bulkModeText.textContent = 'Bulk Select';
+      bulkSelectionControls.style.display = 'none';
+      bulkActionsRight.style.display = 'none';
+      
+      // Hide checkboxes
+      checkboxWrappers.forEach(wrapper => {
+        wrapper.style.display = 'none';
+      });
+      
+      // Remove bulk-mode class
+      questionCards.forEach(card => {
+        card.classList.remove('bulk-mode', 'selected');
+      });
+      
+      // Clear selection
+      deselectAllQuestions();
+    }
+  }
+  
+  // Populate bulk select by tag dropdown
+  function populateBulkTagDropdown() {
+    const dropdown = document.getElementById('bulkSelectByTag');
+    const allTags = new Set();
+    
+    document.querySelectorAll('.question-card-modern').forEach(card => {
+      const tags = card.getAttribute('data-tags');
+      if (tags && tags.trim()) {
+        tags.split(',').forEach(tag => {
+          const trimmed = tag.trim();
+          if (trimmed) allTags.add(trimmed);
+        });
+      }
+    });
+    
+    // Clear and rebuild options
+    dropdown.innerHTML = '<option value="">Select by Tag...</option>';
+    Array.from(allTags).sort().forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      dropdown.appendChild(option);
+    });
+  }
+  
+  // Handle checkbox change
+  function handleQuestionCheckboxChange(checkbox) {
+    const questionId = checkbox.dataset.questionId;
+    const card = checkbox.closest('.question-card-modern');
+    
+    if (checkbox.checked) {
+      selectedQuestions.add(questionId);
+      card.classList.add('selected');
+    } else {
+      selectedQuestions.delete(questionId);
+      card.classList.remove('selected');
+    }
+    
+    updateSelectedCount();
+  }
+  
+  // Update selected count display
+  function updateSelectedCount() {
+    const countElement = document.getElementById('selectedCount');
+    const bulkActionsRight = document.getElementById('bulkActionsRight');
+    
+    countElement.textContent = selectedQuestions.size;
+    
+    if (selectedQuestions.size > 0) {
+      bulkActionsRight.style.display = 'flex';
+    } else {
+      bulkActionsRight.style.display = 'none';
+    }
+  }
+  
+  // Select all visible questions
+  function selectAllQuestions() {
+    document.querySelectorAll('.question-card-modern:not([style*="display: none"])').forEach(card => {
+      const checkbox = card.querySelector('.bulk-question-checkbox');
+      if (checkbox && !checkbox.checked) {
+        checkbox.checked = true;
+        selectedQuestions.add(checkbox.dataset.questionId);
+        card.classList.add('selected');
+      }
+    });
+    updateSelectedCount();
+    showNotification(`Selected ${selectedQuestions.size} questions`, 'success');
+  }
+  
+  // Deselect all questions
+  function deselectAllQuestions() {
+    document.querySelectorAll('.bulk-question-checkbox').forEach(checkbox => {
+      checkbox.checked = false;
+    });
+    document.querySelectorAll('.question-card-modern').forEach(card => {
+      card.classList.remove('selected');
+    });
+    selectedQuestions.clear();
+    updateSelectedCount();
+  }
+  
+  // Select questions by tag
+  function selectQuestionsByTag(tag) {
+    if (!tag) return;
+    
+    let count = 0;
+    document.querySelectorAll('.question-card-modern').forEach(card => {
+      const cardTags = card.getAttribute('data-tags') || '';
+      const tagsArray = cardTags.split(',').map(t => t.trim().toLowerCase());
+      
+      if (tagsArray.includes(tag.toLowerCase())) {
+        const checkbox = card.querySelector('.bulk-question-checkbox');
+        if (checkbox && !checkbox.checked) {
+          checkbox.checked = true;
+          selectedQuestions.add(checkbox.dataset.questionId);
+          card.classList.add('selected');
+          count++;
+        }
+      }
+    });
+    
+    updateSelectedCount();
+    document.getElementById('bulkSelectByTag').value = '';
+    
+    if (count > 0) {
+      showNotification(`Selected ${count} questions with tag "${tag}"`, 'success');
+    } else {
+      showNotification(`No additional questions found with tag "${tag}"`, 'info');
+    }
+  }
+  
+  // Select questions by numbers (e.g., "1,3,5-10")
+  function selectQuestionsByNumbers() {
+    const input = document.getElementById('bulkSelectByNumbers');
+    const numbersStr = input.value.trim();
+    
+    if (!numbersStr) {
+      showNotification('Please enter question numbers', 'warning');
+      return;
+    }
+    
+    const numbers = parseNumberRanges(numbersStr);
+    if (numbers.length === 0) {
+      showNotification('Invalid number format. Use: 1,3,5-10', 'error');
+      return;
+    }
+    
+    let count = 0;
+    document.querySelectorAll('.question-card-modern').forEach(card => {
+      const questionNum = parseInt(card.getAttribute('data-question-number'));
+      
+      if (numbers.includes(questionNum)) {
+        const checkbox = card.querySelector('.bulk-question-checkbox');
+        if (checkbox && !checkbox.checked) {
+          checkbox.checked = true;
+          selectedQuestions.add(checkbox.dataset.questionId);
+          card.classList.add('selected');
+          count++;
+        }
+      }
+    });
+    
+    updateSelectedCount();
+    input.value = '';
+    
+    if (count > 0) {
+      showNotification(`Selected ${count} questions`, 'success');
+    } else {
+      showNotification('No additional questions found with those numbers', 'info');
+    }
+  }
+  
+  // Parse number ranges (e.g., "1,3,5-10" => [1,3,5,6,7,8,9,10])
+  function parseNumberRanges(str) {
+    const numbers = [];
+    const parts = str.split(',');
+    
+    parts.forEach(part => {
+      part = part.trim();
+      if (part.includes('-')) {
+        const [start, end] = part.split('-').map(n => parseInt(n.trim()));
+        if (!isNaN(start) && !isNaN(end) && start <= end) {
+          for (let i = start; i <= end; i++) {
+            if (!numbers.includes(i)) numbers.push(i);
+          }
+        }
+      } else {
+        const num = parseInt(part);
+        if (!isNaN(num) && !numbers.includes(num)) {
+          numbers.push(num);
+        }
+      }
+    });
+    
+    return numbers;
+  }
+  
+  // Show bulk delete confirmation modal
+  function showBulkDeleteConfirmation() {
+    if (selectedQuestions.size === 0) {
+      showNotification('Please select questions to delete', 'warning');
+      return;
+    }
+    
+    const count = selectedQuestions.size;
+    document.getElementById('bulkDeleteCount').textContent = count;
+    document.getElementById('bulkDeleteListCount').textContent = `${count} question${count !== 1 ? 's' : ''}`;
+    document.getElementById('confirmDeleteCount').textContent = count;
+    
+    // Populate questions list
+    const listContainer = document.getElementById('bulkDeleteQuestionsList');
+    listContainer.innerHTML = '';
+    
+    let questionIndex = 1;
+    selectedQuestions.forEach(questionId => {
+      const card = document.querySelector(`.question-card-modern[data-question-id="${questionId}"]`);
+      if (card) {
+        const questionNum = card.getAttribute('data-question-number');
+        const difficulty = card.getAttribute('data-difficulty');
+        const tags = card.getAttribute('data-tags') || 'No tags';
+        
+        // Get question text
+        let questionText = '';
+        const plainTextEl = card.querySelector('.question-text-plain');
+        const mathFieldEl = card.querySelector('.question-math-field');
+        if (plainTextEl) {
+          questionText = plainTextEl.textContent.trim();
+        } else if (mathFieldEl) {
+          questionText = mathFieldEl.textContent || mathFieldEl.getAttribute('data-question-text') || '';
+        }
+        questionText = questionText.substring(0, 80) + (questionText.length > 80 ? '...' : '');
+        
+        const item = document.createElement('div');
+        item.className = 'delete-question-item';
+        item.innerHTML = `
+          <div class="delete-question-header">
+            <span class="delete-question-num">#${questionNum}</span>
+            <span class="delete-question-difficulty difficulty-${difficulty.toLowerCase()}">${difficulty}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="removeFromBulkDelete('${questionId}')">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="delete-question-text">${questionText}</div>
+          <div class="delete-question-tags">
+            <i class="fas fa-tags me-1"></i>${tags || 'No tags'}
+          </div>
+        `;
+        listContainer.appendChild(item);
+        questionIndex++;
+      }
+    });
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('bulkDeleteModal'));
+    modal.show();
+  }
+  
+  // Remove a question from bulk delete selection
+  function removeFromBulkDelete(questionId) {
+    selectedQuestions.delete(questionId);
+    
+    // Update checkbox and card
+    const card = document.querySelector(`.question-card-modern[data-question-id="${questionId}"]`);
+    if (card) {
+      const checkbox = card.querySelector('.bulk-question-checkbox');
+      if (checkbox) checkbox.checked = false;
+      card.classList.remove('selected');
+    }
+    
+    // Update modal
+    const count = selectedQuestions.size;
+    if (count === 0) {
+      // Close modal if no questions left
+      const modal = bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal'));
+      modal.hide();
+      updateSelectedCount();
+      showNotification('All questions removed from selection', 'info');
+      return;
+    }
+    
+    document.getElementById('bulkDeleteCount').textContent = count;
+    document.getElementById('bulkDeleteListCount').textContent = `${count} question${count !== 1 ? 's' : ''}`;
+    document.getElementById('confirmDeleteCount').textContent = count;
+    
+    // Remove item from list
+    const item = document.querySelector(`.delete-question-item button[onclick*="${questionId}"]`);
+    if (item) {
+      item.closest('.delete-question-item').remove();
+    }
+    
+    updateSelectedCount();
+  }
+  
+  // Execute bulk delete
+  async function executeBulkDelete() {
+    if (selectedQuestions.size === 0) return;
+    
+    const confirmBtn = document.getElementById('confirmBulkDeleteBtn');
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+    confirmBtn.disabled = true;
+    
+    const questionIds = Array.from(selectedQuestions);
+    
+    try {
+      const response = await fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/bulk-delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ questionIds })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal'));
+        modal.hide();
+        
+        // Remove deleted questions from DOM
+        questionIds.forEach(id => {
+          const card = document.querySelector(`.question-card-modern[data-question-id="${id}"]`);
+          if (card) {
+            card.style.animation = 'fadeOutUp 0.3s ease forwards';
+            setTimeout(() => card.remove(), 300);
+          }
+        });
+        
+        // Clear selection
+        selectedQuestions.clear();
+        updateSelectedCount();
+        
+        // Update question numbers
+        setTimeout(() => {
+          updateQuestionNumbers();
+          reinitializeQuestionsArray();
+          updateQuestionsCount();
+        }, 350);
+        
+        showNotification(`Successfully deleted ${data.deletedCount} questions`, 'success');
+        
+        // Exit bulk mode
+        toggleBulkSelectionMode();
+      } else {
+        showNotification(data.message || 'Failed to delete questions', 'error');
+      }
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      showNotification('An error occurred while deleting questions', 'error');
+    } finally {
+      confirmBtn.innerHTML = originalText;
+      confirmBtn.disabled = false;
+    }
+  }
+  
+  // Update question numbers after deletion
+  function updateQuestionNumbers() {
+    const cards = document.querySelectorAll('.question-card-modern');
+    cards.forEach((card, index) => {
+      const numElement = card.querySelector('.question-num');
+      if (numElement) {
+        numElement.textContent = index + 1;
+      }
+      card.setAttribute('data-question-number', index + 1);
+    });
   }
 
   // ==================== REAL-TIME SEARCH AND FILTERING ====================
@@ -5045,6 +5658,32 @@
       );
     }
     
+    // Add listener to show action buttons when file is uploaded
+    const editImageFileInput = document.getElementById('editQuestionImageFile');
+    if (editImageFileInput && !editImageFileInput.dataset.listenerAdded) {
+      editImageFileInput.dataset.listenerAdded = 'true';
+      
+      editImageFileInput.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+          // Poll for upload completion (dataset.uploaded becomes 'true')
+          const checkUploadInterval = setInterval(function() {
+            if (editImageFileInput.dataset.uploaded === 'true') {
+              clearInterval(checkUploadInterval);
+              const imageActions = document.getElementById('editQuestionImageActions');
+              if (imageActions) {
+                imageActions.style.display = 'flex';
+              }
+            }
+          }, 500);
+          
+          // Clear interval after 30 seconds as fallback
+          setTimeout(function() {
+            clearInterval(checkUploadInterval);
+          }, 30000);
+        }
+      });
+    }
+    
     // Load previous tags with a small delay to ensure DOM is ready
     setTimeout(function() {
       loadPreviousTags();
@@ -5687,6 +6326,403 @@
 </script>
 
 <style>
+  /* ==================== BULK ACTIONS STYLES ==================== */
+  
+  .bulk-actions-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  
+  .bulk-actions-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .bulk-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .btn-bulk-toggle {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+  
+  .btn-bulk-toggle:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  }
+  
+  .btn-bulk-toggle.active {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  }
+  
+  .btn-bulk-toggle.active:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  }
+  
+  .bulk-selection-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .bulk-divider {
+    width: 1px;
+    height: 30px;
+    background: #cbd5e1;
+    margin: 0 5px;
+  }
+  
+  .btn-bulk-action {
+    background: white;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-bulk-action:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #94a3b8;
+  }
+  
+  .bulk-select-dropdown {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    min-width: 160px;
+    background: white;
+    cursor: pointer;
+  }
+  
+  .bulk-select-dropdown:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  
+  .bulk-select-by-numbers {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .bulk-input {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 140px;
+  }
+  
+  .bulk-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  
+  .bulk-selected-count {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .btn-bulk-delete {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  }
+  
+  .btn-bulk-delete:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  }
+  
+  /* Bulk Checkbox Styles */
+  .bulk-checkbox-wrapper {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+  }
+  
+  .bulk-checkbox-label {
+    position: relative;
+    cursor: pointer;
+    margin: 0;
+  }
+  
+  .bulk-question-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+  
+  .bulk-checkbox-custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border: 2px solid #cbd5e1;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  
+  .bulk-checkbox-custom::after {
+    content: '✓';
+    display: none;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  .bulk-question-checkbox:checked + .bulk-checkbox-custom {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-color: #4f46e5;
+  }
+  
+  .bulk-question-checkbox:checked + .bulk-checkbox-custom::after {
+    display: block;
+  }
+  
+  .bulk-checkbox-label:hover .bulk-checkbox-custom {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  
+  /* Question Card in Bulk Mode */
+  .question-card-modern.bulk-mode {
+    transition: all 0.2s ease;
+  }
+  
+  .question-card-modern.bulk-mode:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  .question-card-modern.selected {
+    border: 2px solid #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.1) 100%);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  }
+  
+  .question-card-modern.bulk-mode .question-card-header {
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Bulk Delete Modal Styles */
+  .bulk-delete-warning {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .bulk-delete-warning .warning-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+  }
+  
+  .bulk-delete-warning .warning-icon i {
+    color: white;
+    font-size: 24px;
+  }
+  
+  .questions-to-delete {
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f9fafb;
+  }
+  
+  .delete-question-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .delete-question-item:last-child {
+    margin-bottom: 0;
+  }
+  
+  .delete-question-item:hover {
+    border-color: #dc2626;
+    background: #fef2f2;
+  }
+  
+  .delete-question-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  
+  .delete-question-num {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 14px;
+  }
+  
+  .delete-question-difficulty {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  
+  .delete-question-difficulty.difficulty-easy {
+    background: #dcfce7;
+    color: #166534;
+  }
+  
+  .delete-question-difficulty.difficulty-medium {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .delete-question-difficulty.difficulty-hard {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .delete-question-text {
+    font-size: 13px;
+    color: #475569;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+  
+  .delete-question-tags {
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  
+  /* Animation for deleted items */
+  @keyframes fadeOutUp {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .bulk-actions-toolbar {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .bulk-selection-controls {
+      flex-wrap: wrap;
+    }
+    
+    .bulk-divider {
+      display: none;
+    }
+    
+    .bulk-select-by-numbers {
+      width: 100%;
+    }
+    
+    .bulk-input {
+      flex: 1;
+    }
+  }
+  
+  /* Image action buttons styling */
+  .image-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+    border: 1px dashed rgba(0, 0, 0, 0.1);
+  }
+  
+  .image-actions .btn {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  
+  .image-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .image-actions .btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .image-actions .btn-outline-primary:hover {
+    background-color: #007bff;
+    color: white;
+  }
+  
   /* Math field styles for preview */
   .preview-math-field {
     background: #f8f9fa !important;
