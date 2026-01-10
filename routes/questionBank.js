@@ -41,6 +41,11 @@ router.get('/banks/:bankCode', isAdmin, getQuestionBank);
 // Question Routes within a Bank
 router.get('/banks/:bankCode/questions', isAdmin, getQuestions);
 router.post('/banks/:bankCode/questions/create', isAdmin, createQuestion);
+
+// Bulk delete questions - MUST be before :questionId route to avoid route conflict
+router.delete('/banks/:bankCode/questions/bulk-delete', isAdmin, bulkDeleteQuestions);
+
+// Single question routes (must come after specific routes like bulk-delete)
 router.get('/banks/:bankCode/questions/:questionId', isAdmin, getQuestion);
 router.put('/banks/:bankCode/questions/:questionId', isAdmin, updateQuestion);
 router.delete(
@@ -53,9 +58,6 @@ router.post(
   isAdmin,
   duplicateQuestion
 );
-
-// Bulk delete questions
-router.delete('/banks/:bankCode/questions/bulk-delete', isAdmin, bulkDeleteQuestions);
 
 // Search and Filter Routes
 router.get('/banks/:bankCode/questions/search', isAdmin, searchQuestions);

@@ -2,6 +2,7 @@ const QuestionBank = require('../models/QuestionBank');
 const Question = require('../models/Question');
 const Admin = require('../models/Admin');
 const { createLog } = require('../middlewares/adminLogger');
+const mongoose = require('mongoose');
 
 // ==================== QUESTION BANK CONTROLLERS ====================
 
@@ -1005,9 +1006,21 @@ const bulkDeleteQuestions = async (req, res) => {
       });
     }
 
+    // Convert questionIds to ObjectIds and filter out invalid ones
+    const validObjectIds = questionIds
+      .filter(id => mongoose.Types.ObjectId.isValid(id))
+      .map(id => new mongoose.Types.ObjectId(id));
+
+    if (validObjectIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid question IDs provided'
+      });
+    }
+
     // Verify all questions belong to this bank
     const questions = await Question.find({
-      _id: { $in: questionIds },
+      _id: { $in: validObjectIds },
       bank: questionBank._id
     });
 
@@ -1018,7 +1031,8 @@ const bulkDeleteQuestions = async (req, res) => {
       });
     }
 
-    const validQuestionIds = questions.map(q => q._id.toString());
+    const validQuestionIds = questions.map(q => q._id);
+    const validQuestionIdStrings = validQuestionIds.map(id => id.toString());
 
     // Delete the questions
     const deleteResult = await Question.deleteMany({
@@ -1028,7 +1042,7 @@ const bulkDeleteQuestions = async (req, res) => {
 
     // Remove questions from bank's questions array
     questionBank.questions = questionBank.questions.filter(
-      qId => !validQuestionIds.includes(qId.toString())
+      qId => !validQuestionIdStrings.includes(qId.toString())
     );
     await questionBank.save();
 
@@ -1046,7 +1060,7 @@ const bulkDeleteQuestions = async (req, res) => {
       metadata: {
         bankCode: questionBank.bankCode,
         deletedCount: deleteResult.deletedCount,
-        questionIds: validQuestionIds
+        questionIds: validQuestionIdStrings
       },
     });
 
