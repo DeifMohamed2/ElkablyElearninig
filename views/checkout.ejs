@@ -2525,9 +2525,10 @@ document.addEventListener('DOMContentLoaded', function() {
   let checkoutTermsVideoIsPlaying = false;
   let checkoutTermsVideoCompleted = false;
   let checkoutTermsVideoLastTime = 0;
+  
+  // Initialize Terms Video Anti-Skip Tracking - Variables must be outside function to persist
   let checkoutLastUpdateTimestamp = Date.now();
   let checkoutIsSeeking = false;
-  const CHECKOUT_TERMS_VIDEO_REQUIRED_PERCENTAGE = 100; // Must watch 100% (no skipping allowed)
   
   // Modal Elements
   const checkoutModal = document.getElementById('checkoutReadingModal');
@@ -2749,30 +2750,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const now = Date.now();
         const timeSinceLastUpdate = now - checkoutLastUpdateTimestamp;
         const timeDiff = currentTime - checkoutTermsVideoLastTime;
+        const SKIP_TOLERANCE = 2; // seconds
         
-        // Only check for skips if video is playing
+        // Check for skips regardless of playing state (catches timeline clicks, etc.)
+        // Check for forward skip: current time jumped ahead significantly beyond what's been watched
+        if (currentTime > checkoutTermsVideoMaxWatched + SKIP_TOLERANCE) {
+          // User tried to skip ahead - seek back silently
+          checkoutIsSeeking = true;
+          checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
+          setTimeout(() => { checkoutIsSeeking = false; }, 100);
+          return;
+        }
+        
+        // Check for backward skip: only prevent if significantly behind max watched (more than 1 second)
+        if (currentTime < checkoutTermsVideoMaxWatched - 1) {
+          // User tried to go backward - prevent it silently
+          checkoutIsSeeking = true;
+          checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
+          setTimeout(() => { checkoutIsSeeking = false; }, 100);
+          return;
+        }
+        
+        // Only update max watched time if video is playing forward normally
         if (checkoutTermsVideoIsPlaying) {
           // Calculate expected time advancement based on elapsed time (allow 10% tolerance for buffering)
           const expectedAdvancement = (timeSinceLastUpdate / 1000) * 1.1; // 1.1x for tolerance
-          
-          // Check for forward skip: current time jumped ahead significantly beyond what's been watched
-          // Only prevent if jump is more than 2 seconds AND beyond max watched time
-          if (currentTime > checkoutTermsVideoMaxWatched + 2 && timeDiff > expectedAdvancement + 1) {
-            // User tried to skip ahead - seek back silently
-            checkoutIsSeeking = true;
-            checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
-            setTimeout(() => { checkoutIsSeeking = false; }, 100);
-            return;
-          }
-          
-          // Check for backward skip: only prevent if significantly behind max watched (more than 1 second)
-          if (currentTime < checkoutTermsVideoMaxWatched - 1) {
-            // User tried to go backward - prevent it silently
-            checkoutIsSeeking = true;
-            checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
-            setTimeout(() => { checkoutIsSeeking = false; }, 100);
-            return;
-          }
           
           // Update max watched time if playing forward normally
           // Allow small jumps (up to 2 seconds) for buffering/loading
@@ -2797,7 +2799,7 @@ document.addEventListener('DOMContentLoaded', function() {
               videoStatusText.textContent = '✓ Video watched completely! You can now proceed.';
             }
           }
-          // Enable confirm button if scrolled to bottom
+          // Enable confirm button immediately (video completion is sufficient)
           checkCheckoutTermsCompletion();
         }
       });
@@ -2814,6 +2816,7 @@ document.addEventListener('DOMContentLoaded', function() {
             videoStatusText.textContent = '✓ Video watched completely! You can now proceed.';
           }
         }
+        // Enable confirm button immediately (video completion is sufficient)
         checkCheckoutTermsCompletion();
       });
       
@@ -2822,9 +2825,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Check if checkout terms can be completed (scrolled to bottom AND video completed)
+  // Check if checkout terms can be completed (video completed is sufficient - no scroll required)
   function checkCheckoutTermsCompletion() {
-    if (checkoutHasScrolledToBottom && checkoutTermsVideoCompleted && checkoutModal && checkoutModal.classList.contains('active')) {
+    // Only enable buttons if:
+    // 1. Video is completed (this is the main requirement)
+    // 2. Modal is actually active
+    // Note: Scrolling to bottom is NOT required - video completion is enough
+    if (checkoutTermsVideoCompleted && checkoutModal && checkoutModal.classList.contains('active')) {
       if (checkoutCloseModalBtn) {
         checkoutCloseModalBtn.disabled = false;
         if (checkoutModalLang === 'ar') {
@@ -2835,11 +2842,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       if (checkoutConfirmReadBtn) {
         checkoutConfirmReadBtn.disabled = false;
+        checkoutConfirmReadBtn.style.opacity = '1';
+        checkoutConfirmReadBtn.style.cursor = 'pointer';
       }
-    } else if (!checkoutHasScrolledToBottom || !checkoutTermsVideoCompleted) {
-      // Ensure buttons are disabled if requirements not met
+    } else if (!checkoutTermsVideoCompleted) {
+      // Ensure buttons are disabled if video not completed
       if (checkoutCloseModalBtn) checkoutCloseModalBtn.disabled = true;
-      if (checkoutConfirmReadBtn) checkoutConfirmReadBtn.disabled = true;
+      if (checkoutConfirmReadBtn) {
+        checkoutConfirmReadBtn.disabled = true;
+        checkoutConfirmReadBtn.style.opacity = '0.5';
+        checkoutConfirmReadBtn.style.cursor = 'not-allowed';
+      }
     }
   }
   
@@ -2967,17 +2980,18 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
-    // Check if user has scrolled to the bottom
+    // Check if user has scrolled to the bottom (with 10px threshold)
     if (scrollTop + clientHeight >= scrollHeight - 10) {
       checkoutHasScrolledToBottom = true;
       updateCheckoutProgressText();
-      // Check if terms can be completed (requires video completion too)
-      checkCheckoutTermsCompletion();
+      
     } else {
-      // If not at bottom, ensure buttons are disabled
-      if (checkoutCloseModalBtn) checkoutCloseModalBtn.disabled = true;
-      if (checkoutConfirmReadBtn) checkoutConfirmReadBtn.disabled = true;
+      checkoutHasScrolledToBottom = false;
     }
+    
+    // Always check completion status (video completion is the main requirement, not scrolling)
+    // This allows button to be enabled as soon as video completes, regardless of scroll position
+    checkCheckoutTermsCompletion();
   }
   
   // Close Modal Function
@@ -2989,9 +3003,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Confirm Read Function
   function confirmCheckoutRead() {
-    if (!checkoutHasScrolledToBottom) return;
-    
-    // Also require video completion
+    // Only require video completion (scrolling is not required)
     if (!checkoutTermsVideoCompleted) {
       const videoStatus = document.getElementById('checkoutVideoWatchStatus');
       const videoStatusText = document.getElementById('checkoutVideoWatchStatusText');
@@ -3090,12 +3102,10 @@ document.addEventListener('DOMContentLoaded', function() {
           if (checkoutModalContent) {
             checkoutModalContent.scrollTop = currentScrollTop;
             updateCheckoutScrollProgress();
-            if (wasAtBottom && checkoutModalContent.scrollTop + checkoutModalContent.clientHeight >= checkoutModalContent.scrollHeight - 10) {
-              checkoutHasScrolledToBottom = true;
-              // Reinitialize video after language change
-              setTimeout(initCheckoutTermsVideoTracking, 100);
-              checkCheckoutTermsCompletion();
-            }
+            // Reinitialize video after language change
+            setTimeout(initCheckoutTermsVideoTracking, 100);
+            // Check completion (video completion is the main requirement)
+            checkCheckoutTermsCompletion();
           }
         }, 50);
       }
