@@ -226,10 +226,10 @@ const sendOTP = async (req, res) => {
     try {
       if (isEgyptian) {
         // Send via SMS for Egyptian numbers
-        await sendSms({
-          recipient: fullPhoneNumber,
-          message: message,
-        });
+        // await sendSms({
+        //   recipient: fullPhoneNumber,
+        //   message: message,
+        // });
         console.log(`OTP sent via SMS to ${fullPhoneNumber} for ${type}`);
       } else {
         // Send via WhatsApp for non-Egyptian numbers

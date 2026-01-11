@@ -4333,6 +4333,52 @@ document.addEventListener('DOMContentLoaded', function() {
   font-size: 0.95rem;
 }
 
+/* Terms Video Container Styles */
+.terms-video-container {
+  margin: 20px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: #000;
+}
+
+.terms-video-container iframe {
+  border-radius: 12px;
+}
+
+.video-watch-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.video-watch-status i {
+  color: #dc2626;
+  font-size: 1.1rem;
+}
+
+.video-watch-status.watching {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-left: 3px solid #0284c7;
+}
+
+.video-watch-status.watching i {
+  color: #0284c7;
+}
+
+.video-watch-status.completed {
+  background: #d1fae5;
+  color: #065f46;
+  border-left: 3px solid #10b981;
+}
+
+.video-watch-status.completed i {
+  color: #10b981;
+}
+
 /* Dark theme for modal content */
 .dark-theme .modal-document-content {
   color: #d1d5db;
@@ -4489,6 +4535,9 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
+<!-- PlayerJS Library for Video Control -->
+<script src="https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js"></script>
+
 <!-- Modal Reading Tracking Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -4497,6 +4546,16 @@ document.addEventListener('DOMContentLoaded', function() {
     terms: false,
     privacy: false
   };
+  
+  // Video tracking variables (for terms video)
+  let termsVideoPlayer = null;
+  let termsVideoDuration = 0;
+  let termsVideoWatchedTime = 0;
+  let termsVideoMaxWatched = 0;
+  let termsVideoIsPlaying = false;
+  let termsVideoCompleted = false;
+  let termsVideoLastTime = 0;
+  const TERMS_VIDEO_REQUIRED_PERCENTAGE = 100; // Must watch 100% (no skipping allowed)
   
   // Modal Elements
   const modal = document.getElementById('readingModal');
@@ -4584,6 +4643,19 @@ document.addEventListener('DOMContentLoaded', function() {
           <li><i class="fas fa-check-circle"></i> For online sessions, <strong>the microphone must be on</strong> to ensure active participation with Mr. Kably.</li>
           <li><i class="fas fa-check-circle"></i> <strong>The camera must be on</strong> during the session for better interaction and communication.</li>
         </ul>
+      </div>
+      
+      <div class="document-section">
+        <h3><span class="section-number">6</span> Important Video (Anti-Skip)</h3>
+        <p><strong>Please watch the following video completely. Skipping is not allowed.</strong></p>
+        <div class="terms-video-container" id="termsVideoContainer">
+          <div style="position:relative;padding-top:56.25%;">
+            <iframe id="termsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=false" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
+          </div>
+          <div class="video-watch-status" id="videoWatchStatus" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
+            <i class="fas fa-info-circle"></i> <span id="videoWatchStatusText">Video must be watched completely to proceed.</span>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -4682,6 +4754,14 @@ document.addEventListener('DOMContentLoaded', function() {
     currentDocument = type;
     hasScrolledToBottom = false;
     
+    // Reset video completion state when opening a new modal
+    // Only reset if opening Terms (to allow re-watching if needed)
+    // For Privacy, ensure video state doesn't affect it
+    if (type === 'privacy') {
+      // Privacy doesn't have video, so ensure video state doesn't interfere
+      termsVideoCompleted = false;
+    }
+    
     // Reset progress
     readingProgressFill.style.width = '0%';
     if (progressPercentage) progressPercentage.textContent = '0%';
@@ -4689,9 +4769,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Apply language to modal (this will set content and title)
     applyModalLanguage(modalLang);
     
-    // Reset buttons
+    // Reset buttons - ALWAYS disable when opening a modal
     closeModalBtn.disabled = true;
     confirmReadBtn.disabled = true;
+    confirmReadBtn.style.opacity = '0.5';
+    confirmReadBtn.style.cursor = 'not-allowed';
     if (modalLang === 'ar') {
       closeModalBtn.title = 'يرجى القراءة حتى النهاية';
     } else {
@@ -4707,6 +4789,186 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update scroll tracking
     updateScrollProgress();
+    
+    // Initialize video tracking if this is terms modal
+    if (type === 'terms') {
+      setTimeout(initTermsVideoTracking, 500);
+    } else {
+      // Clean up video player if switching to privacy
+      if (termsVideoPlayer) {
+        termsVideoPlayer = null;
+      }
+    }
+  }
+  
+  // Initialize Terms Video Anti-Skip Tracking
+  let lastUpdateTimestamp = Date.now();
+  let isSeeking = false;
+  
+  function initTermsVideoTracking() {
+    const videoIframe = document.getElementById('termsVideoIframe');
+    const videoStatus = document.getElementById('videoWatchStatus');
+    const videoStatusText = document.getElementById('videoWatchStatusText');
+    
+    if (!videoIframe) return;
+    
+    // Reset video tracking
+    termsVideoCompleted = false;
+    termsVideoWatchedTime = 0;
+    termsVideoMaxWatched = 0;
+    termsVideoLastTime = 0;
+    termsVideoIsPlaying = false;
+    lastUpdateTimestamp = Date.now();
+    isSeeking = false;
+    
+    // Show status
+    if (videoStatus) {
+      videoStatus.style.display = 'flex';
+      videoStatus.className = 'video-watch-status';
+      if (modalLang === 'ar') {
+        videoStatusText.textContent = 'يجب مشاهدة الفيديو بالكامل للمتابعة. التخطي غير مسموح.';
+      } else {
+        videoStatusText.textContent = 'Video must be watched completely to proceed. Skipping is not allowed.';
+      }
+    }
+    
+    // Wait for playerjs to be available
+    if (typeof playerjs === 'undefined') {
+      console.error('PlayerJS library not loaded');
+      return;
+    }
+    
+    try {
+      termsVideoPlayer = new playerjs.Player(videoIframe);
+      
+      termsVideoPlayer.on('ready', function() {
+        termsVideoPlayer.getDuration(function(duration) {
+          termsVideoDuration = duration;
+          console.log('📹 Terms video duration:', termsVideoDuration);
+        });
+      });
+      
+      termsVideoPlayer.on('play', function() {
+        termsVideoIsPlaying = true;
+        if (videoStatus) {
+          videoStatus.className = 'video-watch-status watching';
+          if (modalLang === 'ar') {
+            videoStatusText.textContent = 'جاري المشاهدة... يرجى مشاهدة الفيديو حتى النهاية.';
+          } else {
+            videoStatusText.textContent = 'Watching... Please watch the video until the end.';
+          }
+        }
+      });
+      
+      termsVideoPlayer.on('pause', function() {
+        termsVideoIsPlaying = false;
+      });
+      
+      // STRICT ANTI-SKIP: Track time updates with smart tolerance
+      termsVideoPlayer.on('timeupdate', function(data) {
+        if (termsVideoCompleted || isSeeking) return;
+        
+        const currentTime = data.seconds;
+        const now = Date.now();
+        const timeSinceLastUpdate = now - lastUpdateTimestamp;
+        const timeDiff = currentTime - termsVideoLastTime;
+        
+        // Only check for skips if video is playing
+        if (termsVideoIsPlaying) {
+          // Calculate expected time advancement based on elapsed time (allow 10% tolerance for buffering)
+          const expectedAdvancement = (timeSinceLastUpdate / 1000) * 1.1; // 1.1x for tolerance
+          
+          // Check for forward skip: current time jumped ahead significantly beyond what's been watched
+          // Only prevent if jump is more than 2 seconds AND beyond max watched time
+          if (currentTime > termsVideoMaxWatched + 2 && timeDiff > expectedAdvancement + 1) {
+            // User tried to skip ahead - seek back silently
+            isSeeking = true;
+            termsVideoPlayer.setCurrentTime(termsVideoMaxWatched);
+            setTimeout(() => { isSeeking = false; }, 100);
+            return;
+          }
+          
+          // Check for backward skip: only prevent if significantly behind max watched (more than 1 second)
+          if (currentTime < termsVideoMaxWatched - 1) {
+            // User tried to go backward - prevent it silently
+            isSeeking = true;
+            termsVideoPlayer.setCurrentTime(termsVideoMaxWatched);
+            setTimeout(() => { isSeeking = false; }, 100);
+            return;
+          }
+          
+          // Update max watched time if playing forward normally
+          // Allow small jumps (up to 2 seconds) for buffering/loading
+          if (currentTime > termsVideoLastTime && timeDiff >= 0 && timeDiff <= 2.0) {
+            if (currentTime > termsVideoMaxWatched) {
+              termsVideoMaxWatched = currentTime;
+            }
+          }
+        }
+        
+        termsVideoLastTime = currentTime;
+        lastUpdateTimestamp = now;
+        
+        // Check if video is completed (watched 100%)
+        if (termsVideoDuration > 0 && termsVideoMaxWatched >= termsVideoDuration * 0.99) {
+          termsVideoCompleted = true;
+          if (videoStatus) {
+            videoStatus.className = 'video-watch-status completed';
+            if (modalLang === 'ar') {
+              videoStatusText.textContent = '✓ تمت مشاهدة الفيديو بالكامل! يمكنك الآن المتابعة.';
+            } else {
+              videoStatusText.textContent = '✓ Video watched completely! You can now proceed.';
+            }
+          }
+          // Enable confirm button if scrolled to bottom
+          checkTermsCompletion();
+        }
+      });
+      
+      // Handle video end
+      termsVideoPlayer.on('ended', function() {
+        termsVideoCompleted = true;
+        termsVideoMaxWatched = termsVideoDuration;
+        if (videoStatus) {
+          videoStatus.className = 'video-watch-status completed';
+          if (modalLang === 'ar') {
+            videoStatusText.textContent = '✓ تمت مشاهدة الفيديو بالكامل! يمكنك الآن المتابعة.';
+          } else {
+            videoStatusText.textContent = '✓ Video watched completely! You can now proceed.';
+          }
+        }
+        checkTermsCompletion();
+      });
+      
+    } catch (error) {
+      console.error('Error initializing terms video player:', error);
+    }
+  }
+  
+  // Check if terms can be completed (scrolled to bottom AND video completed)
+  function checkTermsCompletion() {
+    // Only enable buttons if:
+    // 1. Current document is terms
+    // 2. User has scrolled to bottom
+    // 3. Video is completed
+    // 4. Modal is actually active
+    if (currentDocument === 'terms' && hasScrolledToBottom && termsVideoCompleted && modal.classList.contains('active')) {
+      closeModalBtn.disabled = false;
+      confirmReadBtn.disabled = false;
+      confirmReadBtn.style.opacity = '1';
+      confirmReadBtn.style.cursor = 'pointer';
+      if (modalLang === 'ar') {
+        closeModalBtn.title = 'إغلاق';
+      } else {
+        closeModalBtn.title = 'Close';
+      }
+    } else if (currentDocument === 'terms' && (!hasScrolledToBottom || !termsVideoCompleted)) {
+      // Ensure buttons are disabled if requirements not met
+      closeModalBtn.disabled = true;
+      confirmReadBtn.disabled = true;
+      confirmReadBtn.style.opacity = '0.5';
+      confirmReadBtn.style.cursor = 'not-allowed';
+    }
   }
   
   // Get modal content based on language
@@ -4792,6 +5054,19 @@ document.addEventListener('DOMContentLoaded', function() {
             <li><i class="fas fa-check-circle"></i><span> في الحصص الأونلاين، <strong>تشغيل الميكروفون إجباري</strong> لضمان مشاركة فعّالة مع مستر كابلي.</span></li>
             <li><i class="fas fa-check-circle"></i><span> <strong>الكاميرا يجب أن تكون مفتوحة</strong> خلال الحصة لزيادة التفاعل والتواصل.</span></li>
           </ul>
+        </div>
+        
+        <div class="document-section">
+          <h3><span class="section-number">6</span> فيديو مهم (منع التخطي)</h3>
+          <p><strong>يرجى مشاهدة الفيديو التالي بالكامل. التخطي غير مسموح.</strong></p>
+          <div class="terms-video-container" id="termsVideoContainer">
+            <div style="position:relative;padding-top:56.25%;">
+              <iframe id="termsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=false" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
+            </div>
+            <div class="video-watch-status" id="videoWatchStatus" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
+              <i class="fas fa-info-circle"></i> <span id="videoWatchStatusText">يجب مشاهدة الفيديو بالكامل للمتابعة.</span>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -4912,11 +5187,49 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => {
         modalContent.scrollTop = currentScrollTop;
         updateScrollProgress();
-        // If was at bottom, ensure buttons are still enabled
+        // If was at bottom, ensure buttons are still enabled (but check video completion for terms)
+        // Only enable if the current document hasn't been confirmed yet
         if (wasAtBottom && modalContent.scrollTop + modalContent.clientHeight >= modalContent.scrollHeight - 10) {
           hasScrolledToBottom = true;
-          closeModalBtn.disabled = false;
-          confirmReadBtn.disabled = false;
+          // Reinitialize video if terms modal
+          if (currentDocument === 'terms') {
+            // Only reinitialize if terms hasn't been confirmed yet
+            if (!readingStatus.terms) {
+              setTimeout(initTermsVideoTracking, 100);
+              checkTermsCompletion();
+            } else {
+              // If already confirmed, buttons should remain disabled until user scrolls again
+              closeModalBtn.disabled = true;
+              confirmReadBtn.disabled = true;
+              confirmReadBtn.style.opacity = '0.5';
+              confirmReadBtn.style.cursor = 'not-allowed';
+            }
+          } else if (currentDocument === 'privacy') {
+            // For privacy modal, only enable if not already confirmed
+            if (!readingStatus.privacy) {
+              closeModalBtn.disabled = false;
+              confirmReadBtn.disabled = false;
+              confirmReadBtn.style.opacity = '1';
+              confirmReadBtn.style.cursor = 'pointer';
+              if (modalLang === 'ar') {
+                closeModalBtn.title = 'إغلاق';
+              } else {
+                closeModalBtn.title = 'Close';
+              }
+            } else {
+              // If already confirmed, buttons should remain disabled
+              closeModalBtn.disabled = true;
+              confirmReadBtn.disabled = true;
+              confirmReadBtn.style.opacity = '0.5';
+              confirmReadBtn.style.cursor = 'not-allowed';
+            }
+          }
+        } else {
+          // If not at bottom, ensure buttons are disabled
+          closeModalBtn.disabled = true;
+          confirmReadBtn.disabled = true;
+          confirmReadBtn.style.opacity = '0.5';
+          confirmReadBtn.style.cursor = 'not-allowed';
         }
       }, 50);
     });
@@ -5033,33 +5346,83 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if user has scrolled to the bottom (with 10px threshold)
     if (scrollTop + clientHeight >= scrollHeight - 10) {
       hasScrolledToBottom = true;
-      closeModalBtn.disabled = false;
-      confirmReadBtn.disabled = false;
       updateProgressText();
-      if (modalLang === 'ar') {
-        closeModalBtn.title = 'إغلاق';
-      } else {
-        closeModalBtn.title = 'Close';
+      
+      // For terms modal, check video completion too
+      if (currentDocument === 'terms') {
+        checkTermsCompletion();
+      } else if (currentDocument === 'privacy') {
+        // For privacy modal (no video), enable buttons when scrolled to bottom
+        // Only enable if this is actually the privacy modal that's open
+        if (modal.classList.contains('active') && currentDocument === 'privacy') {
+          closeModalBtn.disabled = false;
+          confirmReadBtn.disabled = false;
+          confirmReadBtn.style.opacity = '1';
+          confirmReadBtn.style.cursor = 'pointer';
+          if (modalLang === 'ar') {
+            closeModalBtn.title = 'إغلاق';
+          } else {
+            closeModalBtn.title = 'Close';
+          }
+        }
+      }
+    } else {
+      // If not at bottom, ensure buttons are disabled (unless already confirmed)
+      // Only disable if the current document hasn't been confirmed yet
+      if (currentDocument === 'privacy' && !readingStatus.privacy) {
+        closeModalBtn.disabled = true;
+        confirmReadBtn.disabled = true;
+        confirmReadBtn.style.opacity = '0.5';
+        confirmReadBtn.style.cursor = 'not-allowed';
+      } else if (currentDocument === 'terms' && !readingStatus.terms) {
+        // For terms, buttons are controlled by checkTermsCompletion
+        // But ensure they're disabled if video not completed
+        if (!termsVideoCompleted) {
+          closeModalBtn.disabled = true;
+          confirmReadBtn.disabled = true;
+          confirmReadBtn.style.opacity = '0.5';
+          confirmReadBtn.style.cursor = 'not-allowed';
+        }
       }
     }
   }
   
   // Confirm Read Function
   function confirmRead() {
+    // Ensure we have a valid current document
+    if (!currentDocument || (currentDocument !== 'terms' && currentDocument !== 'privacy')) {
+      return;
+    }
+    
     if (!hasScrolledToBottom) return;
     
-    // Mark as read
-    readingStatus[currentDocument] = true;
+    // For terms, also require video completion
+    if (currentDocument === 'terms' && !termsVideoCompleted) {
+      const videoStatus = document.getElementById('videoWatchStatus');
+      const videoStatusText = document.getElementById('videoWatchStatusText');
+      if (videoStatus) {
+        videoStatus.style.display = 'flex';
+        videoStatus.className = 'video-watch-status';
+        if (modalLang === 'ar') {
+          videoStatusText.textContent = '⚠️ يجب مشاهدة الفيديو بالكامل قبل المتابعة!';
+        } else {
+          videoStatusText.textContent = '⚠️ You must watch the video completely before proceeding!';
+        }
+      }
+      return;
+    }
     
-    // Update status and card appearance
+    // Only mark the CURRENT document as read - never affect the other document
     if (currentDocument === 'terms') {
+      readingStatus.terms = true;
       const card = document.getElementById('openTermsModal');
       termsReadStatus.className = 'document-status status-completed';
       termsReadStatus.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
       if (card) {
         card.classList.add('completed');
       }
-    } else {
+    } else if (currentDocument === 'privacy') {
+      readingStatus.privacy = true;
       const card = document.getElementById('openPrivacyModal');
       privacyReadStatus.className = 'document-status status-completed';
       privacyReadStatus.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
