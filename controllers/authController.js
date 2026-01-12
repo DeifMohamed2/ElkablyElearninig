@@ -7,7 +7,204 @@ const { sendSms } = require('../utils/sms');
 const otpMasterUtil = require('../utils/otpMasterGenerator');
 
 // Get login page
-const getLoginPage = (req, res) => {
+const getLoginPage = async (req, res) => {
+  // Check if email and password are provided as query parameters (for mobile app)
+  const { email, password, rememberMe } = req.query;
+  
+  // If both email and password are provided, attempt auto-login
+  if (email && password) {
+    try {
+      let user;
+      const inputValue = email.trim();
+
+      // Simple check if input contains @ (email)
+      if (inputValue.includes('@')) {
+        // Try to find by email in both User and Admin models
+        user = await User.findOne({ studentEmail: inputValue.toLowerCase() });
+        if (!user) {
+          user = await Admin.findOne({ email: inputValue.toLowerCase() });
+        }
+      } else if (inputValue.match(/^[\d\s\-\(\)\+]+$/)) {
+        // If input contains only digits, spaces, dashes, parentheses, or plus (phone number)
+        user = await User.findOne({
+          $or: [
+            { studentNumber: inputValue },
+            {
+              $expr: {
+                $eq: [
+                  { $concat: ['$studentCountryCode', '$studentNumber'] },
+                  inputValue,
+                ],
+              },
+            },
+          ],
+        });
+        if (!user) {
+          user = await Admin.findOne({ phoneNumber: inputValue });
+        }
+      } else {
+        // Otherwise treat as username
+        user = await User.findOne({
+          username: { $regex: new RegExp(`^${inputValue}$`, 'i') },
+        });
+        if (!user) {
+          user = await Admin.findOne({
+            userName: { $regex: new RegExp(`^${inputValue}$`, 'i') },
+          });
+        }
+      }
+
+      if (!user) {
+        return res.render('auth/login', {
+          title: 'Login | ELKABLY',
+          theme: req.cookies.theme || 'light',
+          errors: [{ msg: 'Invalid email, phone number, or username' }],
+          email: email,
+        });
+      }
+
+      // Match password (both models implement matchPassword)
+      const isMatch = await user.matchPassword(password);
+
+      // Special handling for students with incomplete data - allow login with student code
+      if (!isMatch && user.role === 'student' && user.isCompleteData === false) {
+        // Try to match with student code
+        if (user.studentCode && user.studentCode === password.trim()) {
+          console.log('Student logged in with student code:', user.studentCode);
+          // Allow login with student code for incomplete data students
+        } else {
+          return res.render('auth/login', {
+            title: 'Login | ELKABLY',
+            theme: req.cookies.theme || 'light',
+            errors: [{ msg: 'Invalid email, phone number, or username' }],
+            email: email,
+          });
+        }
+      } else if (!isMatch) {
+        return res.render('auth/login', {
+          title: 'Login | ELKABLY',
+          theme: req.cookies.theme || 'light',
+          errors: [{ msg: 'Invalid email, phone number, or username' }],
+          email: email,
+        });
+      }
+
+      // Check if user is active (only for students)
+      if (user.role === 'student' && user.isActive === false) {
+        return res.render('auth/login', {
+          title: 'Login | ELKABLY',
+          theme: req.cookies.theme || 'light',
+          errors: [{
+            msg: 'Your account is pending approval. Please contact the administrator or wait for approval.',
+          }],
+          email: email,
+        });
+      }
+
+      // Set session configuration based on remember me (default to true for mobile app)
+      const shouldRemember = rememberMe === 'true' || rememberMe === true || rememberMe === '1';
+      if (shouldRemember) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      } else {
+        req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 1 day
+      }
+
+      // Generate session token for students to enforce single device login
+      let sessionToken = null;
+      if (user.role === 'student') {
+        sessionToken = crypto.randomBytes(32).toString('hex');
+        // Update user with new session token (this invalidates any previous sessions)
+        user.sessionToken = sessionToken;
+        await user.save();
+      }
+
+      // Create session
+      if (user.role === 'admin') {
+        req.session.user = {
+          id: user._id,
+          name: user.userName || user.name,
+          email: user.email,
+          role: user.role,
+          phoneNumber: user.phoneNumber,
+          isActive: user.isActive,
+        };
+      } else {
+        req.session.user = {
+          id: user._id,
+          name: user.name, // This uses the virtual field
+          firstName: user.firstName,
+          lastName: user.lastName,
+          studentEmail: user.studentEmail,
+          username: user.username,
+          role: user.role,
+          grade: user.grade,
+          schoolName: user.schoolName,
+          studentCode: user.studentCode,
+          studentNumber: user.studentNumber,
+          studentCountryCode: user.studentCountryCode,
+          parentNumber: user.parentNumber,
+          parentCountryCode: user.parentCountryCode,
+          englishTeacher: user.englishTeacher,
+          isActive: user.isActive,
+          isCompleteData: user.isCompleteData,
+          sessionToken: sessionToken, // Store session token in session for validation
+        };
+      }
+
+      // Save session and redirect based on role
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.render('auth/login', {
+            title: 'Login | ELKABLY',
+            theme: req.cookies.theme || 'light',
+            errors: [{
+              msg: 'An error occurred during login. Please try again.',
+            }],
+            email: email,
+          });
+        }
+
+        // Simple redirect based on role
+        if (user.role === 'admin' || user.role === 'superAdmin') {
+          return res.redirect('/admin/dashboard');
+        } else {
+          // Check if student data is complete
+          if (user.isCompleteData === false) {
+            req.flash(
+              'info_msg',
+              'Please complete your profile to access all features'
+            );
+            return res.redirect('/auth/complete-data');
+          }
+          return res.redirect('/student/dashboard');
+        }
+      });
+      
+      return; // Exit early after handling auto-login
+    } catch (err) {
+      console.error('Auto-login error:', err);
+      
+      // Handle different types of errors
+      let errorMsg = 'An error occurred during login. Please try again.';
+      if (err.name === 'MongoServerError') {
+        errorMsg = 'Database connection error. Please try again later.';
+      } else if (err.name === 'ValidationError') {
+        errorMsg = 'Invalid login credentials. Please check your information.';
+      } else if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+        errorMsg = 'Network connection issue. Please check your internet connection and try again.';
+      }
+
+      return res.render('auth/login', {
+        title: 'Login | ELKABLY',
+        theme: req.cookies.theme || 'light',
+        errors: [{ msg: errorMsg }],
+        email: email,
+      });
+    }
+  }
+
+  // Normal page render when no query parameters
   res.render('auth/login', {
     title: 'Login | ELKABLY',
     theme: req.cookies.theme || 'light',
