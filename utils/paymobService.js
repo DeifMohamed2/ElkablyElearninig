@@ -387,12 +387,17 @@ class PaymobService {
           state: billingData.state || billingData.city || 'Cairo',
         };
 
+        // CRITICAL: Include merchant_order_id at root level AND in special fields for Paymob
         const body = {
           amount: amountCents,
           currency: 'EGP',
           payment_methods: finalPaymentMethods, // Can be [1, 47] or integration IDs
           items: items,
           billing_data: billingDataFormatted,
+          // IMPORTANT: merchant_order_id must be at root level for unified checkout
+          merchant_order_id: orderData.merchantOrderId,
+          // Also include in special fields for webhook support
+          special_reference: orderData.merchantOrderId,
           customer: {
             first_name: billingData.firstName || 'Customer',
             last_name: billingData.lastName || 'Customer',
@@ -406,6 +411,8 @@ class PaymobService {
           },
         };
 
+        console.log('📤 Creating payment intention with merchant_order_id:', orderData.merchantOrderId);
+
         const response = await axios.post(url, body, {
           timeout: 15000,
           headers: {
@@ -416,6 +423,9 @@ class PaymobService {
         });
 
         console.log('Payment intention created successfully');
+        console.log('Intention ID:', response.data.id);
+        console.log('Response merchant_order_id:', response.data.merchant_order_id);
+        
         return {
           success: true,
           clientSecret: response.data.client_secret,
@@ -1149,7 +1159,20 @@ class PaymobService {
         payload?.obj?.order?.merchant_order_id ||
         payload?.obj?.merchant_order_id ||
         payload?.merchant_order_id ||
+        // For unified checkout, check extras field
+        payload?.obj?.payment_key_claims?.extra?.merchant_order_id ||
+        payload?.obj?.extras?.merchant_order_id ||
+        payload?.extras?.merchant_order_id ||
+        // Check customer extras
+        payload?.obj?.payment_key_claims?.billing_data?.extra?.merchant_order_id ||
+        // Query params fallback
         queryParams?.merchant_order_id,
+      // Also return paymob order ID for lookup fallback
+      paymobOrderId:
+        payload?.obj?.order?.id ||
+        payload?.obj?.order ||
+        payload?.order?.id ||
+        payload?.order,
       transactionId: payload?.obj?.id || payload?.id || queryParams?.id,
       isSuccess: finalIsSuccess, // Use final success determination
       isFailed: isFailed && !finalIsSuccess, // Only fail if not successful
@@ -1327,63 +1350,152 @@ class PaymobService {
 
   /**
    * Query transaction status by merchant order ID with retry logic
+   * Supports both old API (transaction_inquiry) and new API (retrieve transaction)
    */
-  async queryTransactionStatus(merchantOrderId) {
-    const maxRetries = 3;
+  async queryTransactionStatus(merchantOrderId, paymobOrderId = null, transactionId = null) {
+    const maxRetries = 2;
     const retryDelay = 1000;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const authToken = await this.getAuthToken();
-        const url = `${this.baseUrl}/api/ecommerce/orders/transaction_inquiry`;
-
-        const response = await axios.post(
-          url,
-          {
+    // Try multiple methods to get transaction status
+    const methods = [];
+    
+    // Method 1: Transaction Inquiry by merchant_order_id (old API)
+    if (merchantOrderId) {
+      methods.push({
+        name: 'transaction_inquiry',
+        execute: async (authToken) => {
+          const url = `${this.baseUrl}/api/ecommerce/orders/transaction_inquiry`;
+          const response = await axios.post(url, {
             auth_token: authToken,
             merchant_order_id: merchantOrderId,
-          },
-          {
+          }, {
             timeout: 10000,
-            headers: {
+            headers: { 'Content-Type': 'application/json' },
+          });
+          return response.data;
+        }
+      });
+    }
+    
+    // Method 2: Get transaction by ID (if we have transactionId)
+    if (transactionId) {
+      methods.push({
+        name: 'get_transaction',
+        execute: async (authToken) => {
+          const url = `${this.baseUrl}/api/acceptance/transactions/${transactionId}`;
+          const response = await axios.get(url, {
+            params: { token: authToken },
+            timeout: 10000,
+            headers: { 'Content-Type': 'application/json' },
+          });
+          return response.data;
+        }
+      });
+    }
+    
+    // Method 3: Get order by Paymob order ID
+    if (paymobOrderId) {
+      methods.push({
+        name: 'get_order',
+        execute: async (authToken) => {
+          const url = `${this.baseUrl}/api/ecommerce/orders/${paymobOrderId}`;
+          const response = await axios.get(url, {
+            params: { token: authToken },
+            timeout: 10000,
+            headers: { 'Content-Type': 'application/json' },
+          });
+          return response.data;
+        }
+      });
+    }
+    
+    // Method 4: Unified Checkout - Get intention status (new API)
+    if (merchantOrderId) {
+      methods.push({
+        name: 'unified_checkout_inquiry',
+        execute: async () => {
+          // Use secret key for new API
+          const url = `${this.baseUrl}/v1/intention/by-merchant-order/${merchantOrderId}/`;
+          const response = await axios.get(url, {
+            timeout: 10000,
+            headers: { 
+              'Authorization': `Token ${this.secretKey}`,
               'Content-Type': 'application/json',
-              'User-Agent': 'ElkablyElearning/1.0',
             },
+          });
+          return response.data;
+        }
+      });
+    }
+
+    if (methods.length === 0) {
+      throw new Error('No valid identifiers provided for transaction inquiry');
+    }
+
+    let lastError = null;
+    
+    for (const method of methods) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`[TransactionInquiry] Trying ${method.name} (attempt ${attempt}/${maxRetries})...`);
+          
+          let authToken = null;
+          if (method.name !== 'unified_checkout_inquiry') {
+            authToken = await this.getAuthToken();
           }
-        );
-
-        console.log('Transaction status queried successfully');
-        return response.data;
-      } catch (error) {
-        console.error(
-          `Error querying transaction status (Attempt ${attempt}/${maxRetries}):`,
-          error.code || error.message
-        );
-
-        if (attempt === maxRetries) {
-          if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
-            throw new Error(
-              'Connection timeout while checking payment status. Please contact support if your payment was successful.'
-            );
-          } else if (error.response?.status === 401) {
-            throw new Error(
-              'Authentication failed while checking payment status.'
-            );
-          } else if (error.response?.status >= 500) {
-            throw new Error(
-              'Payment gateway server error. Please contact support.'
-            );
-          } else {
-            throw new Error(
-              'Failed to verify payment status. Please contact support if you believe the payment was successful.'
-            );
+          
+          const result = await method.execute(authToken);
+          console.log(`[TransactionInquiry] ${method.name} succeeded`);
+          
+          // Normalize response format
+          if (result) {
+            // For unified checkout, transform response to match expected format
+            if (method.name === 'unified_checkout_inquiry') {
+              const txn = result.transactions?.[0] || result;
+              return {
+                obj: {
+                  id: txn.id || result.id,
+                  success: txn.success || result.payment_status === 'PAID',
+                  is_success: txn.is_success || result.payment_status === 'PAID',
+                  amount_cents: txn.amount_cents || result.amount,
+                  order: {
+                    paid_amount_cents: txn.amount_cents || result.amount,
+                    payment_status: result.payment_status,
+                  },
+                  transaction_status: txn.transaction_status,
+                  data: txn.data || {},
+                }
+              };
+            }
+            return result;
+          }
+        } catch (error) {
+          console.log(`[TransactionInquiry] ${method.name} failed:`, error.response?.status || error.code || error.message);
+          lastError = error;
+          
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
           }
         }
-
-        const delay = retryDelay * Math.pow(1.5, attempt - 1);
-        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
+
+    // All methods failed
+    console.error('[TransactionInquiry] All methods failed. Last error:', lastError?.message);
+    
+    if (lastError) {
+      if (lastError.code === 'ETIMEDOUT' || lastError.code === 'ECONNABORTED') {
+        throw new Error('Connection timeout while checking payment status.');
+      } else if (lastError.response?.status === 401) {
+        throw new Error('Authentication failed while checking payment status.');
+      } else if (lastError.response?.status === 404) {
+        throw new Error('Transaction not found. It may not exist or may still be processing.');
+      } else if (lastError.response?.status >= 500) {
+        throw new Error('Payment gateway server error.');
+      }
+    }
+    
+    throw new Error('Failed to verify payment status. Please contact support.');
   }
 }
 

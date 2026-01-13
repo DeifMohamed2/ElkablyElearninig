@@ -1,0 +1,358 @@
+<%- include('partials/header', { title: title }) %>
+
+<!-- Import Payment Results CSS -->
+<link rel="stylesheet" href="/css/payment-results.css">
+
+<!-- Floating Math Elements -->
+<div class="floating-math-elements-professor" id="floatingMath">
+  <div class="math-element-professor" data-equation="∂">∂</div>
+  <div class="math-element-professor" data-equation="∇">∇</div>
+  <div class="math-element-professor" data-equation="∫">∫</div>
+  <div class="math-element-professor" data-equation="∑">∑</div>
+  <div class="math-element-professor" data-equation="∏">∏</div>
+  <div class="math-element-professor" data-equation="∞">∞</div>
+  <div class="math-element-professor" data-equation="∃">∃</div>
+  <div class="math-element-professor" data-equation="∀">∀</div>
+  <div class="math-element-professor" data-equation="ℝ">ℝ</div>
+  <div class="math-element-professor" data-equation="ℂ">ℂ</div>
+</div>
+
+<!-- Payment Processing Page -->
+<div class="payment-result-page payment-processing-page">
+  <div class="container">
+    <div class="payment-result-container">
+      <!-- Processing Header -->
+      <div class="payment-processing-header">
+        <div class="processing-icon">
+          <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <h1 class="processing-title">Payment Processing</h1>
+        <p class="processing-message">
+          Your payment is being verified. Please wait a moment...
+        </p>
+      </div>
+
+      <!-- Processing Info -->
+      <div class="processing-info">
+        <div class="processing-card">
+          <div class="card-header">
+            <h3><i class="fas fa-clock"></i> Please Wait</h3>
+          </div>
+          <div class="card-body">
+            <div class="processing-steps">
+              <div class="step-item" id="step1">
+                <div class="step-icon loading">
+                  <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <div class="step-content">
+                  <h4>Verifying Payment</h4>
+                  <p>We're confirming your payment with the bank...</p>
+                </div>
+              </div>
+
+              <div class="step-item" id="step2">
+                <div class="step-icon pending">
+                  <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="step-content">
+                  <h4>Processing Enrollment</h4>
+                  <p>Once confirmed, you'll be enrolled automatically.</p>
+                </div>
+              </div>
+
+              <div class="step-item" id="step3">
+                <div class="step-icon pending">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="step-content">
+                  <h4>Access Your Courses</h4>
+                  <p>You'll get access to your courses immediately.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="processing-note">
+              <i class="fas fa-info-circle"></i>
+              <p>
+                <strong>Don't worry!</strong> If you've completed the payment, your enrollment will be processed automatically, 
+                even if you close this page. We'll also send you a confirmation message.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Info (if available) -->
+      <% if (typeof orderNumber !== 'undefined' && orderNumber) { %>
+      <div class="order-reference">
+        <p>Order Reference: <strong><%= orderNumber %></strong></p>
+      </div>
+      <% } %>
+
+      <!-- Auto-refresh Notice -->
+      <div class="auto-refresh-notice">
+        <p><i class="fas fa-sync-alt"></i> This page will automatically check your payment status...</p>
+        <p class="countdown">Checking again in <span id="countdown">10</span> seconds</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button type="button" class="btn btn-primary btn-lg" onclick="checkStatus()">
+          <i class="fas fa-sync-alt"></i>
+          Check Status Now
+        </button>
+        <a href="/" class="btn btn-outline btn-lg">
+          <i class="fas fa-home"></i>
+          Return Home
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .payment-processing-page .processing-icon {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    animation: pulse 2s infinite;
+  }
+  
+  .payment-processing-page .processing-icon i {
+    font-size: 3rem;
+    color: white;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  }
+  
+  .payment-processing-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .processing-title {
+    color: #1d4ed8;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .processing-message {
+    color: #6b7280;
+    font-size: 1.1rem;
+  }
+  
+  .processing-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  
+  .dark-theme .processing-card {
+    background: #1f2937;
+  }
+  
+  .processing-card .card-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+  }
+  
+  .processing-card .card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  
+  .processing-card .card-body {
+    padding: 1.5rem;
+  }
+  
+  .processing-steps {
+    margin-bottom: 1.5rem;
+  }
+  
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .dark-theme .step-item {
+    border-bottom-color: #374151;
+  }
+  
+  .step-item:last-child {
+    border-bottom: none;
+  }
+  
+  .step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .step-icon.loading {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+  
+  .step-icon.pending {
+    background: #f3f4f6;
+    color: #9ca3af;
+  }
+  
+  .step-icon.complete {
+    background: #d1fae5;
+    color: #059669;
+  }
+  
+  .dark-theme .step-icon.pending {
+    background: #374151;
+    color: #6b7280;
+  }
+  
+  .step-content h4 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    color: #1f2937;
+  }
+  
+  .dark-theme .step-content h4 {
+    color: #f3f4f6;
+  }
+  
+  .step-content p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+  
+  .processing-note {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  
+  .dark-theme .processing-note {
+    background: #451a03;
+    border-color: #92400e;
+  }
+  
+  .processing-note i {
+    color: #d97706;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  .processing-note p {
+    margin: 0;
+    color: #92400e;
+    font-size: 0.9rem;
+  }
+  
+  .dark-theme .processing-note p {
+    color: #fcd34d;
+  }
+  
+  .order-reference {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #6b7280;
+  }
+  
+  .order-reference strong {
+    color: #1f2937;
+  }
+  
+  .dark-theme .order-reference strong {
+    color: #f3f4f6;
+  }
+  
+  .auto-refresh-notice {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #6b7280;
+  }
+  
+  .auto-refresh-notice .countdown {
+    font-size: 0.9rem;
+    color: #3b82f6;
+  }
+  
+  .action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .action-buttons .btn {
+    min-width: 180px;
+  }
+</style>
+
+<script>
+  let countdown = 10;
+  let checkAttempts = 0;
+  const maxAttempts = 12; // Check for 2 minutes total
+  const merchantOrderId = '<%= typeof merchantOrderId !== "undefined" ? merchantOrderId : "" %>';
+  
+  function updateCountdown() {
+    document.getElementById('countdown').textContent = countdown;
+    countdown--;
+    
+    if (countdown < 0) {
+      checkStatus();
+    }
+  }
+  
+  function checkStatus() {
+    checkAttempts++;
+    
+    if (checkAttempts > maxAttempts) {
+      // Stop checking after max attempts
+      document.querySelector('.auto-refresh-notice').innerHTML = `
+        <p><i class="fas fa-info-circle"></i> Payment verification is taking longer than expected.</p>
+        <p>Don't worry - if your payment was successful, you'll be enrolled automatically.</p>
+        <p>You can check your <a href="/student/enrolled-courses">enrolled courses</a> or <a href="/purchase/purchase-history">purchase history</a>.</p>
+      `;
+      return;
+    }
+    
+    // Update UI
+    document.querySelector('.countdown').innerHTML = `<i class="fas fa-spinner fa-spin"></i> Checking payment status...`;
+    
+    // Redirect to success page which will check status
+    if (merchantOrderId) {
+      window.location.href = `/purchase/payment/success?merchantOrderId=${merchantOrderId}`;
+    } else {
+      window.location.reload();
+    }
+  }
+  
+  // Start countdown
+  setInterval(updateCountdown, 1000);
+</script>
+
+<%- include('partials/footer') %>

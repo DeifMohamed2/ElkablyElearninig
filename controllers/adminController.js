@@ -5343,6 +5343,252 @@ const completeFailedPayment = async (req, res) => {
   }
 };
 
+// Verify and complete pending payment using Paymob Transaction Inquiry API
+const verifyPendingPayment = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+
+    // Find the purchase
+    const purchase = await Purchase.findOne({ orderNumber })
+      .populate('user')
+      .populate('items.item');
+
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    // Can verify pending or failed orders
+    if (purchase.status !== 'pending' && purchase.status !== 'failed') {
+      return res.status(400).json({
+        success: false,
+        message: `Order is already ${purchase.status}. No verification needed.`,
+        currentStatus: purchase.status,
+      });
+    }
+
+    if (!purchase.paymentIntentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order has no payment intent ID. Cannot verify with Paymob.',
+      });
+    }
+
+    // Query Paymob Transaction Inquiry API
+    const paymobService = require('../utils/paymobService');
+    const purchaseController = require('./purchaseController');
+
+    try {
+      console.log(`[Admin] Verifying payment for order: ${orderNumber}`);
+      const transactionStatus = await paymobService.queryTransactionStatus(purchase.paymentIntentId);
+
+      if (!transactionStatus) {
+        return res.status(400).json({
+          success: false,
+          message: 'Could not retrieve transaction status from Paymob. The transaction may not exist.',
+        });
+      }
+
+      // Process the transaction status
+      const webhookData = paymobService.processWebhookPayload(transactionStatus);
+
+      if (webhookData.isSuccess) {
+        console.log(`[Admin] ✅ Payment VERIFIED SUCCESS for: ${orderNumber}`);
+
+        // Save transaction details
+        if (webhookData.transactionId) {
+          purchase.paymobTransactionId = String(webhookData.transactionId);
+        }
+        purchase.paymentGatewayResponse = {
+          ...transactionStatus,
+          verifiedAt: new Date(),
+          verifiedBy: `admin_${req.session.user.id}`,
+          verificationMethod: 'manual_transaction_inquiry',
+        };
+        
+        // Reset to pending for processing
+        purchase.status = 'pending';
+        purchase.paymentStatus = 'pending';
+        purchase.failureReason = null;
+        await purchase.save();
+
+        // Process the successful payment
+        await purchaseController.processSuccessfulPayment(purchase, null);
+
+        // Log admin action
+        await createLog(req, {
+          action: 'VERIFY_PENDING_PAYMENT',
+          actionCategory: 'ORDER_MANAGEMENT',
+          description: `Verified and completed pending payment for order #${orderNumber}`,
+          targetModel: 'Purchase',
+          targetId: purchase._id.toString(),
+          targetName: `Order #${orderNumber}`,
+          metadata: {
+            orderNumber: purchase.orderNumber,
+            previousStatus: 'pending/failed',
+            newStatus: 'completed',
+            total: purchase.total,
+            paymobConfirmation: true,
+            transactionId: webhookData.transactionId,
+          },
+          status: 'SUCCESS',
+        });
+
+        return res.json({
+          success: true,
+          message: 'Payment verified as successful and completed. Student has been enrolled.',
+          orderNumber: purchase.orderNumber,
+          transactionId: webhookData.transactionId,
+          paymentStatus: 'completed',
+        });
+
+      } else if (webhookData.isFailed) {
+        console.log(`[Admin] ❌ Payment VERIFIED FAILED for: ${orderNumber}`);
+
+        const failureReason = transactionStatus?.obj?.data?.message || 
+                              transactionStatus?.data?.message || 
+                              'Payment declined by bank';
+
+        // Update as failed
+        purchase.status = 'failed';
+        purchase.paymentStatus = 'failed';
+        purchase.failureReason = failureReason;
+        purchase.paymentGatewayResponse = {
+          ...transactionStatus,
+          verifiedAt: new Date(),
+          verifiedBy: `admin_${req.session.user.id}`,
+        };
+        await purchase.save();
+
+        // Log admin action
+        await createLog(req, {
+          action: 'VERIFY_PENDING_PAYMENT',
+          actionCategory: 'ORDER_MANAGEMENT',
+          description: `Verified pending payment for order #${orderNumber} - FAILED`,
+          targetModel: 'Purchase',
+          targetId: purchase._id.toString(),
+          targetName: `Order #${orderNumber}`,
+          metadata: {
+            orderNumber: purchase.orderNumber,
+            status: 'failed',
+            failureReason,
+          },
+          status: 'SUCCESS',
+        });
+
+        return res.json({
+          success: true,
+          message: `Payment verification shows transaction failed: ${failureReason}`,
+          orderNumber: purchase.orderNumber,
+          paymentStatus: 'failed',
+          failureReason,
+        });
+
+      } else {
+        // Still pending
+        console.log(`[Admin] ⏳ Payment still PENDING for: ${orderNumber}`);
+
+        return res.json({
+          success: true,
+          message: 'Payment is still pending according to Paymob. The bank has not yet processed the transaction.',
+          orderNumber: purchase.orderNumber,
+          paymentStatus: 'pending',
+          rawStatus: transactionStatus?.obj?.transaction_status || transactionStatus?.transaction_status,
+        });
+      }
+
+    } catch (apiError) {
+      console.error('[Admin] Paymob API error:', apiError);
+      return res.status(500).json({
+        success: false,
+        message: `Failed to query Paymob: ${apiError.message}`,
+      });
+    }
+
+  } catch (error) {
+    console.error('Error verifying pending payment:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to verify payment',
+    });
+  }
+};
+
+// Get pending payments for admin dashboard
+const getPendingPayments = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    const pendingPurchases = await Purchase.find({
+      status: 'pending',
+      paymentIntentId: { $exists: true, $ne: null, $ne: '' },
+    })
+      .populate('user', 'firstName lastName email phone')
+      .select('orderNumber user items total createdAt paymentIntentId paymobTransactionId')
+      .sort({ createdAt: -1 })
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .limit(parseInt(limit))
+      .lean();
+
+    const totalCount = await Purchase.countDocuments({
+      status: 'pending',
+      paymentIntentId: { $exists: true, $ne: null, $ne: '' },
+    });
+
+    return res.json({
+      success: true,
+      pendingPayments: pendingPurchases,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalCount,
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+      },
+    });
+
+  } catch (error) {
+    console.error('Error getting pending payments:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get pending payments',
+    });
+  }
+};
+
+// Trigger manual check of all pending payments
+const triggerPendingPaymentsCheck = async (req, res) => {
+  try {
+    const { triggerManualCheck } = require('../jobs/pendingPaymentVerification');
+    
+    // Log admin action
+    await createLog(req, {
+      action: 'TRIGGER_PENDING_PAYMENTS_CHECK',
+      actionCategory: 'SYSTEM',
+      description: 'Manually triggered pending payments verification job',
+      status: 'SUCCESS',
+    });
+
+    // Start the check in the background
+    triggerManualCheck().catch(err => {
+      console.error('Manual pending payments check error:', err);
+    });
+
+    return res.json({
+      success: true,
+      message: 'Pending payments check has been triggered. Check server logs for progress.',
+    });
+
+  } catch (error) {
+    console.error('Error triggering pending payments check:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to trigger pending payments check',
+    });
+  }
+};
+
 // ==================== QUIZ/HOMEWORK CONTENT CONTROLLERS ====================
 
 // Get question banks for quiz/homework content creation
@@ -16255,6 +16501,9 @@ module.exports = {
   generateInvoice,
   refundOrder,
   completeFailedPayment,
+  verifyPendingPayment,
+  getPendingPayments,
+  triggerPendingPaymentsCheck,
   getBookOrders,
   updateBookOrderStatus,
   bulkUpdateBookOrdersStatus,

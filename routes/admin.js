@@ -129,6 +129,9 @@ const {
   generateInvoice,
   refundOrder,
   completeFailedPayment,
+  verifyPendingPayment,
+  getPendingPayments,
+  triggerPendingPaymentsCheck,
   getBookOrders,
   updateBookOrderStatus,
   bulkUpdateBookOrdersStatus,
@@ -461,10 +464,13 @@ router.use('/question-banks', questionBankRoutes);
 // Orders Management
 router.get('/orders', isAdmin, getOrders);
 router.get('/orders/export', isAdmin, exportOrders);
+router.get('/orders/pending-payments', isAdmin, getPendingPayments);
+router.post('/orders/pending-payments/check', isAdmin, triggerPendingPaymentsCheck);
 router.get('/orders/:orderNumber', isAdmin, getOrderDetails);
 router.get('/orders/:orderNumber/invoice', isAdmin, generateInvoice);
 router.post('/orders/:orderNumber/refund', isAdmin, refundOrder);
 router.post('/orders/:orderNumber/complete-failed', isAdmin, completeFailedPayment);
+router.post('/orders/:orderNumber/verify-pending', isAdmin, verifyPendingPayment);
 
 // Book Orders Management
 router.get('/book-orders', isAdmin, getBookOrders);

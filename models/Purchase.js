@@ -110,6 +110,11 @@ const PurchaseSchema = new mongoose.Schema(
       default: '',
       index: true, // Add index for faster lookups
     },
+    paymobIntentionId: {
+      type: String,
+      default: '',
+      index: true, // Add index for faster lookups (for unified checkout payments)
+    },
     failureReason: {
       type: String,
       default: '',

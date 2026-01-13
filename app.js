@@ -257,6 +257,9 @@ const io = socketIo(server, {
 const GameSocketHandler = require('./utils/gameSocket');
 new GameSocketHandler(io);
 
+// Initialize Pending Payment Verification Job
+const { startPendingPaymentJob } = require('./jobs/pendingPaymentVerification');
+
 // Make io accessible in routes
 app.set('io', io);
 console.log('Socket.IO initialized', io.engine.clientsCount);
@@ -273,6 +276,9 @@ mongoose
       console.log('server is running in', 'http://localhost:' + PORT);
       console.log('Server is running on http://0.0.0.0:' + PORT);
       console.log('Server accessible on http://82.25.101.207:' + PORT);
+      
+      // Start the pending payment verification job after server is ready
+      startPendingPaymentJob();
     });
   })
   .catch((err) => {
