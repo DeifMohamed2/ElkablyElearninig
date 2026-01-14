@@ -1600,6 +1600,11 @@
                       <span class="step-number">3</span>
                       <span class="quiz-step-label">Settings</span>
                     </div>
+                    <div class="progress-line"></div>
+                    <div class="quiz-step" data-step="4">
+                      <span class="step-number">4</span>
+                      <span class="quiz-step-label">Preview</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1828,6 +1833,42 @@
                   </div>
                 </div>
 
+                <!-- Step 4: Quiz Preview -->
+                <div class="quiz-step-content" id="editQuizStep4" style="display: none;">
+                  <div class="preview-header mb-3">
+                    <h5 class="mb-2"><i class="fas fa-eye me-2"></i>Question Preview</h5>
+                    <p class="text-muted mb-0">Review how questions will appear to students before updating.</p>
+                  </div>
+                  
+                  <!-- Preview Slider Container -->
+                  <div class="preview-slider-container">
+                    <div class="preview-navigation-top">
+                      <button type="button" class="preview-nav-btn" onclick="prevEditQuizPreviewQuestion()" id="editQuizPreviewPrevBtn">
+                        <i class="fas fa-chevron-left"></i>
+                      </button>
+                      <div class="preview-counter">
+                        <span id="editQuizPreviewCurrentNum">1</span> of <span id="editQuizPreviewTotalNum">0</span>
+                      </div>
+                      <button type="button" class="preview-nav-btn" onclick="nextEditQuizPreviewQuestion()" id="editQuizPreviewNextBtn">
+                        <i class="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="preview-question-card" id="editQuizPreviewQuestionCard">
+                      <!-- Question content will be rendered here -->
+                      <div class="preview-empty-state">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Preview Dots Navigation -->
+                    <div class="preview-dots-container" id="editQuizPreviewDots">
+                      <!-- Dots will be rendered here -->
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Quiz Navigation -->
                 <div class="quiz-navigation mt-4">
                   <div class="d-flex justify-content-between">
@@ -1835,7 +1876,7 @@
                       <i class="fas fa-arrow-left me-1"></i> Previous
                     </button>
                     <div class="quiz-step-indicator">
-                      Step <span id="editQuizCurrentStepNumber">1</span> of 3
+                      Step <span id="editQuizCurrentStepNumber">1</span> of 4
                     </div>
                     <button type="button" class="btn btn-primary" id="editQuizNextBtn" onclick="nextEditQuizStep()">
                       Next <i class="fas fa-arrow-right ms-1"></i>
@@ -1871,6 +1912,11 @@
                     <div class="homework-step" data-step="3">
                       <span class="step-number">3</span>
                       <span class="homework-step-label">Settings</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="homework-step" data-step="4">
+                      <span class="step-number">4</span>
+                      <span class="homework-step-label">Preview</span>
                     </div>
                   </div>
                 </div>
@@ -2088,6 +2134,42 @@
                   </div>
                 </div>
 
+                <!-- Step 4: Homework Preview -->
+                <div class="homework-step-content" id="editHomeworkStep4" style="display: none;">
+                  <div class="preview-header mb-3">
+                    <h5 class="mb-2"><i class="fas fa-eye me-2"></i>Question Preview</h5>
+                    <p class="text-muted mb-0">Review how questions will appear to students before updating.</p>
+                  </div>
+                  
+                  <!-- Preview Slider Container -->
+                  <div class="preview-slider-container">
+                    <div class="preview-navigation-top">
+                      <button type="button" class="preview-nav-btn" onclick="prevEditHomeworkPreviewQuestion()" id="editHomeworkPreviewPrevBtn">
+                        <i class="fas fa-chevron-left"></i>
+                      </button>
+                      <div class="preview-counter">
+                        <span id="editHomeworkPreviewCurrentNum">1</span> of <span id="editHomeworkPreviewTotalNum">0</span>
+                      </div>
+                      <button type="button" class="preview-nav-btn" onclick="nextEditHomeworkPreviewQuestion()" id="editHomeworkPreviewNextBtn">
+                        <i class="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="preview-question-card" id="editHomeworkPreviewQuestionCard">
+                      <!-- Question content will be rendered here -->
+                      <div class="preview-empty-state">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Preview Dots Navigation -->
+                    <div class="preview-dots-container" id="editHomeworkPreviewDots">
+                      <!-- Dots will be rendered here -->
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Homework Navigation -->
                 <div class="homework-navigation mt-4">
                   <div class="d-flex justify-content-between">
@@ -2095,7 +2177,7 @@
                       <i class="fas fa-arrow-left me-1"></i> Previous
                     </button>
                     <div class="homework-step-indicator">
-                      Step <span id="editHomeworkCurrentStepNumber">1</span> of 3
+                      Step <span id="editHomeworkCurrentStepNumber">1</span> of 4
                     </div>
                     <button type="button" class="btn btn-success" id="editHomeworkNextBtn" onclick="nextEditHomeworkStep()">
                       Next <i class="fas fa-arrow-right ms-1"></i>
@@ -4342,9 +4424,13 @@ function getContentIcon(type) {
 
   // Edit Quiz Step Navigation Functions
   function nextEditQuizStep() {
-    if (currentEditQuizStep < 3) {
+    if (currentEditQuizStep < 4) {
       currentEditQuizStep++;
       updateEditQuizStepDisplay();
+      // Render preview when reaching step 4
+      if (currentEditQuizStep === 4) {
+        renderEditQuizPreview();
+      }
     }
   }
 
@@ -4376,15 +4462,19 @@ function getContentIcon(type) {
     const stepNumber = document.getElementById('editQuizCurrentStepNumber');
 
     if (prevBtn) prevBtn.disabled = currentEditQuizStep === 1;
-    if (nextBtn) nextBtn.disabled = currentEditQuizStep === 3;
+    if (nextBtn) nextBtn.disabled = currentEditQuizStep === 4;
     if (stepNumber) stepNumber.textContent = currentEditQuizStep;
   }
 
   // Edit Homework Step Navigation Functions
   function nextEditHomeworkStep() {
-    if (currentEditHomeworkStep < 3) {
+    if (currentEditHomeworkStep < 4) {
       currentEditHomeworkStep++;
       updateEditHomeworkStepDisplay();
+      // Render preview when reaching step 4
+      if (currentEditHomeworkStep === 4) {
+        renderEditHomeworkPreview();
+      }
     }
   }
 
@@ -4416,7 +4506,7 @@ function getContentIcon(type) {
     const stepNumber = document.getElementById('editHomeworkCurrentStepNumber');
 
     if (prevBtn) prevBtn.disabled = currentEditHomeworkStep === 1;
-    if (nextBtn) nextBtn.disabled = currentEditHomeworkStep === 3;
+    if (nextBtn) nextBtn.disabled = currentEditHomeworkStep === 4;
     if (stepNumber) stepNumber.textContent = currentEditHomeworkStep;
   }
 
@@ -8485,6 +8575,178 @@ function getContentIcon(type) {
   
   function goToHomeworkPreviewQuestion(index) {
     renderHomeworkPreviewQuestion(index);
+  }
+
+  // ============================================
+  // Edit Quiz Preview Functions
+  // ============================================
+  
+  // Edit Quiz Preview State
+  let currentEditQuizPreviewIndex = 0;
+  
+  function renderEditQuizPreview() {
+    const questions = selectedEditQuizQuestions;
+    const cardContainer = document.getElementById('editQuizPreviewQuestionCard');
+    const dotsContainer = document.getElementById('editQuizPreviewDots');
+    const totalNumEl = document.getElementById('editQuizPreviewTotalNum');
+    const currentNumEl = document.getElementById('editQuizPreviewCurrentNum');
+    
+    if (!questions || questions.length === 0) {
+      cardContainer.innerHTML = `
+        <div class="preview-empty-state">
+          <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+          <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+        </div>
+      `;
+      dotsContainer.innerHTML = '';
+      totalNumEl.textContent = '0';
+      currentNumEl.textContent = '0';
+      return;
+    }
+    
+    currentEditQuizPreviewIndex = 0;
+    totalNumEl.textContent = questions.length;
+    
+    // Render dots
+    dotsContainer.innerHTML = questions.map((_, index) => 
+      `<span class="preview-dot ${index === 0 ? 'active' : ''}" onclick="goToEditQuizPreviewQuestion(${index})"></span>`
+    ).join('');
+    
+    renderEditQuizPreviewQuestion(0);
+  }
+  
+  function renderEditQuizPreviewQuestion(index) {
+    const selectedQuestions = selectedEditQuizQuestions;
+    if (!selectedQuestions || index < 0 || index >= selectedQuestions.length) return;
+    
+    currentEditQuizPreviewIndex = index;
+    const selectedItem = selectedQuestions[index];
+    
+    // Look up the full question data from editQuizQuestions array
+    const questionId = selectedItem.question?.toString() || selectedItem.question;
+    const fullQuestion = editQuizQuestions.find(q => {
+      const qId = q._id?.toString() || q._id;
+      return qId === questionId;
+    });
+    
+    // Merge selected item data (like points) with full question data
+    const question = fullQuestion ? { ...fullQuestion, points: selectedItem.points || fullQuestion.points || 1 } : selectedItem;
+    
+    const cardContainer = document.getElementById('editQuizPreviewQuestionCard');
+    const currentNumEl = document.getElementById('editQuizPreviewCurrentNum');
+    const dotsContainer = document.getElementById('editQuizPreviewDots');
+    
+    currentNumEl.textContent = index + 1;
+    
+    // Update dots
+    dotsContainer.querySelectorAll('.preview-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === index);
+    });
+    
+    // Render question card (reuse the same render function)
+    cardContainer.innerHTML = renderPreviewQuestionCard(question, index + 1);
+  }
+  
+  function prevEditQuizPreviewQuestion() {
+    if (currentEditQuizPreviewIndex > 0) {
+      renderEditQuizPreviewQuestion(currentEditQuizPreviewIndex - 1);
+    }
+  }
+  
+  function nextEditQuizPreviewQuestion() {
+    if (currentEditQuizPreviewIndex < selectedEditQuizQuestions.length - 1) {
+      renderEditQuizPreviewQuestion(currentEditQuizPreviewIndex + 1);
+    }
+  }
+  
+  function goToEditQuizPreviewQuestion(index) {
+    renderEditQuizPreviewQuestion(index);
+  }
+
+  // ============================================
+  // Edit Homework Preview Functions
+  // ============================================
+  
+  // Edit Homework Preview State
+  let currentEditHomeworkPreviewIndex = 0;
+  
+  function renderEditHomeworkPreview() {
+    const questions = selectedEditHomeworkQuestions;
+    const cardContainer = document.getElementById('editHomeworkPreviewQuestionCard');
+    const dotsContainer = document.getElementById('editHomeworkPreviewDots');
+    const totalNumEl = document.getElementById('editHomeworkPreviewTotalNum');
+    const currentNumEl = document.getElementById('editHomeworkPreviewCurrentNum');
+    
+    if (!questions || questions.length === 0) {
+      cardContainer.innerHTML = `
+        <div class="preview-empty-state">
+          <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+          <p class="text-muted">No questions selected. Go back to Step 2 to select questions.</p>
+        </div>
+      `;
+      dotsContainer.innerHTML = '';
+      totalNumEl.textContent = '0';
+      currentNumEl.textContent = '0';
+      return;
+    }
+    
+    currentEditHomeworkPreviewIndex = 0;
+    totalNumEl.textContent = questions.length;
+    
+    // Render dots
+    dotsContainer.innerHTML = questions.map((_, index) => 
+      `<span class="preview-dot ${index === 0 ? 'active' : ''}" onclick="goToEditHomeworkPreviewQuestion(${index})"></span>`
+    ).join('');
+    
+    renderEditHomeworkPreviewQuestion(0);
+  }
+  
+  function renderEditHomeworkPreviewQuestion(index) {
+    const selectedQuestions = selectedEditHomeworkQuestions;
+    if (!selectedQuestions || index < 0 || index >= selectedQuestions.length) return;
+    
+    currentEditHomeworkPreviewIndex = index;
+    const selectedItem = selectedQuestions[index];
+    
+    // Look up the full question data from editHomeworkQuestions array
+    const questionId = selectedItem.question?.toString() || selectedItem.question;
+    const fullQuestion = editHomeworkQuestions.find(q => {
+      const qId = q._id?.toString() || q._id;
+      return qId === questionId;
+    });
+    
+    // Merge selected item data (like points) with full question data
+    const question = fullQuestion ? { ...fullQuestion, points: selectedItem.points || fullQuestion.points || 1 } : selectedItem;
+    
+    const cardContainer = document.getElementById('editHomeworkPreviewQuestionCard');
+    const currentNumEl = document.getElementById('editHomeworkPreviewCurrentNum');
+    const dotsContainer = document.getElementById('editHomeworkPreviewDots');
+    
+    currentNumEl.textContent = index + 1;
+    
+    // Update dots
+    dotsContainer.querySelectorAll('.preview-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === index);
+    });
+    
+    // Render question card (reuse the same render function)
+    cardContainer.innerHTML = renderPreviewQuestionCard(question, index + 1);
+  }
+  
+  function prevEditHomeworkPreviewQuestion() {
+    if (currentEditHomeworkPreviewIndex > 0) {
+      renderEditHomeworkPreviewQuestion(currentEditHomeworkPreviewIndex - 1);
+    }
+  }
+  
+  function nextEditHomeworkPreviewQuestion() {
+    if (currentEditHomeworkPreviewIndex < selectedEditHomeworkQuestions.length - 1) {
+      renderEditHomeworkPreviewQuestion(currentEditHomeworkPreviewIndex + 1);
+    }
+  }
+  
+  function goToEditHomeworkPreviewQuestion(index) {
+    renderEditHomeworkPreviewQuestion(index);
   }
 
   function loadHomeworkQuestionBanks() {
