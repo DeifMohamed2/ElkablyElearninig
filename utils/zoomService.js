@@ -10,6 +10,42 @@ class ZoomService {
     this.clientId = process.env.ZOOM_CLIENT_ID;
     this.clientSecret = process.env.ZOOM_CLIENT_SECRET;
     this.userId = process.env.ZOOM_USER_ID || process.env.ZOOM_EMAIL;
+    
+    // In-memory lock to prevent duplicate recording uploads
+    // Key: meetingId, Value: timestamp when lock was acquired
+    this.recordingUploadLocks = new Map();
+    // Lock expires after 10 minutes to prevent deadlocks
+    this.lockExpirationMs = 10 * 60 * 1000;
+  }
+
+  /**
+   * Acquire a lock for recording upload to prevent duplicate processing
+   * @param {String} meetingId - Meeting ID to lock
+   * @returns {Boolean} - True if lock acquired, false if already locked
+   */
+  acquireRecordingLock(meetingId) {
+    const now = Date.now();
+    const existingLock = this.recordingUploadLocks.get(meetingId);
+    
+    // Check if there's an existing lock that hasn't expired
+    if (existingLock && (now - existingLock) < this.lockExpirationMs) {
+      console.log(`🔒 Recording upload lock already held for meeting ${meetingId}`);
+      return false;
+    }
+    
+    // Acquire the lock
+    this.recordingUploadLocks.set(meetingId, now);
+    console.log(`🔓 Recording upload lock acquired for meeting ${meetingId}`);
+    return true;
+  }
+
+  /**
+   * Release the recording upload lock
+   * @param {String} meetingId - Meeting ID to unlock
+   */
+  releaseRecordingLock(meetingId) {
+    this.recordingUploadLocks.delete(meetingId);
+    console.log(`🔓 Recording upload lock released for meeting ${meetingId}`);
   }
 
   /**
@@ -152,7 +188,6 @@ class ZoomService {
           host_video: settings.hostVideo !== false && settings.hostVideo !== 'false',
           participant_video: settings.participantVideo !== false && settings.participantVideo !== 'false',
           audio: 'both',
-          auto_recording: settings.autoRecording || (settings.recording === true || settings.recording === 'true' ? 'cloud' : 'none'),
           mute_upon_entry: settings.muteUponEntry === true || settings.muteUponEntry === 'true',
           enforce_login: false,
           use_pmi: false,
@@ -167,7 +202,6 @@ class ZoomService {
         host_video: meetingConfig.settings.host_video,
         participant_video: meetingConfig.settings.participant_video,
         mute_upon_entry: meetingConfig.settings.mute_upon_entry,
-        auto_recording: meetingConfig.settings.auto_recording,
       });
 
       console.log('🔍 Creating Zoom meeting:', topic);
@@ -778,10 +812,12 @@ class ZoomService {
     // Must be function-scoped so catch() can access them
     let zoomMeeting = null;
     let meetingExists = false;
+    let lockAcquired = false;
+    let meetingId = null;
 
     try {
       const { object } = payload;
-      const meetingId = object.id.toString();
+      meetingId = object.id.toString();
       const recordingFiles = object.recording_files || [];
       const downloadTokenFromWebhook =
         payload?.download_token || object?.download_token || null;
@@ -793,21 +829,29 @@ class ZoomService {
       zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
       meetingExists = !!zoomMeeting;
 
-    // ✅ Prevent duplicate processing: Check if recording already completed
-    if (meetingExists && zoomMeeting.recordingStatus === 'completed') {
-      console.log('⏭️ Recording already processed, skipping duplicate webhook');
+    // ✅ Prevent duplicate processing: Check if recording already completed or has bunnyVideoId
+    if (meetingExists && (zoomMeeting.recordingStatus === 'completed' || zoomMeeting.bunnyVideoId)) {
+      console.log('⏭️ Recording already processed (status: completed or bunnyVideoId exists), skipping duplicate webhook');
       return; // Exit early if already completed
     }
 
-    // ✅ Prevent race conditions: Check if recording is currently uploading
-    if (meetingExists && zoomMeeting.recordingStatus === 'uploading') {
-      console.log('⏳ Recording upload already in progress, skipping duplicate webhook');
-      return; // Exit early if upload is in progress
+    // ✅ Try to acquire in-memory lock to prevent race conditions
+    lockAcquired = this.acquireRecordingLock(meetingId);
+    if (!lockAcquired) {
+      console.log('⏳ Another process is already handling this recording, skipping');
+      return; // Exit early if another process is handling this
     }
 
-    if (!meetingExists) {
-      console.log('⚠️ Meeting not found in DB, continuing anyway');
-    } else {
+    // ✅ Double-check after acquiring lock (in case status changed while waiting)
+    if (meetingExists) {
+      // Refresh from database to get latest status
+      zoomMeeting = await ZoomMeeting.findByMeetingId(meetingId);
+      if (zoomMeeting.recordingStatus === 'completed' || zoomMeeting.recordingStatus === 'uploading' || zoomMeeting.bunnyVideoId) {
+        console.log('⏭️ Recording status changed while acquiring lock, skipping');
+        this.releaseRecordingLock(meetingId);
+        return;
+      }
+      
       zoomMeeting.recordingStatus = 'uploading';
       await zoomMeeting.save();
     }
@@ -1153,8 +1197,18 @@ class ZoomService {
 
     console.log('🎉 Recording processing finished successfully');
 
+    // Release the lock on success
+    if (lockAcquired && meetingId) {
+      this.releaseRecordingLock(meetingId);
+    }
+
     } catch (error) {
       console.error('❌ Recording processing failed:', error.message);
+
+      // Release the lock on error
+      if (lockAcquired && meetingId) {
+        this.releaseRecordingLock(meetingId);
+      }
 
       // Update status to failed if meeting exists
       if (meetingExists && zoomMeeting) {
@@ -1186,6 +1240,17 @@ class ZoomService {
   async retryRecordingDownload(meetingId) {
     try {
       console.log('🔄 Manually retrying recording download for meeting:', meetingId);
+      
+      // Check if recording was already successfully uploaded
+      const existingMeeting = await ZoomMeeting.findByMeetingId(meetingId);
+      if (existingMeeting && existingMeeting.bunnyVideoId) {
+        console.log('⏭️ Recording already uploaded to Bunny CDN, skipping retry');
+        return { 
+          success: true, 
+          message: 'Recording already uploaded',
+          bunnyVideoId: existingMeeting.bunnyVideoId 
+        };
+      }
       
       // Get recording details from Zoom API
       const token = await this.getAccessToken();

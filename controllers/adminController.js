@@ -3714,7 +3714,6 @@ const updateTopicContent = async (req, res) => {
       hostVideo,
       participantVideo,
       muteUponEntry,
-      enableRecording,
       // Legacy nested data support (for backward compatibility)
       quizData,
       homeworkData,
@@ -4055,7 +4054,6 @@ const updateTopicContent = async (req, res) => {
         contentItem.zoomMeeting.hostVideo = hostVideo !== false;
         contentItem.zoomMeeting.participantVideo = participantVideo !== false;
         contentItem.zoomMeeting.muteUponEntry = muteUponEntry || false;
-        contentItem.zoomMeeting.enableRecording = enableRecording || false;
       }
     }
 
@@ -11765,8 +11763,6 @@ const createZoomMeeting = async (req, res) => {
       muteUponEntry,
       hostVideo,
       participantVideo,
-      enableRecording,
-      autoRecording,
     } = req.body;
 
     console.log('Creating Zoom meeting for topic:', topicId);
@@ -11796,8 +11792,6 @@ const createZoomMeeting = async (req, res) => {
         hostVideo: hostVideo === 'true' || hostVideo === true,
         participantVideo:
           participantVideo === 'true' || participantVideo === true,
-        recording: enableRecording === 'true' || enableRecording === true,
-        autoRecording: autoRecording || 'none',
       },
     });
 
@@ -11827,8 +11821,6 @@ const createZoomMeeting = async (req, res) => {
         hostVideo: hostVideo === 'true' || hostVideo === true,
         participantVideo:
           participantVideo === 'true' || participantVideo === true,
-        recording: enableRecording === 'true' || enableRecording === true,
-        autoRecording: autoRecording || 'none',
       },
     });
 
