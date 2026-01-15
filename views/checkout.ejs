@@ -2508,11 +2508,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let checkoutTermsVideoMaxWatched = 0;
   let checkoutTermsVideoIsPlaying = false;
   let checkoutTermsVideoCompleted = false;
-  let checkoutTermsVideoLastTime = 0;
-  
-  // Initialize Terms Video Anti-Skip Tracking - Variables must be outside function to persist
-  let checkoutLastUpdateTimestamp = Date.now();
-  let checkoutIsSeeking = false;
+  let checkoutTermsVideoLastTime = -1; // -1 means not initialized
   
   // Modal Elements
   const checkoutModal = document.getElementById('checkoutReadingModal');
@@ -2666,7 +2662,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initCheckoutTermsVideoTracking, 500);
   }
   
-  // Initialize Checkout Terms Video Anti-Skip Tracking
+  // Initialize Checkout Terms Video Anti-Skip Tracking - REBUILT FROM SCRATCH
   function initCheckoutTermsVideoTracking() {
     const videoIframe = document.getElementById('checkoutTermsVideoIframe');
     const videoStatus = document.getElementById('checkoutVideoWatchStatus');
@@ -2674,14 +2670,27 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!videoIframe) return;
     
-    // Reset video tracking
+    // Clean up previous player instance if exists
+    if (checkoutTermsVideoPlayer) {
+      try {
+        checkoutTermsVideoPlayer.off('ready');
+        checkoutTermsVideoPlayer.off('play');
+        checkoutTermsVideoPlayer.off('pause');
+        checkoutTermsVideoPlayer.off('timeupdate');
+        checkoutTermsVideoPlayer.off('ended');
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+      checkoutTermsVideoPlayer = null;
+    }
+    
+    // Reset all video tracking state
     checkoutTermsVideoCompleted = false;
     checkoutTermsVideoWatchedTime = 0;
     checkoutTermsVideoMaxWatched = 0;
-    checkoutTermsVideoLastTime = 0;
+    checkoutTermsVideoLastTime = -1; // -1 means not initialized
     checkoutTermsVideoIsPlaying = false;
-    checkoutLastUpdateTimestamp = Date.now();
-    checkoutIsSeeking = false;
+    checkoutTermsVideoDuration = 0;
     
     // Show status
     if (videoStatus) {
@@ -2694,7 +2703,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
-    // Wait for playerjs to be available
+    // Check playerjs
     if (typeof playerjs === 'undefined') {
       console.error('PlayerJS library not loaded');
       return;
@@ -2703,109 +2712,131 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       checkoutTermsVideoPlayer = new playerjs.Player(videoIframe);
       
+      // Simple duration fetcher with retries
+      function tryGetDuration() {
+        if (checkoutTermsVideoDuration > 0) return;
+        try {
+          checkoutTermsVideoPlayer.getDuration(function(d) {
+            if (d && d > 0) {
+              checkoutTermsVideoDuration = d;
+              console.log('📹 Video duration:', d);
+            }
+          });
+        } catch(e) {}
+      }
+      
+      // On ready
       checkoutTermsVideoPlayer.on('ready', function() {
-        checkoutTermsVideoPlayer.getDuration(function(duration) {
-          checkoutTermsVideoDuration = duration;
-          console.log('📹 Checkout terms video duration:', checkoutTermsVideoDuration);
-        });
+        console.log('📹 Player ready');
+        tryGetDuration();
+        // Retry duration fetch a few times
+        setTimeout(tryGetDuration, 500);
+        setTimeout(tryGetDuration, 1500);
       });
       
+      // Delayed init for mobile
+      setTimeout(function() {
+        tryGetDuration();
+      }, 1000);
+      
+      // On play
       checkoutTermsVideoPlayer.on('play', function() {
+        console.log('📹 Play event');
         checkoutTermsVideoIsPlaying = true;
+        tryGetDuration();
+        
+        // Initialize lastTime on first play if not set
+        if (checkoutTermsVideoLastTime < 0) {
+          checkoutTermsVideoPlayer.getCurrentTime(function(t) {
+            if (checkoutTermsVideoLastTime < 0) {
+              checkoutTermsVideoLastTime = t || 0;
+              checkoutTermsVideoMaxWatched = t || 0;
+              console.log('📹 Initialized tracking at:', t);
+            }
+          });
+        }
+        
         if (videoStatus) {
           videoStatus.className = 'checkout-video-watch-status watching';
-          if (checkoutModalLang === 'ar') {
-            videoStatusText.textContent = 'جاري المشاهدة... يرجى مشاهدة الفيديو حتى النهاية.';
-          } else {
-            videoStatusText.textContent = 'Watching... Please watch the video until the end.';
-          }
+          videoStatusText.textContent = checkoutModalLang === 'ar' 
+            ? 'جاري المشاهدة... يرجى مشاهدة الفيديو حتى النهاية.'
+            : 'Watching... Please watch the video until the end.';
         }
       });
       
+      // On pause
       checkoutTermsVideoPlayer.on('pause', function() {
         checkoutTermsVideoIsPlaying = false;
       });
       
-      // STRICT ANTI-SKIP: Track time updates with smart tolerance
+      // Timeupdate - Simple anti-skip logic
       checkoutTermsVideoPlayer.on('timeupdate', function(data) {
-        if (checkoutTermsVideoCompleted || checkoutIsSeeking) return;
+        if (checkoutTermsVideoCompleted) return;
         
         const currentTime = data.seconds;
-        const now = Date.now();
-        const timeSinceLastUpdate = now - checkoutLastUpdateTimestamp;
-        const timeDiff = currentTime - checkoutTermsVideoLastTime;
-        const SKIP_TOLERANCE = 2; // seconds
         
-        // Check for skips regardless of playing state (catches timeline clicks, etc.)
-        // Check for forward skip: current time jumped ahead significantly beyond what's been watched
-        if (currentTime > checkoutTermsVideoMaxWatched + SKIP_TOLERANCE) {
-          // User tried to skip ahead - seek back silently
-          checkoutIsSeeking = true;
-          checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
-          setTimeout(() => { checkoutIsSeeking = false; }, 100);
+        // Try to get duration if we don't have it
+        if (checkoutTermsVideoDuration === 0) {
+          tryGetDuration();
+        }
+        
+        // First timeupdate - initialize tracking
+        if (checkoutTermsVideoLastTime < 0) {
+          checkoutTermsVideoLastTime = currentTime;
+          checkoutTermsVideoMaxWatched = currentTime;
           return;
         }
         
-        // Check for backward skip: only prevent if significantly behind max watched (more than 1 second)
-        if (currentTime < checkoutTermsVideoMaxWatched - 1) {
-          // User tried to go backward - prevent it silently
-          checkoutIsSeeking = true;
-          checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
-          setTimeout(() => { checkoutIsSeeking = false; }, 100);
+        // Calculate how far ahead the user jumped
+        const jumpAhead = currentTime - checkoutTermsVideoMaxWatched;
+        
+        // Anti-skip: If jumped more than 3 seconds ahead of max watched, reset to max watched
+        if (jumpAhead > 3) {
+          console.log('📹 Skip detected! Current:', currentTime, 'Max:', checkoutTermsVideoMaxWatched);
+          try {
+            checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
+          } catch(e) {}
           return;
         }
         
-        // Only update max watched time if video is playing forward normally
-        if (checkoutTermsVideoIsPlaying) {
-          // Calculate expected time advancement based on elapsed time (allow 10% tolerance for buffering)
-          const expectedAdvancement = (timeSinceLastUpdate / 1000) * 1.1; // 1.1x for tolerance
-          
-          // Update max watched time if playing forward normally
-          // Allow small jumps (up to 2 seconds) for buffering/loading
-          if (currentTime > checkoutTermsVideoLastTime && timeDiff >= 0 && timeDiff <= 2.0) {
-            if (currentTime > checkoutTermsVideoMaxWatched) {
-              checkoutTermsVideoMaxWatched = currentTime;
-            }
-          }
+        // Normal playback - update max watched if we're moving forward
+        if (currentTime > checkoutTermsVideoMaxWatched) {
+          checkoutTermsVideoMaxWatched = currentTime;
         }
         
+        // Update last time
         checkoutTermsVideoLastTime = currentTime;
-        checkoutLastUpdateTimestamp = now;
         
-        // Check if video is completed (watched 100%)
-        if (checkoutTermsVideoDuration > 0 && checkoutTermsVideoMaxWatched >= checkoutTermsVideoDuration * 0.99) {
-          checkoutTermsVideoCompleted = true;
-          if (videoStatus) {
-            videoStatus.className = 'checkout-video-watch-status completed';
-            if (checkoutModalLang === 'ar') {
-              videoStatusText.textContent = '✓ تمت مشاهدة الفيديو بالكامل! يمكنك الآن المتابعة.';
-            } else {
-              videoStatusText.textContent = '✓ Video watched completely! You can now proceed.';
-            }
-          }
-          // Enable confirm button immediately (video completion is sufficient)
-          checkCheckoutTermsCompletion();
+        // Check completion (95% watched)
+        if (checkoutTermsVideoDuration > 0 && checkoutTermsVideoMaxWatched >= checkoutTermsVideoDuration * 0.95) {
+          markVideoCompleted();
         }
       });
       
-      // Handle video end
+      // On ended - most reliable completion
       checkoutTermsVideoPlayer.on('ended', function() {
+        console.log('📹 Video ended');
+        markVideoCompleted();
+      });
+      
+      // Helper to mark video as completed
+      function markVideoCompleted() {
+        if (checkoutTermsVideoCompleted) return;
         checkoutTermsVideoCompleted = true;
-        checkoutTermsVideoMaxWatched = checkoutTermsVideoDuration;
+        if (checkoutTermsVideoDuration > 0) {
+          checkoutTermsVideoMaxWatched = checkoutTermsVideoDuration;
+        }
         if (videoStatus) {
           videoStatus.className = 'checkout-video-watch-status completed';
-          if (checkoutModalLang === 'ar') {
-            videoStatusText.textContent = '✓ تمت مشاهدة الفيديو بالكامل! يمكنك الآن المتابعة.';
-          } else {
-            videoStatusText.textContent = '✓ Video watched completely! You can now proceed.';
-          }
+          videoStatusText.textContent = checkoutModalLang === 'ar'
+            ? '✓ تمت مشاهدة الفيديو بالكامل! يمكنك الآن المتابعة.'
+            : '✓ Video watched completely! You can now proceed.';
         }
-        // Enable confirm button immediately (video completion is sufficient)
         checkCheckoutTermsCompletion();
-      });
+      }
       
     } catch (error) {
-      console.error('Error initializing checkout terms video player:', error);
+      console.error('Error initializing video player:', error);
     }
   }
   
@@ -2864,8 +2895,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const content = lang === 'ar' ? checkoutTermsContentAR : checkoutTermsContentEN;
     checkoutModalContent.innerHTML = content;
     
-    // Reinitialize video after content update
-    setTimeout(initCheckoutTermsVideoTracking, 100);
+    // Reinitialize video after content update - wait longer for iframe to load properly
+    setTimeout(initCheckoutTermsVideoTracking, 500);
     
     // Update modal title
     const titleText = lang === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions';

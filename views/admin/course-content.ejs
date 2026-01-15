@@ -270,6 +270,9 @@
                         <button class="btn btn-sm btn-outline-success" onclick="shareContentLink('<%= course.courseCode %>', '<%= topic._id %>', '<%= contentItem._id %>', '<%= contentItem.title %>')" title="Share Content">
                           <i class="fas fa-share-alt"></i>
                         </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="showSkipContentModal('<%= topic._id %>', '<%= contentItem._id %>', `<%- contentItem.title.replace(/`/g, '\\`').replace(/\\/g, '\\\\') %>`, '<%= contentItem.type %>')" title="Skip Content for Students">
+                          <i class="fas fa-forward"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline-primary" onclick="editContent('<%= topic._id %>', '<%= contentItem._id %>')">
                           <i class="fas fa-edit"></i>
                         </button>
@@ -2670,6 +2673,91 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Skip Content Modal -->
+<div class="modal fade" id="skipContentModal" tabindex="-1" aria-labelledby="skipContentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="skipContentModalLabel">
+          <i class="fas fa-forward me-2"></i>Skip Content for Students
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Content Info -->
+        <div class="alert alert-info mb-3">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle me-2"></i>
+            <div>
+              <strong>Content:</strong> <span id="skipContentTitle">Loading...</span>
+              <br><small class="text-muted">This will mark the content as complete for selected students, including recording progress and sending notifications.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="row mb-3">
+          <div class="col-md-8">
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-search"></i></span>
+              <input type="text" id="skipStudentSearchInput" class="form-control" placeholder="Search by name, email, or code..." oninput="searchStudentsForSkipContent()">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <select id="skipStudentFilter" class="form-select" onchange="filterStudentsForSkipContent()">
+              <option value="all">All Students</option>
+              <option value="not-completed">Not Completed</option>
+              <option value="completed">Already Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Selection Actions -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary" onclick="selectAllSkipStudents()">
+              <i class="fas fa-check-double me-1"></i>Select All
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="selectNotCompletedSkipStudents()">
+              <i class="fas fa-clock me-1"></i>Select Not Completed
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="clearSkipStudentSelection()">
+              <i class="fas fa-times me-1"></i>Clear Selection
+            </button>
+          </div>
+          <div>
+            <span class="badge bg-primary" id="skipSelectedCount">0 selected</span>
+          </div>
+        </div>
+
+        <!-- Student List -->
+        <div id="skipStudentListContainer" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;">
+          <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+            <p class="text-muted mt-2">Loading students...</p>
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="mt-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="skipSendNotification" checked>
+            <label class="form-check-label" for="skipSendNotification">
+              <i class="fas fa-bell text-success me-1"></i>Send notification to parents
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="confirmSkipContentBtn" onclick="confirmSkipContent()" disabled>
+          <i class="fas fa-forward me-1"></i>Skip Content for Selected Students
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -10249,6 +10337,317 @@ function getContentIcon(type) {
     }
   }
 
+  // ==================== SKIP CONTENT FOR STUDENTS FUNCTIONALITY ====================
+  
+  let currentSkipTopicId = null;
+  let currentSkipContentId = null;
+  let currentSkipContentTitle = null;
+  let currentSkipContentType = null;
+  let allSkipStudents = [];
+  let filteredSkipStudents = [];
+  let selectedSkipStudents = new Set();
+  let skipStudentSearchTimeout = null;
+
+  // Show Skip Content Modal
+  function showSkipContentModal(topicId, contentId, contentTitle, contentType) {
+    currentSkipTopicId = topicId;
+    currentSkipContentId = contentId;
+    currentSkipContentTitle = contentTitle;
+    currentSkipContentType = contentType;
+    
+    // Reset selection
+    selectedSkipStudents.clear();
+    updateSkipSelectedCount();
+    
+    // Update modal title
+    document.getElementById('skipContentTitle').innerHTML = `
+      <span class="badge bg-secondary me-2">${contentType.charAt(0).toUpperCase() + contentType.slice(1)}</span>
+      ${contentTitle}
+    `;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('skipContentModal'));
+    modal.show();
+    
+    // Load students
+    loadStudentsForSkipContent();
+  }
+
+  // Load students for skip content
+  async function loadStudentsForSkipContent() {
+    const container = document.getElementById('skipStudentListContainer');
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+        <p class="text-muted mt-2">Loading students...</p>
+      </div>
+    `;
+    
+    try {
+      const response = await fetch(`/admin/api/students-for-skip-content?courseId=<%= course._id %>&contentId=${currentSkipContentId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        allSkipStudents = data.students;
+        filteredSkipStudents = [...allSkipStudents];
+        renderSkipStudentList();
+      } else {
+        container.innerHTML = `
+          <div class="text-center py-4">
+            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+            <p class="text-muted mt-2">${data.message || 'Failed to load students'}</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error loading students for skip content:', error);
+      container.innerHTML = `
+        <div class="text-center py-4">
+          <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+          <p class="text-muted mt-2">Error loading students. Please try again.</p>
+        </div>
+      `;
+    }
+  }
+
+  // Render skip student list
+  function renderSkipStudentList() {
+    const container = document.getElementById('skipStudentListContainer');
+    
+    if (filteredSkipStudents.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-4">
+          <i class="fas fa-users-slash fa-2x text-muted"></i>
+          <p class="text-muted mt-2">No students found matching your criteria</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = filteredSkipStudents.map(student => {
+      const isSelected = selectedSkipStudents.has(student._id);
+      const isCompleted = student.isContentCompleted;
+      
+      return `
+        <div class="skip-student-item ${isSelected ? 'selected' : ''} ${isCompleted ? 'completed disabled' : ''} d-flex align-items-center justify-content-between p-3 border-bottom"
+             data-student-id="${student._id}"
+             data-completed="${isCompleted}"
+             ${isCompleted ? '' : `onclick="toggleSkipStudentSelection('${student._id}')"` }
+             style="cursor: ${isCompleted ? 'not-allowed' : 'pointer'}; transition: all 0.2s ease; background: ${isSelected ? 'rgba(255, 193, 7, 0.15)' : isCompleted ? 'rgba(40, 167, 69, 0.08)' : 'transparent'}; ${isCompleted ? 'opacity: 0.7;' : ''}">
+          <div class="d-flex align-items-center">
+            <input type="checkbox" class="form-check-input me-3" ${isSelected ? 'checked' : ''} ${isCompleted ? 'disabled' : ''} ${isCompleted ? '' : `onclick="event.stopPropagation(); toggleSkipStudentSelection('${student._id}')"`} style="pointer-events: ${isCompleted ? 'none' : 'auto'};">
+            <div class="skip-student-avatar bg-${isCompleted ? 'success' : 'primary'} text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: 600;">
+              ${student.firstName.charAt(0)}${student.lastName.charAt(0)}
+            </div>
+            <div>
+              <div class="fw-bold">${student.firstName} ${student.lastName}</div>
+              <div class="text-muted small">
+                <span class="me-2"><i class="fas fa-envelope me-1"></i>${student.studentEmail}</span>
+                <span><i class="fas fa-id-badge me-1"></i>${student.studentCode || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-end">
+            ${isCompleted ? 
+              '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Already Completed</span>' : 
+              '<span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Not Completed</span>'
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Toggle skip student selection
+  function toggleSkipStudentSelection(studentId) {
+    // Find the student and check if already completed
+    const student = allSkipStudents.find(s => s._id === studentId);
+    if (student && student.isContentCompleted) {
+      return; // Don't allow selection of already completed students
+    }
+    
+    if (selectedSkipStudents.has(studentId)) {
+      selectedSkipStudents.delete(studentId);
+    } else {
+      selectedSkipStudents.add(studentId);
+    }
+    
+    // Update UI
+    const item = document.querySelector(`.skip-student-item[data-student-id="${studentId}"]`);
+    if (item) {
+      const isSelected = selectedSkipStudents.has(studentId);
+      const isCompleted = item.dataset.completed === 'true';
+      item.classList.toggle('selected', isSelected);
+      item.style.background = isSelected ? 'rgba(255, 193, 7, 0.15)' : isCompleted ? 'rgba(40, 167, 69, 0.08)' : 'transparent';
+      item.querySelector('input[type="checkbox"]').checked = isSelected;
+    }
+    
+    updateSkipSelectedCount();
+  }
+
+  // Update skip selected count
+  function updateSkipSelectedCount() {
+    const countBadge = document.getElementById('skipSelectedCount');
+    const confirmBtn = document.getElementById('confirmSkipContentBtn');
+    
+    countBadge.textContent = `${selectedSkipStudents.size} selected`;
+    confirmBtn.disabled = selectedSkipStudents.size === 0;
+    confirmBtn.innerHTML = selectedSkipStudents.size > 0 
+      ? `<i class="fas fa-forward me-1"></i>Skip Content for ${selectedSkipStudents.size} Student${selectedSkipStudents.size > 1 ? 's' : ''}`
+      : '<i class="fas fa-forward me-1"></i>Select Students to Skip';
+  }
+
+  // Search students for skip content
+  function searchStudentsForSkipContent() {
+    clearTimeout(skipStudentSearchTimeout);
+    skipStudentSearchTimeout = setTimeout(() => {
+      const searchTerm = document.getElementById('skipStudentSearchInput').value.toLowerCase();
+      const filterValue = document.getElementById('skipStudentFilter').value;
+      
+      filteredSkipStudents = allSkipStudents.filter(student => {
+        const matchesSearch = !searchTerm || 
+          student.firstName.toLowerCase().includes(searchTerm) ||
+          student.lastName.toLowerCase().includes(searchTerm) ||
+          student.studentEmail.toLowerCase().includes(searchTerm) ||
+          (student.studentCode && student.studentCode.toLowerCase().includes(searchTerm));
+        
+        const matchesFilter = filterValue === 'all' ||
+          (filterValue === 'completed' && student.isContentCompleted) ||
+          (filterValue === 'not-completed' && !student.isContentCompleted);
+        
+        return matchesSearch && matchesFilter;
+      });
+      
+      renderSkipStudentList();
+    }, 300);
+  }
+
+  // Filter students for skip content
+  function filterStudentsForSkipContent() {
+    searchStudentsForSkipContent();
+  }
+
+  // Select all skip students (only not completed ones)
+  function selectAllSkipStudents() {
+    filteredSkipStudents.forEach(student => {
+      if (!student.isContentCompleted) {
+        selectedSkipStudents.add(student._id);
+      }
+    });
+    renderSkipStudentList();
+    updateSkipSelectedCount();
+  }
+
+  // Select only not completed students
+  function selectNotCompletedSkipStudents() {
+    filteredSkipStudents.forEach(student => {
+      if (!student.isContentCompleted) {
+        selectedSkipStudents.add(student._id);
+      }
+    });
+    renderSkipStudentList();
+    updateSkipSelectedCount();
+  }
+
+  // Clear skip student selection
+  function clearSkipStudentSelection() {
+    selectedSkipStudents.clear();
+    renderSkipStudentList();
+    updateSkipSelectedCount();
+  }
+
+  // Confirm skip content
+  async function confirmSkipContent() {
+    if (selectedSkipStudents.size === 0) {
+      showNotification('Please select at least one student', 'warning');
+      return;
+    }
+    
+    const sendNotification = document.getElementById('skipSendNotification').checked;
+    const studentIds = Array.from(selectedSkipStudents);
+    
+    // Show confirmation
+    const result = await Swal.fire({
+      title: 'Skip Content for Students?',
+      html: `
+        <div class="text-start">
+          <p>This will mark <strong>"${currentSkipContentTitle}"</strong> as complete for <strong>${studentIds.length}</strong> student${studentIds.length > 1 ? 's' : ''}.</p>
+          <ul class="text-muted small">
+            <li>Progress will be recorded for each student</li>
+            <li>Course progress will be recalculated</li>
+            ${sendNotification ? '<li>Notifications will be sent to parents</li>' : ''}
+          </ul>
+          <p class="text-warning small mt-2"><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ffc107',
+      confirmButtonText: '<i class="fas fa-forward me-1"></i>Yes, Skip Content',
+      cancelButtonText: 'Cancel'
+    });
+    
+    if (!result.isConfirmed) return;
+    
+    // Show loading
+    const confirmBtn = document.getElementById('confirmSkipContentBtn');
+    const originalBtnText = confirmBtn.innerHTML;
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    
+    try {
+      const response = await fetch('/admin/courses/<%= course._id %>/topics/' + currentSkipTopicId + '/content/' + currentSkipContentId + '/skip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          studentIds,
+          sendNotification
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('skipContentModal')).hide();
+        
+        // Show success message
+        Swal.fire({
+          title: 'Success!',
+          html: `
+            <div class="text-start">
+              <p>Content skipped successfully for <strong>${data.processedCount}</strong> student${data.processedCount > 1 ? 's' : ''}.</p>
+              ${data.alreadyCompletedCount > 0 ? `<p class="text-muted small"><i class="fas fa-info-circle me-1"></i>${data.alreadyCompletedCount} student(s) had already completed this content.</p>` : ''}
+              ${data.notificationsSent > 0 ? `<p class="text-success small"><i class="fas fa-bell me-1"></i>${data.notificationsSent} notification(s) sent.</p>` : ''}
+              ${data.notificationsFailed > 0 ? `<p class="text-danger small"><i class="fas fa-exclamation-circle me-1"></i>${data.notificationsFailed} notification(s) failed.</p>` : ''}
+            </div>
+          `,
+          icon: 'success',
+          confirmButtonColor: '#28a745'
+        });
+      } else {
+        Swal.fire({
+          title: 'Error',
+          text: data.message || 'Failed to skip content for students',
+          icon: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error skipping content:', error);
+      Swal.fire({
+        title: 'Error',
+        text: 'An error occurred while processing. Please try again.',
+        icon: 'error'
+      });
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalBtnText;
+      updateSkipSelectedCount();
+    }
+  }
+
 </script>
 
 <!-- Custom Styles for Zoom Meeting Controls -->
@@ -11276,6 +11675,108 @@ function getContentIcon(type) {
 
   .dark-theme .qr-code-url {
     color: #6b7280;
+  }
+
+  /* ==================== Skip Content Modal Styles ==================== */
+  #skipContentModal .modal-header {
+    border-bottom: 2px solid #ffc107;
+  }
+
+  #skipContentModal .skip-student-item {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 0;
+  }
+
+  #skipContentModal .skip-student-item:hover {
+    background: rgba(255, 193, 7, 0.1) !important;
+  }
+
+  #skipContentModal .skip-student-item.selected {
+    background: rgba(255, 193, 7, 0.15) !important;
+    border-left: 3px solid #ffc107 !important;
+  }
+
+  #skipContentModal .skip-student-item.completed {
+    opacity: 0.8;
+  }
+
+  #skipContentModal .skip-student-item.completed .skip-student-avatar {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+  }
+
+  #skipContentModal .skip-student-avatar {
+    font-size: 14px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #b80101, #9a0101) !important;
+  }
+
+  #skipContentModal .btn-group .btn {
+    font-size: 0.8rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  #skipContentModal #skipSelectedCount {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+
+  #skipContentModal .form-check-input:checked {
+    background-color: #ffc107;
+    border-color: #ffc107;
+  }
+
+  #skipContentModal .badge.bg-success {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+  }
+
+  #skipContentModal .badge.bg-secondary {
+    background: linear-gradient(135deg, #6b7280, #4b5563) !important;
+  }
+
+  /* Dark Theme for Skip Content Modal */
+  .dark-theme #skipContentModal .modal-content {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+
+  .dark-theme #skipContentModal .modal-header {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: #fff;
+  }
+
+  .dark-theme #skipContentModal .alert-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+  }
+
+  .dark-theme #skipContentModal .skip-student-item {
+    border-color: #374151 !important;
+  }
+
+  .dark-theme #skipContentModal .skip-student-item:hover {
+    background: rgba(255, 193, 7, 0.1) !important;
+  }
+
+  .dark-theme #skipContentModal #skipStudentListContainer {
+    border-color: #374151;
+    background: #111827;
+  }
+
+  .dark-theme #skipContentModal .form-control,
+  .dark-theme #skipContentModal .form-select {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .dark-theme #skipContentModal .form-check-label {
+    color: #d1d5db;
+  }
+
+  .dark-theme #skipContentModal .modal-footer {
+    border-top-color: #374151;
   }
 
 </style>

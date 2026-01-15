@@ -477,153 +477,241 @@
 
     /* ==================== MOBILE VIDEO REDESIGN ==================== */
     /* Full-width video, no padding, no borders on mobile */
+    /* ========== MOBILE VIDEO - CLEAN REBUILD ========== */
     @media (max-width: 768px) {
-      /* Remove card padding and borders on mobile for recording sections */
-      .meeting-ended-section,
-      .recording-available,
-      .recording-player-wrapper,
-      .content-main-section {
-        padding: 0 !important;
-        margin: 0 !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
+      /* Content body and recording sections - same card style on mobile */
+      .content-body-section,
+      .recording-player-section {
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 12px !important;
+        margin: 8px !important;
+        padding: 12px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
       }
-
-      /* Make video container full-width and bigger */
+      
+      /* Main video wrapper - rounded inside the card */
       .video-player-wrapper-with-watermark,
-      .bunny-video-wrapper,
-      .video-player-container,
-      .recording-video-container {
-        min-height: 220px !important;
+      #youtube-video-wrapper,
+      #bunny-video-wrapper,
+      #recording-video-wrapper,
+      .recording-player-wrapper {
         width: 100% !important;
-        border-radius: 8px !important;
+        max-width: 100% !important;
         margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        border-radius: 12px !important;
+        background: #000 !important;
+        position: relative !important;
         overflow: hidden !important;
       }
       
-      /* Ensure aspect ratio is maintained */
-      .recording-video-container {
-        padding-top: 56.25% !important;
+      /* The inner container that holds the iframe - this is key */
+      #youtube-player-container,
+      .bunny-video-container-inner,
+      .recording-video-container,
+      .video-player-container {
+        width: 100% !important;
+        padding-bottom: 56.25% !important; /* Standard 16:9 */
+        padding-top: 0 !important;
+        height: 0 !important;
         position: relative !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        background: #000 !important;
+        overflow: hidden !important;
       }
       
-      /* Recording header - more compact */
-      .recording-header {
-        padding: 10px 0 !important;
-        margin-bottom: 8px !important;
+      /* Iframe inside - fill container */
+      #youtube-player-container iframe,
+      #youtube-player-container > div,
+      .bunny-video-container-inner iframe,
+      .recording-video-container iframe,
+      .video-player-container iframe,
+      #youtube-player,
+      #bunnyPlayer,
+      #recording-youtube-player {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+        border-radius: 12px !important;
       }
       
-      .recording-badge {
-        padding: 6px 12px !important;
-        font-size: 12px !important;
-      }
-      
-      .recording-completed-badge {
-        padding: 4px 10px !important;
-        font-size: 11px !important;
-      }
-
-      /* HIDE the watch progress overlay inside video on mobile */
+      /* Hide overlays inside video on mobile */
       #videoWatchProgress,
       #youtubeWatchProgress,
       #recordingWatchProgressOverlay {
         display: none !important;
       }
-
-      /* Recording info section - more compact */
-      .recording-info {
-        padding: 8px 0 !important;
-        margin: 8px 0 !important;
+      
+      /* Show mobile progress section */
+      .mobile-watch-progress-section {
+        display: block !important;
+        margin: 12px 0 0 0 !important;
+        border-radius: 12px !important;
       }
       
-      .recording-meta {
-        font-size: 12px !important;
-      }
-      
-      .recording-meta-item {
-        padding: 4px 0 !important;
-      }
-
-      /* Recording watch requirement / attended / completed badges - compact */
-      .recording-watch-requirement,
-      .recording-attended-badge,
-      .recording-completed-badge {
-        padding: 8px 12px !important;
-        font-size: 12px !important;
-        margin: 8px 0 !important;
-        border-radius: 8px !important;
-      }
-
-      .recording-watch-requirement p,
-      .recording-attended-badge p,
-      .recording-completed-badge p {
-        font-size: 11px !important;
-        margin: 0 !important;
-        line-height: 1.3 !important;
-      }
-      
-      .recording-attended-badge i,
-      .recording-completed-badge i,
-      .recording-watch-requirement i {
-        font-size: 1rem !important;
-      }
-
-      /* Make watermark smaller on mobile */
-      .video-watermark {
-        font-size: 9px !important;
-        padding: 4px 8px !important;
-      }
-      
-      /* Ended time section */
-      .ended-time {
-        font-size: 14px !important;
-        padding: 8px 12px !important;
-      }
-      
-      /* Hide session recording header text to save space */
-      .meeting-ended-section h5 {
-        font-size: 14px !important;
-        margin-bottom: 4px !important;
-      }
-      
-      .meeting-ended-section .text-muted {
-        font-size: 11px !important;
-        margin-bottom: 4px !important;
-      }
-      
+      /* Hide recording header on mobile */
+      .recording-header,
+      .meeting-ended-section h5,
+      .meeting-ended-section .text-muted,
       .meeting-ended-section .ended-icon {
-        font-size: 2rem !important;
-        margin-bottom: 8px !important;
-      }
-    }
-
-    /* Extra small screens - even more compact */
-    @media (max-width: 480px) {
-      .video-player-wrapper-with-watermark,
-      .bunny-video-wrapper,
-      .video-player-container,
-      .recording-video-container {
-        min-height: 200px !important;
-        border-radius: 6px !important;
+        display: none !important;
       }
       
+      /* Compact watermark */
       .video-watermark {
         font-size: 8px !important;
         padding: 3px 6px !important;
+        border-radius: 4px !important;
       }
       
-      .ended-time {
-        font-size: 12px !important;
-        padding: 6px 10px !important;
+      /* Meeting compact info - style nicely */
+      .meeting-compact-info {
+        margin-bottom: 12px !important;
+        padding: 8px 12px !important;
+        background: var(--bg-secondary) !important;
+        border-radius: 8px !important;
+      }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 480px) {
+      #youtube-player-container,
+      .bunny-video-container-inner,
+      .recording-video-container,
+      .video-player-container {
+        padding-bottom: 60% !important; /* Slightly taller on small phones */
       }
       
-      .recording-watch-requirement,
-      .recording-attended-badge,
-      .recording-completed-badge {
-        padding: 6px 10px !important;
-        font-size: 11px !important;
+      .content-body-section,
+      .recording-player-section {
+        margin: 4px !important;
+        padding: 8px !important;
+        border-radius: 10px !important;
       }
+    }
+
+    /* Mobile Watch Progress Section - visible on mobile, hidden on desktop */
+    .mobile-watch-progress-section {
+      display: none; /* Hidden on desktop by default */
+      margin-top: 12px;
+      background: linear-gradient(135deg, #1f2937, #111827);
+      border-radius: 12px;
+      padding: 16px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .mobile-progress-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .mobile-progress-header i {
+      color: #10b981;
+    }
+    
+    .mobile-progress-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .mobile-progress-stats {
+      flex: 1;
+    }
+    
+    .mobile-progress-percent {
+      font-size: 28px;
+      font-weight: 700;
+      color: #10b981;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    
+    .mobile-progress-time {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    .mobile-progress-circle {
+      width: 60px;
+      height: 60px;
+      position: relative;
+    }
+    
+    .mobile-progress-circle svg {
+      transform: rotate(-90deg);
+    }
+    
+    .mobile-progress-circle-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .mobile-progress-details {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 12px;
+    }
+    
+    .mobile-progress-detail {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .mobile-progress-detail-label {
+      opacity: 0.8;
+    }
+    
+    .mobile-progress-detail-value {
+      font-weight: 600;
+    }
+    
+    .mobile-progress-detail-value.required {
+      color: #fbbf24;
+    }
+    
+    .mobile-progress-detail-value.remaining {
+      color: #ef4444;
+    }
+    
+    .mobile-progress-detail-value.complete {
+      color: #10b981;
+    }
+    
+    .mobile-progress-seek-info {
+      margin-top: 8px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    
+    .mobile-progress-seek-info i {
+      margin-right: 4px;
+    }
+    
+    .mobile-progress-seek-time {
+      color: #10b981;
+      font-weight: 600;
     }
 
     /* Quiz/Homework Details Styles */
@@ -892,7 +980,6 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
-      padding: var(--spacing-xl);
       margin-bottom: var(--spacing-xl);
       box-shadow: var(--shadow-sm);
     }
@@ -1059,6 +1146,149 @@
       border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: var(--shadow-md);
+    }
+
+    /* Enhanced PDF Viewer with PDF.js */
+    .pdf-viewer-wrapper {
+      position: relative;
+      width: 100%;
+      background: #525659;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .pdf-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #323639;
+      border-bottom: 1px solid #484b4e;
+      flex-wrap: wrap;
+    }
+
+    .pdf-controls button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #484b4e;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pdf-controls button:hover {
+      background: #5a5d60;
+    }
+
+    .pdf-controls button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .pdf-page-info {
+      color: #fff;
+      font-size: 14px;
+      padding: 0 12px;
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .pdf-canvas-container {
+      width: 100%;
+      min-height: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .pdf-canvas-container canvas {
+      max-width: 100%;
+      height: auto !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      background: #fff;
+    }
+
+    .pdf-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: #fff;
+      gap: 16px;
+    }
+
+    .pdf-loading i {
+      font-size: 48px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .pdf-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: #f87171;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .pdf-error i {
+      font-size: 48px;
+    }
+
+    /* Mobile: Adjust PDF viewer */
+    @media (max-width: 768px) {
+      .pdf-canvas-container {
+        min-height: 500px;
+        padding: 12px;
+        gap: 12px;
+      }
+
+      .pdf-controls {
+        padding: 10px 12px;
+        gap: 8px;
+      }
+
+      .pdf-controls button {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+    }
+
+    /* Very small screens */
+    @media (max-width: 480px) {
+      .pdf-canvas-container {
+        min-height: 400px;
+        padding: 8px;
+      }
+
+      .pdf-controls button span {
+        display: none;
+      }
+
+      .pdf-controls button i {
+        font-size: 16px;
+      }
     }
 
     .quiz-info,
@@ -1733,12 +1963,78 @@
               </div>
               <% } %>
             </div>
+            
+            <!-- Mobile Watch Progress Section - Visible on mobile OUTSIDE the video frame -->
+            <% if (!contentProgress.isCompleted && !(watchLimitInfo && watchLimitInfo.limitReached)) { %>
+            <div class="mobile-watch-progress-section" id="mobileWatchProgress">
+              <div class="mobile-progress-header">
+                <i class="fas fa-eye"></i>
+                <span>Watch Progress</span>
+              </div>
+              <div class="mobile-progress-content">
+                <div class="mobile-progress-stats">
+                  <div class="mobile-progress-percent" id="mobileProgressPercent">0%</div>
+                  <div class="mobile-progress-time" id="mobileProgressTime">0:00 / 0:00</div>
+                </div>
+                <div class="mobile-progress-circle">
+                  <svg width="60" height="60">
+                    <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4"></circle>
+                    <circle id="mobileProgressCircle" cx="30" cy="30" r="24" fill="none" stroke="#10b981" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="150.8" stroke-linecap="round"></circle>
+                  </svg>
+                  <div class="mobile-progress-circle-text" id="mobileProgressCircleText">0%</div>
+                </div>
+              </div>
+              <div class="mobile-progress-details">
+                <div class="mobile-progress-detail">
+                  <span class="mobile-progress-detail-label">Required:</span>
+                  <span class="mobile-progress-detail-value required">90%</span>
+                </div>
+                <div class="mobile-progress-detail">
+                  <span class="mobile-progress-detail-label">Remaining:</span>
+                  <span class="mobile-progress-detail-value remaining" id="mobileProgressRemaining">90%</span>
+                </div>
+              </div>
+              <div class="mobile-progress-seek-info">
+                <i class="fas fa-info-circle"></i> Can seek up to: <span class="mobile-progress-seek-time" id="mobileMaxSeekTime">0:00</span>
+              </div>
+            </div>
+            <% } %>
+            
           </div>
           <% } else if (contentItem.type === 'pdf') { %>
           <div class="pdf-content">
             <div class="pdf-container">
               <% if (contentItem.content) { %>
-              <iframe src="<%= contentItem.content %>" width="100%" height="600"></iframe>
+              <!-- PDF Viewer using PDF.js - Renders all pages on mobile -->
+              <div class="pdf-viewer-wrapper" id="pdfViewerWrapper" data-pdf-url="<%= contentItem.content %>">
+                <!-- Controls -->
+                <div class="pdf-controls">
+                  <button id="pdfPrevPage" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                    <span>Previous</span>
+                  </button>
+                  <span class="pdf-page-info">
+                    <span id="pdfCurrentPage">1</span> / <span id="pdfTotalPages">-</span>
+                  </span>
+                  <button id="pdfNextPage" disabled>
+                    <span>Next</span>
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                  <button id="pdfZoomOut">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button id="pdfZoomIn">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                </div>
+                <!-- Canvas Container - All pages render here -->
+                <div class="pdf-canvas-container" id="pdfCanvasContainer">
+                  <div class="pdf-loading" id="pdfLoading">
+                    <i class="fas fa-spinner"></i>
+                    <span>Loading PDF...</span>
+                  </div>
+                </div>
+              </div>
               <% } else { %>
               <div class="placeholder-content">
                 <i class="fas fa-file-pdf"></i>
@@ -2332,18 +2628,39 @@
                   <p style="margin: 0; color: #78350f; font-size: 0.9rem;">
                     Since you didn't attend the live session, you need to watch at least <strong>90%</strong> of this recording to complete it. Progress will be tracked automatically.
                   </p>
-                  <!-- Watch Progress Indicator for non-attendees -->
-                  <div id="recordingWatchProgress" class="mt-3" style="background: rgba(0,0,0,0.05); padding: 12px; border-radius: 6px; display: none;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                      <span style="color: #78350f; font-weight: 600;">Watch Progress</span>
-                      <span id="recordingWatchPercent" style="color: #f59e0b; font-weight: 700;">0%</span>
+                </div>
+                
+                <!-- Mobile Watch Progress Section for Recording - visible on mobile outside video frame -->
+                <div class="mobile-watch-progress-section" id="mobileRecordingWatchProgress">
+                  <div class="mobile-progress-header">
+                    <i class="fas fa-video"></i>
+                    <span>Recording Watch Progress</span>
+                  </div>
+                  <div class="mobile-progress-content">
+                    <div class="mobile-progress-stats">
+                      <div class="mobile-progress-percent" id="mobileRecProgressPercent">0%</div>
+                      <div class="mobile-progress-time" id="mobileRecProgressTime">0:00 / 0:00</div>
                     </div>
-                    <div style="background: rgba(0,0,0,0.1); border-radius: 4px; height: 8px; overflow: hidden;">
-                      <div id="recordingWatchBar" style="background: linear-gradient(90deg, #f59e0b, #10b981); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                    <div class="mobile-progress-circle">
+                      <svg width="60" height="60">
+                        <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4"></circle>
+                        <circle id="mobileRecProgressCircle" cx="30" cy="30" r="24" fill="none" stroke="#10b981" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="150.8" stroke-linecap="round"></circle>
+                      </svg>
+                      <div class="mobile-progress-circle-text" id="mobileRecProgressCircleText">0%</div>
                     </div>
-                    <p style="margin: 8px 0 0; font-size: 0.8rem; color: #92400e;">
-                      Required: <strong>90%</strong> | <span id="recordingWatchRemaining">90% remaining</span>
-                    </p>
+                  </div>
+                  <div class="mobile-progress-details">
+                    <div class="mobile-progress-detail">
+                      <span class="mobile-progress-detail-label">Required:</span>
+                      <span class="mobile-progress-detail-value required">90%</span>
+                    </div>
+                    <div class="mobile-progress-detail">
+                      <span class="mobile-progress-detail-label">Remaining:</span>
+                      <span class="mobile-progress-detail-value remaining" id="mobileRecProgressRemaining">90%</span>
+                    </div>
+                  </div>
+                  <div class="mobile-progress-seek-info">
+                    <i class="fas fa-info-circle"></i> Can seek up to: <span class="mobile-progress-seek-time" id="mobileRecMaxSeekTime">0:00</span>
                   </div>
                 </div>
                 <% } else { %>
@@ -3066,6 +3383,158 @@
     let readingCompleted = false;
     let pdfCompleted = false;
 
+    // PDF.js Viewer - Renders all pages properly on mobile and desktop
+    let pdfDoc = null;
+    let pdfScale = 1.2;
+    let pdfRenderedPages = [];
+
+    async function initializePDFViewer() {
+      const wrapper = document.getElementById('pdfViewerWrapper');
+      if (!wrapper) return;
+
+      const pdfUrl = wrapper.getAttribute('data-pdf-url');
+      if (!pdfUrl) return;
+
+      const container = document.getElementById('pdfCanvasContainer');
+      const loading = document.getElementById('pdfLoading');
+      const prevBtn = document.getElementById('pdfPrevPage');
+      const nextBtn = document.getElementById('pdfNextPage');
+      const zoomInBtn = document.getElementById('pdfZoomIn');
+      const zoomOutBtn = document.getElementById('pdfZoomOut');
+      const currentPageSpan = document.getElementById('pdfCurrentPage');
+      const totalPagesSpan = document.getElementById('pdfTotalPages');
+
+      try {
+        // Load PDF.js library from CDN
+        if (!window.pdfjsLib) {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          document.head.appendChild(script);
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = reject;
+          });
+        }
+
+        // Set worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Load PDF document
+        pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+        const numPages = pdfDoc.numPages;
+
+        // Update UI
+        totalPagesSpan.textContent = numPages;
+        loading.style.display = 'none';
+
+        // Render all pages
+        for (let i = 1; i <= numPages; i++) {
+          await renderPage(i, container);
+        }
+
+        // Enable navigation if more than 1 page
+        if (numPages > 1) {
+          nextBtn.disabled = false;
+        }
+
+        // Setup navigation buttons
+        prevBtn.onclick = () => scrollToPage(-1, currentPageSpan, prevBtn, nextBtn, numPages);
+        nextBtn.onclick = () => scrollToPage(1, currentPageSpan, prevBtn, nextBtn, numPages);
+
+        // Zoom controls
+        zoomInBtn.onclick = () => handleZoom(0.2, container, numPages);
+        zoomOutBtn.onclick = () => handleZoom(-0.2, container, numPages);
+
+        // Track scroll for page indicator
+        container.addEventListener('scroll', () => updateCurrentPage(container, currentPageSpan, prevBtn, nextBtn, numPages));
+
+        // Mark PDF as viewed after 30 seconds
+        setTimeout(() => {
+          if (!pdfCompleted) {
+            pdfCompleted = true;
+            updateContentProgressSmooth('completed', 100);
+          }
+        }, 30000);
+
+      } catch (error) {
+        console.error('PDF load error:', error);
+        loading.innerHTML = `
+          <div class="pdf-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>Failed to load PDF</span>
+            <a href="${pdfUrl}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Open in new tab</a>
+          </div>
+        `;
+      }
+    }
+
+    async function renderPage(pageNum, container) {
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: pdfScale });
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'pdf-page';
+      canvas.dataset.pageNum = pageNum;
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      const context = canvas.getContext('2d');
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      }).promise;
+
+      container.appendChild(canvas);
+      pdfRenderedPages.push({ canvas, page, pageNum });
+    }
+
+    async function handleZoom(delta, container, numPages) {
+      pdfScale = Math.max(0.5, Math.min(3, pdfScale + delta));
+      
+      // Clear existing canvases
+      const canvases = container.querySelectorAll('.pdf-page');
+      canvases.forEach(c => c.remove());
+      pdfRenderedPages = [];
+
+      // Re-render all pages at new scale
+      for (let i = 1; i <= numPages; i++) {
+        await renderPage(i, container);
+      }
+    }
+
+    function scrollToPage(direction, currentPageSpan, prevBtn, nextBtn, numPages) {
+      let currentPage = parseInt(currentPageSpan.textContent);
+      currentPage = Math.max(1, Math.min(numPages, currentPage + direction));
+      
+      const canvas = document.querySelector(`.pdf-page[data-page-num="${currentPage}"]`);
+      if (canvas) {
+        canvas.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function updateCurrentPage(container, currentPageSpan, prevBtn, nextBtn, numPages) {
+      const canvases = container.querySelectorAll('.pdf-page');
+      const containerRect = container.getBoundingClientRect();
+      
+      for (const canvas of canvases) {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.top >= containerRect.top - 50 && rect.top <= containerRect.top + 100) {
+          const pageNum = parseInt(canvas.dataset.pageNum);
+          currentPageSpan.textContent = pageNum;
+          prevBtn.disabled = pageNum <= 1;
+          nextBtn.disabled = pageNum >= numPages;
+          break;
+        }
+      }
+    }
+
+    // Initialize PDF viewer on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializePDFViewer);
+    } else {
+      initializePDFViewer();
+    }
+
     function handleReadingScroll(element) {
       if (readingCompleted) return;
 
@@ -3382,7 +3851,9 @@
         let player = null;
         let videoDuration = 0;
         let playerReady = false;
-        let autoCompleted = false;
+        // IMPORTANT: Initialize autoCompleted from server state
+        // This prevents double-counting if video was already completed
+        let autoCompleted = isAlreadyCompleted;
         
         // ==================== ANTI-SKIP TRACKING SYSTEM ====================
         // Track which segments of the video have been actually watched
@@ -3684,6 +4155,79 @@
             } else {
               maxSeekElem.style.color = '#ef4444'; // Red
             }
+          }
+          
+          // ==================== MOBILE PROGRESS SECTION UPDATE ====================
+          // Update mobile-visible progress indicator (outside video frame)
+          updateMobileProgressIndicator(watchPercentage, totalWatched, remaining, maxWatchedTime, videoDuration);
+        }
+        
+        // Update mobile progress indicator - always visible on mobile
+        function updateMobileProgressIndicator(watchPercentage, totalWatched, remaining, maxWatched, duration) {
+          const mobileSection = document.getElementById('mobileWatchProgress');
+          if (!mobileSection) return;
+          
+          // Show the section once video starts playing
+          if (isPlaying && mobileSection.style.display !== 'block') {
+            mobileSection.style.display = 'block';
+          }
+          
+          // Update percentage
+          const mobilePercent = document.getElementById('mobileProgressPercent');
+          if (mobilePercent) {
+            mobilePercent.textContent = watchPercentage.toFixed(1) + '%';
+            if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE) {
+              mobilePercent.style.color = '#10b981';
+            } else if (watchPercentage >= 60) {
+              mobilePercent.style.color = '#fbbf24';
+            } else {
+              mobilePercent.style.color = '#ef4444';
+            }
+          }
+          
+          // Update time
+          const mobileTime = document.getElementById('mobileProgressTime');
+          if (mobileTime) {
+            mobileTime.textContent = `${formatTime(totalWatched)} / ${formatTime(duration)}`;
+          }
+          
+          // Update circle
+          const mobileCircle = document.getElementById('mobileProgressCircle');
+          if (mobileCircle) {
+            const circumference = 150.8; // 2 * PI * 24
+            const offset = circumference - (watchPercentage / 100 * circumference);
+            mobileCircle.style.strokeDashoffset = offset;
+            if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE) {
+              mobileCircle.style.stroke = '#10b981';
+            } else if (watchPercentage >= 60) {
+              mobileCircle.style.stroke = '#fbbf24';
+            } else {
+              mobileCircle.style.stroke = '#ef4444';
+            }
+          }
+          
+          // Update circle text
+          const mobileCircleText = document.getElementById('mobileProgressCircleText');
+          if (mobileCircleText) {
+            mobileCircleText.textContent = Math.floor(watchPercentage) + '%';
+          }
+          
+          // Update remaining
+          const mobileRemaining = document.getElementById('mobileProgressRemaining');
+          if (mobileRemaining) {
+            if (remaining <= 0) {
+              mobileRemaining.textContent = '✓ Done';
+              mobileRemaining.className = 'mobile-progress-detail-value complete';
+            } else {
+              mobileRemaining.textContent = remaining.toFixed(1) + '%';
+              mobileRemaining.className = 'mobile-progress-detail-value remaining';
+            }
+          }
+          
+          // Update max seek time
+          const mobileMaxSeek = document.getElementById('mobileMaxSeekTime');
+          if (mobileMaxSeek) {
+            mobileMaxSeek.textContent = formatTime(maxWatched);
           }
         }
         
@@ -4010,23 +4554,53 @@
               console.log('🏁 Video ended event fired');
               
               // Add final segment - ensure we capture the end
+              // Use a more aggressive approach to capture the ending
               if (lastTrackedTime >= 0 && videoDuration > 0) {
-                addWatchedSegment(lastTrackedTime, videoDuration);
+                // Calculate remaining time to end
+                const remainingToEnd = videoDuration - lastTrackedTime;
+                
+                // If we're within 30 seconds of the end, add the final segment
+                // This handles cases where the last timeupdate wasn't captured
+                if (remainingToEnd >= 0 && remainingToEnd <= 30) {
+                  console.log('🏁 Adding final segment from', lastTrackedTime.toFixed(2), 'to', videoDuration.toFixed(2));
+                  addWatchedSegment(lastTrackedTime, videoDuration);
+                }
+                
                 // Also update maxWatchedTime to video duration
                 maxWatchedTime = Math.max(maxWatchedTime, videoDuration);
               }
+              
+              // Force update the progress indicator one final time
+              updateProgressIndicator();
               
               // Check completion one final time
               if (!autoCompleted) {
                 const watchPercentage = getWatchPercentage();
                 console.log('🏁 Final watch percentage:', watchPercentage.toFixed(2) + '%');
                 
-                // If we're close to 90% (within 5%), consider it complete
-                // This handles edge cases where the last few seconds weren't tracked
-                if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE - 5) {
+                // If we're close to 90% (within 10%), consider it complete
+                // This handles edge cases where:
+                // 1. Last few seconds weren't tracked due to mobile browser issues
+                // 2. timeupdate events stopped firing near the end
+                // 3. Network delays in segment tracking
+                if (watchPercentage >= REQUIRED_WATCH_PERCENTAGE - 10) {
                   console.log('✅ Close enough to 90% - marking as complete');
                   autoCompleted = true;
                   clearSavedProgress();
+                  
+                  // Hide mobile progress section
+                  const mobileSection = document.getElementById('mobileWatchProgress');
+                  if (mobileSection) {
+                    mobileSection.innerHTML = `
+                      <div class="mobile-progress-header" style="color: #10b981;">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Video Completed!</span>
+                      </div>
+                      <div style="font-size: 14px; opacity: 0.9; margin-top: 8px;">
+                        Watched ${watchPercentage.toFixed(1)}% - Saving your progress...
+                      </div>
+                    `;
+                  }
                   
                   showEnhancedNotification(
                     `🎉 Congratulations!\n\nYou've watched ${watchPercentage.toFixed(1)}% of the video.\n\nMarking as completed...`,
@@ -4042,6 +4616,7 @@
                     watchPercentage: watchPercentage
                   });
                 } else {
+                  // Try one more completion check
                   checkVideoCompletion();
                 }
               }
@@ -4365,6 +4940,85 @@
           maxSeekElem.style.color = '#ef4444';
         }
       }
+      
+      // ==================== MOBILE PROGRESS SECTION UPDATE (YouTube) ====================
+      // Update mobile-visible progress indicator for YouTube videos
+      updateYouTubeMobileProgressIndicator(watchPercentage, totalWatched, remaining, youtubeMaxWatchedTime, youtubeVideoDuration);
+    }
+    
+    // Update mobile progress indicator for YouTube videos
+    function updateYouTubeMobileProgressIndicator(watchPercentage, totalWatched, remaining, maxWatched, duration) {
+      const mobileSection = document.getElementById('mobileWatchProgress');
+      if (!mobileSection) return;
+      
+      const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      };
+      
+      // Show the section once video starts playing
+      if (youtubeIsPlaying && mobileSection.style.display !== 'block') {
+        mobileSection.style.display = 'block';
+      }
+      
+      // Update percentage
+      const mobilePercent = document.getElementById('mobileProgressPercent');
+      if (mobilePercent) {
+        mobilePercent.textContent = watchPercentage.toFixed(1) + '%';
+        if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE) {
+          mobilePercent.style.color = '#10b981';
+        } else if (watchPercentage >= 60) {
+          mobilePercent.style.color = '#fbbf24';
+        } else {
+          mobilePercent.style.color = '#ef4444';
+        }
+      }
+      
+      // Update time
+      const mobileTime = document.getElementById('mobileProgressTime');
+      if (mobileTime) {
+        mobileTime.textContent = `${formatTime(totalWatched)} / ${formatTime(duration)}`;
+      }
+      
+      // Update circle
+      const mobileCircle = document.getElementById('mobileProgressCircle');
+      if (mobileCircle) {
+        const circumference = 150.8; // 2 * PI * 24
+        const offset = circumference - (watchPercentage / 100 * circumference);
+        mobileCircle.style.strokeDashoffset = offset;
+        if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE) {
+          mobileCircle.style.stroke = '#10b981';
+        } else if (watchPercentage >= 60) {
+          mobileCircle.style.stroke = '#fbbf24';
+        } else {
+          mobileCircle.style.stroke = '#ef4444';
+        }
+      }
+      
+      // Update circle text
+      const mobileCircleText = document.getElementById('mobileProgressCircleText');
+      if (mobileCircleText) {
+        mobileCircleText.textContent = Math.floor(watchPercentage) + '%';
+      }
+      
+      // Update remaining
+      const mobileRemaining = document.getElementById('mobileProgressRemaining');
+      if (mobileRemaining) {
+        if (remaining <= 0) {
+          mobileRemaining.textContent = '✓ Done';
+          mobileRemaining.className = 'mobile-progress-detail-value complete';
+        } else {
+          mobileRemaining.textContent = remaining.toFixed(1) + '%';
+          mobileRemaining.className = 'mobile-progress-detail-value remaining';
+        }
+      }
+      
+      // Update max seek time
+      const mobileMaxSeek = document.getElementById('mobileMaxSeekTime');
+      if (mobileMaxSeek) {
+        mobileMaxSeek.textContent = formatTime(maxWatched);
+      }
     }
     
     // Show YouTube skip alert (with debounce)
@@ -4591,22 +5245,50 @@
         console.log('🏁 YouTube video ended event fired');
         
         // Add final segment - ensure we capture the end
+        // Use a more aggressive approach to capture the ending
         if (youtubeLastTrackedTime >= 0 && youtubeVideoDuration > 0) {
-          addYouTubeWatchedSegment(youtubeLastTrackedTime, youtubeVideoDuration);
+          // Calculate remaining time to end
+          const remainingToEnd = youtubeVideoDuration - youtubeLastTrackedTime;
+          
+          // If we're within 30 seconds of the end, add the final segment
+          if (remainingToEnd >= 0 && remainingToEnd <= 30) {
+            console.log('🏁 YouTube: Adding final segment from', youtubeLastTrackedTime.toFixed(2), 'to', youtubeVideoDuration.toFixed(2));
+            addYouTubeWatchedSegment(youtubeLastTrackedTime, youtubeVideoDuration);
+          }
+          
           // Also update maxWatchedTime to video duration
           youtubeMaxWatchedTime = Math.max(youtubeMaxWatchedTime, youtubeVideoDuration);
         }
+        
+        // Force update the progress indicator one final time
+        updateYouTubeProgressIndicator();
         
         if (!youtubeAutoCompleted) {
           const watchPercentage = getYouTubeWatchPercentage();
           console.log('🏁 Final YouTube watch percentage:', watchPercentage.toFixed(2) + '%');
           
-          // If we're close to 90% (within 5%), consider it complete
-          // This handles edge cases where the last few seconds weren't tracked
-          if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE - 5) {
+          // If we're close to 90% (within 10%), consider it complete
+          // This handles edge cases where:
+          // 1. Last few seconds weren't tracked due to mobile browser issues
+          // 2. Progress updates stopped firing near the end
+          if (watchPercentage >= YOUTUBE_REQUIRED_WATCH_PERCENTAGE - 10) {
             console.log('✅ YouTube: Close enough to 90% - marking as complete');
             youtubeAutoCompleted = true;
             clearYouTubeSavedProgress();
+            
+            // Hide mobile progress section and show completion
+            const mobileSection = document.getElementById('mobileWatchProgress');
+            if (mobileSection) {
+              mobileSection.innerHTML = `
+                <div class="mobile-progress-header" style="color: #10b981;">
+                  <i class="fas fa-check-circle"></i>
+                  <span>Video Completed!</span>
+                </div>
+                <div style="font-size: 14px; opacity: 0.9; margin-top: 8px;">
+                  Watched ${watchPercentage.toFixed(1)}% - Saving your progress...
+                </div>
+              `;
+            }
             
             showEnhancedNotification(
               `🎉 Congratulations!\n\nYou've watched ${watchPercentage.toFixed(1)}% of the video.\n\nMarking as completed...`,
@@ -5313,6 +5995,9 @@
     }
     
     function updateRecordingProgressUI(percentage, currentTime) {
+      const remaining = Math.max(0, REC_REQUIRED_PERCENTAGE - percentage);
+      const totalWatched = calculateRecordingWatchedTime();
+      
       // Update overlay elements
       const percentEl = document.getElementById('recWatchPercent');
       const timeEl = document.getElementById('recWatchTime');
@@ -5322,7 +6007,7 @@
       const maxSeekEl = document.getElementById('recMaxSeekTime');
       
       if (percentEl) percentEl.textContent = Math.round(percentage) + '%';
-      if (timeEl) timeEl.textContent = `${formatTime(calculateRecordingWatchedTime())} / ${formatTime(recVideoDuration)}`;
+      if (timeEl) timeEl.textContent = `${formatTime(totalWatched)} / ${formatTime(recVideoDuration)}`;
       
       // Update circular progress
       if (circleEl) {
@@ -5334,7 +6019,6 @@
       
       // Update remaining percentage
       if (remainingEl) {
-        const remaining = Math.max(0, REC_REQUIRED_PERCENTAGE - percentage);
         if (remaining > 0) {
           remainingEl.textContent = Math.round(remaining) + '%';
           remainingEl.style.color = '#ef4444';
@@ -5352,10 +6036,79 @@
       // Also update the non-overlay progress section
       const progressSection = document.getElementById('recordingWatchProgress');
       if (progressSection) {
+        progressSection.style.display = 'block';
         const barEl = document.getElementById('recordingWatchBar');
         const pctEl = document.getElementById('recordingWatchPercent');
         if (barEl) barEl.style.width = percentage + '%';
         if (pctEl) pctEl.textContent = Math.round(percentage) + '%';
+      }
+      
+      // ==================== MOBILE PROGRESS SECTION UPDATE (Recording) ====================
+      // Update mobile-visible progress indicator for recording videos
+      const mobileSection = document.getElementById('mobileRecordingWatchProgress');
+      if (mobileSection) {
+        // Show the section once playback starts
+        if (recIsPlaying && mobileSection.style.display !== 'block') {
+          mobileSection.style.display = 'block';
+        }
+        
+        // Update percentage
+        const mobilePercent = document.getElementById('mobileRecProgressPercent');
+        if (mobilePercent) {
+          mobilePercent.textContent = Math.round(percentage) + '%';
+          if (percentage >= REC_REQUIRED_PERCENTAGE) {
+            mobilePercent.style.color = '#10b981';
+          } else if (percentage >= 60) {
+            mobilePercent.style.color = '#fbbf24';
+          } else {
+            mobilePercent.style.color = '#ef4444';
+          }
+        }
+        
+        // Update time
+        const mobileTime = document.getElementById('mobileRecProgressTime');
+        if (mobileTime) {
+          mobileTime.textContent = `${formatTime(totalWatched)} / ${formatTime(recVideoDuration)}`;
+        }
+        
+        // Update circle
+        const mobileCircle = document.getElementById('mobileRecProgressCircle');
+        if (mobileCircle) {
+          const circumference = 150.8; // 2 * PI * 24
+          const offset = circumference - (percentage / 100 * circumference);
+          mobileCircle.style.strokeDashoffset = offset;
+          if (percentage >= REC_REQUIRED_PERCENTAGE) {
+            mobileCircle.style.stroke = '#10b981';
+          } else if (percentage >= 60) {
+            mobileCircle.style.stroke = '#fbbf24';
+          } else {
+            mobileCircle.style.stroke = '#ef4444';
+          }
+        }
+        
+        // Update circle text
+        const mobileCircleText = document.getElementById('mobileRecProgressCircleText');
+        if (mobileCircleText) {
+          mobileCircleText.textContent = Math.round(percentage) + '%';
+        }
+        
+        // Update remaining
+        const mobileRemaining = document.getElementById('mobileRecProgressRemaining');
+        if (mobileRemaining) {
+          if (remaining <= 0) {
+            mobileRemaining.textContent = '✓ Done';
+            mobileRemaining.className = 'mobile-progress-detail-value complete';
+          } else {
+            mobileRemaining.textContent = Math.round(remaining) + '%';
+            mobileRemaining.className = 'mobile-progress-detail-value remaining';
+          }
+        }
+        
+        // Update max seek time
+        const mobileMaxSeek = document.getElementById('mobileRecMaxSeekTime');
+        if (mobileMaxSeek) {
+          mobileMaxSeek.textContent = formatTime(recMaxWatchedTime);
+        }
       }
     }
     
@@ -5369,18 +6122,16 @@
       // Show side notification in top-left corner
       showRecordingCompletionNotification();
       
-      // Update UI to show completing
+      // Hide the requirement div completely on completion
       const requirementDiv = document.querySelector('.recording-watch-requirement');
       if (requirementDiv) {
-        requirementDiv.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 16px; border-radius: 8px;">
-            <i class="fas fa-check-circle" style="font-size: 1.3rem;"></i>
-            <div>
-              <strong>Watch Requirement Complete!</strong>
-              <p style="margin: 0; font-size: 0.9rem; opacity: 0.9;">Saving your progress...</p>
-            </div>
-          </div>
-        `;
+        requirementDiv.style.display = 'none';
+      }
+      
+      // Hide mobile progress section completely on completion
+      const mobileSection = document.getElementById('mobileRecordingWatchProgress');
+      if (mobileSection) {
+        mobileSection.style.display = 'none';
       }
       
       // Clear localStorage since complete
@@ -6238,8 +6989,33 @@
       font-size: 14px;
     }
 
+    /* Recording player wrapper - match content-body-section styling */
+    .recording-player-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--shadow-sm);
+      padding: var(--spacing-lg);
+      overflow: hidden;
+    }
+
     .recording-player-wrapper {
       margin-bottom: 16px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    
+    /* Recording video container styling to match normal video */
+    .recording-player-wrapper .video-player-wrapper-with-watermark {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    
+    .recording-player-wrapper .video-player-container,
+    .recording-player-wrapper .recording-video-container {
+      border-radius: var(--radius-md) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
     }
 
     .recording-auto-complete-message {

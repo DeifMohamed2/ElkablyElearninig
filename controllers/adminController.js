@@ -16427,6 +16427,289 @@ const revokeMasterOTP = async (req, res) => {
   }
 };
 
+// ==================== SKIP CONTENT FOR STUDENTS ====================
+
+/**
+ * Get students enrolled in a course for skip content functionality
+ * Returns students with their completion status for the specific content
+ */
+const getStudentsForSkipContent = async (req, res) => {
+  try {
+    const { courseId, contentId, topicId } = req.query;
+
+    if (!courseId || !contentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course ID and Content ID are required',
+      });
+    }
+
+    // Get the course
+    const course = await Course.findById(courseId).select('title');
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    // Get all students enrolled in this course (query by enrolledCourses.course)
+    const students = await User.find({
+      'enrolledCourses.course': courseId,
+      role: 'student',
+      isActive: true,
+    }).select('firstName lastName studentEmail studentCode enrolledCourses');
+
+    // Check completion status for each student from their embedded contentProgress
+    const studentsWithStatus = students.map((student) => {
+      // Find the enrollment for this course
+      const enrollment = student.enrolledCourses.find(
+        (ec) => ec.course && ec.course.toString() === courseId.toString()
+      );
+
+      // Check if content is completed in the student's contentProgress
+      let isContentCompleted = false;
+      if (enrollment && enrollment.contentProgress && Array.isArray(enrollment.contentProgress)) {
+        const contentProgress = enrollment.contentProgress.find(
+          (cp) => cp.contentId && cp.contentId.toString() === contentId.toString()
+        );
+        isContentCompleted = !!(contentProgress && contentProgress.completionStatus === 'completed');
+      }
+
+      return {
+        _id: student._id,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        studentEmail: student.studentEmail,
+        studentCode: student.studentCode,
+        isContentCompleted: isContentCompleted,
+      };
+    });
+
+    // Sort: not completed first, then alphabetically
+    studentsWithStatus.sort((a, b) => {
+      if (a.isContentCompleted !== b.isContentCompleted) {
+        return a.isContentCompleted ? 1 : -1;
+      }
+      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+    });
+
+    res.json({
+      success: true,
+      students: studentsWithStatus,
+      total: studentsWithStatus.length,
+    });
+  } catch (error) {
+    console.error('Error getting students for skip content:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get students',
+    });
+  }
+};
+
+/**
+ * Skip (complete) content for selected students
+ * This marks the content as complete using the same flow as student completion
+ * Uses User.updateContentProgress() to ensure consistency with normal completion
+ */
+const skipContentForStudents = async (req, res) => {
+  try {
+    const { courseId, topicId, contentId } = req.params;
+    const { studentIds, sendNotification = true } = req.body;
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select at least one student',
+      });
+    }
+
+    // Get the course with topic
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    // Get the topic with content
+    const topic = await Topic.findById(topicId);
+    if (!topic) {
+      return res.status(404).json({
+        success: false,
+        message: 'Topic not found',
+      });
+    }
+
+    // Find the content item
+    const contentItem = topic.content.find((c) => c._id.toString() === contentId);
+    if (!contentItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Content not found',
+      });
+    }
+
+    let processedCount = 0;
+    let alreadyCompletedCount = 0;
+    let notificationsSent = 0;
+    let notificationsFailed = 0;
+    const errors = [];
+
+    // Process each student
+    for (const studentId of studentIds) {
+      try {
+        const student = await User.findById(studentId);
+        if (!student) {
+          errors.push({ studentId, error: 'Student not found' });
+          continue;
+        }
+
+        // Find the enrollment for this course
+        const enrollment = student.enrolledCourses.find(
+          (e) => e.course && e.course.toString() === courseId.toString()
+        );
+
+        if (!enrollment) {
+          errors.push({ studentId, error: 'Student not enrolled in this course' });
+          continue;
+        }
+
+        // Check if content is already completed in contentProgress
+        const existingContentProgress = enrollment.contentProgress.find(
+          (cp) => cp.contentId && cp.contentId.toString() === contentId.toString()
+        );
+
+        if (existingContentProgress && existingContentProgress.completionStatus === 'completed') {
+          alreadyCompletedCount++;
+          continue;
+        }
+
+        // Use the same updateContentProgress method that students use
+        // This ensures consistent behavior with normal student completion
+        const progressData = {
+          completionStatus: 'completed',
+          progressPercentage: 100,
+          completedAt: new Date(),
+          lastAccessed: new Date(),
+          // Mark that this was admin-skipped for tracking purposes
+          score: contentItem.type === 'quiz' || contentItem.type === 'homework' ? 100 : undefined,
+        };
+
+        // Call the user's updateContentProgress method (same as student flow)
+        await student.updateContentProgress(
+          courseId,
+          topicId,
+          contentId,
+          contentItem.type,
+          progressData
+        );
+
+        // Also create a Progress record for activity tracking (optional but matches student flow)
+        let activityType = 'content_completed';
+        if (contentItem.type === 'quiz') {
+          activityType = 'quiz_passed';
+        } else if (contentItem.type === 'homework') {
+          activityType = 'homework_submitted';
+        }
+
+        // Map content type for Progress model (zoom is not in enum, map to video)
+        const progressContentType = contentItem.type === 'zoom' ? 'video' : contentItem.type;
+
+        // Create Progress record directly
+        try {
+          await Progress.create({
+            student: studentId,
+            course: courseId,
+            topic: topicId,
+            content: contentId,
+            contentType: progressContentType,
+            activity: activityType,
+            details: {
+              completionPercentage: 100,
+              skippedByAdmin: true,
+              skippedAt: new Date(),
+              adminId: req.session.adminId,
+              contentTitle: contentItem.title,
+              originalContentType: contentItem.type, // Store original type for reference
+            },
+            timestamp: new Date(),
+            status: 'completed',
+            points: 5,
+            experience: 10,
+          });
+        } catch (progressError) {
+          // Progress record creation is optional, don't fail the whole operation
+          console.log('Progress record creation failed (non-critical):', progressError.message);
+        }
+
+        processedCount++;
+
+        // Send WhatsApp notification if enabled (same as student flow)
+        if (sendNotification) {
+          try {
+            await whatsappSMSNotificationService.sendContentCompletionNotification(
+              studentId,
+              {
+                title: contentItem.title,
+                type: contentItem.type,
+              },
+              {
+                title: course.title,
+              }
+            );
+            notificationsSent++;
+          } catch (notifError) {
+            console.error('Error sending notification:', notifError);
+            notificationsFailed++;
+          }
+        }
+      } catch (studentError) {
+        console.error(`Error processing student ${studentId}:`, studentError);
+        errors.push({ studentId, error: studentError.message });
+      }
+    }
+
+    // Log the action
+    await createLog(req, {
+      action: 'RESET_CONTENT_ATTEMPTS',
+      actionCategory: 'CONTENT_MANAGEMENT',
+      description: `Skipped/completed content "${contentItem.title}" for ${processedCount} student(s)`,
+      targetModel: 'Content',
+      targetId: contentId,
+      metadata: {
+        courseId,
+        topicId,
+        contentId,
+        contentTitle: contentItem.title,
+        contentType: contentItem.type,
+        processedCount,
+        alreadyCompletedCount,
+        notificationsSent,
+        notificationsFailed,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `Content skipped successfully for ${processedCount} student(s)`,
+      processedCount,
+      alreadyCompletedCount,
+      notificationsSent,
+      notificationsFailed,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error('Error skipping content for students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to skip content for students: ' + error.message,
+    });
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -16487,6 +16770,9 @@ module.exports = {
   // Content analytics APIs
   getTopicContentStudentStats,
   resetContentAttempts,
+  // Skip Content for Students
+  getStudentsForSkipContent,
+  skipContentForStudents,
   // Orders management
   getOrders,
   getOrderDetails,

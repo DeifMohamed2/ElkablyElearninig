@@ -123,6 +123,9 @@ const {
   addHomeworkContent,
   getTopicContentStudentStats,
   resetContentAttempts,
+  // Skip Content for Students
+  getStudentsForSkipContent,
+  skipContentForStudents,
   // Orders
   getOrders,
   getOrderDetails,
@@ -325,6 +328,17 @@ router.post(
   '/courses/:courseCode/topics/:topicId/content/:contentId/students/:studentId/reset',
   isAdmin,
   resetContentAttempts
+);
+// Skip content for students API routes
+router.get(
+  '/api/students-for-skip-content',
+  isAdmin,
+  getStudentsForSkipContent
+);
+router.post(
+  '/courses/:courseId/topics/:topicId/content/:contentId/skip',
+  isAdmin,
+  skipContentForStudents
 );
 router.put(
   '/courses/:courseCode/topics/:topicId/content/:contentId',

@@ -1,5 +1,41 @@
  <!DOCTYPE html>
 <html lang="en">
+<%
+// Helper functions for activity display
+function getActivityIcon(activity) {
+    const icons = {
+        'course_started': 'play-circle',
+        'course_completed': 'check-circle',
+        'topic_completed': 'check-square',
+        'quiz_started': 'question-circle',
+        'quiz_completed': 'clipboard-check',
+        'video_watched': 'video',
+        'lesson_completed': 'book-open',
+        'assignment_submitted': 'file-alt',
+        'certificate_earned': 'certificate',
+        'login': 'sign-in-alt',
+        'profile_updated': 'user-edit'
+    };
+    return icons[activity] || 'circle';
+}
+
+function getActivityText(activity) {
+    const texts = {
+        'course_started': 'Started a Course',
+        'course_completed': 'Completed a Course',
+        'topic_completed': 'Completed a Topic',
+        'quiz_started': 'Started a Quiz',
+        'quiz_completed': 'Completed a Quiz',
+        'video_watched': 'Watched a Video',
+        'lesson_completed': 'Completed a Lesson',
+        'assignment_submitted': 'Submitted an Assignment',
+        'certificate_earned': 'Earned a Certificate',
+        'login': 'Logged In',
+        'profile_updated': 'Updated Profile'
+    };
+    return texts[activity] || activity || 'Activity';
+}
+%>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -499,14 +535,9 @@
                                                     </div>
                                                     <div class="activity-meta">
                                                         <span class="activity-time">
-                                                            <%= new Date(activity.timestamp).toLocaleDateString() %>
+                                                            <i class="far fa-clock"></i>
+                                                            <%= new Date(activity.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %>
                                                         </span>
-                                                        <% if (activity.points > 0) { %>
-                                                            <span class="activity-points">
-                                                                <i class="fas fa-star"></i>
-                                                                +<%= activity.points %> pts
-                                                            </span>
-                                                        <% } %>
                                                     </div>
                                                 </div>
                                             </div>
