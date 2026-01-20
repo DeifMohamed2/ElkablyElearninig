@@ -493,7 +493,7 @@ const courseContent = async (req, res) => {
 
     // Process topics with enhanced content status
     const topicsWithProgress = await Promise.all(
-      publishedTopics.map(async (topic) => {
+      publishedTopics.map(async (topic, topicIndex) => {
         const topicCompleted = enrollment.completedTopics.includes(topic._id);
 
         // Calculate topic progress based on actual completion percentages
@@ -502,11 +502,48 @@ const courseContent = async (req, res) => {
           topic._id
         );
 
+        // Check if topic is unlocked based on topic-level unlock conditions
+        let topicUnlocked = true;
+        let topicUnlockReason = null;
+        
+        if (topic.unlockConditions === 'previous_completed' && topicIndex > 0) {
+          // Check if the previous topic is completed
+          const previousTopic = publishedTopics[topicIndex - 1];
+          if (previousTopic) {
+            const previousTopicContentIds = previousTopic.content.map((c) => c._id.toString());
+            const allPreviousTopicCompleted = previousTopicContentIds.length === 0 || 
+              previousTopicContentIds.every((contentId) => completedContentIds.includes(contentId));
+            
+            if (!allPreviousTopicCompleted) {
+              topicUnlocked = false;
+              topicUnlockReason = `Complete all content in "${previousTopic.title}" first`;
+            }
+          }
+        }
+
         // Process content items with enhanced unlock/completion status
         const contentWithStatus = topic.content.map((contentItem, index) => {
           const isCompleted = completedContentIds.includes(
             contentItem._id.toString()
           );
+          
+          // First check topic-level unlock status
+          if (!topicUnlocked && !isCompleted) {
+            return {
+              ...contentItem.toObject(),
+              isUnlocked: false,
+              isCompleted: isCompleted,
+              actualProgress: 0,
+              watchCount: 0,
+              unlockReason: topicUnlockReason,
+              canAccess: false,
+              prerequisiteNames: [],
+              prerequisiteData: [],
+              contentIndex: index,
+              topicId: topic._id,
+            };
+          }
+          
           const unlockStatus = student.isContentUnlocked(
             courseId,
             contentItem._id,
@@ -566,6 +603,8 @@ const courseContent = async (req, res) => {
           content: contentWithStatus,
           completed: topicCompleted,
           progress: topicProgress,
+          isUnlocked: topicUnlocked,
+          unlockReason: topicUnlockReason,
         };
       })
     );
@@ -802,8 +841,18 @@ const contentDetails = async (req, res) => {
     }
 
     // Get navigation data (previous and next content)
-    const allContent = course.topics.flatMap((t) =>
-      t.content.map((c) => ({ ...c.toObject(), topicId: t._id }))
+    // Filter only published topics and sort by order to match course content view
+    const publishedTopics = course.topics
+      .filter((t) => t.isPublished === true)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    const allContent = publishedTopics.flatMap((t, topicIndex) =>
+      t.content.map((c) => ({ 
+        ...c.toObject(), 
+        topicId: t._id,
+        topicIndex: topicIndex,
+        topicUnlockConditions: t.unlockConditions || 'immediate'
+      }))
     );
     const currentIndex = allContent.findIndex(
       (c) => c._id.toString() === contentId
@@ -811,6 +860,7 @@ const contentDetails = async (req, res) => {
 
     let previousContent = null;
     let nextContent = null;
+    let currentContent = allContent[currentIndex];
 
     if (currentIndex > 0) {
       previousContent = allContent[currentIndex - 1];
@@ -823,28 +873,83 @@ const contentDetails = async (req, res) => {
     // Check if next content is accessible
     let nextContentAccessible = false;
     if (nextContent) {
-      // First check the unlock status
-      const nextUnlockStatus = student.isContentUnlocked(
-        course._id,
-        nextContent._id,
-        nextContent
+      // Get enrollment data for checking completed content
+      const enrollment = student.enrolledCourses.find(
+        (e) => e.course.toString() === course._id.toString()
       );
-      nextContentAccessible = nextUnlockStatus.unlocked;
+      const completedContentIds = enrollment ? enrollment.contentProgress
+        .filter((cp) => cp.completionStatus === 'completed')
+        .map((cp) => cp.contentId.toString()) : [];
 
-      // Additional check: if current content is a prerequisite and is Zoom content
-      // Make sure it's marked as completed if student attended OR watched recording
-      if (
-        !nextContentAccessible &&
-        contentItem.type === 'zoom' &&
-        isCompleted
-      ) {
-        // Recheck after considering Zoom completion
-        const recheck = student.isContentUnlocked(
+      // Check if next content is in a different topic
+      const isNextContentInDifferentTopic = currentContent && nextContent && 
+        currentContent.topicId.toString() !== nextContent.topicId.toString();
+
+      // If next content is in a different topic, check topic unlock conditions
+      if (isNextContentInDifferentTopic && nextContent.topicUnlockConditions === 'previous_completed') {
+        // Find the current topic (previous topic for the next content)
+        const currentTopicIndex = currentContent.topicIndex;
+        const currentTopicInList = publishedTopics[currentTopicIndex];
+        
+        if (currentTopicInList) {
+          // Check if ALL content in the current topic is completed
+          const currentTopicContentIds = currentTopicInList.content.map((c) => c._id.toString());
+          const allCurrentTopicCompleted = currentTopicContentIds.every(
+            (contentId) => completedContentIds.includes(contentId)
+          );
+
+          if (!allCurrentTopicCompleted) {
+            // Topic unlock condition not met - previous topic not completed
+            nextContentAccessible = false;
+          } else {
+            // Topic is completed, now check content-level prerequisites
+            const nextUnlockStatus = student.isContentUnlocked(
+              course._id,
+              nextContent._id,
+              nextContent
+            );
+            nextContentAccessible = nextUnlockStatus.unlocked;
+          }
+        }
+      } else {
+        // Same topic or immediate unlock - just check content prerequisites
+        const nextUnlockStatus = student.isContentUnlocked(
           course._id,
           nextContent._id,
           nextContent
         );
-        nextContentAccessible = recheck.unlocked;
+        nextContentAccessible = nextUnlockStatus.unlocked;
+      }
+
+      // Additional check: if current content is completed (including via skip)
+      // and current content is a prerequisite for next content
+      if (!nextContentAccessible && isCompleted) {
+        // Check if current content being completed unlocks the next content
+        if (nextContent.prerequisites && nextContent.prerequisites.length > 0) {
+          const nextPrerequisites = nextContent.prerequisites.map((p) => p.toString());
+          const currentContentIdStr = contentId.toString();
+          
+          // Check if all prerequisites are now met (including the just-completed current content)
+          const updatedCompletedIds = [...completedContentIds];
+          if (!updatedCompletedIds.includes(currentContentIdStr)) {
+            updatedCompletedIds.push(currentContentIdStr);
+          }
+          
+          const allPrereqsMet = nextPrerequisites.every(
+            (prereqId) => updatedCompletedIds.includes(prereqId)
+          );
+          
+          if (allPrereqsMet) {
+            nextContentAccessible = true;
+          }
+        } else if (!nextContent.prerequisites || nextContent.prerequisites.length === 0) {
+          // Next content has no prerequisites, check topic conditions again
+          if (!isNextContentInDifferentTopic) {
+            nextContentAccessible = true;
+          } else if (nextContent.topicUnlockConditions !== 'previous_completed') {
+            nextContentAccessible = true;
+          }
+        }
       }
     }
 
