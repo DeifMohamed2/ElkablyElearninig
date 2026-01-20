@@ -15,6 +15,14 @@ const methodOverride = require('method-override');
 // Load environment variables
 dotenv.config();
 
+// Initialize Firebase Cloud Messaging (FCM) for push notifications
+const firebaseNotificationService = require('./utils/firebaseNotificationService');
+if (firebaseNotificationService.isReady()) {
+  console.log('🔥 Firebase FCM is ready for push notifications');
+} else {
+  console.warn('⚠️ Firebase FCM not configured - push notifications disabled');
+}
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: 'dusod9wxt',
@@ -191,6 +199,7 @@ const quizRoutes = require('./routes/quiz');
 const purchaseRoutes = require('./routes/purchase');
 const zoomRoutes = require('./routes/zoom');
 const uploadRoutes = require('./routes/upload');
+const parentRoutes = require('./routes/parent');
 const { createStudentFromExternalSystem } = require('./controllers/authController');
 
 // Special handling for webhook routes that need raw body
@@ -208,6 +217,7 @@ app.use('/admin/quizzes', quizRoutes);
 app.use('/purchase', purchaseRoutes);
 app.use('/zoom', zoomRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/parent', parentRoutes);
 
 // Global error handler - must be before 404 handler
 app.use((err, req, res, next) => {

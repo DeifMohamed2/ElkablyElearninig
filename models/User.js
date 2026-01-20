@@ -76,6 +76,17 @@ const UserSchema = new mongoose.Schema(
       enum: ['+966', '+20', '+971', '+965'], // Saudi, Egypt, UAE, Kuwait
       default: '+966',
     },
+    // FCM token for parent mobile app push notifications
+    parentFcmToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    // Last time the FCM token was updated
+    parentFcmTokenUpdatedAt: {
+      type: Date,
+      default: null,
+    },
     studentCountryCode: {
       type: String,
       required: true,

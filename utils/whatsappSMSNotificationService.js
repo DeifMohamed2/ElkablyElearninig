@@ -5,10 +5,102 @@ const Course = require('../models/Course');
 const BundleCourse = require('../models/BundleCourse');
 const cloudinary = require('./cloudinary');
 
+// Import Firebase Notification Service for FCM push notifications
+// This will be loaded lazily to avoid circular dependencies
+let firebaseNotificationService = null;
+const getFirebaseService = () => {
+  if (!firebaseNotificationService) {
+    try {
+      firebaseNotificationService = require('./firebaseNotificationService');
+    } catch (error) {
+      console.warn('⚠️ Firebase notification service not available:', error.message);
+    }
+  }
+  return firebaseNotificationService;
+};
+
 class WhatsAppSMSNotificationService {
   constructor() {
     this.sessionApiKey = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
     this.whatsappLink = 'https://wa.me/201050994880';
+    // Flag to enable/disable FCM notifications (default: enabled)
+    this.fcmEnabled = process.env.FCM_NOTIFICATIONS_ENABLED !== 'false';
+  }
+
+  /**
+   * Send FCM notification along with SMS/WhatsApp
+   * This is called automatically when other notifications are sent
+   */
+  async sendFcmNotification(studentId, type, data) {
+    if (!this.fcmEnabled) return null;
+    
+    try {
+      const firebase = getFirebaseService();
+      if (!firebase || !firebase.isReady()) {
+        console.log('📱 FCM not available, skipping push notification');
+        return null;
+      }
+
+      switch (type) {
+        case 'quiz_completion':
+          return await firebase.sendQuizCompletionNotification(
+            studentId,
+            data.quizData,
+            data.score,
+            data.totalQuestions
+          );
+        case 'content_completion':
+          return await firebase.sendContentCompletionNotification(
+            studentId,
+            data.contentData,
+            data.courseData
+          );
+        case 'topic_completion':
+          return await firebase.sendTopicCompletionNotification(
+            studentId,
+            data.topicData,
+            data.courseData
+          );
+        case 'course_completion':
+          return await firebase.sendCourseCompletionNotification(
+            studentId,
+            data.courseData
+          );
+        case 'purchase':
+          return await firebase.sendPurchaseNotification(
+            studentId,
+            data.purchaseData
+          );
+        case 'welcome':
+          return await firebase.sendWelcomeNotification(studentId);
+        case 'course_enrollment':
+          return await firebase.sendCourseEnrollmentNotification(
+            studentId,
+            data.courseData
+          );
+        case 'bundle_enrollment':
+          return await firebase.sendBundleEnrollmentNotification(
+            studentId,
+            data.bundleData
+          );
+        case 'zoom_meeting':
+          return await firebase.sendZoomMeetingNotification(
+            studentId,
+            data.meetingData
+          );
+        case 'zoom_non_attendance':
+          return await firebase.sendZoomNonAttendanceNotification(
+            studentId,
+            data.meetingData
+          );
+        default:
+          console.log(`📱 Unknown FCM notification type: ${type}`);
+          return null;
+      }
+    } catch (error) {
+      console.error('❌ Error sending FCM notification:', error);
+      return null;
+    }
   }
 
   /**
@@ -618,7 +710,20 @@ ${performanceMessage}
     // SMS message (max 160 chars)
     const smsMessage = this.getSmsQuizCompletionMessage(student, quizData, score, totalQuestions, percentage);
 
-    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    // Send SMS/WhatsApp notification
+    const result = await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    
+    // Also send FCM push notification
+    const fcmResult = await this.sendFcmNotification(studentId, 'quiz_completion', {
+      quizData,
+      score,
+      totalQuestions,
+    });
+    
+    return {
+      ...result,
+      fcm: fcmResult,
+    };
   }
 
   /**
@@ -654,7 +759,19 @@ ${performanceMessage}
     // SMS message (max 160 chars)
     const smsMessage = this.getSmsContentCompletionMessage(student, contentData, courseData);
 
-    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    // Send SMS/WhatsApp notification
+    const result = await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    
+    // Also send FCM push notification
+    const fcmResult = await this.sendFcmNotification(studentId, 'content_completion', {
+      contentData,
+      courseData,
+    });
+    
+    return {
+      ...result,
+      fcm: fcmResult,
+    };
   }
 
   /**
@@ -690,7 +807,19 @@ ${performanceMessage}
     // SMS message (max 160 chars)
     const smsMessage = this.getSmsTopicCompletionMessage(student, topicData, courseData);
 
-    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    // Send SMS/WhatsApp notification
+    const result = await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    
+    // Also send FCM push notification
+    const fcmResult = await this.sendFcmNotification(studentId, 'topic_completion', {
+      topicData,
+      courseData,
+    });
+    
+    return {
+      ...result,
+      fcm: fcmResult,
+    };
   }
 
   /**
@@ -727,7 +856,18 @@ ${performanceMessage}
     // SMS message (max 160 chars)
     const smsMessage = this.getSmsCourseCompletionMessage(student, courseData);
 
-    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    // Send SMS/WhatsApp notification
+    const result = await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    
+    // Also send FCM push notification
+    const fcmResult = await this.sendFcmNotification(studentId, 'course_completion', {
+      courseData,
+    });
+    
+    return {
+      ...result,
+      fcm: fcmResult,
+    };
   }
 
   /**
@@ -777,7 +917,18 @@ ${performanceMessage}
 
       console.log('📤 Sending message...');
       
-      return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+      // Send SMS/WhatsApp notification
+      const result = await this.sendToParent(studentId, whatsappMessage, smsMessage);
+      
+      // Also send FCM push notification
+      const fcmResult = await this.sendFcmNotification(studentId, 'purchase', {
+        purchaseData,
+      });
+      
+      return {
+        ...result,
+        fcm: fcmResult,
+      };
     } catch (error) {
       console.error('❌ Error in sendPurchaseInvoiceNotification:', error);
       return { success: false, message: 'Failed to send purchase notification' };
@@ -852,11 +1003,16 @@ ${performanceMessage}
       results.parent = { success: false, message: error.message };
     }
 
+    // Also send FCM push notification
+    const fcmResult = await this.sendFcmNotification(studentId, 'welcome', {});
+    results.fcm = fcmResult;
+
     // Return combined result
     return {
       success: (results.student?.success || !student.studentNumber) && results.parent?.success,
       student: results.student,
-      parent: results.parent
+      parent: results.parent,
+      fcm: fcmResult,
     };
   }
 
@@ -892,7 +1048,18 @@ ${performanceMessage}
     // SMS message (max 160 chars)
     const smsMessage = this.getSmsCourseEnrollmentMessage(student, courseData);
 
-    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    // Send SMS/WhatsApp notification
+    const result = await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    
+    // Also send FCM push notification
+    const fcmResult = await this.sendFcmNotification(studentId, 'course_enrollment', {
+      courseData,
+    });
+    
+    return {
+      ...result,
+      fcm: fcmResult,
+    };
   }
 
   /**
@@ -928,7 +1095,18 @@ ${performanceMessage}
     // SMS message (max 160 chars)
     const smsMessage = this.getSmsBundleEnrollmentMessage(student, bundleData);
 
-    return await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    // Send SMS/WhatsApp notification
+    const result = await this.sendToParent(studentId, whatsappMessage, smsMessage);
+    
+    // Also send FCM push notification
+    const fcmResult = await this.sendFcmNotification(studentId, 'bundle_enrollment', {
+      bundleData,
+    });
+    
+    return {
+      ...result,
+      fcm: fcmResult,
+    };
   }
 
   /**
