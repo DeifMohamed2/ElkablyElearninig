@@ -7,7 +7,7 @@ const QuestionSchema = new mongoose.Schema(
       required: true,
       trim: true,
       minlength: 10,
-      maxlength: 1000,
+      maxlength: 10000,
     },
     questionImage: {
       type: String, // URL to question image
