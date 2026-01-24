@@ -2590,6 +2590,47 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
+    // Parse question text: $...$ for math, [u]...[/u] for underline, [b]...[/b] for bold
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    function formatTextFormatting(text) {
+      if (!text) return '';
+      function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+      let result = '';
+      const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+      let m; let lastIdx = 0;
+      while ((m = re.exec(text)) !== null) {
+        result += esc(text.substring(lastIdx, m.index));
+        if (m[1] !== undefined) result += '<u>' + esc(m[1]) + '</u>';
+        else result += '<b>' + esc(m[2]) + '</b>';
+        lastIdx = re.lastIndex;
+      }
+      result += esc(text.substring(lastIdx));
+      return result;
+    }
+    function parseMathExpressions(text) {
+      if (!text) return '';
+      const mathPattern = /\$([^$]+)\$/g;
+      const parts = [];
+      let lastIndex = 0, match, mathIndex = 0;
+      while ((match = mathPattern.exec(text)) !== null) {
+        if (match.index > lastIndex) parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+        parts.push({ type: 'math', content: match[1], index: mathIndex++ });
+        lastIndex = match.index + match[0].length;
+      }
+      if (lastIndex < text.length) parts.push({ type: 'text', content: text.substring(lastIndex) });
+      if (parts.length === 0) return formatTextFormatting(text);
+      let html = '';
+      parts.forEach(part => {
+        if (part.type === 'text') html += formatTextFormatting(part.content);
+        else html += '<math-field readonly style="display:inline-block;min-height:24px;font-size:16px;border:none;background:transparent;padding:2px 4px;vertical-align:middle" class="preview-math-field">' + escapeHtml(part.content) + '</math-field>';
+      });
+      return html;
+    }
+
     // Ensure functions are available globally immediately
     window.setPlayerReady = function() {
       console.log('Setting player ready...');
@@ -3253,20 +3294,10 @@
       const progressPercent = ((data.currentQuestionIndex + 1) / (data.totalQuestions || gameState.totalQuestions)) * 100;
       questionProgressBar.style.width = `${progressPercent}%`;
 
-      // Display question text with MathLive support
+      // Display question text with math, underline [u]...[/u], and bold [b]...[/b]
       questionText.classList.add('question-fade-in');
       const questionTextContent = question.questionText || question.question || 'No question text available';
-      if (questionTextContent.includes('\\') || questionTextContent.includes('$')) {
-        questionText.innerHTML = `
-          <math-field readonly 
-            style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
-            class="question-math-field">
-            ${questionTextContent}
-          </math-field>
-        `;
-      } else {
-        questionText.innerHTML = `<h4>${questionTextContent}</h4>`;
-      }
+      questionText.innerHTML = parseMathExpressions(questionTextContent);
       setTimeout(() => {
         questionText.classList.remove('question-fade-in');
       }, 500);
@@ -3786,20 +3817,10 @@
       const progressPercent = ((data.questionIndex + 1) / data.totalQuestions) * 100;
       questionProgressBar.style.width = `${progressPercent}%`;
 
-      // Display question text with MathLive support
+      // Display question text with math, underline [u]...[/u], and bold [b]...[/b]
       questionText.classList.add('question-fade-in');
       const questionTextContent = question.questionText || question.question || 'No question text available';
-      if (questionTextContent.includes('\\') || questionTextContent.includes('$')) {
-        questionText.innerHTML = `
-          <math-field readonly 
-            style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
-            class="question-math-field">
-            ${questionTextContent}
-          </math-field>
-        `;
-      } else {
-        questionText.innerHTML = `<h4>${questionTextContent}</h4>`;
-      }
+      questionText.innerHTML = parseMathExpressions(questionTextContent);
       setTimeout(() => {
         questionText.classList.remove('question-fade-in');
       }, 500);

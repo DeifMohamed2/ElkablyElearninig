@@ -1537,6 +1537,22 @@ window.currentQuestions = <%- JSON.stringify(currentQuestions) %>;
 <script>
 // Content Edit Page JavaScript
 
+function formatTextFormatting(text) {
+  if (!text) return '';
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  let result = '';
+  const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+  let m; let lastIdx = 0;
+  while ((m = re.exec(text)) !== null) {
+    result += esc(text.substring(lastIdx, m.index));
+    if (m[1] !== undefined) result += '<u>' + esc(m[1]) + '</u>';
+    else result += '<b>' + esc(m[2]) + '</b>';
+    lastIdx = re.lastIndex;
+  }
+  result += esc(text.substring(lastIdx));
+  return result;
+}
+
 // Add new content
 function addNewContent() {
   // This will open the enhanced modal from the course-content.ejs
@@ -2260,12 +2276,12 @@ class EditQuestionManager {
         
         <div class="question-preview-content">
           <h6>Question:</h6>
-          <div class="question-text">${question.questionText}</div>
+          <div class="question-text">${formatTextFormatting(question.questionText || '')}</div>
           ${question.questionImage ? `<img src="${question.questionImage}" class="question-image" alt="Question Image">` : ''}
           
           <h6>Options:</h6>
           <div class="options-list">
-            ${question.options.map((option, index) => `
+            ${(question.options || []).map((option, index) => `
               <div class="option-item ${option.isCorrect ? 'correct-option' : ''}">
                 <span class="option-letter">${String.fromCharCode(65 + index)}</span>
                 <span class="option-text">${option.text}</span>
@@ -2347,12 +2363,12 @@ function displayQuestionPreview(question) {
       
       <div class="question-preview-content">
         <h6>Question:</h6>
-        <div class="question-text">${question.questionText}</div>
+        <div class="question-text">${formatTextFormatting(question.questionText || '')}</div>
         ${question.questionImage ? `<img src="${question.questionImage}" class="question-image" alt="Question Image">` : ''}
         
         <h6>Options:</h6>
         <div class="options-list">
-          ${question.options.map((option, index) => `
+          ${(question.options || []).map((option, index) => `
             <div class="option-item ${option.isCorrect ? 'correct-option' : ''}">
               <span class="option-letter">${String.fromCharCode(65 + index)}</span>
               <span class="option-text">${option.text}</span>

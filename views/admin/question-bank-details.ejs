@@ -776,8 +776,17 @@
                     </button>
                   </div>
                 </div>
-                <textarea class="form-control admin-form-control" id="questionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math expressions, e.g., If $x^2 + 3 = 2x - 2$, what is the value of $x - 4$?" maxlength="10000" required></textarea>
-                <small class="admin-form-text">Question must be between 10 and 10000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$. Click "Math Editor" for a full virtual keyboard.</small>
+                <div class="question-text-format-toolbar mb-2">
+                  <span class="admin-form-text me-2">Format:</span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrapSelectionInFormat('questionText', '[u]', '[/u]')" title="Underline: select text then click. Or type [u]text[/u]">
+                    <i class="fas fa-underline"></i> Underline
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="wrapSelectionInFormat('questionText', '[b]', '[/b]')" title="Bold: select text then click. Or type [b]text[/b]">
+                    <i class="fas fa-bold"></i> Bold
+                  </button>
+                </div>
+                <textarea class="form-control admin-form-control" id="questionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math, [u]text[/u] for underline, [b]text[/b] for bold." maxlength="10000" required></textarea>
+                <small class="admin-form-text">Question must be between 10 and 10000 characters. $...$ for math. Select text and use Underline/Bold buttons, or type [u]...[/u] and [b]...[/b].</small>
                 <div class="invalid-feedback" id="questionTextError"></div>
               </div>
 
@@ -1080,8 +1089,17 @@
                     </button>
                   </div>
                 </div>
-                <textarea class="form-control admin-form-control" id="editQuestionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math expressions, e.g., If $x^2 + 3 = 2x - 2$, what is the value of $x - 4$?" maxlength="10000" required></textarea>
-                <small class="admin-form-text">Question must be between 10 and 10000 characters. Wrap math expressions in dollar signs: $x^2 + 3 = 2x - 2$. Click "Math Editor" for a full virtual keyboard.</small>
+                <div class="question-text-format-toolbar mb-2">
+                  <span class="admin-form-text me-2">Format:</span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrapSelectionInFormat('editQuestionText', '[u]', '[/u]')" title="Underline: select text then click. Or type [u]text[/u]">
+                    <i class="fas fa-underline"></i> Underline
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="wrapSelectionInFormat('editQuestionText', '[b]', '[/b]')" title="Bold: select text then click. Or type [b]text[/b]">
+                    <i class="fas fa-bold"></i> Bold
+                  </button>
+                </div>
+                <textarea class="form-control admin-form-control" id="editQuestionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math, [u]text[/u] for underline, [b]text[/b] for bold." maxlength="10000" required></textarea>
+                <small class="admin-form-text">Question must be between 10 and 10000 characters. $...$ for math. Select text and use Underline/Bold buttons, or type [u]...[/u] and [b]...[/b].</small>
                 <div class="invalid-feedback" id="editQuestionTextError"></div>
               </div>
 
@@ -1652,16 +1670,16 @@
       });
     }
     
-    // If no math expressions found, return the original text
+    // If no math expressions found, return formatted text (underline/border)
     if (parts.length === 0) {
-      return text;
+      return formatTextFormatting(text);
     }
     
     // Build HTML with MathLive fields for math expressions
     let html = '';
     parts.forEach(part => {
       if (part.type === 'text') {
-        html += escapeHtml(part.content);
+        html += formatTextFormatting(part.content);
       } else {
         // Create a unique ID for each math field
         const mathId = `math-field-${Date.now()}-${part.index}`;
@@ -1677,6 +1695,23 @@
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  // Format [u]...[/u] (underline) and [b]...[/b] (bold) in question text
+  function formatTextFormatting(text) {
+    if (!text) return '';
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    let result = '';
+    const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+    let m; let lastIdx = 0;
+    while ((m = re.exec(text)) !== null) {
+      result += esc(text.substring(lastIdx, m.index));
+      if (m[1] !== undefined) result += '<u>' + esc(m[1]) + '</u>';
+      else result += '<b>' + esc(m[2]) + '</b>';
+      lastIdx = re.lastIndex;
+    }
+    result += esc(text.substring(lastIdx));
+    return result;
   }
 
   // Populate preview modal with question data
@@ -4382,6 +4417,11 @@
 
   // Initialize the page
   document.addEventListener('DOMContentLoaded', function() {
+    // Render [u] and [b] formatting in question card text
+    document.querySelectorAll('.question-text-plain').forEach(function(el) {
+      if (el.textContent) el.innerHTML = formatTextFormatting(el.textContent);
+    });
+
     // Store all questions from the page
     const questionCards = document.querySelectorAll('.question-card-modern');
     console.log('Found', questionCards.length, 'question cards');
@@ -5518,8 +5558,9 @@
     const questionTextEl = questionCard.querySelector('.question-text-plain, .question-math-field');
     if (questionTextEl) {
       if (questionTextEl.classList.contains('question-text-plain')) {
-        questionTextEl.textContent = question.questionText.length > 120 ? 
+        const displayText = question.questionText.length > 120 ? 
           question.questionText.substring(0, 120) + '...' : question.questionText;
+        questionTextEl.innerHTML = formatTextFormatting(displayText);
       } else {
         questionTextEl.value = question.questionText;
       }
@@ -7323,6 +7364,20 @@
         updateMathPreview(fieldId);
       }
     }
+  }
+
+  function wrapSelectionInFormat(textareaId, openTag, closeTag) {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const text = ta.value;
+    const selected = text.substring(start, end);
+    if (!selected) { alert('Select the text you want to format first, then click the button.'); return; }
+    const newText = text.substring(0, start) + openTag + selected + closeTag + text.substring(end);
+    ta.value = newText;
+    ta.focus();
+    ta.setSelectionRange(start + openTag.length, end + openTag.length);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   // Clean up when collapsible is hidden

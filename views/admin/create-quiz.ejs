@@ -639,6 +639,22 @@
       let thumbnailData = null;
       window.currentBankFilter = 'all'; // Initialize bank filter
 
+      function formatTextFormatting(text) {
+        if (!text) return '';
+        function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        let result = '';
+        const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+        let m; let lastIdx = 0;
+        while ((m = re.exec(text)) !== null) {
+          result += esc(text.substring(lastIdx, m.index));
+          if (m[1] !== undefined) result += '<u>' + esc(m[1]) + '</u>';
+          else result += '<b>' + esc(m[2]) + '</b>';
+          lastIdx = re.lastIndex;
+        }
+        result += esc(text.substring(lastIdx));
+        return result;
+      }
+
       // Toggle Bank Selection
       function toggleBankSelection(bankId) {
         const bankCard = document.querySelector(`[data-bank-id="${bankId}"]`);
@@ -1420,7 +1436,7 @@
         } else {
           questionTextHtml = `
       <div class="enhanced-question-preview-text">
-        ${question.questionText}
+        ${formatTextFormatting(question.questionText || '')}
       </div>
     `;
         }

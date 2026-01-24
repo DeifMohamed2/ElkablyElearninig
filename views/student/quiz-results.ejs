@@ -1352,16 +1352,16 @@
                 });
             }
             
-            // If no math expressions found, return the original text
+            // If no math expressions found, return formatted text (underline/border)
             if (parts.length === 0) {
-                return escapeHtml(text);
+                return formatTextFormatting(text);
             }
             
             // Build HTML with MathLive fields for math expressions
             let html = '';
             parts.forEach(part => {
                 if (part.type === 'text') {
-                    html += escapeHtml(part.content);
+                    html += formatTextFormatting(part.content);
                 } else {
                     // Create a unique ID for each math field
                     const mathId = `math-field-${Date.now()}-${Math.random()}-${part.index}`;
@@ -1377,6 +1377,23 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Format [u]...[/u] (underline) and [b]...[/b] (bold) in question text
+        function formatTextFormatting(text) {
+            if (!text) return '';
+            function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+            let result = '';
+            const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+            let m; let lastIdx = 0;
+            while ((m = re.exec(text)) !== null) {
+                result += esc(text.substring(lastIdx, m.index));
+                if (m[1] !== undefined) result += '<u>' + esc(m[1]) + '</u>';
+                else result += '<b>' + esc(m[2]) + '</b>';
+                lastIdx = re.lastIndex;
+            }
+            result += esc(text.substring(lastIdx));
+            return result;
         }
 
         // Initialize math fields after page load
