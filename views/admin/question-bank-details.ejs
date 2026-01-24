@@ -778,15 +778,15 @@
                 </div>
                 <div class="question-text-format-toolbar mb-2">
                   <span class="admin-form-text me-2">Format:</span>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrapSelectionInFormat('questionText', '[u]', '[/u]')" title="Underline: select text then click. Or type [u]text[/u]">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrapSelectionInFormat('questionText', '#*', '*#')" title="Underline: select text then click. Or type #*text*#">
                     <i class="fas fa-underline"></i> Underline
                   </button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="wrapSelectionInFormat('questionText', '[b]', '[/b]')" title="Bold: select text then click. Or type [b]text[/b]">
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="wrapSelectionInFormat('questionText', '**', '**')" title="Bold: select text then click. Or type **text**">
                     <i class="fas fa-bold"></i> Bold
                   </button>
                 </div>
-                <textarea class="form-control admin-form-control" id="questionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math, [u]text[/u] for underline, [b]text[/b] for bold." maxlength="10000" required></textarea>
-                <small class="admin-form-text">Question must be between 10 and 10000 characters. $...$ for math. Select text and use Underline/Bold buttons, or type [u]...[/u] and [b]...[/b].</small>
+                <textarea class="form-control admin-form-control" id="questionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math, #*text*# for underline, **text** for bold." maxlength="10000" required></textarea>
+                <small class="admin-form-text">Question must be between 10 and 10000 characters. $...$ for math. Select text and use Underline/Bold buttons, or type #*...*# and **...**.</small>
                 <div class="invalid-feedback" id="questionTextError"></div>
               </div>
 
@@ -1091,15 +1091,15 @@
                 </div>
                 <div class="question-text-format-toolbar mb-2">
                   <span class="admin-form-text me-2">Format:</span>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrapSelectionInFormat('editQuestionText', '[u]', '[/u]')" title="Underline: select text then click. Or type [u]text[/u]">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrapSelectionInFormat('editQuestionText', '#*', '*#')" title="Underline: select text then click. Or type #*text*#">
                     <i class="fas fa-underline"></i> Underline
                   </button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="wrapSelectionInFormat('editQuestionText', '[b]', '[/b]')" title="Bold: select text then click. Or type [b]text[/b]">
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="wrapSelectionInFormat('editQuestionText', '**', '**')" title="Bold: select text then click. Or type **text**">
                     <i class="fas fa-bold"></i> Bold
                   </button>
                 </div>
-                <textarea class="form-control admin-form-control" id="editQuestionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math, [u]text[/u] for underline, [b]text[/b] for bold." maxlength="10000" required></textarea>
-                <small class="admin-form-text">Question must be between 10 and 10000 characters. $...$ for math. Select text and use Underline/Bold buttons, or type [u]...[/u] and [b]...[/b].</small>
+                <textarea class="form-control admin-form-control" id="editQuestionText" name="questionText" rows="4" placeholder="Enter your question here... Use $...$ for math, #*text*# for underline, **text** for bold." maxlength="10000" required></textarea>
+                <small class="admin-form-text">Question must be between 10 and 10000 characters. $...$ for math. Select text and use Underline/Bold buttons, or type #*...*# and **...**.</small>
                 <div class="invalid-feedback" id="editQuestionTextError"></div>
               </div>
 
@@ -1697,12 +1697,12 @@
     return div.innerHTML;
   }
 
-  // Format [u]...[/u] (underline) and [b]...[/b] (bold) in question text
+  // Format #*...*# (underline) and **...** (bold) in question text
   function formatTextFormatting(text) {
     if (!text) return '';
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     let result = '';
-    const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+    const re = /#\*([\s\S]*?)\*#|\*\*([\s\S]*?)\*\*/g;
     let m; let lastIdx = 0;
     while ((m = re.exec(text)) !== null) {
       result += esc(text.substring(lastIdx, m.index));
@@ -4417,7 +4417,7 @@
 
   // Initialize the page
   document.addEventListener('DOMContentLoaded', function() {
-    // Render [u] and [b] formatting in question card text
+    // Render #*...*# and **...** formatting in question card text
     document.querySelectorAll('.question-text-plain').forEach(function(el) {
       if (el.textContent) el.innerHTML = formatTextFormatting(el.textContent);
     });

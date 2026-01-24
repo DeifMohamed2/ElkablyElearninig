@@ -2590,7 +2590,7 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
-    // Parse question text: $...$ for math, [u]...[/u] for underline, [b]...[/b] for bold
+    // Parse question text: $...$ for math, #*...*# for underline, **...** for bold
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -2600,7 +2600,7 @@
       if (!text) return '';
       function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
       let result = '';
-      const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+      const re = /#\*([\s\S]*?)\*#|\*\*([\s\S]*?)\*\*/g;
       let m; let lastIdx = 0;
       while ((m = re.exec(text)) !== null) {
         result += esc(text.substring(lastIdx, m.index));
@@ -3294,7 +3294,7 @@
       const progressPercent = ((data.currentQuestionIndex + 1) / (data.totalQuestions || gameState.totalQuestions)) * 100;
       questionProgressBar.style.width = `${progressPercent}%`;
 
-      // Display question text with math, underline [u]...[/u], and bold [b]...[/b]
+      // Display question text with math, underline #*...*#, and bold **...**
       questionText.classList.add('question-fade-in');
       const questionTextContent = question.questionText || question.question || 'No question text available';
       questionText.innerHTML = parseMathExpressions(questionTextContent);
@@ -3817,7 +3817,7 @@
       const progressPercent = ((data.questionIndex + 1) / data.totalQuestions) * 100;
       questionProgressBar.style.width = `${progressPercent}%`;
 
-      // Display question text with math, underline [u]...[/u], and bold [b]...[/b]
+      // Display question text with math, underline #*...*#, and bold **...**
       questionText.classList.add('question-fade-in');
       const questionTextContent = question.questionText || question.question || 'No question text available';
       questionText.innerHTML = parseMathExpressions(questionTextContent);

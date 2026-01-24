@@ -8494,12 +8494,12 @@ function getContentIcon(type) {
     `;
   }
   
-  // Format [u]...[/u] (underline) and [b]...[/b] (bold) in question text
+  // Format #*...*# (underline) and **...** (bold) in question text
   function formatTextFormattingPreview(text) {
     if (!text) return '';
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     let result = '';
-    const re = /\[u\]([\s\S]*?)\[\/u\]|\[b\]([\s\S]*?)\[\/b\]/g;
+    const re = /#\*([\s\S]*?)\*#|\*\*([\s\S]*?)\*\*/g;
     let m; let lastIdx = 0;
     while ((m = re.exec(text)) !== null) {
       result += esc(text.substring(lastIdx, m.index));
