@@ -1,0 +1,503 @@
+<%- include('../partials/header', { title: 'Continue as Guest' }) %>
+
+<style>
+  .guest-auth-container {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+  
+  .dark-theme .guest-auth-container {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+  
+  .guest-auth-card {
+    background: var(--card-bg, #fff);
+    border-radius: 20px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+  }
+  
+  .guest-auth-header {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    padding: 40px 30px;
+    text-align: center;
+  }
+  
+  .guest-auth-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+  }
+  
+  .guest-auth-icon i {
+    font-size: 2.5rem;
+    color: white;
+  }
+  
+  .guest-auth-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  
+  .guest-auth-header p {
+    margin: 0;
+    opacity: 0.9;
+  }
+  
+  .guest-auth-body {
+    padding: 30px;
+  }
+  
+  .guest-form-group {
+    margin-bottom: 20px;
+  }
+  
+  .guest-form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    color: var(--text-color, #1e293b);
+    margin-bottom: 8px;
+  }
+  
+  .guest-form-group label i {
+    color: #dc2626;
+  }
+  
+  .guest-form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--input-bg, #fff);
+    color: var(--text-color, #1e293b);
+  }
+  
+  .guest-form-group input:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+  
+  .phone-input-group {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .phone-input-group select {
+    width: 120px;
+    padding: 14px 10px;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    background: var(--input-bg, #fff);
+    color: var(--text-color, #1e293b);
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  
+  .phone-input-group select:focus {
+    outline: none;
+    border-color: #dc2626;
+  }
+  
+  .phone-input-group input {
+    flex: 1;
+  }
+  
+  .guest-submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+  }
+  
+  .guest-submit-btn:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+  }
+  
+  .guest-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .guest-auth-footer {
+    text-align: center;
+    padding: 20px 30px;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    background: var(--secondary-bg, #f8fafc);
+  }
+  
+  .guest-auth-footer p {
+    margin: 0 0 10px;
+    color: var(--text-muted, #64748b);
+  }
+  
+  .guest-auth-footer a {
+    color: #dc2626;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  
+  .guest-auth-footer a:hover {
+    text-decoration: underline;
+  }
+  
+  .guest-note {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--secondary-bg, #f1f5f9);
+    border-radius: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .guest-note i {
+    color: #dc2626;
+    margin-top: 2px;
+  }
+  
+  .guest-note small {
+    color: var(--text-muted, #64748b);
+    line-height: 1.5;
+  }
+  
+  .error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .dark-theme .error-message {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.3);
+  }
+  
+  @media (max-width: 576px) {
+    .guest-auth-container {
+      padding: 20px 15px;
+    }
+    
+    .guest-auth-header {
+      padding: 30px 20px;
+    }
+    
+    .guest-auth-body {
+      padding: 20px;
+    }
+    
+    .phone-input-group {
+      flex-direction: column;
+    }
+    
+    .phone-input-group select {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="guest-auth-container">
+  <div class="guest-auth-card">
+    <div class="guest-auth-header">
+      <div class="guest-auth-icon">
+        <i class="fas fa-user-clock"></i>
+      </div>
+      <h1>Continue as Guest</h1>
+      <p>Take the test without creating an account</p>
+    </div>
+    
+    <div class="guest-auth-body">
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="error-message">
+          <i class="fas fa-exclamation-circle"></i>
+          <span><%= error %></span>
+        </div>
+      <% } %>
+      
+      <form id="guestAuthForm" action="/guest/register" method="POST">
+        <input type="hidden" name="redirectUrl" value="<%= redirectUrl %>">
+        
+        <div class="guest-form-group">
+          <label for="fullName">
+            <i class="fas fa-user"></i> Full Name
+          </label>
+          <input type="text" id="fullName" name="fullName" required 
+                 placeholder="Enter your full name" minlength="2" maxlength="100">
+        </div>
+        
+        <div class="guest-form-group">
+          <label for="email">
+            <i class="fas fa-envelope"></i> Email Address
+          </label>
+          <input type="email" id="email" name="email" required 
+                 placeholder="Enter your email address">
+        </div>
+        
+        <div class="guest-form-group">
+          <label for="phone">
+            <i class="fas fa-phone"></i> Phone Number *
+          </label>
+          <div class="phone-input-group">
+            <select id="phoneCountryCode" name="phoneCountryCode">
+              <option value="+20">🇪🇬 +20</option>
+              <option value="+966">🇸🇦 +966</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+965">🇰🇼 +965</option>
+              <option value="+974">🇶🇦 +974</option>
+              <option value="+973">🇧🇭 +973</option>
+              <option value="+968">🇴🇲 +968</option>
+              <option value="+962">🇯🇴 +962</option>
+              <option value="+961">🇱🇧 +961</option>
+              <option value="+963">🇸🇾 +963</option>
+              <option value="+964">🇮🇶 +964</option>
+              <option value="+967">🇾🇪 +967</option>
+              <option value="+970">🇵🇸 +970</option>
+              <option value="+212">🇲🇦 +212</option>
+              <option value="+213">🇩🇿 +213</option>
+              <option value="+216">🇹🇳 +216</option>
+              <option value="+218">🇱🇾 +218</option>
+              <option value="+249">🇸🇩 +249</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+39">🇮🇹 +39</option>
+              <option value="+34">🇪🇸 +34</option>
+              <option value="+31">🇳🇱 +31</option>
+              <option value="+32">🇧🇪 +32</option>
+              <option value="+41">🇨🇭 +41</option>
+              <option value="+43">🇦🇹 +43</option>
+              <option value="+46">🇸🇪 +46</option>
+              <option value="+47">🇳🇴 +47</option>
+              <option value="+45">🇩🇰 +45</option>
+              <option value="+358">🇫🇮 +358</option>
+              <option value="+48">🇵🇱 +48</option>
+              <option value="+30">🇬🇷 +30</option>
+              <option value="+351">🇵🇹 +351</option>
+              <option value="+353">🇮🇪 +353</option>
+              <option value="+90">🇹🇷 +90</option>
+              <option value="+7">🇷🇺 +7</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+1">🇨🇦 +1</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+55">🇧🇷 +55</option>
+              <option value="+54">🇦🇷 +54</option>
+              <option value="+57">🇨🇴 +57</option>
+              <option value="+56">🇨🇱 +56</option>
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+92">🇵🇰 +92</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+60">🇲🇾 +60</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+62">🇮🇩 +62</option>
+              <option value="+63">🇵🇭 +63</option>
+              <option value="+66">🇹🇭 +66</option>
+              <option value="+84">🇻🇳 +84</option>
+              <option value="+880">🇧🇩 +880</option>
+              <option value="+234">🇳🇬 +234</option>
+              <option value="+27">🇿🇦 +27</option>
+              <option value="+254">🇰🇪 +254</option>
+              <option value="+233">🇬🇭 +233</option>
+              <option value="+251">🇪🇹 +251</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+64">🇳🇿 +64</option>
+            </select>
+            <input type="tel" id="phone" name="phone" required 
+                   placeholder="Phone number" pattern="[0-9]{8,15}">
+          </div>
+        </div>
+        
+        <div class="guest-form-group">
+          <label for="parentPhone">
+            <i class="fas fa-phone-alt"></i> Parent Phone Number *
+          </label>
+          <div class="phone-input-group">
+            <select id="parentPhoneCountryCode" name="parentPhoneCountryCode">
+              <option value="+20">🇪🇬 +20</option>
+              <option value="+966">🇸🇦 +966</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+965">🇰🇼 +965</option>
+              <option value="+974">🇶🇦 +974</option>
+              <option value="+973">🇧🇭 +973</option>
+              <option value="+968">🇴🇲 +968</option>
+              <option value="+962">🇯🇴 +962</option>
+              <option value="+961">🇱🇧 +961</option>
+              <option value="+963">🇸🇾 +963</option>
+              <option value="+964">🇮🇶 +964</option>
+              <option value="+967">🇾🇪 +967</option>
+              <option value="+970">🇵🇸 +970</option>
+              <option value="+212">🇲🇦 +212</option>
+              <option value="+213">🇩🇿 +213</option>
+              <option value="+216">🇹🇳 +216</option>
+              <option value="+218">🇱🇾 +218</option>
+              <option value="+249">🇸🇩 +249</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+39">🇮🇹 +39</option>
+              <option value="+34">🇪🇸 +34</option>
+              <option value="+31">🇳🇱 +31</option>
+              <option value="+32">🇧🇪 +32</option>
+              <option value="+41">🇨🇭 +41</option>
+              <option value="+43">🇦🇹 +43</option>
+              <option value="+46">🇸🇪 +46</option>
+              <option value="+47">🇳🇴 +47</option>
+              <option value="+45">🇩🇰 +45</option>
+              <option value="+358">🇫🇮 +358</option>
+              <option value="+48">🇵🇱 +48</option>
+              <option value="+30">🇬🇷 +30</option>
+              <option value="+351">🇵🇹 +351</option>
+              <option value="+353">🇮🇪 +353</option>
+              <option value="+90">🇹🇷 +90</option>
+              <option value="+7">🇷🇺 +7</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+1">🇨🇦 +1</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+55">🇧🇷 +55</option>
+              <option value="+54">🇦🇷 +54</option>
+              <option value="+57">🇨🇴 +57</option>
+              <option value="+56">🇨🇱 +56</option>
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+92">🇵🇰 +92</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+60">🇲🇾 +60</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+62">🇮🇩 +62</option>
+              <option value="+63">🇵🇭 +63</option>
+              <option value="+66">🇹🇭 +66</option>
+              <option value="+84">🇻🇳 +84</option>
+              <option value="+880">🇧🇩 +880</option>
+              <option value="+234">🇳🇬 +234</option>
+              <option value="+27">🇿🇦 +27</option>
+              <option value="+254">🇰🇪 +254</option>
+              <option value="+233">🇬🇭 +233</option>
+              <option value="+251">🇪🇹 +251</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+64">🇳🇿 +64</option>
+            </select>
+            <input type="tel" id="parentPhone" name="parentPhone" required 
+                   placeholder="Parent phone number" pattern="[0-9]{8,15}">
+          </div>
+        </div>
+        
+        <button type="submit" class="guest-submit-btn" id="submitBtn">
+          <i class="fas fa-arrow-right"></i>
+          <span>Continue</span>
+        </button>
+        
+        <div class="guest-note">
+          <i class="fas fa-info-circle"></i>
+          <small>Your information will be used to track your test results. You can view your results anytime using the same email.</small>
+        </div>
+      </form>
+    </div>
+    
+    <div class="guest-auth-footer">
+      <p>Already have an account? <a href="/auth/login">Login here</a></p>
+      <p>Don't have an account? <a href="/auth/register">Register now</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('guestAuthForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Get phone numbers with country codes
+    const phoneCountryCode = document.getElementById('phoneCountryCode').value;
+    const phone = document.getElementById('phone').value.trim();
+    const parentPhoneCountryCode = document.getElementById('parentPhoneCountryCode').value;
+    const parentPhone = document.getElementById('parentPhone').value.trim();
+    
+    // Validate that student phone and parent phone are not the same
+    const fullPhone = phoneCountryCode + phone;
+    const fullParentPhone = parentPhoneCountryCode + parentPhone;
+    
+    if (fullPhone === fullParentPhone) {
+      alert('Student phone number and parent phone number cannot be the same.');
+      return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Processing...</span>';
+    
+    const formData = {
+      fullName: document.getElementById('fullName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      phoneCountryCode: document.getElementById('phoneCountryCode').value,
+      parentPhone: document.getElementById('parentPhone').value.trim(),
+      parentPhoneCountryCode: document.getElementById('parentPhoneCountryCode').value,
+    };
+    
+    try {
+      const response = await fetch('/guest/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        const redirectUrl = '<%= redirectUrl %>';
+        window.location.href = redirectUrl || '/guest/dashboard';
+      } else {
+        alert(result.message || 'Registration failed. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('An error occurred. Please try again.');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  });
+</script>
+
+<%- include('../partials/footer') %>

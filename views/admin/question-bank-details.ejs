@@ -394,6 +394,11 @@
                 <span id="selectedCount">0</span> selected
               </span>
               
+              <button type="button" class="btn btn-bulk-upload" onclick="showBulkImageUploadModal()">
+                <i class="fas fa-image me-2"></i>
+                Upload Image to Selected
+              </button>
+              
               <button type="button" class="btn btn-bulk-delete" onclick="showBulkDeleteConfirmation()">
                 <i class="fas fa-trash-alt me-2"></i>
                 Delete Selected
@@ -657,6 +662,81 @@
         <button type="button" class="btn btn-danger" id="confirmBulkDeleteBtn" onclick="executeBulkDelete()">
           <i class="fas fa-trash-alt me-2"></i>
           Delete <span id="confirmDeleteCount">0</span> Questions
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Image Upload Modal -->
+<div class="modal fade" id="bulkImageUploadModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="fas fa-images me-2"></i>
+          Upload Image to Multiple Questions
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="bulk-upload-info">
+          <div class="info-icon-wrapper">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h4>Upload one image to <span id="bulkUploadCount" class="text-primary fw-bold">0</span> questions</h4>
+          <p class="text-muted mb-4">The selected image will be applied to all selected questions.</p>
+        </div>
+        
+        <!-- Image Upload Area -->
+        <div class="bulk-image-upload-area">
+          <div class="upload-zone" id="bulkUploadZone" onclick="document.getElementById('bulkImageInput').click()">
+            <input type="file" id="bulkImageInput" accept="image/*" style="display: none;" onchange="handleBulkImageSelect(event)">
+            <div id="bulkUploadPlaceholder">
+              <i class="fas fa-cloud-upload-alt upload-icon"></i>
+              <p class="upload-text">Click to select an image or drag and drop</p>
+              <p class="upload-hint">Supports: JPG, PNG, GIF, WebP (Max 5MB)</p>
+            </div>
+            <div id="bulkImagePreview" style="display: none;">
+              <img id="bulkPreviewImg" src="" alt="Preview">
+              <button type="button" class="btn btn-sm btn-danger remove-preview-btn" onclick="removeBulkImagePreview(event)">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Questions List -->
+        <div class="bulk-questions-summary mt-4">
+          <div class="list-header d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">
+              <i class="fas fa-list me-2"></i>Questions to receive this image:
+            </h6>
+            <span class="badge bg-primary" id="bulkUploadListCount">0 questions</span>
+          </div>
+          <div id="bulkUploadQuestionsList" class="questions-to-upload" style="max-height: 200px; overflow-y: auto;">
+            <!-- Questions will be populated here -->
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="bulkUploadProgress" class="mt-3" style="display: none;">
+          <div class="d-flex justify-content-between mb-2">
+            <span>Uploading image to questions...</span>
+            <span id="bulkUploadProgressText">0%</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div id="bulkUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="confirmBulkUploadBtn" onclick="executeBulkImageUpload()" disabled>
+          <i class="fas fa-upload me-2"></i>
+          Upload to <span id="confirmUploadCount">0</span> Questions
         </button>
       </div>
     </div>
@@ -4404,6 +4484,250 @@
     });
   }
 
+  // ==================== BULK IMAGE UPLOAD ====================
+  
+  let bulkImageFile = null;
+  
+  // Show bulk image upload modal
+  function showBulkImageUploadModal() {
+    if (selectedQuestions.size === 0) {
+      showNotification('Please select questions to upload image to', 'warning');
+      return;
+    }
+    
+    const count = selectedQuestions.size;
+    document.getElementById('bulkUploadCount').textContent = count;
+    document.getElementById('bulkUploadListCount').textContent = `${count} question${count !== 1 ? 's' : ''}`;
+    document.getElementById('confirmUploadCount').textContent = count;
+    
+    // Reset upload state
+    bulkImageFile = null;
+    document.getElementById('bulkImageInput').value = '';
+    document.getElementById('bulkUploadPlaceholder').style.display = 'block';
+    document.getElementById('bulkImagePreview').style.display = 'none';
+    document.getElementById('confirmBulkUploadBtn').disabled = true;
+    document.getElementById('bulkUploadProgress').style.display = 'none';
+    
+    // Populate questions list
+    const listContainer = document.getElementById('bulkUploadQuestionsList');
+    listContainer.innerHTML = '';
+    
+    selectedQuestions.forEach(questionId => {
+      const card = document.querySelector(`.question-card-modern[data-question-id="${questionId}"]`);
+      if (card) {
+        const questionNum = card.getAttribute('data-question-number');
+        const difficulty = card.getAttribute('data-difficulty');
+        const tags = card.getAttribute('data-tags') || 'No tags';
+        
+        // Get question text
+        let questionText = '';
+        const plainTextEl = card.querySelector('.question-text-plain');
+        const mathFieldEl = card.querySelector('.question-math-field');
+        if (plainTextEl) {
+          questionText = plainTextEl.textContent.trim();
+        } else if (mathFieldEl) {
+          questionText = mathFieldEl.textContent || mathFieldEl.getAttribute('data-question-text') || '';
+        }
+        questionText = questionText.substring(0, 60) + (questionText.length > 60 ? '...' : '');
+        
+        const item = document.createElement('div');
+        item.className = 'upload-question-item';
+        item.innerHTML = `
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary">#${questionNum}</span>
+            <span class="badge bg-${difficulty === 'Easy' ? 'success' : difficulty === 'Medium' ? 'warning' : 'danger'}">${difficulty}</span>
+            <span class="text-truncate" style="max-width: 300px;">${questionText}</span>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      }
+    });
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('bulkImageUploadModal'));
+    modal.show();
+  }
+  
+  // Handle bulk image selection
+  function handleBulkImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      showNotification('Please select a valid image file (JPG, PNG, GIF, WebP)', 'error');
+      return;
+    }
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('Image size must be less than 5MB', 'error');
+      return;
+    }
+    
+    bulkImageFile = file;
+    
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('bulkPreviewImg').src = e.target.result;
+      document.getElementById('bulkUploadPlaceholder').style.display = 'none';
+      document.getElementById('bulkImagePreview').style.display = 'block';
+      document.getElementById('confirmBulkUploadBtn').disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  // Remove bulk image preview
+  function removeBulkImagePreview(event) {
+    event.stopPropagation();
+    bulkImageFile = null;
+    document.getElementById('bulkImageInput').value = '';
+    document.getElementById('bulkPreviewImg').src = '';
+    document.getElementById('bulkUploadPlaceholder').style.display = 'block';
+    document.getElementById('bulkImagePreview').style.display = 'none';
+    document.getElementById('confirmBulkUploadBtn').disabled = true;
+  }
+  
+  // Execute bulk image upload
+  async function executeBulkImageUpload() {
+    if (selectedQuestions.size === 0 || !bulkImageFile) return;
+    
+    const confirmBtn = document.getElementById('confirmBulkUploadBtn');
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+    confirmBtn.disabled = true;
+    
+    const progressDiv = document.getElementById('bulkUploadProgress');
+    const progressBar = document.getElementById('bulkUploadProgressBar');
+    const progressText = document.getElementById('bulkUploadProgressText');
+    progressDiv.style.display = 'block';
+    
+    const questionIds = Array.from(selectedQuestions);
+    const totalQuestions = questionIds.length;
+    let successCount = 0;
+    let failedCount = 0;
+    
+    try {
+      // First, upload the image using the upload endpoint
+      const formData = new FormData();
+      formData.append('image', bulkImageFile);
+      formData.append('uploadType', 'question-images');
+      
+      progressText.textContent = 'Uploading image...';
+      progressBar.style.width = '10%';
+      
+      const uploadResponse = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const uploadResult = await uploadResponse.json();
+      
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.message || 'Failed to upload image');
+      }
+      
+      const imageUrl = uploadResult.url;
+      progressBar.style.width = '20%';
+      progressText.textContent = 'Applying image to questions...';
+      
+      // Now update all selected questions with this image
+      const response = await fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/bulk-update-image`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          questionIds,
+          imageUrl
+        })
+      });
+      
+      const data = await response.json();
+      
+      progressBar.style.width = '100%';
+      progressText.textContent = 'Complete!';
+      
+      if (data.success) {
+        // Close modal
+        setTimeout(() => {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('bulkImageUploadModal'));
+          modal.hide();
+          
+          // Update question cards to show the new image (visual feedback)
+          questionIds.forEach(id => {
+            const card = document.querySelector(`.question-card-modern[data-question-id="${id}"]`);
+            if (card) {
+              // Add a visual indicator that the image was added
+              const existingBadge = card.querySelector('.image-added-badge');
+              if (!existingBadge) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-success image-added-badge ms-2';
+                badge.innerHTML = '<i class="fas fa-image me-1"></i>Image Added';
+                badge.style.fontSize = '10px';
+                const header = card.querySelector('.question-card-header');
+                if (header) {
+                  header.insertBefore(badge, header.querySelector('.question-actions'));
+                }
+              }
+            }
+          });
+          
+          // Clear selection
+          selectedQuestions.clear();
+          updateSelectedCount();
+          
+          showNotification(`Successfully added image to ${data.updatedCount} questions`, 'success');
+          
+          // Exit bulk mode
+          toggleBulkSelectionMode();
+        }, 500);
+      } else {
+        showNotification(data.message || 'Failed to update questions', 'error');
+      }
+    } catch (error) {
+      console.error('Bulk image upload error:', error);
+      showNotification('An error occurred: ' + error.message, 'error');
+    } finally {
+      confirmBtn.innerHTML = originalText;
+      confirmBtn.disabled = false;
+    }
+  }
+  
+  // Setup drag and drop for bulk upload zone
+  document.addEventListener('DOMContentLoaded', function() {
+    const uploadZone = document.getElementById('bulkUploadZone');
+    if (uploadZone) {
+      uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadZone.classList.add('drag-over');
+      });
+      
+      uploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadZone.classList.remove('drag-over');
+      });
+      
+      uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadZone.classList.remove('drag-over');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const input = document.getElementById('bulkImageInput');
+          input.files = files;
+          handleBulkImageSelect({ target: input });
+        }
+      });
+    }
+  });
+
   // ==================== REAL-TIME SEARCH AND FILTERING ====================
 
   // Store all questions for client-side filtering
@@ -6516,6 +6840,148 @@
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  }
+  
+  /* Bulk Upload Button Styles */
+  .btn-bulk-upload {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  }
+  
+  .btn-bulk-upload:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  }
+  
+  /* Bulk Image Upload Modal Styles */
+  .bulk-upload-info {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .bulk-upload-info .info-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+  }
+  
+  .bulk-upload-info .info-icon-wrapper i {
+    color: white;
+    font-size: 24px;
+  }
+  
+  .bulk-image-upload-area {
+    margin-bottom: 20px;
+  }
+  
+  .upload-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+    position: relative;
+  }
+  
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: #3b82f6;
+    background: #eff6ff;
+  }
+  
+  .upload-zone .upload-icon {
+    font-size: 48px;
+    color: #94a3b8;
+    margin-bottom: 15px;
+  }
+  
+  .upload-zone .upload-text {
+    font-size: 16px;
+    color: #475569;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  
+  .upload-zone .upload-hint {
+    font-size: 13px;
+    color: #94a3b8;
+    margin: 0;
+  }
+  
+  #bulkImagePreview {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+  }
+  
+  #bulkImagePreview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  #bulkImagePreview .remove-preview-btn {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .questions-to-upload {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f9fafb;
+  }
+  
+  .upload-question-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  
+  .upload-question-item:last-child {
+    margin-bottom: 0;
+  }
+  
+  /* Image Added Badge */
+  .image-added-badge {
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
   }
   
   /* Bulk Checkbox Styles */

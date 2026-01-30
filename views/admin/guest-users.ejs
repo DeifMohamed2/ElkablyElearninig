@@ -1,0 +1,1387 @@
+<%- include('partials/admin-header') %>
+
+<style>
+  /* CSS Variables for Admin Theme */
+  .light-theme {
+    --admin-primary: #b80101;
+    --admin-secondary: #f8f9fa;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #f8fafc;
+    --admin-bg-dark: #1e293b;
+    --admin-card-light: #ffffff;
+    --admin-card-dark: #2d3748;
+    --admin-text-light: #1e293b;
+    --admin-text-dark: #f7fafc;
+    --admin-border-light: #e2e8f0;
+    --admin-border-dark: #4a5568;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark-theme {
+    --admin-primary: #d40000;
+    --admin-secondary: #2d3748;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #1e293b;
+    --admin-bg-dark: #0f172a;
+    --admin-card-light: #2d3748;
+    --admin-card-dark: #1e293b;
+    --admin-text-light: #f7fafc;
+    --admin-text-dark: #e2e8f0;
+    --admin-border-light: #4a5568;
+    --admin-border-dark: #2d3748;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  .admin-main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background: var(--admin-bg-light);
+    transition: margin-left 0.3s ease;
+  }
+
+  .admin-sidebar.sidebar-hidden {
+    transform: translateX(-100%);
+  }
+
+  .admin-guest-users-container {
+    padding: 20px;
+    background: var(--admin-bg-light);
+    min-height: calc(100vh - 80px);
+  }
+
+  @media (max-width: 1024px) {
+    .admin-main-content {
+      margin-left: 0;
+    }
+    
+    .admin-guest-users-container {
+      padding: 15px;
+    }
+  }
+
+  /* Page Header */
+  .guests-page-header {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: var(--admin-shadow);
+  }
+
+  .page-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .page-title-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .page-title-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--admin-primary);
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--admin-text-light);
+    margin: 0;
+  }
+
+  .page-subtitle {
+    color: var(--admin-text-light);
+    opacity: 0.7;
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .page-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .action-btn {
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    min-width: 140px;
+    justify-content: center;
+  }
+
+  .action-btn-export {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .action-btn-export:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    color: white;
+  }
+
+  /* Analytics Stats Grid */
+  .admin-analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    margin-bottom: 30px;
+  }
+
+  .admin-analytics-card {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--admin-shadow);
+    transition: all 0.3s ease;
+  }
+
+  .admin-analytics-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .analytics-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+  }
+
+  .analytics-icon.guests {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  .analytics-icon.quizzes {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+  }
+
+  .analytics-icon.passed {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .analytics-icon.avg {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  }
+
+  .analytics-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--admin-text-light);
+    margin: 8px 0;
+  }
+
+  .analytics-label {
+    color: var(--admin-text-light);
+    opacity: 0.7;
+    font-weight: 500;
+  }
+
+  /* Filters Section */
+  .filters-section {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 30px;
+    box-shadow: var(--admin-shadow);
+  }
+
+  .filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--admin-border-light);
+  }
+
+  .filters-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .filter-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--admin-text-light);
+    opacity: 0.8;
+  }
+
+  .filter-input,
+  .filter-select {
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--admin-border-light);
+    background: var(--admin-card-light);
+    color: var(--admin-text-light);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+  }
+
+  .filter-input:focus,
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px rgba(184, 1, 1, 0.1);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn-filter {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-apply {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-apply:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+  }
+
+  .btn-reset {
+    background: var(--admin-secondary);
+    color: var(--admin-text-light);
+    border: 1px solid var(--admin-border-light);
+  }
+
+  .btn-reset:hover {
+    background: var(--admin-border-light);
+  }
+
+  /* Table Section */
+  .table-section {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 12px;
+    box-shadow: var(--admin-shadow);
+    overflow: hidden;
+  }
+
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--admin-border-light);
+    background: var(--admin-secondary);
+  }
+
+  .table-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .table-count {
+    font-size: 0.9rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+  }
+
+  .guests-table-container {
+    overflow-x: auto;
+  }
+
+  .guests-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .guests-table th,
+  .guests-table td {
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--admin-border-light);
+  }
+
+  .guests-table th {
+    background: var(--admin-secondary);
+    color: var(--admin-text-light);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .guests-table tbody tr {
+    transition: all 0.3s ease;
+  }
+
+  .guests-table tbody tr:hover {
+    background: rgba(184, 1, 1, 0.05);
+  }
+
+  .guest-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .guest-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: white;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  .guest-details h4 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--admin-text-light);
+  }
+
+  .guest-details p {
+    margin: 2px 0 0;
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+  }
+
+  .contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .contact-info span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--admin-text-light);
+  }
+
+  .contact-info i {
+    color: var(--admin-primary);
+    font-size: 0.85rem;
+  }
+
+  .stats-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--admin-text-light);
+  }
+
+  .stat-row i {
+    width: 18px;
+    text-align: center;
+  }
+
+  .stat-row i.success {
+    color: #10b981;
+  }
+
+  .stat-row i.warning {
+    color: #f59e0b;
+  }
+
+  .stat-row i.info {
+    color: #3b82f6;
+  }
+
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .score-badge.high {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .score-badge.medium {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .score-badge.low {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  .status-badge.active {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status-badge.inactive {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .btn-view {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+
+  .btn-view:hover {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .btn-delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+
+  .btn-delete:hover {
+    background: #ef4444;
+    color: white;
+  }
+
+  /* Pagination */
+  .pagination-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-top: 1px solid var(--admin-border-light);
+  }
+
+  .pagination-info {
+    color: var(--admin-text-light);
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+
+  .pagination {
+    display: flex;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--admin-secondary);
+    color: var(--admin-text-light);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid var(--admin-border-light);
+  }
+
+  .page-link:hover {
+    background: var(--admin-primary);
+    color: white;
+    border-color: var(--admin-primary);
+  }
+
+  .page-item.active .page-link {
+    background: var(--admin-primary);
+    color: white;
+    border-color: var(--admin-primary);
+  }
+
+  .page-item.disabled .page-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .empty-state-icon {
+    width: 100px;
+    height: 100px;
+    background: var(--admin-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+  }
+
+  .empty-state-icon i {
+    font-size: 3rem;
+    color: var(--admin-text-light);
+    opacity: 0.5;
+  }
+
+  .empty-state h3 {
+    font-size: 1.5rem;
+    color: var(--admin-text-light);
+    margin-bottom: 8px;
+  }
+
+  .empty-state p {
+    color: var(--admin-text-light);
+    opacity: 0.7;
+    margin-bottom: 24px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal-content {
+    background: var(--admin-card-light);
+    border-radius: 16px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid var(--admin-border-light);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: var(--admin-text-light);
+    font-size: 1.25rem;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--admin-text-light);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+  }
+
+  .modal-close:hover {
+    opacity: 1;
+  }
+
+  .modal-body {
+    padding: 24px;
+  }
+
+  .detail-section {
+    margin-bottom: 24px;
+  }
+
+  .detail-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .detail-label {
+    font-size: 0.8rem;
+    color: var(--admin-text-light);
+    opacity: 0.6;
+    text-transform: uppercase;
+  }
+
+  .detail-value {
+    font-weight: 500;
+    color: var(--admin-text-light);
+  }
+
+  .attempts-list {
+    border: 1px solid var(--admin-border-light);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .attempt-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--admin-border-light);
+    transition: all 0.3s ease;
+  }
+
+  .attempt-item:hover {
+    background: rgba(184, 1, 1, 0.05);
+  }
+
+  .attempt-item:last-child {
+    border-bottom: none;
+  }
+
+  .attempt-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .attempt-number {
+    width: 32px;
+    height: 32px;
+    background: var(--admin-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .attempt-details h5 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--admin-text-light);
+  }
+
+  .attempt-details p {
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+  }
+
+  @media (max-width: 768px) {
+    .page-header-top {
+      flex-direction: column;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .page-actions {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+
+<body class="<%= theme %>">
+  <%- include('partials/admin-sidebar') %>
+
+  <div class="admin-main-content">
+    <%- include('partials/admin-topbar') %>
+
+  <div class="admin-guest-users-container">
+    <!-- Page Header -->
+    <div class="guests-page-header">
+      <div class="page-header-top">
+        <div class="page-title-section">
+          <div class="page-title-icon">
+            <i class="fas fa-user-clock"></i>
+          </div>
+          <div>
+            <h1 class="page-title">Guest Users</h1>
+            <p class="page-subtitle">Manage and monitor guest user activities</p>
+          </div>
+        </div>
+        <div class="page-actions">
+          <a href="/admin/guest-users/export" class="action-btn action-btn-export">
+            <i class="fas fa-file-excel"></i>
+            Export Excel
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Analytics Grid -->
+    <div class="admin-analytics-grid">
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon guests">
+            <i class="fas fa-user-clock"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.totalGuests %></div>
+        <div class="analytics-label">Total Guests</div>
+      </div>
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon quizzes">
+            <i class="fas fa-file-alt"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.totalAttempts %></div>
+        <div class="analytics-label">Total Quiz Attempts</div>
+      </div>
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon passed">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.passedAttempts %></div>
+        <div class="analytics-label">Passed Attempts</div>
+      </div>
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <i class="fas fa-times-circle"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.failedAttempts || 0 %></div>
+        <div class="analytics-label">Failed Attempts</div>
+      </div>
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon avg">
+            <i class="fas fa-chart-line"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.averageScore %>%</div>
+        <div class="analytics-label">Average Score</div>
+      </div>
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
+            <i class="fas fa-percentage"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.passRate || 0 %>%</div>
+        <div class="analytics-label">Pass Rate</div>
+      </div>
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon" style="background: linear-gradient(135deg, #84cc16, #65a30d);">
+            <i class="fas fa-bolt"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.activeToday || 0 %></div>
+        <div class="analytics-label">Active Today</div>
+      </div>
+      <div class="admin-analytics-card">
+        <div class="analytics-header">
+          <div class="analytics-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+            <i class="fas fa-calendar-week"></i>
+          </div>
+        </div>
+        <div class="analytics-number"><%= stats.activeThisWeek || 0 %></div>
+        <div class="analytics-label">Active This Week</div>
+      </div>
+    </div>
+
+    <!-- Enhanced Filters Section -->
+    <div class="filters-section">
+      <div class="filters-header">
+        <h3 class="filters-title">
+          <i class="fas fa-filter"></i>
+          Advanced Filters & Search
+        </h3>
+        <span style="font-size: 0.85rem; color: var(--admin-text-light); opacity: 0.7;">
+          <i class="fas fa-info-circle"></i> Filter guests by quiz, score, and more
+        </span>
+      </div>
+      <form action="/admin/guest-users" method="GET">
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label class="filter-label">Search</label>
+            <input type="text" name="search" class="filter-input" 
+                   placeholder="Name, email, or phone" value="<%= filters.search || '' %>">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Filter by Quiz</label>
+            <select name="quizId" class="filter-select">
+              <option value="">All Quizzes</option>
+              <% if (typeof allQuizzes !== 'undefined' && allQuizzes.length > 0) { %>
+                <% allQuizzes.forEach(quiz => { %>
+                  <option value="<%= quiz._id %>" <%= filters.quizId === quiz._id.toString() ? 'selected' : '' %>>
+                    <%= quiz.title %> (<%= quiz.code %>)
+                  </option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select name="status" class="filter-select">
+              <option value="">All Status</option>
+              <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+              <option value="inactive" <%= filters.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Has Passed</label>
+            <select name="hasPassed" class="filter-select">
+              <option value="">All Results</option>
+              <option value="yes" <%= filters.hasPassed === 'yes' ? 'selected' : '' %>>Passed Only</option>
+              <option value="no" <%= filters.hasPassed === 'no' ? 'selected' : '' %>>Failed Only</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Min Score</label>
+            <input type="number" name="scoreMin" class="filter-input" 
+                   placeholder="0" min="0" max="100" value="<%= filters.scoreMin || '' %>">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Max Score</label>
+            <input type="number" name="scoreMax" class="filter-input" 
+                   placeholder="100" min="0" max="100" value="<%= filters.scoreMax || '' %>">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Date From</label>
+            <input type="date" name="dateFrom" class="filter-input" value="<%= filters.dateFrom || '' %>">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Date To</label>
+            <input type="date" name="dateTo" class="filter-input" value="<%= filters.dateTo || '' %>">
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn-filter btn-apply">
+            <i class="fas fa-search"></i>
+            Apply Filters
+          </button>
+          <a href="/admin/guest-users" class="btn-filter btn-reset">
+            <i class="fas fa-undo"></i>
+            Reset
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+      <div class="table-header">
+        <h3 class="table-title">
+          <i class="fas fa-list"></i>
+          Guest Users List
+        </h3>
+        <span class="table-count">
+          Showing <%= (pagination.page - 1) * pagination.limit + 1 %> - 
+          <%= Math.min(pagination.page * pagination.limit, pagination.total) %> of <%= pagination.total %>
+        </span>
+      </div>
+
+      <% if (guests && guests.length > 0) { %>
+      <div class="guests-table-container">
+        <table class="guests-table">
+          <thead>
+            <tr>
+              <th>Guest</th>
+              <th>Contact</th>
+              <th>Parent Phone</th>
+              <th>Quiz Stats</th>
+              <th>Best Score</th>
+              <th>Avg Score</th>
+              <th>Status</th>
+              <th>Last Active</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% guests.forEach(guest => { 
+              const scoreClass = guest.averageScore >= 70 ? 'high' : (guest.averageScore >= 50 ? 'medium' : 'low');
+              const bestScoreClass = guest.bestScore >= 70 ? 'high' : (guest.bestScore >= 50 ? 'medium' : 'low');
+            %>
+            <tr>
+              <td>
+                <div class="guest-info">
+                  <div class="guest-avatar">
+                    <%= guest.fullName.charAt(0).toUpperCase() %>
+                  </div>
+                  <div class="guest-details">
+                    <h4><%= guest.fullName %></h4>
+                    <p><%= guest.email %></p>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="contact-info">
+                  <span>
+                    <i class="fas fa-phone"></i>
+                    <%= guest.phoneCountryCode %> <%= guest.phone %>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="contact-info">
+                  <span>
+                    <i class="fas fa-users"></i>
+                    <%= guest.parentPhoneCountryCode %> <%= guest.parentPhone %>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="stats-cell">
+                  <span class="stat-row">
+                    <i class="fas fa-file-alt info"></i>
+                    <%= guest.totalQuizAttempts %> attempts
+                  </span>
+                  <span class="stat-row">
+                    <i class="fas fa-check-circle success"></i>
+                    <%= guest.passedAttempts || 0 %> passed
+                  </span>
+                  <span class="stat-row">
+                    <i class="fas fa-times-circle" style="color: #ef4444;"></i>
+                    <%= (guest.totalQuizAttempts || 0) - (guest.passedAttempts || 0) %> failed
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="score-badge <%= bestScoreClass %>">
+                  <i class="fas fa-trophy"></i>
+                  <%= guest.bestScore || 0 %>%
+                </span>
+              </td>
+              <td>
+                <span class="score-badge <%= scoreClass %>">
+                  <i class="fas fa-chart-line"></i>
+                  <%= guest.averageScore %>%
+                </span>
+              </td>
+              <td>
+                <span class="status-badge <%= guest.isActive ? 'active' : 'inactive' %>">
+                  <i class="fas fa-<%= guest.isActive ? 'check-circle' : 'circle' %>"></i>
+                  <%= guest.isActive ? 'Active' : 'Inactive' %>
+                </span>
+              </td>
+              <td>
+                <span style="font-size: 0.9rem; color: var(--admin-text-light);">
+                  <%= guest.lastActiveAt ? new Date(guest.lastActiveAt).toLocaleDateString() : 'N/A' %>
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-action btn-view" onclick="viewGuestDetails('<%= guest._id %>')" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="btn-action btn-delete" onclick="deleteGuest('<%= guest._id %>', '<%= guest.fullName %>')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <% if (pagination.pages > 1) { %>
+      <div class="pagination-section">
+        <div class="pagination-info">
+          Page <%= pagination.page %> of <%= pagination.pages %>
+        </div>
+        <ul class="pagination">
+          <li class="page-item <%= pagination.page === 1 ? 'disabled' : '' %>">
+            <a href="?page=<%= pagination.page - 1 %>&<%= queryString %>" class="page-link">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+          <% for (let i = 1; i <= pagination.pages; i++) { 
+            if (i === 1 || i === pagination.pages || (i >= pagination.page - 2 && i <= pagination.page + 2)) { %>
+          <li class="page-item <%= i === pagination.page ? 'active' : '' %>">
+            <a href="?page=<%= i %>&<%= queryString %>" class="page-link"><%= i %></a>
+          </li>
+          <% } else if (i === pagination.page - 3 || i === pagination.page + 3) { %>
+          <li class="page-item disabled">
+            <span class="page-link">...</span>
+          </li>
+          <% }} %>
+          <li class="page-item <%= pagination.page === pagination.pages ? 'disabled' : '' %>">
+            <a href="?page=<%= pagination.page + 1 %>&<%= queryString %>" class="page-link">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <% } %>
+
+      <% } else { %>
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="fas fa-user-clock"></i>
+        </div>
+        <h3>No Guest Users Found</h3>
+        <p>Guest users will appear here when they take quizzes as guests.</p>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Guest Details Modal -->
+<div class="modal-overlay" id="guestDetailsModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Guest Details</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Content loaded dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-header">
+      <h3>Confirm Delete</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="text-align: center;">
+      <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ef4444; margin-bottom: 16px;"></i>
+      <p id="deleteMessage" style="margin-bottom: 24px;">Are you sure you want to delete this guest user?</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button onclick="closeDeleteModal()" class="btn-filter btn-reset">Cancel</button>
+        <button onclick="confirmDelete()" class="btn-filter" style="background: #ef4444; color: white;">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let deleteGuestId = null;
+
+  async function viewGuestDetails(guestId) {
+    try {
+      const response = await fetch(`/admin/guest-users/${guestId}/details`);
+      const data = await response.json();
+      
+      if (data.success) {
+        const guest = data.guest;
+        const modalBody = document.getElementById('modalBody');
+        
+        // Build attempts HTML with links to detailed results
+        let attemptsHtml = '';
+        if (guest.quizAttempts && guest.quizAttempts.length > 0) {
+          guest.quizAttempts.forEach(qa => {
+            if (qa.quiz) {
+              qa.attempts.forEach(att => {
+                if (att.status === 'completed') {
+                  const passedClass = att.passed ? 'high' : 'low';
+                  const passedText = att.passed ? '✓ Passed' : '✗ Failed';
+                  attemptsHtml += `
+                    <div class="attempt-item" style="cursor: pointer;" onclick="window.location.href='/admin/guest-users/${guest._id}/quiz/${qa.quiz._id}/attempt/${att.attemptNumber}'">
+                      <div class="attempt-info">
+                        <div class="attempt-number">#${att.attemptNumber}</div>
+                        <div class="attempt-details">
+                          <h5>${qa.quiz.title || 'Unknown Quiz'}</h5>
+                          <p>${new Date(att.completedAt || att.startedAt).toLocaleDateString()} - ${passedText}</p>
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="score-badge ${passedClass}">
+                          ${att.score}%
+                        </span>
+                        <i class="fas fa-chevron-right" style="color: var(--admin-text-light); opacity: 0.5;"></i>
+                      </div>
+                    </div>
+                  `;
+                }
+              });
+            }
+          });
+        }
+        
+        if (!attemptsHtml) {
+          attemptsHtml = '<p style="text-align: center; padding: 20px; opacity: 0.7;">No quiz attempts yet</p>';
+        }
+
+        // Calculate additional stats
+        let totalPassed = 0;
+        let bestScore = 0;
+        guest.quizAttempts.forEach(qa => {
+          qa.attempts.forEach(att => {
+            if (att.status === 'completed') {
+              if (att.passed) totalPassed++;
+              if (att.score > bestScore) bestScore = att.score;
+            }
+          });
+        });
+
+        modalBody.innerHTML = `
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <i class="fas fa-user"></i>
+              Personal Information
+            </h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Full Name</span>
+                <span class="detail-value">${guest.fullName}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">${guest.email}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">${guest.phoneCountryCode} ${guest.phone}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Parent Phone</span>
+                <span class="detail-value">${guest.parentPhoneCountryCode} ${guest.parentPhone}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">${guest.isActive ? '<span style="color: #10b981;">● Active</span>' : '<span style="color: #6b7280;">○ Inactive</span>'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Joined</span>
+                <span class="detail-value">${new Date(guest.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <i class="fas fa-chart-bar"></i>
+              Statistics
+            </h4>
+            <div class="detail-grid" style="grid-template-columns: repeat(4, 1fr);">
+              <div class="detail-item" style="text-align: center; padding: 12px; background: var(--admin-secondary); border-radius: 10px;">
+                <span class="detail-label">Total Attempts</span>
+                <span class="detail-value" style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${guest.totalQuizAttempts}</span>
+              </div>
+              <div class="detail-item" style="text-align: center; padding: 12px; background: var(--admin-secondary); border-radius: 10px;">
+                <span class="detail-label">Passed</span>
+                <span class="detail-value" style="font-size: 1.5rem; font-weight: 700; color: #10b981;">${totalPassed}</span>
+              </div>
+              <div class="detail-item" style="text-align: center; padding: 12px; background: var(--admin-secondary); border-radius: 10px;">
+                <span class="detail-label">Best Score</span>
+                <span class="detail-value" style="font-size: 1.5rem; font-weight: 700; color: #f59e0b;">${bestScore}%</span>
+              </div>
+              <div class="detail-item" style="text-align: center; padding: 12px; background: var(--admin-secondary); border-radius: 10px;">
+                <span class="detail-label">Avg Score</span>
+                <span class="detail-value" style="font-size: 1.5rem; font-weight: 700; color: #8b5cf6;">${guest.averageScore}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <i class="fas fa-history"></i>
+              Quiz Attempts <span style="font-weight: 400; font-size: 0.85rem; opacity: 0.7;">(Click to view detailed results)</span>
+            </h4>
+            <div class="attempts-list">
+              ${attemptsHtml}
+            </div>
+          </div>
+        `;
+        
+        document.getElementById('modalTitle').textContent = guest.fullName;
+        document.getElementById('guestDetailsModal').classList.add('active');
+      }
+    } catch (error) {
+      console.error('Error fetching guest details:', error);
+      alert('Error loading guest details');
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('guestDetailsModal').classList.remove('active');
+  }
+
+  function deleteGuest(guestId, guestName) {
+    deleteGuestId = guestId;
+    document.getElementById('deleteMessage').textContent = `Are you sure you want to delete "${guestName}"? This action cannot be undone.`;
+    document.getElementById('deleteModal').classList.add('active');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    deleteGuestId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteGuestId) return;
+    
+    try {
+      const response = await fetch(`/admin/guest-users/${deleteGuestId}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert(data.message || 'Error deleting guest');
+      }
+    } catch (error) {
+      console.error('Error deleting guest:', error);
+      alert('Error deleting guest');
+    }
+    
+    closeDeleteModal();
+  }
+
+  // Close modals on outside click
+  document.getElementById('guestDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+</script>
+
+<%- include('partials/admin-footer') %>

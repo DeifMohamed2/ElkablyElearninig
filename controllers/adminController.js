@@ -3,6 +3,7 @@ const BundleCourse = require('../models/BundleCourse');
 const Topic = require('../models/Topic');
 const User = require('../models/User');
 const Admin = require('../models/Admin');
+const GuestUser = require('../models/GuestUser');
 const QuestionBank = require('../models/QuestionBank');
 const Question = require('../models/Question');
 const Progress = require('../models/Progress');
@@ -16710,6 +16711,573 @@ const skipContentForStudents = async (req, res) => {
   }
 };
 
+// ==================== GUEST USERS MANAGEMENT ====================
+
+// Get all guest users with pagination and filtering
+const getGuestUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search, status, dateFrom, dateTo, quizId, scoreMin, scoreMax, hasPassed } = req.query;
+    
+    // Build filters
+    const filters = {};
+    
+    if (search) {
+      filters.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { parentPhone: { $regex: search, $options: 'i' } },
+      ];
+    }
+    
+    if (status === 'active') {
+      filters.isActive = true;
+    } else if (status === 'inactive') {
+      filters.isActive = false;
+    }
+    
+    if (dateFrom || dateTo) {
+      filters.createdAt = {};
+      if (dateFrom) filters.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) filters.createdAt.$lte = new Date(dateTo + 'T23:59:59.999Z');
+    }
+    
+    // Quiz filter - filter guests who have attempted a specific quiz
+    if (quizId && quizId !== '') {
+      filters['quizAttempts.quiz'] = new mongoose.Types.ObjectId(quizId);
+    }
+    
+    // Get paginated results
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    let [guests, totalCount] = await Promise.all([
+      GuestUser.find(filters)
+        .populate('quizAttempts.quiz', 'title code testType passingScore')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      GuestUser.countDocuments(filters),
+    ]);
+    
+    // Get all quizzes for the filter dropdown
+    const allQuizzes = await Quiz.find({ status: 'active' })
+      .select('title code testType')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    // Calculate aggregate stats
+    const allGuests = await GuestUser.find({}).lean();
+    let totalAttempts = 0;
+    let passedAttempts = 0;
+    let failedAttempts = 0;
+    let allScores = [];
+    let activeToday = 0;
+    let activeThisWeek = 0;
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    allGuests.forEach(guest => {
+      // Check activity
+      if (guest.lastActiveAt) {
+        if (new Date(guest.lastActiveAt) >= todayStart) activeToday++;
+        if (new Date(guest.lastActiveAt) >= weekStart) activeThisWeek++;
+      }
+      
+      guest.quizAttempts.forEach(qa => {
+        qa.attempts.forEach(att => {
+          if (att.status === 'completed') {
+            totalAttempts++;
+            if (att.passed) passedAttempts++;
+            else failedAttempts++;
+            allScores.push(att.score);
+          }
+        });
+      });
+    });
+    
+    const averageScore = allScores.length > 0 
+      ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) 
+      : 0;
+    
+    const passRate = totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0;
+    
+    // Calculate stats for each guest
+    guests.forEach(guest => {
+      let guestScores = [];
+      let guestAttempts = 0;
+      let guestPassed = 0;
+      
+      guest.quizAttempts.forEach(qa => {
+        qa.attempts.forEach(att => {
+          if (att.status === 'completed') {
+            guestAttempts++;
+            guestScores.push(att.score);
+            if (att.passed) guestPassed++;
+          }
+        });
+      });
+      
+      guest.totalQuizAttempts = guestAttempts;
+      guest.passedAttempts = guestPassed;
+      guest.averageScore = guestScores.length > 0 
+        ? Math.round(guestScores.reduce((a, b) => a + b, 0) / guestScores.length) 
+        : 0;
+      guest.bestScore = guestScores.length > 0 ? Math.max(...guestScores) : 0;
+    });
+    
+    // Apply post-query filters (score range, passed status)
+    if (scoreMin || scoreMax || hasPassed) {
+      guests = guests.filter(guest => {
+        if (scoreMin && guest.averageScore < parseInt(scoreMin)) return false;
+        if (scoreMax && guest.averageScore > parseInt(scoreMax)) return false;
+        if (hasPassed === 'yes' && guest.passedAttempts === 0) return false;
+        if (hasPassed === 'no' && guest.passedAttempts > 0) return false;
+        return true;
+      });
+    }
+    
+    // Build query string for pagination
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.set('search', search);
+    if (status) queryParams.set('status', status);
+    if (dateFrom) queryParams.set('dateFrom', dateFrom);
+    if (dateTo) queryParams.set('dateTo', dateTo);
+    if (quizId) queryParams.set('quizId', quizId);
+    if (scoreMin) queryParams.set('scoreMin', scoreMin);
+    if (scoreMax) queryParams.set('scoreMax', scoreMax);
+    if (hasPassed) queryParams.set('hasPassed', hasPassed);
+    
+    res.render('admin/guest-users', {
+      title: 'Guest Users | Admin',
+      currentPage: 'guest-users',
+      admin: req.user,
+      guests,
+      allQuizzes,
+      stats: {
+        totalGuests: allGuests.length,
+        totalAttempts,
+        passedAttempts,
+        failedAttempts,
+        averageScore,
+        passRate,
+        activeToday,
+        activeThisWeek,
+      },
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        pages: Math.ceil(totalCount / parseInt(limit)),
+      },
+      filters: {
+        search,
+        status,
+        dateFrom,
+        dateTo,
+        quizId,
+        scoreMin,
+        scoreMax,
+        hasPassed,
+      },
+      queryString: queryParams.toString(),
+      theme: req.cookies.theme || 'light',
+    });
+  } catch (error) {
+    console.error('Error getting guest users:', error);
+    req.flash('error_msg', 'Error loading guest users');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+// Get guest user details (API)
+const getGuestUserDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const guest = await GuestUser.findById(id)
+      .populate('quizAttempts.quiz', 'title code testType')
+      .lean();
+    
+    if (!guest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Guest user not found',
+      });
+    }
+    
+    // Calculate stats
+    let guestScores = [];
+    let totalAttempts = 0;
+    
+    guest.quizAttempts.forEach(qa => {
+      qa.attempts.forEach(att => {
+        if (att.status === 'completed') {
+          totalAttempts++;
+          guestScores.push(att.score);
+        }
+      });
+    });
+    
+    guest.totalQuizAttempts = totalAttempts;
+    guest.averageScore = guestScores.length > 0 
+      ? Math.round(guestScores.reduce((a, b) => a + b, 0) / guestScores.length) 
+      : 0;
+    
+    res.json({
+      success: true,
+      guest,
+    });
+  } catch (error) {
+    console.error('Error getting guest user details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error loading guest user details',
+    });
+  }
+};
+
+// Get guest quiz attempt results page (Admin view)
+const getGuestQuizAttemptResults = async (req, res) => {
+  try {
+    const { guestId, quizId, attemptNumber } = req.params;
+    
+    const guest = await GuestUser.findById(guestId)
+      .populate('quizAttempts.quiz')
+      .lean();
+    
+    if (!guest) {
+      req.flash('error_msg', 'Guest user not found');
+      return res.redirect('/admin/guest-users');
+    }
+    
+    // Find the quiz attempt
+    const quizAttempt = guest.quizAttempts.find(
+      qa => qa.quiz && qa.quiz._id.toString() === quizId
+    );
+    
+    if (!quizAttempt) {
+      req.flash('error_msg', 'Quiz attempt not found');
+      return res.redirect('/admin/guest-users');
+    }
+    
+    // Find the specific attempt
+    const attempt = quizAttempt.attempts.find(
+      a => a.attemptNumber === parseInt(attemptNumber)
+    );
+    
+    if (!attempt) {
+      req.flash('error_msg', 'Attempt not found');
+      return res.redirect('/admin/guest-users');
+    }
+    
+    // Get the full quiz with questions
+    const quiz = await Quiz.findById(quizId)
+      .populate('selectedQuestions.question')
+      .populate('questionBank', 'name')
+      .lean();
+    
+    if (!quiz) {
+      req.flash('error_msg', 'Quiz not found');
+      return res.redirect('/admin/guest-users');
+    }
+    
+    // Build questions with answers for review
+    const questionsWithAnswers = quiz.selectedQuestions.map((sq, index) => {
+      const question = sq.question;
+      if (!question) return null;
+      
+      const userAnswer = attempt.answers.find(
+        a => a.questionId && a.questionId.toString() === question._id.toString()
+      );
+      
+      // Get the correct answer text
+      let correctAnswerText = '';
+      if (question.questionType === 'Written') {
+        correctAnswerText = question.correctAnswers
+          ? question.correctAnswers.map(a => a.text).join(', ')
+          : '';
+      } else {
+        const correctOption = question.options.find(opt => opt.isCorrect);
+        correctAnswerText = correctOption ? correctOption.text : '';
+      }
+      
+      return {
+        question: {
+          _id: question._id,
+          questionText: question.questionText,
+          questionType: question.questionType,
+          options: question.options || [],
+          correctAnswer: correctAnswerText,
+          explanation: question.explanation || null,
+          image: question.image || null,
+        },
+        userAnswer: userAnswer?.selectedAnswer || 'No answer',
+        isCorrect: userAnswer?.isCorrect || false,
+        points: sq.points || 1,
+        earnedPoints: userAnswer?.points || 0,
+        order: index + 1,
+      };
+    }).filter(Boolean);
+    
+    // Get all attempts for this quiz
+    const allAttempts = quizAttempt.attempts
+      .filter(a => a.status === 'completed')
+      .sort((a, b) => a.attemptNumber - b.attemptNumber);
+    
+    res.render('admin/guest-quiz-results', {
+      title: `${guest.fullName} - Quiz Results | Admin`,
+      currentPage: 'guest-users',
+      admin: req.user,
+      guest,
+      quiz,
+      attempt,
+      questionsWithAnswers,
+      allAttempts,
+      bestScore: quizAttempt.bestScore,
+      theme: req.cookies.theme || 'light',
+    });
+  } catch (error) {
+    console.error('Error getting guest quiz attempt results:', error);
+    req.flash('error_msg', 'Error loading quiz results');
+    res.redirect('/admin/guest-users');
+  }
+};
+
+// Get guests by quiz (API endpoint for filtering)
+const getGuestsByQuiz = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    
+    const quiz = await Quiz.findById(quizId).select('title code testType passingScore').lean();
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found',
+      });
+    }
+    
+    // Find guests who have attempted this quiz
+    const guests = await GuestUser.find({
+      'quizAttempts.quiz': new mongoose.Types.ObjectId(quizId)
+    })
+      .select('fullName email phone phoneCountryCode quizAttempts')
+      .lean();
+    
+    // Build results with quiz-specific stats
+    const results = guests.map(guest => {
+      const quizAttempt = guest.quizAttempts.find(
+        qa => qa.quiz.toString() === quizId
+      );
+      
+      const completedAttempts = quizAttempt?.attempts.filter(a => a.status === 'completed') || [];
+      const scores = completedAttempts.map(a => a.score);
+      const passedCount = completedAttempts.filter(a => a.passed).length;
+      
+      return {
+        _id: guest._id,
+        fullName: guest.fullName,
+        email: guest.email,
+        phone: `+${guest.phoneCountryCode} ${guest.phone}`,
+        totalAttempts: completedAttempts.length,
+        passedAttempts: passedCount,
+        bestScore: scores.length > 0 ? Math.max(...scores) : 0,
+        averageScore: scores.length > 0 
+          ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) 
+          : 0,
+        lastAttempt: completedAttempts.length > 0 
+          ? completedAttempts[completedAttempts.length - 1].completedAt 
+          : null,
+        hasPassed: passedCount > 0,
+        attempts: completedAttempts.map(a => ({
+          attemptNumber: a.attemptNumber,
+          score: a.score,
+          passed: a.passed,
+          completedAt: a.completedAt,
+        })),
+      };
+    });
+    
+    // Sort by best score descending
+    results.sort((a, b) => b.bestScore - a.bestScore);
+    
+    // Calculate quiz stats
+    const totalGuests = results.length;
+    const passedGuests = results.filter(r => r.hasPassed).length;
+    const allScores = results.flatMap(r => r.attempts.map(a => a.score));
+    const averageScore = allScores.length > 0 
+      ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) 
+      : 0;
+    
+    res.json({
+      success: true,
+      quiz,
+      results,
+      stats: {
+        totalGuests,
+        passedGuests,
+        failedGuests: totalGuests - passedGuests,
+        passRate: totalGuests > 0 ? Math.round((passedGuests / totalGuests) * 100) : 0,
+        averageScore,
+        totalAttempts: allScores.length,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting guests by quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error loading quiz data',
+    });
+  }
+};
+
+// Delete guest user
+const deleteGuestUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const guest = await GuestUser.findById(id);
+    
+    if (!guest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Guest user not found',
+      });
+    }
+    
+    // Log the action
+    await createLog(req, {
+      action: 'DELETE_GUEST_USER',
+      actionCategory: 'USER_MANAGEMENT',
+      description: `Deleted guest user: ${guest.fullName} (${guest.email})`,
+      targetModel: 'GuestUser',
+      targetId: id,
+      metadata: {
+        guestName: guest.fullName,
+        guestEmail: guest.email,
+        totalAttempts: guest.quizAttempts.length,
+      },
+    });
+    
+    await GuestUser.findByIdAndDelete(id);
+    
+    res.json({
+      success: true,
+      message: 'Guest user deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting guest user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting guest user',
+    });
+  }
+};
+
+// Export guest users to Excel
+const exportGuestUsers = async (req, res) => {
+  try {
+    const guests = await GuestUser.find({})
+      .populate('quizAttempts.quiz', 'title code')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    // Prepare data for export
+    const exportData = [];
+    const detailedData = [];
+    
+    guests.forEach(guest => {
+      // Calculate stats
+      let totalAttempts = 0;
+      let passedAttempts = 0;
+      let scores = [];
+      
+      guest.quizAttempts.forEach(qa => {
+        qa.attempts.forEach(att => {
+          if (att.status === 'completed') {
+            totalAttempts++;
+            if (att.passed) passedAttempts++;
+            scores.push(att.score);
+          }
+        });
+      });
+      
+      const averageScore = scores.length > 0 
+        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) 
+        : 0;
+      
+      // Calculate best score
+      const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+      const failedAttempts = totalAttempts - passedAttempts;
+      const passRate = totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0;
+      
+      exportData.push({
+        'Full Name': guest.fullName,
+        'Email': guest.email,
+        'Phone': `${guest.phoneCountryCode} ${guest.phone}`,
+        'Parent Phone': `${guest.parentPhoneCountryCode} ${guest.parentPhone}`,
+        'Status': guest.isActive ? 'Active' : 'Inactive',
+        'Total Attempts': totalAttempts,
+        'Passed Attempts': passedAttempts,
+        'Failed Attempts': failedAttempts,
+        'Pass Rate': `${passRate}%`,
+        'Best Score': `${bestScore}%`,
+        'Average Score': `${averageScore}%`,
+        'Joined Date': new Date(guest.createdAt).toLocaleDateString(),
+        'Last Active': guest.lastActiveAt ? new Date(guest.lastActiveAt).toLocaleDateString() : 'N/A',
+      });
+      
+      // Also add detailed quiz attempts as separate rows
+      guest.quizAttempts.forEach(qa => {
+        if (qa.quiz) {
+          qa.attempts.forEach(att => {
+            if (att.status === 'completed') {
+              detailedData.push({
+                'Guest Name': guest.fullName,
+                'Email': guest.email,
+                'Phone': `${guest.phoneCountryCode} ${guest.phone}`,
+                'Quiz Title': qa.quiz.title || 'Unknown Quiz',
+                'Quiz Code': qa.quiz.code || 'N/A',
+                'Attempt Number': att.attemptNumber,
+                'Score': `${att.score}%`,
+                'Status': att.passed ? 'PASSED' : 'FAILED',
+                'Correct Answers': att.correctAnswers || 0,
+                'Wrong Answers': att.wrongAnswers || 0,
+                'Skipped': att.skippedAnswers || 0,
+                'Time Spent (seconds)': att.timeSpent || 0,
+                'Completed At': att.completedAt ? new Date(att.completedAt).toLocaleString() : 'N/A',
+              });
+            }
+          });
+        }
+      });
+    });
+    
+    // Use ExcelExporter with multiple sheets
+    const filename = `guest-users-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    
+    await ExcelExporter.exportMultipleSheets(
+      [
+        { data: exportData, sheetName: 'Guest Summary' },
+        { data: detailedData, sheetName: 'Quiz Attempts Detail' },
+      ],
+      filename,
+      res,
+      {
+        title: 'Guest Users Comprehensive Report',
+      }
+    );
+    
+  } catch (error) {
+    console.error('Error exporting guest users:', error);
+    req.flash('error_msg', 'Error exporting guest users');
+    res.redirect('/admin/guest-users');
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -16868,4 +17436,11 @@ module.exports = {
   validateMasterOTP,
   getActiveMasterOTPs,
   revokeMasterOTP,
+  // Guest Users Management
+  getGuestUsers,
+  getGuestUserDetails,
+  getGuestQuizAttemptResults,
+  getGuestsByQuiz,
+  deleteGuestUser,
+  exportGuestUsers,
 };

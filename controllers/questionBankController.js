@@ -1270,6 +1270,88 @@ const syncAllQuestionBanks = async (req, res) => {
   }
 };
 
+// Bulk update question images
+const bulkUpdateQuestionImage = async (req, res) => {
+  try {
+    const { bankCode } = req.params;
+    const { questionIds, imageUrl } = req.body;
+
+    // Validate input
+    if (!questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No question IDs provided'
+      });
+    }
+
+    if (!imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image URL provided'
+      });
+    }
+
+    const questionBank = await QuestionBank.findOne({ bankCode });
+    if (!questionBank) {
+      return res.status(404).json({
+        success: false,
+        message: 'Question bank not found'
+      });
+    }
+
+    // Convert questionIds to ObjectIds and filter out invalid ones
+    const validObjectIds = questionIds
+      .filter(id => mongoose.Types.ObjectId.isValid(id))
+      .map(id => new mongoose.Types.ObjectId(id));
+
+    if (validObjectIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid question IDs provided'
+      });
+    }
+
+    // Update all questions with the new image URL
+    const updateResult = await Question.updateMany(
+      {
+        _id: { $in: validObjectIds },
+        bank: questionBank._id
+      },
+      {
+        $set: { questionImage: imageUrl }
+      }
+    );
+
+    // Log admin action
+    await createLog(req, {
+      action: 'BULK_UPDATE_QUESTION_IMAGE',
+      actionCategory: 'QUESTION_BANK_MANAGEMENT',
+      description: `Bulk updated image for ${updateResult.modifiedCount} questions in bank "${questionBank.name}"`,
+      targetModel: 'QuestionBank',
+      targetId: questionBank._id.toString(),
+      targetName: questionBank.name,
+      metadata: {
+        bankCode: questionBank.bankCode,
+        updatedCount: updateResult.modifiedCount,
+        imageUrl: imageUrl,
+        questionIds: questionIds
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: `Successfully updated image for ${updateResult.modifiedCount} questions`,
+      updatedCount: updateResult.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error bulk updating question images:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update question images: ' + error.message
+    });
+  }
+};
+
 module.exports = {
   // Question Bank Controllers
   getQuestionBanks,
@@ -1286,6 +1368,7 @@ module.exports = {
   deleteQuestion,
   duplicateQuestion,
   bulkDeleteQuestions,
+  bulkUpdateQuestionImage,
   
   // Search and Filter Controllers
   searchQuestions,

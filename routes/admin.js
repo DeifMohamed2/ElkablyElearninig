@@ -219,6 +219,13 @@ const {
   validateMasterOTP,
   getActiveMasterOTPs,
   revokeMasterOTP,
+  // Guest Users Management
+  getGuestUsers,
+  getGuestUserDetails,
+  getGuestQuizAttemptResults,
+  getGuestsByQuiz,
+  deleteGuestUser,
+  exportGuestUsers,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -689,5 +696,13 @@ router.get('/logs/export', isAdmin, isSuperAdmin, exportLogs);
 router.get('/logs/stats', isAdmin, isSuperAdmin, getLogsStats);
 router.get('/logs/:logId', isAdmin, isSuperAdmin, getLogDetails);
 router.post('/logs/cleanup', isAdmin, isSuperAdmin, deleteOldLogs);
+
+// Guest Users Management Routes
+router.get('/guest-users', isAdmin, getGuestUsers);
+router.get('/guest-users/export', isAdmin, exportGuestUsers);
+router.get('/guest-users/quiz/:quizId', isAdmin, getGuestsByQuiz);
+router.get('/guest-users/:id/details', isAdmin, getGuestUserDetails);
+router.get('/guest-users/:guestId/quiz/:quizId/attempt/:attemptNumber', isAdmin, getGuestQuizAttemptResults);
+router.delete('/guest-users/:id', isAdmin, deleteGuestUser);
 
 module.exports = router;

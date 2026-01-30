@@ -17,6 +17,7 @@ const {
   deleteQuestion,
   duplicateQuestion,
   bulkDeleteQuestions,
+  bulkUpdateQuestionImage,
 
   // Search and Filter Routes
   searchQuestions,
@@ -44,6 +45,9 @@ router.post('/banks/:bankCode/questions/create', isAdmin, createQuestion);
 
 // Bulk delete questions - MUST be before :questionId route to avoid route conflict
 router.delete('/banks/:bankCode/questions/bulk-delete', isAdmin, bulkDeleteQuestions);
+
+// Bulk update question image - MUST be before :questionId route to avoid route conflict
+router.put('/banks/:bankCode/questions/bulk-update-image', isAdmin, bulkUpdateQuestionImage);
 
 // Single question routes (must come after specific routes like bulk-delete)
 router.get('/banks/:bankCode/questions/:questionId', isAdmin, getQuestion);

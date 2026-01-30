@@ -1851,9 +1851,10 @@
       }
 
       async function handleThumbnailUpload(file) {
-        // Validate file
-        if (!file.type.startsWith('image/')) {
-          showNotification('Please select a valid image file', 'error');
+        // Validate file type - only allow JPEG, PNG, GIF, WebP
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+          showNotification('Please select a JPEG, PNG, GIF, or WebP image', 'error');
           return;
         }
 
@@ -1876,20 +1877,16 @@
             body: formData
           });
 
-          if (!response.ok) {
-            throw new Error('Upload failed');
-          }
-
           const result = await response.json();
 
-          if (result.success) {
-            thumbnailData = result.thumbnail;
-            showThumbnailPreview(result.thumbnail.url);
-            hideThumbnailProgress();
-            showNotification('Thumbnail uploaded successfully!', 'success');
-          } else {
+          if (!response.ok || !result.success) {
             throw new Error(result.message || 'Upload failed');
           }
+
+          thumbnailData = result.thumbnail;
+          showThumbnailPreview(result.thumbnail.url);
+          hideThumbnailProgress();
+          showNotification('Thumbnail uploaded successfully!', 'success');
         } catch (error) {
           console.error('Thumbnail upload error:', error);
           hideThumbnailProgress();

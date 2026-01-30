@@ -1,0 +1,902 @@
+<%- include('partials/admin-header') %>
+
+<style>
+  /* CSS Variables for Admin Theme */
+  .light-theme {
+    --admin-primary: #b80101;
+    --admin-secondary: #f8f9fa;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #f8fafc;
+    --admin-bg-dark: #1e293b;
+    --admin-card-light: #ffffff;
+    --admin-card-dark: #2d3748;
+    --admin-text-light: #1e293b;
+    --admin-text-dark: #f7fafc;
+    --admin-border-light: #e2e8f0;
+    --admin-border-dark: #4a5568;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark-theme {
+    --admin-primary: #d40000;
+    --admin-secondary: #2d3748;
+    --admin-success: #10b981;
+    --admin-warning: #f59e0b;
+    --admin-danger: #ef4444;
+    --admin-info: #3b82f6;
+    --admin-bg-light: #1e293b;
+    --admin-bg-dark: #0f172a;
+    --admin-card-light: #2d3748;
+    --admin-card-dark: #1e293b;
+    --admin-text-light: #f7fafc;
+    --admin-text-dark: #e2e8f0;
+    --admin-border-light: #4a5568;
+    --admin-border-dark: #2d3748;
+    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  .admin-main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background: var(--admin-bg-light);
+    transition: margin-left 0.3s ease;
+  }
+
+  @media (max-width: 1024px) {
+    .admin-main-content {
+      margin-left: 0;
+    }
+  }
+
+  .quiz-results-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .breadcrumb-link {
+    color: var(--admin-text-light);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+  }
+
+  .breadcrumb-link:hover {
+    opacity: 1;
+  }
+
+  .breadcrumb-separator {
+    color: var(--admin-text-light);
+    opacity: 0.5;
+  }
+
+  .breadcrumb-current {
+    color: var(--admin-primary);
+    font-weight: 600;
+  }
+
+  /* Guest Info Card */
+  .guest-info-card {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--admin-shadow);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .guest-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  .guest-info-details h2 {
+    margin: 0 0 8px 0;
+    color: var(--admin-text-light);
+    font-size: 1.5rem;
+  }
+
+  .guest-info-details p {
+    margin: 4px 0;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+    font-size: 0.95rem;
+  }
+
+  .guest-info-details i {
+    width: 20px;
+    color: var(--admin-primary);
+  }
+
+  /* Attempt Selector */
+  .attempt-selector {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--admin-shadow);
+  }
+
+  .attempt-selector-label {
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin-bottom: 12px;
+  }
+
+  .attempt-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .attempt-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--admin-secondary);
+    color: var(--admin-text-light);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid var(--admin-border-light);
+  }
+
+  .attempt-tab:hover {
+    background: var(--admin-primary);
+    color: white;
+    border-color: var(--admin-primary);
+  }
+
+  .attempt-tab.active {
+    background: var(--admin-primary);
+    color: white;
+    border-color: var(--admin-primary);
+  }
+
+  /* Score Card */
+  .score-card {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: var(--admin-shadow);
+  }
+
+  .score-header {
+    padding: 32px;
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .score-header.passed {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .score-header.failed {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+
+  .score-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+  }
+
+  .score-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .score-value {
+    font-size: 4rem;
+    font-weight: 800;
+    margin: 16px 0;
+  }
+
+  .score-label {
+    font-size: 1.1rem;
+    opacity: 0.9;
+  }
+
+  .score-details {
+    padding: 24px;
+  }
+
+  .score-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+  }
+
+  .score-stat {
+    text-align: center;
+    padding: 16px;
+    background: var(--admin-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--admin-border-light);
+  }
+
+  .score-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .score-stat-value.total { color: #3b82f6; }
+  .score-stat-value.correct { color: #10b981; }
+  .score-stat-value.wrong { color: #ef4444; }
+  .score-stat-value.skipped { color: #f59e0b; }
+  .score-stat-value.time { color: #8b5cf6; }
+
+  .score-stat-label {
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+
+  /* Questions Review */
+  .review-section {
+    background: var(--admin-card-light);
+    border: 1px solid var(--admin-border-light);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--admin-shadow);
+  }
+
+  .review-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--admin-border-light);
+    background: var(--admin-secondary);
+  }
+
+  .review-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--admin-text-light);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .review-body {
+    padding: 24px;
+  }
+
+  .question-review-item {
+    padding: 20px;
+    border: 1px solid var(--admin-border-light);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    background: var(--admin-bg-light);
+  }
+
+  .question-review-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .question-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .question-review-number {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .question-number-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    font-size: 0.9rem;
+  }
+
+  .question-number-badge.correct {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .question-number-badge.wrong {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+
+  .question-number-badge.skipped {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  .question-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .question-status.correct {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .question-status.wrong {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .question-status.skipped {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .question-points-earned {
+    font-size: 0.9rem;
+    color: var(--admin-text-light);
+    opacity: 0.8;
+  }
+
+  .question-review-text {
+    font-size: 1.05rem;
+    color: var(--admin-text-light);
+    margin-bottom: 16px;
+    line-height: 1.6;
+    padding: 16px;
+    background: var(--admin-card-light);
+    border-radius: 8px;
+    border: 1px solid var(--admin-border-light);
+  }
+
+  .question-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--admin-info);
+    color: white;
+    margin-bottom: 12px;
+  }
+
+  .question-image-container {
+    margin-bottom: 16px;
+  }
+
+  .question-image-container img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+
+  /* Options Display */
+  .options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .option-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--admin-card-light);
+    border: 2px solid var(--admin-border-light);
+    transition: all 0.3s ease;
+  }
+
+  .option-item.correct-option {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  .option-item.user-selected.correct-option {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+  }
+
+  .option-item.user-selected.wrong-option {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .option-letter {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    background: var(--admin-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--admin-text-light);
+  }
+
+  .correct-option .option-letter {
+    background: #10b981;
+    color: white;
+  }
+
+  .user-selected.wrong-option .option-letter {
+    background: #ef4444;
+    color: white;
+  }
+
+  .option-text {
+    flex: 1;
+    color: var(--admin-text-light);
+    line-height: 1.5;
+  }
+
+  .option-indicator {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .option-indicator.correct {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .option-indicator.wrong {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .option-indicator.your-answer {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .option-image {
+    max-width: 150px;
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+
+  /* Written Answer Section */
+  .written-answer-section {
+    margin-top: 16px;
+  }
+
+  .written-answer-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--admin-text-light);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .written-answer-box {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  .written-answer-box.user-answer {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+
+  .written-answer-box.user-answer.correct {
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+
+  .written-answer-box.correct-answer {
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+
+  .answer-comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .answer-row {
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .answer-row.user-answer {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .answer-row.user-answer.correct {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .answer-row.correct-answer {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .answer-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    min-width: 100px;
+  }
+
+  .answer-label.your {
+    color: #ef4444;
+  }
+
+  .answer-label.your.correct {
+    color: #10b981;
+  }
+
+  .answer-label.correct {
+    color: #10b981;
+  }
+
+  .answer-text {
+    flex: 1;
+    color: var(--admin-text-light);
+  }
+
+  .answer-icon {
+    font-size: 1.1rem;
+  }
+
+  .answer-icon.correct {
+    color: #10b981;
+  }
+
+  .answer-icon.wrong {
+    color: #ef4444;
+  }
+
+  /* Explanation Box */
+  .explanation-box {
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+  }
+
+  .explanation-box h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .explanation-box p {
+    margin: 0;
+    color: var(--admin-text-light);
+    line-height: 1.6;
+  }
+
+  /* Back Button */
+  .back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--admin-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-bottom: 24px;
+  }
+
+  .back-button:hover {
+    background: var(--admin-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    .quiz-results-container {
+      padding: 15px;
+    }
+
+    .guest-info-card {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .score-stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .question-review-header {
+      flex-direction: column;
+    }
+
+    .score-value {
+      font-size: 3rem;
+    }
+  }
+</style>
+</head>
+
+<body class="<%= theme %>">
+  <%- include('partials/admin-sidebar') %>
+
+  <div class="admin-main-content">
+    <%- include('partials/admin-topbar') %>
+
+    <div class="quiz-results-container">
+      <!-- Back Button -->
+      <a href="/admin/guest-users" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Guest Users
+      </a>
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb-nav">
+        <a href="/admin/dashboard" class="breadcrumb-link">
+          <i class="fas fa-home"></i> Dashboard
+        </a>
+        <span class="breadcrumb-separator">/</span>
+        <a href="/admin/guest-users" class="breadcrumb-link">Guest Users</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current"><%= guest.fullName %> - Quiz Results</span>
+      </nav>
+
+      <!-- Guest Info Card -->
+      <div class="guest-info-card">
+        <div class="guest-avatar-large">
+          <%= guest.fullName.charAt(0).toUpperCase() %>
+        </div>
+        <div class="guest-info-details">
+          <h2><%= guest.fullName %></h2>
+          <p><i class="fas fa-envelope"></i> <%= guest.email %></p>
+          <p><i class="fas fa-phone"></i> <%= guest.phoneCountryCode %> <%= guest.phone %></p>
+          <p><i class="fas fa-users"></i> Parent: <%= guest.parentPhoneCountryCode %> <%= guest.parentPhone %></p>
+        </div>
+      </div>
+
+      <!-- Attempt Selector -->
+      <% if (allAttempts && allAttempts.length > 1) { %>
+      <div class="attempt-selector">
+        <div class="attempt-selector-label">
+          <i class="fas fa-list-ol"></i> Select Attempt
+        </div>
+        <div class="attempt-tabs">
+          <% allAttempts.forEach(att => { %>
+            <a href="/admin/guest-users/<%= guest._id %>/quiz/<%= quiz._id %>/attempt/<%= att.attemptNumber %>" 
+               class="attempt-tab <%= att.attemptNumber === attempt.attemptNumber ? 'active' : '' %>">
+              Attempt #<%= att.attemptNumber %> - <%= att.score %>%
+            </a>
+          <% }); %>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Score Card -->
+      <div class="score-card">
+        <div class="score-header <%= attempt.passed ? 'passed' : 'failed' %>">
+          <div class="score-icon">
+            <i class="fas fa-<%= attempt.passed ? 'trophy' : 'times-circle' %>"></i>
+          </div>
+          <div class="score-title">
+            <% if (attempt.passed) { %>
+              Passed! 🎉
+            <% } else { %>
+              Not Passed
+            <% } %>
+          </div>
+          <div class="score-value"><%= attempt.score %>%</div>
+          <div class="score-label">
+            Quiz: <%= quiz.title %>
+          </div>
+        </div>
+        <div class="score-details">
+          <div class="score-stats-grid">
+            <div class="score-stat">
+              <div class="score-stat-value total"><%= attempt.totalQuestions || questionsWithAnswers.length %></div>
+              <div class="score-stat-label">Total Questions</div>
+            </div>
+            <div class="score-stat">
+              <div class="score-stat-value correct"><%= attempt.correctAnswers || questionsWithAnswers.filter(q => q.isCorrect).length %></div>
+              <div class="score-stat-label">Correct</div>
+            </div>
+            <div class="score-stat">
+              <div class="score-stat-value wrong"><%= attempt.wrongAnswers || questionsWithAnswers.filter(q => !q.isCorrect && q.userAnswer !== 'No answer').length %></div>
+              <div class="score-stat-label">Wrong</div>
+            </div>
+            <div class="score-stat">
+              <div class="score-stat-value skipped"><%= attempt.skippedAnswers || questionsWithAnswers.filter(q => q.userAnswer === 'No answer').length %></div>
+              <div class="score-stat-label">Skipped</div>
+            </div>
+            <div class="score-stat">
+              <div class="score-stat-value time">
+                <% 
+                  const minutes = Math.floor((attempt.timeSpent || 0) / 60);
+                  const seconds = (attempt.timeSpent || 0) % 60;
+                %>
+                <%= minutes %>:<%= seconds.toString().padStart(2, '0') %>
+              </div>
+              <div class="score-stat-label">Time Spent</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Questions Review -->
+      <div class="review-section">
+        <div class="review-header">
+          <h2>
+            <i class="fas fa-clipboard-check"></i>
+            Questions Review
+          </h2>
+        </div>
+        <div class="review-body">
+          <% questionsWithAnswers.forEach((item, index) => { 
+            const isSkipped = item.userAnswer === 'No answer' || !item.userAnswer;
+            const statusClass = item.isCorrect ? 'correct' : (isSkipped ? 'skipped' : 'wrong');
+          %>
+          <div class="question-review-item">
+            <div class="question-review-header">
+              <div class="question-review-number">
+                <div class="question-number-badge <%= statusClass %>">
+                  <%= index + 1 %>
+                </div>
+                <span class="question-type-badge">
+                  <i class="fas fa-<%= item.question.questionType === 'Written' ? 'pen' : (item.question.questionType === 'True/False' ? 'check-double' : 'list') %>"></i>
+                  <%= item.question.questionType %>
+                </span>
+                <span class="question-status <%= statusClass %>">
+                  <% if (item.isCorrect) { %>
+                    <i class="fas fa-check"></i> Correct
+                  <% } else if (isSkipped) { %>
+                    <i class="fas fa-minus"></i> Skipped
+                  <% } else { %>
+                    <i class="fas fa-times"></i> Wrong
+                  <% } %>
+                </span>
+              </div>
+              <div class="question-points-earned">
+                <i class="fas fa-star"></i>
+                <%= item.earnedPoints %>/<%= item.points %> points
+              </div>
+            </div>
+
+            <div class="question-review-text">
+              <%- item.question.questionText %>
+            </div>
+
+            <% if (item.question.image) { %>
+            <div class="question-image-container">
+              <img src="<%= item.question.image %>" alt="Question Image">
+            </div>
+            <% } %>
+
+            <% if (item.question.questionType === 'Written') { %>
+            <div class="written-answer-section">
+              <div class="answer-comparison">
+                <div class="answer-row user-answer <%= item.isCorrect ? 'correct' : '' %>">
+                  <span class="answer-label your <%= item.isCorrect ? 'correct' : '' %>">
+                    <i class="fas fa-user"></i> Guest's Answer:
+                  </span>
+                  <span class="answer-text"><%= item.userAnswer || 'No answer provided' %></span>
+                  <i class="fas fa-<%= item.isCorrect ? 'check-circle' : 'times-circle' %> answer-icon <%= item.isCorrect ? 'correct' : 'wrong' %>"></i>
+                </div>
+                <div class="answer-row correct-answer">
+                  <span class="answer-label correct">
+                    <i class="fas fa-check"></i> Correct Answer:
+                  </span>
+                  <span class="answer-text"><%= item.question.correctAnswer %></span>
+                </div>
+              </div>
+            </div>
+            <% } else { %>
+            <div class="options-grid">
+              <% item.question.options.forEach((option, optIndex) => { 
+                const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+                const isCorrectOption = option.isCorrect;
+                const isUserSelected = item.userAnswer && option.text && item.userAnswer.trim() === option.text.trim();
+                let optionClass = '';
+                if (isCorrectOption) optionClass += ' correct-option';
+                if (isUserSelected) {
+                  optionClass += ' user-selected';
+                  if (!isCorrectOption) optionClass += ' wrong-option';
+                }
+              %>
+              <div class="option-item<%= optionClass %>">
+                <div class="option-letter"><%= letters[optIndex] %></div>
+                <div class="option-text">
+                  <%= option.text %>
+                  <% if (option.image) { %>
+                    <img src="<%= option.image %>" alt="Option Image" class="option-image">
+                  <% } %>
+                </div>
+                <% if (isCorrectOption) { %>
+                  <span class="option-indicator correct">
+                    <i class="fas fa-check"></i> Correct
+                  </span>
+                <% } %>
+                <% if (isUserSelected && !isCorrectOption) { %>
+                  <span class="option-indicator wrong">
+                    <i class="fas fa-times"></i> Selected
+                  </span>
+                <% } else if (isUserSelected && isCorrectOption) { %>
+                  <span class="option-indicator your-answer">
+                    <i class="fas fa-user"></i> Selected
+                  </span>
+                <% } %>
+              </div>
+              <% }); %>
+            </div>
+            <% } %>
+
+            <% if (item.question.explanation) { %>
+            <div class="explanation-box">
+              <h4><i class="fas fa-lightbulb"></i> Explanation</h4>
+              <p><%- item.question.explanation %></p>
+            </div>
+            <% } %>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<%- include('partials/admin-footer') %>

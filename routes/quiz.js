@@ -16,12 +16,13 @@ const thumbnailUpload = multer({
       'image/jpg',
       'image/png',
       'image/gif',
+      'image/webp',
     ];
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(
-        new Error('Only JPEG, PNG, and GIF images are allowed for thumbnails')
+        new Error('Only JPEG, PNG, GIF, and WebP images are allowed for thumbnails')
       );
     }
   },
@@ -186,10 +187,31 @@ router.post(
 // Export quiz details
 router.get('/:id/export', isAdmin, exportQuizDetails);
 
-// Thumbnail management routes
+// Thumbnail management routes with proper error handling
 router.post(
   '/upload-thumbnail',
-  thumbnailUpload.single('thumbnail'),
+  (req, res, next) => {
+    thumbnailUpload.single('thumbnail')(req, res, (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          // Multer-specific errors (file size, etc.)
+          return res.status(400).json({
+            success: false,
+            message: err.code === 'LIMIT_FILE_SIZE' 
+              ? 'File size exceeds 5MB limit' 
+              : err.message,
+          });
+        } else if (err) {
+          // Custom errors (file type validation)
+          return res.status(400).json({
+            success: false,
+            message: err.message || 'Only JPEG, PNG, and GIF images are allowed',
+          });
+        }
+      }
+      next();
+    });
+  },
   uploadQuizThumbnail
 );
 router.get('/:id/thumbnail', idValidation.slice(0, 1), getQuizThumbnail);

@@ -3086,6 +3086,124 @@ class ExcelExporter {
         return baseStyle;
     }
   }
+
+  // Static method to export multiple sheets
+  static async exportMultipleSheets(sheets, filename, res, options = {}) {
+    try {
+      const exporter = new ExcelExporter();
+      
+      for (const sheet of sheets) {
+        const { data, sheetName } = sheet;
+        
+        if (!data || data.length === 0) continue;
+        
+        const worksheet = exporter.workbook.addWorksheet(sheetName);
+        
+        // Add title if provided
+        if (options.title && sheets.indexOf(sheet) === 0) {
+          const titleRow = worksheet.addRow([options.title]);
+          titleRow.font = { size: 16, bold: true, color: { argb: exporter.colors.primary } };
+          titleRow.height = 30;
+          worksheet.mergeCells(1, 1, 1, Object.keys(data[0]).length);
+          worksheet.addRow([]);
+        }
+        
+        // Get column headers from first data item
+        const headers = Object.keys(data[0]);
+        
+        // Add header row
+        const headerRow = worksheet.addRow(headers);
+        headerRow.eachCell((cell) => {
+          Object.assign(cell, exporter.getHeaderStyle());
+        });
+        headerRow.height = 25;
+        
+        // Add data rows
+        data.forEach((item, index) => {
+          const rowData = headers.map(header => item[header]);
+          const row = worksheet.addRow(rowData);
+          
+          // Alternate row colors
+          if (index % 2 === 1) {
+            row.eachCell((cell) => {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: exporter.colors.alternatingRow },
+              };
+            });
+          }
+          
+          // Apply border to all cells
+          row.eachCell((cell) => {
+            cell.border = {
+              top: { style: 'thin', color: { argb: exporter.colors.border } },
+              left: { style: 'thin', color: { argb: exporter.colors.border } },
+              bottom: { style: 'thin', color: { argb: exporter.colors.border } },
+              right: { style: 'thin', color: { argb: exporter.colors.border } },
+            };
+            cell.alignment = { vertical: 'middle' };
+          });
+          
+          // Style status cells
+          row.eachCell((cell, colNumber) => {
+            const header = headers[colNumber - 1];
+            const value = String(cell.value || '').toLowerCase();
+            
+            if (header.toLowerCase().includes('status') || header.toLowerCase().includes('passed')) {
+              if (value.includes('pass') || value.includes('active')) {
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: exporter.colors.success },
+                };
+                cell.font = { bold: true, color: { argb: exporter.colors.white } };
+              } else if (value.includes('fail') || value.includes('inactive')) {
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: exporter.colors.danger },
+                };
+                cell.font = { bold: true, color: { argb: exporter.colors.white } };
+              }
+            }
+          });
+        });
+        
+        // Auto-fit columns
+        worksheet.columns.forEach((column, i) => {
+          let maxLength = headers[i] ? headers[i].length : 10;
+          data.forEach(row => {
+            const value = row[headers[i]];
+            if (value) {
+              const cellLength = String(value).length;
+              if (cellLength > maxLength) {
+                maxLength = cellLength;
+              }
+            }
+          });
+          column.width = Math.min(Math.max(maxLength + 2, 10), 50);
+        });
+        
+        // Freeze header row
+        worksheet.views = [{ state: 'frozen', ySplit: options.title ? 3 : 1 }];
+      }
+      
+      // Set response headers
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      // Write to response
+      await exporter.workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error exporting multiple sheets:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = ExcelExporter;

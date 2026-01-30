@@ -3333,6 +3333,7 @@ const getQuizDetails = async (req, res) => {
       attemptHistory,
       activeAttempt,
       timing,
+      showResults: quiz.showResults !== false,
       theme: student.preferences?.theme || 'light',
     });
   } catch (error) {
@@ -3668,6 +3669,7 @@ const submitStandaloneQuiz = async (req, res) => {
         passed,
         passingScore: quiz.passingScore,
         timeSpent: timeSpent || 0,
+        showResults: quiz.showResults !== false,
       },
     });
   } catch (error) {
@@ -3701,6 +3703,12 @@ const getStandaloneQuizResults = async (req, res) => {
     if (!quiz) {
       req.flash('error_msg', 'Quiz not found');
       return res.redirect('/student/quizzes');
+    }
+
+    // Check if showResults is enabled for this quiz
+    if (quiz.showResults === false) {
+      req.flash('error_msg', 'Results are not available for this quiz');
+      return res.redirect(`/student/quiz/${quizId}`);
     }
 
     const attemptHistory = quiz.getUserAttemptHistory(student.quizAttempts);

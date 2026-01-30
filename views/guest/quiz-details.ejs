@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | ELKABLY</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/KImage.png">
+    <link rel="shortcut icon" type="image/png" href="/images/KImage.png">
+    <link rel="apple-touch-icon" href="/images/KImage.png">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Light Theme */
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --primary-color: #dc2626;
+            --primary-dark: #b91c1c;
+            --primary-light: #fef2f2;
+            --success-color: #10b981;
+            --success-light: #d1fae5;
+            --warning-color: #f59e0b;
+            --warning-light: #fef3c7;
+            --info-color: #3b82f6;
+            --info-light: #dbeafe;
+        }
+
+        .dark-theme {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --border-color: #475569;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --primary-light: rgba(220, 38, 38, 0.1);
+            --success-light: rgba(16, 185, 129, 0.1);
+            --warning-light: rgba(245, 158, 11, 0.1);
+            --info-light: rgba(59, 130, 246, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== ADVANCED NAVBAR ===== */
+        .guest-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-backdrop {
+            position: absolute;
+            inset: 0;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.85);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .dark-theme .navbar-backdrop {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .navbar-content {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 100%;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        /* Logo Section */
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+        }
+
+        .navbar-logo-container {
+            position: relative;
+            width: 55px;
+            height: 55px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            padding: 3px;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .navbar-brand:hover .navbar-logo-container {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+
+        .navbar-logo-inner {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .dark-theme .navbar-logo-inner {
+            background: #ffffff;
+        }
+
+        .navbar-logo-img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .navbar-brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar-brand-name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .navbar-brand-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--primary-light);
+            padding: 2px 8px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        /* Center Actions */
+        .navbar-center {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-home-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-home-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .nav-home-btn i {
+            font-size: 1rem;
+        }
+
+        /* Right Section */
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle-btn {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .theme-toggle-btn .sun-icon,
+        .theme-toggle-btn .moon-icon {
+            position: absolute;
+            font-size: 1.2rem;
+            transition: all 0.4s ease;
+        }
+
+        .theme-toggle-btn .sun-icon {
+            color: #f59e0b;
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        .theme-toggle-btn .moon-icon {
+            color: #6366f1;
+            opacity: 0;
+            transform: rotate(-90deg) scale(0.5);
+        }
+
+        .dark-theme .theme-toggle-btn .sun-icon {
+            opacity: 0;
+            transform: rotate(90deg) scale(0.5);
+        }
+
+        .dark-theme .theme-toggle-btn .moon-icon {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        /* User Info */
+        .user-info-capsule {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem 0.5rem 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        /* Exit Button */
+        .exit-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .exit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+
+        .content-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .breadcrumb-link:hover {
+            color: var(--primary-color);
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-muted);
+        }
+
+        .breadcrumb-current {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ===== QUIZ HERO SECTION ===== */
+        .quiz-hero {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border-radius: 24px;
+            padding: 3rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            color: white;
+        }
+
+        .quiz-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.5;
+        }
+
+        .quiz-hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 60%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .quiz-hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .quiz-hero-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .quiz-hero-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .quiz-hero-info {
+            flex: 1;
+        }
+
+        .quiz-hero-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+            line-height: 1.2;
+        }
+
+        .quiz-hero-code {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .quiz-hero-code i {
+            font-size: 0.85rem;
+        }
+
+        .quiz-hero-description {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            opacity: 0.95;
+            max-width: 700px;
+        }
+
+        /* ===== STATS GRID ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.questions {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .stat-icon.duration {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .stat-icon.passing {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .stat-icon.attempts {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        /* ===== ACTION SECTION ===== */
+        .action-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Best Score Badge */
+        .best-score-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            padding: 1.25rem 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            color: white;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .best-score-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .best-score-content {
+            text-align: left;
+        }
+
+        .best-score-value {
+            font-size: 2.5rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .best-score-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        /* Cannot Attempt Alert */
+        .cannot-attempt-alert {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            background: var(--warning-light);
+            border: 2px solid var(--warning-color);
+            padding: 1.5rem 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .cannot-attempt-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--warning-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .cannot-attempt-content h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 0.25rem;
+        }
+
+        .dark-theme .cannot-attempt-content h4 {
+            color: #fbbf24;
+        }
+
+        .cannot-attempt-content p {
+            font-size: 0.95rem;
+            color: #a16207;
+        }
+
+        /* Passed Quiz Alert - Success Style */
+        .passed-quiz-alert {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            background: var(--success-light);
+            border: 2px solid var(--success-color);
+            padding: 1.5rem 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .passed-quiz-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+            animation: trophy-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes trophy-glow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
+            50% { box-shadow: 0 4px 25px rgba(251, 191, 36, 0.6); }
+        }
+
+        .passed-quiz-content h4 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #047857;
+            margin-bottom: 0.25rem;
+        }
+
+        .dark-theme .passed-quiz-content h4 {
+            color: #34d399;
+        }
+
+        .passed-quiz-content p {
+            font-size: 0.95rem;
+            color: #065f46;
+        }
+
+        .dark-theme .passed-quiz-content p {
+            color: #6ee7b7;
+        }
+
+        .passed-subtext {
+            margin-top: 0.5rem;
+            font-size: 0.85rem !important;
+            opacity: 0.8;
+        }
+
+        .btn-view-results-large {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-view-results-large:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .dark-theme .cannot-attempt-content p {
+            color: #fcd34d;
+        }
+
+        /* Action Title */
+        .action-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .action-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Primary Button */
+        .btn-primary-large {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.25rem 3rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.35);
+        }
+
+        .btn-start:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(220, 38, 38, 0.45);
+        }
+
+        .btn-resume {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.35);
+        }
+
+        .btn-resume:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(245, 158, 11, 0.45);
+        }
+
+        .btn-primary-large i {
+            font-size: 1.25rem;
+        }
+
+        /* ===== ATTEMPT HISTORY ===== */
+        .history-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--primary-light);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .history-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Attempt List */
+        .attempt-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .attempt-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .attempt-card:hover {
+            transform: translateX(4px);
+            border-color: var(--primary-color);
+        }
+
+        .attempt-number-badge {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .attempt-details {
+            flex: 1;
+        }
+
+        .attempt-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .attempt-date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .attempt-date i {
+            font-size: 0.8rem;
+        }
+
+        .attempt-score-badge {
+            font-size: 1.5rem;
+            font-weight: 800;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+        }
+
+        .attempt-score-badge.passed {
+            background: var(--success-light);
+            color: var(--success-color);
+        }
+
+        .attempt-score-badge.failed {
+            background: var(--primary-light);
+            color: var(--primary-color);
+        }
+
+        .btn-view-results {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view-results:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Locked Results Button */
+        .btn-view-results-locked {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-view-results-locked i {
+            color: var(--warning-color);
+        }
+
+        /* Results Locked Notice */
+        .results-locked-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, var(--warning-light), rgba(245, 158, 11, 0.05));
+            border: 1px solid var(--warning-color);
+            border-left: 4px solid var(--warning-color);
+            border-radius: 12px;
+        }
+
+        .results-locked-notice .notice-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--warning-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .results-locked-notice .notice-content {
+            flex: 1;
+        }
+
+        .results-locked-notice .notice-content strong {
+            display: block;
+            color: var(--warning-color);
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .results-locked-notice .notice-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .dark-theme .results-locked-notice {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .dark-theme .results-locked-notice .notice-content p {
+            color: var(--text-muted);
+        }
+
+        /* Empty State */
+        .empty-history {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-history-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .empty-history p {
+            font-size: 1rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .navbar-center {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 1rem;
+            }
+
+            .navbar-content {
+                padding: 0 1rem;
+            }
+
+            .navbar-brand-text {
+                display: none;
+            }
+
+            .user-name {
+                display: none;
+            }
+
+            .quiz-hero {
+                padding: 2rem 1.5rem;
+            }
+
+            .quiz-hero-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .quiz-hero-title {
+                font-size: 1.75rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .stat-card {
+                padding: 1.25rem;
+            }
+
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            .action-section {
+                padding: 1.5rem;
+            }
+
+            .attempt-card {
+                flex-wrap: wrap;
+            }
+
+            .btn-view-results {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .best-score-display {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .best-score-content {
+                text-align: center;
+            }
+
+            .cannot-attempt-alert {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .attempt-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .attempt-details {
+                text-align: center;
+            }
+        }
+    </style>
+    
+    <script>
+        // Initialize theme immediately to prevent flash
+        (function() {
+            var saved = localStorage.getItem('theme') || 'light';
+            document.documentElement.classList.add(saved + '-theme');
+        })();
+    </script>
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Advanced Navbar -->
+    <nav class="guest-navbar">
+        <div class="navbar-backdrop"></div>
+        <div class="navbar-content">
+            <!-- Logo -->
+            <a href="/" class="navbar-brand">
+                <div class="navbar-logo-container">
+                    <div class="navbar-logo-inner">
+                        <img src="/images/K.png" alt="ELKABLY" class="navbar-logo-img">
+                    </div>
+                </div>
+                <div class="navbar-brand-text">
+                    <span class="navbar-brand-name">ELKABLY</span>
+                    <span class="navbar-brand-tag">Guest Mode</span>
+                </div>
+            </a>
+
+            <!-- Center Navigation -->
+            <div class="navbar-center">
+                <a href="/" class="nav-home-btn">
+                    <i class="fas fa-home"></i>
+                    <span>Back to Home</span>
+                </a>
+            </div>
+
+            <!-- Right Section -->
+            <div class="navbar-right">
+                <!-- Theme Toggle -->
+                <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
+                    <i class="fas fa-sun sun-icon"></i>
+                    <i class="fas fa-moon moon-icon"></i>
+                </button>
+
+                <!-- User Info -->
+                <div class="user-info-capsule">
+                    <div class="user-avatar">
+                        <%= guestUser.fullName.charAt(0).toUpperCase() %>
+                    </div>
+                    <span class="user-name"><%= guestUser.fullName %></span>
+                </div>
+
+                <!-- Exit Button -->
+                <a href="/guest/logout" class="exit-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Exit</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Breadcrumb -->
+            <nav class="breadcrumb-nav">
+                <a href="/" class="breadcrumb-link">
+                    <i class="fas fa-home"></i>
+                    Home
+                </a>
+                <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                <span class="breadcrumb-current"><%= quiz.title %></span>
+            </nav>
+
+            <!-- Quiz Hero -->
+            <div class="quiz-hero">
+                <div class="quiz-hero-content">
+                    <div class="quiz-hero-header">
+                        <div class="quiz-hero-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="quiz-hero-info">
+                            <h1 class="quiz-hero-title"><%= quiz.title %></h1>
+                            <span class="quiz-hero-code">
+                                <i class="fas fa-hashtag"></i>
+                                <%= quiz.code %>
+                            </span>
+                        </div>
+                    </div>
+                    <% if (quiz.description) { %>
+                        <p class="quiz-hero-description"><%= quiz.description %></p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon questions">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Questions</div>
+                        <div class="stat-value"><%= quiz.selectedQuestions ? quiz.selectedQuestions.length : 0 %></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon duration">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Duration</div>
+                        <div class="stat-value"><%= quiz.duration %> min</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon passing">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Passing Score</div>
+                        <div class="stat-value"><%= quiz.passingScore %>%</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon attempts">
+                        <i class="fas fa-redo"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Attempts Left</div>
+                        <div class="stat-value"><%= canAttempt.attemptsLeft %></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Section -->
+            <div class="action-section">
+                <% if (bestScore !== null) { %>
+                    <div class="best-score-display">
+                        <div class="best-score-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="best-score-content">
+                            <div class="best-score-value"><%= bestScore %>%</div>
+                            <div class="best-score-label">Best Score</div>
+                        </div>
+                    </div>
+                <% } %>
+
+                <% if (!canAttempt.canAttempt) { %>
+                    <% if (canAttempt.hasPassed) { %>
+                        <div class="passed-quiz-alert">
+                            <div class="passed-quiz-icon">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="passed-quiz-content">
+                                <h4>Congratulations! 🎉</h4>
+                                <p><%= canAttempt.reason %></p>
+                                <% if (showResults) { %>
+                                    <p class="passed-subtext">You've successfully completed this quiz. View your results below.</p>
+                                <% } else { %>
+                                    <p class="passed-subtext">You've successfully completed this quiz!</p>
+                                <% } %>
+                            </div>
+                        </div>
+                        <% if (showResults && attemptHistory && attemptHistory.length > 0) { %>
+                            <a href="/guest/quiz/<%= quiz._id %>/results" class="btn-primary-large btn-view-results-large">
+                                <i class="fas fa-chart-line"></i>
+                                View Your Results
+                            </a>
+                        <% } %>
+                    <% } else { %>
+                        <div class="cannot-attempt-alert">
+                            <div class="cannot-attempt-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="cannot-attempt-content">
+                                <h4>Cannot Take Quiz</h4>
+                                <p><%= canAttempt.reason %></p>
+                            </div>
+                        </div>
+                    <% } %>
+                <% } else if (activeAttempt) { %>
+                    <h3 class="action-title">Resume Your Quiz</h3>
+                    <p class="action-subtitle">You have an active attempt in progress. Continue where you left off.</p>
+                    <a href="/guest/quiz/<%= quiz._id %>/take" class="btn-primary-large btn-resume">
+                        <i class="fas fa-play-circle"></i>
+                        Resume Quiz
+                    </a>
+                <% } else { %>
+                    <h3 class="action-title">Ready to Start?</h3>
+                    <p class="action-subtitle">Make sure you have enough time to complete the quiz. Good luck!</p>
+                    <a href="/guest/quiz/<%= quiz._id %>/start" class="btn-primary-large btn-start">
+                        <i class="fas fa-rocket"></i>
+                        Start Quiz
+                    </a>
+                <% } %>
+            </div>
+
+            <!-- Attempt History -->
+            <div class="history-section">
+                <div class="history-header">
+                    <div class="history-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h3 class="history-title">Attempt History</h3>
+                </div>
+
+                <% if (attemptHistory && attemptHistory.length > 0) { %>
+                    <div class="attempt-list">
+                        <% attemptHistory.forEach((attempt, index) => { %>
+                            <div class="attempt-card">
+                                <div class="attempt-number-badge"><%= attempt.attemptNumber %></div>
+                                <div class="attempt-details">
+                                    <div class="attempt-title">Attempt #<%= attempt.attemptNumber %></div>
+                                    <div class="attempt-date">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <%= new Date(attempt.completedAt).toLocaleDateString('en-US', { 
+                                            weekday: 'short', 
+                                            year: 'numeric', 
+                                            month: 'short', 
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        }) %>
+                                    </div>
+                                </div>
+                                <div class="attempt-score-badge <%= attempt.passed ? 'passed' : 'failed' %>">
+                                    <%= attempt.score %>%
+                                </div>
+                                <% if (showResults && canViewDetailedResults) { %>
+                                    <a href="/guest/quiz/<%= quiz._id %>/results?attempt=<%= attempt.attemptNumber %>" class="btn-view-results">
+                                        <i class="fas fa-chart-line"></i>
+                                        View Results
+                                    </a>
+                                <% } else if (showResults) { %>
+                                    <div class="btn-view-results-locked" title="Complete all attempts or pass the quiz to view detailed results">
+                                        <i class="fas fa-lock"></i>
+                                        <span>Locked</span>
+                                    </div>
+                                <% } else { %>
+                                    <div class="btn-view-results-locked" title="Results are disabled for this quiz">
+                                        <i class="fas fa-eye-slash"></i>
+                                        <span>Hidden</span>
+                                    </div>
+                                <% } %>
+                            </div>
+                        <% }); %>
+                    </div>
+                    
+                    <% if (!showResults) { %>
+                        <div class="results-locked-notice">
+                            <div class="notice-icon">
+                                <i class="fas fa-eye-slash"></i>
+                            </div>
+                            <div class="notice-content">
+                                <strong>Results Disabled</strong>
+                                <p>The instructor has disabled viewing results for this quiz.</p>
+                            </div>
+                        </div>
+                    <% } else if (!canViewDetailedResults && remainingAttempts > 0) { %>
+                        <div class="results-locked-notice">
+                            <div class="notice-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="notice-content">
+                                <strong>Results Locked</strong>
+                                <p>To prevent cheating, detailed results and correct answers will only be shown after you pass the quiz or use all <%= maxAttempts %> attempts. You have <%= remainingAttempts %> attempt<%= remainingAttempts > 1 ? 's' : '' %> remaining.</p>
+                            </div>
+                        </div>
+                    <% } %>
+                <% } else { %>
+                    <div class="empty-history">
+                        <div class="empty-history-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <p>No attempts yet. Start your first attempt above!</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        
+        function toggleTheme() {
+            const body = document.body;
+            const html = document.documentElement;
+            const isDark = body.classList.contains('dark-theme');
+            
+            if (isDark) {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                html.classList.remove('dark-theme');
+                html.classList.add('light-theme');
+                localStorage.setItem('theme', 'light');
+                document.cookie = 'theme=light; path=/; max-age=31536000';
+            } else {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                html.classList.remove('light-theme');
+                html.classList.add('dark-theme');
+                localStorage.setItem('theme', 'dark');
+                document.cookie = 'theme=dark; path=/; max-age=31536000';
+            }
+        }
+        
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // Ensure theme is synced on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.classList.remove('light-theme', 'dark-theme');
+            document.body.classList.add(savedTheme + '-theme');
+            document.documentElement.classList.remove('light-theme', 'dark-theme');
+            document.documentElement.classList.add(savedTheme + '-theme');
+        });
+    </script>
+</body>
+</html>

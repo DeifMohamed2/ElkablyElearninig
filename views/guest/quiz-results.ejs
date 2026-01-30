@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | ELKABLY</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/KImage.png">
+    <link rel="shortcut icon" type="image/png" href="/images/KImage.png">
+    <link rel="apple-touch-icon" href="/images/KImage.png">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- MathLive -->
+    <script src="https://unpkg.com/mathlive"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Light Theme */
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --primary-color: #dc2626;
+            --primary-dark: #b91c1c;
+            --primary-light: #fef2f2;
+            --success-color: #10b981;
+            --success-light: #d1fae5;
+            --warning-color: #f59e0b;
+            --warning-light: #fef3c7;
+            --info-color: #3b82f6;
+            --info-light: #dbeafe;
+        }
+
+        .dark-theme {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --border-color: #475569;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --primary-light: rgba(220, 38, 38, 0.1);
+            --success-light: rgba(16, 185, 129, 0.1);
+            --warning-light: rgba(245, 158, 11, 0.1);
+            --info-light: rgba(59, 130, 246, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== ADVANCED NAVBAR ===== */
+        .guest-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-backdrop {
+            position: absolute;
+            inset: 0;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.85);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .dark-theme .navbar-backdrop {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .navbar-content {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 100%;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        /* Logo Section */
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+        }
+
+        .navbar-logo-container {
+            position: relative;
+            width: 55px;
+            height: 55px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            padding: 3px;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .navbar-brand:hover .navbar-logo-container {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+
+        .navbar-logo-inner {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .dark-theme .navbar-logo-inner {
+            background: #ffffff;
+        }
+
+        .navbar-logo-img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .navbar-brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar-brand-name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .navbar-brand-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--primary-light);
+            padding: 2px 8px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        /* Center Actions */
+        .navbar-center {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-home-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-home-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .nav-home-btn i {
+            font-size: 1rem;
+        }
+
+        /* Right Section */
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle-btn {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .theme-toggle-btn .sun-icon,
+        .theme-toggle-btn .moon-icon {
+            position: absolute;
+            font-size: 1.2rem;
+            transition: all 0.4s ease;
+        }
+
+        .theme-toggle-btn .sun-icon {
+            color: #f59e0b;
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        .theme-toggle-btn .moon-icon {
+            color: #6366f1;
+            opacity: 0;
+            transform: rotate(-90deg) scale(0.5);
+        }
+
+        .dark-theme .theme-toggle-btn .sun-icon {
+            opacity: 0;
+            transform: rotate(90deg) scale(0.5);
+        }
+
+        .dark-theme .theme-toggle-btn .moon-icon {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        /* User Info */
+        .user-info-capsule {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem 0.5rem 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        /* Exit Button */
+        .exit-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .exit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+
+        /* Results Container */
+        .results-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .breadcrumb-link:hover {
+            color: var(--primary-color);
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-muted);
+        }
+
+        .breadcrumb-current {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Attempt Selector */
+        .attempt-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .attempt-selector-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .attempt-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .attempt-tab {
+            padding: 0.6rem 1.2rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .attempt-tab:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .attempt-tab.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        /* Score Card - Enhanced */
+        .score-card {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .score-header {
+            padding: 3.5rem 2rem;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.5;
+        }
+
+        .score-header::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 60%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .score-header.passed {
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+        }
+
+        .score-header.failed {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+        }
+
+        .score-header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .score-icon {
+            width: 90px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            50% { box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.1); }
+        }
+
+        .score-icon i {
+            font-size: 2.5rem;
+        }
+
+        .score-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .score-value {
+            font-size: 5rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            letter-spacing: -2px;
+        }
+
+        .score-label {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+
+        /* Score Details - Enhanced */
+        .score-details {
+            padding: 2.5rem;
+        }
+
+        .score-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .score-stat {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-stat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .score-stat:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .score-stat.total::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+        .score-stat.correct::before { background: linear-gradient(90deg, #10b981, #34d399); }
+        .score-stat.wrong::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .score-stat.skipped::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .score-stat.time::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+
+        .score-stat-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .score-stat-value.total { color: #3b82f6; }
+        .score-stat-value.correct { color: #10b981; }
+        .score-stat-value.wrong { color: #ef4444; }
+        .score-stat-value.skipped { color: #f59e0b; }
+        .score-stat-value.time { color: #8b5cf6; }
+
+        .score-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Best Score Card */
+        .best-score-card {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--success-light), rgba(16, 185, 129, 0.05));
+            border: 2px solid var(--success-color);
+            border-radius: 16px;
+            margin-bottom: 2rem;
+        }
+
+        .best-score-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .best-score-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .best-score-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .best-score-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--success-color);
+        }
+
+        /* Action Buttons - Enhanced */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+
+        .action-btn.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .action-btn.secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        /* Results Locked Section */
+        .results-locked-section {
+            margin-bottom: 2rem;
+        }
+
+        .locked-notice-card {
+            background: linear-gradient(135deg, var(--warning-light), rgba(245, 158, 11, 0.05));
+            border: 2px solid var(--warning-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+        }
+
+        .locked-notice-card .locked-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: white;
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.35);
+        }
+
+        .locked-notice-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .locked-notice-card > p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+        }
+
+        .unlock-conditions {
+            list-style: none;
+            padding: 0;
+            margin: 0 auto 1.5rem;
+            max-width: 400px;
+            text-align: left;
+        }
+
+        .unlock-conditions li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .unlock-conditions li i {
+            color: var(--success-color);
+            font-size: 1rem;
+        }
+
+        .remaining-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--info-light);
+            border: 1px solid var(--info-color);
+            border-radius: 12px;
+            color: var(--info-color);
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+        }
+
+        .remaining-info strong {
+            color: var(--info-color);
+        }
+
+        .dark-theme .locked-notice-card {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .dark-theme .unlock-conditions li {
+            background: var(--bg-tertiary);
+        }
+
+        /* Questions Review - Enhanced */
+        .review-section {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .review-header {
+            padding: 1.5rem 2rem;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .review-header h2 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .review-header h2 i {
+            color: var(--primary-color);
+        }
+
+        .review-body {
+            padding: 0;
+        }
+
+        .question-review-item {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.3s ease;
+        }
+
+        .question-review-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .question-review-item:last-child {
+            border-bottom: none;
+        }
+
+        .question-review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .question-review-number {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .question-number-badge {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+        }
+
+        .question-number-badge.correct {
+            background: #10b981;
+        }
+
+        .question-number-badge.wrong {
+            background: #ef4444;
+        }
+
+        .question-number-badge.skipped {
+            background: #f59e0b;
+        }
+
+        .question-status {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .question-status.correct {
+            color: #10b981;
+        }
+
+        .question-status.wrong {
+            color: #ef4444;
+        }
+
+        .question-status.skipped {
+            color: #f59e0b;
+        }
+
+        .question-points-earned {
+            font-size: 0.9rem;
+            color: var(--text-muted, #64748b);
+        }
+
+        .question-review-text {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            padding: 1.25rem;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .question-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            background: var(--info-light);
+            color: var(--info-color);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .question-image-container {
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .question-image-container img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Options Display */
+        .options-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .option-item.correct-option {
+            background: var(--success-light);
+            border-color: var(--success-color);
+        }
+
+        .option-item.user-selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+
+        .option-item.user-selected.correct-option {
+            border-color: var(--success-color);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+        }
+
+        .option-item.user-selected.wrong-option {
+            background: #fef2f2;
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+        }
+
+        .option-letter {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .correct-option .option-letter {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .user-selected.wrong-option .option-letter {
+            background: #ef4444;
+            color: white;
+        }
+
+        .option-text {
+            flex: 1;
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .option-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .option-indicator.correct {
+            color: var(--success-color);
+        }
+
+        .option-indicator.wrong {
+            color: #ef4444;
+        }
+
+        .option-indicator.your-answer {
+            color: var(--primary-color);
+        }
+
+        .option-image {
+            max-width: 80px;
+            max-height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        /* Written Answer Section */
+        .written-answer-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .written-answer-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .written-answer-box {
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .written-answer-box.user-answer {
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .written-answer-box.user-answer.correct {
+            background: var(--success-light);
+            border-color: #a7f3d0;
+            color: #065f46;
+        }
+
+        .written-answer-box.correct-answer {
+            background: var(--success-light);
+            border: 2px solid #a7f3d0;
+            color: #065f46;
+        }
+
+        .dark-theme .written-answer-box.user-answer {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+        }
+
+        .dark-theme .written-answer-box.user-answer.correct {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+        }
+
+        .dark-theme .written-answer-box.correct-answer {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+        }
+
+        .answer-comparison {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .answer-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .answer-row.user-answer {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .answer-row.user-answer.correct {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+        }
+
+        .answer-row.correct-answer {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+        }
+
+        .answer-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            min-width: 100px;
+            padding-top: 2px;
+        }
+
+        .answer-label.your {
+            color: #dc2626;
+        }
+
+        .answer-label.your.correct {
+            color: #10b981;
+        }
+
+        .answer-label.correct {
+            color: #10b981;
+        }
+
+        .answer-text {
+            flex: 1;
+            color: var(--text-color, #1e293b);
+        }
+
+        .answer-icon {
+            font-size: 1.25rem;
+        }
+
+        .answer-icon.correct {
+            color: #10b981;
+        }
+
+        .answer-icon.wrong {
+            color: #ef4444;
+        }
+
+        .explanation-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 10px;
+        }
+
+        .explanation-box h4 {
+            font-size: 0.9rem;
+            color: #0369a1;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .explanation-box p {
+            color: #0c4a6e;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Attempt Selector */
+        .attempt-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .attempt-selector-label {
+            font-weight: 500;
+            color: var(--text-color, #1e293b);
+        }
+
+        .attempt-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .attempt-tab {
+            padding: 0.5rem 1rem;
+            background: var(--secondary-bg, #f8fafc);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text-color, #1e293b);
+            transition: all 0.3s ease;
+        }
+
+        .attempt-tab:hover {
+            border-color: #dc2626;
+        }
+
+        .attempt-tab.active {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+        }
+
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 1024px) {
+            .navbar-center {
+                display: none;
+            }
+
+            .navbar-brand-text {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .guest-navbar {
+                height: 70px;
+            }
+
+            .navbar-content {
+                padding: 0 1rem;
+            }
+
+            .navbar-logo-container {
+                width: 45px;
+                height: 45px;
+            }
+
+            .navbar-logo-img {
+                width: 32px;
+                height: 32px;
+            }
+
+            .theme-toggle-btn {
+                width: 42px;
+                height: 42px;
+            }
+
+            .user-info-capsule {
+                padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+            }
+
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.85rem;
+            }
+
+            .user-name {
+                display: none;
+            }
+
+            .exit-btn span {
+                display: none;
+            }
+
+            .exit-btn {
+                padding: 0.75rem;
+                border-radius: 12px;
+            }
+
+            .main-content {
+                padding-top: 90px;
+            }
+
+            .results-container {
+                padding: 1rem;
+            }
+
+            .breadcrumb-nav {
+                font-size: 0.8rem;
+                flex-wrap: wrap;
+            }
+
+            .score-value {
+                font-size: 3.5rem;
+            }
+
+            .score-stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.75rem;
+            }
+
+            .score-stat {
+                padding: 1rem 0.75rem;
+            }
+
+            .score-stat-value {
+                font-size: 1.75rem;
+            }
+
+            .best-score-card {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .question-review-item {
+                padding: 1.5rem;
+            }
+
+            .attempt-selector {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .score-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .score-stat-value {
+                font-size: 1.5rem;
+            }
+            .user-info-capsule {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="<%= theme %>-theme">
+    <!-- Advanced Navbar -->
+    <nav class="guest-navbar">
+        <div class="navbar-backdrop"></div>
+        <div class="navbar-content">
+            <!-- Logo -->
+            <a href="/" class="navbar-brand">
+                <div class="navbar-logo-container">
+                    <div class="navbar-logo-inner">
+                        <img src="/images/K.png" alt="ELKABLY" class="navbar-logo-img">
+                    </div>
+                </div>
+                <div class="navbar-brand-text">
+                    <span class="navbar-brand-name">ELKABLY</span>
+                    <span class="navbar-brand-tag">Guest Mode</span>
+                </div>
+            </a>
+
+            <!-- Center Navigation -->
+            <div class="navbar-center">
+                <a href="/" class="nav-home-btn">
+                    <i class="fas fa-home"></i>
+                    <span>Back to Home</span>
+                </a>
+            </div>
+
+            <!-- Right Section -->
+            <div class="navbar-right">
+                <!-- Theme Toggle -->
+                <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
+                    <i class="fas fa-sun sun-icon"></i>
+                    <i class="fas fa-moon moon-icon"></i>
+                </button>
+
+                <!-- User Info -->
+                <div class="user-info-capsule">
+                    <div class="user-avatar">
+                        <%= guestUser.fullName.charAt(0).toUpperCase() %>
+                    </div>
+                    <span class="user-name"><%= guestUser.fullName %></span>
+                </div>
+
+                <!-- Exit Button -->
+                <a href="/guest/logout" class="exit-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Exit</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="results-container">
+            <!-- Breadcrumb -->
+            <nav class="breadcrumb-nav">
+                <a href="/" class="breadcrumb-link">
+                    <i class="fas fa-home"></i>
+                    Home
+                </a>
+                <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                <a href="/guest/quiz/<%= quiz._id %>/details" class="breadcrumb-link">
+                    <%= quiz.title %>
+                </a>
+                <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                <span class="breadcrumb-current">Results</span>
+            </nav>
+
+        <!-- Attempt Selector -->
+        <% if (allAttempts && allAttempts.length > 1) { %>
+        <div class="attempt-selector">
+            <span class="attempt-selector-label">View Attempt:</span>
+            <div class="attempt-tabs">
+                <% allAttempts.forEach(att => { %>
+                    <a href="/guest/quiz/<%= quiz._id %>/results?attempt=<%= att.attemptNumber %>" 
+                       class="attempt-tab <%= att.attemptNumber === attempt.attemptNumber ? 'active' : '' %>">
+                        #<%= att.attemptNumber %> - <%= att.score %>%
+                    </a>
+                <% }); %>
+            </div>
+        </div>
+        <% } %>
+
+        <!-- Score Card -->
+        <div class="score-card">
+            <div class="score-header <%= attempt.passed ? 'passed' : 'failed' %>">
+                <div class="score-header-content">
+                    <div class="score-icon">
+                        <i class="fas <%= attempt.passed ? 'fa-trophy' : 'fa-times-circle' %>"></i>
+                    </div>
+                    <div class="score-title">
+                        <%= attempt.passed ? 'Congratulations!' : 'Keep Practicing!' %>
+                    </div>
+                    <div class="score-value"><%= attempt.score %>%</div>
+                    <div class="score-label">
+                        <%= attempt.passed ? 'You passed the quiz!' : `You need ${quiz.passingScore}% to pass` %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="score-details">
+                <div class="score-stats-grid">
+                    <div class="score-stat total">
+                        <div class="score-stat-value total"><%= attempt.totalQuestions %></div>
+                        <div class="score-stat-label">Total Questions</div>
+                    </div>
+                    <div class="score-stat correct">
+                        <div class="score-stat-value correct"><%= attempt.correctAnswers %></div>
+                        <div class="score-stat-label">Correct</div>
+                    </div>
+                    <div class="score-stat wrong">
+                        <div class="score-stat-value wrong"><%= attempt.wrongAnswers %></div>
+                        <div class="score-stat-label">Wrong</div>
+                    </div>
+                    <div class="score-stat skipped">
+                        <div class="score-stat-value skipped"><%= attempt.skippedAnswers || 0 %></div>
+                        <div class="score-stat-label">Skipped</div>
+                    </div>
+                    <div class="score-stat time">
+                        <div class="score-stat-value time"><%= Math.floor((attempt.timeSpent || 0) / 60) %>m</div>
+                        <div class="score-stat-label">Time Spent</div>
+                    </div>
+                </div>
+
+                <!-- Best Score Card -->
+                <div class="best-score-card">
+                    <div class="best-score-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="best-score-info">
+                        <span class="best-score-label">Best Score</span>
+                        <span class="best-score-value"><%= bestScore %>%</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <% if (!attempt.passed && remainingAttempts > 0) { %>
+                        <a href="/guest/quiz/<%= quiz._id %>/details" class="action-btn primary">
+                            <i class="fas fa-redo"></i>
+                            Try Again
+                        </a>
+                    <% } %>
+                    <a href="/guest/quiz/<%= quiz._id %>/details" class="action-btn secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Quiz Details
+                    </a>
+                    <a href="/" class="action-btn secondary">
+                        <i class="fas fa-home"></i>
+                        Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Locked Notice (shown when user cannot view detailed results) -->
+        <% if (typeof canViewDetailedResults !== 'undefined' && !canViewDetailedResults) { %>
+        <div class="results-locked-section">
+            <div class="locked-notice-card">
+                <div class="locked-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h3>Detailed Results Locked</h3>
+                <p>To prevent cheating, correct answers and detailed question review are only available after you:</p>
+                <ul class="unlock-conditions">
+                    <li><i class="fas fa-check-circle"></i> Pass the quiz (score >= <%= quiz.passingScore %>%), OR</li>
+                    <li><i class="fas fa-check-circle"></i> Use all <%= maxAttempts %> attempts</li>
+                </ul>
+                <% if (remainingAttempts > 0) { %>
+                    <p class="remaining-info">
+                        <i class="fas fa-info-circle"></i>
+                        You have <strong><%= remainingAttempts %></strong> attempt<%= remainingAttempts > 1 ? 's' : '' %> remaining. Keep trying!
+                    </p>
+                    <a href="/guest/quiz/<%= quiz._id %>/start" class="action-btn primary" style="margin-top: 1rem;">
+                        <i class="fas fa-redo"></i>
+                        Try Again
+                    </a>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
+
+        <!-- Questions Review -->
+        <% if (showCorrectAnswers && questionsWithAnswers && questionsWithAnswers.length > 0) { %>
+        <div class="review-section">
+            <div class="review-header">
+                <h2>
+                    <i class="fas fa-list-check"></i>
+                    Question Review
+                </h2>
+            </div>
+            <div class="review-body">
+                <% questionsWithAnswers.forEach((item, index) => { 
+                    const isCorrect = item.isCorrect;
+                    const isSkipped = item.userAnswer === null || item.userAnswer === undefined || item.userAnswer === 'No answer provided';
+                    const statusClass = isSkipped ? 'skipped' : (isCorrect ? 'correct' : 'wrong');
+                    const statusText = isSkipped ? 'Skipped' : (isCorrect ? 'Correct' : 'Incorrect');
+                    const questionType = item.question.questionType || 'MCQ';
+                    const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                %>
+                <div class="question-review-item">
+                    <div class="question-review-header">
+                        <div class="question-review-number">
+                            <div class="question-number-badge <%= statusClass %>">
+                                <%= index + 1 %>
+                            </div>
+                            <span class="question-status <%= statusClass %>">
+                                <i class="fas <%= isSkipped ? 'fa-minus-circle' : (isCorrect ? 'fa-check-circle' : 'fa-times-circle') %>"></i>
+                                <%= statusText %>
+                            </span>
+                        </div>
+                        <span class="question-points-earned">
+                            <%= item.earnedPoints %>/<%= item.points %> points
+                        </span>
+                    </div>
+
+                    <!-- Question Type Badge -->
+                    <div class="question-type-badge">
+                        <i class="fas <%= questionType === 'MCQ' ? 'fa-list-ul' : (questionType === 'True/False' ? 'fa-toggle-on' : 'fa-pen') %>"></i>
+                        <%= questionType %>
+                    </div>
+
+                    <!-- Question Text -->
+                    <div class="question-review-text">
+                        <%- item.question.questionText %>
+                    </div>
+
+                    <!-- Question Image if exists -->
+                    <% if (item.question.image) { %>
+                    <div class="question-image-container">
+                        <img src="<%= item.question.image %>" alt="Question Image">
+                    </div>
+                    <% } %>
+
+                    <!-- MCQ/True-False Options Display -->
+                    <% if ((questionType === 'MCQ' || questionType === 'True/False') && item.question.options && item.question.options.length > 0) { %>
+                    <div class="options-grid">
+                        <% item.question.options.forEach((option, optIndex) => { 
+                            const isCorrectOption = option.isCorrect === true;
+                            const userAnswerText = item.userAnswer ? item.userAnswer.toString().trim() : '';
+                            const optionText = option.text ? option.text.toString().trim() : '';
+                            const isUserSelected = userAnswerText === optionText;
+                            
+                            let optionClass = '';
+                            if (isCorrectOption) optionClass += ' correct-option';
+                            if (isUserSelected) optionClass += ' user-selected';
+                            if (isUserSelected && !isCorrectOption) optionClass += ' wrong-option';
+                        %>
+                        <div class="option-item<%= optionClass %>">
+                            <span class="option-letter"><%= optionLetters[optIndex] %></span>
+                            <span class="option-text">
+                                <%- option.text %>
+                            </span>
+                            <% if (option.image) { %>
+                            <img src="<%= option.image %>" alt="Option Image" class="option-image">
+                            <% } %>
+                            <% if (isCorrectOption) { %>
+                            <span class="option-indicator correct">
+                                <i class="fas fa-check-circle"></i> Correct
+                            </span>
+                            <% } %>
+                            <% if (isUserSelected && !isCorrectOption) { %>
+                            <span class="option-indicator wrong">
+                                <i class="fas fa-times-circle"></i> Your Answer
+                            </span>
+                            <% } %>
+                            <% if (isUserSelected && isCorrectOption) { %>
+                            <span class="option-indicator correct">
+                                <i class="fas fa-star"></i> Your Answer
+                            </span>
+                            <% } %>
+                        </div>
+                        <% }); %>
+                    </div>
+                    <% } %>
+
+                    <!-- Written Answer Display -->
+                    <% if (questionType === 'Written') { %>
+                    <div class="written-answer-section">
+                        <% if (!isSkipped) { %>
+                        <div class="written-answer-label">Your Answer:</div>
+                        <div class="written-answer-box user-answer <%= isCorrect ? 'correct' : '' %>">
+                            <%- item.userAnswer %>
+                            <% if (isCorrect) { %>
+                            <i class="fas fa-check-circle" style="margin-left: 0.5rem; color: var(--success-color);"></i>
+                            <% } else { %>
+                            <i class="fas fa-times-circle" style="margin-left: 0.5rem; color: #ef4444;"></i>
+                            <% } %>
+                        </div>
+                        <% } else { %>
+                        <div class="written-answer-label">Your Answer:</div>
+                        <div class="written-answer-box user-answer" style="background: var(--warning-light); border-color: var(--warning-color); color: #92400e;">
+                            <i class="fas fa-minus-circle"></i> No answer provided
+                        </div>
+                        <% } %>
+
+                        <% if (!isCorrect && item.question.correctAnswer !== null) { %>
+                        <div class="written-answer-label" style="margin-top: 1rem;">Correct Answer:</div>
+                        <div class="written-answer-box correct-answer">
+                            <%- item.question.correctAnswer %>
+                            <i class="fas fa-check-circle" style="margin-left: 0.5rem;"></i>
+                        </div>
+                        <% } %>
+                    </div>
+                    <% } %>
+
+                    <% if (item.question.explanation) { %>
+                    <div class="explanation-box">
+                        <h4>
+                            <i class="fas fa-lightbulb"></i>
+                            Explanation
+                        </h4>
+                        <p><%- item.question.explanation %></p>
+                    </div>
+                    <% } %>
+                </div>
+                <% }); %>
+            </div>
+        </div>
+        <% } %>
+        </div>
+    </main>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        
+        themeToggle.addEventListener('click', () => {
+            const body = document.body;
+            const isDark = body.classList.contains('dark-theme');
+            
+            if (isDark) {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                document.cookie = 'theme=light; path=/; max-age=31536000';
+            } else {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                document.cookie = 'theme=dark; path=/; max-age=31536000';
+            }
+        });
+
+        // Render any math in the document
+        if (window.MathLive) {
+            MathLive.renderMathInDocument();
+        }
+    </script>
+</body>
+</html>

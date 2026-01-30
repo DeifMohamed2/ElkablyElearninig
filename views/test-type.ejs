@@ -39,42 +39,130 @@
     <div class="tests-grid">
       <% if (quizzes && quizzes.length > 0) { %>
         <% quizzes.forEach((quiz, index) => { %>
-        <article class="test-card-enhanced" data-aos="fade-up" data-aos-delay="<%= (index + 1) * 100 %>">
-          <div class="test-card-header">
-            <div class="test-difficulty-badge <%= quiz.difficulty %>">
-              <%= quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) %>
-            </div>
-            <div class="test-type-badge">
-              <%= quiz.testType %>
+        <article class="quiz-card-professional" data-aos="fade-up" data-aos-delay="<%= (index + 1) * 100 %>">
+          <!-- Card Header with Badges -->
+          <div class="quiz-card-header-pro">
+            <div class="quiz-badge-container">
+              <span class="quiz-difficulty-badge-pro <%= quiz.difficulty %>">
+                <i class="fas fa-signal"></i>
+                <%= quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) %>
+              </span>
+              <span class="quiz-type-badge-pro">
+                <i class="fas fa-clipboard-check"></i>
+                <%= quiz.testType %>
+              </span>
             </div>
           </div>
           
-          <div class="test-card-body">
-            <h3 class="test-title"><%= quiz.title %></h3>
-            <p class="test-description"><%= quiz.description %></p>
+          <!-- Card Media with Thumbnail -->
+          <div class="quiz-card-media-pro">
+            <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
+              <img src="<%= quiz.thumbnail.url %>" alt="<%= quiz.title %>" loading="lazy">
+            <% } else { %>
+              <div class="quiz-default-thumbnail">
+                <div class="quiz-thumbnail-icon">
+                  <i class="fas fa-brain"></i>
+                </div>
+                <div class="quiz-thumbnail-pattern"></div>
+              </div>
+            <% } %>
+            <div class="quiz-overlay-pro">
+              <div class="quiz-overlay-content">
+                <div class="quiz-quick-stats">
+                  <div class="quick-stat">
+                    <i class="fas fa-question-circle"></i>
+                    <span><%= quiz.selectedQuestions.length %> Questions</span>
+                  </div>
+                  <div class="quick-stat">
+                    <i class="fas fa-clock"></i>
+                    <span><%= quiz.duration %> Minutes</span>
+                  </div>
+                </div>
+                <% if (user) { %>
+                  <a href="/student/quiz/<%= quiz._id %>/details" class="quiz-overlay-btn">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Start Test</span>
+                  </a>
+                <% } else if (typeof guestUser !== 'undefined' && guestUser) { %>
+                  <a href="/guest/quiz/<%= quiz._id %>/details" class="quiz-overlay-btn">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Start Test</span>
+                  </a>
+                <% } else { %>
+                  <button type="button" class="quiz-overlay-btn" onclick="showGuestModal('<%= quiz._id %>')">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Start Test</span>
+                  </button>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Card Body -->
+          <div class="quiz-card-body-pro">
+            <div class="quiz-meta-pro">
+              <span class="quiz-code-pro">
+                <i class="fas fa-hashtag"></i>
+                <%= quiz.code %>
+              </span>
+              <span class="quiz-date-pro">
+                <i class="fas fa-calendar-alt"></i>
+                <%= new Date(quiz.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %>
+              </span>
+            </div>
             
-            <div class="test-stats">
-              <div class="stat-item">
-                <i class="fas fa-question-circle"></i>
-                <span><%= quiz.selectedQuestions.length %> Questions</span>
+            <h3 class="quiz-title-pro"><%= quiz.title %></h3>
+            <p class="quiz-description-pro"><%= quiz.description || 'Practice and test your knowledge with this comprehensive exam.' %></p>
+            
+            <div class="quiz-stats-pro">
+              <div class="quiz-stat-item-pro">
+                <div class="stat-icon-pro questions">
+                  <i class="fas fa-list-ol"></i>
+                </div>
+                <div class="stat-info-pro">
+                  <span class="stat-value-pro"><%= quiz.selectedQuestions.length %></span>
+                  <span class="stat-label-pro">Questions</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <i class="fas fa-clock"></i>
-                <span><%= quiz.duration %> min</span>
+              <div class="quiz-stat-item-pro">
+                <div class="stat-icon-pro time">
+                  <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="stat-info-pro">
+                  <span class="stat-value-pro"><%= quiz.duration %></span>
+                  <span class="stat-label-pro">Minutes</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <i class="fas fa-percentage"></i>
-                <span><%= quiz.passingScore %>% Pass</span>
+              <div class="quiz-stat-item-pro">
+                <div class="stat-icon-pro score">
+                  <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-info-pro">
+                  <span class="stat-value-pro"><%= quiz.passingScore %>%</span>
+                  <span class="stat-label-pro">To Pass</span>
+                </div>
               </div>
             </div>
           </div>
           
-          <div class="test-card-footer">
-            <a href="<% if (user) { %>/student/quiz/<%= quiz._id %>/details<% } else { %>/auth/login<% } %>" 
-               class="btn-test-start">
-              <span><% if (user) { %>Start Test<% } else { %>Login to Start<% } %></span>
-              <i class="fas fa-arrow-right"></i>
-            </a>
+          <!-- Card Footer -->
+          <div class="quiz-card-footer-pro">
+            <% if (user) { %>
+              <a href="/student/quiz/<%= quiz._id %>/details" class="btn-quiz-start-pro">
+                <span>Start Test</span>
+                <i class="fas fa-arrow-right"></i>
+              </a>
+            <% } else if (typeof guestUser !== 'undefined' && guestUser) { %>
+              <a href="/guest/quiz/<%= quiz._id %>/details" class="btn-quiz-start-pro guest">
+                <span>Continue as Guest</span>
+                <i class="fas fa-arrow-right"></i>
+              </a>
+            <% } else { %>
+              <button type="button" class="btn-quiz-start-pro" onclick="showGuestModal('<%= quiz._id %>')">
+                <span>Start Test</span>
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            <% } %>
           </div>
         </article>
         <% }); %>
@@ -97,6 +185,1962 @@
 
 <!-- Import index-specific CSS -->
 <link rel="stylesheet" href="/css/index.css">
+
+<!-- Professional Quiz Card Styles -->
+<style>
+  /* Tests Grid */
+  .tests-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 30px;
+    margin-top: 40px;
+  }
+  
+  /* Professional Quiz Card */
+  .quiz-card-professional {
+    background: var(--card-bg, #fff);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .quiz-card-professional:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Card Header with Badges */
+  .quiz-card-header-pro {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  
+  .quiz-badge-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .quiz-difficulty-badge-pro,
+  .quiz-type-badge-pro {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    backdrop-filter: blur(10px);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .quiz-difficulty-badge-pro {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .quiz-difficulty-badge-pro.easy {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+  
+  .quiz-difficulty-badge-pro.medium {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+  }
+  
+  .quiz-difficulty-badge-pro.hard {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+  }
+  
+  .quiz-type-badge-pro {
+    background: rgba(220, 38, 38, 0.95);
+    color: white;
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+  }
+  
+  /* Card Media */
+  .quiz-card-media-pro {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .quiz-card-media-pro img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+  
+  .quiz-card-professional:hover .quiz-card-media-pro img {
+    transform: scale(1.1);
+  }
+  
+  /* Default Thumbnail */
+  .quiz-default-thumbnail {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #7f1d1d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .quiz-thumbnail-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .quiz-thumbnail-icon i {
+    font-size: 2.5rem;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .quiz-thumbnail-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.05) 0%, transparent 30%);
+    z-index: 1;
+  }
+  
+  .quiz-thumbnail-pattern::before {
+    content: '∑ ∫ π ∞ √';
+    position: absolute;
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.1);
+    top: 20px;
+    left: 20px;
+    letter-spacing: 15px;
+  }
+  
+  .quiz-thumbnail-pattern::after {
+    content: 'α β γ θ Δ';
+    position: absolute;
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.1);
+    bottom: 20px;
+    right: 20px;
+    letter-spacing: 15px;
+  }
+  
+  /* Overlay */
+  .quiz-overlay-pro {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: all 0.4s ease;
+  }
+  
+  .quiz-card-professional:hover .quiz-overlay-pro {
+    opacity: 1;
+  }
+  
+  .quiz-overlay-content {
+    text-align: center;
+    transform: translateY(20px);
+    transition: transform 0.4s ease;
+  }
+  
+  .quiz-card-professional:hover .quiz-overlay-content {
+    transform: translateY(0);
+  }
+  
+  .quiz-quick-stats {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 15px;
+  }
+  
+  .quick-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .quick-stat i {
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  
+  .quiz-overlay-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 25px;
+    background: white;
+    color: #dc2626;
+    border: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  
+  .quiz-overlay-btn:hover {
+    background: #dc2626;
+    color: white;
+    transform: scale(1.05);
+  }
+  
+  /* Card Body */
+  .quiz-card-body-pro {
+    padding: 25px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .quiz-meta-pro {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 12px;
+  }
+  
+  .quiz-code-pro,
+  .quiz-date-pro {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    color: var(--text-muted, #64748b);
+  }
+  
+  .quiz-code-pro i,
+  .quiz-date-pro i {
+    color: #dc2626;
+    font-size: 0.75rem;
+  }
+  
+  .quiz-title-pro {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-color, #1e293b);
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .quiz-description-pro {
+    font-size: 0.9rem;
+    color: var(--text-muted, #64748b);
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+  }
+  
+  /* Stats */
+  .quiz-stats-pro {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+  }
+  
+  .quiz-stat-item-pro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 15px 10px;
+    background: var(--secondary-bg, #f8fafc);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+  
+  .quiz-stat-item-pro:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  }
+  
+  .stat-icon-pro {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+  
+  .stat-icon-pro.questions {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
+  
+  .stat-icon-pro.time {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+  }
+  
+  .stat-icon-pro.score {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  
+  .stat-info-pro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  
+  .stat-value-pro {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-color, #1e293b);
+    line-height: 1.2;
+  }
+  
+  .stat-label-pro {
+    font-size: 0.7rem;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+  
+  /* Dark theme stats */
+  .dark-theme .quiz-stat-item-pro {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .dark-theme .quiz-stat-item-pro:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  
+  /* Card Footer */
+  .quiz-card-footer-pro {
+    padding: 0 25px 25px;
+  }
+  
+  .btn-quiz-start-pro {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 25px;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .btn-quiz-start-pro::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  .btn-quiz-start-pro:hover::before {
+    left: 100%;
+  }
+  
+  .btn-quiz-start-pro:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35);
+  }
+  
+  .btn-quiz-start-pro.guest {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+  
+  .btn-quiz-start-pro.guest:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 10px 25px rgba(245, 158, 11, 0.35);
+  }
+  
+  .btn-quiz-start-pro i {
+    transition: transform 0.3s ease;
+  }
+  
+  .btn-quiz-start-pro:hover i {
+    transform: translateX(5px);
+  }
+  
+  /* No Tests Message */
+  .no-tests-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 40px;
+    background: var(--card-bg, #fff);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  }
+  
+  .no-tests-icon {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 25px;
+  }
+  
+  .no-tests-icon i {
+    font-size: 2.5rem;
+    color: white;
+  }
+  
+  .no-tests-message h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color, #1e293b);
+    margin: 0 0 10px;
+  }
+  
+  .no-tests-message p {
+    color: var(--text-muted, #64748b);
+    margin: 0 0 25px;
+  }
+  
+  /* Dark Theme */
+  .dark-theme .quiz-card-professional {
+    background: var(--card-bg, #1e293b);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+  
+  .dark-theme .quiz-card-professional:hover {
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+  }
+  
+  .dark-theme .quiz-difficulty-badge-pro:not(.easy):not(.medium):not(.hard) {
+    background: rgba(30, 41, 59, 0.95);
+    color: #f1f5f9;
+  }
+  
+  .dark-theme .quiz-stats-pro {
+    border-color: var(--border-color, #334155);
+  }
+  
+  .dark-theme .no-tests-message {
+    background: var(--card-bg, #1e293b);
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .tests-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    
+    .quiz-card-media-pro {
+      height: 180px;
+    }
+    
+    .quiz-stats-pro {
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .quiz-stat-item-pro {
+      flex: 1;
+      min-width: calc(50% - 10px);
+    }
+    
+    .stat-icon-pro {
+      width: 35px;
+      height: 35px;
+      font-size: 0.9rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .quiz-card-body-pro {
+      padding: 20px;
+    }
+    
+    .quiz-card-footer-pro {
+      padding: 0 20px 20px;
+    }
+    
+    .quiz-badge-container {
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    .quiz-quick-stats {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+</style>
+
+<!-- Guest User Modal -->
+<div class="guest-modal-overlay" id="guestModalOverlay" onclick="closeGuestModal(event)">
+  <div class="guest-modal" onclick="event.stopPropagation()">
+    <button type="button" class="guest-modal-close" onclick="closeGuestModal()">&times;</button>
+    
+    <div class="guest-modal-header">
+      <div class="guest-modal-icon">
+        <i class="fas fa-user-graduate"></i>
+      </div>
+      <h2>Ready to Take the Test?</h2>
+      <p>Choose how you'd like to proceed</p>
+    </div>
+    
+    <div class="guest-modal-options">
+      <a href="/auth/login" class="guest-option-btn login-btn">
+        <i class="fas fa-sign-in-alt"></i>
+        <span>Login to Your Account</span>
+        <small>Access all features and track your progress</small>
+      </a>
+      
+      <div class="guest-option-divider">
+        <span>or</span>
+      </div>
+      
+      <button type="button" class="guest-option-btn guest-btn" onclick="showGuestForm()">
+        <i class="fas fa-user-clock"></i>
+        <span>Continue as Guest</span>
+        <small>Take the test without creating an account</small>
+      </button>
+    </div>
+    
+    <!-- Guest Registration Form (Hidden by default) -->
+    <form class="guest-registration-form" id="guestRegistrationForm" style="display: none;">
+      <input type="hidden" id="selectedQuizId" value="">
+      
+      <div class="guest-form-header">
+        <button type="button" class="back-btn" onclick="showOptions()">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h3>Guest Information</h3>
+      </div>
+      
+      <div class="guest-form-group">
+        <label for="guestFullName">
+          <i class="fas fa-user"></i> Full Name *
+        </label>
+        <input type="text" id="guestFullName" name="fullName" required 
+               placeholder="Enter your full name" minlength="2" maxlength="100">
+      </div>
+      
+      <div class="guest-form-group">
+        <label for="guestEmail">
+          <i class="fas fa-envelope"></i> Email Address *
+        </label>
+        <input type="email" id="guestEmail" name="email" required 
+               placeholder="Enter your email address">
+      </div>
+      
+      <div class="guest-form-group">
+        <label for="guestPhone">
+          <i class="fas fa-phone"></i> Phone Number *
+        </label>
+        <div class="phone-input-group">
+          <select id="guestPhoneCountryCode" name="phoneCountryCode">
+            <option value="+20">🇪🇬 +20</option>
+            <option value="+966">🇸🇦 +966</option>
+            <option value="+971">🇦🇪 +971</option>
+            <option value="+965">🇰🇼 +965</option>
+            <option value="+974">🇶🇦 +974</option>
+            <option value="+973">🇧🇭 +973</option>
+            <option value="+968">🇴🇲 +968</option>
+            <option value="+962">🇯🇴 +962</option>
+            <option value="+961">🇱🇧 +961</option>
+            <option value="+963">🇸🇾 +963</option>
+            <option value="+964">🇮🇶 +964</option>
+            <option value="+967">🇾🇪 +967</option>
+            <option value="+970">🇵🇸 +970</option>
+            <option value="+212">🇲🇦 +212</option>
+            <option value="+213">🇩🇿 +213</option>
+            <option value="+216">🇹🇳 +216</option>
+            <option value="+218">🇱🇾 +218</option>
+            <option value="+249">🇸🇩 +249</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+33">🇫🇷 +33</option>
+            <option value="+49">🇩🇪 +49</option>
+            <option value="+39">🇮🇹 +39</option>
+            <option value="+34">🇪🇸 +34</option>
+            <option value="+31">🇳🇱 +31</option>
+            <option value="+32">🇧🇪 +32</option>
+            <option value="+41">🇨🇭 +41</option>
+            <option value="+43">🇦🇹 +43</option>
+            <option value="+46">🇸🇪 +46</option>
+            <option value="+47">🇳🇴 +47</option>
+            <option value="+45">🇩🇰 +45</option>
+            <option value="+358">🇫🇮 +358</option>
+            <option value="+48">🇵🇱 +48</option>
+            <option value="+30">🇬🇷 +30</option>
+            <option value="+351">🇵🇹 +351</option>
+            <option value="+353">🇮🇪 +353</option>
+            <option value="+90">🇹🇷 +90</option>
+            <option value="+7">🇷🇺 +7</option>
+            <option value="+1">🇺🇸 +1</option>
+            <option value="+1">🇨🇦 +1</option>
+            <option value="+52">🇲🇽 +52</option>
+            <option value="+55">🇧🇷 +55</option>
+            <option value="+54">🇦🇷 +54</option>
+            <option value="+57">🇨🇴 +57</option>
+            <option value="+56">🇨🇱 +56</option>
+            <option value="+91">🇮🇳 +91</option>
+            <option value="+92">🇵🇰 +92</option>
+            <option value="+86">🇨🇳 +86</option>
+            <option value="+81">🇯🇵 +81</option>
+            <option value="+82">🇰🇷 +82</option>
+            <option value="+60">🇲🇾 +60</option>
+            <option value="+65">🇸🇬 +65</option>
+            <option value="+62">🇮🇩 +62</option>
+            <option value="+63">🇵🇭 +63</option>
+            <option value="+66">🇹🇭 +66</option>
+            <option value="+84">🇻🇳 +84</option>
+            <option value="+880">🇧🇩 +880</option>
+            <option value="+234">🇳🇬 +234</option>
+            <option value="+27">🇿🇦 +27</option>
+            <option value="+254">🇰🇪 +254</option>
+            <option value="+233">🇬🇭 +233</option>
+            <option value="+251">🇪🇹 +251</option>
+            <option value="+61">🇦🇺 +61</option>
+            <option value="+64">🇳🇿 +64</option>
+          </select>
+          <input type="tel" id="guestPhone" name="phone" required 
+                 placeholder="Phone number" pattern="[0-9]{8,15}">
+        </div>
+      </div>
+      
+      <div class="guest-form-group">
+        <label for="guestParentPhone">
+          <i class="fas fa-phone-alt"></i> Parent Phone Number *
+        </label>
+        <div class="phone-input-group">
+          <select id="guestParentPhoneCountryCode" name="parentPhoneCountryCode">
+            <option value="+20">🇪🇬 +20</option>
+            <option value="+966">🇸🇦 +966</option>
+            <option value="+971">🇦🇪 +971</option>
+            <option value="+965">🇰🇼 +965</option>
+            <option value="+974">🇶🇦 +974</option>
+            <option value="+973">🇧🇭 +973</option>
+            <option value="+968">🇴🇲 +968</option>
+            <option value="+962">🇯🇴 +962</option>
+            <option value="+961">🇱🇧 +961</option>
+            <option value="+963">🇸🇾 +963</option>
+            <option value="+964">🇮🇶 +964</option>
+            <option value="+967">🇾🇪 +967</option>
+            <option value="+970">🇵🇸 +970</option>
+            <option value="+212">🇲🇦 +212</option>
+            <option value="+213">🇩🇿 +213</option>
+            <option value="+216">🇹🇳 +216</option>
+            <option value="+218">🇱🇾 +218</option>
+            <option value="+249">🇸🇩 +249</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+33">🇫🇷 +33</option>
+            <option value="+49">🇩🇪 +49</option>
+            <option value="+39">🇮🇹 +39</option>
+            <option value="+34">🇪🇸 +34</option>
+            <option value="+31">🇳🇱 +31</option>
+            <option value="+32">🇧🇪 +32</option>
+            <option value="+41">🇨🇭 +41</option>
+            <option value="+43">🇦🇹 +43</option>
+            <option value="+46">🇸🇪 +46</option>
+            <option value="+47">🇳🇴 +47</option>
+            <option value="+45">🇩🇰 +45</option>
+            <option value="+358">🇫🇮 +358</option>
+            <option value="+48">🇵🇱 +48</option>
+            <option value="+30">🇬🇷 +30</option>
+            <option value="+351">🇵🇹 +351</option>
+            <option value="+353">🇮🇪 +353</option>
+            <option value="+90">🇹🇷 +90</option>
+            <option value="+7">🇷🇺 +7</option>
+            <option value="+1">🇺🇸 +1</option>
+            <option value="+1">🇨🇦 +1</option>
+            <option value="+52">🇲🇽 +52</option>
+            <option value="+55">🇧🇷 +55</option>
+            <option value="+54">🇦🇷 +54</option>
+            <option value="+57">🇨🇴 +57</option>
+            <option value="+56">🇨🇱 +56</option>
+            <option value="+91">🇮🇳 +91</option>
+            <option value="+92">🇵🇰 +92</option>
+            <option value="+86">🇨🇳 +86</option>
+            <option value="+81">🇯🇵 +81</option>
+            <option value="+82">🇰🇷 +82</option>
+            <option value="+60">🇲🇾 +60</option>
+            <option value="+65">🇸🇬 +65</option>
+            <option value="+62">🇮🇩 +62</option>
+            <option value="+63">🇵🇭 +63</option>
+            <option value="+66">🇹🇭 +66</option>
+            <option value="+84">🇻🇳 +84</option>
+            <option value="+880">🇧🇩 +880</option>
+            <option value="+234">🇳🇬 +234</option>
+            <option value="+27">🇿🇦 +27</option>
+            <option value="+254">🇰🇪 +254</option>
+            <option value="+233">🇬🇭 +233</option>
+            <option value="+251">🇪🇹 +251</option>
+            <option value="+61">🇦🇺 +61</option>
+            <option value="+64">🇳🇿 +64</option>
+          </select>
+          <input type="tel" id="guestParentPhone" name="parentPhone" required 
+                 placeholder="Parent phone number" pattern="[0-9]{8,15}">
+        </div>
+      </div>
+      
+      <div class="guest-form-actions">
+        <button type="submit" class="guest-submit-btn" id="guestSubmitBtn">
+          <i class="fas fa-play-circle"></i>
+          <span>Start Test</span>
+        </button>
+      </div>
+      
+      <div class="guest-form-note">
+        <i class="fas fa-info-circle"></i>
+        <small>Your information will be used to track your test results. You can view your results anytime using the same email.</small>
+      </div>
+    </form>
+    
+    <div class="guest-modal-footer">
+      <p>Don't have an account? <a href="/auth/register">Register now</a></p>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Guest Modal Styles */
+  .guest-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  .guest-modal-overlay.active {
+    display: flex;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .guest-modal {
+    background: var(--card-bg, #fff);
+    border-radius: 20px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.3s ease;
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  .guest-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted, #666);
+    transition: color 0.3s ease;
+    z-index: 1;
+  }
+  
+  .guest-modal-close:hover {
+    color: var(--primary-color, #dc2626);
+  }
+  
+  .guest-modal-header {
+    text-align: center;
+    padding: 30px 30px 20px;
+    border-bottom: 1px solid var(--border-color, #eee);
+  }
+  
+  .guest-modal-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+  }
+  
+  .guest-modal-icon i {
+    font-size: 2rem;
+    color: white;
+  }
+  
+  .guest-modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color, #1e293b);
+    margin: 0 0 8px;
+  }
+  
+  .guest-modal-header p {
+    color: var(--text-muted, #64748b);
+    margin: 0;
+  }
+  
+  .guest-modal-options {
+    padding: 30px;
+  }
+  
+  .guest-option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 20px;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    background: var(--card-bg, #fff);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .guest-option-btn:hover {
+    border-color: var(--primary-color, #dc2626);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .guest-option-btn.login-btn:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+  }
+  
+  .guest-option-btn i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: var(--primary-color, #dc2626);
+  }
+  
+  .guest-option-btn.login-btn:hover i {
+    color: white;
+  }
+  
+  .guest-option-btn span {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  
+  .guest-option-btn small {
+    color: var(--text-muted, #64748b);
+    font-size: 0.85rem;
+  }
+  
+  .guest-option-btn.login-btn:hover small {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .guest-option-divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+  }
+  
+  .guest-option-divider::before,
+  .guest-option-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color, #e2e8f0);
+  }
+  
+  .guest-option-divider span {
+    padding: 0 15px;
+    color: var(--text-muted, #64748b);
+    font-size: 0.9rem;
+  }
+  
+  /* Guest Registration Form */
+  .guest-registration-form {
+    padding: 30px;
+  }
+  
+  .guest-form-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+  
+  .guest-form-header .back-btn {
+    background: var(--secondary-bg, #f1f5f9);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+  
+  .guest-form-header .back-btn:hover {
+    background: var(--primary-color, #dc2626);
+    color: white;
+  }
+  
+  .guest-form-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-color, #1e293b);
+  }
+  
+  .guest-form-group {
+    margin-bottom: 20px;
+  }
+  
+  .guest-form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    color: var(--text-color, #1e293b);
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  
+  .guest-form-group label i {
+    color: var(--primary-color, #dc2626);
+    font-size: 0.9rem;
+  }
+  
+  .guest-form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--input-bg, #fff);
+    color: var(--text-color, #1e293b);
+  }
+  
+  .guest-form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color, #dc2626);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+  
+  .phone-input-group {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .phone-input-group select {
+    width: 120px;
+    padding: 12px;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-color, #1e293b);
+    cursor: pointer;
+  }
+  
+  .phone-input-group select:focus {
+    outline: none;
+    border-color: var(--primary-color, #dc2626);
+  }
+  
+  .phone-input-group input {
+    flex: 1;
+  }
+  
+  .guest-form-actions {
+    margin-top: 25px;
+  }
+  
+  .guest-submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+  }
+  
+  .guest-submit-btn:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+  }
+  
+  .guest-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .guest-form-note {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--secondary-bg, #f1f5f9);
+    border-radius: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .guest-form-note i {
+    color: var(--primary-color, #dc2626);
+    margin-top: 2px;
+  }
+  
+  .guest-form-note small {
+    color: var(--text-muted, #64748b);
+    line-height: 1.5;
+  }
+  
+  .guest-modal-footer {
+    text-align: center;
+    padding: 20px 30px;
+    border-top: 1px solid var(--border-color, #eee);
+    background: var(--secondary-bg, #f8fafc);
+    border-radius: 0 0 20px 20px;
+  }
+  
+  .guest-modal-footer p {
+    margin: 0;
+    color: var(--text-muted, #64748b);
+  }
+  
+  .guest-modal-footer a {
+    color: var(--primary-color, #dc2626);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  
+  .guest-modal-footer a:hover {
+    text-decoration: underline;
+  }
+  
+  /* Dark theme adjustments */
+  .dark-theme .guest-modal {
+    background: var(--card-bg, #1e293b);
+  }
+  
+  .dark-theme .guest-modal-header {
+    border-color: var(--border-color, #334155);
+  }
+  
+  .dark-theme .guest-modal-footer {
+    background: var(--secondary-bg, #0f172a);
+    border-color: var(--border-color, #334155);
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 576px) {
+    .guest-modal {
+      margin: 10px;
+      max-height: calc(100vh - 20px);
+    }
+    
+    .guest-modal-header {
+      padding: 20px;
+    }
+    
+    .guest-modal-options,
+    .guest-registration-form {
+      padding: 20px;
+    }
+    
+    .phone-input-group {
+      flex-direction: column;
+    }
+    
+    .phone-input-group select {
+      width: 100%;
+    }
+  }
+  
+  /* ============================================ */
+  /* Field Validation Error/Success Styling */
+  /* ============================================ */
+  
+  /* Field Error Message Styling */
+  .field-error-message {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 0.85rem;
+    font-weight: 500;
+    animation: slideInError 0.3s ease;
+  }
+  
+  .field-error-message i {
+    color: #dc2626;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  
+  @keyframes slideInError {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Valid field styling */
+  .guest-form-group input.is-valid,
+  .guest-form-group input.is-valid:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+  
+  /* Invalid field styling */
+  .guest-form-group input.is-invalid {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+  
+  .guest-form-group input.is-invalid:focus {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+  }
+  
+  /* Phone input group validation */
+  .phone-input-group.has-error {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+  
+  .phone-input-group.has-success {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+  
+  .phone-input-group.has-error input,
+  .phone-input-group.has-error select {
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  .phone-input-group.has-success input,
+  .phone-input-group.has-success select {
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  /* Disabled button styling */
+  .guest-submit-btn.btn-disabled,
+  .guest-submit-btn:disabled {
+    background: linear-gradient(135deg, #9ca3af, #6b7280) !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  .guest-submit-btn.btn-disabled:hover,
+  .guest-submit-btn:disabled:hover {
+    background: linear-gradient(135deg, #9ca3af, #6b7280) !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Dark theme error messages */
+  .dark-theme .field-error-message {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(185, 28, 28, 0.15));
+    border-color: rgba(220, 38, 38, 0.3);
+    color: #fca5a5;
+  }
+  
+  .dark-theme .field-error-message i {
+    color: #f87171;
+  }
+  
+  .dark-theme .guest-form-group input.is-invalid {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+  }
+  
+  .dark-theme .guest-form-group input.is-valid {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+  
+  .dark-theme .phone-input-group.has-error {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+  }
+  
+  .dark-theme .phone-input-group.has-success {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+  
+  /* Smooth transitions for validation */
+  .guest-form-group input,
+  .phone-input-group {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  /* Phone digit counter hint */
+  .phone-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+  }
+  
+  .phone-hint.error {
+    color: #dc2626;
+  }
+  
+  .phone-hint.success {
+    color: #10b981;
+  }
+</style>
+
+<script>
+  let selectedQuizId = null;
+  
+  // ============================================
+  // Phone Length Standards Configuration
+  // ============================================
+  const phoneLengthStandards = {
+    '+966': 9,  // Saudi Arabia: 9 digits
+    '+20': 11,  // Egypt: 11 digits (including leading 0)
+    '+971': 9,  // UAE: 9 digits
+    '+965': 8,  // Kuwait: 8 digits
+    '+1': 10,   // US/Canada: 10 digits
+    '+44': 10,  // UK: 10 digits
+    '+91': 10,  // India: 10 digits
+    '+86': 11,  // China: 11 digits
+    '+81': 10,  // Japan: 10 digits
+    '+49': 11,  // Germany: 11 digits
+    '+33': 9,   // France: 9 digits
+    '+39': 10,  // Italy: 10 digits
+    '+34': 9,   // Spain: 9 digits
+    '+7': 10,   // Russia/Kazakhstan: 10 digits
+    '+82': 10,  // South Korea: 10 digits
+    '+61': 9,   // Australia: 9 digits
+    '+55': 11,  // Brazil: 11 digits
+    '+52': 10,  // Mexico: 10 digits
+    '+27': 9,   // South Africa: 9 digits
+    '+90': 10,  // Turkey: 10 digits
+    '+92': 10,  // Pakistan: 10 digits
+    '+62': 10,  // Indonesia: 10 digits
+    '+63': 10,  // Philippines: 10 digits
+    '+84': 10,  // Vietnam: 10 digits
+    '+66': 9,   // Thailand: 9 digits
+    '+60': 9,   // Malaysia: 9 digits
+    '+65': 8,   // Singapore: 8 digits
+    '+64': 8,   // New Zealand: 8 digits
+    '+31': 9,   // Netherlands: 9 digits
+    '+32': 9,   // Belgium: 9 digits
+    '+41': 9,   // Switzerland: 9 digits
+    '+46': 9,   // Sweden: 9 digits
+    '+47': 8,   // Norway: 8 digits
+    '+45': 8,   // Denmark: 8 digits
+    '+358': 9,  // Finland: 9 digits
+    '+351': 9,  // Portugal: 9 digits
+    '+30': 10,  // Greece: 10 digits
+    '+48': 9,   // Poland: 9 digits
+    '+353': 9,  // Ireland: 9 digits
+    '+961': 8,  // Lebanon: 8 digits
+    '+962': 9,  // Jordan: 9 digits
+    '+974': 8,  // Qatar: 8 digits
+    '+968': 8,  // Oman: 8 digits
+    '+973': 8,  // Bahrain: 8 digits
+    '+212': 9,  // Morocco: 9 digits
+    '+213': 9,  // Algeria: 9 digits
+    '+216': 8,  // Tunisia: 8 digits
+    '+218': 9,  // Libya: 9 digits
+    '+234': 10, // Nigeria: 10 digits
+    '+254': 9,  // Kenya: 9 digits
+    '+233': 9,  // Ghana: 9 digits
+    '+251': 9,  // Ethiopia: 9 digits
+    '+880': 10, // Bangladesh: 10 digits
+    '+963': 9,  // Syria: 9 digits
+    '+964': 10, // Iraq: 10 digits
+    '+967': 9,  // Yemen: 9 digits
+    '+970': 9,  // Palestine: 9 digits
+    '+249': 9   // Sudan: 9 digits
+  };
+  
+  // Default phone length range for countries not in the list
+  const DEFAULT_MIN_PHONE_LENGTH = 7;
+  const DEFAULT_MAX_PHONE_LENGTH = 15;
+  
+  // Country names for display
+  const countryNames = {
+    '+20': 'Egypt',
+    '+966': 'Saudi Arabia',
+    '+971': 'UAE',
+    '+965': 'Kuwait',
+    '+974': 'Qatar',
+    '+973': 'Bahrain',
+    '+968': 'Oman',
+    '+962': 'Jordan',
+    '+961': 'Lebanon',
+    '+963': 'Syria',
+    '+964': 'Iraq',
+    '+967': 'Yemen',
+    '+970': 'Palestine',
+    '+212': 'Morocco',
+    '+213': 'Algeria',
+    '+216': 'Tunisia',
+    '+218': 'Libya',
+    '+249': 'Sudan',
+    '+44': 'UK',
+    '+33': 'France',
+    '+49': 'Germany',
+    '+39': 'Italy',
+    '+34': 'Spain',
+    '+31': 'Netherlands',
+    '+32': 'Belgium',
+    '+41': 'Switzerland',
+    '+43': 'Austria',
+    '+46': 'Sweden',
+    '+47': 'Norway',
+    '+45': 'Denmark',
+    '+358': 'Finland',
+    '+48': 'Poland',
+    '+30': 'Greece',
+    '+351': 'Portugal',
+    '+353': 'Ireland',
+    '+90': 'Turkey',
+    '+7': 'Russia',
+    '+1': 'US/Canada',
+    '+52': 'Mexico',
+    '+55': 'Brazil',
+    '+54': 'Argentina',
+    '+57': 'Colombia',
+    '+56': 'Chile',
+    '+91': 'India',
+    '+92': 'Pakistan',
+    '+86': 'China',
+    '+81': 'Japan',
+    '+82': 'South Korea',
+    '+60': 'Malaysia',
+    '+65': 'Singapore',
+    '+62': 'Indonesia',
+    '+63': 'Philippines',
+    '+66': 'Thailand',
+    '+84': 'Vietnam',
+    '+880': 'Bangladesh',
+    '+234': 'Nigeria',
+    '+27': 'South Africa',
+    '+254': 'Kenya',
+    '+233': 'Ghana',
+    '+251': 'Ethiopia',
+    '+61': 'Australia',
+    '+64': 'New Zealand'
+  };
+
+  // ============================================
+  // DOM Elements
+  // ============================================
+  const guestForm = document.getElementById('guestRegistrationForm');
+  const guestFullNameInput = document.getElementById('guestFullName');
+  const guestEmailInput = document.getElementById('guestEmail');
+  const guestPhoneInput = document.getElementById('guestPhone');
+  const guestPhoneCountrySelect = document.getElementById('guestPhoneCountryCode');
+  const guestParentPhoneInput = document.getElementById('guestParentPhone');
+  const guestParentPhoneCountrySelect = document.getElementById('guestParentPhoneCountryCode');
+  const guestSubmitBtn = document.getElementById('guestSubmitBtn');
+  
+  // Track touched fields
+  const touchedGuestFields = new Set();
+  
+  // ============================================
+  // Utility Functions
+  // ============================================
+  function showFieldError(input, message) {
+    const formGroup = input.closest('.guest-form-group');
+    if (!formGroup) return;
+    
+    // Remove existing error
+    const existingError = formGroup.querySelector('.field-error-message');
+    if (existingError) existingError.remove();
+    
+    // Add error class
+    input.classList.add('is-invalid');
+    input.classList.remove('is-valid');
+    
+    // Handle phone input group
+    const phoneGroup = input.closest('.phone-input-group');
+    if (phoneGroup) {
+      phoneGroup.classList.add('has-error');
+      phoneGroup.classList.remove('has-success');
+    }
+    
+    // Create error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'field-error-message';
+    errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+    formGroup.appendChild(errorDiv);
+  }
+  
+  function showFieldSuccess(input) {
+    const formGroup = input.closest('.guest-form-group');
+    if (!formGroup) return;
+    
+    // Remove existing error
+    const existingError = formGroup.querySelector('.field-error-message');
+    if (existingError) existingError.remove();
+    
+    // Add success class
+    input.classList.remove('is-invalid');
+    input.classList.add('is-valid');
+    
+    // Handle phone input group
+    const phoneGroup = input.closest('.phone-input-group');
+    if (phoneGroup) {
+      phoneGroup.classList.remove('has-error');
+      phoneGroup.classList.add('has-success');
+    }
+  }
+  
+  function clearFieldValidation(input) {
+    const formGroup = input.closest('.guest-form-group');
+    if (!formGroup) return;
+    
+    const existingError = formGroup.querySelector('.field-error-message');
+    if (existingError) existingError.remove();
+    
+    input.classList.remove('is-invalid', 'is-valid');
+    
+    const phoneGroup = input.closest('.phone-input-group');
+    if (phoneGroup) {
+      phoneGroup.classList.remove('has-error', 'has-success');
+    }
+  }
+  
+  function getPhoneExpectedLength(countryCode) {
+    return phoneLengthStandards[countryCode] || null;
+  }
+  
+  function getCountryName(countryCode) {
+    return countryNames[countryCode] || countryCode;
+  }
+  
+  // ============================================
+  // Validation Functions
+  // ============================================
+  function validateGuestFullName() {
+    const value = guestFullNameInput.value.trim();
+    
+    if (!value) {
+      return { valid: false, message: 'Full name is required' };
+    }
+    
+    if (value.length < 2) {
+      return { valid: false, message: 'Name must be at least 2 characters' };
+    }
+    
+    if (value.length > 100) {
+      return { valid: false, message: 'Name must be less than 100 characters' };
+    }
+    
+    // Check for at least 2 words (first and last name)
+    const words = value.split(/\s+/).filter(w => w.length > 0);
+    if (words.length < 2) {
+      return { valid: false, message: 'Please enter your full name (first and last name)' };
+    }
+    
+    // Check for valid characters (letters, spaces, hyphens, apostrophes)
+    const nameRegex = /^[\u0600-\u06FFa-zA-Z\s'-]+$/;
+    if (!nameRegex.test(value)) {
+      return { valid: false, message: 'Name can only contain letters, spaces, hyphens, and apostrophes' };
+    }
+    
+    return { valid: true };
+  }
+  
+  function validateGuestEmail() {
+    const value = guestEmailInput.value.trim();
+    
+    if (!value) {
+      return { valid: false, message: 'Email address is required' };
+    }
+    
+    // Email regex validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      return { valid: false, message: 'Please enter a valid email address' };
+    }
+    
+    if (value.length > 254) {
+      return { valid: false, message: 'Email address is too long' };
+    }
+    
+    return { valid: true };
+  }
+  
+  function validateGuestPhone() {
+    const phoneNumber = guestPhoneInput.value.replace(/[^\d]/g, '');
+    const countryCode = guestPhoneCountrySelect.value;
+    const expectedLength = getPhoneExpectedLength(countryCode);
+    const countryName = getCountryName(countryCode);
+    
+    if (!phoneNumber) {
+      return { valid: false, message: 'Phone number is required' };
+    }
+    
+    // Check for only digits
+    if (!/^\d+$/.test(phoneNumber)) {
+      return { valid: false, message: 'Phone number can only contain digits' };
+    }
+    
+    if (expectedLength) {
+      if (phoneNumber.length < expectedLength) {
+        const remaining = expectedLength - phoneNumber.length;
+        return { 
+          valid: false, 
+          message: `Phone number must be ${expectedLength} digits for ${countryName} (${remaining} more digit${remaining > 1 ? 's' : ''} needed)` 
+        };
+      }
+      if (phoneNumber.length > expectedLength) {
+        return { 
+          valid: false, 
+          message: `Phone number must be exactly ${expectedLength} digits for ${countryName} (currently ${phoneNumber.length} digits)` 
+        };
+      }
+    } else {
+      if (phoneNumber.length < DEFAULT_MIN_PHONE_LENGTH) {
+        return { valid: false, message: `Phone number must be at least ${DEFAULT_MIN_PHONE_LENGTH} digits` };
+      }
+      if (phoneNumber.length > DEFAULT_MAX_PHONE_LENGTH) {
+        return { valid: false, message: `Phone number must be at most ${DEFAULT_MAX_PHONE_LENGTH} digits` };
+      }
+    }
+    
+    // Check if student and parent phones are the same
+    const parentPhone = guestParentPhoneInput.value.replace(/[^\d]/g, '');
+    const parentCountryCode = guestParentPhoneCountrySelect.value;
+    if (phoneNumber && parentPhone && phoneNumber === parentPhone && countryCode === parentCountryCode) {
+      return { valid: false, message: 'Student and parent phone numbers cannot be the same' };
+    }
+    
+    return { valid: true };
+  }
+  
+  function validateGuestParentPhone() {
+    const phoneNumber = guestParentPhoneInput.value.replace(/[^\d]/g, '');
+    const countryCode = guestParentPhoneCountrySelect.value;
+    const expectedLength = getPhoneExpectedLength(countryCode);
+    const countryName = getCountryName(countryCode);
+    
+    if (!phoneNumber) {
+      return { valid: false, message: 'Parent phone number is required' };
+    }
+    
+    // Check for only digits
+    if (!/^\d+$/.test(phoneNumber)) {
+      return { valid: false, message: 'Phone number can only contain digits' };
+    }
+    
+    if (expectedLength) {
+      if (phoneNumber.length < expectedLength) {
+        const remaining = expectedLength - phoneNumber.length;
+        return { 
+          valid: false, 
+          message: `Parent phone must be ${expectedLength} digits for ${countryName} (${remaining} more digit${remaining > 1 ? 's' : ''} needed)` 
+        };
+      }
+      if (phoneNumber.length > expectedLength) {
+        return { 
+          valid: false, 
+          message: `Parent phone must be exactly ${expectedLength} digits for ${countryName} (currently ${phoneNumber.length} digits)` 
+        };
+      }
+    } else {
+      if (phoneNumber.length < DEFAULT_MIN_PHONE_LENGTH) {
+        return { valid: false, message: `Parent phone must be at least ${DEFAULT_MIN_PHONE_LENGTH} digits` };
+      }
+      if (phoneNumber.length > DEFAULT_MAX_PHONE_LENGTH) {
+        return { valid: false, message: `Parent phone must be at most ${DEFAULT_MAX_PHONE_LENGTH} digits` };
+      }
+    }
+    
+    // Check if student and parent phones are the same
+    const studentPhone = guestPhoneInput.value.replace(/[^\d]/g, '');
+    const studentCountryCode = guestPhoneCountrySelect.value;
+    if (phoneNumber && studentPhone && phoneNumber === studentPhone && countryCode === studentCountryCode) {
+      return { valid: false, message: 'Parent and student phone numbers cannot be the same' };
+    }
+    
+    return { valid: true };
+  }
+  
+  function validateAndShowField(input, validateFn) {
+    const result = validateFn();
+    if (result.valid) {
+      showFieldSuccess(input);
+    } else {
+      showFieldError(input, result.message);
+    }
+    return result.valid;
+  }
+  
+  function validateAllGuestFields() {
+    let allValid = true;
+    
+    const nameResult = validateGuestFullName();
+    if (!nameResult.valid) {
+      showFieldError(guestFullNameInput, nameResult.message);
+      allValid = false;
+    } else {
+      showFieldSuccess(guestFullNameInput);
+    }
+    
+    const emailResult = validateGuestEmail();
+    if (!emailResult.valid) {
+      showFieldError(guestEmailInput, emailResult.message);
+      allValid = false;
+    } else {
+      showFieldSuccess(guestEmailInput);
+    }
+    
+    const phoneResult = validateGuestPhone();
+    if (!phoneResult.valid) {
+      showFieldError(guestPhoneInput, phoneResult.message);
+      allValid = false;
+    } else {
+      showFieldSuccess(guestPhoneInput);
+    }
+    
+    const parentPhoneResult = validateGuestParentPhone();
+    if (!parentPhoneResult.valid) {
+      showFieldError(guestParentPhoneInput, parentPhoneResult.message);
+      allValid = false;
+    } else {
+      showFieldSuccess(guestParentPhoneInput);
+    }
+    
+    return allValid;
+  }
+  
+  function updateSubmitButtonState() {
+    const nameValid = validateGuestFullName().valid;
+    const emailValid = validateGuestEmail().valid;
+    const phoneValid = validateGuestPhone().valid;
+    const parentPhoneValid = validateGuestParentPhone().valid;
+    
+    const allValid = nameValid && emailValid && phoneValid && parentPhoneValid;
+    
+    if (allValid) {
+      guestSubmitBtn.disabled = false;
+      guestSubmitBtn.classList.remove('btn-disabled');
+    } else {
+      guestSubmitBtn.disabled = true;
+      guestSubmitBtn.classList.add('btn-disabled');
+    }
+    
+    return allValid;
+  }
+  
+  // ============================================
+  // Event Listeners for Validation
+  // ============================================
+  
+  // Full Name validation
+  guestFullNameInput.addEventListener('input', function() {
+    touchedGuestFields.add('fullName');
+    if (touchedGuestFields.has('fullName')) {
+      validateAndShowField(this, validateGuestFullName);
+    }
+    updateSubmitButtonState();
+  });
+  
+  guestFullNameInput.addEventListener('blur', function() {
+    touchedGuestFields.add('fullName');
+    validateAndShowField(this, validateGuestFullName);
+    updateSubmitButtonState();
+  });
+  
+  // Email validation
+  guestEmailInput.addEventListener('input', function() {
+    touchedGuestFields.add('email');
+    if (touchedGuestFields.has('email')) {
+      validateAndShowField(this, validateGuestEmail);
+    }
+    updateSubmitButtonState();
+  });
+  
+  guestEmailInput.addEventListener('blur', function() {
+    touchedGuestFields.add('email');
+    validateAndShowField(this, validateGuestEmail);
+    updateSubmitButtonState();
+  });
+  
+  // Phone validation - only allow digits
+  guestPhoneInput.addEventListener('input', function(e) {
+    // Remove non-digit characters
+    this.value = this.value.replace(/[^\d]/g, '');
+    
+    touchedGuestFields.add('phone');
+    if (touchedGuestFields.has('phone')) {
+      validateAndShowField(this, validateGuestPhone);
+      // Also revalidate parent phone in case of duplicate check
+      if (touchedGuestFields.has('parentPhone')) {
+        validateAndShowField(guestParentPhoneInput, validateGuestParentPhone);
+      }
+    }
+    updateSubmitButtonState();
+  });
+  
+  guestPhoneInput.addEventListener('blur', function() {
+    touchedGuestFields.add('phone');
+    validateAndShowField(this, validateGuestPhone);
+    updateSubmitButtonState();
+  });
+  
+  // Phone country code change
+  guestPhoneCountrySelect.addEventListener('change', function() {
+    touchedGuestFields.add('phone');
+    if (guestPhoneInput.value) {
+      validateAndShowField(guestPhoneInput, validateGuestPhone);
+    }
+    updateSubmitButtonState();
+  });
+  
+  // Parent Phone validation - only allow digits
+  guestParentPhoneInput.addEventListener('input', function(e) {
+    // Remove non-digit characters
+    this.value = this.value.replace(/[^\d]/g, '');
+    
+    touchedGuestFields.add('parentPhone');
+    if (touchedGuestFields.has('parentPhone')) {
+      validateAndShowField(this, validateGuestParentPhone);
+      // Also revalidate student phone in case of duplicate check
+      if (touchedGuestFields.has('phone')) {
+        validateAndShowField(guestPhoneInput, validateGuestPhone);
+      }
+    }
+    updateSubmitButtonState();
+  });
+  
+  guestParentPhoneInput.addEventListener('blur', function() {
+    touchedGuestFields.add('parentPhone');
+    validateAndShowField(this, validateGuestParentPhone);
+    updateSubmitButtonState();
+  });
+  
+  // Parent Phone country code change
+  guestParentPhoneCountrySelect.addEventListener('change', function() {
+    touchedGuestFields.add('parentPhone');
+    if (guestParentPhoneInput.value) {
+      validateAndShowField(guestParentPhoneInput, validateGuestParentPhone);
+    }
+    updateSubmitButtonState();
+  });
+  
+  // ============================================
+  // Modal Functions
+  // ============================================
+  function showGuestModal(quizId) {
+    selectedQuizId = quizId;
+    document.getElementById('selectedQuizId').value = quizId;
+    document.getElementById('guestModalOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Reset form and validation
+    guestForm.reset();
+    touchedGuestFields.clear();
+    clearFieldValidation(guestFullNameInput);
+    clearFieldValidation(guestEmailInput);
+    clearFieldValidation(guestPhoneInput);
+    clearFieldValidation(guestParentPhoneInput);
+    guestSubmitBtn.disabled = true;
+    guestSubmitBtn.classList.add('btn-disabled');
+    
+    // Reset to options view
+    showOptions();
+  }
+  
+  function closeGuestModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('guestModalOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  function showGuestForm() {
+    document.querySelector('.guest-modal-options').style.display = 'none';
+    document.querySelector('.guest-modal-header').style.display = 'none';
+    document.getElementById('guestRegistrationForm').style.display = 'block';
+  }
+  
+  function showOptions() {
+    document.querySelector('.guest-modal-options').style.display = 'block';
+    document.querySelector('.guest-modal-header').style.display = 'block';
+    document.getElementById('guestRegistrationForm').style.display = 'none';
+  }
+  
+  // ============================================
+  // Form Submission
+  // ============================================
+  document.getElementById('guestRegistrationForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Validate all fields before submission
+    if (!validateAllGuestFields()) {
+      // Focus on first invalid field
+      const firstError = guestForm.querySelector('.is-invalid');
+      if (firstError) {
+        firstError.focus();
+      }
+      return;
+    }
+    
+    const submitBtn = document.getElementById('guestSubmitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Processing...</span>';
+    
+    const formData = {
+      fullName: document.getElementById('guestFullName').value.trim(),
+      email: document.getElementById('guestEmail').value.trim(),
+      phone: document.getElementById('guestPhone').value.trim(),
+      phoneCountryCode: document.getElementById('guestPhoneCountryCode').value,
+      parentPhone: document.getElementById('guestParentPhone').value.trim(),
+      parentPhoneCountryCode: document.getElementById('guestParentPhoneCountryCode').value,
+    };
+    
+    try {
+      const response = await fetch('/guest/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Redirect to quiz details page
+        window.location.href = `/guest/quiz/${selectedQuizId}/details`;
+      } else {
+        alert(result.message || 'Registration failed. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('An error occurred. Please try again.');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  });
+  
+  // Close modal on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeGuestModal();
+    }
+  });
+  
+  // Initialize submit button state
+  document.addEventListener('DOMContentLoaded', function() {
+    updateSubmitButtonState();
+  });
+</script>
 
 <!-- Import index-specific JavaScript -->
 <script src="/js/index.js"></script>

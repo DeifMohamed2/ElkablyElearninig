@@ -80,6 +80,8 @@ const AdminLogSchema = new mongoose.Schema(
         'DELETE_QUESTION',
         'DUPLICATE_QUESTION',
         'IMPORT_QUESTIONS',
+        'BULK_DELETE_QUESTIONS',
+        'BULK_UPDATE_QUESTION_IMAGE',
         
         // Order Actions
         'REFUND_ORDER',

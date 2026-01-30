@@ -178,6 +178,7 @@ app.use((req, res, next) => {
   res.locals.info = req.flash('info');
   res.locals.info_msg = req.flash('info_msg');
   res.locals.user = req.session.user || null;
+  res.locals.guestUser = req.session.guestUser || null;
   res.locals.cart = req.session.cart || [];
   res.locals.cartCount = req.session.cart ? req.session.cart.length : 0;
   res.locals.upload = upload;
@@ -186,6 +187,7 @@ app.use((req, res, next) => {
 
   // Populate req.user for backward compatibility
   req.user = req.session.user || null;
+  req.guestUser = req.session.guestUser || null;
 
   next();
 });
@@ -200,6 +202,7 @@ const purchaseRoutes = require('./routes/purchase');
 const zoomRoutes = require('./routes/zoom');
 const uploadRoutes = require('./routes/upload');
 const parentRoutes = require('./routes/parent');
+const guestRoutes = require('./routes/guest');
 const { createStudentFromExternalSystem } = require('./controllers/authController');
 
 // Special handling for webhook routes that need raw body
@@ -218,6 +221,7 @@ app.use('/purchase', purchaseRoutes);
 app.use('/zoom', zoomRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/parent', parentRoutes);
+app.use('/guest', guestRoutes);
 
 // Global error handler - must be before 404 handler
 app.use((err, req, res, next) => {
