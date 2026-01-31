@@ -441,7 +441,7 @@ const getSecureGuestQuizQuestions = async (req, res) => {
           : [],
         points: sq.points || 1,
         order: sq.order || index + 1,
-        image: question.image,
+        questionImage: question.questionImage,
         explanation: null, // Hide explanation until submission
       };
 
@@ -496,11 +496,7 @@ const getSecureGuestQuizQuestions = async (req, res) => {
       await guestUser.save();
     }
 
-    // Map image field to questionImage for frontend consistency
-    questions = questions.map(q => ({
-      ...q,
-      questionImage: q.image || null,
-    }));
+    // Ensure questionImage is present (already set above)
 
     return res.json({
       success: true,
@@ -820,7 +816,7 @@ const getGuestQuizResults = async (req, res) => {
           options: sanitizedOptions,
           correctAnswer: correctAnswerText,
           explanation: (quiz.showCorrectAnswers && canViewDetailedResults) ? question.explanation : null,
-          image: question.image || null,
+          questionImage: question.questionImage || null,
         },
         userAnswer: userAnswer?.selectedAnswer,
         isCorrect: userAnswer?.isCorrect || false,
