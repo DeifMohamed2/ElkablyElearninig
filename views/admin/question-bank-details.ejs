@@ -2399,8 +2399,13 @@
     }, 100); // Reduced delay
   }
   
-  // Edit question (fetches from server)
+  // Edit question (fetches from server) - with instant loading feedback
   function editQuestion(questionId) {
+    // Show immediate loading indicator before anything else
+    if (typeof questionBankManager !== 'undefined' && questionBankManager.showLoadingIndicator) {
+      questionBankManager.showLoadingIndicator();
+    }
+    
     cleanupModals();
     
     // Clear form completely to prevent cached data
@@ -2419,16 +2424,19 @@
     // Show modal with loader
     const modal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
     modal.show();
+    
+    // Hide the global loading overlay once modal is shown
+    if (typeof questionBankManager !== 'undefined' && questionBankManager.hideLoadingIndicator) {
+      setTimeout(() => questionBankManager.hideLoadingIndicator(), 300);
+    }
 
-    // Fetch complete question data from server (optimized with cache control)
+    // Fetch complete question data from server (optimized with parallel fetch)
     fetch(`/admin/question-banks/banks/<%= questionBank.bankCode %>/questions/${questionId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        cache: 'no-store' // Prevent browser caching for fresh data
+          'Content-Type': 'application/json'
+        }
       })
       .then(response => {
         if (!response.ok) {
@@ -2466,6 +2474,9 @@
         // Hide loader on error
         const loader = document.getElementById('editQuestionLoader');
         if (loader) loader.style.display = 'none';
+        if (typeof questionBankManager !== 'undefined' && questionBankManager.hideLoadingIndicator) {
+          questionBankManager.hideLoadingIndicator();
+        }
         showNotification('Failed to load question data: ' + (error.message || 'Network error'), 'error');
         modal.hide();
       });

@@ -661,9 +661,15 @@ const getQuestion = async (req, res) => {
   try {
     const { bankCode, questionId } = req.params;
 
-    // Optimize: Use lean() and select only needed fields, combine queries where possible
-    // First verify the bank exists (quick check with just _id)
-    const questionBank = await QuestionBank.findOne({ bankCode }).select('_id').lean();
+    // Optimize: Use Promise.all to run queries in parallel
+    const [questionBank, question] = await Promise.all([
+      QuestionBank.findOne({ bankCode }).select('_id').lean(),
+      Question.findById(questionId)
+        .select('questionText questionImage questionType options correctAnswers answerMultiplicity explanation difficulty tags points createdAt bank')
+        .lean()
+    ]);
+
+    // Verify question bank exists
     if (!questionBank) {
       if (req.headers.accept && req.headers.accept.includes('application/json')) {
         return res.status(404).json({ success: false, message: 'Question bank not found' });
@@ -672,13 +678,8 @@ const getQuestion = async (req, res) => {
       return res.redirect('/admin/question-banks/banks');
     }
 
-    // Optimize: Use lean() for faster queries, no need to populate createdBy for edit
-    const question = await Question.findOne({ 
-      _id: questionId, 
-      bank: questionBank._id 
-    }).lean(); // Use lean() for faster read-only query
-
-    if (!question) {
+    // Verify question exists and belongs to the bank
+    if (!question || question.bank.toString() !== questionBank._id.toString()) {
       if (req.headers.accept && req.headers.accept.includes('application/json')) {
         return res.status(404).json({ success: false, message: 'Question not found' });
       }
@@ -686,8 +687,14 @@ const getQuestion = async (req, res) => {
       return res.redirect(`/admin/question-banks/banks/${bankCode}`);
     }
 
-    // Return JSON for AJAX requests (preview/edit)
+    // Return JSON for AJAX requests (preview/edit) with optimized caching headers
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
+      // Set caching headers for better performance
+      res.set({
+        'Cache-Control': 'private, max-age=300', // Cache for 5 minutes
+        'ETag': `"${questionId}-${question.createdAt?.getTime() || Date.now()}"` // Use timestamp for ETag
+      });
+      
       return res.json({ 
         success: true, 
         question: {
@@ -703,7 +710,6 @@ const getQuestion = async (req, res) => {
           tags: question.tags,
           points: question.points,
           createdAt: question.createdAt
-          // Removed createdBy - not needed for editing
         }
       });
     }

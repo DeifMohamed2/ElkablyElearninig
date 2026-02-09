@@ -5,6 +5,8 @@
 
 class QuestionBankManager {
     constructor() {
+        this.optionCount = 2;
+        this.isLoading = false; // Prevent double-clicks
         this.init();
     }
 
@@ -455,6 +457,47 @@ class QuestionBankManager {
         return icons[type] || 'info-circle';
     }
 
+    showLoadingIndicator() {
+        // Create or show a global loading overlay for immediate feedback
+        let loader = document.getElementById('globalLoadingOverlay');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.id = 'globalLoadingOverlay';
+            loader.className = 'loading-overlay';
+            loader.innerHTML = `
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            `;
+            loader.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                backdrop-filter: blur(2px);
+            `;
+            document.body.appendChild(loader);
+        } else {
+            loader.style.display = 'flex';
+        }
+        // Add class to body to prevent scrolling
+        document.body.style.overflow = 'hidden';
+    }
+
+    hideLoadingIndicator() {
+        const loader = document.getElementById('globalLoadingOverlay');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        document.body.style.overflow = '';
+    }
+
     // Utility methods for global functions
     deleteQuestionBank(bankCode, bankName) {
         if (confirm(`Are you sure you want to delete the question bank "${bankName}"? This action cannot be undone and will delete all questions in this bank.`)) {
@@ -475,7 +518,78 @@ class QuestionBankManager {
     }
 
     editQuestion(questionId) {
-        window.location.href = `/admin/question-banks/banks/${this.getCurrentBankCode()}/questions/${questionId}/edit`;
+        // Prevent double-clicks
+        if (this.isLoading) {
+            return;
+        }
+        
+        // Check if the modal-based editQuestion exists (from EJS), use it
+        if (typeof window.editQuestion === 'function' && window.editQuestion !== this.editQuestion) {
+            window.editQuestion(questionId);
+            return;
+        }
+        
+        // Set loading state
+        this.isLoading = true;
+        
+        // Fallback: show loading immediately and open modal with AJAX
+        this.showLoadingIndicator();
+        
+        const modal = document.getElementById('editQuestionModal');
+        if (!modal) {
+            // If no modal exists, fall back to page navigation
+            window.location.href = `/admin/question-banks/banks/${this.getCurrentBankCode()}/questions/${questionId}/edit`;
+            return;
+        }
+        
+        // Clear and show modal with loader
+        const loader = document.getElementById('editQuestionLoader');
+        const formContent = document.getElementById('editQuestionFormContent');
+        if (loader) loader.style.display = 'block';
+        if (formContent) formContent.style.display = 'none';
+        
+        // Disable buttons
+        const footerButtons = document.querySelectorAll('#editQuestionModal .modal-footer button');
+        footerButtons.forEach(btn => btn.disabled = true);
+        
+        // Show modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+        
+        // Fetch question data with optimized headers
+        fetch(`/admin/question-banks/banks/${this.getCurrentBankCode()}/questions/${questionId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            },
+            cache: 'no-store'
+        })
+        .then(response => {
+            this.hideLoadingIndicator();
+            this.isLoading = false;
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.question && typeof window.populateEditFormFields === 'function') {
+                if (loader) loader.style.display = 'none';
+                if (formContent) formContent.style.display = 'block';
+                footerButtons.forEach(btn => btn.disabled = false);
+                window.populateEditFormFields(data.question, questionId);
+            } else {
+                throw new Error('Failed to load question data');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            this.hideLoadingIndicator();
+            this.isLoading = false;
+            if (loader) loader.style.display = 'none';
+            this.showNotification('Failed to load question: ' + error.message, 'error');
+            bootstrapModal.hide();
+        });
     }
 
     exportQuestions() {
