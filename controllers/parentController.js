@@ -1,19 +1,23 @@
 /**
  * Parent Controller
- * 
+ *
  * Handles all API endpoints for the parent mobile application.
  * Parents can login using their phone number and any of their children's student codes.
  * One parent can have multiple students linked to their phone number.
  */
 
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const Course = require('../models/Course');
 const BundleCourse = require('../models/BundleCourse');
 
 // JWT secret for parent authentication
-const JWT_SECRET = process.env.PARENT_JWT_SECRET || process.env.JWT_SECRET || 'elkably-parent-secret-key';
+const JWT_SECRET =
+  process.env.PARENT_JWT_SECRET ||
+  process.env.JWT_SECRET ||
+  'elkably-parent-secret-key';
 const JWT_EXPIRES_IN = process.env.PARENT_JWT_EXPIRES_IN || '350d';
 
 /**
@@ -22,10 +26,10 @@ const JWT_EXPIRES_IN = process.env.PARENT_JWT_EXPIRES_IN || '350d';
  */
 const normalizePhoneNumber = (phone) => {
   if (!phone) return null;
-  
+
   // Remove all non-digit characters
   let cleaned = String(phone).replace(/\D/g, '');
-  
+
   // Remove common country codes if present at the start
   const countryCodes = ['20', '966', '971', '965'];
   for (const code of countryCodes) {
@@ -34,12 +38,12 @@ const normalizePhoneNumber = (phone) => {
       break;
     }
   }
-  
+
   // Remove leading zero if present
   if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
-  
+
   return cleaned;
 };
 
@@ -55,7 +59,7 @@ const generateToken = (parentData) => {
       type: 'parent',
     },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN },
   );
 };
 
@@ -73,7 +77,7 @@ const verifyToken = (token) => {
 /**
  * POST /api/parent/login
  * Login for parent mobile app
- * 
+ *
  * Body: {
  *   parentPhone: string (phone number - with or without country code),
  *   studentCode: string (any child's student code),
@@ -123,7 +127,9 @@ const login = async (req, res) => {
       parentNumber: student.parentNumber,
       parentCountryCode: student.parentCountryCode,
       role: 'student',
-    }).select('_id firstName lastName studentCode grade schoolName profileImage isActive parentNumber parentCountryCode');
+    }).select(
+      '_id firstName lastName studentCode grade schoolName profileImage isActive parentNumber parentCountryCode',
+    );
 
     if (allStudents.length === 0) {
       return res.status(401).json({
@@ -132,7 +138,7 @@ const login = async (req, res) => {
       });
     }
 
-    const studentIds = allStudents.map(s => s._id);
+    const studentIds = allStudents.map((s) => s._id);
 
     // Update FCM token for all students if provided
     if (fcmToken) {
@@ -143,7 +149,7 @@ const login = async (req, res) => {
             parentFcmToken: fcmToken,
             parentFcmTokenUpdatedAt: new Date(),
           },
-        }
+        },
       );
     }
 
@@ -151,14 +157,54 @@ const login = async (req, res) => {
     const token = generateToken({
       parentPhone: student.parentNumber,
       parentCountryCode: student.parentCountryCode,
-      studentIds: studentIds.map(id => id.toString()),
+      studentIds: studentIds.map((id) => id.toString()),
     });
+
+    // Also call Center API to check if parent has center account and save FCM token there
+    let centerAccount = false;
+    let centerData = null;
+    try {
+      const centerResponse = await axios.post(
+        'https://elkably.org/api/parent/login',
+        {
+          parentPhone,
+          studentCode,
+          fcmToken: fcmToken || undefined,
+        },
+        {
+          timeout: 10000,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      if (centerResponse.data && centerResponse.data.success) {
+        centerAccount = true;
+        centerData = {
+          token: centerResponse.data.token,
+          students: centerResponse.data.students,
+        };
+        console.log(
+          'Center account found for parent. Center API login successful.',
+        );
+      } else {
+        console.log(
+          'Center API login failed:',
+          centerResponse.data?.message || 'Unknown error',
+        );
+      }
+    } catch (centerError) {
+      // If Center API fails, just log it and continue with online login
+      console.log(
+        'Center API check:',
+        centerError.response?.data?.message || centerError.message,
+      );
+    }
 
     // Get unread notification count
     const unreadCount = await Notification.getUnreadCount(student.parentNumber);
 
     // Format students for response
-    const studentsData = allStudents.map(s => ({
+    const studentsData = allStudents.map((s) => ({
       id: s._id,
       firstName: s.firstName,
       lastName: s.lastName,
@@ -178,6 +224,8 @@ const login = async (req, res) => {
         parentCountryCode: student.parentCountryCode,
         students: studentsData,
         unreadNotificationCount: unreadCount,
+        centerAccount,
+        centerData,
       },
     });
   } catch (error) {
@@ -212,7 +260,7 @@ const refreshToken = async (req, res) => {
       });
     }
 
-    const studentIds = students.map(s => s._id.toString());
+    const studentIds = students.map((s) => s._id.toString());
 
     // Generate new token
     const token = generateToken({
@@ -238,7 +286,7 @@ const refreshToken = async (req, res) => {
 /**
  * POST /api/parent/update-fcm-token
  * Update FCM token for push notifications
- * 
+ *
  * Body: { fcmToken: string }
  */
 const updateFcmToken = async (req, res) => {
@@ -265,7 +313,7 @@ const updateFcmToken = async (req, res) => {
           parentFcmToken: fcmToken,
           parentFcmTokenUpdatedAt: new Date(),
         },
-      }
+      },
     );
 
     return res.status(200).json({
@@ -299,11 +347,11 @@ const logout = async (req, res) => {
         role: 'student',
       },
       {
-        $set: { 
+        $set: {
           parentFcmToken: null,
           parentFcmTokenUpdatedAt: null,
         },
-      }
+      },
     );
 
     return res.status(200).json({
@@ -335,7 +383,7 @@ const getStudents = async (req, res) => {
       parentCountryCode: parentData.parentCountryCode,
       role: 'student',
     }).select(
-      'firstName lastName studentCode grade schoolName profileImage isActive studentEmail enrolledCourses purchasedBundles'
+      'firstName lastName studentCode grade schoolName profileImage isActive studentEmail enrolledCourses purchasedBundles',
     );
 
     // Calculate progress for each student
@@ -343,13 +391,13 @@ const getStudents = async (req, res) => {
       students.map(async (student) => {
         // Get enrolled courses count
         const enrolledCoursesCount = student.enrolledCourses?.length || 0;
-        
+
         // Calculate average progress
         let averageProgress = 0;
         if (enrolledCoursesCount > 0) {
           const totalProgress = student.enrolledCourses.reduce(
             (sum, ec) => sum + (ec.progress || 0),
-            0
+            0,
           );
           averageProgress = Math.round(totalProgress / enrolledCoursesCount);
         }
@@ -367,7 +415,7 @@ const getStudents = async (req, res) => {
           enrolledCoursesCount,
           averageProgress,
         };
-      })
+      }),
     );
 
     return res.status(200).json({
@@ -420,8 +468,8 @@ const getStudentDetails = async (req, res) => {
 
     // Format enrolled courses
     const enrolledCourses = student.enrolledCourses
-      .filter(ec => ec.course)
-      .map(ec => ({
+      .filter((ec) => ec.course)
+      .map((ec) => ({
         id: ec.course._id,
         title: ec.course.title,
         description: ec.course.description,
@@ -436,8 +484,8 @@ const getStudentDetails = async (req, res) => {
 
     // Format purchased bundles
     const purchasedBundles = student.purchasedBundles
-      .filter(pb => pb.bundle)
-      .map(pb => ({
+      .filter((pb) => pb.bundle)
+      .map((pb) => ({
         id: pb.bundle._id,
         title: pb.bundle.title,
         description: pb.bundle.description,
@@ -511,8 +559,8 @@ const getStudentProgress = async (req, res) => {
 
     // Calculate detailed progress
     const courseProgress = student.enrolledCourses
-      .filter(ec => ec.course)
-      .map(ec => {
+      .filter((ec) => ec.course)
+      .map((ec) => {
         const course = ec.course;
         const totalTopics = course.topics?.length || 0;
         const completedTopics = ec.completedTopics?.length || 0;
@@ -520,7 +568,7 @@ const getStudentProgress = async (req, res) => {
         // Calculate content progress
         const contentProgress = ec.contentProgress || [];
         const completedContent = contentProgress.filter(
-          cp => cp.completionStatus === 'completed'
+          (cp) => cp.completionStatus === 'completed',
         ).length;
         const totalContent = contentProgress.length;
 
@@ -549,9 +597,9 @@ const getStudentProgress = async (req, res) => {
       let totalScore = 0;
       let attemptCount = 0;
 
-      student.quizAttempts.forEach(qa => {
+      student.quizAttempts.forEach((qa) => {
         if (qa.attempts && qa.attempts.length > 0) {
-          qa.attempts.forEach(attempt => {
+          qa.attempts.forEach((attempt) => {
             attemptCount++;
             totalScore += attempt.score || 0;
             if (attempt.score > quizStats.bestScore) {
@@ -562,7 +610,8 @@ const getStudentProgress = async (req, res) => {
       });
 
       quizStats.totalAttempts = attemptCount;
-      quizStats.averageScore = attemptCount > 0 ? Math.round(totalScore / attemptCount) : 0;
+      quizStats.averageScore =
+        attemptCount > 0 ? Math.round(totalScore / attemptCount) : 0;
     }
 
     return res.status(200).json({
@@ -571,9 +620,13 @@ const getStudentProgress = async (req, res) => {
         studentName: `${student.firstName} ${student.lastName}`,
         courseProgress,
         quizStats,
-        overallProgress: courseProgress.length > 0
-          ? Math.round(courseProgress.reduce((sum, cp) => sum + cp.progress, 0) / courseProgress.length)
-          : 0,
+        overallProgress:
+          courseProgress.length > 0
+            ? Math.round(
+                courseProgress.reduce((sum, cp) => sum + cp.progress, 0) /
+                  courseProgress.length,
+              )
+            : 0,
       },
     });
   } catch (error) {
@@ -588,7 +641,7 @@ const getStudentProgress = async (req, res) => {
 /**
  * GET /api/parent/notifications
  * Get notifications for the parent
- * 
+ *
  * Query params:
  *   page: number (default 1)
  *   limit: number (default 20)
@@ -620,7 +673,7 @@ const getNotifications = async (req, res) => {
         parentNumber: parentData.parentPhone,
         parentCountryCode: parentData.parentCountryCode,
       });
-      
+
       if (student) {
         options.studentId = studentId;
       }
@@ -632,11 +685,13 @@ const getNotifications = async (req, res) => {
 
     const result = await Notification.getParentNotifications(
       parentData.parentPhone,
-      options
+      options,
     );
 
     // Get unread count
-    const unreadCount = await Notification.getUnreadCount(parentData.parentPhone);
+    const unreadCount = await Notification.getUnreadCount(
+      parentData.parentPhone,
+    );
 
     return res.status(200).json({
       success: true,
@@ -700,7 +755,7 @@ const markNotificationAsRead = async (req, res) => {
 
     const notification = await Notification.markAsRead(
       notificationId,
-      parentData.parentPhone
+      parentData.parentPhone,
     );
 
     if (!notification) {
@@ -711,7 +766,9 @@ const markNotificationAsRead = async (req, res) => {
     }
 
     // Get updated unread count
-    const unreadCount = await Notification.getUnreadCount(parentData.parentPhone);
+    const unreadCount = await Notification.getUnreadCount(
+      parentData.parentPhone,
+    );
 
     return res.status(200).json({
       success: true,
@@ -765,7 +822,9 @@ const getUnreadCount = async (req, res) => {
   try {
     const parentData = req.parentData;
 
-    const unreadCount = await Notification.getUnreadCount(parentData.parentPhone);
+    const unreadCount = await Notification.getUnreadCount(
+      parentData.parentPhone,
+    );
 
     return res.status(200).json({
       success: true,
