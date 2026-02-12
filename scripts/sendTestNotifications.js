@@ -1,10 +1,10 @@
 /**
  * Send Test Notifications Script
- * 
+ *
  * Tests all notification types in the ELKABLY system via Firebase FCM.
  * Finds a student by parent phone number and sends sample notifications
  * for each notification type (welcome, quiz, content, topic, course, purchase, etc.)
- * 
+ *
  * Usage:
  *   node scripts/sendTestNotifications.js
  *   node scripts/sendTestNotifications.js --phone=01003202768
@@ -45,8 +45,11 @@ function logSection(title) {
 function logResult(result) {
   if (result.success) {
     console.log(`  ✅ Notification saved (ID: ${result.notificationId})`);
-    console.log(`  📱 FCM sent: ${result.fcmSent ? 'Yes' : 'No (no FCM token)'}`);
-    if (result.messageId) console.log(`  🆔 FCM Message ID: ${result.messageId}`);
+    console.log(
+      `  📱 FCM sent: ${result.fcmSent ? 'Yes' : 'No (no FCM token)'}`,
+    );
+    if (result.messageId)
+      console.log(`  🆔 FCM Message ID: ${result.messageId}`);
   } else {
     console.log(`  ❌ Failed: ${result.error}`);
   }
@@ -76,8 +79,15 @@ const notificationTests = {
     };
     const score = 8;
     const totalQuestions = 10;
-    console.log(`  Sending quiz completion: ${score}/${totalQuestions} on "${mockQuiz.title}"...`);
-    const result = await firebase.sendQuizCompletionNotification(student._id, mockQuiz, score, totalQuestions);
+    console.log(
+      `  Sending quiz completion: ${score}/${totalQuestions} on "${mockQuiz.title}"...`,
+    );
+    const result = await firebase.sendQuizCompletionNotification(
+      student._id,
+      mockQuiz,
+      score,
+      totalQuestions,
+    );
     logResult(result);
     return result;
   },
@@ -95,8 +105,14 @@ const notificationTests = {
       _id: new mongoose.Types.ObjectId(),
       title: 'Week 7 - Grammar Basics',
     };
-    console.log(`  Sending content completion: "${mockContent.title}" in "${mockCourse.title}"...`);
-    const result = await firebase.sendContentCompletionNotification(student._id, mockContent, mockCourse);
+    console.log(
+      `  Sending content completion: "${mockContent.title}" in "${mockCourse.title}"...`,
+    );
+    const result = await firebase.sendContentCompletionNotification(
+      student._id,
+      mockContent,
+      mockCourse,
+    );
     logResult(result);
     return result;
   },
@@ -114,8 +130,14 @@ const notificationTests = {
       _id: new mongoose.Types.ObjectId(),
       title: 'Week 8 - Advanced Grammar',
     };
-    console.log(`  Sending topic completion: "${mockTopic.title}" in "${mockCourse.title}"...`);
-    const result = await firebase.sendTopicCompletionNotification(student._id, mockTopic, mockCourse);
+    console.log(
+      `  Sending topic completion: "${mockTopic.title}" in "${mockCourse.title}"...`,
+    );
+    const result = await firebase.sendTopicCompletionNotification(
+      student._id,
+      mockTopic,
+      mockCourse,
+    );
     logResult(result);
     return result;
   },
@@ -130,7 +152,10 @@ const notificationTests = {
       title: 'Week 10 - Final Review',
     };
     console.log(`  Sending course completion: "${mockCourse.title}"...`);
-    const result = await firebase.sendCourseCompletionNotification(student._id, mockCourse);
+    const result = await firebase.sendCourseCompletionNotification(
+      student._id,
+      mockCourse,
+    );
     logResult(result);
     return result;
   },
@@ -147,8 +172,13 @@ const notificationTests = {
       items: [{ title: 'Week 5' }, { title: 'Week 6' }],
       bookOrders: [],
     };
-    console.log(`  Sending purchase confirmation: Order #${mockPurchase.orderNumber}, EGP ${mockPurchase.total}...`);
-    const result = await firebase.sendPurchaseNotification(student._id, mockPurchase);
+    console.log(
+      `  Sending purchase confirmation: Order #${mockPurchase.orderNumber}, EGP ${mockPurchase.total}...`,
+    );
+    const result = await firebase.sendPurchaseNotification(
+      student._id,
+      mockPurchase,
+    );
     logResult(result);
     return result;
   },
@@ -164,7 +194,10 @@ const notificationTests = {
       subject: 'English',
     };
     console.log(`  Sending course enrollment: "${mockCourse.title}"...`);
-    const result = await firebase.sendCourseEnrollmentNotification(student._id, mockCourse);
+    const result = await firebase.sendCourseEnrollmentNotification(
+      student._id,
+      mockCourse,
+    );
     logResult(result);
     return result;
   },
@@ -179,8 +212,13 @@ const notificationTests = {
       title: 'Full Term Bundle - Year 10',
       courses: [{ _id: '1' }, { _id: '2' }, { _id: '3' }, { _id: '4' }],
     };
-    console.log(`  Sending bundle enrollment: "${mockBundle.title}" (${mockBundle.courses.length} weeks)...`);
-    const result = await firebase.sendBundleEnrollmentNotification(student._id, mockBundle);
+    console.log(
+      `  Sending bundle enrollment: "${mockBundle.title}" (${mockBundle.courses.length} weeks)...`,
+    );
+    const result = await firebase.sendBundleEnrollmentNotification(
+      student._id,
+      mockBundle,
+    );
     logResult(result);
     return result;
   },
@@ -197,8 +235,13 @@ const notificationTests = {
       timeSpent: 45,
       joinedLate: false,
     };
-    console.log(`  Sending zoom attendance: "${mockMeeting.meetingName}" (${mockMeeting.attendancePercentage}%)...`);
-    const result = await firebase.sendZoomMeetingNotification(student._id, mockMeeting);
+    console.log(
+      `  Sending zoom attendance: "${mockMeeting.meetingName}" (${mockMeeting.attendancePercentage}%)...`,
+    );
+    const result = await firebase.sendZoomMeetingNotification(
+      student._id,
+      mockMeeting,
+    );
     logResult(result);
     return result;
   },
@@ -213,8 +256,13 @@ const notificationTests = {
       meetingName: 'Live Class - Week 6 Vocabulary',
       watchedRecording: false,
     };
-    console.log(`  Sending zoom non-attendance: "${mockMeeting.meetingName}"...`);
-    const result = await firebase.sendZoomNonAttendanceNotification(student._id, mockMeeting);
+    console.log(
+      `  Sending zoom non-attendance: "${mockMeeting.meetingName}"...`,
+    );
+    const result = await firebase.sendZoomNonAttendanceNotification(
+      student._id,
+      mockMeeting,
+    );
     logResult(result);
     return result;
   },
@@ -228,7 +276,12 @@ const notificationTests = {
     const body = 'This is a test notification from the ELKABLY system.';
     const fullMessage = `📢 Test Notification\n\nThis is a test notification sent from the sendTestNotifications script.\n\n🎓 Student: ${student.firstName} ${student.lastName}\n🆔 Code: ${student.studentCode}\n\n🏆 ELKABLY TEAM`;
     console.log(`  Sending custom notification: "${title}"...`);
-    const result = await firebase.sendCustomNotification(student._id, title, body, fullMessage);
+    const result = await firebase.sendCustomNotification(
+      student._id,
+      title,
+      body,
+      fullMessage,
+    );
     logResult(result);
     return result;
   },
@@ -243,8 +296,12 @@ const notificationTests = {
     const fullMessage = `📣 Important Announcement\n\nNew study materials have been uploaded for your grade!\n\nPlease check the app for the latest content.\n\n🏆 ELKABLY TEAM`;
     console.log(`  Sending announcement: "${title}"...`);
     const result = await firebase.sendCustomNotification(
-      student._id, title, body, fullMessage, {},
-      { type: 'announcement', priority: 'high' }
+      student._id,
+      title,
+      body,
+      fullMessage,
+      {},
+      { type: 'announcement', priority: 'high' },
     );
     logResult(result);
     return result;
@@ -269,7 +326,9 @@ async function run() {
     const firebaseService = require('../utils/firebaseNotificationService');
 
     if (!firebaseService.isReady()) {
-      console.error('❌ Firebase is not initialized! Check serviceAccount.json or env variables.');
+      console.error(
+        '❌ Firebase is not initialized! Check serviceAccount.json or env variables.',
+      );
       process.exit(1);
     }
     console.log('✅ Firebase is ready.');
@@ -280,13 +339,17 @@ async function run() {
       console.log(`🔍 Searching for student with code: ${TARGET_CODE}...`);
       student = await User.findOne({ studentCode: TARGET_CODE });
     } else {
-      console.log(`🔍 Searching for student with parent phone: ${TARGET_PHONE}...`);
+      console.log(
+        `🔍 Searching for student with parent phone: ${TARGET_PHONE}...`,
+      );
       const phoneRegex = new RegExp(TARGET_PHONE.replace(/^0+/, '').slice(-9));
       student = await User.findOne({ parentNumber: { $regex: phoneRegex } });
     }
 
     if (!student) {
-      console.error('❌ Student not found! Try a different --phone or --studentCode.');
+      console.error(
+        '❌ Student not found! Try a different --phone or --studentCode.',
+      );
       process.exit(1);
     }
 
@@ -294,13 +357,21 @@ async function run() {
     console.log(`   Name: ${student.firstName} ${student.lastName}`);
     console.log(`   Code: ${student.studentCode}`);
     console.log(`   Grade: ${student.grade}`);
-    console.log(`   Parent Phone: ${student.parentCountryCode}${student.parentNumber}`);
-    console.log(`   FCM Token: ${student.parentFcmToken ? 'Present ✅' : 'Missing ❌'}`);
+    console.log(
+      `   Parent Phone: ${student.parentCountryCode}${student.parentNumber}`,
+    );
+    console.log(
+      `   FCM Token: ${student.parentFcmToken ? 'Present ✅' : 'Missing ❌'}`,
+    );
 
     if (!student.parentFcmToken) {
-      console.warn('\n⚠️  No FCM token found for this student\'s parent.');
-      console.warn('   Notifications will be saved to DB but NOT pushed to the device.');
-      console.warn('   The parent needs to log in to the mobile app to register their FCM token.\n');
+      console.warn("\n⚠️  No FCM token found for this student's parent.");
+      console.warn(
+        '   Notifications will be saved to DB but NOT pushed to the device.',
+      );
+      console.warn(
+        '   The parent needs to log in to the mobile app to register their FCM token.\n',
+      );
     }
 
     // 4. Send notifications
@@ -329,7 +400,9 @@ async function run() {
       const testFn = notificationTests[NOTIFICATION_TYPE];
       if (!testFn) {
         console.error(`❌ Unknown notification type: "${NOTIFICATION_TYPE}"`);
-        console.log(`   Available types: ${Object.keys(notificationTests).join(', ')}`);
+        console.log(
+          `   Available types: ${Object.keys(notificationTests).join(', ')}`,
+        );
         process.exit(1);
       }
 
@@ -341,7 +414,11 @@ async function run() {
       } catch (err) {
         console.log(`  ❌ Error: ${err.message}`);
         results.failed++;
-        results.tests.push({ type: NOTIFICATION_TYPE, success: false, error: err.message });
+        results.tests.push({
+          type: NOTIFICATION_TYPE,
+          success: false,
+          error: err.message,
+        });
       }
     }
 
@@ -356,7 +433,9 @@ async function run() {
       student: student._id,
       createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // last 5 minutes
     });
-    console.log(`  📦 Notifications in DB (last 5 min): ${recentNotifications}`);
+    console.log(
+      `  📦 Notifications in DB (last 5 min): ${recentNotifications}`,
+    );
 
     console.log('\n✅ All done!');
     process.exit(0);
