@@ -165,7 +165,7 @@ const login = async (req, res) => {
     let centerData = null;
     try {
       const centerResponse = await axios.post(
-        'http://82.25.101.207:3000/api/parent/login',
+        'http://82.25.101.207:8400/api/parent/login',
         {
           parentPhone,
           studentCode,
