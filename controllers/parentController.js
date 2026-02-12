@@ -161,44 +161,51 @@ const login = async (req, res) => {
     });
 
     // Also call Center API to check if parent has center account and save FCM token there
+    // Skip if this request is already a cross-system sync to avoid infinite loop
+    const isCrossSystemCall = req.headers['x-cross-system'] === 'true';
     let centerAccount = false;
     let centerData = null;
-    try {
-      const centerResponse = await axios.post(
-        'http://82.25.101.207:8400/api/parent/login',
-        {
-          parentPhone,
-          studentCode,
-          fcmToken: fcmToken || undefined,
-        },
-        {
-          timeout: 10000,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
-
-      if (centerResponse.data && centerResponse.data.success) {
-        centerAccount = true;
-        centerData = {
-          token: centerResponse.data.token,
-          students: centerResponse.data.students,
-        };
-        console.log(
-          'Center account found for parent. Center API login successful.',
+    if (!isCrossSystemCall) {
+      try {
+        const centerResponse = await axios.post(
+          'http://82.25.101.207:8400/api/parent/login',
+          {
+            parentPhone,
+            studentCode,
+            fcmToken: fcmToken || undefined,
+          },
+          {
+            timeout: 10000,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Cross-System': 'true',
+            },
+          },
         );
-      } else {
+
+        if (centerResponse.data && centerResponse.data.success) {
+          centerAccount = true;
+          centerData = {
+            token: centerResponse.data.token,
+            students: centerResponse.data.students,
+          };
+          console.log(
+            'Center account found for parent. Center API login successful.',
+          );
+        } else {
+          console.log(
+            'Center API login failed:',
+            centerResponse.data?.message || 'Unknown error',
+          );
+        }
+      } catch (centerError) {
+        // If Center API fails, just log it and continue with online login
         console.log(
-          'Center API login failed:',
-          centerResponse.data?.message || 'Unknown error',
+          'Center API check:',
+          centerError.response?.data?.message || centerError.message,
         );
       }
-    } catch (centerError) {
-      // If Center API fails, just log it and continue with online login
-      console.log(
-        'Center API check:',
-        centerError.response?.data?.message || centerError.message,
-      );
-    }
+    } // end if (!isCrossSystemCall)
 
     // Get unread notification count
     const unreadCount = await Notification.getUnreadCount(student.parentNumber);

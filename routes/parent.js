@@ -33,6 +33,7 @@ const {
  */
 router.post('/login', login);
 
+
 // ==================== Protected Routes (Authentication Required) ====================
 
 // Apply authentication middleware to all routes below
