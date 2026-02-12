@@ -165,7 +165,7 @@ const login = async (req, res) => {
     let centerData = null;
     try {
       const centerResponse = await axios.post(
-        'https://elkably.org/api/parent/login',
+        'http://82.25.101.207:3000/api/parent/login',
         {
           parentPhone,
           studentCode,
