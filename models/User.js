@@ -36,7 +36,10 @@ const UserSchema = new mongoose.Schema(
           return value.length === expected;
         },
         message: (props) => {
-          const countryCode = props.instance?.studentCountryCode || props.value?.studentCountryCode || 'unknown';
+          const countryCode =
+            props.instance?.studentCountryCode ||
+            props.value?.studentCountryCode ||
+            'unknown';
           return `Student number length is invalid for country code ${countryCode}`;
         },
       },
@@ -59,7 +62,10 @@ const UserSchema = new mongoose.Schema(
           return value.length === expected;
         },
         message: (props) => {
-          const countryCode = props.instance?.parentCountryCode || props.value?.parentCountryCode || 'unknown';
+          const countryCode =
+            props.instance?.parentCountryCode ||
+            props.value?.parentCountryCode ||
+            'unknown';
           return `Parent number length is invalid for country code ${countryCode}`;
         },
       },
@@ -612,7 +618,7 @@ const UserSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Hash password before save
@@ -685,7 +691,7 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
 // Method to authenticate by phone number and student code
 UserSchema.statics.findByPhoneAndCode = async function (
   phoneNumber,
-  studentCode
+  studentCode,
 ) {
   const user = await this.findOne({
     studentNumber: phoneNumber,
@@ -735,9 +741,8 @@ UserSchema.virtual('totalEnrolledCourses').get(function () {
 // Virtual for completed courses
 UserSchema.virtual('completedCourses').get(function () {
   if (!this.enrolledCourses) return 0;
-  return this.enrolledCourses.filter(
-    (course) => course.status === 'completed'
-  ).length;
+  return this.enrolledCourses.filter((course) => course.status === 'completed')
+    .length;
 });
 
 // Virtual for total quiz attempts
@@ -745,7 +750,7 @@ UserSchema.virtual('totalQuizAttempts').get(function () {
   if (!this.quizAttempts) return 0;
   return this.quizAttempts.reduce(
     (total, quiz) => total + quiz.attempts.length,
-    0
+    0,
   );
 });
 
@@ -754,7 +759,7 @@ UserSchema.virtual('averageQuizScore').get(function () {
   if (!this.quizAttempts || this.quizAttempts.length === 0) return 0;
 
   const allScores = this.quizAttempts.flatMap((quiz) =>
-    quiz.attempts.map((attempt) => attempt.score)
+    quiz.attempts.map((attempt) => attempt.score),
   );
 
   if (allScores.length === 0) return 0;
@@ -767,7 +772,7 @@ UserSchema.virtual('averageQuizScore').get(function () {
 UserSchema.methods.getCourseProgress = function (courseId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
   return enrollment ? enrollment.progress : 0;
 };
@@ -776,11 +781,11 @@ UserSchema.methods.getCourseProgress = function (courseId) {
 UserSchema.methods.updateCourseProgress = async function (
   courseId,
   progress,
-  topicId = null
+  topicId = null,
 ) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (enrollment) {
@@ -826,7 +831,7 @@ UserSchema.methods.isContentCompleted = async function (courseId, contentId) {
 UserSchema.methods.isCourseCompleted = async function (courseId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) {
@@ -860,7 +865,7 @@ UserSchema.methods.getCompletedContent = async function (courseId) {
 // Instance method to add quiz attempt
 UserSchema.methods.addQuizAttempt = async function (quizId, attemptData) {
   let quizAttempt = this.quizAttempts.find(
-    (attempt) => attempt.quiz.toString() === quizId.toString()
+    (attempt) => attempt.quiz.toString() === quizId.toString(),
   );
 
   if (!quizAttempt) {
@@ -896,12 +901,12 @@ UserSchema.methods.addQuizAttempt = async function (quizId, attemptData) {
 UserSchema.methods.startQuizAttempt = async function (quizId, durationMinutes) {
   // Check if there's already an active attempt
   const existingQuizAttempt = this.quizAttempts.find(
-    (attempt) => attempt.quiz.toString() === quizId.toString()
+    (attempt) => attempt.quiz.toString() === quizId.toString(),
   );
 
   if (existingQuizAttempt) {
     const activeAttempt = existingQuizAttempt.attempts.find(
-      (attempt) => attempt.status === 'in_progress'
+      (attempt) => attempt.status === 'in_progress',
     );
     if (activeAttempt) {
       // Return existing active attempt
@@ -929,7 +934,7 @@ UserSchema.methods.startQuizAttempt = async function (quizId, durationMinutes) {
   const attemptNumber = quizAttempt.attempts.length + 1;
   const startedAt = new Date();
   const expectedEnd = new Date(
-    startedAt.getTime() + durationMinutes * 60 * 1000
+    startedAt.getTime() + durationMinutes * 60 * 1000,
   );
 
   const newAttempt = {
@@ -965,10 +970,10 @@ UserSchema.methods.startQuizAttempt = async function (quizId, durationMinutes) {
 UserSchema.methods.updateQuizAttemptTiming = async function (
   quizId,
   attemptNumber,
-  remainingSeconds
+  remainingSeconds,
 ) {
   const quizAttempt = this.quizAttempts.find(
-    (attempt) => attempt.quiz.toString() === quizId.toString()
+    (attempt) => attempt.quiz.toString() === quizId.toString(),
   );
 
   if (!quizAttempt) {
@@ -976,7 +981,7 @@ UserSchema.methods.updateQuizAttemptTiming = async function (
   }
 
   const attempt = quizAttempt.attempts.find(
-    (att) => att.attemptNumber === attemptNumber
+    (att) => att.attemptNumber === attemptNumber,
   );
 
   if (!attempt) {
@@ -998,10 +1003,10 @@ UserSchema.methods.updateQuizAttemptTiming = async function (
 UserSchema.methods.completeQuizAttempt = async function (
   quizId,
   attemptNumber,
-  attemptData
+  attemptData,
 ) {
   const quizAttempt = this.quizAttempts.find(
-    (attempt) => attempt.quiz.toString() === quizId.toString()
+    (attempt) => attempt.quiz.toString() === quizId.toString(),
   );
 
   if (!quizAttempt) {
@@ -1009,7 +1014,7 @@ UserSchema.methods.completeQuizAttempt = async function (
   }
 
   const attempt = quizAttempt.attempts.find(
-    (att) => att.attemptNumber === attemptNumber
+    (att) => att.attemptNumber === attemptNumber,
   );
 
   if (!attempt) {
@@ -1075,7 +1080,7 @@ UserSchema.methods.addBundleToWishlist = async function (bundleId) {
 // Instance method to remove course from wishlist
 UserSchema.methods.removeCourseFromWishlist = async function (courseId) {
   this.wishlist.courses = this.wishlist.courses.filter(
-    (id) => id.toString() !== courseId.toString()
+    (id) => id.toString() !== courseId.toString(),
   );
 
   // Mark the wishlist field as modified to ensure it gets saved
@@ -1101,12 +1106,12 @@ UserSchema.methods.removeBundleFromWishlist = async function (bundleId) {
       'Wishlist bundle:',
       id,
       bundleId,
-      id.toString() === bundleId.toString()
+      id.toString() === bundleId.toString(),
     );
   });
 
   this.wishlist.bundles = this.wishlist.bundles.filter(
-    (id) => id.toString() !== bundleId.toString()
+    (id) => id.toString() !== bundleId.toString(),
   );
   console.log('Wishlist after removal:', this.wishlist.bundles);
 
@@ -1126,21 +1131,21 @@ UserSchema.methods.removeBundleFromWishlist = async function (bundleId) {
 // Instance method to check if course is in wishlist
 UserSchema.methods.isCourseInWishlist = function (courseId) {
   return this.wishlist.courses.some(
-    (id) => id.toString() === courseId.toString()
+    (id) => id.toString() === courseId.toString(),
   );
 };
 
 // Instance method to check if bundle is in wishlist
 UserSchema.methods.isBundleInWishlist = function (bundleId) {
   return this.wishlist.bundles.some(
-    (id) => id.toString() === bundleId.toString()
+    (id) => id.toString() === bundleId.toString(),
   );
 };
 
 // Legacy method for backward compatibility
 UserSchema.methods.addToWishlist = async function (
   itemId,
-  itemType = 'course'
+  itemType = 'course',
 ) {
   if (itemType === 'course') {
     return await this.addCourseToWishlist(itemId);
@@ -1153,7 +1158,7 @@ UserSchema.methods.addToWishlist = async function (
 // Legacy method for backward compatibility
 UserSchema.methods.removeFromWishlist = async function (
   itemId,
-  itemType = 'course'
+  itemType = 'course',
 ) {
   if (itemType === 'course') {
     return await this.removeCourseFromWishlist(itemId);
@@ -1199,7 +1204,7 @@ UserSchema.methods.hasPurchasedCourse = function (courseId) {
     (purchase) =>
       purchase.course &&
       purchase.course.toString() === courseId.toString() &&
-      purchase.status === 'active'
+      purchase.status === 'active',
   );
 };
 
@@ -1209,7 +1214,7 @@ UserSchema.methods.hasPurchasedBundle = function (bundleId) {
     (purchase) =>
       purchase.bundle &&
       purchase.bundle.toString() === bundleId.toString() &&
-      purchase.status === 'active'
+      purchase.status === 'active',
   );
 };
 
@@ -1230,7 +1235,7 @@ UserSchema.methods.hasAccessToCourse = function (courseId) {
 // Instance method to check if user has access to a course through a specific bundle
 UserSchema.methods.hasAccessToCourseThroughBundle = function (
   courseId,
-  bundleId
+  bundleId,
 ) {
   // Check if user has purchased the specific bundle
   if (!this.hasPurchasedBundle(bundleId)) {
@@ -1246,14 +1251,14 @@ UserSchema.methods.hasAccessToCourseThroughBundle = function (
 UserSchema.methods.addPurchasedCourse = async function (
   courseId,
   price,
-  orderNumber
+  orderNumber,
 ) {
   // Check for existing active purchase
   const existingPurchase = this.purchasedCourses.find(
     (purchase) =>
       purchase.course &&
       purchase.course.toString() === courseId.toString() &&
-      purchase.status === 'active'
+      purchase.status === 'active',
   );
 
   if (existingPurchase) {
@@ -1275,14 +1280,14 @@ UserSchema.methods.addPurchasedCourse = async function (
 UserSchema.methods.addPurchasedBundle = async function (
   bundleId,
   price,
-  orderNumber
+  orderNumber,
 ) {
   // Check for existing active purchase
   const existingPurchase = this.purchasedBundles.find(
     (purchase) =>
       purchase.bundle &&
       purchase.bundle.toString() === bundleId.toString() &&
-      purchase.status === 'active'
+      purchase.status === 'active',
   );
 
   if (existingPurchase) {
@@ -1320,7 +1325,7 @@ UserSchema.methods.addPurchasedBundle = async function (
 // Instance method to safely enroll in a course (prevents duplicates)
 UserSchema.methods.safeEnrollInCourse = async function (
   courseId,
-  startingOrder = null
+  startingOrder = null,
 ) {
   // Check if already enrolled
   const isAlreadyEnrolled = this.isEnrolled(courseId);
@@ -1330,7 +1335,7 @@ UserSchema.methods.safeEnrollInCourse = async function (
     // Update startingOrder if provided and not already set
     if (startingOrder !== null) {
       const enrollment = this.enrolledCourses.find(
-        (e) => e.course && e.course.toString() === courseId.toString()
+        (e) => e.course && e.course.toString() === courseId.toString(),
       );
       if (
         enrollment &&
@@ -1397,14 +1402,14 @@ UserSchema.methods.getPurchaseHistory = function () {
   }));
 
   return [...coursePurchases, ...bundlePurchases].sort(
-    (a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt)
+    (a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt),
   );
 };
 
 // Instance method to check if user has used a promo code
 UserSchema.methods.hasUsedPromoCode = function (promoCodeId) {
   return this.usedPromoCodes.some(
-    (usage) => usage.promoCode.toString() === promoCodeId.toString()
+    (usage) => usage.promoCode.toString() === promoCodeId.toString(),
   );
 };
 
@@ -1414,7 +1419,7 @@ UserSchema.methods.addPromoCodeUsage = async function (
   purchaseId,
   discountAmount,
   originalAmount,
-  finalAmount
+  finalAmount,
 ) {
   this.usedPromoCodes.push({
     promoCode: promoCodeId,
@@ -1432,7 +1437,7 @@ UserSchema.methods.addPromoCodeUsage = async function (
 // Instance method to get promo code usage history
 UserSchema.methods.getPromoCodeUsageHistory = function () {
   return this.usedPromoCodes.sort(
-    (a, b) => new Date(b.usedAt) - new Date(a.usedAt)
+    (a, b) => new Date(b.usedAt) - new Date(a.usedAt),
   );
 };
 
@@ -1440,7 +1445,7 @@ UserSchema.methods.getPromoCodeUsageHistory = function () {
 UserSchema.methods.getContentProgress = function (courseId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
   return enrollment ? enrollment.contentProgress : [];
 };
@@ -1451,11 +1456,11 @@ UserSchema.methods.updateContentProgress = async function (
   topicId,
   contentId,
   contentType,
-  progressData
+  progressData,
 ) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) {
@@ -1464,7 +1469,7 @@ UserSchema.methods.updateContentProgress = async function (
 
   // Find existing content progress
   let contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   // Track if this is a NEW completion (wasn't completed before)
@@ -1532,10 +1537,10 @@ UserSchema.methods.updateContentProgress = async function (
 
   if (topic && topic.content && topic.content.length > 0) {
     const topicProgress = enrollment.contentProgress.filter(
-      (cp) => cp.topicId.toString() === topicId.toString()
+      (cp) => cp.topicId.toString() === topicId.toString(),
     );
     const topicCompletedContent = topicProgress.filter(
-      (cp) => cp.completionStatus === 'completed'
+      (cp) => cp.completionStatus === 'completed',
     ).length;
 
     // Only mark topic as completed if ALL content items in the topic are completed
@@ -1562,13 +1567,13 @@ UserSchema.methods.updateContentProgress = async function (
             await whatsappSMSNotificationService.sendTopicCompletionNotification(
               this._id,
               topic,
-              course
+              course,
             );
           }
         } catch (whatsappError) {
           console.error(
             'WhatsApp topic completion notification error:',
-            whatsappError
+            whatsappError,
           );
           // Don't fail the progress update if WhatsApp fails
         }
@@ -1585,14 +1590,14 @@ UserSchema.methods.updateContentProgress = async function (
 UserSchema.methods.resetContentAttempts = async function (courseId, contentId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
   if (!enrollment) {
     throw new Error('User is not enrolled in this course');
   }
 
   const contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   if (!contentProgress) {
@@ -1617,13 +1622,13 @@ UserSchema.methods.resetContentAttempts = async function (courseId, contentId) {
 UserSchema.methods.isContentCompleted = function (courseId, contentId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) return false;
 
   const contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   return contentProgress
@@ -1635,13 +1640,13 @@ UserSchema.methods.isContentCompleted = function (courseId, contentId) {
 UserSchema.methods.getContentProgressDetails = function (courseId, contentId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) return null;
 
   return enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 };
 
@@ -1649,7 +1654,7 @@ UserSchema.methods.getContentProgressDetails = function (courseId, contentId) {
 UserSchema.methods.isContentUnlocked = function (
   courseId,
   contentId,
-  contentData
+  contentData,
 ) {
   // Special handling for Zoom meetings - check meeting status
   if (contentData.type === 'zoom' && contentData.zoomMeeting) {
@@ -1668,14 +1673,19 @@ UserSchema.methods.isContentUnlocked = function (
       const attendedLive =
         contentData.zoomMeeting.studentsAttended &&
         contentData.zoomMeeting.studentsAttended.some(
-          (attendance) => attendance.student && attendance.student.toString() === studentIdStr
+          (attendance) =>
+            attendance.student &&
+            attendance.student.toString() === studentIdStr,
         );
-      
+
       if (attendedLive) {
         // Student attended live - allow access to recording
-        return { unlocked: true, reason: 'Attended live session - full access to recording' };
+        return {
+          unlocked: true,
+          reason: 'Attended live session - full access to recording',
+        };
       }
-      
+
       // Student did NOT attend live - they must complete prerequisites to watch recording
       // Continue to normal prerequisite checking below
     } else if (meetingStatus === 'active') {
@@ -1693,7 +1703,7 @@ UserSchema.methods.isContentUnlocked = function (
 
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) {
@@ -1707,7 +1717,7 @@ UserSchema.methods.isContentUnlocked = function (
 
   const allPrerequisites = contentData.prerequisites.map((p) => p.toString());
   const missingPrerequisites = allPrerequisites.filter(
-    (p) => !completedContentIds.includes(p)
+    (p) => !completedContentIds.includes(p),
   );
 
   if (missingPrerequisites.length > 0) {
@@ -1731,7 +1741,7 @@ UserSchema.methods.hasCompletedZoomContent = function (zoomMeeting) {
   const attendedLive =
     zoomMeeting.studentsAttended &&
     zoomMeeting.studentsAttended.some(
-      (attendance) => attendance.student.toString() === studentIdStr
+      (attendance) => attendance.student.toString() === studentIdStr,
     );
 
   // Check if student watched the recording
@@ -1739,7 +1749,7 @@ UserSchema.methods.hasCompletedZoomContent = function (zoomMeeting) {
     zoomMeeting.studentsWatchedRecording &&
     zoomMeeting.studentsWatchedRecording.some(
       (record) =>
-        record.student.toString() === studentIdStr && record.completedWatching
+        record.student.toString() === studentIdStr && record.completedWatching,
     );
 
   return attendedLive || watchedRecording;
@@ -1760,7 +1770,7 @@ UserSchema.methods.recalculateAllProgress = async function () {
 UserSchema.methods.getCompletedContentIds = function (courseId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) return [];
@@ -1776,11 +1786,11 @@ UserSchema.methods.addQuizAttempt = async function (
   topicId,
   contentId,
   contentType,
-  attemptData
+  attemptData,
 ) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) {
@@ -1789,7 +1799,7 @@ UserSchema.methods.addQuizAttempt = async function (
 
   // Find existing content progress
   let contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   if (!contentProgress) {
@@ -1834,15 +1844,16 @@ UserSchema.methods.addQuizAttempt = async function (
         total +
         attempt.answers.reduce(
           (attemptTotal, answer) => attemptTotal + (answer.points || 0),
-          0
+          0,
         )
       );
     },
-    0
+    0,
   );
 
   // Update completion status based on passing score (allow 0% - students just need to submit)
-  const passingScore = attemptData.passingScore !== undefined ? attemptData.passingScore : 60;
+  const passingScore =
+    attemptData.passingScore !== undefined ? attemptData.passingScore : 60;
   if (attemptData.score >= passingScore) {
     contentProgress.completionStatus = 'completed';
     contentProgress.progressPercentage = 100;
@@ -1850,7 +1861,7 @@ UserSchema.methods.addQuizAttempt = async function (
   } else {
     contentProgress.completionStatus = 'failed';
     contentProgress.progressPercentage = Math.round(
-      (attemptData.score / 100) * 100
+      (attemptData.score / 100) * 100,
     );
   }
 
@@ -1867,13 +1878,13 @@ UserSchema.methods.addQuizAttempt = async function (
 UserSchema.methods.getQuizAttemptHistory = function (courseId, contentId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) return [];
 
   const contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   return contentProgress ? contentProgress.quizAttempts : [];
@@ -1883,13 +1894,13 @@ UserSchema.methods.getQuizAttemptHistory = function (courseId, contentId) {
 UserSchema.methods.getBestQuizScore = function (courseId, contentId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) return null;
 
   const contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   return contentProgress ? contentProgress.bestScore : null;
@@ -1899,7 +1910,7 @@ UserSchema.methods.getBestQuizScore = function (courseId, contentId) {
 UserSchema.methods.calculateCourseProgress = async function (courseId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) return 0;
@@ -1915,7 +1926,7 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
     topic.content.map((contentItem) => ({
       contentId: contentItem._id,
       topicId: topic._id,
-    }))
+    })),
   );
 
   if (allContentItems.length === 0) return 0;
@@ -1927,7 +1938,7 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
 
   allContentItems.forEach((contentItem) => {
     const contentProgress = enrollment.contentProgress.find(
-      (cp) => cp.contentId.toString() === contentItem.contentId.toString()
+      (cp) => cp.contentId.toString() === contentItem.contentId.toString(),
     );
 
     if (contentProgress) {
@@ -1972,13 +1983,13 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
         if (course) {
           await whatsappSMSNotificationService.sendCourseCompletionNotification(
             this._id,
-            course
+            course,
           );
         }
       } catch (whatsappError) {
         console.error(
           'WhatsApp course completion notification error:',
-          whatsappError
+          whatsappError,
         );
         // Don't fail the progress update if WhatsApp fails
       }
@@ -1997,7 +2008,7 @@ UserSchema.methods.calculateCourseProgress = async function (courseId) {
 UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) return 0;
@@ -2009,7 +2020,7 @@ UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
   if (!course || !course.topics) return 0;
 
   const topic = course.topics.find(
-    (t) => t._id.toString() === topicId.toString()
+    (t) => t._id.toString() === topicId.toString(),
   );
   if (!topic || !topic.content) return 0;
 
@@ -2021,7 +2032,7 @@ UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
 
   topic.content.forEach((contentItem) => {
     const contentProgress = enrollment.contentProgress.find(
-      (cp) => cp.contentId.toString() === contentItem._id.toString()
+      (cp) => cp.contentId.toString() === contentItem._id.toString(),
     );
 
     if (contentProgress) {
@@ -2040,7 +2051,7 @@ UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
 
   // Update topic completion status
   const topicProgress = enrollment.contentProgress.filter(
-    (cp) => cp.topicId.toString() === topicId.toString()
+    (cp) => cp.topicId.toString() === topicId.toString(),
   );
 
   // Mark topic as completed if all content is 100% completed
@@ -2054,7 +2065,7 @@ UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
     enrollment.completedTopics.includes(topicId)
   ) {
     enrollment.completedTopics = enrollment.completedTopics.filter(
-      (id) => id.toString() !== topicId.toString()
+      (id) => id.toString() !== topicId.toString(),
     );
   }
 
@@ -2065,11 +2076,11 @@ UserSchema.methods.calculateTopicProgress = async function (courseId, topicId) {
 UserSchema.methods.canWatchVideo = function (
   courseId,
   contentId,
-  maxWatchCount
+  maxWatchCount,
 ) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment) {
@@ -2090,7 +2101,7 @@ UserSchema.methods.canWatchVideo = function (
   }
 
   const contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   // If no progress yet, can watch
@@ -2131,18 +2142,18 @@ UserSchema.methods.canWatchVideo = function (
 UserSchema.methods.canAttemptQuiz = function (
   courseId,
   contentId,
-  maxAttempts = 3
+  maxAttempts = 3,
 ) {
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course && enrollment.course.toString() === courseId.toString()
+      enrollment.course && enrollment.course.toString() === courseId.toString(),
   );
 
   if (!enrollment)
     return { canAttempt: false, reason: 'Not enrolled in course' };
 
   const contentProgress = enrollment.contentProgress.find(
-    (cp) => cp.contentId.toString() === contentId.toString()
+    (cp) => cp.contentId.toString() === contentId.toString(),
   );
 
   if (!contentProgress) return { canAttempt: true, reason: 'First attempt' };
@@ -2171,7 +2182,7 @@ UserSchema.methods.canAttemptQuiz = function (
 UserSchema.methods.resetQuizAttempts = async function (quizId) {
   // Find the quiz attempt entry
   const quizAttemptIndex = this.quizAttempts.findIndex(
-    (attempt) => attempt.quiz.toString() === quizId.toString()
+    (attempt) => attempt.quiz.toString() === quizId.toString(),
   );
 
   if (quizAttemptIndex === -1) {
@@ -2245,7 +2256,7 @@ UserSchema.methods.cleanupDuplicates = async function () {
   if (duplicatesRemoved > 0) {
     await this.save();
     console.log(
-      `Cleaned up ${duplicatesRemoved} duplicates for user ${this._id}`
+      `Cleaned up ${duplicatesRemoved} duplicates for user ${this._id}`,
     );
   }
 

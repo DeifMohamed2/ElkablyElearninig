@@ -212,10 +212,12 @@ const PurchaseSchema = new mongoose.Schema(
       default: null,
     },
     // Book orders reference
-    bookOrders: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'BookOrder',
-    }],
+    bookOrders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'BookOrder',
+      },
+    ],
     isBookOnly: {
       type: Boolean,
       default: false,
@@ -230,7 +232,7 @@ const PurchaseSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Generate order number before saving
@@ -303,7 +305,9 @@ PurchaseSchema.virtual('paymentStatusDisplay').get(function () {
 // Virtuals for analytics
 PurchaseSchema.virtual('itemCount').get(function () {
   const itemsCount = Array.isArray(this.items) ? this.items.length : 0;
-  const booksCount = Array.isArray(this.bookOrders) ? this.bookOrders.length : 0;
+  const booksCount = Array.isArray(this.bookOrders)
+    ? this.bookOrders.length
+    : 0;
   return itemsCount + booksCount;
 });
 
@@ -315,7 +319,7 @@ PurchaseSchema.virtual('isRefunded').get(function () {
 PurchaseSchema.methods.calculateTotals = function () {
   this.subtotal = this.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
   this.total = this.subtotal;
   return this;

@@ -30,242 +30,348 @@ const cache = require('../utils/cache');
 const getAdminDashboard = async (req, res) => {
   try {
     // Use cache for dashboard data (TTL: 2 minutes)
-    const dashboardData = await cache.getOrSet('admin_dashboard', async () => {
-      // Run ALL queries in parallel - single Promise.all
-      const [
-        totalStudents,
-        activeStudents,
-        newStudentsThisMonth,
-        totalCourses,
-        publishedCourses,
-        draftCourses,
-        totalRevenue,
-        monthlyRevenue,
-        totalOrders,
-        recentStudents,
-        newOrders,
-        topCoursesRaw,
-        studentGrowth,
-        revenueData,
-        progressStats,
-        brilliantStudentsStats,
-        totalEnrolledStudents,
-        activeStudentsCount,
-        studentsWithProgress,
-      ] = await Promise.all([
-        // Student statistics
-        User.countDocuments({ role: 'student' }),
-        User.countDocuments({ role: 'student', isActive: true }),
-        User.countDocuments({
-          role: 'student',
-          createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) },
-        }),
+    const dashboardData = await cache.getOrSet(
+      'admin_dashboard',
+      async () => {
+        // Run ALL queries in parallel - single Promise.all
+        const [
+          totalStudents,
+          activeStudents,
+          newStudentsThisMonth,
+          totalCourses,
+          publishedCourses,
+          draftCourses,
+          totalRevenue,
+          monthlyRevenue,
+          totalOrders,
+          recentStudents,
+          newOrders,
+          topCoursesRaw,
+          studentGrowth,
+          revenueData,
+          progressStats,
+          brilliantStudentsStats,
+          totalEnrolledStudents,
+          activeStudentsCount,
+          studentsWithProgress,
+        ] = await Promise.all([
+          // Student statistics
+          User.countDocuments({ role: 'student' }),
+          User.countDocuments({ role: 'student', isActive: true }),
+          User.countDocuments({
+            role: 'student',
+            createdAt: {
+              $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+            },
+          }),
 
-        // Course statistics
-        Course.countDocuments(),
-        Course.countDocuments({ status: 'published' }),
-        Course.countDocuments({ status: 'draft' }),
+          // Course statistics
+          Course.countDocuments(),
+          Course.countDocuments({ status: 'published' }),
+          Course.countDocuments({ status: 'draft' }),
 
-        // Revenue statistics - excluding refunded orders
-        Purchase.aggregate([
+          // Revenue statistics - excluding refunded orders
+          Purchase.aggregate([
+            {
+              $match: {
+                status: { $in: ['completed', 'paid'] },
+                $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+              },
+            },
+            { $group: { _id: null, total: { $sum: '$total' } } },
+          ]),
+          Purchase.aggregate([
+            {
+              $match: {
+                createdAt: {
+                  $gte: new Date(
+                    new Date().setMonth(new Date().getMonth() - 1),
+                  ),
+                },
+                status: { $in: ['completed', 'paid'] },
+                $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+              },
+            },
+            { $group: { _id: null, total: { $sum: '$total' } } },
+          ]),
+          Purchase.countDocuments({
+            status: { $in: ['completed', 'paid'] },
+            $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+          }),
+
+          // Recent activity - use lean() for faster results
+          User.find({ role: 'student' })
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .select('firstName lastName studentEmail createdAt')
+            .lean(),
+
+          // New orders (last 24 hours)
+          Purchase.find({
+            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+            status: { $in: ['completed', 'paid'] },
+          })
+            .populate('user', 'firstName lastName studentEmail')
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .lean(),
+
+          // Top courses - lean for speed
+          Course.find({ status: { $in: ['published', 'draft'] } })
+            .populate('bundle', 'title')
+            .sort({ createdAt: -1 })
+            .limit(6)
+            .select('title level category status price featured bundle')
+            .lean(),
+
+          // Student growth data (last 7 days)
+          User.aggregate([
+            {
+              $match: {
+                role: 'student',
+                createdAt: {
+                  $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+                },
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ]),
+
+          // Revenue data (last 7 days)
+          Purchase.aggregate([
+            {
+              $match: {
+                createdAt: {
+                  $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                },
+                status: 'completed',
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+                },
+                total: { $sum: '$total' },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ]),
+
+          // Progress statistics
+          Progress.aggregate([
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                completed: {
+                  $sum: { $cond: [{ $eq: ['$completed', true] }, 1, 0] },
+                },
+              },
+            },
+          ]),
+
+          // Brilliant students statistics
+          BrilliantStudent.getStatistics().catch(() => ({})),
+
+          // Engagement metrics - ALL in this single Promise.all (no separate queries)
+          User.countDocuments({
+            role: 'student',
+            'enrolledCourses.0': { $exists: true },
+          }).catch(() => 0),
+          User.countDocuments({
+            role: 'student',
+            'enrolledCourses.status': 'active',
+            isActive: true,
+          }).catch(() => 0),
+          User.countDocuments({
+            role: 'student',
+            'enrolledCourses.contentProgress.0': { $exists: true },
+          }).catch(() => 0),
+        ]);
+
+        // Calculate engagement metrics
+        const progressData = progressStats[0] || { total: 0, completed: 0 };
+        let engagementScore = 0;
+        if (totalEnrolledStudents > 0) {
+          const activeEngagement =
+            (activeStudentsCount / totalEnrolledStudents) * 40;
+          const progressEngagement =
+            progressData.total > 0
+              ? (progressData.completed / progressData.total) * 60
+              : 0;
+          engagementScore = Math.round(activeEngagement + progressEngagement);
+        }
+
+        // Use aggregation to get course enrollment counts in ONE query instead of N+1
+        const courseIds = topCoursesRaw.map((c) => c._id);
+        const enrollmentCounts = await User.aggregate([
           {
             $match: {
-              status: { $in: ['completed', 'paid'] },
-              $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+              role: 'student',
+              'enrolledCourses.course': { $in: courseIds },
             },
           },
-          { $group: { _id: null, total: { $sum: '$total' } } },
-        ]),
-        Purchase.aggregate([
-          {
-            $match: {
-              createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) },
-              status: { $in: ['completed', 'paid'] },
-              $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
-            },
-          },
-          { $group: { _id: null, total: { $sum: '$total' } } },
-        ]),
-        Purchase.countDocuments({
-          status: { $in: ['completed', 'paid'] },
-          $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
-        }),
-
-        // Recent activity - use lean() for faster results
-        User.find({ role: 'student' })
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .select('firstName lastName studentEmail createdAt')
-          .lean(),
-
-        // New orders (last 24 hours)
-        Purchase.find({
-          createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-          status: { $in: ['completed', 'paid'] },
-        })
-          .populate('user', 'firstName lastName studentEmail')
-          .sort({ createdAt: -1 })
-          .limit(10)
-          .lean(),
-
-        // Top courses - lean for speed
-        Course.find({ status: { $in: ['published', 'draft'] } })
-          .populate('bundle', 'title')
-          .sort({ createdAt: -1 })
-          .limit(6)
-          .select('title level category status price featured bundle')
-          .lean(),
-
-        // Student growth data (last 7 days)
-        User.aggregate([
-          { $match: { role: 'student', createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } },
-          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
-          { $sort: { _id: 1 } },
-        ]),
-
-        // Revenue data (last 7 days)
-        Purchase.aggregate([
-          { $match: { createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, status: 'completed' } },
-          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, total: { $sum: '$total' } } },
-          { $sort: { _id: 1 } },
-        ]),
-
-        // Progress statistics
-        Progress.aggregate([
+          { $unwind: '$enrolledCourses' },
+          { $match: { 'enrolledCourses.course': { $in: courseIds } } },
           {
             $group: {
-              _id: null,
-              total: { $sum: 1 },
-              completed: { $sum: { $cond: [{ $eq: ['$completed', true] }, 1, 0] } },
+              _id: '$enrolledCourses.course',
+              enrollments: { $sum: 1 },
+              completed: {
+                $sum: {
+                  $cond: [
+                    { $eq: ['$enrolledCourses.status', 'completed'] },
+                    1,
+                    0,
+                  ],
+                },
+              },
             },
           },
-        ]),
+        ]);
 
-        // Brilliant students statistics
-        BrilliantStudent.getStatistics().catch(() => ({})),
+        const enrollmentMap = {};
+        enrollmentCounts.forEach((e) => {
+          enrollmentMap[e._id.toString()] = e;
+        });
 
-        // Engagement metrics - ALL in this single Promise.all (no separate queries)
-        User.countDocuments({ role: 'student', 'enrolledCourses.0': { $exists: true } }).catch(() => 0),
-        User.countDocuments({ role: 'student', 'enrolledCourses.status': 'active', isActive: true }).catch(() => 0),
-        User.countDocuments({ role: 'student', 'enrolledCourses.contentProgress.0': { $exists: true } }).catch(() => 0),
-      ]);
+        const topCourses = topCoursesRaw.map((course) => {
+          const stats = enrollmentMap[course._id.toString()] || {
+            enrollments: 0,
+            completed: 0,
+          };
+          const completionRate =
+            stats.enrollments > 0
+              ? Math.round((stats.completed / stats.enrollments) * 100)
+              : 0;
+          return {
+            title: course.title,
+            level: course.level || 'Beginner',
+            category: course.category || 'General',
+            status: course.status,
+            featured: course.featured || false,
+            enrollments: stats.enrollments,
+            completionRate,
+            revenue: 0,
+          };
+        });
 
-      // Calculate engagement metrics
-      const progressData = progressStats[0] || { total: 0, completed: 0 };
-      let engagementScore = 0;
-      if (totalEnrolledStudents > 0) {
-        const activeEngagement = (activeStudentsCount / totalEnrolledStudents) * 40;
-        const progressEngagement = progressData.total > 0 ? (progressData.completed / progressData.total) * 60 : 0;
-        engagementScore = Math.round(activeEngagement + progressEngagement);
-      }
-
-      // Use aggregation to get course enrollment counts in ONE query instead of N+1
-      const courseIds = topCoursesRaw.map(c => c._id);
-      const enrollmentCounts = await User.aggregate([
-        { $match: { role: 'student', 'enrolledCourses.course': { $in: courseIds } } },
-        { $unwind: '$enrolledCourses' },
-        { $match: { 'enrolledCourses.course': { $in: courseIds } } },
-        {
-          $group: {
-            _id: '$enrolledCourses.course',
-            enrollments: { $sum: 1 },
-            completed: { $sum: { $cond: [{ $eq: ['$enrolledCourses.status', 'completed'] }, 1, 0] } },
-          },
-        },
-      ]);
-
-      const enrollmentMap = {};
-      enrollmentCounts.forEach(e => { enrollmentMap[e._id.toString()] = e; });
-
-      const topCourses = topCoursesRaw.map(course => {
-        const stats = enrollmentMap[course._id.toString()] || { enrollments: 0, completed: 0 };
-        const completionRate = stats.enrollments > 0 ? Math.round((stats.completed / stats.enrollments) * 100) : 0;
         return {
-          title: course.title,
-          level: course.level || 'Beginner',
-          category: course.category || 'General',
-          status: course.status,
-          featured: course.featured || false,
-          enrollments: stats.enrollments,
-          completionRate,
-          revenue: 0,
+          students: {
+            total: totalStudents || 0,
+            active: activeStudents || 0,
+            newThisMonth: newStudentsThisMonth || 0,
+            growth:
+              totalStudents > 0
+                ? Math.min(
+                    Math.round((newStudentsThisMonth / totalStudents) * 100),
+                    100,
+                  )
+                : 0,
+          },
+          courses: {
+            total: totalCourses || 0,
+            published: publishedCourses || 0,
+            draft: draftCourses || 0,
+            growth: 0,
+          },
+          revenue: {
+            total: Math.round(totalRevenue[0]?.total || 0),
+            thisMonth: Math.round(monthlyRevenue[0]?.total || 0),
+            orders: totalOrders || 0,
+            growth: 0,
+          },
+          engagement: {
+            score: engagementScore,
+            trend:
+              engagementScore > 70
+                ? 'up'
+                : engagementScore > 50
+                  ? 'neutral'
+                  : 'down',
+            change: engagementScore > 70 ? 5 : engagementScore > 50 ? 0 : -3,
+            avgSession: '24m',
+            completion:
+              progressData.total > 0
+                ? Math.round(
+                    (progressData.completed / progressData.total) * 100,
+                  )
+                : 0,
+            activeStudents: activeStudentsCount,
+            totalEnrolled: totalEnrolledStudents,
+            studentsWithProgress: studentsWithProgress,
+          },
+          brilliantStudents: {
+            total: Object.values(brilliantStudentsStats || {}).reduce(
+              (sum, stat) => sum + (stat.count || 0),
+              0,
+            ),
+            est: brilliantStudentsStats?.EST?.count || 0,
+            dsat: brilliantStudentsStats?.DSAT?.count || 0,
+            act: brilliantStudentsStats?.ACT?.count || 0,
+            avgScore:
+              Object.keys(brilliantStudentsStats || {}).length > 0
+                ? Object.values(brilliantStudentsStats).reduce(
+                    (sum, stat) => sum + (stat.avgScore || 0),
+                    0,
+                  ) / Object.keys(brilliantStudentsStats).length
+                : 0,
+            stats: brilliantStudentsStats || {},
+          },
+          recentActivity: [
+            ...recentStudents.map((user, index) => ({
+              icon: 'user-plus',
+              message: `New student registered: ${user.firstName} ${user.lastName}`,
+              time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
+              type: 'student',
+            })),
+            ...newOrders.map((order, index) => ({
+              icon: 'shopping-cart',
+              message: `New order: ${order.orderNumber} - EGP ${order.total}`,
+              time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
+              type: 'order',
+              orderId: order._id,
+              customer: order.user
+                ? `${order.user.firstName} ${order.user.lastName}`
+                : 'Unknown',
+            })),
+          ].slice(0, 10),
+          topCourses,
+          charts: { studentGrowth, revenueData },
+          newOrdersCount: newOrders.length,
+          newOrders: newOrders.slice(0, 5),
+          whatsappStatus: 'disconnected',
+          whatsappMessages: 0,
+          whatsappTemplates: 0,
         };
-      });
-
-      return {
-        students: {
-          total: totalStudents || 0,
-          active: activeStudents || 0,
-          newThisMonth: newStudentsThisMonth || 0,
-          growth: totalStudents > 0 ? Math.min(Math.round((newStudentsThisMonth / totalStudents) * 100), 100) : 0,
-        },
-        courses: {
-          total: totalCourses || 0,
-          published: publishedCourses || 0,
-          draft: draftCourses || 0,
-          growth: 0,
-        },
-        revenue: {
-          total: Math.round(totalRevenue[0]?.total || 0),
-          thisMonth: Math.round(monthlyRevenue[0]?.total || 0),
-          orders: totalOrders || 0,
-          growth: 0,
-        },
-        engagement: {
-          score: engagementScore,
-          trend: engagementScore > 70 ? 'up' : engagementScore > 50 ? 'neutral' : 'down',
-          change: engagementScore > 70 ? 5 : engagementScore > 50 ? 0 : -3,
-          avgSession: '24m',
-          completion: progressData.total > 0 ? Math.round((progressData.completed / progressData.total) * 100) : 0,
-          activeStudents: activeStudentsCount,
-          totalEnrolled: totalEnrolledStudents,
-          studentsWithProgress: studentsWithProgress,
-        },
-        brilliantStudents: {
-          total: Object.values(brilliantStudentsStats || {}).reduce((sum, stat) => sum + (stat.count || 0), 0),
-          est: brilliantStudentsStats?.EST?.count || 0,
-          dsat: brilliantStudentsStats?.DSAT?.count || 0,
-          act: brilliantStudentsStats?.ACT?.count || 0,
-          avgScore: Object.keys(brilliantStudentsStats || {}).length > 0
-            ? Object.values(brilliantStudentsStats).reduce((sum, stat) => sum + (stat.avgScore || 0), 0) / Object.keys(brilliantStudentsStats).length
-            : 0,
-          stats: brilliantStudentsStats || {},
-        },
-        recentActivity: [
-          ...recentStudents.map((user, index) => ({
-            icon: 'user-plus',
-            message: `New student registered: ${user.firstName} ${user.lastName}`,
-            time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
-            type: 'student',
-          })),
-          ...newOrders.map((order, index) => ({
-            icon: 'shopping-cart',
-            message: `New order: ${order.orderNumber} - EGP ${order.total}`,
-            time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
-            type: 'order',
-            orderId: order._id,
-            customer: order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Unknown',
-          })),
-        ].slice(0, 10),
-        topCourses,
-        charts: { studentGrowth, revenueData },
-        newOrdersCount: newOrders.length,
-        newOrders: newOrders.slice(0, 5),
-        whatsappStatus: 'disconnected',
-        whatsappMessages: 0,
-        whatsappTemplates: 0,
-      };
-    }, 120); // Cache for 2 minutes
+      },
+      120,
+    ); // Cache for 2 minutes
 
     // WhatsApp status check - non-blocking, done separately and cached longer
     let whatsappStatus = 'disconnected';
     try {
-      whatsappStatus = await cache.getOrSet('whatsapp_status', async () => {
-        const wasender = require('../utils/wasender');
-        const sessionStatus = await wasender.getGlobalStatus();
-        return sessionStatus.success ? 'connected' : 'disconnected';
-      }, 300); // Cache WhatsApp status for 5 minutes
-    } catch (e) { /* ignore */ }
+      whatsappStatus = await cache.getOrSet(
+        'whatsapp_status',
+        async () => {
+          const wasender = require('../utils/wasender');
+          const sessionStatus = await wasender.getGlobalStatus();
+          return sessionStatus.success ? 'connected' : 'disconnected';
+        },
+        300,
+      ); // Cache WhatsApp status for 5 minutes
+    } catch (e) {
+      /* ignore */
+    }
 
     // Merge WhatsApp status into dashboard data
     const finalData = { ...dashboardData, whatsappStatus };
@@ -283,8 +389,21 @@ const getAdminDashboard = async (req, res) => {
       students: { total: 0, active: 0, newThisMonth: 0, growth: 0 },
       courses: { total: 0, published: 0, draft: 0, growth: 0 },
       revenue: { total: 0, thisMonth: 0, orders: 0, growth: 0 },
-      engagement: { score: 0, trend: 'neutral', change: 0, avgSession: '0m', completion: 0 },
-      brilliantStudents: { total: 0, est: 0, dsat: 0, act: 0, avgScore: 0, stats: {} },
+      engagement: {
+        score: 0,
+        trend: 'neutral',
+        change: 0,
+        avgSession: '0m',
+        completion: 0,
+      },
+      brilliantStudents: {
+        total: 0,
+        est: 0,
+        dsat: 0,
+        act: 0,
+        avgScore: 0,
+        stats: {},
+      },
       recentActivity: [],
       topCourses: [],
       charts: { studentGrowth: [], revenueData: [] },
@@ -516,7 +635,7 @@ const createCourse = async (req, res) => {
 
     req.flash(
       'success_msg',
-      'Course created and added to bundle successfully!'
+      'Course created and added to bundle successfully!',
     );
     res.redirect('/admin/courses');
   } catch (error) {
@@ -525,11 +644,11 @@ const createCourse = async (req, res) => {
     // Handle validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(
-        (err) => err.message
+        (err) => err.message,
       );
       req.flash(
         'error_msg',
-        `Validation Error: ${validationErrors.join(', ')}`
+        `Validation Error: ${validationErrors.join(', ')}`,
       );
     } else {
       req.flash('error_msg', 'Error creating course');
@@ -586,7 +705,7 @@ const getCourseDetails = async (req, res) => {
       'enrolledCourses.course': course._id,
     })
       .select(
-        'firstName lastName username studentEmail studentCode enrolledCourses lastLogin isActive grade schoolName'
+        'firstName lastName username studentEmail studentCode enrolledCourses lastLogin isActive grade schoolName',
       )
       .lean();
 
@@ -606,7 +725,7 @@ const getCourseDetails = async (req, res) => {
     // Build enrolled student rows with progress for this course
     const studentsTable = enrolledStudents.map((stu) => {
       const enrollment = (stu.enrolledCourses || []).find(
-        (e) => e.course && e.course.toString() === course._id.toString()
+        (e) => e.course && e.course.toString() === course._id.toString(),
       );
       const progress = enrollment?.progress || 0;
       const status =
@@ -614,8 +733,8 @@ const getCourseDetails = async (req, res) => {
         (progress >= 100
           ? 'completed'
           : progress > 0
-          ? 'active'
-          : 'not_started');
+            ? 'active'
+            : 'not_started');
       return {
         _id: stu._id,
         name: `${stu.firstName} ${stu.lastName}`,
@@ -643,11 +762,11 @@ const getCourseDetails = async (req, res) => {
 
         enrolledStudents.forEach((stu) => {
           const enrollment = (stu.enrolledCourses || []).find(
-            (e) => e.course && e.course.toString() === course._id.toString()
+            (e) => e.course && e.course.toString() === course._id.toString(),
           );
           if (!enrollment || !enrollment.contentProgress) return;
           const cp = enrollment.contentProgress.find(
-            (p) => p.contentId && p.contentId.toString() === ci._id.toString()
+            (p) => p.contentId && p.contentId.toString() === ci._id.toString(),
           );
           if (!cp) return;
           // Viewed if has any progress or lastAccessed present
@@ -664,7 +783,7 @@ const getCourseDetails = async (req, res) => {
               scores.push(cp.bestScore);
             } else if (cp.quizAttempts[0]?.score !== undefined) {
               scores.push(
-                cp.quizAttempts[cp.quizAttempts.length - 1].score || 0
+                cp.quizAttempts[cp.quizAttempts.length - 1].score || 0,
               );
             }
           }
@@ -684,13 +803,13 @@ const getCourseDetails = async (req, res) => {
                 enrolledStudents.forEach((stu) => {
                   const enrollment = (stu.enrolledCourses || []).find(
                     (e) =>
-                      e.course && e.course.toString() === course._id.toString()
+                      e.course && e.course.toString() === course._id.toString(),
                   );
                   if (!enrollment || !enrollment.contentProgress) return;
                   const cp = enrollment.contentProgress.find(
                     (p) =>
                       p.contentId &&
-                      p.contentId.toString() === ci._id.toString()
+                      p.contentId.toString() === ci._id.toString(),
                   );
                   if (!cp) return;
                   if (cp.quizAttempts && cp.quizAttempts.length) {
@@ -746,11 +865,11 @@ const getCourseDetails = async (req, res) => {
       totalEnrolled > 0
         ? Math.round(
             studentsTable.reduce((s, st) => s + (st.progress || 0), 0) /
-              totalEnrolled
+              totalEnrolled,
           )
         : 0;
     const completedStudents = studentsTable.filter(
-      (s) => s.progress >= 100
+      (s) => s.progress >= 100,
     ).length;
     const completionRate =
       totalEnrolled > 0
@@ -760,23 +879,23 @@ const getCourseDetails = async (req, res) => {
     // Content completion rate based on all contents
     const allContentsCount = (course.topics || []).reduce(
       (sum, t) => sum + (t.content || []).length,
-      0
+      0,
     );
     let totalCompletedContentMarks = 0;
     enrolledStudents.forEach((stu) => {
       const enrollment = (stu.enrolledCourses || []).find(
-        (e) => e.course && e.course.toString() === course._id.toString()
+        (e) => e.course && e.course.toString() === course._id.toString(),
       );
       if (!enrollment || !enrollment.contentProgress) return;
       totalCompletedContentMarks += enrollment.contentProgress.filter(
-        (cp) => cp.completionStatus === 'completed'
+        (cp) => cp.completionStatus === 'completed',
       ).length;
     });
     const contentCompletionRate =
       allContentsCount > 0 && totalEnrolled > 0
         ? Math.round(
             (totalCompletedContentMarks / (allContentsCount * totalEnrolled)) *
-              100
+              100,
           )
         : 0;
 
@@ -838,7 +957,10 @@ const getCourseData = async (req, res) => {
         isFeatured: course.isFeatured || false,
         isFullyBooked: course.isFullyBooked || false,
         fullyBookedMessage: course.fullyBookedMessage || 'FULLY BOOKED',
-        requiresSequential: course.requiresSequential !== undefined ? course.requiresSequential : true,
+        requiresSequential:
+          course.requiresSequential !== undefined
+            ? course.requiresSequential
+            : true,
         order: course.order || 0,
         tags: course.tags || [],
         thumbnail: course.thumbnail || '',
@@ -882,7 +1004,9 @@ const updateCourse = async (req, res) => {
     // Convert string 'true'/'false' or 'on' to boolean, or keep boolean as is
     if (updateData.requiresSequential !== undefined) {
       if (typeof updateData.requiresSequential === 'string') {
-        updateData.requiresSequential = updateData.requiresSequential === 'true' || updateData.requiresSequential === 'on';
+        updateData.requiresSequential =
+          updateData.requiresSequential === 'true' ||
+          updateData.requiresSequential === 'on';
       } else {
         updateData.requiresSequential = Boolean(updateData.requiresSequential);
       }
@@ -977,7 +1101,7 @@ const updateCourse = async (req, res) => {
     const course = await Course.findOneAndUpdate(
       { courseCode },
       { ...updateData, updatedAt: new Date() },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     // Log admin action
@@ -1057,7 +1181,7 @@ const deleteCourse = async (req, res) => {
             enrolledCourses: { course: course._id },
             purchasedCourses: { course: course._id },
           },
-        }
+        },
       );
 
       // Remove course from wishlists (handle both object and array formats)
@@ -1067,7 +1191,7 @@ const deleteCourse = async (req, res) => {
           $pull: {
             'wishlist.courses': course._id,
           },
-        }
+        },
       );
 
       // Delete the course
@@ -1100,7 +1224,7 @@ const deleteCourse = async (req, res) => {
         {
           status: 'archived',
           isActive: false,
-        }
+        },
       );
 
       // Log admin action
@@ -1173,7 +1297,7 @@ const bulkUpdateCourseStatus = async (req, res) => {
         status: status,
         // If archiving, also set isActive to false
         ...(status === 'archived' ? { isActive: false } : {}),
-      }
+      },
     );
 
     const statusLabels = {
@@ -1274,7 +1398,7 @@ const duplicateCourse = async (req, res) => {
       await BundleCourse.findByIdAndUpdate(
         originalCourse.bundle._id,
         { $push: { courses: newCourse._id } },
-        { session }
+        { session },
       );
 
       // Map to track old content IDs to new content IDs for prerequisites/dependencies
@@ -1310,7 +1434,7 @@ const duplicateCourse = async (req, res) => {
               // Admin needs to create new zoom meetings manually for the duplicated course
               if (originalContent.type === 'zoom') {
                 console.log(
-                  `Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`
+                  `Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`,
                 );
                 continue; // Skip zoom content items
               }
@@ -1343,7 +1467,7 @@ const duplicateCourse = async (req, res) => {
               ) {
                 newContentData.questionBanks =
                   originalContent.questionBanks.map((bankId) =>
-                    bankId.toString ? bankId.toString() : bankId
+                    bankId.toString ? bankId.toString() : bankId,
                   );
               }
               if (originalContent.questionBank) {
@@ -1437,7 +1561,7 @@ const duplicateCourse = async (req, res) => {
       // We need to do this after all topics are created
       if (originalCourse.topics && originalCourse.topics.length > 0) {
         const newTopics = await Topic.find({ course: newCourse._id }).session(
-          session
+          session,
         );
 
         for (let topicIndex = 0; topicIndex < newTopics.length; topicIndex++) {
@@ -1592,13 +1716,13 @@ const getCourseContent = async (req, res) => {
     const totalContentItems = course.topics
       ? course.topics.reduce(
           (total, topic) => total + (topic.content ? topic.content.length : 0),
-          0
+          0,
         )
       : 0;
     const estimatedDuration = course.topics
       ? course.topics.reduce(
           (total, topic) => total + (topic.estimatedTime || 0),
-          0
+          0,
         )
       : 0;
 
@@ -1732,11 +1856,11 @@ const createTopic = async (req, res) => {
 
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(
-        (err) => err.message
+        (err) => err.message,
       );
       req.flash(
         'error_msg',
-        `Validation Error: ${validationErrors.join(', ')}`
+        `Validation Error: ${validationErrors.join(', ')}`,
       );
     } else {
       req.flash('error_msg', 'Error creating topic');
@@ -1801,7 +1925,7 @@ const updateTopic = async (req, res) => {
         }
         req.flash(
           'error_msg',
-          'Description must be at least 10 characters long'
+          'Description must be at least 10 characters long',
         );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
@@ -1993,7 +2117,7 @@ const getTopicDetails = async (req, res) => {
 
     const course = await Course.findOne({ courseCode }).populate(
       'bundle',
-      'title bundleCode year'
+      'title bundleCode year',
     );
 
     if (!course) {
@@ -2012,19 +2136,19 @@ const getTopicDetails = async (req, res) => {
       'enrolledCourses.course': course._id,
     })
       .select(
-        'firstName lastName username studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses lastLogin isActive grade schoolName'
+        'firstName lastName username studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses lastLogin isActive grade schoolName',
       )
       .lean();
 
     // Prepare a quick lookup for topic content ids
     const topicContentIds = new Set(
-      (topic.content || []).map((ci) => ci._id.toString())
+      (topic.content || []).map((ci) => ci._id.toString()),
     );
 
     // Build students table specific to this topic
     const students = enrolledStudents.map((stu) => {
       const enrollment = (stu.enrolledCourses || []).find(
-        (e) => e.course && e.course.toString() === course._id.toString()
+        (e) => e.course && e.course.toString() === course._id.toString(),
       );
 
       let topicCompletedCount = 0;
@@ -2038,7 +2162,7 @@ const getTopicDetails = async (req, res) => {
         enrollment.contentProgress.length > 0
       ) {
         const cps = enrollment.contentProgress.filter(
-          (cp) => cp.contentId && topicContentIds.has(cp.contentId.toString())
+          (cp) => cp.contentId && topicContentIds.has(cp.contentId.toString()),
         );
         topicViewed = cps.length > 0;
         cps.forEach((cp) => {
@@ -2063,8 +2187,8 @@ const getTopicDetails = async (req, res) => {
         progress >= 100
           ? 'completed'
           : topicViewed
-          ? 'in-progress'
-          : 'not-started';
+            ? 'in-progress'
+            : 'not-started';
 
       // Format phones with country codes
       const parentPhone = `${stu.parentCountryCode || ''} ${
@@ -2100,11 +2224,11 @@ const getTopicDetails = async (req, res) => {
 
       enrolledStudents.forEach((stu) => {
         const enrollment = (stu.enrolledCourses || []).find(
-          (e) => e.course && e.course.toString() === course._id.toString()
+          (e) => e.course && e.course.toString() === course._id.toString(),
         );
         if (!enrollment || !enrollment.contentProgress) return;
         const cp = enrollment.contentProgress.find(
-          (p) => p.contentId && p.contentId.toString() === ci._id.toString()
+          (p) => p.contentId && p.contentId.toString() === ci._id.toString(),
         );
         if (!cp) return;
         viewers += 1;
@@ -2158,16 +2282,16 @@ const getTopicDetails = async (req, res) => {
     // Overall analytics for the topic
     const totalStudents = students.length;
     const viewedStudents = students.filter(
-      (s) => s.status !== 'not-started'
+      (s) => s.status !== 'not-started',
     ).length;
     const completedStudents = students.filter(
-      (s) => s.status === 'completed'
+      (s) => s.status === 'completed',
     ).length;
     const inProgressStudents = students.filter(
-      (s) => s.status === 'in-progress'
+      (s) => s.status === 'in-progress',
     ).length;
     const notStartedStudents = students.filter(
-      (s) => s.status === 'not-started'
+      (s) => s.status === 'not-started',
     ).length;
     const completionRate =
       totalStudents > 0
@@ -2177,7 +2301,7 @@ const getTopicDetails = async (req, res) => {
     // Calculate average time spent across all students
     const totalTimeSpent = students.reduce(
       (sum, s) => sum + s.timeSpentMinutes,
-      0
+      0,
     );
     const averageTimeSpent =
       totalStudents > 0 ? Math.round(totalTimeSpent / totalStudents) : 0;
@@ -2190,14 +2314,14 @@ const getTopicDetails = async (req, res) => {
 
     enrolledStudents.forEach((stu) => {
       const enrollment = (stu.enrolledCourses || []).find(
-        (e) => e.course && e.course.toString() === course._id.toString()
+        (e) => e.course && e.course.toString() === course._id.toString(),
       );
       if (!enrollment || !enrollment.contentProgress) return;
 
       (topic.content || []).forEach((ci) => {
         if (ci.type === 'quiz' || ci.type === 'homework') {
           const cp = enrollment.contentProgress.find(
-            (p) => p.contentId && p.contentId.toString() === ci._id.toString()
+            (p) => p.contentId && p.contentId.toString() === ci._id.toString(),
           );
           if (cp && cp.quizAttempts) {
             totalQuizAttempts += cp.quizAttempts.length;
@@ -2213,11 +2337,11 @@ const getTopicDetails = async (req, res) => {
 
     if (totalQuizScores.length > 0) {
       averageQuizScore = Math.round(
-        totalQuizScores.reduce((a, b) => a + b, 0) / totalQuizScores.length
+        totalQuizScores.reduce((a, b) => a + b, 0) / totalQuizScores.length,
       );
       const passingScore = 60; // Default passing score
       const passedAttempts = totalQuizScores.filter(
-        (score) => score >= passingScore
+        (score) => score >= passingScore,
       ).length;
       passRate = Math.round((passedAttempts / totalQuizScores.length) * 100);
     }
@@ -2287,11 +2411,11 @@ const getTopicContentStudentStats = async (req, res) => {
     const rows = [];
     enrolledStudents.forEach((stu) => {
       const enrollment = (stu.enrolledCourses || []).find(
-        (e) => e.course && e.course.toString() === course._id.toString()
+        (e) => e.course && e.course.toString() === course._id.toString(),
       );
       if (!enrollment || !enrollment.contentProgress) return;
       const cp = enrollment.contentProgress.find(
-        (p) => p.contentId && p.contentId.toString() === contentId
+        (p) => p.contentId && p.contentId.toString() === contentId,
       );
       if (!cp) return;
       const attempts = cp.quizAttempts || [];
@@ -2324,12 +2448,13 @@ const getTopicContentStudentStats = async (req, res) => {
       (contentItem.type === 'quiz' || contentItem.type === 'homework') &&
       totalStudents > 0
         ? Math.round(
-            rows.reduce((sum, r) => sum + (r.bestScore || 0), 0) / totalStudents
+            rows.reduce((sum, r) => sum + (r.bestScore || 0), 0) /
+              totalStudents,
           )
         : null;
     const totalAttempts = rows.reduce(
       (sum, r) => sum + (r.attempts?.length || 0),
-      0
+      0,
     );
     const passRate =
       (contentItem.type === 'quiz' || contentItem.type === 'homework') &&
@@ -2337,7 +2462,7 @@ const getTopicContentStudentStats = async (req, res) => {
         ? (() => {
             const takers = rows.filter((r) => (r.attempts?.length || 0) > 0);
             const passed = takers.filter((r) =>
-              (r.attempts || []).some((a) => a.passed)
+              (r.attempts || []).some((a) => a.passed),
             ).length;
             return takers.length > 0
               ? Math.round((passed / takers.length) * 100)
@@ -2451,7 +2576,7 @@ const getContentDetailsPage = async (req, res) => {
       for (const t of course.topics) {
         if (t.content && t.content.length > 0) {
           const prereq = t.content.find(
-            (c) => c._id.toString() === prereqId.toString()
+            (c) => c._id.toString() === prereqId.toString(),
           );
           if (prereq) {
             prerequisiteContent = {
@@ -2471,21 +2596,21 @@ const getContentDetailsPage = async (req, res) => {
       'enrolledCourses.course': course._id,
       isActive: true,
     }).select(
-      'firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses'
+      'firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses',
     );
 
     const studentProgress = [];
 
     for (const student of enrolledStudents) {
       const enrollment = student.enrolledCourses.find(
-        (e) => e.course && e.course.toString() === course._id.toString()
+        (e) => e.course && e.course.toString() === course._id.toString(),
       );
 
       if (!enrollment) continue;
 
       // Find content progress for this specific content
       const contentProgress = enrollment.contentProgress.find(
-        (cp) => cp.contentId.toString() === contentId
+        (cp) => cp.contentId.toString() === contentId,
       );
 
       let progressData = {
@@ -2566,16 +2691,16 @@ const getContentDetailsPage = async (req, res) => {
     const totalStudents = studentProgress.length;
     const viewedStudents = studentProgress.filter((s) => s.progress > 0).length;
     const completedStudents = studentProgress.filter(
-      (s) => s.status === 'completed'
+      (s) => s.status === 'completed',
     ).length;
     const failedStudents = studentProgress.filter(
-      (s) => s.status === 'failed'
+      (s) => s.status === 'failed',
     ).length;
     const inProgressStudents = studentProgress.filter(
-      (s) => s.status === 'in_progress'
+      (s) => s.status === 'in_progress',
     ).length;
     const notStartedStudents = studentProgress.filter(
-      (s) => s.status === 'not_started'
+      (s) => s.status === 'not_started',
     ).length;
 
     // Calculate quiz-specific analytics
@@ -2587,28 +2712,28 @@ const getContentDetailsPage = async (req, res) => {
 
     if (contentItem.type === 'quiz' || contentItem.type === 'homework') {
       const studentsWithGrades = studentProgress.filter(
-        (s) => s.grade !== null && s.grade !== undefined
+        (s) => s.grade !== null && s.grade !== undefined,
       );
       const studentsWithBestScores = studentProgress.filter(
-        (s) => s.bestScore !== null && s.bestScore !== undefined
+        (s) => s.bestScore !== null && s.bestScore !== undefined,
       );
 
       if (studentsWithGrades.length > 0) {
         averageGrade = Math.round(
           studentsWithGrades.reduce((sum, s) => sum + s.grade, 0) /
-            studentsWithGrades.length
+            studentsWithGrades.length,
         );
         passRate = Math.round(
           (studentsWithGrades.filter((s) => s.passed === true).length /
             studentsWithGrades.length) *
-            100
+            100,
         );
       }
 
       if (studentsWithBestScores.length > 0) {
         const scores = studentsWithBestScores.map((s) => s.bestScore);
         averageScore = Math.round(
-          scores.reduce((sum, score) => sum + score, 0) / scores.length
+          scores.reduce((sum, score) => sum + score, 0) / scores.length,
         );
         highestScore = Math.max(...scores);
         lowestScore = Math.min(...scores);
@@ -2635,7 +2760,7 @@ const getContentDetailsPage = async (req, res) => {
         totalStudents > 0
           ? Math.round(
               studentProgress.reduce((sum, s) => sum + s.timeSpent, 0) /
-                totalStudents
+                totalStudents,
             )
           : 0,
       totalAttempts: studentProgress.reduce((sum, s) => sum + s.attempts, 0),
@@ -2647,16 +2772,16 @@ const getContentDetailsPage = async (req, res) => {
     if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
       try {
         zoomMeetingData = await ZoomMeeting.findById(
-          contentItem.zoomMeeting
+          contentItem.zoomMeeting,
         ).populate(
           'studentsAttended.student',
-          'firstName lastName studentEmail studentCode'
+          'firstName lastName studentEmail studentCode',
         );
 
         if (zoomMeetingData) {
           console.log(
             '📊 Found Zoom meeting data for content:',
-            zoomMeetingData.meetingName
+            zoomMeetingData.meetingName,
           );
 
           // Calculate additional meeting statistics
@@ -2705,10 +2830,10 @@ const getContentDetailsPage = async (req, res) => {
 
           if (totalStatusChanges > 0) {
             meetingStats.cameraOnPercentage = Math.round(
-              (cameraOnCount / totalStatusChanges) * 100
+              (cameraOnCount / totalStatusChanges) * 100,
             );
             meetingStats.micOnPercentage = Math.round(
-              (micOnCount / totalStatusChanges) * 100
+              (micOnCount / totalStatusChanges) * 100,
             );
           }
 
@@ -2716,8 +2841,8 @@ const getContentDetailsPage = async (req, res) => {
             meetingStats.averageSessionDuration = Math.round(
               zoomMeetingData.studentsAttended.reduce(
                 (sum, student) => sum + (student.totalTimeSpent || 0),
-                0
-              ) / zoomMeetingData.studentsAttended.length
+                0,
+              ) / zoomMeetingData.studentsAttended.length,
             );
           }
 
@@ -2761,7 +2886,7 @@ const reorderTopics = async (req, res) => {
 
     // Update each topic's order
     const updatePromises = orderUpdates.map((update) =>
-      Topic.findByIdAndUpdate(update.topicId, { order: update.order })
+      Topic.findByIdAndUpdate(update.topicId, { order: update.order }),
     );
 
     await Promise.all(updatePromises);
@@ -2933,7 +3058,7 @@ const duplicateTopic = async (req, res) => {
           // Skip zoom content items - zoom meetings should not be duplicated
           if (originalContent.type === 'zoom') {
             console.log(
-              `Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`
+              `Skipping zoom content "${originalContent.title}" - zoom meetings should be created manually`,
             );
             continue; // Skip zoom content items
           }
@@ -2963,7 +3088,7 @@ const duplicateTopic = async (req, res) => {
             originalContent.questionBanks.length > 0
           ) {
             newContentData.questionBanks = originalContent.questionBanks.map(
-              (bankId) => (bankId.toString ? bankId.toString() : bankId)
+              (bankId) => (bankId.toString ? bankId.toString() : bankId),
             );
           }
           if (originalContent.questionBank) {
@@ -3110,7 +3235,7 @@ const duplicateTopic = async (req, res) => {
       await Course.findByIdAndUpdate(
         course._id,
         { $push: { topics: newTopic._id } },
-        { session }
+        { session },
       );
 
       // Commit transaction
@@ -3270,8 +3395,8 @@ const addTopicContent = async (req, res) => {
         type === 'quiz' || type === 'homework'
           ? ''
           : content
-          ? content.trim()
-          : '',
+            ? content.trim()
+            : '',
       duration: duration && !isNaN(parseInt(duration)) ? parseInt(duration) : 0,
       isRequired: isRequired === 'on',
       order:
@@ -3309,7 +3434,7 @@ const addTopicContent = async (req, res) => {
       if (!questionBank || !selectedQuestions) {
         req.flash(
           'error_msg',
-          'Question bank and selected questions are required for quiz content'
+          'Question bank and selected questions are required for quiz content',
         );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
@@ -3334,7 +3459,7 @@ const addTopicContent = async (req, res) => {
       if (selectedQuestionsArray.length === 0) {
         req.flash(
           'error_msg',
-          'Please select at least one question for the quiz'
+          'Please select at least one question for the quiz',
         );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
@@ -3346,7 +3471,7 @@ const addTopicContent = async (req, res) => {
           question: questionId,
           points: 1,
           order: index,
-        })
+        }),
       );
       contentItem.quizSettings = {
         duration:
@@ -3379,7 +3504,7 @@ const addTopicContent = async (req, res) => {
       if (!questionBank || !selectedQuestions) {
         req.flash(
           'error_msg',
-          'Question bank and selected questions are required for homework content'
+          'Question bank and selected questions are required for homework content',
         );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
@@ -3404,7 +3529,7 @@ const addTopicContent = async (req, res) => {
       if (selectedQuestionsArray.length === 0) {
         req.flash(
           'error_msg',
-          'Please select at least one question for the homework'
+          'Please select at least one question for the homework',
         );
         return res.redirect(`/admin/courses/${courseCode}/content`);
       }
@@ -3416,12 +3541,15 @@ const addTopicContent = async (req, res) => {
           question: questionId,
           points: 1,
           order: index,
-        })
+        }),
       );
       contentItem.homeworkSettings = {
         passingCriteria: 'pass',
         passingScore:
-          (homeworkPassingScore !== null && homeworkPassingScore !== undefined && homeworkPassingScore !== '' && !isNaN(parseInt(homeworkPassingScore)))
+          homeworkPassingScore !== null &&
+          homeworkPassingScore !== undefined &&
+          homeworkPassingScore !== '' &&
+          !isNaN(parseInt(homeworkPassingScore))
             ? parseInt(homeworkPassingScore)
             : 0,
         maxAttempts:
@@ -3496,11 +3624,11 @@ const addTopicContent = async (req, res) => {
 
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(
-        (err) => err.message
+        (err) => err.message,
       );
       req.flash(
         'error_msg',
-        `Validation Error: ${validationErrors.join(', ')}`
+        `Validation Error: ${validationErrors.join(', ')}`,
       );
     } else {
       req.flash('error_msg', 'Error adding content');
@@ -3720,18 +3848,25 @@ const updateTopicContent = async (req, res) => {
         duration: quizDuration
           ? parseInt(quizDuration)
           : quizData?.duration
-          ? parseInt(quizData.duration)
-          : contentItem.quizSettings?.duration || 30,
-        passingScore: (quizPassingScore !== null && quizPassingScore !== undefined && quizPassingScore !== '')
-          ? parseInt(quizPassingScore)
-          : (quizData?.passingScore !== null && quizData?.passingScore !== undefined && quizData?.passingScore !== '')
-          ? parseInt(quizData.passingScore)
-          : (contentItem.quizSettings?.passingScore !== undefined ? contentItem.quizSettings.passingScore : 50),
+            ? parseInt(quizData.duration)
+            : contentItem.quizSettings?.duration || 30,
+        passingScore:
+          quizPassingScore !== null &&
+          quizPassingScore !== undefined &&
+          quizPassingScore !== ''
+            ? parseInt(quizPassingScore)
+            : quizData?.passingScore !== null &&
+                quizData?.passingScore !== undefined &&
+                quizData?.passingScore !== ''
+              ? parseInt(quizData.passingScore)
+              : contentItem.quizSettings?.passingScore !== undefined
+                ? contentItem.quizSettings.passingScore
+                : 50,
         maxAttempts: quizMaxAttempts
           ? parseInt(quizMaxAttempts)
           : quizData?.maxAttempts
-          ? parseInt(quizData.maxAttempts)
-          : contentItem.quizSettings?.maxAttempts || 3,
+            ? parseInt(quizData.maxAttempts)
+            : contentItem.quizSettings?.maxAttempts || 3,
         shuffleQuestions:
           quizShuffleQuestions === true ||
           quizShuffleQuestions === 'on' ||
@@ -3839,16 +3974,23 @@ const updateTopicContent = async (req, res) => {
 
       // Update homework settings
       contentItem.homeworkSettings = {
-        passingScore: (homeworkPassingScore !== null && homeworkPassingScore !== undefined && homeworkPassingScore !== '')
-          ? parseInt(homeworkPassingScore)
-          : (homeworkData?.passingScore !== null && homeworkData?.passingScore !== undefined && homeworkData?.passingScore !== '')
-          ? parseInt(homeworkData.passingScore)
-          : (contentItem.homeworkSettings?.passingScore !== undefined ? contentItem.homeworkSettings.passingScore : 0),
+        passingScore:
+          homeworkPassingScore !== null &&
+          homeworkPassingScore !== undefined &&
+          homeworkPassingScore !== ''
+            ? parseInt(homeworkPassingScore)
+            : homeworkData?.passingScore !== null &&
+                homeworkData?.passingScore !== undefined &&
+                homeworkData?.passingScore !== ''
+              ? parseInt(homeworkData.passingScore)
+              : contentItem.homeworkSettings?.passingScore !== undefined
+                ? contentItem.homeworkSettings.passingScore
+                : 0,
         maxAttempts: homeworkMaxAttempts
           ? parseInt(homeworkMaxAttempts)
           : homeworkData?.maxAttempts
-          ? parseInt(homeworkData.maxAttempts)
-          : contentItem.homeworkSettings?.maxAttempts || 1,
+            ? parseInt(homeworkData.maxAttempts)
+            : contentItem.homeworkSettings?.maxAttempts || 1,
         shuffleQuestions:
           homeworkShuffleQuestions === true ||
           homeworkShuffleQuestions === 'on' ||
@@ -4012,13 +4154,13 @@ const getContentDetailsForEdit = async (req, res) => {
         contentItem.questionBanks && contentItem.questionBanks.length > 0
           ? contentItem.questionBanks
           : contentItem.questionBank
-          ? [contentItem.questionBank]
-          : [];
+            ? [contentItem.questionBank]
+            : [];
 
       // Populate all question banks
       if (bankIds.length > 0) {
         const banks = await QuestionBank.find({ _id: { $in: bankIds } }).select(
-          'name bankCode description tags totalQuestions'
+          'name bankCode description tags totalQuestions',
         );
 
         contentData.questionBanks = banks.map((bank) => ({
@@ -4066,7 +4208,8 @@ const getContentDetailsForEdit = async (req, res) => {
       if (contentItem.type === 'quiz') {
         contentData.quizSettings = {
           duration: settings?.duration || 30,
-          passingScore: settings?.passingScore !== undefined ? settings.passingScore : 50,
+          passingScore:
+            settings?.passingScore !== undefined ? settings.passingScore : 50,
           maxAttempts: settings?.maxAttempts || 3,
           shuffleQuestions: settings?.shuffleQuestions || false,
           shuffleOptions: settings?.shuffleOptions || false,
@@ -4076,7 +4219,8 @@ const getContentDetailsForEdit = async (req, res) => {
         };
       } else {
         contentData.homeworkSettings = {
-          passingScore: settings?.passingScore !== undefined ? settings.passingScore : 0,
+          passingScore:
+            settings?.passingScore !== undefined ? settings.passingScore : 0,
           maxAttempts: settings?.maxAttempts || 1,
           shuffleQuestions: settings?.shuffleQuestions || false,
           shuffleOptions: settings?.shuffleOptions || false,
@@ -4205,7 +4349,7 @@ const processMonthlySalesData = (monthlyData) => {
     const date = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() - i,
-      1
+      1,
     );
     last12Months.push({
       year: date.getFullYear(),
@@ -4219,7 +4363,7 @@ const processMonthlySalesData = (monthlyData) => {
   // Fill in actual data
   monthlyData.forEach((data) => {
     const monthIndex = last12Months.findIndex(
-      (m) => m.year === data._id.year && m.month === data._id.month
+      (m) => m.year === data._id.year && m.month === data._id.month,
     );
     if (monthIndex !== -1) {
       last12Months[monthIndex].revenue = data.revenue || 0;
@@ -4394,7 +4538,7 @@ const getOrderDetails = async (req, res) => {
     const order = await Purchase.findOne({ orderNumber })
       .populate(
         'user',
-        'firstName lastName studentEmail studentCode grade schoolName createdAt profileImage'
+        'firstName lastName studentEmail studentCode grade schoolName createdAt profileImage',
       )
       .populate({
         path: 'items.item',
@@ -4505,12 +4649,14 @@ const getOrderDetails = async (req, res) => {
 
     const totalSpent = customerPurchases.reduce(
       (sum, purchase) => sum + purchase.total,
-      0
+      0,
     );
 
     // Enhanced order summary
     // Include book orders in item count
-    const itemCount = (order.items ? order.items.length : 0) + (bookOrders ? bookOrders.length : 0);
+    const itemCount =
+      (order.items ? order.items.length : 0) +
+      (bookOrders ? bookOrders.length : 0);
     const summary = {
       subtotal: order.subtotal,
       tax: order.tax,
@@ -4547,7 +4693,7 @@ const generateInvoice = async (req, res) => {
     const order = await Purchase.findOne({ orderNumber })
       .populate(
         'user',
-        'firstName lastName studentEmail studentCode grade schoolName createdAt profileImage'
+        'firstName lastName studentEmail studentCode grade schoolName createdAt profileImage',
       )
       .populate({
         path: 'items.item',
@@ -4896,7 +5042,7 @@ const bulkUpdateBookOrdersStatus = async (req, res) => {
 
     const result = await BookOrder.updateMany(
       { _id: { $in: orderIds } },
-      { $set: updateData }
+      { $set: updateData },
     );
 
     return res.json({
@@ -4958,7 +5104,7 @@ const exportBookOrders = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -4983,7 +5129,7 @@ const refundOrder = async (req, res) => {
     }
 
     const user = await User.findById(purchase.user).populate(
-      'enrolledCourses.course'
+      'enrolledCourses.course',
     );
     if (!user) {
       return res
@@ -5013,16 +5159,16 @@ const refundOrder = async (req, res) => {
         const bundle = await BundleCourse.findById(it.item).populate('courses');
         if (bundle && bundle.courses && bundle.courses.length) {
           const bundleCourseIds = new Set(
-            bundle.courses.map((c) => (c._id || c).toString())
+            bundle.courses.map((c) => (c._id || c).toString()),
           );
           user.enrolledCourses = user.enrolledCourses.filter(
             (en) =>
-              !bundleCourseIds.has((en.course?._id || en.course).toString())
+              !bundleCourseIds.has((en.course?._id || en.course).toString()),
           );
 
           // Remove student from bundle's enrolledStudents list
           const studentIndexInBundle = bundle.enrolledStudents.indexOf(
-            user._id
+            user._id,
           );
           if (studentIndexInBundle !== -1) {
             bundle.enrolledStudents.splice(studentIndexInBundle, 1);
@@ -5042,7 +5188,7 @@ const refundOrder = async (req, res) => {
         });
         user.enrolledCourses = user.enrolledCourses.filter(
           (en) =>
-            (en.course?._id || en.course).toString() !== it.item.toString()
+            (en.course?._id || en.course).toString() !== it.item.toString(),
         );
       }
     }
@@ -5101,10 +5247,7 @@ const completeFailedPayment = async (req, res) => {
 
     // Find the purchase
     const purchase = await Purchase.findOne({
-      $or: [
-        { orderNumber: orderNumber },
-        { _id: orderId }
-      ]
+      $or: [{ orderNumber: orderNumber }, { _id: orderId }],
     })
       .populate('user')
       .populate('items.item');
@@ -5127,7 +5270,7 @@ const completeFailedPayment = async (req, res) => {
     // Import the processSuccessfulPayment function from purchaseController
     // We need to require it dynamically to avoid circular dependencies
     const purchaseController = require('./purchaseController');
-    
+
     // Use the centralized processSuccessfulPayment function
     // This ensures all enrollments, notifications, etc. are handled correctly
     try {
@@ -5158,7 +5301,9 @@ const completeFailedPayment = async (req, res) => {
         status: 'SUCCESS',
       });
 
-      console.log(`✅ Admin ${req.session.user.id} manually completed failed payment for order #${orderNumber}`);
+      console.log(
+        `✅ Admin ${req.session.user.id} manually completed failed payment for order #${orderNumber}`,
+      );
 
       return res.json({
         success: true,
@@ -5167,7 +5312,7 @@ const completeFailedPayment = async (req, res) => {
       });
     } catch (processError) {
       console.error('Error processing successful payment:', processError);
-      
+
       // Revert status if processing failed
       purchase.status = 'failed';
       purchase.paymentStatus = 'failed';
@@ -5223,17 +5368,21 @@ const verifyPendingPayment = async (req, res) => {
 
     try {
       console.log(`[Admin] Verifying payment for order: ${orderNumber}`);
-      const transactionStatus = await paymobService.queryTransactionStatus(purchase.paymentIntentId);
+      const transactionStatus = await paymobService.queryTransactionStatus(
+        purchase.paymentIntentId,
+      );
 
       if (!transactionStatus) {
         return res.status(400).json({
           success: false,
-          message: 'Could not retrieve transaction status from Paymob. The transaction may not exist.',
+          message:
+            'Could not retrieve transaction status from Paymob. The transaction may not exist.',
         });
       }
 
       // Process the transaction status
-      const webhookData = paymobService.processWebhookPayload(transactionStatus);
+      const webhookData =
+        paymobService.processWebhookPayload(transactionStatus);
 
       if (webhookData.isSuccess) {
         console.log(`[Admin] ✅ Payment VERIFIED SUCCESS for: ${orderNumber}`);
@@ -5248,7 +5397,7 @@ const verifyPendingPayment = async (req, res) => {
           verifiedBy: `admin_${req.session.user.id}`,
           verificationMethod: 'manual_transaction_inquiry',
         };
-        
+
         // Reset to pending for processing
         purchase.status = 'pending';
         purchase.paymentStatus = 'pending';
@@ -5279,18 +5428,19 @@ const verifyPendingPayment = async (req, res) => {
 
         return res.json({
           success: true,
-          message: 'Payment verified as successful and completed. Student has been enrolled.',
+          message:
+            'Payment verified as successful and completed. Student has been enrolled.',
           orderNumber: purchase.orderNumber,
           transactionId: webhookData.transactionId,
           paymentStatus: 'completed',
         });
-
       } else if (webhookData.isFailed) {
         console.log(`[Admin] ❌ Payment VERIFIED FAILED for: ${orderNumber}`);
 
-        const failureReason = transactionStatus?.obj?.data?.message || 
-                              transactionStatus?.data?.message || 
-                              'Payment declined by bank';
+        const failureReason =
+          transactionStatus?.obj?.data?.message ||
+          transactionStatus?.data?.message ||
+          'Payment declined by bank';
 
         // Update as failed
         purchase.status = 'failed';
@@ -5326,20 +5476,21 @@ const verifyPendingPayment = async (req, res) => {
           paymentStatus: 'failed',
           failureReason,
         });
-
       } else {
         // Still pending
         console.log(`[Admin] ⏳ Payment still PENDING for: ${orderNumber}`);
 
         return res.json({
           success: true,
-          message: 'Payment is still pending according to Paymob. The bank has not yet processed the transaction.',
+          message:
+            'Payment is still pending according to Paymob. The bank has not yet processed the transaction.',
           orderNumber: purchase.orderNumber,
           paymentStatus: 'pending',
-          rawStatus: transactionStatus?.obj?.transaction_status || transactionStatus?.transaction_status,
+          rawStatus:
+            transactionStatus?.obj?.transaction_status ||
+            transactionStatus?.transaction_status,
         });
       }
-
     } catch (apiError) {
       console.error('[Admin] Paymob API error:', apiError);
       return res.status(500).json({
@@ -5347,7 +5498,6 @@ const verifyPendingPayment = async (req, res) => {
         message: `Failed to query Paymob: ${apiError.message}`,
       });
     }
-
   } catch (error) {
     console.error('Error verifying pending payment:', error);
     return res.status(500).json({
@@ -5367,7 +5517,9 @@ const getPendingPayments = async (req, res) => {
       paymentIntentId: { $exists: true, $ne: null, $ne: '' },
     })
       .populate('user', 'firstName lastName email phone')
-      .select('orderNumber user items total createdAt paymentIntentId paymobTransactionId')
+      .select(
+        'orderNumber user items total createdAt paymentIntentId paymobTransactionId',
+      )
       .sort({ createdAt: -1 })
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit))
@@ -5388,7 +5540,6 @@ const getPendingPayments = async (req, res) => {
         totalPages: Math.ceil(totalCount / parseInt(limit)),
       },
     });
-
   } catch (error) {
     console.error('Error getting pending payments:', error);
     return res.status(500).json({
@@ -5401,8 +5552,10 @@ const getPendingPayments = async (req, res) => {
 // Trigger manual check of all pending payments
 const triggerPendingPaymentsCheck = async (req, res) => {
   try {
-    const { triggerManualCheck } = require('../jobs/pendingPaymentVerification');
-    
+    const {
+      triggerManualCheck,
+    } = require('../jobs/pendingPaymentVerification');
+
     // Log admin action
     await createLog(req, {
       action: 'TRIGGER_PENDING_PAYMENTS_CHECK',
@@ -5412,15 +5565,15 @@ const triggerPendingPaymentsCheck = async (req, res) => {
     });
 
     // Start the check in the background
-    triggerManualCheck().catch(err => {
+    triggerManualCheck().catch((err) => {
       console.error('Manual pending payments check error:', err);
     });
 
     return res.json({
       success: true,
-      message: 'Pending payments check has been triggered. Check server logs for progress.',
+      message:
+        'Pending payments check has been triggered. Check server logs for progress.',
     });
-
   } catch (error) {
     console.error('Error triggering pending payments check:', error);
     return res.status(500).json({
@@ -5504,7 +5657,7 @@ const getQuestionsFromBankForContent = async (req, res) => {
       // Get all questions for the bank
       questions = await Question.find(filter)
         .select(
-          'questionText questionType difficulty options correctAnswers explanation questionImage points tags'
+          'questionText questionType difficulty options correctAnswers explanation questionImage points tags',
         )
         .sort({ createdAt: -1 });
       total = questions.length;
@@ -5513,7 +5666,7 @@ const getQuestionsFromBankForContent = async (req, res) => {
       const skip = (parseInt(page) - 1) * parseInt(limit);
       questions = await Question.find(filter)
         .select(
-          'questionText questionType difficulty options correctAnswers explanation questionImage points tags'
+          'questionText questionType difficulty options correctAnswers explanation questionImage points tags',
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -5581,7 +5734,7 @@ const getQuestionsFromMultipleBanksForContent = async (req, res) => {
     const questions = await Question.find(filter)
       .populate('bank', 'name bankCode')
       .select(
-        'questionText questionType difficulty options correctAnswers explanation questionImage points tags bank'
+        'questionText questionType difficulty options correctAnswers explanation questionImage points tags bank',
       )
       .sort({ bank: 1, createdAt: -1 })
       .lean();
@@ -5611,7 +5764,7 @@ const getQuestionsFromMultipleBanksForContent = async (req, res) => {
   } catch (error) {
     console.error(
       'Error fetching questions from multiple banks for content:',
-      error
+      error,
     );
     return res.status(500).json({
       success: false,
@@ -5768,7 +5921,7 @@ const addQuizContent = async (req, res) => {
     parsedQuestions = parsedQuestions.map((q) => {
       if (!q.sourceBank) {
         const questionDoc = existingQuestions.find(
-          (eq) => eq._id.toString() === q.question.toString()
+          (eq) => eq._id.toString() === q.question.toString(),
         );
         if (questionDoc) {
           q.sourceBank = questionDoc.bank;
@@ -5799,7 +5952,12 @@ const addQuizContent = async (req, res) => {
       })),
       quizSettings: {
         duration: parseInt(duration) || 30,
-        passingScore: passingScore !== null && passingScore !== undefined && passingScore !== '' ? parseInt(passingScore) : 50,
+        passingScore:
+          passingScore !== null &&
+          passingScore !== undefined &&
+          passingScore !== ''
+            ? parseInt(passingScore)
+            : 50,
         maxAttempts: parseInt(maxAttempts) || 3,
         shuffleQuestions:
           shuffleQuestions === 'on' || shuffleQuestions === true,
@@ -5950,7 +6108,7 @@ const addHomeworkContent = async (req, res) => {
     parsedQuestions = parsedQuestions.map((q) => {
       if (!q.sourceBank) {
         const questionDoc = existingQuestions.find(
-          (eq) => eq._id.toString() === q.question.toString()
+          (eq) => eq._id.toString() === q.question.toString(),
         );
         if (questionDoc) {
           q.sourceBank = questionDoc.bank;
@@ -5981,7 +6139,12 @@ const addHomeworkContent = async (req, res) => {
       })),
       homeworkSettings: {
         passingCriteria: 'pass',
-        passingScore: passingScore !== null && passingScore !== undefined && passingScore !== '' ? parseInt(passingScore) : 0,
+        passingScore:
+          passingScore !== null &&
+          passingScore !== undefined &&
+          passingScore !== ''
+            ? parseInt(passingScore)
+            : 0,
         maxAttempts: parseInt(maxAttempts) || 1,
         shuffleQuestions:
           shuffleQuestions === 'on' || shuffleQuestions === true,
@@ -6026,7 +6189,14 @@ const addHomeworkContent = async (req, res) => {
 // Bundle Course Management
 const getBundles = async (req, res) => {
   try {
-    const { status, subject, courseType, search, page = 1, limit = 12 } = req.query;
+    const {
+      status,
+      subject,
+      courseType,
+      search,
+      page = 1,
+      limit = 12,
+    } = req.query;
 
     const filter = {};
     if (status && status !== 'all') filter.status = status;
@@ -6042,7 +6212,7 @@ const getBundles = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Run all queries in parallel
-    const [bundles, totalBundles, stats, filterOptions] = await Promise.all([
+    const [bundlesRaw, totalBundles, stats, filterOptions] = await Promise.all([
       BundleCourse.find(filter)
         .populate('courses')
         .populate('createdBy', 'userName')
@@ -6054,6 +6224,18 @@ const getBundles = async (req, res) => {
       getBundleStats(),
       getFilterOptions(),
     ]);
+
+    // Calculate virtual fields since .lean() strips them
+    const bundles = bundlesRaw.map(bundle => {
+      const discountPrice = bundle.discountPrice || 0;
+      const price = bundle.price || 0;
+      return {
+        ...bundle,
+        finalPrice: discountPrice && price ? price - (price * (discountPrice / 100)) : price,
+        savings: discountPrice && price ? price * (discountPrice / 100) : 0,
+        savingsPercentage: discountPrice || 0
+      };
+    });
 
     const totalPages = Math.ceil(totalBundles / parseInt(limit));
 
@@ -6152,7 +6334,7 @@ const createBundle = async (req, res) => {
 
     req.flash(
       'success_msg',
-      'Bundle created successfully! You can now add courses to it.'
+      'Bundle created successfully! You can now add courses to it.',
     );
     res.redirect(`/admin/bundles/${bundle.bundleCode}/manage`);
   } catch (error) {
@@ -6161,11 +6343,11 @@ const createBundle = async (req, res) => {
     // Handle validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(
-        (err) => err.message
+        (err) => err.message,
       );
       req.flash(
         'error_msg',
-        `Validation Error: ${validationErrors.join(', ')}`
+        `Validation Error: ${validationErrors.join(', ')}`,
       );
     } else {
       req.flash('error_msg', 'Error creating bundle');
@@ -6390,7 +6572,7 @@ const createCourseForBundle = async (req, res) => {
 
     req.flash(
       'success_msg',
-      'Course created and added to bundle successfully!'
+      'Course created and added to bundle successfully!',
     );
     res.redirect(`/admin/bundles/${bundleCode}/manage`);
   } catch (error) {
@@ -6427,7 +6609,7 @@ const updateCourseOrder = async (req, res) => {
       return Course.findByIdAndUpdate(
         courseId,
         { order: parseInt(order) },
-        { new: true }
+        { new: true },
       );
     });
 
@@ -6476,42 +6658,103 @@ const getBundlesAPI = async (req, res) => {
 
 // Helper functions
 const getCourseStats = async () => {
-  return cache.getOrSet('course_stats', async () => {
-    const [totalCourses, publishedCourses, draftCourses, archivedCourses, totalEnrollments] = await Promise.all([
-      Course.countDocuments(),
-      Course.countDocuments({ status: 'published' }),
-      Course.countDocuments({ status: 'draft' }),
-      Course.countDocuments({ status: 'archived' }),
-      Course.aggregate([{ $group: { _id: null, total: { $sum: '$enrolledStudents' } } }]),
-    ]);
-    return { totalCourses, publishedCourses, draftCourses, archivedCourses, totalEnrollments: totalEnrollments[0]?.total || 0 };
-  }, 120);
+  return cache.getOrSet(
+    'course_stats',
+    async () => {
+      const [
+        totalCourses,
+        publishedCourses,
+        draftCourses,
+        archivedCourses,
+        totalEnrollments,
+      ] = await Promise.all([
+        Course.countDocuments(),
+        Course.countDocuments({ status: 'published' }),
+        Course.countDocuments({ status: 'draft' }),
+        Course.countDocuments({ status: 'archived' }),
+        Course.aggregate([
+          { $group: { _id: null, total: { $sum: '$enrolledStudents' } } },
+        ]),
+      ]);
+      return {
+        totalCourses,
+        publishedCourses,
+        draftCourses,
+        archivedCourses,
+        totalEnrollments: totalEnrollments[0]?.total || 0,
+      };
+    },
+    120,
+  );
 };
 
 const getBundleStats = async () => {
-  return cache.getOrSet('bundle_stats', async () => {
-    const [totalBundles, publishedBundles, draftBundles, onlineBundles, ongroundBundles, recordedBundles, recoveryBundles, totalEnrollments] = await Promise.all([
-      BundleCourse.countDocuments(),
-      BundleCourse.countDocuments({ status: 'published' }),
-      BundleCourse.countDocuments({ status: 'draft' }),
-      BundleCourse.countDocuments({ courseType: 'online', status: 'published' }),
-      BundleCourse.countDocuments({ courseType: 'onground', status: 'published' }),
-      BundleCourse.countDocuments({ courseType: 'recorded', status: 'published' }),
-      BundleCourse.countDocuments({ courseType: 'recovery', status: 'published' }),
-      BundleCourse.aggregate([{ $group: { _id: null, total: { $sum: '$enrolledStudents' } } }]),
-    ]);
-    return { totalBundles, publishedBundles, draftBundles, onlineBundles, ongroundBundles, recordedBundles, recoveryBundles, totalEnrollments: totalEnrollments[0]?.total || 0 };
-  }, 120);
+  return cache.getOrSet(
+    'bundle_stats',
+    async () => {
+      const [
+        totalBundles,
+        publishedBundles,
+        draftBundles,
+        onlineBundles,
+        ongroundBundles,
+        recordedBundles,
+        recoveryBundles,
+        totalEnrollments,
+      ] = await Promise.all([
+        BundleCourse.countDocuments(),
+        BundleCourse.countDocuments({ status: 'published' }),
+        BundleCourse.countDocuments({ status: 'draft' }),
+        BundleCourse.countDocuments({
+          courseType: 'online',
+          status: 'published',
+        }),
+        BundleCourse.countDocuments({
+          courseType: 'onground',
+          status: 'published',
+        }),
+        BundleCourse.countDocuments({
+          courseType: 'recorded',
+          status: 'published',
+        }),
+        BundleCourse.countDocuments({
+          courseType: 'recovery',
+          status: 'published',
+        }),
+        BundleCourse.aggregate([
+          { $group: { _id: null, total: { $sum: '$enrolledStudents' } } },
+        ]),
+      ]);
+      return {
+        totalBundles,
+        publishedBundles,
+        draftBundles,
+        onlineBundles,
+        ongroundBundles,
+        recordedBundles,
+        recoveryBundles,
+        totalEnrollments: totalEnrollments[0]?.total || 0,
+      };
+    },
+    120,
+  );
 };
 
 const getFilterOptions = async () => {
-  return cache.getOrSet('course_filter_options', async () => {
-    const [levels, bundles] = await Promise.all([
-      Course.distinct('level'),
-      BundleCourse.find({ status: { $ne: 'archived' } }).select('_id title bundleCode').sort({ title: 1 }).lean(),
-    ]);
-    return { years: [], levels, bundles };
-  }, 300);
+  return cache.getOrSet(
+    'course_filter_options',
+    async () => {
+      const [levels, bundles] = await Promise.all([
+        Course.distinct('level'),
+        BundleCourse.find({ status: { $ne: 'archived' } })
+          .select('_id title bundleCode')
+          .sort({ title: 1 })
+          .lean(),
+      ]);
+      return { years: [], levels, bundles };
+    },
+    300,
+  );
 };
 
 // Update bundle
@@ -6618,10 +6861,10 @@ const updateBundle = async (req, res) => {
             isFullyBooked: true,
             fullyBookedMessage: bundle.fullyBookedMessage,
           },
-        }
+        },
       );
       console.log(
-        `✅ Updated all courses in bundle ${bundle.bundleCode} to fully booked`
+        `✅ Updated all courses in bundle ${bundle.bundleCode} to fully booked`,
       );
     }
     // If bundle is no longer fully booked, remove fully booked status from courses (optional)
@@ -6633,10 +6876,10 @@ const updateBundle = async (req, res) => {
           $set: {
             isFullyBooked: false,
           },
-        }
+        },
       );
       console.log(
-        `✅ Removed fully booked status from all courses in bundle ${bundle.bundleCode}`
+        `✅ Removed fully booked status from all courses in bundle ${bundle.bundleCode}`,
       );
     }
 
@@ -6661,7 +6904,7 @@ const updateBundle = async (req, res) => {
     if (isAjaxRequest) {
       if (error.name === 'ValidationError') {
         const validationErrors = Object.values(error.errors).map(
-          (err) => err.message
+          (err) => err.message,
         );
         return res.status(400).json({
           success: false,
@@ -6679,11 +6922,11 @@ const updateBundle = async (req, res) => {
     // Handle non-AJAX requests (redirects)
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(
-        (err) => err.message
+        (err) => err.message,
       );
       req.flash(
         'error_msg',
-        `Validation Error: ${validationErrors.join(', ')}`
+        `Validation Error: ${validationErrors.join(', ')}`,
       );
     } else {
       req.flash('error_msg', 'Error updating bundle');
@@ -6750,7 +6993,7 @@ const getBundleStudents = async (req, res) => {
 
     const bundle = await BundleCourse.findOne({ bundleCode }).populate(
       'courses',
-      'title courseCode enrolledStudents'
+      'title courseCode enrolledStudents',
     );
 
     if (!bundle) {
@@ -6797,7 +7040,7 @@ const getBundleStudents = async (req, res) => {
       activeStudents: students.filter((s) => s.progress > 0).length,
       completedStudents: students.filter((s) => s.progress === 100).length,
       averageProgress: Math.round(
-        students.reduce((sum, s) => sum + s.progress, 0) / students.length
+        students.reduce((sum, s) => sum + s.progress, 0) / students.length,
       ),
     };
 
@@ -6833,7 +7076,7 @@ const getBundleInfo = async (req, res) => {
       .populate('createdBy', 'userName email')
       .populate(
         'enrolledStudents',
-        'firstName lastName username studentEmail grade schoolName isActive createdAt'
+        'firstName lastName username studentEmail grade schoolName isActive createdAt',
       );
 
     if (!bundle) {
@@ -6848,7 +7091,7 @@ const getBundleInfo = async (req, res) => {
       .populate('enrolledCourses.course', 'title courseCode')
       .populate('purchasedBundles.bundle', 'title bundleCode')
       .select(
-        'firstName lastName username studentEmail grade schoolName isActive createdAt enrolledCourses purchasedBundles'
+        'firstName lastName username studentEmail grade schoolName isActive createdAt enrolledCourses purchasedBundles',
       );
 
     // Also get students who purchased this bundle but might not be in enrolledStudents
@@ -6858,7 +7101,7 @@ const getBundleInfo = async (req, res) => {
       .populate('enrolledCourses.course', 'title courseCode')
       .populate('purchasedBundles.bundle', 'title bundleCode')
       .select(
-        'firstName lastName username studentEmail grade schoolName isActive createdAt enrolledCourses purchasedBundles'
+        'firstName lastName username studentEmail grade schoolName isActive createdAt enrolledCourses purchasedBundles',
       );
 
     // Merge both arrays and remove duplicates
@@ -6882,7 +7125,7 @@ const getBundleInfo = async (req, res) => {
         const bundlePurchase = student.purchasedBundles.find(
           (pb) =>
             pb.bundle._id?.toString() === bundle._id.toString() ||
-            pb.bundle.toString() === bundle._id.toString()
+            pb.bundle.toString() === bundle._id.toString(),
         );
         if (bundlePurchase) {
           const enrollmentDate = new Date(bundlePurchase.purchasedAt);
@@ -6907,7 +7150,7 @@ const getBundleInfo = async (req, res) => {
         const enrollment = student.enrolledCourses?.find(
           (e) =>
             e.course?._id?.toString() === course._id.toString() ||
-            e.course?.toString() === course._id.toString()
+            e.course?.toString() === course._id.toString(),
         );
 
         if (enrollment) {
@@ -6954,7 +7197,7 @@ const getBundleInfo = async (req, res) => {
       const bundlePurchase = student.purchasedBundles.find(
         (pb) =>
           pb.bundle._id?.toString() === bundle._id.toString() ||
-          pb.bundle.toString() === bundle._id.toString()
+          pb.bundle.toString() === bundle._id.toString(),
       );
 
       if (bundlePurchase) {
@@ -6984,8 +7227,8 @@ const getBundleInfo = async (req, res) => {
         student.enrolledCourses?.some(
           (e) =>
             e.course?._id?.toString() === course._id.toString() ||
-            e.course?.toString() === course._id.toString()
-        )
+            e.course?.toString() === course._id.toString(),
+        ),
       ).length;
 
       const completedCourse = allStudents.filter((student) =>
@@ -6993,8 +7236,8 @@ const getBundleInfo = async (req, res) => {
           (e) =>
             (e.course?._id?.toString() === course._id.toString() ||
               e.course?.toString() === course._id.toString()) &&
-            e.progress >= 100
-        )
+            e.progress >= 100,
+        ),
       ).length;
 
       return {
@@ -7012,7 +7255,7 @@ const getBundleInfo = async (req, res) => {
             ? Math.round(
                 (course.ratings.reduce((sum, r) => sum + r.rating, 0) /
                   course.ratings.length) *
-                  10
+                  10,
               ) / 10
             : 0,
       };
@@ -7057,7 +7300,7 @@ const getBundleInfo = async (req, res) => {
         totalQuizAttempts += quiz.attempts.length;
         totalQuizScore += quiz.attempts.reduce(
           (sum, attempt) => sum + (attempt.score || 0),
-          0
+          0,
         );
       }
     });
@@ -7107,7 +7350,7 @@ const getBundleInfo = async (req, res) => {
       {
         type: 'revenue',
         description: `$${Math.round(
-          financialAnalytics.totalRevenue
+          financialAnalytics.totalRevenue,
         )} total revenue generated`,
         timestamp: new Date(),
         icon: 'coins',
@@ -7234,19 +7477,26 @@ const getStudents = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Run student query, count, analytics, and filter options ALL in parallel
-    const [students, totalStudents, analytics, filterOptions] = await Promise.all([
-      User.find(filter)
-        .populate({ path: 'enrolledCourses.course', select: 'title courseCode status' })
-        .populate({ path: 'purchasedBundles.bundle', select: 'title bundleCode status' })
-        .select('-password')
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      User.countDocuments(filter),
-      calculateStudentAnalytics(filter),
-      getStudentFilterOptions(),
-    ]);
+    const [students, totalStudents, analytics, filterOptions] =
+      await Promise.all([
+        User.find(filter)
+          .populate({
+            path: 'enrolledCourses.course',
+            select: 'title courseCode status',
+          })
+          .populate({
+            path: 'purchasedBundles.bundle',
+            select: 'title bundleCode status',
+          })
+          .select('-password')
+          .sort(sort)
+          .skip(skip)
+          .limit(parseInt(limit))
+          .lean(),
+        User.countDocuments(filter),
+        calculateStudentAnalytics(filter),
+        getStudentFilterOptions(),
+      ]);
 
     const totalPages = Math.ceil(totalStudents / parseInt(limit));
 
@@ -7274,13 +7524,13 @@ const getStudents = async (req, res) => {
 
       // Calculate days since enrollment
       const daysSinceEnrollment = Math.floor(
-        (new Date() - new Date(student.createdAt)) / (1000 * 60 * 60 * 24)
+        (new Date() - new Date(student.createdAt)) / (1000 * 60 * 60 * 24),
       );
 
       // Calculate days since last activity
       const daysSinceLastActivity = student.lastLogin
         ? Math.floor(
-            (new Date() - new Date(student.lastLogin)) / (1000 * 60 * 60 * 24)
+            (new Date() - new Date(student.lastLogin)) / (1000 * 60 * 60 * 24),
           )
         : null;
 
@@ -7378,7 +7628,7 @@ const getStudentDetails = async (req, res) => {
     // Calculate comprehensive analytics for the overview section
     const detailedAnalytics = await calculateStudentDetailedAnalytics(
       studentId,
-      student
+      student,
     );
 
     // Calculate completed content from the contentProgress arrays directly
@@ -7390,7 +7640,7 @@ const getStudentDetails = async (req, res) => {
         if (course.contentProgress && course.contentProgress.length > 0) {
           totalContentItems += course.contentProgress.length;
           totalContentCompleted += course.contentProgress.filter(
-            (content) => content.completionStatus === 'completed'
+            (content) => content.completionStatus === 'completed',
           ).length;
         }
       });
@@ -7401,7 +7651,7 @@ const getStudentDetails = async (req, res) => {
     const totalQuizAttempts = student.quizAttempts
       ? student.quizAttempts.reduce(
           (total, qa) => total + qa.attempts.length,
-          0
+          0,
         )
       : 0;
 
@@ -7455,7 +7705,7 @@ const getStudentDetails = async (req, res) => {
           // Use the contentProgress array for accurate completion data
           const courseContentProgress = enrolledCourse.contentProgress || [];
           const completedContent = courseContentProgress.filter(
-            (content) => content.completionStatus === 'completed'
+            (content) => content.completionStatus === 'completed',
           ).length;
 
           // Map topics with their progress
@@ -7464,12 +7714,12 @@ const getStudentDetails = async (req, res) => {
             const topicContentProgress = courseContentProgress.filter(
               (content) =>
                 content.topicId &&
-                content.topicId.toString() === topic._id.toString()
+                content.topicId.toString() === topic._id.toString(),
             );
 
             const topicContentCount = topic.content ? topic.content.length : 0;
             const topicCompletedContent = topicContentProgress.filter(
-              (content) => content.completionStatus === 'completed'
+              (content) => content.completionStatus === 'completed',
             ).length;
 
             // Build content items array for detailed display
@@ -7479,7 +7729,7 @@ const getStudentDetails = async (req, res) => {
                   const progressData = topicContentProgress.find(
                     (cp) =>
                       cp.contentId &&
-                      cp.contentId.toString() === contentItem._id.toString()
+                      cp.contentId.toString() === contentItem._id.toString(),
                   );
 
                   // Extract score from progress data (could be bestScore or score)
@@ -7530,7 +7780,7 @@ const getStudentDetails = async (req, res) => {
               progress:
                 topicContentCount > 0
                   ? Math.round(
-                      (topicCompletedContent / topicContentCount) * 100
+                      (topicCompletedContent / topicContentCount) * 100,
                     )
                   : 0,
               contentItems: contentItems,
@@ -7538,7 +7788,7 @@ const getStudentDetails = async (req, res) => {
           });
 
           const completedTopics = topicsProgress.filter(
-            (t) => t.progress === 100
+            (t) => t.progress === 100,
           ).length;
 
           // Calculate overall course progress
@@ -7570,7 +7820,7 @@ const getStudentDetails = async (req, res) => {
     const courseProgress = detailedCourses.map((dc) => {
       const enrolledCourse = student.enrolledCourses.find(
         (ec) =>
-          ec.course && ec.course._id.toString() === dc.course._id.toString()
+          ec.course && ec.course._id.toString() === dc.course._id.toString(),
       );
 
       return {
@@ -7584,16 +7834,16 @@ const getStudentDetails = async (req, res) => {
           dc.progress === 100
             ? 'completed'
             : dc.progress > 0
-            ? 'active'
-            : 'not_started',
+              ? 'active'
+              : 'not_started',
         enrolledAt: enrolledCourse.enrolledAt
           ? new Date(enrolledCourse.enrolledAt)
           : new Date(),
         lastAccessed: enrolledCourse.lastAccessed
           ? new Date(enrolledCourse.lastAccessed)
           : enrolledCourse.enrolledAt
-          ? new Date(enrolledCourse.enrolledAt)
-          : new Date(),
+            ? new Date(enrolledCourse.enrolledAt)
+            : new Date(),
       };
     });
 
@@ -7622,7 +7872,7 @@ const getStudentDetails = async (req, res) => {
               attemptNumber: index + 1,
               score: attempt.score,
               correctAnswers: Math.floor(
-                (attempt.score / 100) * groupedQuizzes[quizId].totalQuestions
+                (attempt.score / 100) * groupedQuizzes[quizId].totalQuestions,
               ),
               totalQuestions: groupedQuizzes[quizId].totalQuestions,
               timeSpent:
@@ -7636,14 +7886,14 @@ const getStudentDetails = async (req, res) => {
           const scores = groupedQuizzes[quizId].attempts.map((a) => a.score);
           groupedQuizzes[quizId].bestScore = Math.max(...scores);
           groupedQuizzes[quizId].averageScore = Math.round(
-            scores.reduce((a, b) => a + b, 0) / scores.length
+            scores.reduce((a, b) => a + b, 0) / scores.length,
           );
           groupedQuizzes[quizId].totalAttempts =
             groupedQuizzes[quizId].attempts.length;
           groupedQuizzes[quizId].passRate = Math.round(
             (groupedQuizzes[quizId].attempts.filter((a) => a.passed).length /
               groupedQuizzes[quizId].totalAttempts) *
-              100
+              100,
           );
         }
       });
@@ -7830,13 +8080,13 @@ const toggleStudentStatus = async (req, res) => {
       const recipient =
         `${student.studentCountryCode}${student.studentNumber}`.replace(
           /[^\d+]/g,
-          ''
+          '',
         );
       const message = isActive
         ? `Your Elkably account has been activated. You can now log in and start learning.`
         : `Your Elkably account has been deactivated. Please contact support if you believe this is an error.`;
       sendSms({ recipient, message }).catch((err) =>
-        console.error('SMS send error (toggle status):', err?.message || err)
+        console.error('SMS send error (toggle status):', err?.message || err),
       );
     }
 
@@ -7844,7 +8094,7 @@ const toggleStudentStatus = async (req, res) => {
     console.log(
       `Admin ${req.session.user.username || 'admin'} ${
         isActive ? 'activated' : 'deactivated'
-      } student ${student.username}`
+      } student ${student.username}`,
     );
 
     return res.json({
@@ -7867,7 +8117,8 @@ const toggleParentPhoneStatus = async (req, res) => {
     if (typeof isParentPhoneChecked !== 'boolean') {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid isParentPhoneChecked value (true or false)',
+        message:
+          'Please provide a valid isParentPhoneChecked value (true or false)',
       });
     }
 
@@ -7947,7 +8198,7 @@ const bulkToggleStudentStatus = async (req, res) => {
     // Update all students
     const updateResult = await User.updateMany(
       { _id: { $in: studentIds } },
-      { $set: setFields }
+      { $set: setFields },
     );
 
     // Get updated students for logging and notifications
@@ -7960,7 +8211,7 @@ const bulkToggleStudentStatus = async (req, res) => {
           const recipient =
             `${student.studentCountryCode}${student.studentNumber}`.replace(
               /[^\d+]/g,
-              ''
+              '',
             );
           const message = isActive
             ? `Your Elkably account has been activated. You can now log in and start learning.`
@@ -7968,8 +8219,8 @@ const bulkToggleStudentStatus = async (req, res) => {
           sendSms({ recipient, message }).catch((err) =>
             console.error(
               'SMS send error (bulk toggle status):',
-              err?.message || err
-            )
+              err?.message || err,
+            ),
           );
         }
       });
@@ -7981,9 +8232,7 @@ const bulkToggleStudentStatus = async (req, res) => {
       actionCategory: 'STUDENT_MANAGEMENT',
       description: `Bulk updated ${
         hasIsActive ? `status (${isActive ? 'activated' : 'deactivated'})` : ''
-      }${
-        hasIsActive && hasParentFlag ? ' and ' : ''
-      }${
+      }${hasIsActive && hasParentFlag ? ' and ' : ''}${
         hasParentFlag
           ? `parent phone flag (set to ${isParentPhoneChecked ? 'checked' : 'unchecked'})`
           : ''
@@ -8004,7 +8253,7 @@ const bulkToggleStudentStatus = async (req, res) => {
         hasIsActive ? String(isActive) : 'unchanged'
       }, isParentPhoneChecked: ${
         hasParentFlag ? String(isParentPhoneChecked) : 'unchanged'
-      })`
+      })`,
     );
 
     return res.json({
@@ -8076,20 +8325,21 @@ const exportStudentData = async (req, res) => {
             (course.topics || []).map(async (topic) => {
               const topicProgress = progressData.filter(
                 (p) =>
-                  p.topic && p.topic._id.toString() === topic._id.toString()
+                  p.topic && p.topic._id.toString() === topic._id.toString(),
               );
 
               const contentProgress = (topic.content || []).map((content) => {
                 const contentProgressData = topicProgress.find(
                   (p) =>
-                    p.content && p.content.toString() === content._id.toString()
+                    p.content &&
+                    p.content.toString() === content._id.toString(),
                 );
 
                 // Also check user's embedded contentProgress for this content
                 const userContentProgress = enrollment.contentProgress?.find(
                   (cp) =>
                     cp.contentId &&
-                    cp.contentId.toString() === content._id.toString()
+                    cp.contentId.toString() === content._id.toString(),
                 );
 
                 // Determine actual status from progress data or user data
@@ -8141,11 +8391,11 @@ const exportStudentData = async (req, res) => {
                 if (contentResult.contentType === 'Unknown') {
                   console.log(
                     `Unknown content type for: ${content.title}, Available fields:`,
-                    Object.keys(content)
+                    Object.keys(content),
                   );
                   console.log(
                     'Content object:',
-                    JSON.stringify(content, null, 2)
+                    JSON.stringify(content, null, 2),
                   );
                 }
 
@@ -8153,7 +8403,7 @@ const exportStudentData = async (req, res) => {
               });
 
               const completedContent = contentProgress.filter(
-                (c) => c.status === 'Completed'
+                (c) => c.status === 'Completed',
               ).length;
               const topicProgressPercentage =
                 (topic.content || []).length > 0
@@ -8168,29 +8418,29 @@ const exportStudentData = async (req, res) => {
                   topicProgressPercentage === 100
                     ? 'Completed'
                     : topicProgressPercentage > 0
-                    ? 'In Progress'
-                    : 'Not Started',
+                      ? 'In Progress'
+                      : 'Not Started',
                 totalContent: (topic.content || []).length,
                 completedContent,
                 timeSpent: topicProgress.reduce(
                   (sum, p) => sum + (p.timeSpent || 0),
-                  0
+                  0,
                 ),
                 lastAccessed:
                   topicProgress.length > 0
                     ? Math.max(
                         ...topicProgress.map(
-                          (p) => new Date(p.lastAccessed || 0)
-                        )
+                          (p) => new Date(p.lastAccessed || 0),
+                        ),
                       )
                     : null,
                 content: contentProgress,
               };
-            })
+            }),
           );
 
           const completedTopics = topics.filter(
-            (t) => t.status === 'Completed'
+            (t) => t.status === 'Completed',
           ).length;
           const courseProgress =
             topics.length > 0
@@ -8219,7 +8469,7 @@ const exportStudentData = async (req, res) => {
           }
 
           console.log(
-            `Course ${course.title}: Progress Data Count: ${progressData.length}, Course Progress: ${courseProgress}%, Enrollment Status: ${enrollment.status}, Final Status: ${courseStatus}`
+            `Course ${course.title}: Progress Data Count: ${progressData.length}, Course Progress: ${courseProgress}%, Enrollment Status: ${enrollment.status}, Final Status: ${courseStatus}`,
           );
 
           return {
@@ -8230,23 +8480,23 @@ const exportStudentData = async (req, res) => {
             status: courseStatus,
             timeSpent: progressData.reduce(
               (sum, p) => sum + (p.timeSpent || 0),
-              0
+              0,
             ),
             lastAccessed:
               Math.max(
                 progressData.length > 0
                   ? Math.max(
-                      ...progressData.map((p) => new Date(p.lastAccessed || 0))
+                      ...progressData.map((p) => new Date(p.lastAccessed || 0)),
                     )
                   : 0,
-                enrollment.lastAccessed ? new Date(enrollment.lastAccessed) : 0
+                enrollment.lastAccessed ? new Date(enrollment.lastAccessed) : 0,
               ) || null,
             completedTopics,
             totalTopics: topics.length,
             completionRate: Math.max(courseProgress, enrollment.progress || 0),
             topics,
           };
-        })
+        }),
       );
 
       // Get comprehensive quiz performance
@@ -8292,13 +8542,13 @@ const exportStudentData = async (req, res) => {
           const lowestScore = Math.min(...scores);
           const totalTimeSpent = attempts.reduce(
             (sum, a) => sum + (a.timeSpent || 0),
-            0
+            0,
           );
           const passedAttempts = attempts.filter(
             (a) =>
               a.status === 'passed' ||
               (a.score || 0) >=
-                (quiz.passingScore || quizDetails?.passingScore || 60)
+                (quiz.passingScore || quizDetails?.passingScore || 60),
           ).length;
 
           // Calculate total questions from quiz details
@@ -8328,7 +8578,7 @@ const exportStudentData = async (req, res) => {
               percentage:
                 attempt.percentage ||
                 Math.round(
-                  ((attempt.score || 0) / (attempt.maxScore || 100)) * 100
+                  ((attempt.score || 0) / (attempt.maxScore || 100)) * 100,
                 ),
               timeSpent: attempt.timeSpent || 0,
               status: attempt.status || 'Unknown',
@@ -8339,7 +8589,7 @@ const exportStudentData = async (req, res) => {
                   ? Math.round(
                       ((attempt.correctAnswers || 0) /
                         (attempt.totalQuestions || totalQuestions)) *
-                        100
+                        100,
                     )
                   : 0,
               questionDetails: attempt.questionDetails || [],
@@ -8365,7 +8615,7 @@ const exportStudentData = async (req, res) => {
                 : await Course.findById(courseId).lean();
               const enrollment = student.enrolledCourses?.find(
                 (e) =>
-                  e.course && e.course._id.toString() === courseId.toString()
+                  e.course && e.course._id.toString() === courseId.toString(),
               );
 
               const progressData = await Progress.find({
@@ -8378,8 +8628,8 @@ const exportStudentData = async (req, res) => {
                   ? Math.round(
                       progressData.reduce(
                         (sum, p) => sum + (p.progress || 0),
-                        0
-                      ) / progressData.length
+                        0,
+                      ) / progressData.length,
                     )
                   : 0;
 
@@ -8393,22 +8643,22 @@ const exportStudentData = async (req, res) => {
                   progress === 100
                     ? 'Completed'
                     : progress > 0
-                    ? 'In Progress'
-                    : 'Not Started',
+                      ? 'In Progress'
+                      : 'Not Started',
                 timeSpent: progressData.reduce(
                   (sum, p) => sum + (p.timeSpent || 0),
-                  0
+                  0,
                 ),
                 lastAccessed:
                   progressData.length > 0
                     ? Math.max(
                         ...progressData.map(
-                          (p) => new Date(p.lastAccessed || 0)
-                        )
+                          (p) => new Date(p.lastAccessed || 0),
+                        ),
                       )
                     : null,
               };
-            })
+            }),
           );
 
           const bundleProgress =
@@ -8416,8 +8666,8 @@ const exportStudentData = async (req, res) => {
               ? Math.round(
                   includedCourses.reduce(
                     (sum, course) => sum + course.progress,
-                    0
-                  ) / includedCourses.length
+                    0,
+                  ) / includedCourses.length,
                 )
               : 0;
 
@@ -8432,10 +8682,10 @@ const exportStudentData = async (req, res) => {
             paymentMethod: purchase.paymentMethod || 'Unknown',
             usagePercentage: bundleProgress,
             includedCourses: includedCourses.filter(
-              (course) => course !== null
+              (course) => course !== null,
             ),
           };
-        })
+        }),
       );
 
       // Generate activity timeline
@@ -8500,7 +8750,7 @@ const exportStudentData = async (req, res) => {
 
       // Sort activities by timestamp
       activityTimeline.sort(
-        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
       );
 
       // Generate engagement analytics
@@ -8510,14 +8760,14 @@ const exportStudentData = async (req, res) => {
           student.loginHistory?.length > 0
             ? student.loginHistory.reduce(
                 (sum, session) => sum + (session.duration || 0),
-                0
+                0,
               ) / student.loginHistory.length
             : 0,
         engagementScore: calculateEngagementScore(student, allProgressData),
         activityStreak: calculateActivityStreak(activityTimeline),
         contentInteractionRate: calculateContentInteractionRate(
           student,
-          allProgressData
+          allProgressData,
         ),
         quizParticipationRate: calculateQuizParticipationRate(student),
         weeklyPattern: calculateWeeklyPattern(activityTimeline),
@@ -8527,11 +8777,11 @@ const exportStudentData = async (req, res) => {
       const studentData = {
         ...student,
         comprehensiveCourseProgress: comprehensiveCourseProgress.filter(
-          (course) => course !== null
+          (course) => course !== null,
         ),
         comprehensiveQuizPerformance,
         comprehensivePurchaseHistory: comprehensivePurchaseHistory.filter(
-          (purchase) => purchase !== null
+          (purchase) => purchase !== null,
         ),
         activityTimeline,
         engagementAnalytics,
@@ -8543,8 +8793,8 @@ const exportStudentData = async (req, res) => {
             ? Math.round(
                 comprehensiveCourseProgress.reduce(
                   (sum, course) => sum + course.progress,
-                  0
-                ) / comprehensiveCourseProgress.length
+                  0,
+                ) / comprehensiveCourseProgress.length,
               )
             : 0,
         engagementScore: engagementAnalytics.engagementScore,
@@ -8589,11 +8839,11 @@ const exportStudentData = async (req, res) => {
 
       res.setHeader(
         'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="${filename}"`
+        `attachment; filename="${filename}"`,
       );
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       return res.send(buffer);
@@ -8633,19 +8883,19 @@ const exportStudentData = async (req, res) => {
               ? Math.round(
                   student.enrolledCourses.reduce(
                     (sum, ec) => sum + (ec.progress || 0),
-                    0
-                  ) / student.enrolledCourses.length
+                    0,
+                  ) / student.enrolledCourses.length,
                 )
               : 0,
           engagementScore: calculateEngagementScore(student, progressData),
         };
-      })
+      }),
     );
 
     const exporter = new ExcelExporter();
     const workbook = await exporter.exportStudents(
       studentsWithAnalytics,
-      false
+      false,
     );
     const buffer = await workbook.xlsx.writeBuffer();
 
@@ -8654,7 +8904,7 @@ const exportStudentData = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -8721,8 +8971,8 @@ const updateStudent = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.redirect(
         `/admin/students/${studentId}/edit?error=${encodeURIComponent(
-          'Invalid student ID'
-        )}`
+          'Invalid student ID',
+        )}`,
       );
     }
 
@@ -8731,7 +8981,7 @@ const updateStudent = async (req, res) => {
 
     if (!student) {
       return res.redirect(
-        `/admin/students?error=${encodeURIComponent('Student not found')}`
+        `/admin/students?error=${encodeURIComponent('Student not found')}`,
       );
     }
 
@@ -8743,8 +8993,8 @@ const updateStudent = async (req, res) => {
       if (updateData.newPassword !== updateData.confirmPassword) {
         return res.redirect(
           `/admin/students/${studentId}/edit?error=${encodeURIComponent(
-            'Passwords do not match'
-          )}`
+            'Passwords do not match',
+          )}`,
         );
       }
 
@@ -8766,7 +9016,9 @@ const updateStudent = async (req, res) => {
       updateData.isActive === 'on' || updateData.isActive === true;
 
     // Handle checkbox for isParentPhoneChecked
-    if (Object.prototype.hasOwnProperty.call(updateData, 'isParentPhoneChecked')) {
+    if (
+      Object.prototype.hasOwnProperty.call(updateData, 'isParentPhoneChecked')
+    ) {
       updateData.isParentPhoneChecked =
         updateData.isParentPhoneChecked === 'on' ||
         updateData.isParentPhoneChecked === true;
@@ -8809,7 +9061,7 @@ const updateStudent = async (req, res) => {
         student.studentCountryCode && student.studentNumber
           ? `${student.studentCountryCode}${student.studentNumber}`.replace(
               /[^\d+]/g,
-              ''
+              '',
             )
           : null;
       if (phone) {
@@ -8819,8 +9071,8 @@ const updateStudent = async (req, res) => {
         sendSms({ recipient: phone, message }).catch((err) =>
           console.error(
             'SMS send error (update student status):',
-            err?.message || err
-          )
+            err?.message || err,
+          ),
         );
       }
     }
@@ -8828,8 +9080,8 @@ const updateStudent = async (req, res) => {
     // Redirect back to edit page with success message
     return res.redirect(
       `/admin/students/${studentId}/edit?success=${encodeURIComponent(
-        'Student information updated successfully'
-      )}`
+        'Student information updated successfully',
+      )}`,
     );
   } catch (error) {
     console.error('Error updating student:', error);
@@ -8842,7 +9094,7 @@ const updateStudent = async (req, res) => {
       return res.redirect(
         `/admin/students/${
           req.params.studentId
-        }/edit?error=${encodeURIComponent(errorMessages)}`
+        }/edit?error=${encodeURIComponent(errorMessages)}`,
       );
     }
 
@@ -8852,14 +9104,14 @@ const updateStudent = async (req, res) => {
       return res.redirect(
         `/admin/students/${
           req.params.studentId
-        }/edit?error=${encodeURIComponent(`This ${field} is already in use`)}`
+        }/edit?error=${encodeURIComponent(`This ${field} is already in use`)}`,
       );
     }
 
     return res.redirect(
       `/admin/students/${req.params.studentId}/edit?error=${encodeURIComponent(
-        'Failed to update student information'
-      )}`
+        'Failed to update student information',
+      )}`,
     );
   }
 };
@@ -8893,7 +9145,7 @@ const deleteStudent = async (req, res) => {
       username: student.username,
       phone: `${student.studentCountryCode}${student.studentNumber}`.replace(
         /[^\d+]/g,
-        ''
+        '',
       ),
     };
 
@@ -8906,7 +9158,7 @@ const deleteStudent = async (req, res) => {
         studentEmail: studentInfo.email,
         deletedAt: new Date().toISOString(),
         deletedBy: req.session.user?.id || 'unknown',
-      }
+      },
     );
 
     // Permanently delete the student from database
@@ -8932,12 +9184,12 @@ const deleteStudent = async (req, res) => {
       const message =
         'Your Elkably account has been deleted. If this was unexpected, please contact support.';
       sendSms({ recipient: studentInfo.phone, message }).catch((err) =>
-        console.error('SMS send error (delete student):', err?.message || err)
+        console.error('SMS send error (delete student):', err?.message || err),
       );
     }
 
     console.log(
-      `Student ${studentInfo.name} (${studentInfo.id}) permanently deleted from database`
+      `Student ${studentInfo.name} (${studentInfo.id}) permanently deleted from database`,
     );
 
     return res.json({
@@ -8973,9 +9225,17 @@ const deleteStudent = async (req, res) => {
 const calculateStudentAnalytics = async (filter = {}) => {
   try {
     const baseFilter = { role: 'student' };
-    
+
     // Run ALL queries in parallel
-    const [totalStudents, activeStudents, inactiveStudents, gradeDistribution, schoolDistribution, enrollmentTrends, courseStats] = await Promise.all([
+    const [
+      totalStudents,
+      activeStudents,
+      inactiveStudents,
+      gradeDistribution,
+      schoolDistribution,
+      enrollmentTrends,
+      courseStats,
+    ] = await Promise.all([
       User.countDocuments(baseFilter),
       User.countDocuments({ ...baseFilter, isActive: true }),
       User.countDocuments({ ...baseFilter, isActive: false }),
@@ -8991,47 +9251,103 @@ const calculateStudentAnalytics = async (filter = {}) => {
         { $limit: 10 },
       ]),
       User.aggregate([
-        { $match: { ...filter, createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)) } } },
-        { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+        {
+          $match: {
+            ...filter,
+            createdAt: {
+              $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+            },
+            count: { $sum: 1 },
+          },
+        },
         { $sort: { '_id.year': 1, '_id.month': 1 } },
       ]),
       User.aggregate([
         { $match: filter },
-        { $project: { totalCourses: { $size: { $ifNull: ['$enrolledCourses', []] } }, totalBundles: { $size: { $ifNull: ['$purchasedBundles', []] } } } },
-        { $group: { _id: null, avgCourses: { $avg: '$totalCourses' }, avgBundles: { $avg: '$totalBundles' }, totalCourses: { $sum: '$totalCourses' }, totalBundles: { $sum: '$totalBundles' } } },
+        {
+          $project: {
+            totalCourses: { $size: { $ifNull: ['$enrolledCourses', []] } },
+            totalBundles: { $size: { $ifNull: ['$purchasedBundles', []] } },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            avgCourses: { $avg: '$totalCourses' },
+            avgBundles: { $avg: '$totalBundles' },
+            totalCourses: { $sum: '$totalCourses' },
+            totalBundles: { $sum: '$totalBundles' },
+          },
+        },
       ]),
     ]);
 
     return {
-      totalStudents, activeStudents, inactiveStudents,
-      gradeDistribution, schoolDistribution, enrollmentTrends,
-      courseStats: courseStats[0] || { avgCourses: 0, avgBundles: 0, totalCourses: 0, totalBundles: 0 },
+      totalStudents,
+      activeStudents,
+      inactiveStudents,
+      gradeDistribution,
+      schoolDistribution,
+      enrollmentTrends,
+      courseStats: courseStats[0] || {
+        avgCourses: 0,
+        avgBundles: 0,
+        totalCourses: 0,
+        totalBundles: 0,
+      },
     };
   } catch (error) {
     console.error('Error calculating student analytics:', error);
     return {
-      totalStudents: 0, activeStudents: 0, inactiveStudents: 0,
-      gradeDistribution: [], schoolDistribution: [], enrollmentTrends: [],
-      courseStats: { avgCourses: 0, avgBundles: 0, totalCourses: 0, totalBundles: 0 },
+      totalStudents: 0,
+      activeStudents: 0,
+      inactiveStudents: 0,
+      gradeDistribution: [],
+      schoolDistribution: [],
+      enrollmentTrends: [],
+      courseStats: {
+        avgCourses: 0,
+        avgBundles: 0,
+        totalCourses: 0,
+        totalBundles: 0,
+      },
     };
   }
 };
 
 const getStudentFilterOptions = async () => {
-  return cache.getOrSet('student_filter_options', async () => {
-    try {
-      const [grades, schools, bundles, courses] = await Promise.all([
-        User.distinct('grade'),
-        User.distinct('schoolName'),
-        BundleCourse.find({ status: { $ne: 'archived' } }).select('_id title bundleCode').sort({ title: 1 }).lean(),
-        Course.find({ status: { $ne: 'archived' } }).select('_id title courseCode').sort({ title: 1 }).lean(),
-      ]);
-      return { grades, schools, bundles, courses };
-    } catch (error) {
-      console.error('Error getting filter options:', error);
-      return { grades: [], schools: [], bundles: [], courses: [] };
-    }
-  }, 300); // Cache for 5 minutes
+  return cache.getOrSet(
+    'student_filter_options',
+    async () => {
+      try {
+        const [grades, schools, bundles, courses] = await Promise.all([
+          User.distinct('grade'),
+          User.distinct('schoolName'),
+          BundleCourse.find({ status: { $ne: 'archived' } })
+            .select('_id title bundleCode')
+            .sort({ title: 1 })
+            .lean(),
+          Course.find({ status: { $ne: 'archived' } })
+            .select('_id title courseCode')
+            .sort({ title: 1 })
+            .lean(),
+        ]);
+        return { grades, schools, bundles, courses };
+      } catch (error) {
+        console.error('Error getting filter options:', error);
+        return { grades: [], schools: [], bundles: [], courses: [] };
+      }
+    },
+    300,
+  ); // Cache for 5 minutes
 };
 
 const calculateStudentDetailedAnalytics = async (studentId, student) => {
@@ -9053,12 +9369,12 @@ const calculateStudentDetailedAnalytics = async (studentId, student) => {
           // Calculate total content from topics
           const totalContentCount = course.course.topics.reduce(
             (sum, topic) => sum + (topic.content ? topic.content.length : 0),
-            0
+            0,
           );
 
           // Calculate completed content
           const completedCount = course.contentProgress.filter(
-            (content) => content.completionStatus === 'completed'
+            (content) => content.completionStatus === 'completed',
           ).length;
 
           // Calculate progress percentage
@@ -9099,7 +9415,7 @@ const calculateStudentDetailedAnalytics = async (studentId, student) => {
         if (course.contentProgress) {
           totalContentCount += course.contentProgress.length;
           completedContentCount += course.contentProgress.filter(
-            (content) => content.completionStatus === 'completed'
+            (content) => content.completionStatus === 'completed',
           ).length;
         }
       });
@@ -9115,11 +9431,11 @@ const calculateStudentDetailedAnalytics = async (studentId, student) => {
 
     // Time-based analytics
     const daysSinceEnrollment = Math.floor(
-      (new Date() - new Date(student.createdAt)) / (1000 * 60 * 60 * 24)
+      (new Date() - new Date(student.createdAt)) / (1000 * 60 * 60 * 24),
     );
     const daysSinceLastActivity = student.lastLogin
       ? Math.floor(
-          (new Date() - new Date(student.lastLogin)) / (1000 * 60 * 60 * 24)
+          (new Date() - new Date(student.lastLogin)) / (1000 * 60 * 60 * 24),
         )
       : null;
 
@@ -9131,7 +9447,7 @@ const calculateStudentDetailedAnalytics = async (studentId, student) => {
             return (
               sum +
               course.contentProgress.filter(
-                (cp) => cp.completionStatus === 'in_progress'
+                (cp) => cp.completionStatus === 'in_progress',
               ).length
             );
           }
@@ -9238,7 +9554,7 @@ const calculateCourseAnalytics = async (studentId, enrolledCourses) => {
       if (enrollment.contentProgress) {
         totalContent = enrollment.contentProgress.length;
         completedContent = enrollment.contentProgress.filter(
-          (cp) => cp.completionStatus === 'completed'
+          (cp) => cp.completionStatus === 'completed',
         ).length;
       }
 
@@ -9253,13 +9569,13 @@ const calculateCourseAnalytics = async (studentId, enrolledCourses) => {
       const totalTimeSpent = enrollment.contentProgress
         ? enrollment.contentProgress.reduce(
             (sum, cp) => sum + (cp.timeSpent || 0),
-            0
+            0,
           )
         : 0;
 
       // Calculate days since enrollment
       const daysSinceEnrollment = Math.floor(
-        (new Date() - new Date(enrollment.enrolledAt)) / (1000 * 60 * 60 * 24)
+        (new Date() - new Date(enrollment.enrolledAt)) / (1000 * 60 * 60 * 24),
       );
 
       return {
@@ -9436,7 +9752,7 @@ const calculateTotalTimeSpent = (student, progressData) => {
       // Assume each content item takes about 20 minutes
       const contentCompleted = course.contentProgress
         ? course.contentProgress.filter(
-            (cp) => cp.completionStatus === 'completed'
+            (cp) => cp.completionStatus === 'completed',
           ).length
         : 0;
 
@@ -9488,7 +9804,7 @@ const calculateCourseTimeSpent = (progressData, courseId) => {
 
   // Filter progress data for the specific course
   const courseProgress = progressData.filter(
-    (p) => p.course && p.course._id.toString() === courseId.toString()
+    (p) => p.course && p.course._id.toString() === courseId.toString(),
   );
 
   // Sum up time spent
@@ -9507,7 +9823,7 @@ const calculateEngagementScore = (student, progressData) => {
   // Recent login activity (up to 30 points)
   if (student.lastLogin) {
     const daysSinceLastLogin = Math.floor(
-      (new Date() - new Date(student.lastLogin)) / (1000 * 60 * 60 * 24)
+      (new Date() - new Date(student.lastLogin)) / (1000 * 60 * 60 * 24),
     );
     if (daysSinceLastLogin === 0) score += 30;
     else if (daysSinceLastLogin <= 3) score += 25;
@@ -9525,7 +9841,7 @@ const calculateEngagementScore = (student, progressData) => {
     const avgProgress =
       student.enrolledCourses.reduce(
         (sum, course) => sum + (course.progress || 0),
-        0
+        0,
       ) / student.enrolledCourses.length;
     score += Math.floor((avgProgress / 100) * 15); // Up to 15 points for progress
   }
@@ -9549,7 +9865,7 @@ const calculateEngagementScore = (student, progressData) => {
     // Consistency of activity (check timestamps)
     // This is a simplified approach - ideally would check activity patterns over time
     const uniqueDates = new Set(
-      progressData.map((p) => new Date(p.timestamp).toDateString())
+      progressData.map((p) => new Date(p.timestamp).toDateString()),
     ).size;
     score += Math.min(uniqueDates, 10);
   }
@@ -9693,10 +10009,10 @@ const createBrilliantStudent = async (req, res) => {
         field: !name
           ? 'name'
           : !testType
-          ? 'testType'
-          : !score
-          ? 'score'
-          : 'fallbackInitials',
+            ? 'testType'
+            : !score
+              ? 'score'
+              : 'fallbackInitials',
       });
     }
 
@@ -9847,10 +10163,10 @@ const updateBrilliantStudent = async (req, res) => {
         field: !name
           ? 'name'
           : !testType
-          ? 'testType'
-          : !score
-          ? 'score'
-          : 'fallbackInitials',
+            ? 'testType'
+            : !score
+              ? 'score'
+              : 'fallbackInitials',
       });
     }
 
@@ -9935,7 +10251,7 @@ const updateBrilliantStudent = async (req, res) => {
     const student = await BrilliantStudent.findByIdAndUpdate(
       studentId,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!student) {
@@ -10024,7 +10340,7 @@ const reorderBrilliantStudents = async (req, res) => {
       return BrilliantStudent.findByIdAndUpdate(
         student.id,
         { displayOrder: index + 1 },
-        { new: true }
+        { new: true },
       );
     });
 
@@ -10094,7 +10410,7 @@ const exportBrilliantStudents = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -10129,7 +10445,7 @@ const exportCourses = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -10176,7 +10492,7 @@ const exportOrders = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -10204,7 +10520,7 @@ const exportQuizzes = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -10281,7 +10597,7 @@ const exportComprehensiveReport = async (req, res) => {
         status: order.status,
         createdAt: order.createdAt,
         processedAt: order.processedAt || order.createdAt,
-      }))
+      })),
     );
     await exporter.exportQuizzes(quizzes);
     await exporter.exportBrilliantStudents(brilliantStudents);
@@ -10293,7 +10609,7 @@ const exportComprehensiveReport = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -10345,33 +10661,33 @@ const exportCourseDetails = async (req, res) => {
     if (enrolledStudents.length > 0) {
       const progressSum = enrolledStudents.reduce((sum, student) => {
         const enrollment = student.enrolledCourses.find(
-          (e) => e.course && e.course.toString() === courseId.toString()
+          (e) => e.course && e.course.toString() === courseId.toString(),
         );
         return sum + (enrollment?.progress || 0);
       }, 0);
       analytics.averageProgress = Math.round(
-        progressSum / enrolledStudents.length
+        progressSum / enrolledStudents.length,
       );
 
       const completedStudents = enrolledStudents.filter((student) => {
         const enrollment = student.enrolledCourses.find(
-          (e) => e.course && e.course.toString() === courseId.toString()
+          (e) => e.course && e.course.toString() === courseId.toString(),
         );
         return (enrollment?.progress || 0) >= 100;
       }).length;
       analytics.completionRate = Math.round(
-        (completedStudents / enrolledStudents.length) * 100
+        (completedStudents / enrolledStudents.length) * 100,
       );
     }
 
     // Process students data
     const studentsData = enrolledStudents.map((student) => {
       const enrollment = student.enrolledCourses.find(
-        (e) => e.course && e.course.toString() === courseId.toString()
+        (e) => e.course && e.course.toString() === courseId.toString(),
       );
 
       const studentProgress = progressData.filter(
-        (p) => p.user && p.user._id.toString() === student._id.toString()
+        (p) => p.user && p.user._id.toString() === student._id.toString(),
       );
 
       return {
@@ -10385,16 +10701,16 @@ const exportCourseDetails = async (req, res) => {
           (enrollment?.progress || 0) >= 100
             ? 'completed'
             : (enrollment?.progress || 0) > 0
-            ? 'in-progress'
-            : 'not-started',
+              ? 'in-progress'
+              : 'not-started',
         enrolledAt: enrollment?.enrollmentDate || enrollment?.enrolledAt,
         lastAccessed: enrollment?.lastAccessed,
         timeSpent: studentProgress.reduce(
           (sum, p) => sum + (p.timeSpent || 0),
-          0
+          0,
         ),
         activitiesCompleted: studentProgress.filter(
-          (p) => p.status === 'completed'
+          (p) => p.status === 'completed',
         ).length,
         totalActivities: studentProgress.length,
       };
@@ -10404,28 +10720,28 @@ const exportCourseDetails = async (req, res) => {
     const topicsAnalytics = await Promise.all(
       (course.topics || []).map(async (topic) => {
         const topicProgress = progressData.filter(
-          (p) => p.topic && p.topic._id.toString() === topic._id.toString()
+          (p) => p.topic && p.topic._id.toString() === topic._id.toString(),
         );
 
         const contentAnalytics = (topic.content || []).map((content) => {
           const contentProgress = topicProgress.filter(
             (p) =>
-              p.contentId && p.contentId.toString() === content._id.toString()
+              p.contentId && p.contentId.toString() === content._id.toString(),
           );
 
           const viewers = new Set(
-            contentProgress.map((p) => p.user._id.toString())
+            contentProgress.map((p) => p.user._id.toString()),
           ).size;
           const completions = contentProgress.filter(
-            (p) => p.status === 'completed'
+            (p) => p.status === 'completed',
           ).length;
           const totalTimeSpent = contentProgress.reduce(
             (sum, p) => sum + (p.timeSpent || 0),
-            0
+            0,
           );
           const attempts = contentProgress.reduce(
             (sum, p) => sum + (p.attempts || 0),
-            0
+            0,
           );
 
           // Calculate average score for quiz/homework content
@@ -10440,13 +10756,16 @@ const exportCourseDetails = async (req, res) => {
               .filter((s) => s != null);
             if (scores.length > 0) {
               averageScore = Math.round(
-                scores.reduce((sum, score) => sum + score, 0) / scores.length
+                scores.reduce((sum, score) => sum + score, 0) / scores.length,
               );
-              const passingScore = content.quizSettings?.passingScore !== undefined ? content.quizSettings.passingScore : 50;
+              const passingScore =
+                content.quizSettings?.passingScore !== undefined
+                  ? content.quizSettings.passingScore
+                  : 50;
               passRate = Math.round(
                 (scores.filter((s) => s >= passingScore).length /
                   scores.length) *
-                  100
+                  100,
               );
             }
           }
@@ -10482,7 +10801,7 @@ const exportCourseDetails = async (req, res) => {
               .length,
           },
         };
-      })
+      }),
     );
 
     // Create comprehensive Excel export
@@ -10500,7 +10819,7 @@ const exportCourseDetails = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -10560,7 +10879,7 @@ const exportTopicDetails = async (req, res) => {
       // Calculate overall topic progress
       const totalContentItems = topic.content ? topic.content.length : 0;
       const completedItems = studentProgress.filter(
-        (p) => p.status === 'completed'
+        (p) => p.status === 'completed',
       ).length;
       const progressPercentage =
         totalContentItems > 0
@@ -10570,14 +10889,14 @@ const exportTopicDetails = async (req, res) => {
       // Calculate total time spent
       const totalTimeSpent = studentProgress.reduce(
         (sum, p) => sum + (p.timeSpent || 0),
-        0
+        0,
       );
 
       // Find last activity
       const lastActivity =
         studentProgress.length > 0
           ? Math.max(
-              ...studentProgress.map((p) => new Date(p.updatedAt).getTime())
+              ...studentProgress.map((p) => new Date(p.updatedAt).getTime()),
             )
           : null;
 
@@ -10611,13 +10930,13 @@ const exportTopicDetails = async (req, res) => {
       totalStudents: enrolledStudents.length,
       viewedStudents: studentsAnalytics.filter((s) => s.progress > 0).length,
       completedStudents: studentsAnalytics.filter(
-        (s) => s.status === 'completed'
+        (s) => s.status === 'completed',
       ).length,
       averageProgress:
         studentsAnalytics.length > 0
           ? Math.round(
               studentsAnalytics.reduce((sum, s) => sum + s.progress, 0) /
-                studentsAnalytics.length
+                studentsAnalytics.length,
             )
           : 0,
       completionRate:
@@ -10626,14 +10945,14 @@ const exportTopicDetails = async (req, res) => {
               (studentsAnalytics.filter((s) => s.status === 'completed')
                 .length /
                 enrolledStudents.length) *
-                100
+                100,
             )
           : 0,
       averageTimeSpent:
         studentsAnalytics.length > 0
           ? Math.round(
               studentsAnalytics.reduce((sum, s) => sum + s.totalTimeSpent, 0) /
-                studentsAnalytics.length
+                studentsAnalytics.length,
             )
           : 0,
       totalContentItems: topic.content ? topic.content.length : 0,
@@ -10646,18 +10965,18 @@ const exportTopicDetails = async (req, res) => {
         // Get progress for this specific content
         const contentProgress = progressData.filter(
           (p) =>
-            p.contentId && p.contentId.toString() === content._id.toString()
+            p.contentId && p.contentId.toString() === content._id.toString(),
         );
 
         const viewers = new Set(
-          contentProgress.map((p) => p.studentId.toString())
+          contentProgress.map((p) => p.studentId.toString()),
         ).size;
         const completions = contentProgress.filter(
-          (p) => p.status === 'completed'
+          (p) => p.status === 'completed',
         ).length;
         const totalTimeSpent = contentProgress.reduce(
           (sum, p) => sum + (p.timeSpent || 0),
-          0
+          0,
         );
         const averageTimeSpent =
           viewers > 0 ? Math.round(totalTimeSpent / viewers / 60) : 0;
@@ -10725,11 +11044,11 @@ const exportTopicDetails = async (req, res) => {
     // Set response headers for file download
     const filename = `topic-${topic.order}-${topic.title.replace(
       /[^a-zA-Z0-9]/g,
-      '-'
+      '-',
     )}-details.xlsx`;
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
@@ -10776,7 +11095,7 @@ const exportQuestionBankDetails = async (req, res) => {
       hardQuestions: questions.filter((q) => q.difficulty === 'Hard').length,
       mcqQuestions: questions.filter((q) => q.questionType === 'MCQ').length,
       trueFalseQuestions: questions.filter(
-        (q) => q.questionType === 'True/False'
+        (q) => q.questionType === 'True/False',
       ).length,
       writtenQuestions: questions.filter((q) => q.questionType === 'Written')
         .length,
@@ -10814,7 +11133,7 @@ const exportQuestionBankDetails = async (req, res) => {
             (opt, idx) =>
               `${String.fromCharCode(65 + idx)}. ${opt.text}${
                 opt.isCorrect ? ' ✓' : ''
-              }`
+              }`,
           )
           .join(' | ');
 
@@ -10853,9 +11172,8 @@ const exportQuestionBankDetails = async (req, res) => {
       questions: questionData,
     };
 
-    const workbook = await excelExporter.createQuestionBankDetailsReport(
-      exportData
-    );
+    const workbook =
+      await excelExporter.createQuestionBankDetailsReport(exportData);
 
     // Set response headers for file download
     const filename = `questionbank-${
@@ -10863,7 +11181,7 @@ const exportQuestionBankDetails = async (req, res) => {
     }-${questionBank.name.replace(/[^a-zA-Z0-9]/g, '-')}-questions.xlsx`;
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
@@ -10908,7 +11226,7 @@ const exportQuizDetails = async (req, res) => {
       'quizAttempts.quiz': quiz._id,
     })
       .select(
-        'firstName lastName studentCode studentEmail grade quizAttempts createdAt'
+        'firstName lastName studentCode studentEmail grade quizAttempts createdAt',
       )
       .lean();
 
@@ -10916,20 +11234,20 @@ const exportQuizDetails = async (req, res) => {
     const participantDetails = participants
       .map((participant) => {
         const quizAttempt = participant.quizAttempts.find(
-          (attempt) => attempt.quiz.toString() === quiz._id.toString()
+          (attempt) => attempt.quiz.toString() === quiz._id.toString(),
         );
 
         if (!quizAttempt) return null;
 
         const completedAttempts = quizAttempt.attempts.filter(
-          (attempt) => attempt.status === 'completed'
+          (attempt) => attempt.status === 'completed',
         );
 
         const bestAttempt = completedAttempts.reduce(
           (best, current) => {
             return (current.score || 0) > (best.score || 0) ? current : best;
           },
-          { score: 0 }
+          { score: 0 },
         );
 
         const totalAttempts = completedAttempts.length;
@@ -10937,13 +11255,13 @@ const exportQuizDetails = async (req, res) => {
           completedAttempts.length > 0
             ? completedAttempts.reduce(
                 (sum, attempt) => sum + (attempt.score || 0),
-                0
+                0,
               ) / completedAttempts.length
             : 0;
 
         const totalTimeSpent = completedAttempts.reduce(
           (sum, attempt) => sum + (attempt.timeSpent || 0),
-          0
+          0,
         );
 
         return {
@@ -10981,14 +11299,14 @@ const exportQuizDetails = async (req, res) => {
       totalParticipants: participantDetails.length,
       totalAttempts: participantDetails.reduce(
         (sum, p) => sum + p.totalAttempts,
-        0
+        0,
       ),
       averageScore:
         participantDetails.length > 0
           ? Math.round(
               (participantDetails.reduce((sum, p) => sum + p.bestScore, 0) /
                 participantDetails.length) *
-                100
+                100,
             ) / 100
           : 0,
       passRate:
@@ -10997,7 +11315,7 @@ const exportQuizDetails = async (req, res) => {
               (participantDetails.filter((p) => p.passed).length /
                 participantDetails.length) *
                 100 *
-                100
+                100,
             ) / 100
           : 0,
       averageTimeSpent:
@@ -11005,19 +11323,19 @@ const exportQuizDetails = async (req, res) => {
           ? Math.round(
               (participantDetails.reduce(
                 (sum, p) => sum + p.totalTimeSpent,
-                0
+                0,
               ) /
                 participantDetails.length) *
-                100
+                100,
             ) / 100
           : 0,
       scoreDistribution: {
         excellent: participantDetails.filter((p) => p.bestScore >= 90).length,
         good: participantDetails.filter(
-          (p) => p.bestScore >= 70 && p.bestScore < 90
+          (p) => p.bestScore >= 70 && p.bestScore < 90,
         ).length,
         average: participantDetails.filter(
-          (p) => p.bestScore >= 50 && p.bestScore < 70
+          (p) => p.bestScore >= 50 && p.bestScore < 70,
         ).length,
         poor: participantDetails.filter((p) => p.bestScore < 50).length,
       },
@@ -11038,7 +11356,7 @@ const exportQuizDetails = async (req, res) => {
             const questionAnswer = attempt.answers.find(
               (ans) =>
                 ans.questionId &&
-                ans.questionId.toString() === question._id.toString()
+                ans.questionId.toString() === question._id.toString(),
             );
             if (questionAnswer) {
               totalAnswers++;
@@ -11085,7 +11403,7 @@ const exportQuizDetails = async (req, res) => {
         totalQuestions: quiz.selectedQuestions.length,
         totalPoints: quiz.selectedQuestions.reduce(
           (sum, sq) => sum + (sq.points || 1),
-          0
+          0,
         ),
         createdBy: quiz.createdBy
           ? `${quiz.createdBy.firstName} ${quiz.createdBy.lastName}`
@@ -11125,7 +11443,7 @@ const exportQuizDetails = async (req, res) => {
               (opt, idx) =>
                 `${String.fromCharCode(65 + idx)}. ${opt.text}${
                   opt.isCorrect ? ' ✓' : ''
-                }`
+                }`,
             )
             .join(' | ');
 
@@ -11159,7 +11477,7 @@ const exportQuizDetails = async (req, res) => {
 
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', buffer.length);
@@ -11182,7 +11500,7 @@ const calculateActivityStreak = (activityTimeline) => {
   if (!activityTimeline || activityTimeline.length === 0) return 0;
 
   const sortedActivities = activityTimeline.sort(
-    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
   );
   const today = new Date();
   let streak = 0;
@@ -11215,7 +11533,7 @@ const calculateContentInteractionRate = (student, progressData) => {
   const totalCourses = student.enrolledCourses.length;
   const coursesWithProgress = progressData
     ? new Set(
-        progressData.map((p) => p.course?._id || p.course).filter(Boolean)
+        progressData.map((p) => p.course?._id || p.course).filter(Boolean),
       ).size
     : 0;
 
@@ -11232,7 +11550,7 @@ const calculateQuizParticipationRate = (student) => {
   // For now, we'll use a simplified calculation
   const totalAttempts = student.quizAttempts.reduce(
     (sum, qa) => sum + (qa.attempts?.length || 0),
-    0
+    0,
   );
   const uniqueQuizzes = student.quizAttempts.length;
 
@@ -11322,7 +11640,7 @@ const calculateWeeklyPattern = (activityTimeline) => {
         const score = parseInt(activity.scoreOrProgress.split('/')[0]);
         if (!isNaN(score)) {
           pattern[dayName].avgScore = Math.round(
-            (pattern[dayName].avgScore + score) / 2
+            (pattern[dayName].avgScore + score) / 2,
           );
         }
       }
@@ -11577,7 +11895,7 @@ const createZoomMeeting = async (req, res) => {
       type: 'zoom',
       title: meetingName,
       description: `Live Zoom session scheduled for ${new Date(
-        scheduledStartTime
+        scheduledStartTime,
       ).toLocaleString()}`,
       zoomMeeting: zoomMeeting._id,
       duration: parseInt(duration) || 60,
@@ -11613,7 +11931,11 @@ const startZoomMeeting = async (req, res) => {
     const { meetingId } = req.params;
 
     // Double-check admin permissions (additional safety)
-    if (!req.session.user || (req.session.user.role !== 'admin' && req.session.user.role !== 'superAdmin')) {
+    if (
+      !req.session.user ||
+      (req.session.user.role !== 'admin' &&
+        req.session.user.role !== 'superAdmin')
+    ) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin privileges required to start meetings.',
@@ -11622,7 +11944,7 @@ const startZoomMeeting = async (req, res) => {
 
     console.log(
       `Admin ${req.session.user.id} starting Zoom meeting:`,
-      meetingId
+      meetingId,
     );
 
     const zoomMeeting = await ZoomMeeting.findById(meetingId);
@@ -11664,7 +11986,11 @@ const endZoomMeeting = async (req, res) => {
     const { recordingUrl } = req.body; // Get recording URL from request body
 
     // Double-check admin permissions (additional safety)
-    if (!req.session.user || (req.session.user.role !== 'admin' && req.session.user.role !== 'superAdmin')) {
+    if (
+      !req.session.user ||
+      (req.session.user.role !== 'admin' &&
+        req.session.user.role !== 'superAdmin')
+    ) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin privileges required to end meetings.',
@@ -11687,7 +12013,7 @@ const endZoomMeeting = async (req, res) => {
       try {
         console.log(
           '🔚 Ending meeting on Zoom servers:',
-          zoomMeeting.meetingId
+          zoomMeeting.meetingId,
         );
 
         // Actually end the meeting on Zoom's servers
@@ -11697,7 +12023,7 @@ const endZoomMeeting = async (req, res) => {
       } catch (zoomError) {
         console.warn(
           '⚠️ Could not end meeting on Zoom (may already be ended):',
-          zoomError.message
+          zoomError.message,
         );
         // Continue with database update even if Zoom API fails
       }
@@ -11726,7 +12052,7 @@ const endZoomMeeting = async (req, res) => {
           (item) =>
             item.type === 'zoom' &&
             item.zoomMeeting &&
-            item.zoomMeeting.toString() === zoomMeeting._id.toString()
+            item.zoomMeeting.toString() === zoomMeeting._id.toString(),
         );
 
         if (zoomContentItem) {
@@ -11756,11 +12082,11 @@ const endZoomMeeting = async (req, res) => {
                       progressPercentage: 100,
                       lastAccessed: new Date(),
                       completedAt: new Date(),
-                    }
+                    },
                   );
 
                   console.log(
-                    `✅ Marked zoom content as completed for student ${student.firstName} ${student.lastName} (${attendancePercentage}% attendance)`
+                    `✅ Marked zoom content as completed for student ${student.firstName} ${student.lastName} (${attendancePercentage}% attendance)`,
                   );
 
                   // Send SMS notification to parent
@@ -11774,7 +12100,7 @@ const endZoomMeeting = async (req, res) => {
                           day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit',
-                        }
+                        },
                       )
                     : 'N/A';
 
@@ -11810,7 +12136,7 @@ const endZoomMeeting = async (req, res) => {
                       ) {
                         // Find the join action to get initial status
                         const joinAction = joinEvent.statusTimeline.find(
-                          (s) => s.action === 'join'
+                          (s) => s.action === 'join',
                         );
                         if (
                           joinAction &&
@@ -11837,7 +12163,7 @@ const endZoomMeeting = async (req, res) => {
                           ...joinEvent.statusTimeline,
                         ].sort(
                           (a, b) =>
-                            new Date(a.timestamp) - new Date(b.timestamp)
+                            new Date(a.timestamp) - new Date(b.timestamp),
                         );
 
                         // Start with initial camera status
@@ -11895,28 +12221,34 @@ const endZoomMeeting = async (req, res) => {
                       `📹 Camera status for ${
                         student.firstName
                       }: ${cameraOnPercentage.toFixed(
-                        1
+                        1,
                       )}% ON (${totalCameraOnTime.toFixed(
-                        1
+                        1,
                       )}/${timeSpent.toFixed(1)} min) - Status: ${
                         cameraOpened ? 'ON' : 'OFF'
-                      }`
+                      }`,
                     );
                   }
 
                   // Calculate if student joined late (30+ minutes after meeting started)
                   let joinedLate = false;
-                  const meetingActualStartTime = zoomMeeting.actualStartTime || refreshedMeeting.actualStartTime;
+                  const meetingActualStartTime =
+                    zoomMeeting.actualStartTime ||
+                    refreshedMeeting.actualStartTime;
                   const studentFirstJoinTime = attendance.firstJoinTime;
-                  
+
                   if (meetingActualStartTime && studentFirstJoinTime) {
                     const lateThresholdMs = 30 * 60 * 1000; // 30 minutes in milliseconds
-                    const joinDelayMs = new Date(studentFirstJoinTime) - new Date(meetingActualStartTime);
+                    const joinDelayMs =
+                      new Date(studentFirstJoinTime) -
+                      new Date(meetingActualStartTime);
                     joinedLate = joinDelayMs >= lateThresholdMs;
-                    
+
                     if (joinedLate) {
                       const minutesLate = Math.round(joinDelayMs / (1000 * 60));
-                      console.log(`⏰ Student ${student.firstName} joined ${minutesLate} minutes late (threshold: 30 min)`);
+                      console.log(
+                        `⏰ Student ${student.firstName} joined ${minutesLate} minutes late (threshold: 30 min)`,
+                      );
                     }
                   }
 
@@ -11934,30 +12266,30 @@ const endZoomMeeting = async (req, res) => {
                         courseTitle: course ? course.title : 'Course',
                         cameraOpened: cameraOpened,
                         joinedLate: joinedLate, // Pass late status to SMS
-                      }
+                      },
                     );
 
                   // Send notification to parent
                   await whatsappSMSNotificationService.sendToParent(
                     studentId,
                     smsMessage,
-                    smsMessage
+                    smsMessage,
                   );
 
                   console.log(
-                    `📱 Sent zoom meeting completion SMS to parent of ${student.firstName} ${student.lastName}`
+                    `📱 Sent zoom meeting completion SMS to parent of ${student.firstName} ${student.lastName}`,
                   );
                 }
               } catch (studentError) {
                 console.error(
                   `❌ Error processing student ${studentId}:`,
-                  studentError.message
+                  studentError.message,
                 );
                 // Continue with other students even if one fails
               }
             } else {
               console.log(
-                `⚠️ Student ${attendance.name} attended only ${attendancePercentage}% - not marking as completed (minimum 50% required)`
+                `⚠️ Student ${attendance.name} attended only ${attendancePercentage}% - not marking as completed (minimum 50% required)`,
               );
             }
           }
@@ -11973,27 +12305,29 @@ const endZoomMeeting = async (req, res) => {
               role: 'student',
             })
               .select(
-                'firstName lastName studentEmail studentCode parentNumber parentCountryCode'
+                'firstName lastName studentEmail studentCode parentNumber parentCountryCode',
               )
               .lean();
 
             // Get list of student IDs who attended live session
             const attendedStudentIds = new Set(
-              refreshedMeeting.studentsAttended.map((a) => a.student.toString())
+              refreshedMeeting.studentsAttended.map((a) =>
+                a.student.toString(),
+              ),
             );
 
             // Get list of student IDs who watched recording
             const watchedRecordingStudentIds = new Set(
               (refreshedMeeting.studentsWatchedRecording || [])
                 .filter((r) => r.completedWatching)
-                .map((r) => r.student.toString())
+                .map((r) => r.student.toString()),
             );
 
             console.log(`📊 Processing non-attendance notifications:`);
             console.log(`   Total enrolled: ${enrolledStudents.length}`);
             console.log(`   Attended live: ${attendedStudentIds.size}`);
             console.log(
-              `   Watched recording: ${watchedRecordingStudentIds.size}`
+              `   Watched recording: ${watchedRecordingStudentIds.size}`,
             );
 
             // Find students who didn't attend live session
@@ -12019,14 +12353,14 @@ const endZoomMeeting = async (req, res) => {
                       meetingTopic: zoomMeeting.meetingTopic,
                       courseTitle: course ? course.title : 'Course',
                       watchedRecording: watchedRecording,
-                    }
+                    },
                   );
 
                 // Send notification to parent
                 await whatsappSMSNotificationService.sendToParent(
                   enrolledStudent._id,
                   smsMessage,
-                  smsMessage
+                  smsMessage,
                 );
 
                 console.log(
@@ -12034,12 +12368,12 @@ const endZoomMeeting = async (req, res) => {
                     enrolledStudent.firstName
                   } ${enrolledStudent.lastName} (${
                     watchedRecording ? 'watched recording' : 'did not attend'
-                  })`
+                  })`,
                 );
               } catch (smsError) {
                 console.error(
                   `❌ Error sending non-attendance SMS to parent of ${enrolledStudent.firstName} ${enrolledStudent.lastName}:`,
-                  smsError.message
+                  smsError.message,
                 );
                 // Continue with other students even if one fails
               }
@@ -12047,7 +12381,7 @@ const endZoomMeeting = async (req, res) => {
           } catch (nonAttendanceError) {
             console.error(
               '⚠️ Error sending non-attendance notifications:',
-              nonAttendanceError.message
+              nonAttendanceError.message,
             );
             // Don't fail the request if non-attendance notifications fail
           }
@@ -12056,7 +12390,7 @@ const endZoomMeeting = async (req, res) => {
     } catch (completionError) {
       console.error(
         '⚠️ Error marking content as completed or sending notifications:',
-        completionError.message
+        completionError.message,
       );
       // Don't fail the request if completion marking fails
     }
@@ -12074,12 +12408,12 @@ const endZoomMeeting = async (req, res) => {
         role: 'student',
       })
         .select(
-          'firstName lastName studentEmail studentCode grade schoolName parentNumber parentCountryCode studentNumber studentCountryCode isActive enrolledCourses'
+          'firstName lastName studentEmail studentCode grade schoolName parentNumber parentCountryCode studentNumber studentCountryCode isActive enrolledCourses',
         )
         .lean();
 
       console.log(
-        `📊 Generating Excel attendance report for meeting: ${zoomMeeting.meetingName}`
+        `📊 Generating Excel attendance report for meeting: ${zoomMeeting.meetingName}`,
       );
       console.log(`📚 Course: ${course.title}`);
       console.log(`👥 Total enrolled students: ${enrolledStudents.length}`);
@@ -12090,7 +12424,7 @@ const endZoomMeeting = async (req, res) => {
       await excelExporter.createZoomAttendanceReport(
         zoomMeeting,
         course,
-        enrolledStudents
+        enrolledStudents,
       );
 
       // Generate Excel buffer
@@ -12100,7 +12434,7 @@ const endZoomMeeting = async (req, res) => {
       const cloudinary = require('../utils/cloudinary');
       const fileName = `Zoom_Attendance_${zoomMeeting.meetingName.replace(
         /[^a-zA-Z0-9]/g,
-        '_'
+        '_',
       )}_${Date.now()}.xlsx`;
 
       console.log('📤 Uploading Excel file...');
@@ -12110,7 +12444,7 @@ const endZoomMeeting = async (req, res) => {
         {
           resource_type: 'raw',
           folder: 'zoom-reports',
-        }
+        },
       );
 
       console.log('✅ Excel file uploaded:', uploadResult.url);
@@ -12138,30 +12472,30 @@ const endZoomMeeting = async (req, res) => {
         }`;
 
       console.log(
-        `📱 Sending Excel report via WhatsApp to: ${adminPhoneNumber}`
+        `📱 Sending Excel report via WhatsApp to: ${adminPhoneNumber}`,
       );
       const whatsappResult =
         await whatsappSMSNotificationService.sendDocumentViaWhatsApp(
           adminPhoneNumber,
           uploadResult.url,
           fileName,
-          caption
+          caption,
         );
 
       if (whatsappResult.success) {
         console.log(
-          '✅ Excel attendance report sent successfully via WhatsApp'
+          '✅ Excel attendance report sent successfully via WhatsApp',
         );
       } else {
         console.error(
           '❌ Failed to send Excel report via WhatsApp:',
-          whatsappResult.message
+          whatsappResult.message,
         );
       }
     } catch (excelError) {
       console.error(
         '⚠️ Error generating or sending Excel attendance report:',
-        excelError.message
+        excelError.message,
       );
       // Don't fail the request if Excel generation/sending fails
     }
@@ -12234,7 +12568,7 @@ const deleteZoomMeeting = async (req, res) => {
       } catch (error) {
         console.log(
           '⚠️ Could not delete from Zoom (may already be deleted):',
-          error.message
+          error.message,
         );
       }
     }
@@ -12244,7 +12578,7 @@ const deleteZoomMeeting = async (req, res) => {
       const topic = await Topic.findById(topicId);
       if (topic) {
         topic.content = topic.content.filter(
-          (item) => item._id.toString() !== contentId
+          (item) => item._id.toString() !== contentId,
         );
         await topic.save();
       }
@@ -12484,12 +12818,12 @@ const bulkImportStudents = async (req, res) => {
         const studentLenCheck = normalizePhone(
           studentNumber,
           studentCountryCode,
-          'Student number'
+          'Student number',
         );
         const parentLenCheck = normalizePhone(
           parentNumber,
           parentCountryCode,
-          'Parent number'
+          'Parent number',
         );
 
         if (studentLenCheck.error || parentLenCheck.error) {
@@ -12652,11 +12986,11 @@ const downloadBulkImportSample = async (req, res) => {
 
     res.setHeader(
       'Content-Disposition',
-      'attachment; filename="bulk-import-students-sample.xlsx"'
+      'attachment; filename="bulk-import-students-sample.xlsx"',
     );
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
 
     return res.send(buffer);
@@ -12673,35 +13007,35 @@ const downloadBulkImportSample = async (req, res) => {
 const downloadEnrollmentTemplate = async (req, res) => {
   try {
     const XLSX = require('xlsx');
-    
+
     // Excel template with sample data
     // Users can use any one of: Email, Phone, or Code columns
     const sampleRows = [
       {
-        'Email': 'student1@example.com',
-        'Phone': '+966501234567',
-        'Code': 'STU001'
+        Email: 'student1@example.com',
+        Phone: '+966501234567',
+        Code: 'STU001',
       },
       {
-        'Email': 'student2@example.com',
-        'Phone': '',
-        'Code': 'STU002'
+        Email: 'student2@example.com',
+        Phone: '',
+        Code: 'STU002',
       },
       {
-        'Email': '',
-        'Phone': '+966501234568',
-        'Code': 'STU003'
+        Email: '',
+        Phone: '+966501234568',
+        Code: 'STU003',
       },
       {
-        'Email': 'student4@example.com',
-        'Phone': '',
-        'Code': ''
+        Email: 'student4@example.com',
+        Phone: '',
+        Code: '',
       },
       {
-        'Email': '',
-        'Phone': '+966501234569',
-        'Code': ''
-      }
+        Email: '',
+        Phone: '+966501234569',
+        Code: '',
+      },
     ];
 
     const worksheet = XLSX.utils.json_to_sheet(sampleRows);
@@ -12712,11 +13046,11 @@ const downloadEnrollmentTemplate = async (req, res) => {
 
     res.setHeader(
       'Content-Disposition',
-      'attachment; filename="enrollment-template.xlsx"'
+      'attachment; filename="enrollment-template.xlsx"',
     );
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
 
     return res.send(buffer);
@@ -12768,13 +13102,13 @@ const enrollStudentsToCourse = async (req, res) => {
     const alreadyEnrolledStudents = students.filter((student) =>
       student.enrolledCourses.some(
         (enrollment) =>
-          enrollment.course && enrollment.course.toString() === courseId
-      )
+          enrollment.course && enrollment.course.toString() === courseId,
+      ),
     );
 
     if (alreadyEnrolledStudents.length > 0) {
       const alreadyEnrolledNames = alreadyEnrolledStudents.map(
-        (student) => student.name || `${student.firstName} ${student.lastName}`
+        (student) => student.name || `${student.firstName} ${student.lastName}`,
       );
 
       return res.status(400).json({
@@ -12799,14 +13133,14 @@ const enrollStudentsToCourse = async (req, res) => {
     for (const student of students) {
       await student.safeEnrollInCourse(courseId, finalStartingOrder);
       enrolledStudents.push(
-        student.name || `${student.firstName} ${student.lastName}`
+        student.name || `${student.firstName} ${student.lastName}`,
       );
 
       // Send WhatsApp notification for course enrollment
       try {
         await whatsappSMSNotificationService.sendCourseEnrollmentNotification(
           student._id,
-          course
+          course,
         );
       } catch (whatsappError) {
         console.error('WhatsApp enrollment notification error:', whatsappError);
@@ -12888,13 +13222,14 @@ const enrollStudentsToBundle = async (req, res) => {
     // Check if any students are already enrolled
     const alreadyEnrolledStudents = students.filter((student) =>
       student.purchasedBundles.some(
-        (purchase) => purchase.bundle && purchase.bundle.toString() === bundleId
-      )
+        (purchase) =>
+          purchase.bundle && purchase.bundle.toString() === bundleId,
+      ),
     );
 
     if (alreadyEnrolledStudents.length > 0) {
       const alreadyEnrolledNames = alreadyEnrolledStudents.map(
-        (student) => student.name || `${student.firstName} ${student.lastName}`
+        (student) => student.name || `${student.firstName} ${student.lastName}`,
       );
 
       return res.status(400).json({
@@ -12910,18 +13245,24 @@ const enrollStudentsToBundle = async (req, res) => {
     const enrolledStudentIds = [];
 
     // Get unique course IDs from bundle (handle both ObjectId and string formats)
-    const uniqueCourseIds = [...new Set(
-      bundle.courses.map(courseId => 
-        (courseId && courseId._id ? courseId._id : courseId).toString()
-      )
-    )].map(id => new mongoose.Types.ObjectId(id));
+    const uniqueCourseIds = [
+      ...new Set(
+        bundle.courses.map((courseId) =>
+          (courseId && courseId._id ? courseId._id : courseId).toString(),
+        ),
+      ),
+    ].map((id) => new mongoose.Types.ObjectId(id));
 
     // Verify courses exist and filter out invalid ones
     const Course = mongoose.model('Course');
-    const existingCourses = await Course.find({ _id: { $in: uniqueCourseIds } }).select('_id');
-    const validCourseIds = existingCourses.map(c => c._id);
-    
-    console.log(`📦 Bundle ${bundle.bundleCode} has ${bundle.courses.length} courses in array, ${uniqueCourseIds.length} unique, ${validCourseIds.length} valid courses`);
+    const existingCourses = await Course.find({
+      _id: { $in: uniqueCourseIds },
+    }).select('_id');
+    const validCourseIds = existingCourses.map((c) => c._id);
+
+    console.log(
+      `📦 Bundle ${bundle.bundleCode} has ${bundle.courses.length} courses in array, ${uniqueCourseIds.length} unique, ${validCourseIds.length} valid courses`,
+    );
 
     for (const student of students) {
       // Add bundle to student's purchasedBundles
@@ -12941,7 +13282,7 @@ const enrollStudentsToBundle = async (req, res) => {
       await student.save();
 
       enrolledStudents.push(
-        student.name || `${student.firstName} ${student.lastName}`
+        student.name || `${student.firstName} ${student.lastName}`,
       );
       enrolledStudentIds.push(student._id);
 
@@ -12950,12 +13291,12 @@ const enrollStudentsToBundle = async (req, res) => {
         const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
         await whatsappSMSNotificationService.sendBundleEnrollmentNotification(
           student._id,
-          bundle
+          bundle,
         );
       } catch (whatsappError) {
         console.error(
           'WhatsApp bundle enrollment notification error:',
-          whatsappError
+          whatsappError,
         );
         // Don't fail the enrollment if WhatsApp fails
       }
@@ -12973,7 +13314,7 @@ const enrollStudentsToBundle = async (req, res) => {
       targetModel: 'BundleCourse',
       targetId: bundleId,
       targetName: bundle.title,
-        metadata: {
+      metadata: {
         bundleCode: bundle.bundleCode,
         studentCount: enrolledStudents.length,
         studentNames: enrolledStudents,
@@ -13070,7 +13411,8 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
       }
       return res.status(400).json({
         success: false,
-        message: 'Failed to read Excel file. Please ensure it is a valid Excel file.',
+        message:
+          'Failed to read Excel file. Please ensure it is a valid Excel file.',
       });
     }
 
@@ -13165,7 +13507,7 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
         // Check if already enrolled
         const isAlreadyEnrolled = student.enrolledCourses.some(
           (enrollment) =>
-            enrollment.course && enrollment.course.toString() === courseId
+            enrollment.course && enrollment.course.toString() === courseId,
         );
 
         if (isAlreadyEnrolled) {
@@ -13241,7 +13583,7 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
     });
   } catch (error) {
     console.error('Error bulk enrolling students:', error);
-    
+
     // Clean up uploaded file on error
     try {
       if (req.file && req.file.path && fs.existsSync(req.file.path)) {
@@ -13300,7 +13642,8 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
       }
       return res.status(400).json({
         success: false,
-        message: 'Failed to read Excel file. Please ensure it is a valid Excel file.',
+        message:
+          'Failed to read Excel file. Please ensure it is a valid Excel file.',
       });
     }
 
@@ -13327,18 +13670,24 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
     };
 
     // Get unique course IDs from bundle (handle both ObjectId and string formats) - do this once outside the loop
-    const uniqueCourseIds = [...new Set(
-      bundle.courses.map(courseId => 
-        (courseId && courseId._id ? courseId._id : courseId).toString()
-      )
-    )].map(id => new mongoose.Types.ObjectId(id));
+    const uniqueCourseIds = [
+      ...new Set(
+        bundle.courses.map((courseId) =>
+          (courseId && courseId._id ? courseId._id : courseId).toString(),
+        ),
+      ),
+    ].map((id) => new mongoose.Types.ObjectId(id));
 
     // Verify courses exist and filter out invalid ones - do this once outside the loop
     const Course = mongoose.model('Course');
-    const existingCourses = await Course.find({ _id: { $in: uniqueCourseIds } }).select('_id');
-    const validCourseIds = existingCourses.map(c => c._id);
-    
-    console.log(`📦 Bulk enrollment: Bundle ${bundle.bundleCode} has ${bundle.courses.length} courses in array, ${uniqueCourseIds.length} unique, ${validCourseIds.length} valid courses`);
+    const existingCourses = await Course.find({
+      _id: { $in: uniqueCourseIds },
+    }).select('_id');
+    const validCourseIds = existingCourses.map((c) => c._id);
+
+    console.log(
+      `📦 Bulk enrollment: Bundle ${bundle.bundleCode} has ${bundle.courses.length} courses in array, ${uniqueCourseIds.length} unique, ${validCourseIds.length} valid courses`,
+    );
 
     // Helper function to get value by key
     const getValueByKey = (obj, possibleKeys) => {
@@ -13409,7 +13758,7 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
         // Check if already enrolled
         const isAlreadyEnrolled = student.purchasedBundles.some(
           (purchase) =>
-            purchase.bundle && purchase.bundle.toString() === bundleId
+            purchase.bundle && purchase.bundle.toString() === bundleId,
         );
 
         if (isAlreadyEnrolled) {
@@ -13436,7 +13785,7 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
           const isAlreadyEnrolledInCourse = student.enrolledCourses.some(
             (enrollment) =>
               enrollment.course &&
-              enrollment.course.toString() === courseId.toString()
+              enrollment.course.toString() === courseId.toString(),
           );
 
           if (!isAlreadyEnrolledInCourse) {
@@ -13503,7 +13852,7 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
     });
   } catch (error) {
     console.error('Error bulk enrolling students to bundle:', error);
-    
+
     // Clean up uploaded file on error
     try {
       if (req.file && req.file.path && fs.existsSync(req.file.path)) {
@@ -13542,7 +13891,7 @@ const getStudentsForEnrollment = async (req, res) => {
     // Get all students matching the search
     let students = await User.find(query)
       .select(
-        'firstName lastName studentEmail studentNumber studentCode username grade schoolName enrolledCourses purchasedBundles'
+        'firstName lastName studentEmail studentNumber studentCode username grade schoolName enrolledCourses purchasedBundles',
       )
       .sort({ firstName: 1, lastName: 1 });
 
@@ -13552,7 +13901,7 @@ const getStudentsForEnrollment = async (req, res) => {
         // Check if student has this course in their enrolledCourses array
         return !student.enrolledCourses.some(
           (enrollment) =>
-            enrollment.course && enrollment.course.toString() === courseId
+            enrollment.course && enrollment.course.toString() === courseId,
         );
       });
     }
@@ -13562,7 +13911,7 @@ const getStudentsForEnrollment = async (req, res) => {
         // Check if student has this bundle in their purchasedBundles array
         return !student.purchasedBundles.some(
           (purchase) =>
-            purchase.bundle && purchase.bundle.toString() === bundleId
+            purchase.bundle && purchase.bundle.toString() === bundleId,
         );
       });
     }
@@ -13605,7 +13954,7 @@ const removeStudentFromCourse = async (req, res) => {
     // Find and remove the enrollment
     const enrollmentIndex = student.enrolledCourses.findIndex(
       (enrollment) =>
-        enrollment.course && enrollment.course.toString() === courseId
+        enrollment.course && enrollment.course.toString() === courseId,
     );
 
     if (enrollmentIndex === -1) {
@@ -13655,7 +14004,7 @@ const removeStudentFromBundle = async (req, res) => {
 
     // Find and remove the bundle purchase
     const bundleIndex = student.purchasedBundles.findIndex(
-      (purchase) => purchase.bundle && purchase.bundle.toString() === bundleId
+      (purchase) => purchase.bundle && purchase.bundle.toString() === bundleId,
     );
 
     if (bundleIndex === -1) {
@@ -13674,7 +14023,7 @@ const removeStudentFromBundle = async (req, res) => {
       const courseIndex = student.enrolledCourses.findIndex(
         (enrollment) =>
           enrollment.course &&
-          enrollment.course.toString() === courseId.toString()
+          enrollment.course.toString() === courseId.toString(),
       );
 
       if (courseIndex !== -1) {
@@ -13759,7 +14108,7 @@ const getPromoCodes = async (req, res) => {
       .populate('createdBy', 'userName email')
       .populate(
         'allowedStudents',
-        'firstName lastName studentEmail studentCode'
+        'firstName lastName studentEmail studentCode',
       )
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -14003,7 +14352,7 @@ const getPromoCode = async (req, res) => {
 
     const promoCode = await PromoCode.findById(id).populate(
       'allowedStudents',
-      'firstName lastName studentEmail studentCode'
+      'firstName lastName studentEmail studentCode',
     );
 
     if (!promoCode) {
@@ -14336,7 +14685,7 @@ const createBulkPromoCodes = async (req, res) => {
     const codes = await PromoCode.generateBulkCodes(
       codeCount,
       codePrefix || '',
-      8
+      8,
     );
 
     // Create promo codes
@@ -14567,14 +14916,14 @@ const exportBulkCollection = async (req, res) => {
     // Set response headers
     res.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader(
       'Content-Disposition',
       `attachment; filename=bulk-promo-codes-${codes[0].bulkCollectionName.replace(
         /\s+/g,
-        '-'
-      )}-${Date.now()}.xlsx`
+        '-',
+      )}-${Date.now()}.xlsx`,
     );
 
     // Write to response
@@ -14634,7 +14983,7 @@ const toggleBulkCollectionStatus = async (req, res) => {
     // Update all codes in the collection
     const result = await PromoCode.updateMany(
       { bulkCollectionId },
-      { $set: { isActive: isActive === true || isActive === 'true' } }
+      { $set: { isActive: isActive === true || isActive === 'true' } },
     );
 
     res.json({
@@ -14661,30 +15010,55 @@ const getDashboardChartData = async (req, res) => {
     const daysInt = parseInt(days);
     const cacheKey = `chart_data_${daysInt}`;
 
-    const data = await cache.getOrSet(cacheKey, async () => {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - daysInt);
+    const data = await cache.getOrSet(
+      cacheKey,
+      async () => {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - daysInt);
 
-      const [studentGrowth, revenueData] = await Promise.all([
-        User.aggregate([
-          { $match: { role: 'student', createdAt: { $gte: startDate } } },
-          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
-          { $sort: { _id: 1 } },
-        ]),
-        Purchase.aggregate([
-          { $match: { createdAt: { $gte: startDate }, status: { $in: ['completed', 'paid'] } } },
-          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, total: { $sum: '$total' } } },
-          { $sort: { _id: 1 } },
-        ]),
-      ]);
+        const [studentGrowth, revenueData] = await Promise.all([
+          User.aggregate([
+            { $match: { role: 'student', createdAt: { $gte: startDate } } },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+                },
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ]),
+          Purchase.aggregate([
+            {
+              $match: {
+                createdAt: { $gte: startDate },
+                status: { $in: ['completed', 'paid'] },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+                },
+                total: { $sum: '$total' },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ]),
+        ]);
 
-      return { studentGrowth, revenueData };
-    }, 120); // Cache 2 minutes
+        return { studentGrowth, revenueData };
+      },
+      120,
+    ); // Cache 2 minutes
 
     res.json({ success: true, ...data });
   } catch (error) {
     console.error('Error fetching chart data:', error);
-    res.status(500).json({ success: false, message: 'Error fetching chart data' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Error fetching chart data' });
   }
 };
 
@@ -14799,14 +15173,14 @@ const deleteAdmin = async (req, res) => {
         adminEmail: adminInfo.email,
         deletedAt: new Date().toISOString(),
         deletedBy: req.session.user?.id || 'unknown',
-      }
+      },
     );
 
     // Delete the admin
     await Admin.findByIdAndDelete(adminId);
 
     console.log(
-      `Admin ${adminInfo.userName} (${adminInfo.id}) permanently deleted from database`
+      `Admin ${adminInfo.userName} (${adminInfo.id}) permanently deleted from database`,
     );
 
     return res.json({
@@ -15118,7 +15492,7 @@ const reorderTeamMembers = async (req, res) => {
       return TeamMember.findByIdAndUpdate(
         member.id,
         { displayOrder: index },
-        { new: true }
+        { new: true },
       );
     });
 
@@ -15137,7 +15511,7 @@ const exportTeamMembers = async (req, res) => {
     const teamMembers = await TeamMember.find({})
       .sort({ displayOrder: 1, createdAt: -1 })
       .select(
-        'name position image fallbackInitials displayOrder isActive createdAt'
+        'name position image fallbackInitials displayOrder isActive createdAt',
       );
 
     // Simple CSV export
@@ -15150,7 +15524,7 @@ const exportTeamMembers = async (req, res) => {
             member.fallbackInitials
           }",${member.displayOrder},${
             member.isActive
-          },"${member.createdAt.toISOString()}"`
+          },"${member.createdAt.toISOString()}"`,
       )
       .join('\n');
 
@@ -15161,7 +15535,7 @@ const exportTeamMembers = async (req, res) => {
       'Content-Disposition',
       `attachment; filename="team-members-${
         new Date().toISOString().split('T')[0]
-      }.csv"`
+      }.csv"`,
     );
     res.send(csv);
   } catch (error) {
@@ -15218,7 +15592,7 @@ const getStudentsForSMS = async (req, res) => {
 
     const students = await User.find(query)
       .select(
-        '_id firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode'
+        '_id firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode',
       )
       .limit(parseInt(limit))
       .skip(skip)
@@ -15268,7 +15642,7 @@ const getCoursesForSMS = async (req, res) => {
     const coursesWithCount = await Promise.all(
       courses.map(async (course) => {
         const studentIds = await Progress.find({ course: course._id }).distinct(
-          'student'
+          'student',
         );
         const studentCount = studentIds.length;
         return {
@@ -15276,7 +15650,7 @@ const getCoursesForSMS = async (req, res) => {
           title: course.title,
           studentCount,
         };
-      })
+      }),
     );
 
     res.json({
@@ -15304,7 +15678,7 @@ const getBundlesForSMS = async (req, res) => {
       bundles.map(async (bundle) => {
         // Get all courses in the bundle
         const bundleDoc = await BundleCourse.findById(bundle._id).populate(
-          'courses'
+          'courses',
         );
         if (
           !bundleDoc ||
@@ -15329,7 +15703,7 @@ const getBundlesForSMS = async (req, res) => {
           title: bundle.title,
           studentCount,
         };
-      })
+      }),
     );
 
     res.json({
@@ -15351,7 +15725,7 @@ const getCourseStudentsCount = async (req, res) => {
     const { courseId } = req.params;
 
     const studentIds = await Progress.find({ course: courseId }).distinct(
-      'student'
+      'student',
     );
 
     const count = studentIds.length;
@@ -15456,7 +15830,7 @@ const sendBulkSMS = async (req, res) => {
         role: 'student',
         isActive: true,
       }).select(
-        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode'
+        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
       );
 
       students.forEach((student) => {
@@ -15487,7 +15861,7 @@ const sendBulkSMS = async (req, res) => {
         role: 'student',
         isActive: true,
       }).select(
-        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode'
+        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
       );
 
       students.forEach((student) => {
@@ -15514,9 +15888,8 @@ const sendBulkSMS = async (req, res) => {
       });
     } else if (targetType === 'course' && targetId) {
       // Get students enrolled in course
-      const course = await Course.findById(targetId).populate(
-        'enrolledStudents'
-      );
+      const course =
+        await Course.findById(targetId).populate('enrolledStudents');
       if (!course) {
         return res.status(404).json({
           success: false,
@@ -15527,7 +15900,7 @@ const sendBulkSMS = async (req, res) => {
       const enrollments = await Progress.find({ courseId: targetId })
         .populate(
           'studentId',
-          'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode'
+          'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
         )
         .select('studentId');
 
@@ -15539,7 +15912,7 @@ const sendBulkSMS = async (req, res) => {
         role: 'student',
         isActive: true,
       }).select(
-        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode'
+        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
       );
 
       students.forEach((student) => {
@@ -15577,7 +15950,7 @@ const sendBulkSMS = async (req, res) => {
       const enrollments = await Progress.find({ bundleId: targetId })
         .populate(
           'studentId',
-          'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode'
+          'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
         )
         .select('studentId');
 
@@ -15589,7 +15962,7 @@ const sendBulkSMS = async (req, res) => {
         role: 'student',
         isActive: true,
       }).select(
-        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode'
+        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
       );
 
       students.forEach((student) => {
@@ -15627,8 +16000,8 @@ const sendBulkSMS = async (req, res) => {
         self.findIndex(
           (r) =>
             r.phoneNumber === recipient.phoneNumber &&
-            (r.countryCode || '') === (recipient.countryCode || '')
-        )
+            (r.countryCode || '') === (recipient.countryCode || ''),
+        ),
     );
 
     results.total = uniqueRecipients.length;
@@ -15640,7 +16013,7 @@ const sendBulkSMS = async (req, res) => {
     for (const recipient of uniqueRecipients) {
       const isEgyptian = whatsappSMSNotificationService.isEgyptianNumber(
         recipient.phoneNumber,
-        recipient.countryCode
+        recipient.countryCode,
       );
 
       if (isEgyptian) {
@@ -15799,7 +16172,7 @@ const sendBulkSMS = async (req, res) => {
             const formattedPhone =
               whatsappSMSNotificationService.formatPhoneNumber(
                 recipient.phoneNumber,
-                recipient.countryCode
+                recipient.countryCode,
               );
 
             // Convert to WhatsApp JID format (remove + and add @s.whatsapp.net)
@@ -15813,14 +16186,14 @@ const sendBulkSMS = async (req, res) => {
             const whatsappJid = `${cleaned}@s.whatsapp.net`;
 
             console.log(
-              `💬 Sending WhatsApp to non-Egyptian number: ${whatsappJid}`
+              `💬 Sending WhatsApp to non-Egyptian number: ${whatsappJid}`,
             );
 
             // Send message via WhatsApp
             const result = await wasender.sendTextMessage(
               whatsappSMSNotificationService.sessionApiKey,
               whatsappJid,
-              cleanedWhatsappMessage
+              cleanedWhatsappMessage,
             );
 
             if (result.success) {
@@ -15828,7 +16201,7 @@ const sendBulkSMS = async (req, res) => {
                 ? `${recipient.countryCode}${recipient.phoneNumber}`
                 : recipient.phoneNumber;
               console.log(
-                `✅ WhatsApp message sent to ${recipient.name} (${whatsappJid})`
+                `✅ WhatsApp message sent to ${recipient.name} (${whatsappJid})`,
               );
               results.success.push({
                 phone: fullPhone,
@@ -15842,7 +16215,7 @@ const sendBulkSMS = async (req, res) => {
                 : recipient.phoneNumber;
               console.error(
                 `❌ Failed to send WhatsApp to ${recipient.name}:`,
-                result.message
+                result.message,
               );
               results.failed.push({
                 phone: fullPhone,
@@ -15858,7 +16231,7 @@ const sendBulkSMS = async (req, res) => {
               : recipient.phoneNumber;
             console.error(
               `❌ WhatsApp sending error for ${recipient.name}:`,
-              whatsappError
+              whatsappError,
             );
             results.failed.push({
               phone: fullPhone,
@@ -15877,7 +16250,7 @@ const sendBulkSMS = async (req, res) => {
     const failedCount = results.failed.length;
     const smsCount = results.success.filter((r) => r.method === 'SMS').length;
     const whatsappCount = results.success.filter(
-      (r) => r.method === 'WhatsApp'
+      (r) => r.method === 'WhatsApp',
     ).length;
 
     res.json({
@@ -15980,10 +16353,10 @@ const getOTPMasterGenerator = async (req, res) => {
 const generateMasterOTP = async (req, res) => {
   try {
     const { purpose } = req.body;
-    
+
     // Always fetch admin from database to get the correct userName
     let generatedBy = 'Unknown Admin';
-    
+
     if (req.session?.user?.id) {
       try {
         const admin = await Admin.findById(req.session.user.id);
@@ -15994,17 +16367,19 @@ const generateMasterOTP = async (req, res) => {
       } catch (err) {
         console.error('Error fetching admin:', err);
         // Fallback to session data if database fetch fails
-        generatedBy = req.session?.user?.name || 
-                      req.user?.userName || 
-                      req.user?.email || 
-                      'Unknown Admin';
+        generatedBy =
+          req.session?.user?.name ||
+          req.user?.userName ||
+          req.user?.email ||
+          'Unknown Admin';
       }
     } else {
       // Fallback if no session ID
-      generatedBy = req.session?.user?.name || 
-                    req.user?.userName || 
-                    req.user?.email || 
-                    'Unknown Admin';
+      generatedBy =
+        req.session?.user?.name ||
+        req.user?.userName ||
+        req.user?.email ||
+        'Unknown Admin';
     }
 
     const otpData = otpMasterUtil.generateMasterOTP(generatedBy, purpose);
@@ -16059,7 +16434,9 @@ const validateMasterOTP = async (req, res) => {
 
     // Log the validation attempt
     await createLog(req, {
-      action: validationResult.valid ? 'OTP_VALIDATED' : 'OTP_VALIDATION_FAILED',
+      action: validationResult.valid
+        ? 'OTP_VALIDATED'
+        : 'OTP_VALIDATION_FAILED',
       actionCategory: 'SYSTEM',
       description: `OTP validation ${validationResult.valid ? 'succeeded' : 'failed'}: ${validationResult.message}`,
       targetModel: 'OTP',
@@ -16185,16 +16562,23 @@ const getStudentsForSkipContent = async (req, res) => {
     const studentsWithStatus = students.map((student) => {
       // Find the enrollment for this course
       const enrollment = student.enrolledCourses.find(
-        (ec) => ec.course && ec.course.toString() === courseId.toString()
+        (ec) => ec.course && ec.course.toString() === courseId.toString(),
       );
 
       // Check if content is completed in the student's contentProgress
       let isContentCompleted = false;
-      if (enrollment && enrollment.contentProgress && Array.isArray(enrollment.contentProgress)) {
+      if (
+        enrollment &&
+        enrollment.contentProgress &&
+        Array.isArray(enrollment.contentProgress)
+      ) {
         const contentProgress = enrollment.contentProgress.find(
-          (cp) => cp.contentId && cp.contentId.toString() === contentId.toString()
+          (cp) =>
+            cp.contentId && cp.contentId.toString() === contentId.toString(),
         );
-        isContentCompleted = !!(contentProgress && contentProgress.completionStatus === 'completed');
+        isContentCompleted = !!(
+          contentProgress && contentProgress.completionStatus === 'completed'
+        );
       }
 
       return {
@@ -16212,7 +16596,9 @@ const getStudentsForSkipContent = async (req, res) => {
       if (a.isContentCompleted !== b.isContentCompleted) {
         return a.isContentCompleted ? 1 : -1;
       }
-      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      return `${a.firstName} ${a.lastName}`.localeCompare(
+        `${b.firstName} ${b.lastName}`,
+      );
     });
 
     res.json({
@@ -16265,7 +16651,9 @@ const skipContentForStudents = async (req, res) => {
     }
 
     // Find the content item
-    const contentItem = topic.content.find((c) => c._id.toString() === contentId);
+    const contentItem = topic.content.find(
+      (c) => c._id.toString() === contentId,
+    );
     if (!contentItem) {
       return res.status(404).json({
         success: false,
@@ -16290,20 +16678,27 @@ const skipContentForStudents = async (req, res) => {
 
         // Find the enrollment for this course
         const enrollment = student.enrolledCourses.find(
-          (e) => e.course && e.course.toString() === courseId.toString()
+          (e) => e.course && e.course.toString() === courseId.toString(),
         );
 
         if (!enrollment) {
-          errors.push({ studentId, error: 'Student not enrolled in this course' });
+          errors.push({
+            studentId,
+            error: 'Student not enrolled in this course',
+          });
           continue;
         }
 
         // Check if content is already completed in contentProgress
         const existingContentProgress = enrollment.contentProgress.find(
-          (cp) => cp.contentId && cp.contentId.toString() === contentId.toString()
+          (cp) =>
+            cp.contentId && cp.contentId.toString() === contentId.toString(),
         );
 
-        if (existingContentProgress && existingContentProgress.completionStatus === 'completed') {
+        if (
+          existingContentProgress &&
+          existingContentProgress.completionStatus === 'completed'
+        ) {
           alreadyCompletedCount++;
           continue;
         }
@@ -16316,7 +16711,10 @@ const skipContentForStudents = async (req, res) => {
           completedAt: new Date(),
           lastAccessed: new Date(),
           // Mark that this was admin-skipped for tracking purposes
-          score: contentItem.type === 'quiz' || contentItem.type === 'homework' ? 100 : undefined,
+          score:
+            contentItem.type === 'quiz' || contentItem.type === 'homework'
+              ? 100
+              : undefined,
         };
 
         // Call the user's updateContentProgress method (same as student flow)
@@ -16325,7 +16723,7 @@ const skipContentForStudents = async (req, res) => {
           topicId,
           contentId,
           contentItem.type,
-          progressData
+          progressData,
         );
 
         // Also create a Progress record for activity tracking (optional but matches student flow)
@@ -16337,7 +16735,8 @@ const skipContentForStudents = async (req, res) => {
         }
 
         // Map content type for Progress model (zoom is not in enum, map to video)
-        const progressContentType = contentItem.type === 'zoom' ? 'video' : contentItem.type;
+        const progressContentType =
+          contentItem.type === 'zoom' ? 'video' : contentItem.type;
 
         // Create Progress record directly
         try {
@@ -16363,7 +16762,10 @@ const skipContentForStudents = async (req, res) => {
           });
         } catch (progressError) {
           // Progress record creation is optional, don't fail the whole operation
-          console.log('Progress record creation failed (non-critical):', progressError.message);
+          console.log(
+            'Progress record creation failed (non-critical):',
+            progressError.message,
+          );
         }
 
         processedCount++;
@@ -16379,7 +16781,7 @@ const skipContentForStudents = async (req, res) => {
               },
               {
                 title: course.title,
-              }
+              },
             );
             notificationsSent++;
           } catch (notifError) {
@@ -16436,11 +16838,22 @@ const skipContentForStudents = async (req, res) => {
 // Get all guest users with pagination and filtering
 const getGuestUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, status, dateFrom, dateTo, quizId, scoreMin, scoreMax, hasPassed } = req.query;
-    
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      status,
+      dateFrom,
+      dateTo,
+      quizId,
+      scoreMin,
+      scoreMax,
+      hasPassed,
+    } = req.query;
+
     // Build filters
     const filters = {};
-    
+
     if (search) {
       filters.$or = [
         { fullName: { $regex: search, $options: 'i' } },
@@ -16449,27 +16862,27 @@ const getGuestUsers = async (req, res) => {
         { parentPhone: { $regex: search, $options: 'i' } },
       ];
     }
-    
+
     if (status === 'active') {
       filters.isActive = true;
     } else if (status === 'inactive') {
       filters.isActive = false;
     }
-    
+
     if (dateFrom || dateTo) {
       filters.createdAt = {};
       if (dateFrom) filters.createdAt.$gte = new Date(dateFrom);
       if (dateTo) filters.createdAt.$lte = new Date(dateTo + 'T23:59:59.999Z');
     }
-    
+
     // Quiz filter - filter guests who have attempted a specific quiz
     if (quizId && quizId !== '') {
       filters['quizAttempts.quiz'] = new mongoose.Types.ObjectId(quizId);
     }
-    
+
     // Get paginated results
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     let [guests, totalCount] = await Promise.all([
       GuestUser.find(filters)
         .populate('quizAttempts.quiz', 'title code testType passingScore')
@@ -16479,13 +16892,13 @@ const getGuestUsers = async (req, res) => {
         .lean(),
       GuestUser.countDocuments(filters),
     ]);
-    
+
     // Get all quizzes for the filter dropdown
     const allQuizzes = await Quiz.find({ status: 'active' })
       .select('title code testType')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     // Calculate aggregate stats
     const allGuests = await GuestUser.find({}).lean();
     let totalAttempts = 0;
@@ -16495,18 +16908,22 @@ const getGuestUsers = async (req, res) => {
     let activeToday = 0;
     let activeThisWeek = 0;
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    allGuests.forEach(guest => {
+
+    allGuests.forEach((guest) => {
       // Check activity
       if (guest.lastActiveAt) {
         if (new Date(guest.lastActiveAt) >= todayStart) activeToday++;
         if (new Date(guest.lastActiveAt) >= weekStart) activeThisWeek++;
       }
-      
-      guest.quizAttempts.forEach(qa => {
-        qa.attempts.forEach(att => {
+
+      guest.quizAttempts.forEach((qa) => {
+        qa.attempts.forEach((att) => {
           if (att.status === 'completed') {
             totalAttempts++;
             if (att.passed) passedAttempts++;
@@ -16516,21 +16933,25 @@ const getGuestUsers = async (req, res) => {
         });
       });
     });
-    
-    const averageScore = allScores.length > 0 
-      ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) 
-      : 0;
-    
-    const passRate = totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0;
-    
+
+    const averageScore =
+      allScores.length > 0
+        ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
+        : 0;
+
+    const passRate =
+      totalAttempts > 0
+        ? Math.round((passedAttempts / totalAttempts) * 100)
+        : 0;
+
     // Calculate stats for each guest
-    guests.forEach(guest => {
+    guests.forEach((guest) => {
       let guestScores = [];
       let guestAttempts = 0;
       let guestPassed = 0;
-      
-      guest.quizAttempts.forEach(qa => {
-        qa.attempts.forEach(att => {
+
+      guest.quizAttempts.forEach((qa) => {
+        qa.attempts.forEach((att) => {
           if (att.status === 'completed') {
             guestAttempts++;
             guestScores.push(att.score);
@@ -16538,18 +16959,21 @@ const getGuestUsers = async (req, res) => {
           }
         });
       });
-      
+
       guest.totalQuizAttempts = guestAttempts;
       guest.passedAttempts = guestPassed;
-      guest.averageScore = guestScores.length > 0 
-        ? Math.round(guestScores.reduce((a, b) => a + b, 0) / guestScores.length) 
-        : 0;
+      guest.averageScore =
+        guestScores.length > 0
+          ? Math.round(
+              guestScores.reduce((a, b) => a + b, 0) / guestScores.length,
+            )
+          : 0;
       guest.bestScore = guestScores.length > 0 ? Math.max(...guestScores) : 0;
     });
-    
+
     // Apply post-query filters (score range, passed status)
     if (scoreMin || scoreMax || hasPassed) {
-      guests = guests.filter(guest => {
+      guests = guests.filter((guest) => {
         if (scoreMin && guest.averageScore < parseInt(scoreMin)) return false;
         if (scoreMax && guest.averageScore > parseInt(scoreMax)) return false;
         if (hasPassed === 'yes' && guest.passedAttempts === 0) return false;
@@ -16557,7 +16981,7 @@ const getGuestUsers = async (req, res) => {
         return true;
       });
     }
-    
+
     // Build query string for pagination
     const queryParams = new URLSearchParams();
     if (search) queryParams.set('search', search);
@@ -16568,7 +16992,7 @@ const getGuestUsers = async (req, res) => {
     if (scoreMin) queryParams.set('scoreMin', scoreMin);
     if (scoreMax) queryParams.set('scoreMax', scoreMax);
     if (hasPassed) queryParams.set('hasPassed', hasPassed);
-    
+
     res.render('admin/guest-users', {
       title: 'Guest Users | Admin',
       currentPage: 'guest-users',
@@ -16615,36 +17039,39 @@ const getGuestUsers = async (req, res) => {
 const getGuestUserDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const guest = await GuestUser.findById(id)
       .populate('quizAttempts.quiz', 'title code testType')
       .lean();
-    
+
     if (!guest) {
       return res.status(404).json({
         success: false,
         message: 'Guest user not found',
       });
     }
-    
+
     // Calculate stats
     let guestScores = [];
     let totalAttempts = 0;
-    
-    guest.quizAttempts.forEach(qa => {
-      qa.attempts.forEach(att => {
+
+    guest.quizAttempts.forEach((qa) => {
+      qa.attempts.forEach((att) => {
         if (att.status === 'completed') {
           totalAttempts++;
           guestScores.push(att.score);
         }
       });
     });
-    
+
     guest.totalQuizAttempts = totalAttempts;
-    guest.averageScore = guestScores.length > 0 
-      ? Math.round(guestScores.reduce((a, b) => a + b, 0) / guestScores.length) 
-      : 0;
-    
+    guest.averageScore =
+      guestScores.length > 0
+        ? Math.round(
+            guestScores.reduce((a, b) => a + b, 0) / guestScores.length,
+          )
+        : 0;
+
     res.json({
       success: true,
       guest,
@@ -16662,90 +17089,93 @@ const getGuestUserDetails = async (req, res) => {
 const getGuestQuizAttemptResults = async (req, res) => {
   try {
     const { guestId, quizId, attemptNumber } = req.params;
-    
+
     const guest = await GuestUser.findById(guestId)
       .populate('quizAttempts.quiz')
       .lean();
-    
+
     if (!guest) {
       req.flash('error_msg', 'Guest user not found');
       return res.redirect('/admin/guest-users');
     }
-    
+
     // Find the quiz attempt
     const quizAttempt = guest.quizAttempts.find(
-      qa => qa.quiz && qa.quiz._id.toString() === quizId
+      (qa) => qa.quiz && qa.quiz._id.toString() === quizId,
     );
-    
+
     if (!quizAttempt) {
       req.flash('error_msg', 'Quiz attempt not found');
       return res.redirect('/admin/guest-users');
     }
-    
+
     // Find the specific attempt
     const attempt = quizAttempt.attempts.find(
-      a => a.attemptNumber === parseInt(attemptNumber)
+      (a) => a.attemptNumber === parseInt(attemptNumber),
     );
-    
+
     if (!attempt) {
       req.flash('error_msg', 'Attempt not found');
       return res.redirect('/admin/guest-users');
     }
-    
+
     // Get the full quiz with questions
     const quiz = await Quiz.findById(quizId)
       .populate('selectedQuestions.question')
       .populate('questionBank', 'name')
       .lean();
-    
+
     if (!quiz) {
       req.flash('error_msg', 'Quiz not found');
       return res.redirect('/admin/guest-users');
     }
-    
+
     // Build questions with answers for review
-    const questionsWithAnswers = quiz.selectedQuestions.map((sq, index) => {
-      const question = sq.question;
-      if (!question) return null;
-      
-      const userAnswer = attempt.answers.find(
-        a => a.questionId && a.questionId.toString() === question._id.toString()
-      );
-      
-      // Get the correct answer text
-      let correctAnswerText = '';
-      if (question.questionType === 'Written') {
-        correctAnswerText = question.correctAnswers
-          ? question.correctAnswers.map(a => a.text).join(', ')
-          : '';
-      } else {
-        const correctOption = question.options.find(opt => opt.isCorrect);
-        correctAnswerText = correctOption ? correctOption.text : '';
-      }
-      
-      return {
-        question: {
-          _id: question._id,
-          questionText: question.questionText,
-          questionType: question.questionType,
-          options: question.options || [],
-          correctAnswer: correctAnswerText,
-          explanation: question.explanation || null,
-          image: question.image || null,
-        },
-        userAnswer: userAnswer?.selectedAnswer || 'No answer',
-        isCorrect: userAnswer?.isCorrect || false,
-        points: sq.points || 1,
-        earnedPoints: userAnswer?.points || 0,
-        order: index + 1,
-      };
-    }).filter(Boolean);
-    
+    const questionsWithAnswers = quiz.selectedQuestions
+      .map((sq, index) => {
+        const question = sq.question;
+        if (!question) return null;
+
+        const userAnswer = attempt.answers.find(
+          (a) =>
+            a.questionId && a.questionId.toString() === question._id.toString(),
+        );
+
+        // Get the correct answer text
+        let correctAnswerText = '';
+        if (question.questionType === 'Written') {
+          correctAnswerText = question.correctAnswers
+            ? question.correctAnswers.map((a) => a.text).join(', ')
+            : '';
+        } else {
+          const correctOption = question.options.find((opt) => opt.isCorrect);
+          correctAnswerText = correctOption ? correctOption.text : '';
+        }
+
+        return {
+          question: {
+            _id: question._id,
+            questionText: question.questionText,
+            questionType: question.questionType,
+            options: question.options || [],
+            correctAnswer: correctAnswerText,
+            explanation: question.explanation || null,
+            image: question.image || null,
+          },
+          userAnswer: userAnswer?.selectedAnswer || 'No answer',
+          isCorrect: userAnswer?.isCorrect || false,
+          points: sq.points || 1,
+          earnedPoints: userAnswer?.points || 0,
+          order: index + 1,
+        };
+      })
+      .filter(Boolean);
+
     // Get all attempts for this quiz
     const allAttempts = quizAttempt.attempts
-      .filter(a => a.status === 'completed')
+      .filter((a) => a.status === 'completed')
       .sort((a, b) => a.attemptNumber - b.attemptNumber);
-    
+
     res.render('admin/guest-quiz-results', {
       title: `${guest.fullName} - Quiz Results | Admin`,
       currentPage: 'guest-users',
@@ -16770,33 +17200,36 @@ const getGuestsByQuiz = async (req, res) => {
   try {
     const { quizId } = req.params;
     const { page = 1, limit = 50 } = req.query;
-    
-    const quiz = await Quiz.findById(quizId).select('title code testType passingScore').lean();
-    
+
+    const quiz = await Quiz.findById(quizId)
+      .select('title code testType passingScore')
+      .lean();
+
     if (!quiz) {
       return res.status(404).json({
         success: false,
         message: 'Quiz not found',
       });
     }
-    
+
     // Find guests who have attempted this quiz
     const guests = await GuestUser.find({
-      'quizAttempts.quiz': new mongoose.Types.ObjectId(quizId)
+      'quizAttempts.quiz': new mongoose.Types.ObjectId(quizId),
     })
       .select('fullName email phone phoneCountryCode quizAttempts')
       .lean();
-    
+
     // Build results with quiz-specific stats
-    const results = guests.map(guest => {
+    const results = guests.map((guest) => {
       const quizAttempt = guest.quizAttempts.find(
-        qa => qa.quiz.toString() === quizId
+        (qa) => qa.quiz.toString() === quizId,
       );
-      
-      const completedAttempts = quizAttempt?.attempts.filter(a => a.status === 'completed') || [];
-      const scores = completedAttempts.map(a => a.score);
-      const passedCount = completedAttempts.filter(a => a.passed).length;
-      
+
+      const completedAttempts =
+        quizAttempt?.attempts.filter((a) => a.status === 'completed') || [];
+      const scores = completedAttempts.map((a) => a.score);
+      const passedCount = completedAttempts.filter((a) => a.passed).length;
+
       return {
         _id: guest._id,
         fullName: guest.fullName,
@@ -16805,14 +17238,16 @@ const getGuestsByQuiz = async (req, res) => {
         totalAttempts: completedAttempts.length,
         passedAttempts: passedCount,
         bestScore: scores.length > 0 ? Math.max(...scores) : 0,
-        averageScore: scores.length > 0 
-          ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) 
-          : 0,
-        lastAttempt: completedAttempts.length > 0 
-          ? completedAttempts[completedAttempts.length - 1].completedAt 
-          : null,
+        averageScore:
+          scores.length > 0
+            ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+            : 0,
+        lastAttempt:
+          completedAttempts.length > 0
+            ? completedAttempts[completedAttempts.length - 1].completedAt
+            : null,
         hasPassed: passedCount > 0,
-        attempts: completedAttempts.map(a => ({
+        attempts: completedAttempts.map((a) => ({
           attemptNumber: a.attemptNumber,
           score: a.score,
           passed: a.passed,
@@ -16820,18 +17255,19 @@ const getGuestsByQuiz = async (req, res) => {
         })),
       };
     });
-    
+
     // Sort by best score descending
     results.sort((a, b) => b.bestScore - a.bestScore);
-    
+
     // Calculate quiz stats
     const totalGuests = results.length;
-    const passedGuests = results.filter(r => r.hasPassed).length;
-    const allScores = results.flatMap(r => r.attempts.map(a => a.score));
-    const averageScore = allScores.length > 0 
-      ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) 
-      : 0;
-    
+    const passedGuests = results.filter((r) => r.hasPassed).length;
+    const allScores = results.flatMap((r) => r.attempts.map((a) => a.score));
+    const averageScore =
+      allScores.length > 0
+        ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
+        : 0;
+
     res.json({
       success: true,
       quiz,
@@ -16840,7 +17276,8 @@ const getGuestsByQuiz = async (req, res) => {
         totalGuests,
         passedGuests,
         failedGuests: totalGuests - passedGuests,
-        passRate: totalGuests > 0 ? Math.round((passedGuests / totalGuests) * 100) : 0,
+        passRate:
+          totalGuests > 0 ? Math.round((passedGuests / totalGuests) * 100) : 0,
         averageScore,
         totalAttempts: allScores.length,
       },
@@ -16858,16 +17295,16 @@ const getGuestsByQuiz = async (req, res) => {
 const deleteGuestUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const guest = await GuestUser.findById(id);
-    
+
     if (!guest) {
       return res.status(404).json({
         success: false,
         message: 'Guest user not found',
       });
     }
-    
+
     // Log the action
     await createLog(req, {
       action: 'DELETE_GUEST_USER',
@@ -16881,9 +17318,9 @@ const deleteGuestUser = async (req, res) => {
         totalAttempts: guest.quizAttempts.length,
       },
     });
-    
+
     await GuestUser.findByIdAndDelete(id);
-    
+
     res.json({
       success: true,
       message: 'Guest user deleted successfully',
@@ -16904,19 +17341,19 @@ const exportGuestUsers = async (req, res) => {
       .populate('quizAttempts.quiz', 'title code')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     // Prepare data for export
     const exportData = [];
     const detailedData = [];
-    
-    guests.forEach(guest => {
+
+    guests.forEach((guest) => {
       // Calculate stats
       let totalAttempts = 0;
       let passedAttempts = 0;
       let scores = [];
-      
-      guest.quizAttempts.forEach(qa => {
-        qa.attempts.forEach(att => {
+
+      guest.quizAttempts.forEach((qa) => {
+        qa.attempts.forEach((att) => {
           if (att.status === 'completed') {
             totalAttempts++;
             if (att.passed) passedAttempts++;
@@ -16924,22 +17361,26 @@ const exportGuestUsers = async (req, res) => {
           }
         });
       });
-      
-      const averageScore = scores.length > 0 
-        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) 
-        : 0;
-      
+
+      const averageScore =
+        scores.length > 0
+          ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+          : 0;
+
       // Calculate best score
       const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
       const failedAttempts = totalAttempts - passedAttempts;
-      const passRate = totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0;
-      
+      const passRate =
+        totalAttempts > 0
+          ? Math.round((passedAttempts / totalAttempts) * 100)
+          : 0;
+
       exportData.push({
         'Full Name': guest.fullName,
-        'Email': guest.email,
-        'Phone': `${guest.phoneCountryCode} ${guest.phone}`,
+        Email: guest.email,
+        Phone: `${guest.phoneCountryCode} ${guest.phone}`,
         'Parent Phone': `${guest.parentPhoneCountryCode} ${guest.parentPhone}`,
-        'Status': guest.isActive ? 'Active' : 'Inactive',
+        Status: guest.isActive ? 'Active' : 'Inactive',
         'Total Attempts': totalAttempts,
         'Passed Attempts': passedAttempts,
         'Failed Attempts': failedAttempts,
@@ -16947,38 +17388,42 @@ const exportGuestUsers = async (req, res) => {
         'Best Score': `${bestScore}%`,
         'Average Score': `${averageScore}%`,
         'Joined Date': new Date(guest.createdAt).toLocaleDateString(),
-        'Last Active': guest.lastActiveAt ? new Date(guest.lastActiveAt).toLocaleDateString() : 'N/A',
+        'Last Active': guest.lastActiveAt
+          ? new Date(guest.lastActiveAt).toLocaleDateString()
+          : 'N/A',
       });
-      
+
       // Also add detailed quiz attempts as separate rows
-      guest.quizAttempts.forEach(qa => {
+      guest.quizAttempts.forEach((qa) => {
         if (qa.quiz) {
-          qa.attempts.forEach(att => {
+          qa.attempts.forEach((att) => {
             if (att.status === 'completed') {
               detailedData.push({
                 'Guest Name': guest.fullName,
-                'Email': guest.email,
-                'Phone': `${guest.phoneCountryCode} ${guest.phone}`,
+                Email: guest.email,
+                Phone: `${guest.phoneCountryCode} ${guest.phone}`,
                 'Quiz Title': qa.quiz.title || 'Unknown Quiz',
                 'Quiz Code': qa.quiz.code || 'N/A',
                 'Attempt Number': att.attemptNumber,
-                'Score': `${att.score}%`,
-                'Status': att.passed ? 'PASSED' : 'FAILED',
+                Score: `${att.score}%`,
+                Status: att.passed ? 'PASSED' : 'FAILED',
                 'Correct Answers': att.correctAnswers || 0,
                 'Wrong Answers': att.wrongAnswers || 0,
-                'Skipped': att.skippedAnswers || 0,
+                Skipped: att.skippedAnswers || 0,
                 'Time Spent (seconds)': att.timeSpent || 0,
-                'Completed At': att.completedAt ? new Date(att.completedAt).toLocaleString() : 'N/A',
+                'Completed At': att.completedAt
+                  ? new Date(att.completedAt).toLocaleString()
+                  : 'N/A',
               });
             }
           });
         }
       });
     });
-    
+
     // Use ExcelExporter with multiple sheets
     const filename = `guest-users-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
+
     await ExcelExporter.exportMultipleSheets(
       [
         { data: exportData, sheetName: 'Guest Summary' },
@@ -16988,9 +17433,8 @@ const exportGuestUsers = async (req, res) => {
       res,
       {
         title: 'Guest Users Comprehensive Report',
-      }
+      },
     );
-    
   } catch (error) {
     console.error('Error exporting guest users:', error);
     req.flash('error_msg', 'Error exporting guest users');

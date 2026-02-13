@@ -267,13 +267,18 @@
 
                 <div class="admin-bundle-pricing-content">
                   <% if (bundle.discountPrice) { %>
+                  <%
+                    const finalPrice = bundle.finalPrice != null ? bundle.finalPrice : (bundle.price - (bundle.price * (bundle.discountPrice / 100)));
+                    const savings = bundle.savings != null ? bundle.savings : (bundle.price * (bundle.discountPrice / 100));
+                    const savingsPercentage = bundle.savingsPercentage != null ? bundle.savingsPercentage : bundle.discountPrice;
+                  %>
                   <div class="admin-price-container">
                     <div class="admin-price-row">
                       <span class="admin-original-price">EGP <%= bundle.price %></span>
-                      <span class="admin-discount-price">EGP <%= bundle.finalPrice.toFixed(2) %></span>
+                      <span class="admin-discount-price">EGP <%= finalPrice.toFixed(2) %></span>
                     </div>
                     <div class="admin-savings-row">
-                      <span class="admin-savings">Save EGP <%= bundle.savings.toFixed(2) %> (<%= bundle.savingsPercentage %>% off)</span>
+                      <span class="admin-savings">Save EGP <%= savings.toFixed(2) %> (<%= savingsPercentage %>% off)</span>
                     </div>
                   </div>
                   <% } else { %>

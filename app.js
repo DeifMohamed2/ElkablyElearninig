@@ -86,7 +86,11 @@ const imageUpload = multer({
     ) {
       return cb(null, true);
     } else {
-      cb(new Error('Only image files (JPEG, PNG, JPG, WebP, GIF) are allowed. Maximum size is 5MB.'));
+      cb(
+        new Error(
+          'Only image files (JPEG, PNG, JPG, WebP, GIF) are allowed. Maximum size is 5MB.',
+        ),
+      );
     }
   },
 });
@@ -101,7 +105,9 @@ const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       // Check if it's an image upload (5MB limit) or document upload (100MB limit)
-      const isImageUpload = req.path.includes('/upload/image') || req.file?.mimetype?.startsWith('image/');
+      const isImageUpload =
+        req.path.includes('/upload/image') ||
+        req.file?.mimetype?.startsWith('image/');
       const maxSize = isImageUpload ? '5MB' : '100MB';
       return res.status(413).json({
         success: false,
@@ -113,15 +119,19 @@ const handleMulterError = (err, req, res, next) => {
       message: `File upload error: ${err.message}`,
     });
   }
-  
+
   // Handle custom file filter errors
-  if (err.message && (err.message.includes('Only image files') || err.message.includes('Maximum size is 5MB'))) {
+  if (
+    err.message &&
+    (err.message.includes('Only image files') ||
+      err.message.includes('Maximum size is 5MB'))
+  ) {
     return res.status(400).json({
       success: false,
       message: err.message,
     });
   }
-  
+
   next(err);
 };
 
@@ -152,7 +162,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl:process.env.DATABASE_URL,
+      mongoUrl: process.env.DATABASE_URL,
       touchAfter: 24 * 3600, // lazy session update - only touch the session if it's been more than 24 hours
       ttl: 7 * 24 * 60 * 60, // 7 days session expiration
     }),
@@ -162,17 +172,19 @@ app.use(
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     },
     name: 'elkably.session', // Custom session name to avoid conflicts
-  })
+  }),
 );
 
 app.use(flash());
 
 // Static files with cache headers
-app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: '7d',
-  etag: true,
-  lastModified: true,
-}));
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true,
+  }),
+);
 
 // Use multer error handler
 app.use(handleMulterError);
@@ -211,7 +223,9 @@ const zoomRoutes = require('./routes/zoom');
 const uploadRoutes = require('./routes/upload');
 const parentRoutes = require('./routes/parent');
 const guestRoutes = require('./routes/guest');
-const { createStudentFromExternalSystem } = require('./controllers/authController');
+const {
+  createStudentFromExternalSystem,
+} = require('./controllers/authController');
 
 // Special handling for webhook routes that need raw body
 app.use('/purchase/webhook', express.raw({ type: 'application/json' }));
@@ -234,16 +248,19 @@ app.use('/guest', guestRoutes);
 // Global error handler - must be before 404 handler
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
-  
+
   // If it's an API route (starts with /admin/ and expects JSON), return JSON
-  if (req.path.startsWith('/admin/') && (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')) {
+  if (
+    req.path.startsWith('/admin/') &&
+    (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')
+  ) {
     return res.status(err.status || 500).json({
       success: false,
       message: err.message || 'An error occurred',
       error: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     });
   }
-  
+
   // Otherwise, pass to next error handler or render error page
   next(err);
 });
@@ -251,13 +268,16 @@ app.use((err, req, res, next) => {
 // 404 Error handler
 app.use((req, res) => {
   // If it's an API route expecting JSON, return JSON 404
-  if (req.path.startsWith('/admin/') && (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')) {
+  if (
+    req.path.startsWith('/admin/') &&
+    (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')
+  ) {
     return res.status(404).json({
       success: false,
       message: 'Route not found',
     });
   }
-  
+
   res.status(404).render('404', {
     title: '404 - Page Not Found',
     theme: req.cookies.theme || 'light',
@@ -287,7 +307,7 @@ app.set('io', io);
 console.log('Socket.IO initialized', io.engine.clientsCount);
 
 // Database connection and server startup
-const dbURI =process.env.DATABASE_URL;
+const dbURI = process.env.DATABASE_URL;
 const PORT = process.env.PORT || 4091;
 
 mongoose
@@ -298,7 +318,7 @@ mongoose
       console.log('server is running in', 'http://localhost:' + PORT);
       console.log('Server is running on http://0.0.0.0:' + PORT);
       console.log('Server accessible on http://82.25.101.207:' + PORT);
-      
+
       // Start the pending payment verification job after server is ready
       startPendingPaymentJob();
     });
@@ -307,7 +327,6 @@ mongoose
     console.log('Database connection error:', err);
     process.exit(1);
   });
-
 
 if (process.env.NODE_ENV === 'production') {
   console.log = console.warn = console.error = console.info = () => {};

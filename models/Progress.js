@@ -23,7 +23,15 @@ const ProgressSchema = new mongoose.Schema(
     },
     contentType: {
       type: String,
-      enum: ['video', 'pdf', 'quiz', 'homework', 'reading', 'assignment', 'link'],
+      enum: [
+        'video',
+        'pdf',
+        'quiz',
+        'homework',
+        'reading',
+        'assignment',
+        'link',
+      ],
       required: false,
     },
     activity: {
@@ -50,7 +58,7 @@ const ProgressSchema = new mongoose.Schema(
         'certificate_earned',
         'badge_earned',
         'streak_achieved',
-        'milestone_reached'
+        'milestone_reached',
       ],
     },
     details: {
@@ -89,14 +97,18 @@ const ProgressSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    prerequisites: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Content',
-    }],
-    dependencies: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Content',
-    }],
+    prerequisites: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Content',
+      },
+    ],
+    dependencies: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Content',
+      },
+    ],
     unlockConditions: {
       type: String,
       enum: ['immediate', 'prerequisites_completed', 'time_based', 'manual'],
@@ -116,11 +128,11 @@ const ProgressSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { 
+  {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  }
+    toObject: { virtuals: true },
+  },
 );
 
 // Compound index for efficient queries
@@ -131,12 +143,12 @@ ProgressSchema.index({ student: 1, course: 1, content: 1 });
 ProgressSchema.index({ student: 1, topic: 1, content: 1 });
 
 // Virtual for activity duration (if applicable)
-ProgressSchema.virtual('duration').get(function() {
+ProgressSchema.virtual('duration').get(function () {
   if (this.details && this.details.timeSpent) {
     const minutes = this.details.timeSpent;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${remainingMinutes}m`;
     }
@@ -146,7 +158,10 @@ ProgressSchema.virtual('duration').get(function() {
 });
 
 // Static method to get student progress summary
-ProgressSchema.statics.getStudentProgress = async function(studentId, courseId = null) {
+ProgressSchema.statics.getStudentProgress = async function (
+  studentId,
+  courseId = null,
+) {
   const matchStage = { student: new mongoose.Types.ObjectId(studentId) };
   if (courseId) {
     matchStage.course = new mongoose.Types.ObjectId(courseId);
@@ -166,21 +181,21 @@ ProgressSchema.statics.getStudentProgress = async function(studentId, courseId =
             timestamp: '$timestamp',
             points: '$points',
             experience: '$experience',
-            details: '$details'
-          }
-        }
-      }
+            details: '$details',
+          },
+        },
+      },
     },
     {
-      $sort: { lastActivity: -1 }
-    }
+      $sort: { lastActivity: -1 },
+    },
   ]);
 
   return progress;
 };
 
 // Static method to get course analytics
-ProgressSchema.statics.getCourseAnalytics = async function(courseId) {
+ProgressSchema.statics.getCourseAnalytics = async function (courseId) {
   const analytics = await this.aggregate([
     { $match: { course: new mongoose.Types.ObjectId(courseId) } },
     {
@@ -191,24 +206,27 @@ ProgressSchema.statics.getCourseAnalytics = async function(courseId) {
         averagePoints: { $avg: '$points' },
         averageExperience: { $avg: '$experience' },
         totalPoints: { $sum: '$points' },
-        totalExperience: { $sum: '$experience' }
-      }
+        totalExperience: { $sum: '$experience' },
+      },
     },
     {
       $addFields: {
-        uniqueStudentCount: { $size: '$uniqueStudents' }
-      }
+        uniqueStudentCount: { $size: '$uniqueStudents' },
+      },
     },
     {
-      $sort: { count: -1 }
-    }
+      $sort: { count: -1 },
+    },
   ]);
 
   return analytics;
 };
 
 // Static method to get leaderboard
-ProgressSchema.statics.getLeaderboard = async function(courseId = null, limit = 10) {
+ProgressSchema.statics.getLeaderboard = async function (
+  courseId = null,
+  limit = 10,
+) {
   const matchStage = {};
   if (courseId) {
     matchStage.course = new mongoose.Types.ObjectId(courseId);
@@ -225,21 +243,21 @@ ProgressSchema.statics.getLeaderboard = async function(courseId = null, limit = 
         lastActivity: { $max: '$timestamp' },
         completedActivities: {
           $sum: {
-            $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
-          }
-        }
-      }
+            $cond: [{ $eq: ['$status', 'completed'] }, 1, 0],
+          },
+        },
+      },
     },
     {
       $lookup: {
         from: 'users',
         localField: '_id',
         foreignField: '_id',
-        as: 'studentInfo'
-      }
+        as: 'studentInfo',
+      },
     },
     {
-      $unwind: '$studentInfo'
+      $unwind: '$studentInfo',
     },
     {
       $project: {
@@ -254,24 +272,24 @@ ProgressSchema.statics.getLeaderboard = async function(courseId = null, limit = 
         completionRate: {
           $multiply: [
             { $divide: ['$completedActivities', '$activitiesCount'] },
-            100
-          ]
-        }
-      }
+            100,
+          ],
+        },
+      },
     },
     {
-      $sort: { totalPoints: -1, totalExperience: -1 }
+      $sort: { totalPoints: -1, totalExperience: -1 },
     },
     {
-      $limit: limit
-    }
+      $limit: limit,
+    },
   ]);
 
   return leaderboard;
 };
 
 // Static method to get student achievements
-ProgressSchema.statics.getStudentAchievements = async function(studentId) {
+ProgressSchema.statics.getStudentAchievements = async function (studentId) {
   const achievements = await this.aggregate([
     { $match: { student: new mongoose.Types.ObjectId(studentId) } },
     {
@@ -282,30 +300,53 @@ ProgressSchema.statics.getStudentAchievements = async function(studentId) {
         totalExperience: { $sum: '$experience' },
         firstAchievement: { $min: '$timestamp' },
         lastAchievement: { $max: '$timestamp' },
-        details: { $first: '$details' }
-      }
+        details: { $first: '$details' },
+      },
     },
     {
-      $sort: { lastAchievement: -1 }
-    }
+      $sort: { lastAchievement: -1 },
+    },
   ]);
 
   // Calculate badges and milestones
-  const totalPoints = achievements.reduce((sum, achievement) => sum + achievement.totalPoints, 0);
-  const totalExperience = achievements.reduce((sum, achievement) => sum + achievement.totalExperience, 0);
-  const totalActivities = achievements.reduce((sum, achievement) => sum + achievement.count, 0);
+  const totalPoints = achievements.reduce(
+    (sum, achievement) => sum + achievement.totalPoints,
+    0,
+  );
+  const totalExperience = achievements.reduce(
+    (sum, achievement) => sum + achievement.totalExperience,
+    0,
+  );
+  const totalActivities = achievements.reduce(
+    (sum, achievement) => sum + achievement.count,
+    0,
+  );
 
   const badges = [];
   const milestones = [];
 
   // Define badge criteria
-  if (totalPoints >= 1000) badges.push({ name: 'Point Master', description: 'Earned 1000+ points' });
-  if (totalExperience >= 5000) badges.push({ name: 'Experience Expert', description: 'Gained 5000+ XP' });
-  if (totalActivities >= 50) badges.push({ name: 'Active Learner', description: 'Completed 50+ activities' });
+  if (totalPoints >= 1000)
+    badges.push({ name: 'Point Master', description: 'Earned 1000+ points' });
+  if (totalExperience >= 5000)
+    badges.push({ name: 'Experience Expert', description: 'Gained 5000+ XP' });
+  if (totalActivities >= 50)
+    badges.push({
+      name: 'Active Learner',
+      description: 'Completed 50+ activities',
+    });
 
   // Define milestone criteria
-  if (totalPoints >= 500) milestones.push({ name: 'Half Century', description: '500 points milestone' });
-  if (totalExperience >= 2500) milestones.push({ name: 'Quarter Master', description: '2500 XP milestone' });
+  if (totalPoints >= 500)
+    milestones.push({
+      name: 'Half Century',
+      description: '500 points milestone',
+    });
+  if (totalExperience >= 2500)
+    milestones.push({
+      name: 'Quarter Master',
+      description: '2500 XP milestone',
+    });
 
   return {
     achievements,
@@ -315,20 +356,29 @@ ProgressSchema.statics.getStudentAchievements = async function(studentId) {
       totalPoints,
       totalExperience,
       totalActivities,
-      averagePoints: totalActivities > 0 ? Math.round(totalPoints / totalActivities) : 0
-    }
+      averagePoints:
+        totalActivities > 0 ? Math.round(totalPoints / totalActivities) : 0,
+    },
   };
 };
 
 // Instance method to calculate progress percentage
-ProgressSchema.methods.calculateProgressPercentage = function() {
+ProgressSchema.methods.calculateProgressPercentage = function () {
   // This would need to be implemented based on specific course structure
   // For now, return a placeholder
   return Math.round(Math.random() * 100);
 };
 
 // Static method to track content progress
-ProgressSchema.statics.trackContentProgress = async function(studentId, courseId, topicId, contentId, contentType, activity, details = {}) {
+ProgressSchema.statics.trackContentProgress = async function (
+  studentId,
+  courseId,
+  topicId,
+  contentId,
+  contentType,
+  activity,
+  details = {},
+) {
   // For 'content_viewed', check if we already have a recent entry (within last 5 minutes)
   if (activity === 'content_viewed') {
     const recentView = await this.findOne({
@@ -336,9 +386,9 @@ ProgressSchema.statics.trackContentProgress = async function(studentId, courseId
       course: courseId,
       content: contentId,
       activity: 'content_viewed',
-      timestamp: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // 5 minutes ago
+      timestamp: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // 5 minutes ago
     });
-    
+
     if (recentView) {
       // Update existing entry instead of creating new one
       recentView.timestamp = new Date();
@@ -348,15 +398,22 @@ ProgressSchema.statics.trackContentProgress = async function(studentId, courseId
   }
 
   // For completion activities, check if already completed
-  if (['content_completed', 'quiz_passed', 'homework_submitted', 'assignment_submitted'].includes(activity)) {
+  if (
+    [
+      'content_completed',
+      'quiz_passed',
+      'homework_submitted',
+      'assignment_submitted',
+    ].includes(activity)
+  ) {
     const existingCompletion = await this.findOne({
       student: studentId,
       course: courseId,
       content: contentId,
       activity: activity,
-      status: 'completed'
+      status: 'completed',
     });
-    
+
     if (existingCompletion) {
       return existingCompletion; // Don't create duplicate completion
     }
@@ -371,19 +428,22 @@ ProgressSchema.statics.trackContentProgress = async function(studentId, courseId
     activity: activity,
     details: details,
     timestamp: new Date(),
-    status: activity.includes('completed') || activity.includes('passed') ? 'completed' : 'active'
+    status:
+      activity.includes('completed') || activity.includes('passed')
+        ? 'completed'
+        : 'active',
   };
 
   // Calculate points based on activity type
   const pointsMap = {
-    'content_viewed': 1,
-    'content_completed': 5,
-    'quiz_passed': 10,
-    'quiz_completed': 5,
-    'homework_submitted': 8,
-    'assignment_submitted': 15,
-    'topic_completed': 20,
-    'course_completed': 100
+    content_viewed: 1,
+    content_completed: 5,
+    quiz_passed: 10,
+    quiz_completed: 5,
+    homework_submitted: 8,
+    assignment_submitted: 15,
+    topic_completed: 20,
+    course_completed: 100,
   };
 
   progressData.points = pointsMap[activity] || 0;
@@ -393,7 +453,12 @@ ProgressSchema.statics.trackContentProgress = async function(studentId, courseId
 };
 
 // Static method to check if content is unlocked for student
-ProgressSchema.statics.isContentUnlocked = async function(studentId, courseId, contentId, contentData) {
+ProgressSchema.statics.isContentUnlocked = async function (
+  studentId,
+  courseId,
+  contentId,
+  contentData,
+) {
   // If content has no prerequisites, it's unlocked
   if (!contentData.prerequisites || contentData.prerequisites.length === 0) {
     return { unlocked: true, reason: 'No prerequisites' };
@@ -403,7 +468,7 @@ ProgressSchema.statics.isContentUnlocked = async function(studentId, courseId, c
   const Course = mongoose.model('Course');
   const course = await Course.findById(courseId).populate({
     path: 'topics',
-    populate: { path: 'content' }
+    populate: { path: 'content' },
   });
 
   if (!course) {
@@ -412,12 +477,12 @@ ProgressSchema.statics.isContentUnlocked = async function(studentId, courseId, c
 
   // Find all content items in order
   const allContent = [];
-  course.topics.forEach(topic => {
-    topic.content.forEach(contentItem => {
+  course.topics.forEach((topic) => {
+    topic.content.forEach((contentItem) => {
       allContent.push({
         id: contentItem._id,
         order: contentItem.order,
-        topicOrder: topic.order
+        topicOrder: topic.order,
       });
     });
   });
@@ -431,7 +496,9 @@ ProgressSchema.statics.isContentUnlocked = async function(studentId, courseId, c
   });
 
   // Find current content index
-  const currentIndex = allContent.findIndex(c => c.id.toString() === contentId.toString());
+  const currentIndex = allContent.findIndex(
+    (c) => c.id.toString() === contentId.toString(),
+  );
   if (currentIndex === -1) {
     return { unlocked: false, reason: 'Content not found' };
   }
@@ -439,21 +506,28 @@ ProgressSchema.statics.isContentUnlocked = async function(studentId, courseId, c
   // Check if all previous content is completed (sequential unlocking)
   for (let i = 0; i < currentIndex; i++) {
     const prevContentId = allContent[i].id;
-    
+
     // Check if this previous content is completed
     const prevContentCompleted = await this.findOne({
       student: studentId,
       course: courseId,
       content: prevContentId,
-      activity: { $in: ['content_completed', 'quiz_passed', 'homework_submitted', 'assignment_submitted'] },
-      status: 'completed'
+      activity: {
+        $in: [
+          'content_completed',
+          'quiz_passed',
+          'homework_submitted',
+          'assignment_submitted',
+        ],
+      },
+      status: 'completed',
     });
 
     if (!prevContentCompleted) {
-      return { 
-        unlocked: false, 
+      return {
+        unlocked: false,
         reason: `Complete "${allContent[i].title || 'previous content'}" first`,
-        missingContent: prevContentId
+        missingContent: prevContentId,
       };
     }
   }
@@ -464,19 +538,30 @@ ProgressSchema.statics.isContentUnlocked = async function(studentId, courseId, c
       student: studentId,
       course: courseId,
       content: { $in: contentData.prerequisites },
-      activity: { $in: ['content_completed', 'quiz_passed', 'homework_submitted', 'assignment_submitted'] },
-      status: 'completed'
+      activity: {
+        $in: [
+          'content_completed',
+          'quiz_passed',
+          'homework_submitted',
+          'assignment_submitted',
+        ],
+      },
+      status: 'completed',
     });
 
-    const completedPrerequisites = prerequisiteProgress.map(p => p.content.toString());
-    const allPrerequisites = contentData.prerequisites.map(p => p.toString());
-    const missingPrerequisites = allPrerequisites.filter(p => !completedPrerequisites.includes(p));
+    const completedPrerequisites = prerequisiteProgress.map((p) =>
+      p.content.toString(),
+    );
+    const allPrerequisites = contentData.prerequisites.map((p) => p.toString());
+    const missingPrerequisites = allPrerequisites.filter(
+      (p) => !completedPrerequisites.includes(p),
+    );
 
     if (missingPrerequisites.length > 0) {
-      return { 
-        unlocked: false, 
+      return {
+        unlocked: false,
         reason: 'Prerequisites not met',
-        missingPrerequisites: missingPrerequisites
+        missingPrerequisites: missingPrerequisites,
       };
     }
   }
@@ -485,13 +570,16 @@ ProgressSchema.statics.isContentUnlocked = async function(studentId, courseId, c
 };
 
 // Static method to get student content progress for a course
-ProgressSchema.statics.getStudentContentProgress = async function(studentId, courseId) {
+ProgressSchema.statics.getStudentContentProgress = async function (
+  studentId,
+  courseId,
+) {
   const progress = await this.aggregate([
     {
       $match: {
         student: new mongoose.Types.ObjectId(studentId),
-        course: new mongoose.Types.ObjectId(courseId)
-      }
+        course: new mongoose.Types.ObjectId(courseId),
+      },
     },
     {
       $group: {
@@ -502,28 +590,32 @@ ProgressSchema.statics.getStudentContentProgress = async function(studentId, cou
         lastActivity: { $max: '$timestamp' },
         totalPoints: { $sum: '$points' },
         totalExperience: { $sum: '$experience' },
-        timeSpent: { $sum: '$details.timeSpent' }
-      }
+        timeSpent: { $sum: '$details.timeSpent' },
+      },
     },
     {
       $lookup: {
         from: 'topics',
         localField: '_id',
         foreignField: 'content._id',
-        as: 'contentInfo'
-      }
-    }
+        as: 'contentInfo',
+      },
+    },
   ]);
 
   return progress;
 };
 
 // Static method to get next content in sequence
-ProgressSchema.statics.getNextContent = async function(studentId, courseId, currentContentId) {
+ProgressSchema.statics.getNextContent = async function (
+  studentId,
+  courseId,
+  currentContentId,
+) {
   const Course = mongoose.model('Course');
   const course = await Course.findById(courseId).populate({
     path: 'topics',
-    populate: { path: 'content' }
+    populate: { path: 'content' },
   });
 
   if (!course) {
@@ -532,8 +624,8 @@ ProgressSchema.statics.getNextContent = async function(studentId, courseId, curr
 
   // Get all content items in order
   const allContent = [];
-  course.topics.forEach(topic => {
-    topic.content.forEach(contentItem => {
+  course.topics.forEach((topic) => {
+    topic.content.forEach((contentItem) => {
       allContent.push({
         id: contentItem._id,
         title: contentItem.title,
@@ -541,7 +633,7 @@ ProgressSchema.statics.getNextContent = async function(studentId, courseId, curr
         order: contentItem.order,
         topicOrder: topic.order,
         topicId: topic._id,
-        content: contentItem
+        content: contentItem,
       });
     });
   });
@@ -555,7 +647,9 @@ ProgressSchema.statics.getNextContent = async function(studentId, courseId, curr
   });
 
   // Find current content index
-  const currentIndex = allContent.findIndex(c => c.id.toString() === currentContentId.toString());
+  const currentIndex = allContent.findIndex(
+    (c) => c.id.toString() === currentContentId.toString(),
+  );
   if (currentIndex === -1 || currentIndex >= allContent.length - 1) {
     return null; // No next content
   }
@@ -565,20 +659,28 @@ ProgressSchema.statics.getNextContent = async function(studentId, courseId, curr
 };
 
 // Static method to update course progress automatically
-ProgressSchema.statics.updateCourseProgress = async function(studentId, courseId) {
+ProgressSchema.statics.updateCourseProgress = async function (
+  studentId,
+  courseId,
+) {
   // Get all content progress for the course
-  const contentProgress = await this.getStudentContentProgress(studentId, courseId);
-  
+  const contentProgress = await this.getStudentContentProgress(
+    studentId,
+    courseId,
+  );
+
   // Calculate overall progress
   const totalContent = contentProgress.length;
-  const completedContent = contentProgress.filter(p => 
-    p.activities.includes('content_completed') || 
-    p.activities.includes('quiz_passed') ||
-    p.activities.includes('homework_submitted') ||
-    p.activities.includes('assignment_submitted')
+  const completedContent = contentProgress.filter(
+    (p) =>
+      p.activities.includes('content_completed') ||
+      p.activities.includes('quiz_passed') ||
+      p.activities.includes('homework_submitted') ||
+      p.activities.includes('assignment_submitted'),
   ).length;
 
-  const progressPercentage = totalContent > 0 ? Math.round((completedContent / totalContent) * 100) : 0;
+  const progressPercentage =
+    totalContent > 0 ? Math.round((completedContent / totalContent) * 100) : 0;
 
   // Update user's course progress
   const User = mongoose.model('User');
@@ -591,9 +693,12 @@ ProgressSchema.statics.updateCourseProgress = async function(studentId, courseId
 };
 
 // Pre-save middleware to validate progress data
-ProgressSchema.pre('save', function(next) {
+ProgressSchema.pre('save', function (next) {
   // Validate that required fields are present based on activity type
-  if (this.activity === 'topic_started' || this.activity === 'topic_completed') {
+  if (
+    this.activity === 'topic_started' ||
+    this.activity === 'topic_completed'
+  ) {
     if (!this.topic) {
       return next(new Error('Topic is required for topic-related activities'));
     }

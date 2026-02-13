@@ -128,7 +128,7 @@ const CourseSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for topic count
@@ -174,12 +174,17 @@ CourseSchema.pre('save', async function (next) {
 
     while (!isUnique && attempts < 10) {
       // Extract prefix from title - remove special characters and take first 3 alphanumeric characters
-      const titlePrefix = this.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
+      const titlePrefix = this.title
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .substring(0, 3)
+        .toUpperCase();
       // If title has no alphanumeric chars, use default prefix
       const prefix = titlePrefix.length >= 2 ? titlePrefix : 'CRS';
-      
+
       const timestamp = Date.now().toString().slice(-6);
-      const randomNum = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+      const randomNum = Math.floor(Math.random() * 100)
+        .toString()
+        .padStart(2, '0');
       courseCode = `${prefix}${timestamp}${randomNum}`;
 
       // Check if this courseCode already exists
@@ -216,12 +221,13 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
     }
 
     // Get all courses in the same bundle, sorted by order
-    const bundleCourses = await Course.find({ bundle: course.bundle })
-      .sort({ order: 1 });
+    const bundleCourses = await Course.find({ bundle: course.bundle }).sort({
+      order: 1,
+    });
 
     // Find current course index
     const currentIndex = bundleCourses.findIndex(
-      (c) => c._id.toString() === courseId.toString()
+      (c) => c._id.toString() === courseId.toString(),
     );
 
     // First course is always unlocked
@@ -240,11 +246,18 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
     let bundleStartingOrder = null;
     for (const bundleCourse of bundleCourses) {
       const enrollment = student.enrolledCourses.find(
-        (e) => e.course && e.course.toString() === bundleCourse._id.toString()
+        (e) => e.course && e.course.toString() === bundleCourse._id.toString(),
       );
-      if (enrollment && enrollment.startingOrder !== null && enrollment.startingOrder !== undefined) {
+      if (
+        enrollment &&
+        enrollment.startingOrder !== null &&
+        enrollment.startingOrder !== undefined
+      ) {
         // Use the minimum startingOrder found in the bundle (in case of multiple enrollments)
-        if (bundleStartingOrder === null || enrollment.startingOrder < bundleStartingOrder) {
+        if (
+          bundleStartingOrder === null ||
+          enrollment.startingOrder < bundleStartingOrder
+        ) {
           bundleStartingOrder = enrollment.startingOrder;
         }
       }
@@ -257,7 +270,7 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
       if (course.order < bundleStartingOrder) {
         // Check if student has already started this course (has any progress)
         const courseProgress = student.getCourseProgress(courseId);
-        
+
         // If student has progress on this course, allow them to continue
         if (courseProgress > 0) {
           return {
@@ -265,14 +278,14 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
             reason: `Course already started with ${courseProgress}% progress - access allowed`,
           };
         }
-        
+
         // No progress, course remains locked
         return {
           unlocked: false,
           reason: `You were enrolled from week ${bundleStartingOrder + 1}. This course is from an earlier week.`,
         };
       }
-      
+
       // If this course is at or after startingOrder, check if previous courses (from startingOrder onwards) are completed
       // Find the starting index where order >= bundleStartingOrder
       let startingIndex = 0;
@@ -282,16 +295,16 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
           break;
         }
       }
-      
+
       // Check all courses from startingIndex to currentIndex (exclusive)
       // Example: If startingOrder = 1 (Week 2, index 1) and checking Week 3 (order = 2, index = 2):
       //   - Loop from i = 1 to i < 2, checking if Week 2 (index 1) is completed
       for (let i = startingIndex; i < currentIndex; i++) {
         const previousCourse = bundleCourses[i];
-        
+
         // Check if previous course is completed
         const isCompleted = await student.isCourseCompleted(previousCourse._id);
-        
+
         if (!isCompleted) {
           return {
             unlocked: false,
@@ -299,24 +312,27 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
             previousCourse: {
               id: previousCourse._id,
               title: previousCourse.title,
-              order: previousCourse.order
-            }
+              order: previousCourse.order,
+            },
           };
         }
       }
-      
+
       // All previous courses from startingOrder are completed
-      return { unlocked: true, reason: `Enrolled from week ${bundleStartingOrder + 1} and prerequisites completed` };
+      return {
+        unlocked: true,
+        reason: `Enrolled from week ${bundleStartingOrder + 1} and prerequisites completed`,
+      };
     }
 
     // Normal sequential completion check (for students enrolled from the beginning)
     // Check if previous courses are completed
     for (let i = 0; i < currentIndex; i++) {
       const previousCourse = bundleCourses[i];
-      
+
       // Check if previous course is completed
       const isCompleted = await student.isCourseCompleted(previousCourse._id);
-      
+
       if (!isCompleted) {
         return {
           unlocked: false,
@@ -324,8 +340,8 @@ CourseSchema.statics.isCourseUnlocked = async function (studentId, courseId) {
           previousCourse: {
             id: previousCourse._id,
             title: previousCourse.title,
-            order: previousCourse.order
-          }
+            order: previousCourse.order,
+          },
         };
       }
     }
@@ -344,7 +360,10 @@ CourseSchema.methods.getUnlockStatus = async function (studentId) {
 };
 
 // Static method to get all courses in a bundle with unlock status for a student
-CourseSchema.statics.getBundleCoursesWithStatus = async function (bundleId, studentId) {
+CourseSchema.statics.getBundleCoursesWithStatus = async function (
+  bundleId,
+  studentId,
+) {
   const Course = mongoose.model('Course');
   const courses = await Course.find({ bundle: bundleId })
     .sort({ order: 1 })
@@ -357,9 +376,9 @@ CourseSchema.statics.getBundleCoursesWithStatus = async function (bundleId, stud
         ...course.toObject(),
         isUnlocked: unlockStatus.unlocked,
         unlockReason: unlockStatus.reason,
-        previousCourse: unlockStatus.previousCourse
+        previousCourse: unlockStatus.previousCourse,
       };
-    })
+    }),
   );
 
   return coursesWithStatus;
