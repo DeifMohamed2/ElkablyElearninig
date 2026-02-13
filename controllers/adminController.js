@@ -24,435 +24,275 @@ const path = require('path');
 const fs = require('fs');
 const { createLog } = require('../middlewares/adminLogger');
 const otpMasterUtil = require('../utils/otpMasterGenerator');
+const cache = require('../utils/cache');
 
-// Admin Dashboard with Real Data
+// Admin Dashboard with Real Data - OPTIMIZED
 const getAdminDashboard = async (req, res) => {
   try {
-    console.log('Fetching dashboard data...');
+    // Use cache for dashboard data (TTL: 2 minutes)
+    const dashboardData = await cache.getOrSet('admin_dashboard', async () => {
+      // Run ALL queries in parallel - single Promise.all
+      const [
+        totalStudents,
+        activeStudents,
+        newStudentsThisMonth,
+        totalCourses,
+        publishedCourses,
+        draftCourses,
+        totalRevenue,
+        monthlyRevenue,
+        totalOrders,
+        recentStudents,
+        newOrders,
+        topCoursesRaw,
+        studentGrowth,
+        revenueData,
+        progressStats,
+        brilliantStudentsStats,
+        totalEnrolledStudents,
+        activeStudentsCount,
+        studentsWithProgress,
+      ] = await Promise.all([
+        // Student statistics
+        User.countDocuments({ role: 'student' }),
+        User.countDocuments({ role: 'student', isActive: true }),
+        User.countDocuments({
+          role: 'student',
+          createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) },
+        }),
 
-    // Fetch real data from database using correct field names
-    const [
-      totalStudents,
-      activeStudents,
-      newStudentsThisMonth,
-      totalCourses,
-      publishedCourses,
-      draftCourses,
-      totalRevenue,
-      monthlyRevenue,
-      totalOrders,
-      recentStudents,
-      newOrders,
-      topCourses,
-      studentGrowth,
-      revenueData,
-      progressStats,
-      brilliantStudentsStats,
-    ] = await Promise.all([
-      // Student statistics - using correct field names from User model
-      User.countDocuments({ role: 'student' }),
-      User.countDocuments({ role: 'student', isActive: true }),
-      User.countDocuments({
-        role: 'student',
-        createdAt: {
-          $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-        },
-      }),
+        // Course statistics
+        Course.countDocuments(),
+        Course.countDocuments({ status: 'published' }),
+        Course.countDocuments({ status: 'draft' }),
 
-      // Course statistics
-      Course.countDocuments(),
-      Course.countDocuments({ status: 'published' }),
-      Course.countDocuments({ status: 'draft' }),
-
-      // Revenue statistics - excluding refunded orders
-      Purchase.aggregate([
-        {
-          $match: {
-            status: { $in: ['completed', 'paid'] },
-            $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
-          },
-        },
-        { $group: { _id: null, total: { $sum: '$total' } } },
-      ]),
-      Purchase.aggregate([
-        {
-          $match: {
-            createdAt: {
-              $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-            },
-            status: { $in: ['completed', 'paid'] },
-            $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
-          },
-        },
-        { $group: { _id: null, total: { $sum: '$total' } } },
-      ]),
-      Purchase.countDocuments({
-        status: { $in: ['completed', 'paid'] },
-        $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
-      }),
-
-      // Recent activity - using correct field names
-      User.find({ role: 'student' })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('firstName lastName studentEmail createdAt'),
-
-      // New orders (last 24 hours) for notifications
-      Purchase.find({
-        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-        status: { $in: ['completed', 'paid'] },
-      })
-        .populate('user', 'firstName lastName studentEmail')
-        .sort({ createdAt: -1 })
-        .limit(10),
-
-      // Top performing courses (including featured) - Get courses with enrollment data
-      Course.find({ status: { $in: ['published', 'draft'] } })
-        .populate('bundle', 'title')
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .select('title level category status price featured bundle'),
-
-      // Student growth data (last 7 days)
-      User.aggregate([
-        {
-          $match: {
-            role: 'student',
-            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-          },
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]),
-
-      // Revenue data (last 7 days)
-      Purchase.aggregate([
-        {
-          $match: {
-            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-            status: 'completed',
-          },
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            total: { $sum: '$total' },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]),
-
-      // Progress statistics
-      Progress.aggregate([
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            completed: {
-              $sum: {
-                $cond: [{ $eq: ['$completed', true] }, 1, 0],
-              },
+        // Revenue statistics - excluding refunded orders
+        Purchase.aggregate([
+          {
+            $match: {
+              status: { $in: ['completed', 'paid'] },
+              $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
             },
           },
-        },
-      ]),
+          { $group: { _id: null, total: { $sum: '$total' } } },
+        ]),
+        Purchase.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) },
+              status: { $in: ['completed', 'paid'] },
+              $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+            },
+          },
+          { $group: { _id: null, total: { $sum: '$total' } } },
+        ]),
+        Purchase.countDocuments({
+          status: { $in: ['completed', 'paid'] },
+          $or: [{ refundedAt: { $exists: false } }, { refundedAt: null }],
+        }),
 
-      // Brilliant students statistics
-      BrilliantStudent.getStatistics().catch((err) => {
-        console.error('Error fetching brilliant students statistics:', err);
-        return {};
-      }),
-    ]);
+        // Recent activity - use lean() for faster results
+        User.find({ role: 'student' })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select('firstName lastName studentEmail createdAt')
+          .lean(),
 
-    console.log('Data fetched successfully:', {
-      totalStudents,
-      totalCourses,
-      totalRevenue: totalRevenue[0]?.total || 0,
-    });
+        // New orders (last 24 hours)
+        Purchase.find({
+          createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          status: { $in: ['completed', 'paid'] },
+        })
+          .populate('user', 'firstName lastName studentEmail')
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .lean(),
 
-    // Calculate engagement metrics based on real data
-    const progressData = progressStats[0] || { total: 0, completed: 0 };
+        // Top courses - lean for speed
+        Course.find({ status: { $in: ['published', 'draft'] } })
+          .populate('bundle', 'title')
+          .sort({ createdAt: -1 })
+          .limit(6)
+          .select('title level category status price featured bundle')
+          .lean(),
 
-    // Calculate engagement score based on multiple factors
-    let totalEnrolledStudents = 0;
-    let activeStudentsCount = 0;
-    let studentsWithProgress = 0;
+        // Student growth data (last 7 days)
+        User.aggregate([
+          { $match: { role: 'student', createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } },
+          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+          { $sort: { _id: 1 } },
+        ]),
 
-    try {
-      totalEnrolledStudents = await User.countDocuments({
-        role: 'student',
-        'enrolledCourses.0': { $exists: true },
-      });
-    } catch (error) {
-      console.error('Error counting enrolled students:', error);
-    }
+        // Revenue data (last 7 days)
+        Purchase.aggregate([
+          { $match: { createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, status: 'completed' } },
+          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, total: { $sum: '$total' } } },
+          { $sort: { _id: 1 } },
+        ]),
 
-    try {
-      activeStudentsCount = await User.countDocuments({
-        role: 'student',
-        'enrolledCourses.status': 'active',
-        isActive: true,
-      });
-    } catch (error) {
-      console.error('Error counting active students:', error);
-    }
+        // Progress statistics
+        Progress.aggregate([
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              completed: { $sum: { $cond: [{ $eq: ['$completed', true] }, 1, 0] } },
+            },
+          },
+        ]),
 
-    try {
-      studentsWithProgress = await User.countDocuments({
-        role: 'student',
-        'enrolledCourses.contentProgress.0': { $exists: true },
-      });
-    } catch (error) {
-      console.error('Error counting students with progress:', error);
-    }
+        // Brilliant students statistics
+        BrilliantStudent.getStatistics().catch(() => ({})),
 
-    // Calculate engagement score based on active students and progress
-    let engagementScore = 0;
-    if (totalEnrolledStudents > 0) {
-      const activeEngagement =
-        (activeStudentsCount / totalEnrolledStudents) * 40; // 40% weight
-      const progressEngagement =
-        progressData.total > 0
-          ? (progressData.completed / progressData.total) * 60
-          : 0; // 60% weight
-      engagementScore = Math.round(activeEngagement + progressEngagement);
-    }
+        // Engagement metrics - ALL in this single Promise.all (no separate queries)
+        User.countDocuments({ role: 'student', 'enrolledCourses.0': { $exists: true } }).catch(() => 0),
+        User.countDocuments({ role: 'student', 'enrolledCourses.status': 'active', isActive: true }).catch(() => 0),
+        User.countDocuments({ role: 'student', 'enrolledCourses.contentProgress.0': { $exists: true } }).catch(() => 0),
+      ]);
 
-    // Calculate growth percentages (mock for now - would need historical data)
-    const studentGrowthPercent =
-      totalStudents > 0 ? Math.floor(Math.random() * 20) + 5 : 0;
-    const courseGrowthPercent =
-      totalCourses > 0 ? Math.floor(Math.random() * 15) + 3 : 0;
-    const revenueGrowthPercent =
-      (totalRevenue[0]?.total || 0) > 0
-        ? Math.floor(Math.random() * 25) + 10
-        : 0;
-
-    // Get WhatsApp status
-    let whatsappStatus = 'disconnected';
-    let whatsappMessages = 0;
-    let whatsappTemplates = 0;
-
-    try {
-      const wasender = require('../utils/wasender');
-      const sessionStatus = await wasender.getGlobalStatus();
-      if (sessionStatus.success) {
-        whatsappStatus = 'connected';
+      // Calculate engagement metrics
+      const progressData = progressStats[0] || { total: 0, completed: 0 };
+      let engagementScore = 0;
+      if (totalEnrolledStudents > 0) {
+        const activeEngagement = (activeStudentsCount / totalEnrolledStudents) * 40;
+        const progressEngagement = progressData.total > 0 ? (progressData.completed / progressData.total) * 60 : 0;
+        engagementScore = Math.round(activeEngagement + progressEngagement);
       }
 
-      // WhatsAppTemplate model doesn't exist yet, so we'll set templates to 0
-      whatsappTemplates = 0;
-      // You can add message count logic here if you track sent messages
-    } catch (error) {
-      console.error('Error getting WhatsApp status:', error);
-    }
+      // Use aggregation to get course enrollment counts in ONE query instead of N+1
+      const courseIds = topCoursesRaw.map(c => c._id);
+      const enrollmentCounts = await User.aggregate([
+        { $match: { role: 'student', 'enrolledCourses.course': { $in: courseIds } } },
+        { $unwind: '$enrolledCourses' },
+        { $match: { 'enrolledCourses.course': { $in: courseIds } } },
+        {
+          $group: {
+            _id: '$enrolledCourses.course',
+            enrollments: { $sum: 1 },
+            completed: { $sum: { $cond: [{ $eq: ['$enrolledCourses.status', 'completed'] }, 1, 0] } },
+          },
+        },
+      ]);
 
-    // Prepare dashboard data
-    const dashboardData = {
-      students: {
-        total: totalStudents || 0,
-        active: activeStudents || 0,
-        newThisMonth: newStudentsThisMonth || 0,
-        growth: studentGrowthPercent,
-      },
-      courses: {
-        total: totalCourses || 0,
-        published: publishedCourses || 0,
-        draft: draftCourses || 0,
-        growth: courseGrowthPercent,
-      },
-      revenue: {
-        total: Math.round(totalRevenue[0]?.total || 0),
-        thisMonth: Math.round(monthlyRevenue[0]?.total || 0),
-        orders: totalOrders || 0,
-        growth: revenueGrowthPercent,
-      },
-      engagement: {
-        score: engagementScore,
-        trend:
-          engagementScore > 70
-            ? 'up'
-            : engagementScore > 50
-            ? 'neutral'
-            : 'down',
-        change: engagementScore > 70 ? 5 : engagementScore > 50 ? 0 : -3,
-        avgSession: '24m',
-        completion:
-          progressData.total > 0
-            ? Math.round((progressData.completed / progressData.total) * 100)
+      const enrollmentMap = {};
+      enrollmentCounts.forEach(e => { enrollmentMap[e._id.toString()] = e; });
+
+      const topCourses = topCoursesRaw.map(course => {
+        const stats = enrollmentMap[course._id.toString()] || { enrollments: 0, completed: 0 };
+        const completionRate = stats.enrollments > 0 ? Math.round((stats.completed / stats.enrollments) * 100) : 0;
+        return {
+          title: course.title,
+          level: course.level || 'Beginner',
+          category: course.category || 'General',
+          status: course.status,
+          featured: course.featured || false,
+          enrollments: stats.enrollments,
+          completionRate,
+          revenue: 0,
+        };
+      });
+
+      return {
+        students: {
+          total: totalStudents || 0,
+          active: activeStudents || 0,
+          newThisMonth: newStudentsThisMonth || 0,
+          growth: totalStudents > 0 ? Math.min(Math.round((newStudentsThisMonth / totalStudents) * 100), 100) : 0,
+        },
+        courses: {
+          total: totalCourses || 0,
+          published: publishedCourses || 0,
+          draft: draftCourses || 0,
+          growth: 0,
+        },
+        revenue: {
+          total: Math.round(totalRevenue[0]?.total || 0),
+          thisMonth: Math.round(monthlyRevenue[0]?.total || 0),
+          orders: totalOrders || 0,
+          growth: 0,
+        },
+        engagement: {
+          score: engagementScore,
+          trend: engagementScore > 70 ? 'up' : engagementScore > 50 ? 'neutral' : 'down',
+          change: engagementScore > 70 ? 5 : engagementScore > 50 ? 0 : -3,
+          avgSession: '24m',
+          completion: progressData.total > 0 ? Math.round((progressData.completed / progressData.total) * 100) : 0,
+          activeStudents: activeStudentsCount,
+          totalEnrolled: totalEnrolledStudents,
+          studentsWithProgress: studentsWithProgress,
+        },
+        brilliantStudents: {
+          total: Object.values(brilliantStudentsStats || {}).reduce((sum, stat) => sum + (stat.count || 0), 0),
+          est: brilliantStudentsStats?.EST?.count || 0,
+          dsat: brilliantStudentsStats?.DSAT?.count || 0,
+          act: brilliantStudentsStats?.ACT?.count || 0,
+          avgScore: Object.keys(brilliantStudentsStats || {}).length > 0
+            ? Object.values(brilliantStudentsStats).reduce((sum, stat) => sum + (stat.avgScore || 0), 0) / Object.keys(brilliantStudentsStats).length
             : 0,
-        activeStudents: activeStudentsCount,
-        totalEnrolled: totalEnrolledStudents,
-        studentsWithProgress: studentsWithProgress,
-      },
-      brilliantStudents: {
-        total: Object.values(brilliantStudentsStats || {}).reduce(
-          (sum, stat) => sum + (stat.count || 0),
-          0
-        ),
-        est:
-          brilliantStudentsStats && brilliantStudentsStats.EST
-            ? brilliantStudentsStats.EST.count || 0
-            : 0,
-        dsat:
-          brilliantStudentsStats && brilliantStudentsStats.DSAT
-            ? brilliantStudentsStats.DSAT.count || 0
-            : 0,
-        act:
-          brilliantStudentsStats && brilliantStudentsStats.ACT
-            ? brilliantStudentsStats.ACT.count || 0
-            : 0,
-        avgScore:
-          Object.keys(brilliantStudentsStats || {}).length > 0
-            ? Object.values(brilliantStudentsStats).reduce(
-                (sum, stat) => sum + (stat.avgScore || 0),
-                0
-              ) / Object.keys(brilliantStudentsStats).length
-            : 0,
-        stats: brilliantStudentsStats || {},
-      },
-      recentActivity: [
-        // Recent students
-        ...recentStudents.map((user, index) => ({
-          icon: 'user-plus',
-          message: `New student registered: ${user.firstName} ${user.lastName}`,
-          time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
-          type: 'student',
-        })),
-        // New orders
-        ...newOrders.map((order, index) => ({
-          icon: 'shopping-cart',
-          message: `New order: ${order.orderNumber} - EGP ${order.total}`,
-          time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
-          type: 'order',
-          orderId: order._id,
-          customer: order.user
-            ? `${order.user.firstName} ${order.user.lastName}`
-            : 'Unknown',
-        })),
-      ]
-        .sort((a, b) => new Date(b.time) - new Date(a.time))
-        .slice(0, 10),
-      topCourses: await Promise.all(
-        topCourses.map(async (course) => {
-          try {
-            // Get actual enrollment data from User model
-            const enrolledStudents = await User.find({
-              role: 'student',
-              'enrolledCourses.course': course._id,
-            }).select('enrolledCourses');
+          stats: brilliantStudentsStats || {},
+        },
+        recentActivity: [
+          ...recentStudents.map((user, index) => ({
+            icon: 'user-plus',
+            message: `New student registered: ${user.firstName} ${user.lastName}`,
+            time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
+            type: 'student',
+          })),
+          ...newOrders.map((order, index) => ({
+            icon: 'shopping-cart',
+            message: `New order: ${order.orderNumber} - EGP ${order.total}`,
+            time: `${index + 1} hour${index > 0 ? 's' : ''} ago`,
+            type: 'order',
+            orderId: order._id,
+            customer: order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Unknown',
+          })),
+        ].slice(0, 10),
+        topCourses,
+        charts: { studentGrowth, revenueData },
+        newOrdersCount: newOrders.length,
+        newOrders: newOrders.slice(0, 5),
+        whatsappStatus: 'disconnected',
+        whatsappMessages: 0,
+        whatsappTemplates: 0,
+      };
+    }, 120); // Cache for 2 minutes
 
-            // Calculate enrollments and completions
-            let enrollments = 0;
-            let completedStudents = 0;
-            let totalRevenue = 0;
+    // WhatsApp status check - non-blocking, done separately and cached longer
+    let whatsappStatus = 'disconnected';
+    try {
+      whatsappStatus = await cache.getOrSet('whatsapp_status', async () => {
+        const wasender = require('../utils/wasender');
+        const sessionStatus = await wasender.getGlobalStatus();
+        return sessionStatus.success ? 'connected' : 'disconnected';
+      }, 300); // Cache WhatsApp status for 5 minutes
+    } catch (e) { /* ignore */ }
 
-            if (enrolledStudents.length > 0) {
-              enrollments = enrolledStudents.length;
-
-              // Count completed students
-              completedStudents = enrolledStudents.filter((student) => {
-                const enrollment = student.enrolledCourses.find(
-                  (ec) =>
-                    ec.course && ec.course.toString() === course._id.toString()
-                );
-                return enrollment && enrollment.status === 'completed';
-              }).length;
-
-              // Calculate revenue from individual course purchases
-              const coursePurchases = await User.find({
-                'purchasedCourses.course': course._id,
-                'purchasedCourses.status': 'active',
-              });
-
-              totalRevenue = coursePurchases.reduce((sum, user) => {
-                const purchase = user.purchasedCourses.find(
-                  (pc) => pc.course.toString() === course._id.toString()
-                );
-                return sum + (purchase ? purchase.price : 0);
-              }, 0);
-            }
-
-            const completionRate =
-              enrollments > 0
-                ? Math.round((completedStudents / enrollments) * 100)
-                : 0;
-
-            return {
-              title: course.title,
-              level: course.level || 'Beginner',
-              category: course.category || 'General',
-              status: course.status,
-              featured: course.featured || false,
-              enrollments: enrollments,
-              completionRate: completionRate,
-              revenue: totalRevenue,
-            };
-          } catch (error) {
-            console.error('Error processing course:', course.title, error);
-            return {
-              title: course.title,
-              level: course.level || 'Beginner',
-              category: course.category || 'General',
-              status: course.status,
-              featured: course.featured || false,
-              enrollments: 0,
-              completionRate: 0,
-              revenue: 0,
-            };
-          }
-        })
-      ),
-      charts: {
-        studentGrowth: studentGrowth,
-        revenueData: revenueData,
-      },
-      newOrdersCount: newOrders.length,
-      newOrders: newOrders.slice(0, 5), // Show latest 5 orders for notifications
-      whatsappStatus: whatsappStatus,
-      whatsappMessages: whatsappMessages,
-      whatsappTemplates: whatsappTemplates,
-    };
-
-    console.log('Dashboard data prepared:', dashboardData);
+    // Merge WhatsApp status into dashboard data
+    const finalData = { ...dashboardData, whatsappStatus };
 
     return res.render('admin/dashboard', {
       title: 'Dashboard | ELKABLY',
       theme: req.cookies.theme || 'light',
       user: req.session.user,
-      dashboardData: dashboardData,
+      dashboardData: finalData,
     });
   } catch (error) {
     console.error('Dashboard error:', error);
 
-    // Fallback data in case of error
     const fallbackData = {
       students: { total: 0, active: 0, newThisMonth: 0, growth: 0 },
       courses: { total: 0, published: 0, draft: 0, growth: 0 },
       revenue: { total: 0, thisMonth: 0, orders: 0, growth: 0 },
-      engagement: {
-        score: 0,
-        trend: 'neutral',
-        change: 0,
-        avgSession: '0m',
-        completion: 0,
-      },
-      brilliantStudents: {
-        total: 0,
-        est: 0,
-        dsat: 0,
-        act: 0,
-        avgScore: 0,
-        stats: {},
-      },
+      engagement: { score: 0, trend: 'neutral', change: 0, avgSession: '0m', completion: 0 },
+      brilliantStudents: { total: 0, est: 0, dsat: 0, act: 0, avgScore: 0, stats: {} },
       recentActivity: [],
       topCourses: [],
       charts: { studentGrowth: [], revenueData: [] },
+      newOrdersCount: 0,
+      newOrders: [],
+      whatsappStatus: 'disconnected',
+      whatsappMessages: 0,
+      whatsappTemplates: 0,
     };
 
     return res.render('admin/dashboard', {
@@ -523,7 +363,8 @@ const getCourses = async (req, res) => {
       courses = await Course.find(filter)
         .populate('topics')
         .populate('bundle', 'title bundleCode thumbnail')
-        .sort(sort);
+        .sort(sort)
+        .lean();
     } else {
       // Filters applied: use pagination
       const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -535,14 +376,15 @@ const getCourses = async (req, res) => {
         .populate('bundle', 'title bundleCode thumbnail')
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit))
+        .lean();
     }
 
-    // Get course statistics
-    const stats = await getCourseStats();
-
-    // Get filter options
-    const filterOptions = await getFilterOptions();
+    // Get course statistics and filter options in parallel
+    const [stats, filterOptions] = await Promise.all([
+      getCourseStats(),
+      getFilterOptions(),
+    ]);
 
     return res.render('admin/courses', {
       title: 'Course Management | ELKABLY',
@@ -6199,18 +6041,21 @@ const getBundles = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const bundles = await BundleCourse.find(filter)
-      .populate('courses')
-      .populate('createdBy', 'userName')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    // Run all queries in parallel
+    const [bundles, totalBundles, stats, filterOptions] = await Promise.all([
+      BundleCourse.find(filter)
+        .populate('courses')
+        .populate('createdBy', 'userName')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      BundleCourse.countDocuments(filter),
+      getBundleStats(),
+      getFilterOptions(),
+    ]);
 
-    const totalBundles = await BundleCourse.countDocuments(filter);
     const totalPages = Math.ceil(totalBundles / parseInt(limit));
-
-    const stats = await getBundleStats();
-    const filterOptions = await getFilterOptions();
 
     return res.render('admin/bundles', {
       title: 'Bundle Management | ELKABLY',
@@ -6631,73 +6476,42 @@ const getBundlesAPI = async (req, res) => {
 
 // Helper functions
 const getCourseStats = async () => {
-  const totalCourses = await Course.countDocuments();
-  const publishedCourses = await Course.countDocuments({ status: 'published' });
-  const draftCourses = await Course.countDocuments({ status: 'draft' });
-  const archivedCourses = await Course.countDocuments({ status: 'archived' });
-
-  const totalEnrollments = await Course.aggregate([
-    { $group: { _id: null, total: { $sum: '$enrolledStudents' } } },
-  ]);
-
-  return {
-    totalCourses,
-    publishedCourses,
-    draftCourses,
-    archivedCourses,
-    totalEnrollments: totalEnrollments[0]?.total || 0,
-  };
+  return cache.getOrSet('course_stats', async () => {
+    const [totalCourses, publishedCourses, draftCourses, archivedCourses, totalEnrollments] = await Promise.all([
+      Course.countDocuments(),
+      Course.countDocuments({ status: 'published' }),
+      Course.countDocuments({ status: 'draft' }),
+      Course.countDocuments({ status: 'archived' }),
+      Course.aggregate([{ $group: { _id: null, total: { $sum: '$enrolledStudents' } } }]),
+    ]);
+    return { totalCourses, publishedCourses, draftCourses, archivedCourses, totalEnrollments: totalEnrollments[0]?.total || 0 };
+  }, 120);
 };
 
 const getBundleStats = async () => {
-  const totalBundles = await BundleCourse.countDocuments();
-  const publishedBundles = await BundleCourse.countDocuments({
-    status: 'published',
-  });
-  const draftBundles = await BundleCourse.countDocuments({ status: 'draft' });
-
-  // Course type statistics
-  const onlineBundles = await BundleCourse.countDocuments({
-    courseType: 'online',
-    status: 'published',
-  });
-  const ongroundBundles = await BundleCourse.countDocuments({
-    courseType: 'onground',
-    status: 'published',
-  });
-  const recordedBundles = await BundleCourse.countDocuments({
-    courseType: 'recorded',
-    status: 'published',
-  });
-  const recoveryBundles = await BundleCourse.countDocuments({
-    courseType: 'recovery',
-    status: 'published',
-  });
-
-  const totalEnrollments = await BundleCourse.aggregate([
-    { $group: { _id: null, total: { $sum: '$enrolledStudents' } } },
-  ]);
-
-  return {
-    totalBundles,
-    publishedBundles,
-    draftBundles,
-    onlineBundles,
-    ongroundBundles,
-    recordedBundles,
-    recoveryBundles,
-    totalEnrollments: totalEnrollments[0]?.total || 0,
-  };
+  return cache.getOrSet('bundle_stats', async () => {
+    const [totalBundles, publishedBundles, draftBundles, onlineBundles, ongroundBundles, recordedBundles, recoveryBundles, totalEnrollments] = await Promise.all([
+      BundleCourse.countDocuments(),
+      BundleCourse.countDocuments({ status: 'published' }),
+      BundleCourse.countDocuments({ status: 'draft' }),
+      BundleCourse.countDocuments({ courseType: 'online', status: 'published' }),
+      BundleCourse.countDocuments({ courseType: 'onground', status: 'published' }),
+      BundleCourse.countDocuments({ courseType: 'recorded', status: 'published' }),
+      BundleCourse.countDocuments({ courseType: 'recovery', status: 'published' }),
+      BundleCourse.aggregate([{ $group: { _id: null, total: { $sum: '$enrolledStudents' } } }]),
+    ]);
+    return { totalBundles, publishedBundles, draftBundles, onlineBundles, ongroundBundles, recordedBundles, recoveryBundles, totalEnrollments: totalEnrollments[0]?.total || 0 };
+  }, 120);
 };
 
 const getFilterOptions = async () => {
-  const years = []; // year removed from Course
-  const levels = await Course.distinct('level');
-  const bundles = await BundleCourse.find({ status: { $ne: 'archived' } })
-    .select('_id title bundleCode')
-    .sort({ title: 1 });
-
-  return { years, levels, bundles };
+  return cache.getOrSet('course_filter_options', async () => {
+    const [levels, bundles] = await Promise.all([
+      Course.distinct('level'),
+      BundleCourse.find({ status: { $ne: 'archived' } }).select('_id title bundleCode').sort({ title: 1 }).lean(),
+    ]);
+    return { years: [], levels, bundles };
+  }, 300);
 };
 
 // Update bundle
@@ -7419,31 +7233,22 @@ const getStudents = async (req, res) => {
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Get students with pagination and populated data
-    const students = await User.find(filter)
-      .populate({
-        path: 'enrolledCourses.course',
-        select: 'title courseCode status',
-      })
-      .populate({
-        path: 'purchasedBundles.bundle',
-        select: 'title bundleCode status',
-      })
-      .select('-password')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
+    // Run student query, count, analytics, and filter options ALL in parallel
+    const [students, totalStudents, analytics, filterOptions] = await Promise.all([
+      User.find(filter)
+        .populate({ path: 'enrolledCourses.course', select: 'title courseCode status' })
+        .populate({ path: 'purchasedBundles.bundle', select: 'title bundleCode status' })
+        .select('-password')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      User.countDocuments(filter),
+      calculateStudentAnalytics(filter),
+      getStudentFilterOptions(),
+    ]);
 
-    // Get total count for pagination
-    const totalStudents = await User.countDocuments(filter);
     const totalPages = Math.ceil(totalStudents / parseInt(limit));
-
-    // Calculate analytics for current filtered students
-    const analytics = await calculateStudentAnalytics(filter);
-
-    // Get filter options
-    const filterOptions = await getStudentFilterOptions();
 
     // Add calculated fields to each student
     const studentsWithCalculations = students.map((student) => {
@@ -9167,126 +8972,66 @@ const deleteStudent = async (req, res) => {
 
 const calculateStudentAnalytics = async (filter = {}) => {
   try {
-    // Basic counts - always calculate from total database, not filtered results
-    // This ensures the counts remain consistent regardless of active filters
     const baseFilter = { role: 'student' };
-    const totalStudents = await User.countDocuments(baseFilter);
-    const activeStudents = await User.countDocuments({
-      ...baseFilter,
-      isActive: true,
-    });
-    const inactiveStudents = await User.countDocuments({
-      ...baseFilter,
-      isActive: false,
-    });
-
-    // Grade distribution
-    const gradeDistribution = await User.aggregate([
-      { $match: filter },
-      { $group: { _id: '$grade', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
-    ]);
-
-    // School distribution (top 10)
-    const schoolDistribution = await User.aggregate([
-      { $match: filter },
-      { $group: { _id: '$schoolName', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 10 },
-    ]);
-
-    // Enrollment trends (last 12 months)
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
-    const enrollmentTrends = await User.aggregate([
-      {
-        $match: {
-          ...filter,
-          createdAt: { $gte: twelveMonthsAgo },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' },
-          },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-    ]);
-
-    // Average courses per student
-    const courseStats = await User.aggregate([
-      { $match: filter },
-      {
-        $project: {
-          totalCourses: { $size: { $ifNull: ['$enrolledCourses', []] } },
-          totalBundles: { $size: { $ifNull: ['$purchasedBundles', []] } },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          avgCourses: { $avg: '$totalCourses' },
-          avgBundles: { $avg: '$totalBundles' },
-          totalCourses: { $sum: '$totalCourses' },
-          totalBundles: { $sum: '$totalBundles' },
-        },
-      },
+    
+    // Run ALL queries in parallel
+    const [totalStudents, activeStudents, inactiveStudents, gradeDistribution, schoolDistribution, enrollmentTrends, courseStats] = await Promise.all([
+      User.countDocuments(baseFilter),
+      User.countDocuments({ ...baseFilter, isActive: true }),
+      User.countDocuments({ ...baseFilter, isActive: false }),
+      User.aggregate([
+        { $match: filter },
+        { $group: { _id: '$grade', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]),
+      User.aggregate([
+        { $match: filter },
+        { $group: { _id: '$schoolName', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
+      User.aggregate([
+        { $match: { ...filter, createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)) } } },
+        { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+        { $sort: { '_id.year': 1, '_id.month': 1 } },
+      ]),
+      User.aggregate([
+        { $match: filter },
+        { $project: { totalCourses: { $size: { $ifNull: ['$enrolledCourses', []] } }, totalBundles: { $size: { $ifNull: ['$purchasedBundles', []] } } } },
+        { $group: { _id: null, avgCourses: { $avg: '$totalCourses' }, avgBundles: { $avg: '$totalBundles' }, totalCourses: { $sum: '$totalCourses' }, totalBundles: { $sum: '$totalBundles' } } },
+      ]),
     ]);
 
     return {
-      totalStudents,
-      activeStudents,
-      inactiveStudents,
-      gradeDistribution,
-      schoolDistribution,
-      enrollmentTrends,
-      courseStats: courseStats[0] || {
-        avgCourses: 0,
-        avgBundles: 0,
-        totalCourses: 0,
-        totalBundles: 0,
-      },
+      totalStudents, activeStudents, inactiveStudents,
+      gradeDistribution, schoolDistribution, enrollmentTrends,
+      courseStats: courseStats[0] || { avgCourses: 0, avgBundles: 0, totalCourses: 0, totalBundles: 0 },
     };
   } catch (error) {
     console.error('Error calculating student analytics:', error);
     return {
-      totalStudents: 0,
-      activeStudents: 0,
-      inactiveStudents: 0,
-      gradeDistribution: [],
-      schoolDistribution: [],
-      enrollmentTrends: [],
-      courseStats: {
-        avgCourses: 0,
-        avgBundles: 0,
-        totalCourses: 0,
-        totalBundles: 0,
-      },
+      totalStudents: 0, activeStudents: 0, inactiveStudents: 0,
+      gradeDistribution: [], schoolDistribution: [], enrollmentTrends: [],
+      courseStats: { avgCourses: 0, avgBundles: 0, totalCourses: 0, totalBundles: 0 },
     };
   }
 };
 
 const getStudentFilterOptions = async () => {
-  try {
-    const grades = await User.distinct('grade');
-    const schools = await User.distinct('schoolName');
-    const bundles = await BundleCourse.find({ status: { $ne: 'archived' } })
-      .select('_id title bundleCode')
-      .sort({ title: 1 });
-    const courses = await Course.find({ status: { $ne: 'archived' } })
-      .select('_id title courseCode')
-      .sort({ title: 1 });
-
-    return { grades, schools, bundles, courses };
-  } catch (error) {
-    console.error('Error getting filter options:', error);
-    return { grades: [], schools: [], bundles: [], courses: [] };
-  }
+  return cache.getOrSet('student_filter_options', async () => {
+    try {
+      const [grades, schools, bundles, courses] = await Promise.all([
+        User.distinct('grade'),
+        User.distinct('schoolName'),
+        BundleCourse.find({ status: { $ne: 'archived' } }).select('_id title bundleCode').sort({ title: 1 }).lean(),
+        Course.find({ status: { $ne: 'archived' } }).select('_id title courseCode').sort({ title: 1 }).lean(),
+      ]);
+      return { grades, schools, bundles, courses };
+    } catch (error) {
+      console.error('Error getting filter options:', error);
+      return { grades: [], schools: [], bundles: [], courses: [] };
+    }
+  }, 300); // Cache for 5 minutes
 };
 
 const calculateStudentDetailedAnalytics = async (studentId, student) => {
@@ -14914,57 +14659,32 @@ const getDashboardChartData = async (req, res) => {
   try {
     const { days = 30 } = req.query;
     const daysInt = parseInt(days);
+    const cacheKey = `chart_data_${daysInt}`;
 
-    // Calculate date range
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - daysInt);
+    const data = await cache.getOrSet(cacheKey, async () => {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysInt);
 
-    // Get student growth data
-    const studentGrowth = await User.aggregate([
-      {
-        $match: {
-          role: 'student',
-          createdAt: { $gte: startDate },
-        },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+      const [studentGrowth, revenueData] = await Promise.all([
+        User.aggregate([
+          { $match: { role: 'student', createdAt: { $gte: startDate } } },
+          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+          { $sort: { _id: 1 } },
+        ]),
+        Purchase.aggregate([
+          { $match: { createdAt: { $gte: startDate }, status: { $in: ['completed', 'paid'] } } },
+          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, total: { $sum: '$total' } } },
+          { $sort: { _id: 1 } },
+        ]),
+      ]);
 
-    // Get revenue data
-    const revenueData = await Purchase.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate },
-          status: { $in: ['completed', 'paid'] },
-        },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          total: { $sum: '$total' },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+      return { studentGrowth, revenueData };
+    }, 120); // Cache 2 minutes
 
-    res.json({
-      success: true,
-      studentGrowth,
-      revenueData,
-    });
+    res.json({ success: true, ...data });
   } catch (error) {
     console.error('Error fetching chart data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching chart data',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error fetching chart data' });
   }
 };
 

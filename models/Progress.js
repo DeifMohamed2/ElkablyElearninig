@@ -609,4 +609,9 @@ ProgressSchema.pre('save', function(next) {
   next();
 });
 
+// Performance indexes
+ProgressSchema.index({ student: 1, course: 1 });
+ProgressSchema.index({ completed: 1 });
+ProgressSchema.index({ timestamp: -1 });
+
 module.exports = mongoose.model('Progress', ProgressSchema);

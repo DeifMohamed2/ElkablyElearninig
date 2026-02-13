@@ -11,6 +11,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
 const methodOverride = require('method-override');
+const compression = require('compression');
 
 // Load environment variables
 dotenv.config();
@@ -127,6 +128,8 @@ const handleMulterError = (err, req, res, next) => {
 // Set view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+// Enable EJS template caching for better performance
+app.set('view cache', true);
 
 // Import CSS helper
 const cssHelper = require('./helpers/cssHelper');
@@ -138,6 +141,7 @@ app.use((req, res, next) => {
 });
 
 // Middleware
+app.use(compression({ level: 6, threshold: 1024 })); // Compress responses > 1KB
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -163,8 +167,12 @@ app.use(
 
 app.use(flash());
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files with cache headers
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '7d',
+  etag: true,
+  lastModified: true,
+}));
 
 // Use multer error handler
 app.use(handleMulterError);

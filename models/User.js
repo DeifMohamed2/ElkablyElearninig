@@ -2260,4 +2260,16 @@ UserSchema.methods.cleanupDuplicates = async function () {
   };
 };
 
+// ==================== Performance Indexes ====================
+// Compound indexes for admin dashboard and listing queries
+UserSchema.index({ role: 1, isActive: 1 });
+UserSchema.index({ role: 1, createdAt: -1 });
+UserSchema.index({ role: 1, grade: 1 });
+UserSchema.index({ role: 1, schoolName: 1 });
+UserSchema.index({ role: 1, 'enrolledCourses.course': 1 });
+UserSchema.index({ role: 1, 'purchasedBundles.bundle': 1 });
+UserSchema.index({ role: 1, lastLogin: -1 });
+UserSchema.index({ studentCode: 1, role: 1 });
+UserSchema.index({ parentNumber: 1, parentCountryCode: 1, role: 1 });
+
 module.exports = mongoose.model('User', UserSchema);
