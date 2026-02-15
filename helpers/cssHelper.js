@@ -94,19 +94,21 @@ function getCSSFilePath(pageName) {
  */
 function generateCSSImports(pageName, additionalCSS = []) {
   const pageCSS = getPageCSS(pageName);
+  const cacheBuster = Date.now();
   let html = '';
   
-  // Main admin CSS
-  html += '<link rel="stylesheet" href="/css/adminCSS/admin-main.css">\n';
+  // Main admin CSS with cache-busting
+  html += `<link rel="stylesheet" href="/css/adminCSS/admin-main.css?v=${cacheBuster}">\n`;
   
-  // Page specific CSS
+  // Page specific CSS with cache-busting
   if (pageCSS) {
-    html += `<link rel="stylesheet" href="/css/adminCSS/${pageCSS}.css">\n`;
+    html += `<link rel="stylesheet" href="/css/adminCSS/${pageCSS}.css?v=${cacheBuster}">\n`;
   }
   
-  // Additional CSS
+  // Additional CSS with cache-busting
   additionalCSS.forEach(css => {
-    html += `<link rel="stylesheet" href="${css}">\n`;
+    const separator = css.includes('?') ? '&' : '?';
+    html += `<link rel="stylesheet" href="${css}${separator}v=${cacheBuster}">\n`;
   });
   
   return html;
@@ -137,6 +139,24 @@ function hasPageSpecificCSS(pageName) {
   return !!getPageCSS(pageName);
 }
 
+/**
+ * Get cache buster timestamp to prevent browser caching
+ * @returns {number} - Current timestamp for cache busting
+ */
+function getCacheBuster() {
+  return Date.now();
+}
+
+/**
+ * Add cache buster to a URL
+ * @param {string} url - The URL to add cache buster to
+ * @returns {string} - URL with cache buster query parameter
+ */
+function addCacheBuster(url) {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}v=${Date.now()}`;
+}
+
 module.exports = {
   getPageCSS,
   generateCSSConfig,
@@ -145,5 +165,7 @@ module.exports = {
   getCSSFilePath,
   generateCSSImports,
   getPageCSSClasses,
-  hasPageSpecificCSS
+  hasPageSpecificCSS,
+  getCacheBuster,
+  addCacheBuster
 };

@@ -144,9 +144,10 @@ app.set('view cache', false);
 // Import CSS helper
 const cssHelper = require('./helpers/cssHelper');
 
-// Make CSS helper available to all views
+// Make CSS helper and cache buster available to all views
 app.use((req, res, next) => {
   res.locals.cssHelper = cssHelper;
+  res.locals.cacheBuster = Date.now();
   next();
 });
 
@@ -177,16 +178,27 @@ app.use(
 
 app.use(flash());
 
-// Static files without caching for development
+// Disable ALL caching for all responses
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
+// Static files without caching
 app.use(
   express.static(path.join(__dirname, 'public'), {
     maxAge: 0,
     etag: false,
     lastModified: false,
+    cacheControl: false,
     setHeaders: (res) => {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
     }
   }),
 );
