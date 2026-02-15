@@ -138,8 +138,8 @@ const handleMulterError = (err, req, res, next) => {
 // Set view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-// Enable EJS template caching for better performance
-app.set('view cache', true);
+// Disable EJS template caching for development
+app.set('view cache', false);
 
 // Import CSS helper
 const cssHelper = require('./helpers/cssHelper');
@@ -177,12 +177,17 @@ app.use(
 
 app.use(flash());
 
-// Static files with cache headers
+// Static files without caching for development
 app.use(
   express.static(path.join(__dirname, 'public'), {
-    maxAge: '7d',
-    etag: true,
-    lastModified: true,
+    maxAge: 0,
+    etag: false,
+    lastModified: false,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
   }),
 );
 
