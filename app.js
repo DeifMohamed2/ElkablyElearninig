@@ -182,9 +182,9 @@ app.use(flash());
 app.use(
   express.static(path.join(__dirname, 'public'), {
     maxAge: '1m', // 1 minute cache - short enough to get updates quickly
-    etag: true,   // Enable ETags - browser will validate if file changed
-    lastModified: true
-  })
+    etag: true, // Enable ETags - browser will validate if file changed
+    lastModified: true,
+  }),
 );
 
 // Use multer error handler
