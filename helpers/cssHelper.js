@@ -10,26 +10,26 @@
  */
 function getPageCSS(pageName) {
   const cssMap = {
-    'dashboard': 'dashboard',
-    'courses': 'courses',
+    dashboard: 'dashboard',
+    courses: 'courses',
     'course-detail': 'courses',
     'course-content': 'courses',
-    'bundles': 'bundles',
+    bundles: 'bundles',
     'bundle-info': 'bundles',
     'bundle-manage': 'bundles',
-    'quizzes': 'quizzes',
+    quizzes: 'quizzes',
     'create-quiz': 'quizzes',
     'edit-quiz': 'quizzes',
     'quiz-details': 'quizzes',
     'quiz-review': 'quizzes',
     'question-banks': 'question-banks',
     'question-bank-details': 'question-banks',
-    'students': 'students',
+    students: 'students',
     'student-details': 'students',
-    'orders': 'orders',
-    'order-details': 'orders'
+    orders: 'orders',
+    'order-details': 'orders',
   };
-  
+
   return cssMap[pageName] || null;
 }
 
@@ -41,11 +41,11 @@ function getPageCSS(pageName) {
  */
 function generateCSSConfig(pageName, additionalCSS = []) {
   const pageCSS = getPageCSS(pageName);
-  
+
   return {
     pageCSS: pageCSS,
     additionalCSS: additionalCSS,
-    hasPageCSS: !!pageCSS
+    hasPageCSS: !!pageCSS,
   };
 }
 
@@ -61,7 +61,7 @@ function getAvailableCSSFiles() {
     'quizzes',
     'question-banks',
     'students',
-    'orders'
+    'orders',
   ];
 }
 
@@ -96,21 +96,21 @@ function generateCSSImports(pageName, additionalCSS = []) {
   const pageCSS = getPageCSS(pageName);
   const cacheBuster = Date.now();
   let html = '';
-  
+
   // Main admin CSS with cache-busting
   html += `<link rel="stylesheet" href="/css/adminCSS/admin-main.css?v=${cacheBuster}">\n`;
-  
+
   // Page specific CSS with cache-busting
   if (pageCSS) {
     html += `<link rel="stylesheet" href="/css/adminCSS/${pageCSS}.css?v=${cacheBuster}">\n`;
   }
-  
+
   // Additional CSS with cache-busting
-  additionalCSS.forEach(css => {
+  additionalCSS.forEach((css) => {
     const separator = css.includes('?') ? '&' : '?';
     html += `<link rel="stylesheet" href="${css}${separator}v=${cacheBuster}">\n`;
   });
-  
+
   return html;
 }
 
@@ -122,11 +122,11 @@ function generateCSSImports(pageName, additionalCSS = []) {
 function getPageCSSClasses(pageName) {
   const pageCSS = getPageCSS(pageName);
   const baseClasses = 'admin-page';
-  
+
   if (pageCSS) {
     return `${baseClasses} admin-page-${pageCSS}`;
   }
-  
+
   return baseClasses;
 }
 
@@ -167,5 +167,5 @@ module.exports = {
   getPageCSSClasses,
   hasPageSpecificCSS,
   getCacheBuster,
-  addCacheBuster
+  addCacheBuster,
 };
