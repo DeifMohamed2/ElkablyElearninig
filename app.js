@@ -178,35 +178,13 @@ app.use(
 
 app.use(flash());
 
-// Disable ALL caching for all responses
-app.use((req, res, next) => {
-  res.setHeader(
-    'Cache-Control',
-    'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-  );
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
-  next();
-});
-
-// Static files without caching
+// Static files with short cache time - ETag ensures fresh files when changed
 app.use(
   express.static(path.join(__dirname, 'public'), {
-    maxAge: 0,
-    etag: false,
-    lastModified: false,
-    cacheControl: false,
-    setHeaders: (res) => {
-      res.setHeader(
-        'Cache-Control',
-        'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-      );
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
-    },
-  }),
+    maxAge: '1m', // 1 minute cache - short enough to get updates quickly
+    etag: true,   // Enable ETags - browser will validate if file changed
+    lastModified: true
+  })
 );
 
 // Use multer error handler
