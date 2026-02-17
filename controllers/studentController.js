@@ -717,7 +717,53 @@ const contentDetails = async (req, res) => {
       return res.redirect('/student/enrolled-courses');
     }
 
-    // Check if content is unlocked
+    // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
+    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    if (!courseUnlockStatus.unlocked) {
+      req.flash(
+        'error_msg',
+        courseUnlockStatus.reason || 'This week is locked. Please complete the previous weeks first.'
+      );
+      return res.redirect('/student/enrolled-courses');
+    }
+
+    // ========== SECURITY CHECK 2: Is the topic unlocked? ==========
+    // Get all published topics sorted by order (same logic as courseContent)
+    const sortedPublishedTopics = course.topics
+      .filter((t) => t.isPublished === true)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // Check if topic is published
+    if (!topic.isPublished) {
+      req.flash('error_msg', 'This content is not available yet.');
+      return res.redirect(`/student/course/${course._id}/content`);
+    }
+
+    // Find the topic index among published topics
+    const topicIndex = sortedPublishedTopics.findIndex(
+      (t) => t._id.toString() === topic._id.toString()
+    );
+
+    // Check topic unlock conditions
+    if (topic.unlockConditions === 'previous_completed' && topicIndex > 0) {
+      const previousTopic = sortedPublishedTopics[topicIndex - 1];
+      if (previousTopic) {
+        const completedContentIds = student.getCompletedContentIds(course._id);
+        const previousTopicContentIds = previousTopic.content.map((c) => c._id.toString());
+        const allPreviousTopicCompleted = previousTopicContentIds.length === 0 ||
+          previousTopicContentIds.every((contentId) => completedContentIds.includes(contentId));
+
+        if (!allPreviousTopicCompleted) {
+          req.flash(
+            'error_msg',
+            `This topic is locked. Complete all content in "${previousTopic.title}" first.`
+          );
+          return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
+        }
+      }
+    }
+
+    // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
     const unlockStatus = student.isContentUnlocked(
       course._id,
       contentId,
@@ -2661,7 +2707,49 @@ const takeContentQuiz = async (req, res) => {
       return res.redirect(`/student/content/${contentId}`);
     }
 
-    // Check if content is unlocked
+    // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
+    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    if (!courseUnlockStatus.unlocked) {
+      req.flash(
+        'error_msg',
+        courseUnlockStatus.reason || 'This week is locked. Please complete the previous weeks first.'
+      );
+      return res.redirect('/student/enrolled-courses');
+    }
+
+    // ========== SECURITY CHECK 2: Is the topic unlocked? ==========
+    const sortedTopics = course.topics
+      .filter((t) => t.isPublished === true)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (!topic.isPublished) {
+      req.flash('error_msg', 'This content is not available yet.');
+      return res.redirect(`/student/course/${course._id}/content`);
+    }
+
+    const currentTopicIndex = sortedTopics.findIndex(
+      (t) => t._id.toString() === topic._id.toString()
+    );
+
+    if (topic.unlockConditions === 'previous_completed' && currentTopicIndex > 0) {
+      const prevTopic = sortedTopics[currentTopicIndex - 1];
+      if (prevTopic) {
+        const completedIds = student.getCompletedContentIds(course._id);
+        const prevTopicContentIds = prevTopic.content.map((c) => c._id.toString());
+        const allPrevCompleted = prevTopicContentIds.length === 0 ||
+          prevTopicContentIds.every((id) => completedIds.includes(id));
+
+        if (!allPrevCompleted) {
+          req.flash(
+            'error_msg',
+            `This topic is locked. Complete all content in "${prevTopic.title}" first.`
+          );
+          return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
+        }
+      }
+    }
+
+    // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
     const unlockStatus = student.isContentUnlocked(
       course._id,
       contentId,
@@ -2905,6 +2993,57 @@ const submitContentQuiz = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Content not found',
+      });
+    }
+
+    // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
+    const courseUnlockCheck = await Course.isCourseUnlocked(studentId, course._id);
+    if (!courseUnlockCheck.unlocked) {
+      return res.status(403).json({
+        success: false,
+        message: courseUnlockCheck.reason || 'This week is locked.',
+      });
+    }
+
+    // ========== SECURITY CHECK 2: Is the topic unlocked? ==========
+    const sortedTopicsSubmit = course.topics
+      .filter((t) => t.isPublished === true)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (!topic.isPublished) {
+      return res.status(403).json({
+        success: false,
+        message: 'This content is not available.',
+      });
+    }
+
+    const topicIdxSubmit = sortedTopicsSubmit.findIndex(
+      (t) => t._id.toString() === topic._id.toString()
+    );
+
+    if (topic.unlockConditions === 'previous_completed' && topicIdxSubmit > 0) {
+      const prevTopicSubmit = sortedTopicsSubmit[topicIdxSubmit - 1];
+      if (prevTopicSubmit) {
+        const completedSubmit = student.getCompletedContentIds(course._id);
+        const prevIdsSubmit = prevTopicSubmit.content.map((c) => c._id.toString());
+        const allPrevCompleteSubmit = prevIdsSubmit.length === 0 ||
+          prevIdsSubmit.every((id) => completedSubmit.includes(id));
+
+        if (!allPrevCompleteSubmit) {
+          return res.status(403).json({
+            success: false,
+            message: `Topic is locked. Complete previous topic first.`,
+          });
+        }
+      }
+    }
+
+    // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
+    const contentUnlockCheck = student.isContentUnlocked(course._id, contentId, contentItem);
+    if (!contentUnlockCheck.unlocked) {
+      return res.status(403).json({
+        success: false,
+        message: `Content is locked: ${contentUnlockCheck.reason}`,
       });
     }
 
@@ -4097,8 +4236,10 @@ const getSecureQuestion = async (req, res) => {
 
     const student = await User.findById(studentId);
 
-    // Find the content item
+    // Find the content item, course, and topic
     let contentItem = null;
+    let course = null;
+    let topic = null;
     for (const enrollment of student.enrolledCourses) {
       const courseData = await Course.findById(enrollment.course).populate({
         path: 'topics',
@@ -4119,7 +4260,11 @@ const getSecureQuestion = async (req, res) => {
           contentItem = topicData.content.find(
             (c) => c._id.toString() === contentId
           );
-          if (contentItem) break;
+          if (contentItem) {
+            course = courseData;
+            topic = topicData;
+            break;
+          }
         }
         if (contentItem) break;
       }
@@ -4129,6 +4274,57 @@ const getSecureQuestion = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Content item not found',
+      });
+    }
+
+    // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
+    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    if (!courseUnlockStatus.unlocked) {
+      return res.status(403).json({
+        success: false,
+        message: courseUnlockStatus.reason || 'This week is locked.',
+      });
+    }
+
+    // ========== SECURITY CHECK 2: Is the topic unlocked? ==========
+    const publishedTopicsCheck = course.topics
+      .filter((t) => t.isPublished === true)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (!topic.isPublished) {
+      return res.status(403).json({
+        success: false,
+        message: 'This content is not available yet.',
+      });
+    }
+
+    const topicIdxCheck = publishedTopicsCheck.findIndex(
+      (t) => t._id.toString() === topic._id.toString()
+    );
+
+    if (topic.unlockConditions === 'previous_completed' && topicIdxCheck > 0) {
+      const prevTopicCheck = publishedTopicsCheck[topicIdxCheck - 1];
+      if (prevTopicCheck) {
+        const completedContentCheck = student.getCompletedContentIds(course._id);
+        const prevContentIds = prevTopicCheck.content.map((c) => c._id.toString());
+        const allPrevDone = prevContentIds.length === 0 ||
+          prevContentIds.every((id) => completedContentCheck.includes(id));
+
+        if (!allPrevDone) {
+          return res.status(403).json({
+            success: false,
+            message: `This topic is locked. Complete previous topic first.`,
+          });
+        }
+      }
+    }
+
+    // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
+    const contentLockStatus = student.isContentUnlocked(course._id, contentId, contentItem);
+    if (!contentLockStatus.unlocked) {
+      return res.status(403).json({
+        success: false,
+        message: `Content is locked: ${contentLockStatus.reason}`,
       });
     }
 
@@ -4236,6 +4432,57 @@ const getSecureAllQuestions = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Content item not found',
+      });
+    }
+
+    // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
+    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    if (!courseUnlockStatus.unlocked) {
+      return res.status(403).json({
+        success: false,
+        message: courseUnlockStatus.reason || 'This week is locked. Please complete the previous weeks first.',
+      });
+    }
+
+    // ========== SECURITY CHECK 2: Is the topic unlocked? ==========
+    const sortedTopicsForCheck = course.topics
+      .filter((t) => t.isPublished === true)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (!topic.isPublished) {
+      return res.status(403).json({
+        success: false,
+        message: 'This content is not available yet.',
+      });
+    }
+
+    const topicIdxForCheck = sortedTopicsForCheck.findIndex(
+      (t) => t._id.toString() === topic._id.toString()
+    );
+
+    if (topic.unlockConditions === 'previous_completed' && topicIdxForCheck > 0) {
+      const prevTopicForCheck = sortedTopicsForCheck[topicIdxForCheck - 1];
+      if (prevTopicForCheck) {
+        const completedIdsForCheck = student.getCompletedContentIds(course._id);
+        const prevTopicIds = prevTopicForCheck.content.map((c) => c._id.toString());
+        const allPrevTopicCompleted = prevTopicIds.length === 0 ||
+          prevTopicIds.every((id) => completedIdsForCheck.includes(id));
+
+        if (!allPrevTopicCompleted) {
+          return res.status(403).json({
+            success: false,
+            message: `This topic is locked. Complete all content in "${prevTopicForCheck.title}" first.`,
+          });
+        }
+      }
+    }
+
+    // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
+    const contentUnlockStatus = student.isContentUnlocked(course._id, contentId, contentItem);
+    if (!contentUnlockStatus.unlocked) {
+      return res.status(403).json({
+        success: false,
+        message: `Content is locked: ${contentUnlockStatus.reason}`,
       });
     }
 
