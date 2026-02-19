@@ -4646,11 +4646,11 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       
       <div class="document-section">
-        <h3><span class="section-number">6</span> Important Video (Anti-Skip)</h3>
-        <p><strong>Please watch the following video completely. Skipping is not allowed.</strong></p>
+        <h3><span class="section-number">6</span> Important Video</h3>
+        <p><strong>Please watch the following video completely to proceed.</strong></p>
         <div class="terms-video-container" id="termsVideoContainer">
           <div style="position:relative;padding-top:56.25%;">
-            <iframe id="termsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=false" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
+            <iframe id="termsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=true" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
           </div>
           <div class="video-watch-status" id="videoWatchStatus" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
             <i class="fas fa-info-circle"></i> <span id="videoWatchStatusText">Video must be watched completely to proceed.</span>
@@ -4801,10 +4801,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Initialize Terms Video Anti-Skip Tracking
-  let lastUpdateTimestamp = Date.now();
-  let isSeeking = false;
-  
+  // Initialize Terms Video Tracking
   function initTermsVideoTracking() {
     const videoIframe = document.getElementById('termsVideoIframe');
     const videoStatus = document.getElementById('videoWatchStatus');
@@ -4826,9 +4823,9 @@ document.addEventListener('DOMContentLoaded', function() {
       videoStatus.style.display = 'flex';
       videoStatus.className = 'video-watch-status';
       if (modalLang === 'ar') {
-        videoStatusText.textContent = 'يجب مشاهدة الفيديو بالكامل للمتابعة. التخطي غير مسموح.';
+        videoStatusText.textContent = 'يجب مشاهدة الفيديو بالكامل للمتابعة.';
       } else {
-        videoStatusText.textContent = 'Video must be watched completely to proceed. Skipping is not allowed.';
+        videoStatusText.textContent = 'Video must be watched completely to proceed.';
       }
     }
     
@@ -4864,52 +4861,20 @@ document.addEventListener('DOMContentLoaded', function() {
         termsVideoIsPlaying = false;
       });
       
-      // STRICT ANTI-SKIP: Track time updates with smart tolerance
+      // Track time updates - allow free seeking but require watching to end
       termsVideoPlayer.on('timeupdate', function(data) {
-        if (termsVideoCompleted || isSeeking) return;
+        if (termsVideoCompleted) return;
         
         const currentTime = data.seconds;
-        const now = Date.now();
-        const timeSinceLastUpdate = now - lastUpdateTimestamp;
-        const timeDiff = currentTime - termsVideoLastTime;
         
-        // Only check for skips if video is playing
-        if (termsVideoIsPlaying) {
-          // Calculate expected time advancement based on elapsed time (allow 10% tolerance for buffering)
-          const expectedAdvancement = (timeSinceLastUpdate / 1000) * 1.1; // 1.1x for tolerance
-          
-          // Check for forward skip: current time jumped ahead significantly beyond what's been watched
-          // Only prevent if jump is more than 2 seconds AND beyond max watched time
-          if (currentTime > termsVideoMaxWatched + 2 && timeDiff > expectedAdvancement + 1) {
-            // User tried to skip ahead - seek back silently
-            isSeeking = true;
-            termsVideoPlayer.setCurrentTime(termsVideoMaxWatched);
-            setTimeout(() => { isSeeking = false; }, 100);
-            return;
-          }
-          
-          // Check for backward skip: only prevent if significantly behind max watched (more than 1 second)
-          if (currentTime < termsVideoMaxWatched - 1) {
-            // User tried to go backward - prevent it silently
-            isSeeking = true;
-            termsVideoPlayer.setCurrentTime(termsVideoMaxWatched);
-            setTimeout(() => { isSeeking = false; }, 100);
-            return;
-          }
-          
-          // Update max watched time if playing forward normally
-          // Allow small jumps (up to 2 seconds) for buffering/loading
-          if (currentTime > termsVideoLastTime && timeDiff >= 0 && timeDiff <= 2.0) {
-            if (currentTime > termsVideoMaxWatched) {
-              termsVideoMaxWatched = currentTime;
-            }
-          }
+        // Update max watched time (track furthest point reached)
+        if (currentTime > termsVideoMaxWatched) {
+          termsVideoMaxWatched = currentTime;
         }
         
         termsVideoLastTime = currentTime;
-        lastUpdateTimestamp = now;
         
-        // Check if video is completed (watched 100%)
+        // Check if video is completed (watched to 99% or near end)
         if (termsVideoDuration > 0 && termsVideoMaxWatched >= termsVideoDuration * 0.99) {
           termsVideoCompleted = true;
           if (videoStatus) {
@@ -5057,11 +5022,11 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         
         <div class="document-section">
-          <h3><span class="section-number">6</span> فيديو مهم (منع التخطي)</h3>
-          <p><strong>يرجى مشاهدة الفيديو التالي بالكامل. التخطي غير مسموح.</strong></p>
+          <h3><span class="section-number">6</span> فيديو مهم</h3>
+          <p><strong>يرجى مشاهدة الفيديو التالي بالكامل للمتابعة.</strong></p>
           <div class="terms-video-container" id="termsVideoContainer">
             <div style="position:relative;padding-top:56.25%;">
-              <iframe id="termsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=false" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
+              <iframe id="termsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=true" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
             </div>
             <div class="video-watch-status" id="videoWatchStatus" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
               <i class="fas fa-info-circle"></i> <span id="videoWatchStatusText">يجب مشاهدة الفيديو بالكامل للمتابعة.</span>
