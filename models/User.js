@@ -1180,8 +1180,9 @@ UserSchema.methods.isInWishlist = function (itemId, itemType = 'course') {
 
 // Instance method to get enrollment status
 UserSchema.methods.isEnrolled = function (courseId) {
-  // Normalize courseId to string for comparison
-  const courseIdStr = courseId.toString();
+  // Normalize courseId - handle populated objects
+  const normalizedCourseId = courseId._id ? courseId._id : courseId;
+  const courseIdStr = normalizedCourseId.toString();
 
   // Then check if any enrollment matches the courseId
   const isEnrolled = this.enrolledCourses.some((enrollment) => {
@@ -1253,27 +1254,98 @@ UserSchema.methods.addPurchasedCourse = async function (
   price,
   orderNumber,
 ) {
+  // Normalize courseId - handle populated objects
+  const normalizedCourseId = courseId._id ? courseId._id : courseId;
+  const courseIdStr = normalizedCourseId.toString();
+  
   // Check for existing active purchase
   const existingPurchase = this.purchasedCourses.find(
     (purchase) =>
       purchase.course &&
-      purchase.course.toString() === courseId.toString() &&
+      purchase.course.toString() === courseIdStr &&
       purchase.status === 'active',
   );
 
   if (existingPurchase) {
-    console.log('Course already purchased, skipping duplicate:', courseId);
+    console.log('Course already purchased, skipping duplicate:', courseIdStr);
     return this;
   }
 
   this.purchasedCourses.push({
-    course: courseId,
+    course: normalizedCourseId,
     price: price,
     orderNumber: orderNumber,
     purchasedAt: new Date(),
     status: 'active',
   });
   return await this.save();
+};
+
+// Instance method to add purchased course AND enroll atomically (prevents sync issues)
+UserSchema.methods.addPurchasedCourseWithEnrollment = async function (
+  courseId,
+  price,
+  orderNumber,
+) {
+  // Normalize courseId - handle populated objects
+  const normalizedCourseId = courseId._id ? courseId._id : courseId;
+  const courseIdStr = normalizedCourseId.toString();
+  
+  let purchaseAdded = false;
+  let enrollmentAdded = false;
+  
+  // Check for existing active purchase
+  const existingPurchase = this.purchasedCourses.find(
+    (purchase) =>
+      purchase.course &&
+      purchase.course.toString() === courseIdStr &&
+      purchase.status === 'active',
+  );
+
+  if (!existingPurchase) {
+    this.purchasedCourses.push({
+      course: normalizedCourseId,
+      price: price,
+      orderNumber: orderNumber,
+      purchasedAt: new Date(),
+      status: 'active',
+    });
+    purchaseAdded = true;
+    console.log(`📦 Added purchase for course: ${courseIdStr}`);
+  } else {
+    console.log(`⏭️ Course already purchased: ${courseIdStr}`);
+  }
+
+  // Check for existing enrollment
+  const existingEnrollment = this.enrolledCourses.find(
+    (enrollment) =>
+      enrollment.course &&
+      enrollment.course.toString() === courseIdStr,
+  );
+
+  if (!existingEnrollment) {
+    this.enrolledCourses.push({
+      course: normalizedCourseId,
+      enrolledAt: new Date(),
+      progress: 0,
+      lastAccessed: new Date(),
+      completedTopics: [],
+      status: 'active',
+      contentProgress: [],
+    });
+    enrollmentAdded = true;
+    console.log(`📚 Added enrollment for course: ${courseIdStr}`);
+  } else {
+    console.log(`⏭️ Already enrolled in course: ${courseIdStr}`);
+  }
+
+  // Single save for both operations
+  if (purchaseAdded || enrollmentAdded) {
+    await this.save();
+    console.log(`✅ Saved purchase and enrollment atomically for: ${courseIdStr}`);
+  }
+
+  return { purchaseAdded, enrollmentAdded };
 };
 
 // Instance method to add purchased bundle

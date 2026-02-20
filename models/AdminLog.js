@@ -143,6 +143,10 @@ const AdminLogSchema = new mongoose.Schema(
         'CLEANUP_DUPLICATES',
         'UPLOAD_PDF',
         
+        // Enrollment Sync Actions
+        'SYNC_ENROLLMENT',
+        'BULK_SYNC_ENROLLMENTS',
+        
         // OTP Master Generator Actions
         'OTP_GENERATED',
         'OTP_VALIDATED',

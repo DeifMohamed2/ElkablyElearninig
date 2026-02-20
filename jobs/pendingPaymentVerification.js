@@ -65,28 +65,27 @@ async function processSuccessfulPaymentJob(purchase) {
 
     // Process enrollments
     for (const item of updatedPurchase.items) {
+      // Normalize item ID - handle both populated and non-populated cases
+      const itemId = item.item._id ? item.item._id : item.item;
+      
       if (item.itemType === 'bundle') {
-        await user.addPurchasedBundle(item.item, item.price, updatedPurchase.orderNumber);
+        await user.addPurchasedBundle(itemId, item.price, updatedPurchase.orderNumber);
         
-        const bundle = await BundleCourse.findById(item.item).populate('courses');
+        const bundle = await BundleCourse.findById(itemId).populate('courses');
         if (bundle) {
           await user.enrollInBundleCourses(bundle);
           console.log(`[PaymentJob] ✅ Enrolled user in bundle: ${bundle.title}`);
         }
       } else {
-        await user.addPurchasedCourse(item.item, item.price, updatedPurchase.orderNumber);
+        // Use atomic method to add purchase AND enrollment together
+        const result = await user.addPurchasedCourseWithEnrollment(
+          itemId, 
+          item.price, 
+          updatedPurchase.orderNumber
+        );
         
-        if (!user.isEnrolled(item.item)) {
-          user.enrolledCourses.push({
-            course: item.item,
-            enrolledAt: new Date(),
-            progress: 0,
-            lastAccessed: new Date(),
-            completedTopics: [],
-            status: 'active',
-          });
-          await user.save();
-          console.log(`[PaymentJob] ✅ Enrolled user in course: ${item.title}`);
+        if (result.purchaseAdded || result.enrollmentAdded) {
+          console.log(`[PaymentJob] ✅ Processed course: ${item.title} (purchase: ${result.purchaseAdded}, enrollment: ${result.enrollmentAdded})`);
         }
       }
     }
