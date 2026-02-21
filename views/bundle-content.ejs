@@ -33,7 +33,7 @@
           <div class="col-lg-6">
             <form class="search-form-enhanced" method="GET">
               <div class="search-input-group-enhanced">
-              
+
                 <input type="text" name="search" class="search-input-enhanced" placeholder="Search weeks in this course..." value="">
                 <button type="submit" class="search-btn-enhanced">
                   <span>Search</span>
@@ -231,7 +231,7 @@
                   <i class="fas fa-shopping-cart"></i>
                 </button>
                 <% } %>
-            
+
               </div>
             </div>
           </div>
@@ -325,7 +325,7 @@
             </div>
             <% } %>
           </div>
-          
+
           <!-- Expandable Content Preview Section -->
           <% if (course.topics && course.topics.length > 0) { %>
           <div class="content-preview-section" id="contentPreview-<%= course._id %>" style="display: none;">
@@ -362,7 +362,7 @@
                     <i class="fas fa-chevron-down topic-toggle-icon"></i>
                   </div>
                 </div>
-                
+
                 <!-- Topic Content Items -->
                 <% if (topic.content && topic.content.length > 0) { %>
                 <div class="topic-content-items" id="topicContent-<%= course._id %>-<%= topic._id %>" style="display: none;">
@@ -717,23 +717,23 @@
       event.preventDefault();
       event.stopPropagation();
     }
-    
+
     // Find the button that was clicked
     const clickedBtn = event.currentTarget;
     // Find the course card containing this button
     const courseCard = clickedBtn.closest('.course-card-enhanced');
     // Find the content section within this specific card
     const contentSection = courseCard.querySelector('.content-preview-section');
-    
+
     if (!contentSection || !clickedBtn) {
       console.log('Could not find elements for course:', courseId);
       return;
     }
-    
+
     // Get course info for the modal
     const courseTitle = courseCard.querySelector('.course-card-title-enhanced').textContent;
     const courseImage = courseCard.querySelector('.course-card-media-enhanced img')?.src || '/images/adad.png';
-    
+
     // Create or get the modal
     let modal = document.getElementById('contentPreviewModal');
     if (!modal) {
@@ -766,37 +766,37 @@
         </div>
       `;
       document.body.appendChild(modal);
-      
+
       // Close on backdrop click
       modal.querySelector('.content-modal-backdrop').addEventListener('click', closeContentModal);
-      
+
       // Close on escape key
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeContentModal();
       });
     }
-    
+
     // Update modal content
     modal.querySelector('.drawer-course-thumb').src = courseImage;
     modal.querySelector('.drawer-course-title').textContent = courseTitle;
     modal.querySelector('.drawer-content-wrapper').innerHTML = contentSection.innerHTML;
-    
+
     // Show modal with animation
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
     clickedBtn.classList.add('active');
-    
+
     // Store reference to current button
     modal.dataset.currentBtn = courseId;
   }
-  
+
   // Close content modal
   function closeContentModal() {
     const modal = document.getElementById('contentPreviewModal');
     if (modal) {
       modal.classList.remove('active');
       document.body.style.overflow = '';
-      
+
       // Remove active state from button
       const courseId = modal.dataset.currentBtn;
       const btn = document.querySelector(`[data-course-id="${courseId}"]`);
@@ -811,21 +811,21 @@
       event.preventDefault();
       event.stopPropagation();
     }
-    
+
     // Find the clicked header
     const clickedHeader = event.currentTarget;
     // Find the topic item containing this header
     const topicItem = clickedHeader.closest('.topic-preview-item');
     // Find the content items within this specific topic
     const contentItems = topicItem.querySelector('.topic-content-items');
-    
+
     if (!contentItems || !topicItem) {
       console.log('Could not find elements for topic:', topicId);
       return;
     }
-    
+
     const isVisible = contentItems.style.display !== 'none';
-    
+
     if (isVisible) {
       // Hide content
       contentItems.style.maxHeight = '0';
@@ -2802,12 +2802,12 @@
     border-radius: 16px;
     transition: all 0.3s ease;
   }
-  
+
   .course-card-enhanced:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
   }
-  
+
   /* Keep overflow hidden on media section only */
   .course-card-media-enhanced {
     overflow: hidden;
