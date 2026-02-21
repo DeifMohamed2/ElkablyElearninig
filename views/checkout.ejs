@@ -2504,11 +2504,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Video tracking variables (for checkout terms video)
   let checkoutTermsVideoPlayer = null;
   let checkoutTermsVideoDuration = 0;
-  let checkoutTermsVideoWatchedTime = 0;
-  let checkoutTermsVideoMaxWatched = 0;
   let checkoutTermsVideoIsPlaying = false;
   let checkoutTermsVideoCompleted = false;
-  let checkoutTermsVideoLastTime = -1; // -1 means not initialized
   
   // Modal Elements
   const checkoutModal = document.getElementById('checkoutReadingModal');
@@ -2619,12 +2616,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Reset video completion state
     checkoutTermsVideoCompleted = false;
-    checkoutTermsVideoWatchedTime = 0;
-    checkoutTermsVideoMaxWatched = 0;
-    checkoutTermsVideoLastTime = 0;
     checkoutTermsVideoIsPlaying = false;
-    checkoutLastUpdateTimestamp = Date.now();
-    checkoutIsSeeking = false;
     
     // Reset progress
     checkoutReadingProgressFill.style.width = '0%';
@@ -2662,7 +2654,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initCheckoutTermsVideoTracking, 500);
   }
   
-  // Initialize Checkout Terms Video Anti-Skip Tracking - REBUILT FROM SCRATCH
+  // Initialize Checkout Terms Video Tracking - Allows skipping, button appears when video ends
   function initCheckoutTermsVideoTracking() {
     const videoIframe = document.getElementById('checkoutTermsVideoIframe');
     const videoStatus = document.getElementById('checkoutVideoWatchStatus');
@@ -2684,22 +2676,19 @@ document.addEventListener('DOMContentLoaded', function() {
       checkoutTermsVideoPlayer = null;
     }
     
-    // Reset all video tracking state
+    // Reset video tracking state
     checkoutTermsVideoCompleted = false;
-    checkoutTermsVideoWatchedTime = 0;
-    checkoutTermsVideoMaxWatched = 0;
-    checkoutTermsVideoLastTime = -1; // -1 means not initialized
     checkoutTermsVideoIsPlaying = false;
     checkoutTermsVideoDuration = 0;
     
-    // Show status
+    // Show initial status
     if (videoStatus) {
       videoStatus.style.display = 'flex';
       videoStatus.className = 'checkout-video-watch-status';
       if (checkoutModalLang === 'ar') {
-        videoStatusText.textContent = 'يجب مشاهدة الفيديو بالكامل للمتابعة. التخطي غير مسموح.';
+        videoStatusText.textContent = 'يرجى مشاهدة الفيديو للمتابعة.';
       } else {
-        videoStatusText.textContent = 'Video must be watched completely to proceed. Skipping is not allowed.';
+        videoStatusText.textContent = 'Please watch the video to proceed.';
       }
     }
     
@@ -2745,18 +2734,7 @@ document.addEventListener('DOMContentLoaded', function() {
         checkoutTermsVideoIsPlaying = true;
         tryGetDuration();
         
-        // Initialize lastTime on first play if not set
-        if (checkoutTermsVideoLastTime < 0) {
-          checkoutTermsVideoPlayer.getCurrentTime(function(t) {
-            if (checkoutTermsVideoLastTime < 0) {
-              checkoutTermsVideoLastTime = t || 0;
-              checkoutTermsVideoMaxWatched = t || 0;
-              console.log('📹 Initialized tracking at:', t);
-            }
-          });
-        }
-        
-        if (videoStatus) {
+        if (videoStatus && !checkoutTermsVideoCompleted) {
           videoStatus.className = 'checkout-video-watch-status watching';
           videoStatusText.textContent = checkoutModalLang === 'ar' 
             ? 'جاري المشاهدة... يرجى مشاهدة الفيديو حتى النهاية.'
@@ -2769,51 +2747,17 @@ document.addEventListener('DOMContentLoaded', function() {
         checkoutTermsVideoIsPlaying = false;
       });
       
-      // Timeupdate - Simple anti-skip logic
+      // Timeupdate - Just track duration, no anti-skip
       checkoutTermsVideoPlayer.on('timeupdate', function(data) {
         if (checkoutTermsVideoCompleted) return;
-        
-        const currentTime = data.seconds;
         
         // Try to get duration if we don't have it
         if (checkoutTermsVideoDuration === 0) {
           tryGetDuration();
         }
-        
-        // First timeupdate - initialize tracking
-        if (checkoutTermsVideoLastTime < 0) {
-          checkoutTermsVideoLastTime = currentTime;
-          checkoutTermsVideoMaxWatched = currentTime;
-          return;
-        }
-        
-        // Calculate how far ahead the user jumped
-        const jumpAhead = currentTime - checkoutTermsVideoMaxWatched;
-        
-        // Anti-skip: If jumped more than 3 seconds ahead of max watched, reset to max watched
-        if (jumpAhead > 3) {
-          console.log('📹 Skip detected! Current:', currentTime, 'Max:', checkoutTermsVideoMaxWatched);
-          try {
-            checkoutTermsVideoPlayer.setCurrentTime(checkoutTermsVideoMaxWatched);
-          } catch(e) {}
-          return;
-        }
-        
-        // Normal playback - update max watched if we're moving forward
-        if (currentTime > checkoutTermsVideoMaxWatched) {
-          checkoutTermsVideoMaxWatched = currentTime;
-        }
-        
-        // Update last time
-        checkoutTermsVideoLastTime = currentTime;
-        
-        // Check completion (95% watched)
-        if (checkoutTermsVideoDuration > 0 && checkoutTermsVideoMaxWatched >= checkoutTermsVideoDuration * 0.95) {
-          markVideoCompleted();
-        }
       });
       
-      // On ended - most reliable completion
+      // On ended - video completion trigger
       checkoutTermsVideoPlayer.on('ended', function() {
         console.log('📹 Video ended');
         markVideoCompleted();
@@ -2823,14 +2767,11 @@ document.addEventListener('DOMContentLoaded', function() {
       function markVideoCompleted() {
         if (checkoutTermsVideoCompleted) return;
         checkoutTermsVideoCompleted = true;
-        if (checkoutTermsVideoDuration > 0) {
-          checkoutTermsVideoMaxWatched = checkoutTermsVideoDuration;
-        }
         if (videoStatus) {
           videoStatus.className = 'checkout-video-watch-status completed';
           videoStatusText.textContent = checkoutModalLang === 'ar'
-            ? '✓ تمت مشاهدة الفيديو بالكامل! يمكنك الآن المتابعة.'
-            : '✓ Video watched completely! You can now proceed.';
+            ? '✓ تمت مشاهدة الفيديو! يمكنك الآن المتابعة.'
+            : '✓ Video watched! You can now proceed.';
         }
         checkCheckoutTermsCompletion();
       }

@@ -587,7 +587,14 @@ const getBundleContent = async (req, res) => {
     }
 
     const bundle = await BundleCourse.findById(id)
-      .populate('courses')
+      .populate({
+        path: 'courses',
+        populate: {
+          path: 'topics',
+          select: 'title description order content estimatedTime isPublished',
+          options: { sort: { order: 1 } }
+        }
+      })
       .populate('createdBy', 'userName')
       .populate('enrolledStudents', 'userName email');
 
