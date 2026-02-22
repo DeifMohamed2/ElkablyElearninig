@@ -57,6 +57,7 @@ const AdminLogSchema = new mongoose.Schema(
         'BULK_IMPORT_STUDENTS',
         'ENROLL_STUDENT',
         'REMOVE_STUDENT_ENROLLMENT',
+        'BULK_REMOVE_STUDENT_ENROLLMENT',
         'BULK_ENROLL_STUDENTS',
         
         // Quiz Actions

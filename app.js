@@ -12,6 +12,11 @@ const http = require('http');
 const socketIo = require('socket.io');
 const methodOverride = require('method-override');
 const compression = require('compression');
+const morgan = require('morgan');
+
+// Professional Logging System
+const { logger, logSystem, logError, morganStream } = require('./utils/logger');
+const { requestTracker, errorTracker } = require('./middlewares/requestTracker');
 
 // Load environment variables
 dotenv.config();
@@ -153,6 +158,21 @@ app.use((req, res, next) => {
 
 // Middleware
 app.use(compression({ level: 6, threshold: 1024 })); // Compress responses > 1KB
+
+// HTTP request logging with Morgan (combined format to file)
+app.use(morgan('combined', { stream: morganStream }));
+
+// Development console logging
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
+
+// Request tracking middleware (detailed logging)
+app.use(requestTracker({
+  slowRequestThreshold: 3000, // Log slow requests > 3 seconds
+  excludePaths: ['/health', '/favicon.ico', '/robots.txt'],
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -246,8 +266,18 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/guest', guestRoutes);
 
+// Error tracking middleware
+app.use(errorTracker);
+
 // Global error handler - must be before 404 handler
 app.use((err, req, res, next) => {
+  // Log error with full context
+  logError('Global Error Handler', err, {
+    requestId: req.requestId,
+    method: req.method,
+    url: req.originalUrl,
+    userId: req.session?.user?.id || req.session?.admin?._id,
+  });
   console.error('Global error handler:', err);
 
   // If it's an API route (starts with /admin/ and expects JSON), return JSON
@@ -314,17 +344,32 @@ const PORT = process.env.PORT || 4091;
 mongoose
   .connect(dbURI)
   .then((result) => {
+    // Log database connection
+    logSystem('DATABASE_CONNECTED', {
+      database: dbURI.replace(/\/\/.*@/, '//**:**@'), // Hide credentials
+    });
+    logger.info('Database connected successfully');
+
     server.listen(PORT, '0.0.0.0', () => {
+      // Log server startup
+      logSystem('SERVER_STARTED', {
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        nodeVersion: process.version,
+      });
+      
       console.log('Connected to database and listening on port', PORT);
       console.log('server is running in', 'http://localhost:' + PORT);
       console.log('Server is running on http://0.0.0.0:' + PORT);
       console.log('Server accessible on http://82.25.101.207:' + PORT);
+      logger.info(`🚀 Server started on port ${PORT}`);
 
       // Start the pending payment verification job after server is ready
       startPendingPaymentJob();
     });
   })
   .catch((err) => {
+    logError('Database connection failed', err);
     console.log('Database connection error:', err);
     process.exit(1);
   });

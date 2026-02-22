@@ -10,6 +10,8 @@ const ZoomMeeting = require('../models/ZoomMeeting');
 const mongoose = require('mongoose');
 const zoomService = require('../utils/zoomService');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
+const { StudentTracker } = require('../utils/activityTracker');
+const { logError, logPerformance } = require('../utils/logger');
 
 // Dashboard - Main student dashboard
 const dashboard = async (req, res) => {
@@ -410,8 +412,12 @@ const courseDetails = async (req, res) => {
       bookPurchaseInfo, // Pass book purchase info to view
       theme: req.cookies.theme || student.preferences?.theme || 'light',
     });
+
+    // Track course view
+    StudentTracker.viewCourse(req, courseId, course.title);
   } catch (error) {
     console.error('Course details error:', error);
+    logError('Course details error', error, { studentId: req.session?.user?.id, courseId: req.params?.id });
     req.flash('error_msg', 'Error loading course details');
     res.redirect('/student/enrolled-courses');
   }
@@ -1363,6 +1369,11 @@ const updateContentProgress = async (req, res) => {
       response.watchCount = finalProgress?.watchCount || 0;
       response.maxWatchCount = contentItem.maxWatchCount;
     }
+
+    // Track content progress update (only for completions)
+    if (progressData && progressData.completionStatus === 'completed' && isNewCompletion) {
+      StudentTracker.viewContent(req, contentId, contentType, topicId);
+    }
     
     res.json(response);
   } catch (error) {
@@ -1618,6 +1629,9 @@ const submitQuiz = async (req, res) => {
       // Don't fail the quiz submission if WhatsApp fails
     }
 
+    // Track quiz submission
+    StudentTracker.submitQuiz(req, quizId, quiz.title, correctAnswers, quiz.selectedQuestions.length);
+
     res.json({
       success: true,
       score,
@@ -1629,6 +1643,7 @@ const submitQuiz = async (req, res) => {
     });
   } catch (error) {
     console.error('Submit quiz error:', error);
+    logError('Submit quiz error', error, { studentId: req.session?.user?.id, quizId: req.params.id });
     res.status(500).json({ success: false, message: 'Error submitting quiz' });
   }
 };
@@ -3531,10 +3546,14 @@ const startQuizAttempt = async (req, res) => {
     // Start new attempt and redirect to take page
     await student.startQuizAttempt(quizId, quiz.duration);
 
+    // Track quiz start
+    StudentTracker.startQuiz(req, quizId, quiz.title);
+
     // Redirect to take quiz page
     return res.redirect(`/student/quiz/${quizId}/take`);
   } catch (error) {
     console.error('Start quiz error:', error);
+    logError('Start quiz error', error, { studentId: req.session?.user?.id, quizId: req.params?.id });
     req.flash('error_msg', 'Error starting quiz');
     res.redirect(`/student/quiz/${req.params.id}/details`);
   }

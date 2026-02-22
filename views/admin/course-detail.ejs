@@ -579,6 +579,84 @@
           .text-muted {
             color: #6c757d !important;
           }
+
+          /* Bulk Selection Styles */
+          .bulk-action-bar {
+            display: none;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #b80101 0%, #8b0000 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(184, 1, 1, 0.3);
+            animation: slideIn 0.3s ease;
+          }
+
+          @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+
+          .bulk-action-bar.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+
+          .bulk-action-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .bulk-action-info .badge {
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 1rem;
+            padding: 6px 12px;
+          }
+
+          .bulk-action-buttons {
+            display: flex;
+            gap: 10px;
+          }
+
+          .bulk-action-buttons .btn {
+            border: none;
+            font-weight: 500;
+          }
+
+          .bulk-action-buttons .btn-light {
+            background: rgba(255, 255, 255, 0.9);
+            color: #b80101;
+          }
+
+          .bulk-action-buttons .btn-outline-light {
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            color: white;
+          }
+
+          .bulk-action-buttons .btn-outline-light:hover {
+            background: rgba(255, 255, 255, 0.1);
+          }
+
+          /* Selection Checkbox Styling */
+          .selection-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #b80101;
+          }
+
+          .table-pro tbody tr.selected {
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.08) 0%, rgba(184, 1, 1, 0.04) 100%) !important;
+          }
+
+          .dark-theme .table-pro tbody tr.selected {
+            background: linear-gradient(135deg, rgba(184, 1, 1, 0.15) 0%, rgba(184, 1, 1, 0.08) 100%) !important;
+          }
         </style>
         <!-- Header Card -->
         <div class="admin-dashboard-header">
@@ -653,6 +731,9 @@
                   <button class="btn btn-primary btn-sm" onclick="showBulkEnrollModal()">
                     <i class="fas fa-file-excel me-1"></i> Bulk Enroll
                   </button>
+                  <button class="btn btn-outline-danger btn-sm" onclick="toggleBulkSelectionMode()" id="bulkSelectToggle">
+                    <i class="fas fa-check-square me-1"></i> Select for Removal
+                  </button>
                 </div>
                 <div class="search-filters">
                   <div class="search-box-wrapper">
@@ -674,12 +755,31 @@
                   </select>
                 </div>
               </div>
+              <!-- Bulk Action Bar -->
+              <div class="bulk-action-bar" id="bulkActionBar">
+                <div class="bulk-action-info">
+                  <i class="fas fa-check-circle fa-lg"></i>
+                  <span><strong id="selectedCount">0</strong> student(s) selected</span>
+                </div>
+                <div class="bulk-action-buttons">
+                  <button class="btn btn-sm btn-outline-light" onclick="clearAllSelections()">
+                    <i class="fas fa-times me-1"></i>Clear Selection
+                  </button>
+                  <button class="btn btn-sm btn-light" onclick="confirmBulkRemoval()">
+                    <i class="fas fa-user-minus me-1"></i>Remove Selected Students
+                  </button>
+                </div>
+              </div>
+
               <div class="students-table-container">
                 <% if (students && students.length) { %>
                 <div class="table-overflow">
                   <table class="table-pro" id="studentsTable">
                     <thead>
                       <tr>
+                        <th class="col-min" id="selectAllHeader" style="display: none;">
+                          <input type="checkbox" class="selection-checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" title="Select All">
+                        </th>
                         <th class="col-min">#</th>
                         <th>
                           Student
@@ -709,8 +809,11 @@
                     </thead>
                     <tbody>
                       <% students.forEach((s, idx) => { %>
-                      <tr data-status="<%= s.status %>" data-progress="<%= s.progress %>" data-name="<%= s.name %>" data-email="<%= s.email %>" data-code="<%= s.studentCode %>">
-                        <td class="col-min" style="opacity: .7; font-weight: 600;"><%= idx+1 %></td>
+                      <tr data-status="<%= s.status %>" data-progress="<%= s.progress %>" data-name="<%= s.name %>" data-email="<%= s.email %>" data-code="<%= s.studentCode %>" data-student-id="<%= s._id %>">
+                        <td class="col-min selection-cell" style="display: none;">
+                          <input type="checkbox" class="selection-checkbox student-select" value="<%= s._id %>" onchange="toggleStudentSelectForRemoval(this, '<%= s._id %>')">
+                        </td>
+                        <td class="col-min row-number" style="opacity: .7; font-weight: 600;"><%= idx+1 %></td>
                         <td>
                           <div class="student-profile">
                             <div class="student-avatar">
@@ -977,7 +1080,8 @@
     // Show filtered rows and update numbering
     filteredStudents.forEach((row, index) => {
       row.style.display = '';
-      const numberCell = row.querySelector('td:first-child');
+      // Select the number cell by class
+      const numberCell = row.querySelector('.row-number');
       if (numberCell) {
         numberCell.textContent = index + 1;
       }
@@ -1030,8 +1134,9 @@
         aVal = parseInt(a.getAttribute('data-progress')) || 0;
         bVal = parseInt(b.getAttribute('data-progress')) || 0;
       } else if (column === 'enrolled') {
-        const aDate = a.querySelector('td:nth-child(8)')?.textContent || '';
-        const bDate = b.querySelector('td:nth-child(8)')?.textContent || '';
+        // nth-child(9) because of the hidden selection checkbox column
+        const aDate = a.querySelector('td:nth-child(9)')?.textContent || '';
+        const bDate = b.querySelector('td:nth-child(9)')?.textContent || '';
         aVal = aDate === '-' ? 0 : new Date(aDate).getTime();
         bVal = bDate === '-' ? 0 : new Date(bDate).getTime();
       }
@@ -1431,6 +1536,272 @@
       loadStudentsForEnrollment(search);
     }, 500);
   }
+
+  // ============= BULK REMOVAL SELECTION FUNCTIONS =============
+  
+  let bulkSelectionMode = false;
+  const selectedStudentsForRemoval = new Set();
+
+  // Toggle bulk selection mode
+  function toggleBulkSelectionMode() {
+    bulkSelectionMode = !bulkSelectionMode;
+    const toggleBtn = document.getElementById('bulkSelectToggle');
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    const selectionCells = document.querySelectorAll('.selection-cell');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+
+    if (bulkSelectionMode) {
+      // Enable selection mode
+      toggleBtn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel Selection';
+      toggleBtn.classList.remove('btn-outline-danger');
+      toggleBtn.classList.add('btn-danger');
+      selectAllHeader.style.display = '';
+      selectionCells.forEach(cell => cell.style.display = '');
+    } else {
+      // Disable selection mode
+      toggleBtn.innerHTML = '<i class="fas fa-check-square me-1"></i> Select for Removal';
+      toggleBtn.classList.remove('btn-danger');
+      toggleBtn.classList.add('btn-outline-danger');
+      selectAllHeader.style.display = 'none';
+      selectionCells.forEach(cell => cell.style.display = 'none');
+      
+      // Clear all selections
+      clearAllSelections();
+    }
+  }
+
+  // Toggle individual student selection for removal
+  function toggleStudentSelectForRemoval(checkbox, studentId) {
+    const row = checkbox.closest('tr');
+    
+    if (checkbox.checked) {
+      selectedStudentsForRemoval.add(studentId);
+      row.classList.add('selected');
+    } else {
+      selectedStudentsForRemoval.delete(studentId);
+      row.classList.remove('selected');
+    }
+    
+    updateBulkActionBar();
+    updateSelectAllCheckbox();
+  }
+
+  // Toggle select all
+  function toggleSelectAll(checkbox) {
+    const visibleCheckboxes = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .student-select');
+    
+    visibleCheckboxes.forEach(cb => {
+      const studentId = cb.value;
+      const row = cb.closest('tr');
+      
+      if (checkbox.checked) {
+        cb.checked = true;
+        selectedStudentsForRemoval.add(studentId);
+        row.classList.add('selected');
+      } else {
+        cb.checked = false;
+        selectedStudentsForRemoval.delete(studentId);
+        row.classList.remove('selected');
+      }
+    });
+    
+    updateBulkActionBar();
+  }
+
+  // Update the select all checkbox state based on individual selections
+  function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const visibleCheckboxes = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .student-select');
+    const checkedCount = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .student-select:checked').length;
+    
+    if (visibleCheckboxes.length === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === visibleCheckboxes.length) {
+      selectAllCheckbox.checked = true;
+      selectAllCheckbox.indeterminate = false;
+    } else {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = true;
+    }
+  }
+
+  // Update bulk action bar visibility
+  function updateBulkActionBar() {
+    const actionBar = document.getElementById('bulkActionBar');
+    const selectedCountEl = document.getElementById('selectedCount');
+    
+    if (selectedStudentsForRemoval.size > 0) {
+      actionBar.classList.add('show');
+      selectedCountEl.textContent = selectedStudentsForRemoval.size;
+    } else {
+      actionBar.classList.remove('show');
+    }
+  }
+
+  // Clear all selections
+  function clearAllSelections() {
+    selectedStudentsForRemoval.clear();
+    document.querySelectorAll('.student-select').forEach(cb => {
+      cb.checked = false;
+      cb.closest('tr').classList.remove('selected');
+    });
+    document.getElementById('selectAllCheckbox').checked = false;
+    document.getElementById('selectAllCheckbox').indeterminate = false;
+    updateBulkActionBar();
+  }
+
+  // Confirm bulk removal
+  function confirmBulkRemoval() {
+    if (selectedStudentsForRemoval.size === 0) {
+      showNotification('Please select at least one student', 'error');
+      return;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('bulkRemoveConfirmModal'));
+    document.getElementById('bulkRemoveCount').textContent = selectedStudentsForRemoval.size;
+    
+    // Build list of selected students
+    const studentsList = document.getElementById('selectedStudentsList');
+    const selectedRows = Array.from(document.querySelectorAll('#studentsTable tbody tr.selected'));
+    
+    studentsList.innerHTML = selectedRows.slice(0, 10).map(row => {
+      const name = row.getAttribute('data-name');
+      const code = row.getAttribute('data-code');
+      return `<li class="list-group-item py-2"><strong>${name}</strong> <span class="text-muted">(${code})</span></li>`;
+    }).join('');
+    
+    if (selectedRows.length > 10) {
+      studentsList.innerHTML += `<li class="list-group-item py-2 text-muted">...and ${selectedRows.length - 10} more</li>`;
+    }
+    
+    modal.show();
+  }
+
+  // Execute bulk removal
+  async function executeBulkRemoval() {
+    const btn = document.getElementById('confirmBulkRemoveBtn');
+    const originalText = btn.innerHTML;
+    
+    try {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Removing...';
+      
+      const response = await fetch(`/admin/courses/<%= course._id %>/bulk-remove-students`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentIds: Array.from(selectedStudentsForRemoval),
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Close confirmation modal
+        bootstrap.Modal.getInstance(document.getElementById('bulkRemoveConfirmModal')).hide();
+        
+        // Show results
+        showBulkRemovalResults(data.results);
+      } else {
+        showNotification(data.message || 'Failed to remove students', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    } catch (error) {
+      console.error('Error bulk removing students:', error);
+      showNotification('Failed to remove students', 'error');
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+
+  // Show bulk removal results
+  function showBulkRemovalResults(results) {
+    const modal = new bootstrap.Modal(document.getElementById('bulkRemoveResultsModal'));
+    document.getElementById('bulkRemoveResultsContent').innerHTML = `
+      <div class="alert ${results.success.length > 0 ? 'alert-success' : 'alert-warning'}">
+        <i class="fas ${results.success.length > 0 ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+        Successfully removed ${results.success.length} student(s) from the course
+      </div>
+      
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <div class="card text-center border-success">
+            <div class="card-body py-3">
+              <h3 class="text-success mb-0">${results.success.length}</h3>
+              <p class="mb-0 small text-muted">Removed</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center border-danger">
+            <div class="card-body py-3">
+              <h3 class="text-danger mb-0">${results.failed.length}</h3>
+              <p class="mb-0 small text-muted">Failed</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center border-warning">
+            <div class="card-body py-3">
+              <h3 class="text-warning mb-0">${results.notEnrolled.length}</h3>
+              <p class="mb-0 small text-muted">Not Enrolled</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      ${results.success.length > 0 ? `
+        <div class="mb-3">
+          <h6 class="text-success"><i class="fas fa-check me-1"></i>Removed Students:</h6>
+          <div style="max-height: 150px; overflow-y: auto;">
+            <ul class="list-group list-group-flush">
+              ${results.success.map(s => `
+                <li class="list-group-item py-2">
+                  <strong>${s.studentName}</strong> 
+                  <span class="text-muted">(${s.studentCode})</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        </div>
+      ` : ''}
+
+      ${results.failed.length > 0 ? `
+        <div class="mb-3">
+          <h6 class="text-danger"><i class="fas fa-times me-1"></i>Failed:</h6>
+          <ul class="list-group list-group-flush">
+            ${results.failed.map(f => `
+              <li class="list-group-item py-2 text-danger">
+                ${f.studentId}: ${f.reason}
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${results.notEnrolled.length > 0 ? `
+        <div class="mb-3">
+          <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Not Enrolled in Course:</h6>
+          <ul class="list-group list-group-flush">
+            ${results.notEnrolled.map(s => `
+              <li class="list-group-item py-2">
+                <strong>${s.studentName}</strong> 
+                <span class="text-muted">(${s.studentCode})</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      ` : ''}
+    `;
+    modal.show();
+  }
 </script>
 
 <!-- Manual Enrollment Modal -->
@@ -1539,6 +1910,66 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="window.location.reload()">
           Close & Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Remove Confirmation Modal -->
+<div class="modal fade" id="bulkRemoveConfirmModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle me-2"></i>Confirm Bulk Removal
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-circle me-2"></i>
+          You are about to remove <strong id="bulkRemoveCount">0</strong> student(s) from <strong><%= course.title %></strong>.
+        </div>
+        
+        <p class="text-muted mb-2">This will remove the following students from this course:</p>
+        <ul class="list-group mb-3" id="selectedStudentsList" style="max-height: 200px; overflow-y: auto;">
+          <!-- Student list will be inserted here -->
+        </ul>
+        
+        <div class="alert alert-info mb-0">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Note:</strong> This action removes the course enrollment only. It does not delete the student accounts or affect their other course enrollments.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmBulkRemoveBtn" onclick="executeBulkRemoval()">
+          <i class="fas fa-user-minus me-1"></i>Remove Students
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Remove Results Modal -->
+<div class="modal fade" id="bulkRemoveResultsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-chart-bar me-2"></i>Bulk Removal Results
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="bulkRemoveResultsContent">
+        <!-- Results will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="window.location.reload()">
+          <i class="fas fa-sync me-1"></i>Close & Refresh
         </button>
       </div>
     </div>

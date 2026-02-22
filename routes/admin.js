@@ -180,6 +180,7 @@ const {
   getStudentsForEnrollment,
   removeStudentFromCourse,
   removeStudentFromBundle,
+  bulkRemoveStudentsFromCourse,
   // Duplicate Cleanup
   cleanupUserDuplicates,
   // Promo Codes Management
@@ -465,6 +466,11 @@ router.delete(
   '/courses/:courseId/students/:studentId',
   isAdmin,
   removeStudentFromCourse
+);
+router.post(
+  '/courses/:courseId/bulk-remove-students',
+  isAdmin,
+  bulkRemoveStudentsFromCourse
 );
 router.post('/bundles/:bundleId/enroll', isAdmin, enrollStudentsToBundle);
 router.post(

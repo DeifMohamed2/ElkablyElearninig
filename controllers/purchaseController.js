@@ -8,6 +8,8 @@ const crypto = require('crypto');
 const paymobService = require('../utils/paymobService');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 const wasender = require('../utils/wasender');
+const { PurchaseTracker } = require('../utils/activityTracker');
+const { logError, logSystem } = require('../utils/logger');
 
 // Simple UUID v4 generator
 function generateUUID() {
@@ -274,7 +276,24 @@ async function processSuccessfulPayment(purchase, req = null) {
         delete req.session.bookOnlyPurchase;
         req.session.save();
       }
+
+      // Track purchase completion
+      const itemNames = purchaseToProcess.items.map(i => i.title).join(', ');
+      PurchaseTracker.completed(req, purchaseToProcess._id.toString(), 
+        purchaseToProcess.items[0]?.item?._id?.toString() || '', 
+        itemNames, 
+        purchaseToProcess.totalAmount,
+        purchaseToProcess.paymentMethod || 'paymob'
+      );
     }
+
+    // Log system event
+    logSystem('PURCHASE_COMPLETED', {
+      orderId: purchaseToProcess.orderNumber,
+      userId: purchaseToProcess.user?._id?.toString(),
+      amount: purchaseToProcess.totalAmount,
+      itemCount: purchaseToProcess.items.length,
+    });
 
     console.log(
       `✅ Successfully processed payment and enrollment for order: ${purchaseToProcess.orderNumber}`
@@ -283,6 +302,7 @@ async function processSuccessfulPayment(purchase, req = null) {
     return { success: true, purchase: purchaseToProcess };
   } catch (error) {
     console.error('Error processing successful payment:', error);
+    logError('Error processing successful payment', error);
     throw error;
   }
 }
@@ -333,9 +353,18 @@ async function processFailedPayment(purchase, failureReason, paymentGatewayRespo
       status: freshPurchase.status,
     });
 
+    // Log failed purchase
+    logSystem('PURCHASE_FAILED', {
+      orderId: freshPurchase.orderNumber,
+      userId: freshPurchase.user?.toString(),
+      amount: freshPurchase.totalAmount,
+      failureReason: failureReason,
+    });
+
     return { success: true, purchase: freshPurchase };
   } catch (error) {
     console.error('Error processing failed payment:', error);
+    logError('Error processing failed payment', error);
     throw error;
   }
 }

@@ -13951,7 +13951,15 @@ const removeStudentFromCourse = async (req, res) => {
       });
     }
 
-    // Find and remove the enrollment
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    // Find the enrollment
     const enrollmentIndex = student.enrolledCourses.findIndex(
       (enrollment) =>
         enrollment.course && enrollment.course.toString() === courseId,
@@ -13967,6 +13975,22 @@ const removeStudentFromCourse = async (req, res) => {
     // Remove the enrollment
     student.enrolledCourses.splice(enrollmentIndex, 1);
     await student.save();
+
+    // Log admin action
+    await createLog(req, {
+      action: 'REMOVE_STUDENT_ENROLLMENT',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Removed student "${student.firstName} ${student.lastName}" from course "${course.title}"`,
+      targetModel: 'User',
+      targetId: studentId,
+      targetName: `${student.firstName} ${student.lastName}`,
+      metadata: {
+        courseId: courseId,
+        courseTitle: course.title,
+        courseCode: course.courseCode,
+        studentCode: student.studentCode,
+      },
+    });
 
     res.json({
       success: true,
@@ -14068,6 +14092,128 @@ const removeStudentFromBundle = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to remove student from bundle',
+    });
+  }
+};
+
+// Bulk remove students from course with selection
+const bulkRemoveStudentsFromCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { studentIds } = req.body;
+
+    // Validate input
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select at least one student to remove',
+      });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found',
+      });
+    }
+
+    const results = {
+      success: [],
+      failed: [],
+      notEnrolled: [],
+      total: studentIds.length,
+    };
+
+    // Process each student
+    for (const studentId of studentIds) {
+      try {
+        const student = await User.findById(studentId);
+        
+        if (!student) {
+          results.failed.push({
+            studentId,
+            reason: 'Student not found',
+          });
+          continue;
+        }
+
+        // Find the enrollment
+        const enrollmentIndex = student.enrolledCourses.findIndex(
+          (enrollment) =>
+            enrollment.course && enrollment.course.toString() === courseId,
+        );
+
+        if (enrollmentIndex === -1) {
+          results.notEnrolled.push({
+            studentId,
+            studentName: `${student.firstName} ${student.lastName}`,
+            studentCode: student.studentCode,
+          });
+          continue;
+        }
+
+        // Remove the enrollment
+        student.enrolledCourses.splice(enrollmentIndex, 1);
+        await student.save();
+
+        results.success.push({
+          studentId,
+          studentName: `${student.firstName} ${student.lastName}`,
+          studentCode: student.studentCode,
+          studentEmail: student.studentEmail,
+        });
+      } catch (studentError) {
+        console.error(`Error removing student ${studentId}:`, studentError);
+        results.failed.push({
+          studentId,
+          reason: studentError.message || 'Unknown error',
+        });
+      }
+    }
+
+    // Log admin action with detailed information
+    await createLog(req, {
+      action: 'BULK_REMOVE_STUDENT_ENROLLMENT',
+      actionCategory: 'STUDENT_MANAGEMENT',
+      description: `Bulk removed ${results.success.length} student(s) from course "${course.title}" (${course.courseCode}). ${results.failed.length} failed, ${results.notEnrolled.length} not enrolled.`,
+      targetModel: 'Course',
+      targetId: courseId,
+      targetName: course.title,
+      metadata: {
+        courseId: courseId,
+        courseTitle: course.title,
+        courseCode: course.courseCode,
+        totalRequested: studentIds.length,
+        successCount: results.success.length,
+        failedCount: results.failed.length,
+        notEnrolledCount: results.notEnrolled.length,
+        removedStudents: results.success.map(s => ({
+          id: s.studentId,
+          name: s.studentName,
+          code: s.studentCode,
+          email: s.studentEmail,
+        })),
+        failedStudents: results.failed,
+        notEnrolledStudents: results.notEnrolled,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully removed ${results.success.length} student(s) from course`,
+      results: {
+        success: results.success,
+        failed: results.failed,
+        notEnrolled: results.notEnrolled,
+        total: results.total,
+      },
+    });
+  } catch (error) {
+    console.error('Error bulk removing students from course:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk remove students from course',
     });
   }
 };
@@ -17560,6 +17706,7 @@ module.exports = {
   getStudentsForEnrollment,
   removeStudentFromCourse,
   removeStudentFromBundle,
+  bulkRemoveStudentsFromCourse,
   // Duplicate Cleanup
   cleanupUserDuplicates,
   // Promo Codes Management

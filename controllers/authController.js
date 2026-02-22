@@ -5,6 +5,8 @@ const whatsappSMSNotificationService = require('../utils/whatsappSMSNotification
 const crypto = require('crypto');
 const { sendSms } = require('../utils/sms');
 const otpMasterUtil = require('../utils/otpMasterGenerator');
+const { StudentTracker, AdminTracker, SecurityTracker } = require('../utils/activityTracker');
+const { logError, logActivity, ActivityActions } = require('../utils/logger');
 
 // Get login page
 const getLoginPage = async (req, res) => {
@@ -1249,6 +1251,7 @@ const loginUser = async (req, res) => {
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
+        logError('Session save failed during login', err, { userId: user._id });
         errors.push({
           msg: 'An error occurred during login. Please try again.',
         });
@@ -1258,6 +1261,13 @@ const loginUser = async (req, res) => {
           errors,
           email,
         });
+      }
+
+      // Track successful login
+      if (user.role === 'admin' || user.role === 'superAdmin') {
+        AdminTracker.login(req, user, true);
+      } else {
+        StudentTracker.login(req, user, true);
       }
 
       // Simple redirect based on role
@@ -1317,6 +1327,15 @@ const loginUser = async (req, res) => {
 
 // Logout user
 const logoutUser = async (req, res) => {
+  // Track logout before destroying session
+  if (req.session && req.session.user) {
+    if (req.session.user.role === 'admin' || req.session.user.role === 'superAdmin') {
+      AdminTracker.logout(req, req.session.user);
+    } else {
+      StudentTracker.logout(req);
+    }
+  }
+
   // Clear session token from user document if student
   if (
     req.session &&
@@ -1332,12 +1351,14 @@ const logoutUser = async (req, res) => {
       }
     } catch (err) {
       console.error('Error clearing session token on logout:', err);
+      logError('Error clearing session token on logout', err);
     }
   }
 
   req.session.destroy((err) => {
     if (err) {
       console.error('Logout error:', err);
+      logError('Logout session destroy error', err);
     }
     res.clearCookie('elkably.session');
     res.redirect('/auth/login');
