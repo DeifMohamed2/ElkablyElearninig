@@ -128,7 +128,7 @@ const BookOrderSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Indexes for better query performance
@@ -157,19 +157,24 @@ BookOrderSchema.statics.hasUserOrderedBook = async function (userId, bundleId) {
       user: userId,
       bundle: bundleId,
       status: { $ne: 'cancelled' },
-    }).populate({
-      path: 'purchase',
-      select: 'paymentStatus status',
-    }).lean();
-    
+    })
+      .populate({
+        path: 'purchase',
+        select: 'paymentStatus status',
+      })
+      .lean();
+
     // Check if any order has a completed purchase
     for (const order of orders) {
-      if (order.purchase && 
-          (order.purchase.paymentStatus === 'completed' || order.purchase.status === 'completed')) {
+      if (
+        order.purchase &&
+        (order.purchase.paymentStatus === 'completed' ||
+          order.purchase.status === 'completed')
+      ) {
         return true;
       }
     }
-    
+
     return false;
   } catch (error) {
     console.error('Error checking if user has ordered book:', error);
@@ -192,4 +197,3 @@ BookOrderSchema.statics.getUserBookOrders = function (userId, options = {}) {
 };
 
 module.exports = mongoose.model('BookOrder', BookOrderSchema);
-

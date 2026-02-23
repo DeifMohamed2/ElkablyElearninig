@@ -6226,14 +6226,17 @@ const getBundles = async (req, res) => {
     ]);
 
     // Calculate virtual fields since .lean() strips them
-    const bundles = bundlesRaw.map(bundle => {
+    const bundles = bundlesRaw.map((bundle) => {
       const discountPrice = bundle.discountPrice || 0;
       const price = bundle.price || 0;
       return {
         ...bundle,
-        finalPrice: discountPrice && price ? price - (price * (discountPrice / 100)) : price,
+        finalPrice:
+          discountPrice && price
+            ? price - price * (discountPrice / 100)
+            : price,
         savings: discountPrice && price ? price * (discountPrice / 100) : 0,
-        savingsPercentage: discountPrice || 0
+        savingsPercentage: discountPrice || 0,
       };
     });
 
@@ -12619,7 +12622,7 @@ const bulkImportStudents = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(req.file.path);
     const worksheet = workbook.worksheets[0];
-    
+
     // Convert worksheet to JSON array
     const data = [];
     const headerRow = worksheet.getRow(1);
@@ -13001,8 +13004,8 @@ const downloadBulkImportSample = async (req, res) => {
     const worksheet = workbook.addWorksheet('Students Sample');
     const headers = Object.keys(sampleRows[0]);
     worksheet.addRow(headers);
-    sampleRows.forEach(row => {
-      worksheet.addRow(headers.map(h => row[h]));
+    sampleRows.forEach((row) => {
+      worksheet.addRow(headers.map((h) => row[h]));
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -13065,8 +13068,8 @@ const downloadEnrollmentTemplate = async (req, res) => {
     const worksheet = workbook.addWorksheet('Students');
     const headers = Object.keys(sampleRows[0]);
     worksheet.addRow(headers);
-    sampleRows.forEach(row => {
-      worksheet.addRow(headers.map(h => row[h]));
+    sampleRows.forEach((row) => {
+      worksheet.addRow(headers.map((h) => row[h]));
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -13455,7 +13458,7 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
     }
 
     const worksheet = workbook.worksheets[0];
-    
+
     // Convert worksheet to JSON array
     const data = [];
     const headerRow = worksheet.getRow(1);
@@ -13704,7 +13707,7 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
     }
 
     const worksheet = workbook.worksheets[0];
-    
+
     // Convert worksheet to JSON array
     const data = [];
     const headerRow = worksheet.getRow(1);
@@ -14192,7 +14195,7 @@ const bulkRemoveStudentsFromCourse = async (req, res) => {
     for (const studentId of studentIds) {
       try {
         const student = await User.findById(studentId);
-        
+
         if (!student) {
           results.failed.push({
             studentId,
@@ -14251,7 +14254,7 @@ const bulkRemoveStudentsFromCourse = async (req, res) => {
         successCount: results.success.length,
         failedCount: results.failed.length,
         notEnrolledCount: results.notEnrolled.length,
-        removedStudents: results.success.map(s => ({
+        removedStudents: results.success.map((s) => ({
           id: s.studentId,
           name: s.studentName,
           code: s.studentCode,

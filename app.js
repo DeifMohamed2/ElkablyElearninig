@@ -16,7 +16,10 @@ const morgan = require('morgan');
 
 // Professional Logging System
 const { logger, logSystem, logError, morganStream } = require('./utils/logger');
-const { requestTracker, errorTracker } = require('./middlewares/requestTracker');
+const {
+  requestTracker,
+  errorTracker,
+} = require('./middlewares/requestTracker');
 
 // Load environment variables
 dotenv.config();
@@ -168,10 +171,12 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Request tracking middleware (detailed logging)
-app.use(requestTracker({
-  slowRequestThreshold: 3000, // Log slow requests > 3 seconds
-  excludePaths: ['/health', '/favicon.ico', '/robots.txt'],
-}));
+app.use(
+  requestTracker({
+    slowRequestThreshold: 3000, // Log slow requests > 3 seconds
+    excludePaths: ['/health', '/favicon.ico', '/robots.txt'],
+  }),
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -357,7 +362,7 @@ mongoose
         environment: process.env.NODE_ENV || 'development',
         nodeVersion: process.version,
       });
-      
+
       console.log('Connected to database and listening on port', PORT);
       console.log('server is running in', 'http://localhost:' + PORT);
       console.log('Server is running on http://0.0.0.0:' + PORT);
