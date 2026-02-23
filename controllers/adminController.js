@@ -12615,11 +12615,30 @@ const bulkImportStudents = async (req, res) => {
       });
     }
 
-    const XLSX = require('xlsx');
-    const workbook = XLSX.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    const worksheet = workbook.worksheets[0];
+    
+    // Convert worksheet to JSON array
+    const data = [];
+    const headerRow = worksheet.getRow(1);
+    const headers = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber] = cell.value;
+    });
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        if (headers[colNumber]) {
+          rowData[headers[colNumber]] = cell.value;
+        }
+      });
+      if (Object.keys(rowData).length > 0) {
+        data.push(rowData);
+      }
+    });
 
     const results = {
       success: [],
@@ -12950,7 +12969,7 @@ const bulkImportStudents = async (req, res) => {
  */
 const downloadBulkImportSample = async (req, res) => {
   try {
-    const XLSX = require('xlsx');
+    const ExcelJS = require('exceljs');
     const sampleRows = [
       {
         'Student Name': 'Ali Saudi',
@@ -12978,11 +12997,15 @@ const downloadBulkImportSample = async (req, res) => {
       },
     ];
 
-    const worksheet = XLSX.utils.json_to_sheet(sampleRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students Sample');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students Sample');
+    const headers = Object.keys(sampleRows[0]);
+    worksheet.addRow(headers);
+    sampleRows.forEach(row => {
+      worksheet.addRow(headers.map(h => row[h]));
+    });
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
 
     res.setHeader(
       'Content-Disposition',
@@ -13006,7 +13029,7 @@ const downloadBulkImportSample = async (req, res) => {
 // Download Excel enrollment template
 const downloadEnrollmentTemplate = async (req, res) => {
   try {
-    const XLSX = require('xlsx');
+    const ExcelJS = require('exceljs');
 
     // Excel template with sample data
     // Users can use any one of: Email, Phone, or Code columns
@@ -13038,11 +13061,15 @@ const downloadEnrollmentTemplate = async (req, res) => {
       },
     ];
 
-    const worksheet = XLSX.utils.json_to_sheet(sampleRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students');
+    const headers = Object.keys(sampleRows[0]);
+    worksheet.addRow(headers);
+    sampleRows.forEach(row => {
+      worksheet.addRow(headers.map(h => row[h]));
+    });
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
 
     res.setHeader(
       'Content-Disposition',
@@ -13399,10 +13426,10 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
       });
     }
 
-    const XLSX = require('xlsx');
-    let workbook;
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
     try {
-      workbook = XLSX.readFile(req.file.path);
+      await workbook.xlsx.readFile(req.file.path);
     } catch (xlsxError) {
       console.error('Error reading Excel file:', xlsxError);
       // Clean up file
@@ -13416,7 +13443,7 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
       });
     }
 
-    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    if (!workbook.worksheets || workbook.worksheets.length === 0) {
       // Clean up file
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
@@ -13427,9 +13454,27 @@ const bulkEnrollStudentsToCourse = async (req, res) => {
       });
     }
 
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    const worksheet = workbook.worksheets[0];
+    
+    // Convert worksheet to JSON array
+    const data = [];
+    const headerRow = worksheet.getRow(1);
+    const headers = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber] = cell.value;
+    });
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        if (headers[colNumber]) {
+          rowData[headers[colNumber]] = cell.value;
+        }
+      });
+      if (Object.keys(rowData).length > 0) {
+        data.push(rowData);
+      }
+    });
 
     const results = {
       success: [],
@@ -13630,10 +13675,10 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
       });
     }
 
-    const XLSX = require('xlsx');
-    let workbook;
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
     try {
-      workbook = XLSX.readFile(req.file.path);
+      await workbook.xlsx.readFile(req.file.path);
     } catch (xlsxError) {
       console.error('Error reading Excel file:', xlsxError);
       // Clean up file
@@ -13647,7 +13692,7 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
       });
     }
 
-    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    if (!workbook.worksheets || workbook.worksheets.length === 0) {
       // Clean up file
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
@@ -13658,9 +13703,27 @@ const bulkEnrollStudentsToBundle = async (req, res) => {
       });
     }
 
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    const worksheet = workbook.worksheets[0];
+    
+    // Convert worksheet to JSON array
+    const data = [];
+    const headerRow = worksheet.getRow(1);
+    const headers = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber] = cell.value;
+    });
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        if (headers[colNumber]) {
+          rowData[headers[colNumber]] = cell.value;
+        }
+      });
+      if (Object.keys(rowData).length > 0) {
+        data.push(rowData);
+      }
+    });
 
     const results = {
       success: [],

@@ -387,6 +387,5 @@ CourseSchema.statics.getBundleCoursesWithStatus = async function (
 // Performance indexes
 CourseSchema.index({ status: 1, createdAt: -1 });
 CourseSchema.index({ bundle: 1, status: 1 });
-CourseSchema.index({ courseCode: 1 });
 
 module.exports = mongoose.model('Course', CourseSchema);

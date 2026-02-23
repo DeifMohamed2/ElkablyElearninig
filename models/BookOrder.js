@@ -134,7 +134,6 @@ const BookOrderSchema = new mongoose.Schema(
 // Indexes for better query performance
 BookOrderSchema.index({ user: 1, bundle: 1 });
 BookOrderSchema.index({ status: 1 });
-BookOrderSchema.index({ orderNumber: 1 });
 BookOrderSchema.index({ createdAt: -1 });
 
 // Virtual for status display

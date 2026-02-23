@@ -402,6 +402,5 @@ PurchaseSchema.index({ createdAt: -1 });
 PurchaseSchema.index({ user: 1, status: 1 });
 PurchaseSchema.index({ status: 1, refundedAt: 1 });
 PurchaseSchema.index({ paymentStatus: 1 });
-PurchaseSchema.index({ orderNumber: 1 });
 
 module.exports = mongoose.model('Purchase', PurchaseSchema);
