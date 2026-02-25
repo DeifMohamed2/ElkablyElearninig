@@ -98,6 +98,7 @@ const {
   deleteBundle,
   getBundleManage,
   getBundleInfo,
+  getBundleStudentsAPI,
   getBundleStudents,
   addCourseToBundle,
   removeCourseFromBundle,
@@ -395,6 +396,7 @@ router.post(
 router.get('/bundles', isAdmin, getBundles);
 router.post('/bundles/create', isAdmin, createBundle);
 router.get('/bundles/:bundleCode/info', isAdmin, getBundleInfo);
+router.get('/bundles/:bundleCode/students-api', isAdmin, getBundleStudentsAPI);
 router.put('/bundles/:bundleCode', isAdmin, updateBundle);
 router.delete('/bundles/:bundleCode', isAdmin, deleteBundle);
 router.get('/bundles/:bundleCode/manage', isAdmin, getBundleManage);

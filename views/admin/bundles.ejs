@@ -321,6 +321,63 @@
             </div>
             <% } %>
           </div>
+
+          <!-- Pagination -->
+          <% if (pagination && pagination.totalPages > 1) { %>
+          <div class="admin-pagination mt-4">
+            <nav aria-label="Bundle pagination">
+              <ul class="pagination justify-content-center">
+                <%
+                  const buildQueryString = (page) => {
+                    const params = new URLSearchParams();
+                    params.set('page', page);
+                    if (currentFilters.status && currentFilters.status !== 'all') params.set('status', currentFilters.status);
+                    if (currentFilters.courseType && currentFilters.courseType !== 'all') params.set('courseType', currentFilters.courseType);
+                    if (currentFilters.search) params.set('search', currentFilters.search);
+                    return params.toString();
+                  };
+                %>
+                
+                <% if (pagination.hasPrev) { %>
+                  <li class="page-item">
+                    <a class="page-link" href="?<%= buildQueryString(1) %>" title="First page">
+                      <i class="fas fa-angle-double-left"></i>
+                    </a>
+                  </li>
+                  <li class="page-item">
+                    <a class="page-link" href="?<%= buildQueryString(pagination.currentPage - 1) %>">
+                      <i class="fas fa-chevron-left"></i>
+                    </a>
+                  </li>
+                <% } %>
+                
+                <% for (let i = Math.max(1, pagination.currentPage - 2); i <= Math.min(pagination.totalPages, pagination.currentPage + 2); i++) { %>
+                  <li class="page-item <%= i === pagination.currentPage ? 'active' : '' %>">
+                    <a class="page-link" href="?<%= buildQueryString(i) %>">
+                      <%= i %>
+                    </a>
+                  </li>
+                <% } %>
+                
+                <% if (pagination.hasNext) { %>
+                  <li class="page-item">
+                    <a class="page-link" href="?<%= buildQueryString(pagination.currentPage + 1) %>">
+                      <i class="fas fa-chevron-right"></i>
+                    </a>
+                  </li>
+                  <li class="page-item">
+                    <a class="page-link" href="?<%= buildQueryString(pagination.totalPages) %>" title="Last page">
+                      <i class="fas fa-angle-double-right"></i>
+                    </a>
+                  </li>
+                <% } %>
+              </ul>
+            </nav>
+            <div class="text-center text-muted mt-2">
+              <small>Page <%= pagination.currentPage %> of <%= pagination.totalPages %> (<%= pagination.totalBundles %> bundles total)</small>
+            </div>
+          </div>
+          <% } %>
         </div>
 
       </div>

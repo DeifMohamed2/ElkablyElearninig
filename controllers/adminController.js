@@ -7067,221 +7067,142 @@ const getBundleInfo = async (req, res) => {
   try {
     const { bundleCode } = req.params;
 
-    // Get bundle with populated data
+    // Get bundle with minimal data - NO student population
     const bundle = await BundleCourse.findOne({ bundleCode })
       .populate({
         path: 'courses',
-        populate: {
-          path: 'topics',
-          model: 'Topic',
-        },
+        select: 'title courseCode',
       })
       .populate('createdBy', 'userName email')
-      .populate(
-        'enrolledStudents',
-        'firstName lastName username studentEmail grade schoolName isActive createdAt',
-      );
+      .lean();
 
     if (!bundle) {
       req.flash('error_msg', 'Bundle not found');
       return res.redirect('/admin/bundles');
     }
 
-    // Get students enrolled in this bundle (using enrolledStudents array)
-    const studentsWithBundle = await User.find({
-      _id: { $in: bundle.enrolledStudents },
-    })
-      .populate('enrolledCourses.course', 'title courseCode')
-      .populate('purchasedBundles.bundle', 'title bundleCode')
-      .select(
-        'firstName lastName username studentEmail grade schoolName isActive createdAt enrolledCourses purchasedBundles',
-      );
+    // Calculate virtual fields for bundle
+    const discountPrice = bundle.discountPrice || 0;
+    const price = bundle.price || 0;
+    bundle.finalPrice = discountPrice && price ? price - price * (discountPrice / 100) : price;
+    bundle.savings = discountPrice && price ? price * (discountPrice / 100) : 0;
+    bundle.savingsPercentage = discountPrice || 0;
 
-    // Also get students who purchased this bundle but might not be in enrolledStudents
-    const purchasedStudents = await User.find({
-      'purchasedBundles.bundle': bundle._id,
-    })
-      .populate('enrolledCourses.course', 'title courseCode')
-      .populate('purchasedBundles.bundle', 'title bundleCode')
-      .select(
-        'firstName lastName username studentEmail grade schoolName isActive createdAt enrolledCourses purchasedBundles',
-      );
+    // Get course IDs for this bundle
+    const bundleCourseIds = bundle.courses.map((c) => c._id);
 
-    // Merge both arrays and remove duplicates
-    const allStudents = [...studentsWithBundle];
-    purchasedStudents.forEach((ps) => {
-      if (!allStudents.find((s) => s._id.toString() === ps._id.toString())) {
-        allStudents.push(ps);
-      }
-    });
+    // Get enrollment stats per course using aggregation
+    const courseEnrollmentStats = await User.aggregate([
+      {
+        $match: {
+          $or: [
+            { _id: { $in: bundle.enrolledStudents || [] } },
+            { 'purchasedBundles.bundle': bundle._id },
+          ],
+        },
+      },
+      {
+        $unwind: { path: '$enrolledCourses', preserveNullAndEmptyArrays: false },
+      },
+      {
+        $match: {
+          'enrolledCourses.course': { $in: bundleCourseIds },
+        },
+      },
+      {
+        $group: {
+          _id: '$enrolledCourses.course',
+          enrolledCount: { $sum: 1 },
+          completedCount: {
+            $sum: { $cond: [{ $gte: ['$enrolledCourses.progress', 100] }, 1, 0] },
+          },
+          totalProgress: { $sum: { $ifNull: ['$enrolledCourses.progress', 0] } },
+        },
+      },
+    ]);
 
-    // Calculate comprehensive student analytics
-    const studentAnalytics = {
-      totalStudents: allStudents.length,
-      activeStudents: allStudents.filter((student) => student.isActive).length,
-      inactiveStudents: allStudents.filter((student) => !student.isActive)
-        .length,
-      completedStudents: 0, // Will calculate based on course completion
-      averageProgress: 0,
-      recentEnrollments: allStudents.filter((student) => {
-        // Check if student purchased this bundle in last 30 days
-        const bundlePurchase = student.purchasedBundles.find(
-          (pb) =>
-            pb.bundle._id?.toString() === bundle._id.toString() ||
-            pb.bundle.toString() === bundle._id.toString(),
-        );
-        if (bundlePurchase) {
-          const enrollmentDate = new Date(bundlePurchase.purchasedAt);
-          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-          return enrollmentDate >= thirtyDaysAgo;
-        }
-        return false;
-      }).length,
-    };
-
-    // Calculate course completion and progress
-    let totalProgress = 0;
-    let completedCount = 0;
-
-    for (const student of allStudents) {
-      let studentCourseProgress = 0;
-      let completedCourses = 0;
-      let enrolledInBundleCourses = 0;
-
-      for (const course of bundle.courses) {
-        // Find student's enrollment in this course
-        const enrollment = student.enrolledCourses?.find(
-          (e) =>
-            e.course?._id?.toString() === course._id.toString() ||
-            e.course?.toString() === course._id.toString(),
-        );
-
-        if (enrollment) {
-          enrolledInBundleCourses++;
-          studentCourseProgress += enrollment.progress || 0;
-          if (enrollment.progress >= 100) {
-            completedCourses++;
-          }
-        }
-      }
-
-      // Calculate average progress only for courses student is enrolled in
-      const averageCourseProgress =
-        enrolledInBundleCourses > 0
-          ? studentCourseProgress / enrolledInBundleCourses
-          : 0;
-      totalProgress += averageCourseProgress;
-
-      // Consider student completed if they finished 80% or more of bundle courses
-      if (completedCourses >= Math.ceil(bundle.courses.length * 0.8)) {
-        completedCount++;
-      }
-    }
-
-    studentAnalytics.averageProgress =
-      allStudents.length > 0
-        ? Math.round(totalProgress / allStudents.length)
-        : 0;
-    studentAnalytics.completedStudents = completedCount;
-
-    // Calculate financial analytics
-    const financialAnalytics = {
-      totalRevenue: 0,
-      discountedRevenue: 0,
-      fullPriceRevenue: 0,
-      averageRevenuePerStudent: 0,
-      monthlyRevenue: Array(12).fill(0),
-      totalPotentialRevenue: allStudents.length * bundle.price,
-      conversionRate: 0,
-    };
-
-    // Calculate revenue from bundle purchases
-    for (const student of allStudents) {
-      const bundlePurchase = student.purchasedBundles.find(
-        (pb) =>
-          pb.bundle._id?.toString() === bundle._id.toString() ||
-          pb.bundle.toString() === bundle._id.toString(),
-      );
-
-      if (bundlePurchase) {
-        const paidPrice = bundlePurchase.price || bundle.finalPrice;
-        financialAnalytics.totalRevenue += paidPrice;
-
-        if (paidPrice < bundle.price) {
-          financialAnalytics.discountedRevenue += paidPrice;
-        } else {
-          financialAnalytics.fullPriceRevenue += paidPrice;
-        }
-
-        // Monthly revenue tracking
-        const purchaseMonth = new Date(bundlePurchase.purchasedAt).getMonth();
-        financialAnalytics.monthlyRevenue[purchaseMonth] += paidPrice;
-      }
-    }
-
-    financialAnalytics.averageRevenuePerStudent =
-      allStudents.length > 0
-        ? financialAnalytics.totalRevenue / allStudents.length
-        : 0;
-
-    // Calculate course-specific analytics
-    const courseAnalytics = bundle.courses.map((course) => {
-      const enrolledInCourse = allStudents.filter((student) =>
-        student.enrolledCourses?.some(
-          (e) =>
-            e.course?._id?.toString() === course._id.toString() ||
-            e.course?.toString() === course._id.toString(),
-        ),
-      ).length;
-
-      const completedCourse = allStudents.filter((student) =>
-        student.enrolledCourses?.some(
-          (e) =>
-            (e.course?._id?.toString() === course._id.toString() ||
-              e.course?.toString() === course._id.toString()) &&
-            e.progress >= 100,
-        ),
-      ).length;
-
-      return {
-        courseId: course._id,
-        title: course.title,
-        enrolledStudents: enrolledInCourse,
-        completedStudents: completedCourse,
-        completionRate:
-          enrolledInCourse > 0
-            ? Math.round((completedCourse / enrolledInCourse) * 100)
-            : 0,
-        topicsCount: course.topics?.length || 0,
-        averageRating:
-          course.ratings?.length > 0
-            ? Math.round(
-                (course.ratings.reduce((sum, r) => sum + r.rating, 0) /
-                  course.ratings.length) *
-                  10,
-              ) / 10
-            : 0,
+    // Create a map for quick lookup
+    const courseStatsMap = {};
+    courseEnrollmentStats.forEach((stat) => {
+      courseStatsMap[stat._id.toString()] = {
+        enrolled: stat.enrolledCount,
+        completed: stat.completedCount,
+        avgProgress: stat.enrolledCount > 0 ? Math.round(stat.totalProgress / stat.enrolledCount) : 0,
       };
     });
 
-    console.log('Bundle Analytics Debug:', {
-      bundleId: bundle._id,
-      bundleCode: bundle.bundleCode,
-      totalEnrolledStudents: bundle.enrolledStudents?.length || 0,
-      studentsFound: allStudents.length,
-      courseCount: bundle.courses.length,
-      studentAnalytics,
-      courseAnalytics: courseAnalytics.map((c) => ({
-        title: c.title,
-        enrolled: c.enrolledStudents,
-        completed: c.completedStudents,
-        rate: c.completionRate,
-      })),
+    // Get quick stats using aggregation pipeline - no full student data
+    const statsAggregation = await User.aggregate([
+      {
+        $match: {
+          $or: [
+            { _id: { $in: bundle.enrolledStudents || [] } },
+            { 'purchasedBundles.bundle': bundle._id },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalStudents: { $sum: 1 },
+          activeStudents: { $sum: { $cond: ['$isActive', 1, 0] } },
+          grades: { $push: '$grade' },
+          schools: { $push: '$schoolName' },
+        },
+      },
+    ]);
+
+    const stats = statsAggregation[0] || { totalStudents: 0, activeStudents: 0, grades: [], schools: [] };
+
+    // Calculate distributions
+    const gradeDistribution = {};
+    const schoolDistribution = {};
+    stats.grades.forEach(grade => {
+      const g = grade || 'Unknown';
+      gradeDistribution[g] = (gradeDistribution[g] || 0) + 1;
+    });
+    stats.schools.forEach(school => {
+      const s = school || 'Unknown';
+      schoolDistribution[s] = (schoolDistribution[s] || 0) + 1;
     });
 
-    // Calculate engagement metrics
+    const studentAnalytics = {
+      totalStudents: stats.totalStudents,
+      activeStudents: stats.activeStudents,
+      inactiveStudents: stats.totalStudents - stats.activeStudents,
+      completedStudents: 0,
+      averageProgress: 0,
+      recentEnrollments: 0,
+    };
+
+    // Simple revenue estimate
+    const financialAnalytics = {
+      totalRevenue: stats.totalStudents * (bundle.finalPrice || bundle.price || 0),
+      discountedRevenue: 0,
+      fullPriceRevenue: 0,
+      averageRevenuePerStudent: bundle.finalPrice || bundle.price || 0,
+      monthlyRevenue: Array(12).fill(0),
+      totalPotentialRevenue: stats.totalStudents * bundle.price,
+      conversionRate: 0,
+    };
+
+    // Course analytics with real per-course data
+    const courseAnalytics = bundle.courses.map((course) => {
+      const courseStats = courseStatsMap[course._id.toString()] || { enrolled: 0, completed: 0, avgProgress: 0 };
+      return {
+        courseId: course._id,
+        title: course.title,
+        enrolledStudents: courseStats.enrolled,
+        completedStudents: courseStats.completed,
+        completionRate: courseStats.enrolled > 0 ? Math.round((courseStats.completed / courseStats.enrolled) * 100) : 0,
+        averageProgress: courseStats.avgProgress,
+        topicsCount: 0,
+        averageRating: 0,
+      };
+    });
+
     const engagementMetrics = {
-      dailyActiveUsers: 0, // Would need activity tracking
+      dailyActiveUsers: 0,
       weeklyActiveUsers: 0,
       averageSessionDuration: 0,
       contentCompletionRate: 0,
@@ -7289,52 +7210,6 @@ const getBundleInfo = async (req, res) => {
       averageQuizScore: 0,
     };
 
-    // Get quiz performance data
-    const Quiz = require('../models/Quiz');
-    const quizzes = await Quiz.find({
-      bundleId: bundle._id,
-    }).populate('attempts.student', 'firstName lastName');
-
-    let totalQuizAttempts = 0;
-    let totalQuizScore = 0;
-
-    quizzes.forEach((quiz) => {
-      if (quiz.attempts) {
-        totalQuizAttempts += quiz.attempts.length;
-        totalQuizScore += quiz.attempts.reduce(
-          (sum, attempt) => sum + (attempt.score || 0),
-          0,
-        );
-      }
-    });
-
-    engagementMetrics.quizAttempts = totalQuizAttempts;
-    engagementMetrics.averageQuizScore =
-      totalQuizAttempts > 0
-        ? Math.round(totalQuizScore / totalQuizAttempts)
-        : 0;
-
-    // Calculate content completion rate
-    let totalContent = 0;
-    let completedContent = 0;
-
-    bundle.courses.forEach((course) => {
-      if (course.topics) {
-        course.topics.forEach((topic) => {
-          if (topic.content) {
-            totalContent += topic.content.length;
-            // This would need proper progress tracking implementation
-          }
-        });
-      }
-    });
-
-    engagementMetrics.contentCompletionRate =
-      totalContent > 0
-        ? Math.round((completedContent / totalContent) * 100)
-        : 0;
-
-    // Get recent activity (would need activity tracking)
     const recentActivity = [
       {
         type: 'enrollment',
@@ -7352,35 +7227,20 @@ const getBundleInfo = async (req, res) => {
       },
       {
         type: 'revenue',
-        description: `$${Math.round(
-          financialAnalytics.totalRevenue,
-        )} total revenue generated`,
+        description: `EGP ${Math.round(financialAnalytics.totalRevenue)} total revenue generated`,
         timestamp: new Date(),
         icon: 'coins',
         color: 'warning',
       },
     ];
 
-    // Grade distribution
-    const gradeDistribution = {};
-    allStudents.forEach((student) => {
-      const grade = student.grade || 'Unknown';
-      gradeDistribution[grade] = (gradeDistribution[grade] || 0) + 1;
-    });
-
-    // School distribution
-    const schoolDistribution = {};
-    allStudents.forEach((student) => {
-      const school = student.schoolName || 'Unknown';
-      schoolDistribution[school] = (schoolDistribution[school] || 0) + 1;
-    });
-
+    // Don't send students - they'll be loaded via AJAX
     return res.render('admin/bundle-info', {
       title: `Bundle Information: ${bundle.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
       user: req.session.user,
       bundle,
-      studentsWithBundle: allStudents,
+      studentsWithBundle: [], // Empty - loaded via AJAX
       studentAnalytics,
       financialAnalytics,
       courseAnalytics,
@@ -7393,6 +7253,115 @@ const getBundleInfo = async (req, res) => {
     console.error('Error fetching bundle information:', error);
     req.flash('error_msg', 'Error loading bundle information');
     res.redirect('/admin/bundles');
+  }
+};
+
+// API endpoint for paginated bundle students
+const getBundleStudentsAPI = async (req, res) => {
+  try {
+    const { bundleCode } = req.params;
+    const { page = 1, limit = 20, search = '', status = 'all', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    const bundle = await BundleCourse.findOne({ bundleCode }).select('_id enrolledStudents').lean();
+    if (!bundle) {
+      return res.status(404).json({ success: false, message: 'Bundle not found' });
+    }
+
+    // Build match conditions
+    const matchConditions = {
+      $or: [
+        { _id: { $in: bundle.enrolledStudents || [] } },
+        { 'purchasedBundles.bundle': bundle._id },
+      ],
+    };
+
+    // Add search filter
+    if (search) {
+      matchConditions.$and = [
+        {
+          $or: [
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { username: { $regex: search, $options: 'i' } },
+            { studentEmail: { $regex: search, $options: 'i' } },
+            { schoolName: { $regex: search, $options: 'i' } },
+          ],
+        },
+      ];
+    }
+
+    // Add status filter
+    if (status && status !== 'all') {
+      matchConditions.isActive = status === 'active';
+    }
+
+    // Sort configuration
+    const sortConfig = {};
+    sortConfig[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get total count and paginated students in parallel
+    const [countResult, students] = await Promise.all([
+      User.countDocuments(matchConditions),
+      User.aggregate([
+        { $match: matchConditions },
+        {
+          $project: {
+            firstName: 1,
+            lastName: 1,
+            username: 1,
+            studentEmail: 1,
+            grade: 1,
+            schoolName: 1,
+            isActive: 1,
+            createdAt: 1,
+            bundlePurchase: {
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: { $ifNull: ['$purchasedBundles', []] },
+                    as: 'pb',
+                    cond: { $eq: ['$$pb.bundle', bundle._id] },
+                  },
+                },
+                0,
+              ],
+            },
+          },
+        },
+        { $sort: sortConfig },
+        { $skip: skip },
+        { $limit: parseInt(limit) },
+      ]),
+    ]);
+
+    const totalPages = Math.ceil(countResult / parseInt(limit));
+
+    return res.json({
+      success: true,
+      students: students.map((s) => ({
+        _id: s._id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        username: s.username,
+        studentEmail: s.studentEmail,
+        grade: s.grade,
+        schoolName: s.schoolName,
+        isActive: s.isActive,
+        enrollmentDate: s.bundlePurchase?.purchasedAt || s.createdAt,
+      })),
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalStudents: countResult,
+        hasNext: parseInt(page) < totalPages,
+        hasPrev: parseInt(page) > 1,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching bundle students:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch students' });
   }
 };
 
@@ -17688,6 +17657,7 @@ module.exports = {
   deleteBundle,
   getBundleManage,
   getBundleInfo,
+  getBundleStudentsAPI,
   getBundleStudents,
   addCourseToBundle,
   removeCourseFromBundle,

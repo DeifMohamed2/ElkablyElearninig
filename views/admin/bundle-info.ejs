@@ -184,12 +184,12 @@
               </div>
             </div>
             <div class="stat-content">
-              <h3 class="stat-number">$<%= Math.round(financialAnalytics.totalRevenue || 0).toLocaleString() %></h3>
+              <h3 class="stat-number">EGP <%= Math.round(financialAnalytics.totalRevenue || 0).toLocaleString() %></h3>
               <p class="stat-label">Total Revenue</p>
               <div class="stat-breakdown">
                 <div class="breakdown-item">
                   <span class="breakdown-label">Per Student</span>
-                  <span class="breakdown-value">$<%= Math.round(financialAnalytics.averageRevenuePerStudent || 0) %></span>
+                  <span class="breakdown-value">EGP <%= Math.round(financialAnalytics.averageRevenuePerStudent || 0) %></span>
                 </div>
               </div>
             </div>
@@ -277,7 +277,7 @@
                       </div>
                       <div class="metric-info">
                         <span class="metric-label">Full Price Sales</span>
-                        <span class="metric-value">$<%= Math.round(financialAnalytics.fullPriceRevenue || 0).toLocaleString() %></span>
+                        <span class="metric-value">EGP <%= Math.round(financialAnalytics.fullPriceRevenue || 0).toLocaleString() %></span>
                       </div>
                     </div>
                     <div class="metric-progress">
@@ -295,7 +295,7 @@
                       </div>
                       <div class="metric-info">
                         <span class="metric-label">Discounted Sales</span>
-                        <span class="metric-value">$<%= Math.round(financialAnalytics.discountedRevenue || 0).toLocaleString() %></span>
+                        <span class="metric-value">EGP <%= Math.round(financialAnalytics.discountedRevenue || 0).toLocaleString() %></span>
                       </div>
                     </div>
                     <div class="metric-progress">
@@ -313,7 +313,7 @@
                       </div>
                       <div class="metric-info">
                         <span class="metric-label">Potential Revenue</span>
-                        <span class="metric-value">$<%= Math.round(financialAnalytics.totalPotentialRevenue || 0).toLocaleString() %></span>
+                        <span class="metric-value">EGP <%= Math.round(financialAnalytics.totalPotentialRevenue || 0).toLocaleString() %></span>
                       </div>
                     </div>
                     <div class="metric-progress">
@@ -356,11 +356,11 @@
                     <div class="performance-summary">
                       <div class="summary-item">
                         <span class="summary-label">Total Enrolled</span>
-                        <span class="summary-value"><%= courseAnalytics.reduce((sum, course) => sum + (course.enrolledStudents || 0), 0) %></span>
+                        <span class="summary-value"><%= studentAnalytics.totalStudents || 0 %></span>
                       </div>
                       <div class="summary-item">
                         <span class="summary-label">Total Completed</span>
-                        <span class="summary-value"><%= courseAnalytics.reduce((sum, course) => sum + (course.completedStudents || 0), 0) %></span>
+                        <span class="summary-value"><%= studentAnalytics.completedStudents || 0 %></span>
                       </div>
                       <div class="summary-item">
                         <span class="summary-label">Avg Progress</span>
@@ -399,12 +399,12 @@
                       
                       <div class="course-progress-section">
                         <div class="progress-header">
-                          <span class="progress-label">Overall Progress</span>
-                          <span class="progress-value"><%= course.completionRate || 0 %>%</span>
+                          <span class="progress-label">Average Progress</span>
+                          <span class="progress-value"><%= course.averageProgress || 0 %>%</span>
                         </div>
                         <div class="progress-bar-container">
                           <div class="progress-track">
-                            <div class="progress-fill-enhanced" data-progress="<%= course.completionRate || 0 %>"></div>
+                            <div class="progress-fill-enhanced" data-progress="<%= course.averageProgress || 0 %>"></div>
                           </div>
                         </div>
                       </div>
@@ -439,8 +439,8 @@
           <div class="enhanced-analytics-card grade-distribution-card">
             <div class="card-header-enhanced">
               <div class="card-title-section">
-                <div class="card-icon">
-                  <i class="fas fa-chart-donut"></i>
+                <div class="card-icon grade-icon">
+                  <i class="fas fa-chart-pie"></i>
                 </div>
                 <div class="card-title-content">
                   <h3>Grade Distribution</h3>
@@ -483,8 +483,8 @@
                       <% Object.entries(gradeDistribution).forEach(([grade, count], index) => { %>
                       <div class="grade-distribution-item">
                         <div class="grade-info">
-                          <div class="grade-icon">
-                            <i class="fas fa-graduation-cap"></i>
+                          <div class="grade-item-icon">
+                            <i class="fas fa-user-graduate"></i>
                           </div>
                           <div class="grade-details">
                             <span class="grade-name"><%= grade %></span>
@@ -554,11 +554,11 @@
                   <div class="pricing-row-enhanced">
                     <div class="original-price-enhanced">
                       <span class="price-label">Original Price</span>
-                      <span class="price-value">$<%= bundle.price %></span>
+                      <span class="price-value">EGP <%= bundle.price %></span>
                     </div>
                     <div class="current-price-enhanced">
                       <span class="price-label">Current Price</span>
-                      <span class="price-value">$<%= bundle.finalPrice %></span>
+                      <span class="price-value">EGP <%= bundle.finalPrice ? bundle.finalPrice.toFixed(2) : bundle.price %></span>
                     </div>
                   </div>
                   <div class="savings-display">
@@ -567,13 +567,13 @@
                     </div>
                     <div class="savings-content">
                       <span class="savings-label">You Save</span>
-                      <span class="savings-amount">$<%= Math.round(bundle.price - bundle.finalPrice) %></span>
+                      <span class="savings-amount">EGP <%= Math.round(bundle.price - (bundle.finalPrice || bundle.price)) %> (<%= bundle.discountPrice %>% off)</span>
                     </div>
                   </div>
                   <% } else { %>
                   <div class="standard-pricing">
                     <span class="price-label">Bundle Price</span>
-                    <span class="price-value-large">$<%= bundle.price %></span>
+                    <span class="price-value-large">EGP <%= bundle.price %></span>
                   </div>
                   <% } %>
                 </div>
@@ -585,11 +585,14 @@
                   <h4><i class="fas fa-user-circle"></i> Creator Information</h4>
                   <div class="creator-info">
                     <div class="creator-avatar">
-                      <i class="fas fa-user"></i>
+                      <i class="fas fa-user-shield"></i>
                     </div>
                     <div class="creator-details">
-                      <span class="creator-name"><%= bundle.createdBy ? bundle.createdBy.userName : 'Unknown Creator' %></span>
-                      <span class="creator-role">Bundle Creator</span>
+                      <span class="creator-name"><%= bundle.createdBy && bundle.createdBy.userName ? bundle.createdBy.userName : 'System Admin' %></span>
+                      <span class="creator-role">Bundle Administrator</span>
+                      <% if (bundle.createdBy && bundle.createdBy.email) { %>
+                      <span class="creator-email"><i class="fas fa-envelope"></i> <%= bundle.createdBy.email %></span>
+                      <% } %>
                     </div>
                   </div>
                 </div>
@@ -694,10 +697,10 @@
         </div>
 
 
-        <!-- Enrolled Students Table -->
+        <!-- Enrolled Students Table - AJAX Loaded -->
         <div class="admin-chart-card">
           <div class="admin-chart-header">
-            <h3><i class="fas fa-users"></i> Enrolled Students (<%= studentsWithBundle.length %>)</h3>
+            <h3><i class="fas fa-users"></i> Enrolled Students (<span id="totalStudentsCount"><%= studentAnalytics.totalStudents %></span>)</h3>
             <div class="chart-actions d-flex gap-2">
               <button class="btn btn-success btn-sm" onclick="showManualEnrollModal()">
                 <i class="fas fa-user-plus me-1"></i> Enroll Students
@@ -710,89 +713,84 @@
               </button>
             </div>
           </div>
+          
+          <!-- Search and Filter Bar -->
+          <div class="students-filter-bar" style="padding: 16px; background: var(--admin-bg-light); border-bottom: 1px solid var(--admin-border-light);">
+            <div class="row g-3 align-items-center">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fas fa-search"></i></span>
+                  <input type="text" id="studentSearch" class="form-control" placeholder="Search by name, email, school..." onkeyup="debounceSearch()">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select id="studentStatusFilter" class="form-select" onchange="loadBundleStudents(1)">
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <select id="studentSortBy" class="form-select" onchange="loadBundleStudents(1)">
+                  <option value="createdAt">Date Enrolled</option>
+                  <option value="firstName">Name</option>
+                  <option value="schoolName">School</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <select id="studentSortOrder" class="form-select" onchange="loadBundleStudents(1)">
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div class="students-table-container">
-            <% if (studentsWithBundle && studentsWithBundle.length > 0) { %>
-            <div class="table-responsive">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Contact</th>
-                    <th>Academic Info</th>
-                    <th>Enrollment</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% studentsWithBundle.forEach(student => { %>
-                  <% 
-                        const bundlePurchase = student.purchasedBundles.find(pb => 
-                          pb.bundle._id?.toString() === bundle._id.toString() || 
-                          pb.bundle.toString() === bundle._id.toString()
-                        );
-                        const enrollmentDate = bundlePurchase ? bundlePurchase.purchasedAt : student.createdAt;
-                      %>
-                  <tr>
-                    <td>
-                      <div class="student-profile">
-                        <div class="student-avatar">
-                          <i class="fas fa-user"></i>
-                        </div>
-                        <div class="student-details">
-                          <div class="student-name"><%= student.firstName %> <%= student.lastName %></div>
-                          <div class="student-username">@<%= student.username %></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div class="contact-details">
-                        <div class="email"><i class="fas fa-envelope"></i> <%= student.studentEmail %></div>
-                      </div>
-                    </td>
-                    <td>
-                      <div class="academic-details">
-                        <span class="grade-badge"><%= student.grade %></span>
-                        <div class="school"><%= student.schoolName %></div>
-                      </div>
-                    </td>
-                    <td>
-                      <div class="enrollment-details">
-                        <div class="date"><%= new Date(enrollmentDate).toLocaleDateString() %></div>
-                        <div class="days-ago"><%= Math.floor((new Date() - new Date(enrollmentDate)) / (1000 * 60 * 60 * 24)) %> days ago</div>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="status-badge <%= student.isActive ? 'active' : 'inactive' %>">
-                        <i class="fas fa-circle"></i>
-                        <%= student.isActive ? 'Active' : 'Inactive' %>
-                      </span>
-                    </td>
-                    <td>
-                      <div class="action-buttons">
-                        <a href="/admin/students/<%= student._id %>" class="btn btn-sm btn-outline-primary" title="View Profile">
-                          <i class="fas fa-eye"></i>
-                        </a>
-                        <!-- <button class="btn btn-sm btn-outline-info" onclick="viewStudentProgress('<%= student._id %>')" title="View Progress">
-                          <i class="fas fa-chart-line"></i>
-                        </button> -->
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeStudentFromBundle('<%= student._id %>', '<%= student.firstName %> <%= student.lastName %>')" title="Remove Student">
-                          <i class="fas fa-user-minus"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <% }) %>
-                </tbody>
-              </table>
+            <div id="studentsLoadingState" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-muted">Loading students...</p>
             </div>
-            <% } else { %>
-            <div class="empty-state large">
+            
+            <div id="studentsTableWrapper" style="display: none;">
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Contact</th>
+                      <th>Academic Info</th>
+                      <th>Enrollment</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentsTableBody">
+                    <!-- Students loaded via AJAX -->
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Pagination -->
+              <div id="studentsPagination" class="d-flex justify-content-between align-items-center p-3" style="border-top: 1px solid var(--admin-border-light);">
+                <div class="pagination-info">
+                  <span id="paginationInfo">Showing 0 of 0 students</span>
+                </div>
+                <nav>
+                  <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                    <!-- Pagination controls loaded via JS -->
+                  </ul>
+                </nav>
+              </div>
+            </div>
+            
+            <div id="studentsEmptyState" class="empty-state large" style="display: none;">
               <i class="fas fa-users"></i>
-              <h4>No students enrolled yet</h4>
-              <p>Students who purchase this bundle will appear here</p>
+              <h4>No students found</h4>
+              <p>No students match your search criteria</p>
             </div>
-            <% } %>
           </div>
         </div>
 
@@ -801,6 +799,163 @@
   </main>
 </div>
 
+<script>
+// Bundle Students AJAX Logic
+const bundleCode = '<%= bundle.bundleCode %>';
+let currentPage = 1;
+let searchTimeout;
+
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => loadBundleStudents(1), 300);
+}
+
+async function loadBundleStudents(page = 1) {
+  currentPage = page;
+  const search = document.getElementById('studentSearch').value;
+  const status = document.getElementById('studentStatusFilter').value;
+  const sortBy = document.getElementById('studentSortBy').value;
+  const sortOrder = document.getElementById('studentSortOrder').value;
+
+  // Show loading
+  document.getElementById('studentsLoadingState').style.display = 'block';
+  document.getElementById('studentsTableWrapper').style.display = 'none';
+  document.getElementById('studentsEmptyState').style.display = 'none';
+
+  try {
+    const params = new URLSearchParams({
+      page,
+      limit: 20,
+      search,
+      status,
+      sortBy,
+      sortOrder
+    });
+
+    const response = await fetch(`/admin/bundles/${bundleCode}/students-api?${params}`);
+    const data = await response.json();
+
+    if (!data.success) throw new Error(data.message);
+
+    document.getElementById('studentsLoadingState').style.display = 'none';
+
+    if (data.students.length === 0) {
+      document.getElementById('studentsEmptyState').style.display = 'block';
+      document.getElementById('paginationInfo').textContent = 'No students found';
+      document.getElementById('paginationControls').innerHTML = '';
+      return;
+    }
+
+    document.getElementById('studentsTableWrapper').style.display = 'block';
+    renderStudentsTable(data.students);
+    renderPagination(data.pagination);
+    document.getElementById('totalStudentsCount').textContent = data.pagination.totalStudents;
+    
+  } catch (error) {
+    console.error('Error loading students:', error);
+    document.getElementById('studentsLoadingState').innerHTML = `
+      <div class="text-danger">
+        <i class="fas fa-exclamation-circle fa-2x"></i>
+        <p class="mt-2">Error loading students. Please try again.</p>
+        <button class="btn btn-primary btn-sm" onclick="loadBundleStudents(${page})">Retry</button>
+      </div>
+    `;
+  }
+}
+
+function renderStudentsTable(students) {
+  const tbody = document.getElementById('studentsTableBody');
+  tbody.innerHTML = students.map(student => {
+    const enrollmentDate = new Date(student.enrollmentDate);
+    const daysAgo = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24));
+    
+    return `
+      <tr>
+        <td>
+          <div class="student-profile">
+            <div class="student-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="student-details">
+              <div class="student-name">${student.firstName} ${student.lastName}</div>
+              <div class="student-username">@${student.username}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="contact-details">
+            <div class="email"><i class="fas fa-envelope"></i> ${student.studentEmail || 'N/A'}</div>
+          </div>
+        </td>
+        <td>
+          <div class="academic-details">
+            <span class="grade-badge">${student.grade || 'N/A'}</span>
+            <div class="school">${student.schoolName || 'N/A'}</div>
+          </div>
+        </td>
+        <td>
+          <div class="enrollment-details">
+            <div class="date">${enrollmentDate.toLocaleDateString()}</div>
+            <div class="days-ago">${daysAgo} days ago</div>
+          </div>
+        </td>
+        <td>
+          <span class="status-badge ${student.isActive ? 'active' : 'inactive'}">
+            <i class="fas fa-circle"></i>
+            ${student.isActive ? 'Active' : 'Inactive'}
+          </span>
+        </td>
+        <td>
+          <div class="action-buttons">
+            <a href="/admin/students/${student._id}" class="btn btn-sm btn-outline-primary" title="View Profile">
+              <i class="fas fa-eye"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-danger" onclick="removeStudentFromBundle('${student._id}', '${student.firstName} ${student.lastName}')" title="Remove Student">
+              <i class="fas fa-user-minus"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderPagination(pagination) {
+  const { currentPage, totalPages, totalStudents, hasNext, hasPrev } = pagination;
+  const limit = 20;
+  const start = (currentPage - 1) * limit + 1;
+  const end = Math.min(currentPage * limit, totalStudents);
+  
+  document.getElementById('paginationInfo').textContent = `Showing ${start}-${end} of ${totalStudents} students`;
+  
+  let html = '';
+  
+  if (hasPrev) {
+    html += `<li class="page-item"><a class="page-link" href="#" onclick="loadBundleStudents(1); return false;"><i class="fas fa-angle-double-left"></i></a></li>`;
+    html += `<li class="page-item"><a class="page-link" href="#" onclick="loadBundleStudents(${currentPage - 1}); return false;"><i class="fas fa-chevron-left"></i></a></li>`;
+  }
+  
+  const startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, currentPage + 2);
+  
+  for (let i = startPage; i <= endPage; i++) {
+    html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="loadBundleStudents(${i}); return false;">${i}</a></li>`;
+  }
+  
+  if (hasNext) {
+    html += `<li class="page-item"><a class="page-link" href="#" onclick="loadBundleStudents(${currentPage + 1}); return false;"><i class="fas fa-chevron-right"></i></a></li>`;
+    html += `<li class="page-item"><a class="page-link" href="#" onclick="loadBundleStudents(${totalPages}); return false;"><i class="fas fa-angle-double-right"></i></a></li>`;
+  }
+  
+  document.getElementById('paginationControls').innerHTML = html;
+}
+
+// Load students on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadBundleStudents(1);
+});
+</script>
+
 
 <style>
   /* Enhanced Bundle Info Page Styles */
@@ -808,11 +963,11 @@
   /* Enhanced Bundle Header */
   .enhanced-bundle-header {
     position: relative;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #b80101 0%, #dc2626 50%, #991b1b 100%);
     border-radius: 20px;
     margin-bottom: 32px;
     overflow: hidden;
-    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 20px 40px rgba(184, 1, 1, 0.3);
   }
 
   .bundle-header-background {
@@ -831,7 +986,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+    background: linear-gradient(135deg, rgba(184, 1, 1, 0.85), rgba(220, 38, 38, 0.85));
   }
 
   .bundle-header-content {
@@ -1117,7 +1272,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(90deg, #b80101, #dc2626);
     transform: scaleX(0);
     transition: transform 0.3s ease;
   }
@@ -1125,7 +1280,7 @@
   .stat-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-    border-color: #8b5cf6;
+    border-color: #b80101;
   }
 
   .stat-card:hover::before {
@@ -1164,7 +1319,7 @@
   }
 
   .completion-card .stat-icon {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #b80101, #dc2626);
   }
 
   .stat-trend {
@@ -1253,7 +1408,7 @@
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(90deg, #b80101, #dc2626);
     border-radius: 4px;
     transition: width 1.5s ease;
     width: 0%;
@@ -1322,7 +1477,7 @@
   }
 
   .header-content h3 i {
-    color: #8b5cf6;
+    color: #b80101;
   }
 
   .trend-badge,
@@ -1345,7 +1500,7 @@
   .total-count,
   .schools-count {
     background: rgba(139, 92, 246, 0.1);
-    color: #8b5cf6;
+    color: #b80101;
   }
 
   .discount-badge {
@@ -1388,7 +1543,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #8b5cf6, #7c3aed, #06b6d4);
+    background: linear-gradient(90deg, #b80101, #dc2626, #06b6d4);
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -1396,7 +1551,7 @@
   .enhanced-analytics-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-    border-color: #8b5cf6;
+    border-color: #b80101;
   }
 
   .enhanced-analytics-card:hover::before {
@@ -1421,14 +1576,14 @@
   .card-icon {
     width: 56px;
     height: 56px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #b80101, #dc2626);
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 24px;
-    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 8px 20px rgba(184, 1, 1, 0.3);
   }
 
   .card-title-content h3 {
@@ -1480,7 +1635,7 @@
     gap: 8px;
     padding: 10px 16px;
     background: rgba(139, 92, 246, 0.1);
-    color: #8b5cf6;
+    color: #b80101;
     border-radius: 16px;
     font-size: 14px;
     font-weight: 600;
@@ -1550,6 +1705,11 @@
     border: 1px solid #e2e8f0;
   }
 
+  .grade-distribution-card .chart-container-enhanced {
+    height: 280px;
+    min-height: 280px;
+  }
+
   .chart-container-enhanced canvas {
     max-width: 100%;
     max-height: 100%;
@@ -1579,7 +1739,7 @@
 
   .metric-card:hover {
     background: #ffffff;
-    border-color: #8b5cf6;
+    border-color: #b80101;
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   }
@@ -1652,6 +1812,7 @@
     border-radius: 4px;
     transition: width 1.5s ease;
     width: 0%;
+    background: linear-gradient(90deg, #b80101, #dc2626);
   }
 
   .progress-fill-enhanced.full-price {
@@ -1826,7 +1987,7 @@
   .summary-value {
     font-size: 16px;
     font-weight: 700;
-    color: #8b5cf6;
+    color: #b80101;
   }
 
   .courses-performance-list {
@@ -1872,7 +2033,7 @@
 
   .course-performance-card:hover {
     background: #ffffff;
-    border-color: #8b5cf6;
+    border-color: #b80101;
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   }
@@ -1887,7 +2048,7 @@
   .course-number {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #b80101, #dc2626);
     color: white;
     border-radius: 8px;
     display: flex;
@@ -1896,6 +2057,7 @@
     font-size: 14px;
     font-weight: 700;
     flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(184, 1, 1, 0.3);
   }
 
   .course-main-info {
@@ -1921,7 +2083,7 @@
     gap: 4px;
     padding: 4px 8px;
     background: rgba(139, 92, 246, 0.1);
-    color: #8b5cf6;
+    color: #b80101;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 500;
@@ -1937,7 +2099,7 @@
   .completion-rate-large {
     font-size: 24px;
     font-weight: 700;
-    color: #8b5cf6;
+    color: #b80101;
   }
 
   .completion-label {
@@ -1966,7 +2128,7 @@
   .progress-value {
     font-size: 14px;
     font-weight: 600;
-    color: #8b5cf6;
+    color: #b80101;
   }
 
   .progress-bar-container {
@@ -2009,7 +2171,7 @@
   .chart-stats .stat-value {
     font-size: 16px;
     font-weight: 700;
-    color: #8b5cf6;
+    color: #b80101;
   }
 
   .distribution-details-section h4 {
@@ -2038,7 +2200,7 @@
 
   .grade-distribution-item:hover {
     background: #ffffff;
-    border-color: #8b5cf6;
+    border-color: #b80101;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
@@ -2050,16 +2212,22 @@
     min-width: 200px;
   }
 
-  .grade-icon {
+  .grade-item-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #b80101, #dc2626);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 16px;
+    box-shadow: 0 4px 10px rgba(184, 1, 1, 0.25);
+  }
+
+  .card-icon.grade-icon {
+    background: linear-gradient(135deg, #b80101, #dc2626);
+    box-shadow: 0 8px 20px rgba(184, 1, 1, 0.3);
   }
 
   .grade-details {
@@ -2100,7 +2268,7 @@
   .rank-badge {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #64748b, #475569);
+    background: linear-gradient(135deg, #b80101, #dc2626);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -2108,6 +2276,7 @@
     justify-content: center;
     font-size: 12px;
     font-weight: 700;
+    box-shadow: 0 2px 6px rgba(184, 1, 1, 0.3);
   }
 
   /* Empty State Enhanced */
@@ -2122,7 +2291,7 @@
   .empty-icon-large {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #b80101, #dc2626);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2325,13 +2494,14 @@
   .creator-avatar {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #b80101, #dc2626);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 20px;
+    box-shadow: 0 4px 12px rgba(184, 1, 1, 0.3);
   }
 
   .creator-details {
@@ -2351,6 +2521,18 @@
     font-size: 12px;
     color: #64748b;
     font-weight: 500;
+  }
+
+  .creator-email {
+    display: block;
+    font-size: 12px;
+    color: #b80101;
+    font-weight: 500;
+    margin-top: 6px;
+  }
+
+  .creator-email i {
+    margin-right: 4px;
   }
 
   .timeline-info {
@@ -2467,7 +2649,7 @@
   .feature-count {
     padding: 4px 12px;
     background: rgba(139, 92, 246, 0.1);
-    color: #8b5cf6;
+    color: #b80101;
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
@@ -2481,7 +2663,7 @@
 
   .tag-enhanced {
     padding: 8px 16px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #b80101, #dc2626);
     color: white;
     border-radius: 20px;
     font-size: 13px;
@@ -2527,7 +2709,7 @@
 
   .feature-item:hover {
     background: #ffffff;
-    border-color: #8b5cf6;
+    border-color: #b80101;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
@@ -3979,8 +4161,8 @@
         
         if (labels.length > 0 && data.length > 0) {
           const colors = [
-            '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', 
-            '#ef4444', '#06b6d4', '#84cc16', '#f97316'
+            '#b80101', '#dc2626', '#ef4444', '#f87171', 
+            '#991b1b', '#7f1d1d', '#fca5a5', '#fee2e2'
           ];
 
           new Chart(gradeCtx, {
@@ -4517,13 +4699,13 @@
   }
 
   // Search students in manual enrollment modal
-  let searchTimeout;
+  let enrollSearchTimeout;
   function searchStudentsForEnrollment() {
-    clearTimeout(searchTimeout);
+    clearTimeout(enrollSearchTimeout);
     const searchInput = document.getElementById('studentSearchInput');
     if (!searchInput) return;
     
-    searchTimeout = setTimeout(() => {
+    enrollSearchTimeout = setTimeout(() => {
       const searchTerm = searchInput.value.trim();
       loadStudentsForEnrollment(searchTerm);
     }, 500);
