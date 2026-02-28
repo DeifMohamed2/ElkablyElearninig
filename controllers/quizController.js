@@ -2,6 +2,7 @@ const Quiz = require('../models/Quiz');
 const User = require('../models/User');
 const QuestionBank = require('../models/QuestionBank');
 const Question = require('../models/Question');
+const QuizModule = require('../models/QuizModule');
 const { validationResult } = require('express-validator');
 const { uploadImage } = require('../utils/cloudinary');
 const { createLog } = require('../middlewares/adminLogger');
@@ -12,21 +13,30 @@ const getAllQuizzes = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
+    const viewMode = req.query.viewMode || 'modules'; // 'modules' or 'grid'
 
     const {
       status,
       difficulty,
       testType,
+      moduleId,
       search,
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = req.query;
 
-    // Build filter object
-    const filter = {};
+    // Build filter object for non-deleted quizzes
+    const filter = { isDeleted: { $ne: true } };
     if (status) filter.status = status;
     if (difficulty) filter.difficulty = difficulty;
     if (testType) filter.testType = testType;
+    if (moduleId) {
+      if (moduleId === 'unassigned') {
+        filter.module = null;
+      } else {
+        filter.module = moduleId;
+      }
+    }
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -39,9 +49,11 @@ const getAllQuizzes = async (req, res) => {
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
+    // Get quizzes for grid view (paginated)
     const quizzes = await Quiz.find(filter)
       .populate('questionBank', 'name bankCode description totalQuestions')
       .populate('createdBy', 'userName email')
+      .populate('module', 'name code icon color testType')
       .sort(sort)
       .skip(skip)
       .limit(limit)
@@ -53,11 +65,83 @@ const getAllQuizzes = async (req, res) => {
     // Get statistics
     const stats = await Quiz.getQuizStats();
 
+    // Get all modules for filter dropdown
+    const modules = await QuizModule.find({ isDeleted: false, status: 'active' })
+      .select('name code testType icon color order')
+      .sort({ order: 1, name: 1 })
+      .lean();
+
+    // Build quizzes grouped by test type and modules for module view
+    let quizzesByTestType = {};
+    if (viewMode === 'modules') {
+      const testTypes = ['EST', 'SAT', 'ACT'];
+      
+      for (const tType of testTypes) {
+        // Get all modules for this test type
+        const typeModules = await QuizModule.find({ 
+          isDeleted: false, 
+          status: 'active',
+          testType: tType 
+        })
+          .sort({ order: 1, name: 1 })
+          .lean();
+
+        // Build module filter
+        const moduleFilter = { ...filter };
+        delete moduleFilter.testType; // Remove testType as we filter separately
+        moduleFilter.testType = tType;
+
+        const moduleGroups = [];
+        
+        // Get quizzes for each module
+        for (const mod of typeModules) {
+          const modQuizzes = await Quiz.find({ 
+            ...moduleFilter, 
+            module: mod._id 
+          })
+            .populate('questionBank', 'name bankCode')
+            .populate('createdBy', 'userName email')
+            .populate('module', 'name code icon color testType')
+            .sort({ moduleOrder: 1, createdAt: -1 })
+            .lean();
+
+          if (modQuizzes.length > 0 || true) { // Show all modules even if empty
+            moduleGroups.push({
+              module: mod,
+              quizzes: modQuizzes
+            });
+          }
+        }
+
+        // Get unassigned quizzes for this test type
+        const unassignedQuizzes = await Quiz.find({ 
+          ...moduleFilter, 
+          module: null 
+        })
+          .populate('questionBank', 'name bankCode')
+          .populate('createdBy', 'userName email')
+          .sort({ createdAt: -1 })
+          .lean();
+
+        if (unassignedQuizzes.length > 0) {
+          moduleGroups.push({
+            module: null,
+            quizzes: unassignedQuizzes
+          });
+        }
+
+        quizzesByTestType[tType] = moduleGroups;
+      }
+    }
+
     res.render('admin/quizzes', {
       title: 'Quizzes Management | ELKABLY',
       theme: req.cookies.theme || 'light',
       currentPage: 'quizzes',
       quizzes,
+      modules,
+      quizzesByTestType,
+      viewMode,
       pagination: {
         currentPage: page,
         totalPages,
@@ -67,7 +151,7 @@ const getAllQuizzes = async (req, res) => {
         nextPage: page + 1,
         prevPage: page - 1,
       },
-      filters: { status, difficulty, search, sortBy, sortOrder },
+      filters: { status, difficulty, testType, moduleId, search, sortBy, sortOrder },
       stats,
     });
   } catch (error) {
@@ -84,6 +168,12 @@ const getCreateQuiz = async (req, res) => {
       .select('name bankCode description totalQuestions tags')
       .sort({ name: 1 });
 
+    // Get all modules for selection
+    const modules = await QuizModule.find({ isDeleted: false, status: 'active' })
+      .select('name code testType icon color order')
+      .sort({ order: 1, name: 1 })
+      .lean();
+
     // Generate a unique quiz code
     const generatedCode = await Quiz.generateQuizCode();
 
@@ -95,6 +185,7 @@ const getCreateQuiz = async (req, res) => {
       theme: req.cookies.theme || 'light',
       currentPage: 'quizzes',
       questionBanks,
+      modules,
       generatedCode,
       messages: {
         success: req.flash('success')[0],
@@ -346,6 +437,8 @@ const createQuiz = async (req, res) => {
       questionBank,
       questionBanks, // NEW: Support for multiple banks
       testType,
+      module: moduleId, // NEW: Module reference
+      moduleOrder, // NEW: Order within module
       duration,
       difficulty,
       selectedQuestions,
@@ -534,6 +627,8 @@ const createQuiz = async (req, res) => {
       questionBank: selectedBankIds[0], // For backward compatibility, store first bank
       questionBanks: selectedBankIds, // Store all selected banks
       testType,
+      module: moduleId || null, // Module assignment
+      moduleOrder: moduleOrder ? parseInt(moduleOrder) : 0, // Order within module
       selectedQuestions: parsedQuestions,
       duration: parseInt(duration),
       difficulty,

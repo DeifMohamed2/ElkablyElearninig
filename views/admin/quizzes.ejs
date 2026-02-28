@@ -71,7 +71,7 @@
   <!-- Filters and Actions -->
   <div class="admin-filters">
     <div class="row">
-      <div class="col-md-8">
+      <div class="col-md-9">
         <form method="GET" class="admin-filters-form">
           <div class="admin-filters-row">
             <div class="admin-filter-group">
@@ -107,6 +107,33 @@
             </div>
             <div class="admin-filter-group">
               <label class="admin-filter-label">
+                <i class="fas fa-clipboard-check"></i>
+                Test Type
+              </label>
+              <select name="testType" class="admin-filter-control">
+                <option value="">All Types</option>
+                <option value="EST" <%= filters.testType === 'EST' ? 'selected' : '' %>>EST</option>
+                <option value="SAT" <%= filters.testType === 'SAT' ? 'selected' : '' %>>SAT</option>
+                <option value="ACT" <%= filters.testType === 'ACT' ? 'selected' : '' %>>ACT</option>
+              </select>
+            </div>
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">
+                <i class="fas fa-layer-group"></i>
+                Module
+              </label>
+              <select name="moduleId" class="admin-filter-control">
+                <option value="">All Modules</option>
+                <option value="unassigned" <%= filters.moduleId === 'unassigned' ? 'selected' : '' %>>Unassigned</option>
+                <% if (typeof modules !== 'undefined' && modules) { %>
+                  <% modules.forEach(mod => { %>
+                    <option value="<%= mod._id %>" <%= filters.moduleId === mod._id.toString() ? 'selected' : '' %>><%= mod.name %> (<%= mod.testType %>)</option>
+                  <% }); %>
+                <% } %>
+              </select>
+            </div>
+            <div class="admin-filter-group">
+              <label class="admin-filter-label">
                 <i class="fas fa-sort"></i>
                 Sort By
               </label>
@@ -115,16 +142,6 @@
                 <option value="title" <%= filters.sortBy === 'title' ? 'selected' : '' %>>Title</option>
                 <option value="totalQuestions" <%= filters.sortBy === 'totalQuestions' ? 'selected' : '' %>>Questions</option>
                 <option value="duration" <%= filters.sortBy === 'duration' ? 'selected' : '' %>>Duration</option>
-              </select>
-            </div>
-            <div class="admin-filter-group">
-              <label class="admin-filter-label">
-                <i class="fas fa-sort-amount-down"></i>
-                Order
-              </label>
-              <select name="sortOrder" class="admin-filter-control">
-                <option value="desc" <%= filters.sortOrder === 'desc' ? 'selected' : '' %>>Descending</option>
-                <option value="asc" <%= filters.sortOrder === 'asc' ? 'selected' : '' %>>Ascending</option>
               </select>
             </div>
             <div class="admin-filter-group">
@@ -137,139 +154,190 @@
           </div>
         </form>
       </div>
-      <div class="col-md-4">
-        <div class="admin-actions">
-          <a href="/admin/quizzes/create" class="admin-action-btn primary">
+      <div class="col-md-3">
+        <div class="admin-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="/admin/quiz-modules" class="admin-action-btn secondary" style="flex: 1;">
+            <i class="fas fa-layer-group"></i>
+            Modules
+          </a>
+          <a href="/admin/quizzes/create" class="admin-action-btn primary" style="flex: 1;">
             <i class="fas fa-plus"></i>
-            Create New Quiz
+            New Quiz
           </a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Results Info -->
-  <div class="admin-results-info" style="background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-    <p class="mb-0" style="color: var(--admin-text-light); font-weight: 600;">
-      <i class="fas fa-info-circle" style="color: var(--admin-primary); margin-right: 8px;"></i>
-      Showing <strong><%= pagination.total %></strong> quizzes
-      <% if (filters.search || filters.status || filters.difficulty) { %>
-        with current filters
-      <% } %>
-    </p>
+  <!-- View Mode Toggle -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div class="admin-results-info" style="background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 12px; padding: 16px; flex: 1;">
+      <p class="mb-0" style="color: var(--admin-text-light); font-weight: 600;">
+        <i class="fas fa-info-circle" style="color: var(--admin-primary); margin-right: 8px;"></i>
+        Showing <strong><%= pagination.total %></strong> quizzes
+        <% if (filters.search || filters.status || filters.difficulty) { %>
+          with current filters
+        <% } %>
+      </p>
+    </div>
+    <div class="view-mode-toggle" style="display: flex; gap: 8px; background: var(--admin-card-light); padding: 6px; border-radius: 10px; border: 2px solid var(--admin-border-light);">
+      <a href="?viewMode=modules<%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.testType ? '&testType=' + filters.testType : '' %><%= filters.difficulty ? '&difficulty=' + filters.difficulty : '' %>" 
+         class="view-mode-btn <%= viewMode === 'modules' ? 'active' : '' %>" 
+         style="padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; <%= viewMode === 'modules' ? 'background: var(--admin-primary); color: white;' : 'background: transparent; color: var(--admin-text-light);' %>">
+        <i class="fas fa-layer-group"></i>
+        Modules View
+      </a>
+      <a href="?viewMode=grid<%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.testType ? '&testType=' + filters.testType : '' %><%= filters.difficulty ? '&difficulty=' + filters.difficulty : '' %>" 
+         class="view-mode-btn <%= viewMode === 'grid' ? 'active' : '' %>" 
+         style="padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; <%= viewMode === 'grid' ? 'background: var(--admin-primary); color: white;' : 'background: transparent; color: var(--admin-text-light);' %>">
+        <i class="fas fa-th-large"></i>
+        Grid View
+      </a>
+    </div>
   </div>
+
+  <% if (viewMode === 'modules') { %>
+    <!-- Module-Based View -->
+    <div class="module-view-container">
+      <% 
+        const testTypes = [
+          { key: 'EST', name: 'EST Exams', logo: '/images/ESTLOGO.jpg' },
+          { key: 'SAT', name: 'D-SAT Exams', logo: '/images/SATLOGO.jpg' },
+          { key: 'ACT', name: 'ACT Exams', logo: '/images/ACTLOGO.jpg' }
+        ];
+        const safeQuizzesByTestType = typeof quizzesByTestType !== 'undefined' ? quizzesByTestType : {};
+      %>
+      
+      <% testTypes.forEach((testType, testTypeIndex) => { 
+        const moduleGroups = safeQuizzesByTestType[testType.key] || [];
+        const totalQuizzes = moduleGroups.reduce((sum, mg) => sum + (mg.quizzes ? mg.quizzes.length : 0), 0);
+        const modulesWithQuizzes = moduleGroups.filter(mg => mg.quizzes && mg.quizzes.length > 0).length;
+      %>
+        <!-- Test Type Section -->
+        <div class="test-type-section" style="margin-bottom: 32px;">
+          <!-- Test Type Header (Collapsible) -->
+          <div class="test-type-header-admin" 
+               style="background: linear-gradient(135deg, var(--admin-card-light), var(--admin-bg)); border: 2px solid var(--admin-border-light); border-left: 5px solid var(--admin-primary); border-radius: 0 16px 16px 0; padding: 20px 28px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.05);"
+               onclick="toggleTestType('admin-test-type-<%= testTypeIndex %>')">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+              <div style="display: flex; align-items: center; gap: 20px; flex: 1;">
+                <!-- Test Type Logo -->
+                <div style="width: 80px; height: 80px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; padding: 8px;">
+                  <img src="<%= testType.logo %>" alt="<%= testType.name %>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                </div>
+                
+                <!-- Test Type Info -->
+                <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                  <i class="fas fa-chevron-down test-type-toggle-icon" id="icon-admin-test-type-<%= testTypeIndex %>" style="color: var(--admin-primary); font-size: 1.2rem; transition: transform 0.3s ease; flex-shrink: 0;"></i>
+                  <div style="flex: 1;">
+                    <h3 style="margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--admin-text-light);">
+                      <%= testType.name %>
+                    </h3>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Stats -->
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="background: var(--admin-primary); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                  <i class="fas fa-layer-group"></i>
+                  <%= modulesWithQuizzes %> module<%= modulesWithQuizzes !== 1 ? 's' : '' %>
+                </span>
+                <span style="background: var(--admin-success, #22c55e); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                  <i class="fas fa-clipboard-list"></i>
+                  <%= totalQuizzes %> quiz<%= totalQuizzes !== 1 ? 'zes' : '' %>
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modules Container (Collapsible Content) -->
+          <div class="test-type-content" 
+               id="admin-test-type-<%= testTypeIndex %>"
+               style="display: none; padding-top: 20px; transition: all 0.3s ease;">
+            
+            <% if (moduleGroups.length === 0) { %>
+              <div style="text-align: center; padding: 40px; background: var(--admin-card-light); border: 2px dashed var(--admin-border-light); border-radius: 12px;">
+                <i class="fas fa-folder-open" style="font-size: 48px; color: var(--admin-text-muted); margin-bottom: 16px;"></i>
+                <p style="color: var(--admin-text-muted); margin: 0;">No modules or quizzes for <%= testType.name %></p>
+              </div>
+            <% } else { %>
+              <% moduleGroups.forEach((moduleGroup, moduleIndex) => { 
+                const module = moduleGroup.module;
+                const moduleQuizzes = moduleGroup.quizzes || [];
+                const moduleName = module ? module.name : 'Unassigned Quizzes';
+                const moduleCode = module ? module.code : 'NO-MODULE';
+                const moduleId = `admin-module-${testTypeIndex}-${moduleIndex}`;
+              %>
+                <!-- Module Card -->
+                <div class="module-card-admin" style="margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08); background: var(--admin-card-light); border: 2px solid var(--admin-border-light);">
+                  <!-- Module Header -->
+                  <div class="module-header-admin" 
+                       style="padding: 16px 24px; background: <%= module ? 'var(--admin-primary)' : '#6b7280' %>; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px;"
+                       onclick="toggleModule('<%= moduleId %>')">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                      <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas <%= module ? 'fa-layer-group' : 'fa-folder-open' %>" style="font-size: 1.2rem; color: white;"></i>
+                      </div>
+                      <div>
+                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: white;">
+                          <%= moduleName %>
+                        </h4>
+                        <% if (module) { %>
+                          <span style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                            <%= moduleCode %>
+                          </span>
+                        <% } %>
+                      </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <span style="background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: white;">
+                        <%= moduleQuizzes.length %> quiz<%= moduleQuizzes.length !== 1 ? 'zes' : '' %>
+                      </span>
+                      <i class="fas fa-chevron-down module-toggle-icon" id="icon-<%= moduleId %>" style="color: white; font-size: 1rem; transition: transform 0.3s ease;"></i>
+                    </div>
+                  </div>
+                  
+                  <!-- Module Quizzes Grid -->
+                  <div class="module-content-admin" 
+                       id="<%= moduleId %>"
+                       style="display: none; padding: 20px; background: var(--admin-bg); transition: all 0.3s ease;">
+                    <% if (moduleQuizzes.length === 0) { %>
+                      <div style="text-align: center; padding: 30px; background: var(--admin-card-light); border: 2px dashed var(--admin-border-light); border-radius: 8px;">
+                        <i class="fas fa-clipboard-list" style="font-size: 36px; color: var(--admin-text-muted); margin-bottom: 12px;"></i>
+                        <p style="color: var(--admin-text-muted); margin: 0 0 12px 0;">No quizzes in this module</p>
+                        <a href="/admin/quizzes/create" class="admin-action-btn primary" style="font-size: 12px; padding: 8px 16px;">
+                          <i class="fas fa-plus"></i>
+                          Create Quiz
+                        </a>
+                      </div>
+                    <% } else { %>
+                      <div class="row">
+                        <% moduleQuizzes.forEach((quiz, index) => { %>
+                          <div class="col-lg-4 col-md-6 mb-4">
+                            <%- include('./partials/quiz-card', { quiz: quiz }) %>
+                          </div>
+                        <% }) %>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              <% }); %>
+            <% } %>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+    
+  <% } else { %>
+    <!-- Grid View (Original) -->
 
   <!-- Quizzes Grid -->
   <% if (quizzes && quizzes.length > 0) { %>
     <div class="row">
       <% quizzes.forEach((quiz, index) => { %>
-        <div class="col-lg-4 col-md-6 mb-4">
-          <div class="quiz-card-modern admin-slide-in" data-delay="<%= index * 0.1 %>">
-            <!-- Quiz Header -->
-            <div class="quiz-card-header">
-              <div class="quiz-card-thumbnail" style="position: relative; overflow: hidden; border-radius: 8px;">
-                <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
-                  <img src="<%= quiz.thumbnail.url %>" alt="<%= quiz.title %>" class="quiz-thumbnail-img">
-                  <div class="quiz-thumbnail-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.3s ease; border-radius: 8px;">
-                    <button class="btn btn-sm btn-outline-light" onclick="editThumbnail('<%= quiz._id %>')" title="Edit Thumbnail" style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(255, 255, 255, 0.8); color: #374151; font-weight: 500; padding: 8px 12px; border-radius: 6px; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-                      <i class="fas fa-edit" style="margin-right: 4px;"></i>
-                      Edit
-                    </button>
-                  </div>
-                <% } else { %>
-                  <div class="quiz-thumbnail-placeholder" onclick="editThumbnail('<%= quiz._id %>')" style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border: 2px dashed #cbd5e1; border-radius: 8px; transition: all 0.3s ease;">
-                    <i class="fas fa-image" style="font-size: 24px; color: #64748b; margin-bottom: 8px;"></i>
-                    <div class="add-thumbnail-btn" style="background: #3b82f6; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
-                      <i class="fas fa-plus"></i>
-                    </div>
-                    <span style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">Add Thumbnail</span>
-                  </div>
-                <% } %>
-              </div>
-              <div class="quiz-card-header-content">
-                <div class="quiz-status-badge quiz-status-<%= quiz.status %>">
-                  <%= quiz.status %>
-                </div>
-                <h3 class="quiz-title"><%= quiz.title %></h3>
-                <div class="quiz-code"><%= quiz.code %></div>
-              </div>
-            </div>
-
-            <!-- Quiz Body -->
-            <div class="quiz-card-body">
-              <p class="quiz-description"><%= quiz.description %></p>
-
-              <!-- Quiz Stats -->
-              <div class="quiz-stats-grid">
-                <div class="quiz-stat-item">
-                  <span class="quiz-stat-number"><%= quiz.selectedQuestions.length || 0 %></span>
-                  <span class="quiz-stat-label">Questions</span>
-                </div>
-                <div class="quiz-stat-item">
-                  <span class="quiz-stat-number"><%= quiz.totalPoints || 0 %></span>
-                  <span class="quiz-stat-label">Points</span>
-                </div>
-                <div class="quiz-stat-item">
-                  <span class="quiz-stat-number"><%= quiz.duration %></span>
-                  <span class="quiz-stat-label">Minutes</span>
-                </div>
-                <div class="quiz-stat-item">
-                  <span class="quiz-stat-number"><%= quiz.passingScore %>%</span>
-                  <span class="quiz-stat-label">Passing</span>
-                </div>
-              </div>
-
-              <!-- Quiz Meta -->
-              <div class="quiz-meta">
-                <div class="quiz-meta-item">
-                  <i class="fas fa-signal"></i>
-                  <span><%= quiz.difficulty %></span>
-                </div>
-                <div class="quiz-meta-item">
-                  <i class="fas fa-database"></i>
-                  <span><%= quiz.questionBank?.name || 'No Bank' %></span>
-                </div>
-                <div class="quiz-meta-item">
-                  <i class="fas fa-user"></i>
-                  <span><%= quiz.createdBy?.userName || 'Unknown' %></span>
-                </div>
-                <div class="quiz-meta-item">
-                  <i class="fas fa-calendar"></i>
-                  <span><%= new Date(quiz.createdAt).toLocaleDateString() %></span>
-                </div>
-              </div>
-
-              <!-- Quiz Tags -->
-              <% if (quiz.tags && quiz.tags.length > 0) { %>
-                <div class="quiz-tags">
-                  <% quiz.tags.slice(0, 3).forEach(tag => { %>
-                    <span class="quiz-tag"><%= tag %></span>
-                  <% }) %>
-                  <% if (quiz.tags.length > 3) { %>
-                    <span class="quiz-tag">+<%= quiz.tags.length - 3 %></span>
-                  <% } %>
-                </div>
-              <% } %>
-            </div>
-
-            <!-- Quiz Footer -->
-            <div class="quiz-card-footer">
-              <div class="quiz-actions">
-                <a href="/admin/quizzes/<%= quiz._id %>" class="quiz-action-btn quiz-action-btn-primary">
-                  <i class="fas fa-eye"></i>
-                  View
-                </a>
-                <a href="/admin/quizzes/<%= quiz._id %>/edit" class="quiz-action-btn quiz-action-btn-secondary">
-                  <i class="fas fa-edit"></i>
-                  Edit
-                </a>
-                <button class="quiz-action-btn quiz-action-btn-danger" onclick="deleteQuiz('<%= quiz._id %>')">
-                  <i class="fas fa-trash"></i>
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
+        <div class="col-lg-4 col-md-6 mb-4" data-delay="<%= index * 0.1 %>">
+          <%- include('./partials/quiz-card', { quiz: quiz }) %>
         </div>
       <% }) %>
     </div>
@@ -290,7 +358,7 @@
         <% } %>
 
         <% if (pagination.hasNext) { %>
-          <a class="admin-pagination-btn" href="?page=<%= pagination.nextPage %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.difficulty ? '&difficulty=' + filters.difficulty : '' %><%= filters.sortBy ? '&sortBy=' + filters.sortBy : '' %><%= filters.sortOrder ? '&sortOrder=' + filters.sortOrder : '' %>">
+          <a class="admin-pagination-btn" href="?page=<%= pagination.nextPage %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.difficulty ? '&difficulty=' + filters.difficulty : '' %><%= filters.sortBy ? '&sortBy=' + filters.sortBy : '' %><%= filters.sortOrder ? '&sortOrder=' + filters.sortOrder : '' %>&viewMode=grid">
             <i class="fas fa-chevron-right"></i>
           </a>
         <% } %>
@@ -317,6 +385,7 @@
       </a>
     </div>
   <% } %>
+  <% } %> <!-- End viewMode check -->
 
   <!-- Trash Section -->
   <div id="trashSection" style="display: none;">
@@ -447,6 +516,78 @@
 <script>
 let currentQuizId = null;
 let newThumbnailData = null;
+
+// ===== MODULE VIEW TOGGLE FUNCTIONS =====
+// Toggle Test Type Section
+function toggleTestType(testTypeId) {
+  const content = document.getElementById(testTypeId);
+  const icon = document.getElementById('icon-' + testTypeId);
+  
+  if (!content || !icon) return;
+  
+  if (content.style.display === 'none' || content.style.display === '') {
+    content.style.display = 'block';
+    icon.style.transform = 'rotate(0deg)';
+  } else {
+    content.style.display = 'none';
+    icon.style.transform = 'rotate(-90deg)';
+  }
+}
+
+// Toggle Module Section
+function toggleModule(moduleId) {
+  const content = document.getElementById(moduleId);
+  const icon = document.getElementById('icon-' + moduleId);
+  
+  if (!content || !icon) return;
+  
+  if (content.style.display === 'none' || content.style.display === '') {
+    content.style.display = 'block';
+    icon.style.transform = 'rotate(0deg)';
+  } else {
+    content.style.display = 'none';
+    icon.style.transform = 'rotate(-90deg)';
+  }
+}
+
+// Initialize icons on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize test type icons to collapsed state
+  const testTypeIcons = document.querySelectorAll('.test-type-toggle-icon');
+  testTypeIcons.forEach(icon => {
+    icon.style.transform = 'rotate(-90deg)';
+  });
+  
+  // Initialize module icons to collapsed state
+  const moduleIcons = document.querySelectorAll('.module-toggle-icon');
+  moduleIcons.forEach(icon => {
+    icon.style.transform = 'rotate(-90deg)';
+  });
+  
+  // Add hover effect to test type headers
+  const testTypeHeaders = document.querySelectorAll('.test-type-header-admin');
+  testTypeHeaders.forEach(header => {
+    header.addEventListener('mouseenter', function() {
+      this.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
+      this.style.transform = 'translateY(-2px)';
+    });
+    header.addEventListener('mouseleave', function() {
+      this.style.boxShadow = '0 4px 16px rgba(0,0,0,0.05)';
+      this.style.transform = 'translateY(0)';
+    });
+  });
+  
+  // Add hover effect to module headers
+  const moduleHeaders = document.querySelectorAll('.module-header-admin');
+  moduleHeaders.forEach(header => {
+    header.addEventListener('mouseenter', function() {
+      this.style.filter = 'brightness(1.1)';
+    });
+    header.addEventListener('mouseleave', function() {
+      this.style.filter = 'brightness(1)';
+    });
+  });
+});
 
 // Delete Quiz Function (Soft Delete)
 function deleteQuiz(quizId) {

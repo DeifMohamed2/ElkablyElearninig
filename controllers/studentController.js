@@ -1,6 +1,7 @@
  const User = require('../models/User');
 const Course = require('../models/Course');
 const Quiz = require('../models/Quiz');
+const QuizModule = require('../models/QuizModule');
 const Progress = require('../models/Progress');
 const BundleCourse = require('../models/BundleCourse');
 const Topic = require('../models/Topic');
@@ -1398,13 +1399,22 @@ const quizzes = async (req, res) => {
       .filter((e) => e.course)
       .map((e) => e.course);
 
+    // Get all active modules
+    const allModules = await QuizModule.find({
+      status: 'active',
+      isDeleted: false,
+    })
+      .sort({ order: 1, name: 1 })
+      .lean();
+
     // Get all active quizzes with enhanced data (no pagination for grouping)
     const allQuizzes = await Quiz.find({
       status: 'active',
     })
       .populate('questionBank', 'name description totalQuestions')
       .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 })
+      .populate('module', 'name code icon color order')
+      .sort({ moduleOrder: 1, createdAt: -1 })
       .lean({ virtuals: true }); // Include virtual fields like totalQuestions
 
     // Group quizzes by testType
@@ -1418,6 +1428,44 @@ const quizzes = async (req, res) => {
       if (quiz.testType && groupedQuizzes[quiz.testType]) {
         groupedQuizzes[quiz.testType].push(quiz);
       }
+    });
+
+    // Group quizzes by modules within each test type
+    const quizzesByModules = {
+      EST: [],
+      SAT: [],
+      ACT: []
+    };
+
+    ['EST', 'SAT', 'ACT'].forEach(testType => {
+      const testTypeModules = allModules.filter(m => m.testType === testType);
+      const testTypeQuizzes = groupedQuizzes[testType];
+      
+      // Create module groups
+      const moduleGroups = testTypeModules.map(mod => ({
+        module: mod,
+        quizzes: testTypeQuizzes
+          .filter(q => q.module && q.module._id.toString() === mod._id.toString())
+          .sort((a, b) => (a.moduleOrder || 0) - (b.moduleOrder || 0)),
+      })).filter(g => g.quizzes.length > 0);
+      
+      // Add unassigned quizzes
+      const unassignedQuizzes = testTypeQuizzes.filter(q => !q.module);
+      if (unassignedQuizzes.length > 0) {
+        moduleGroups.push({
+          module: {
+            _id: 'unassigned',
+            name: 'Other Quizzes',
+            code: 'OTHER',
+            icon: 'fa-question-circle',
+            color: '#6b7280',
+            order: 9999,
+          },
+          quizzes: unassignedQuizzes,
+        });
+      }
+      
+      quizzesByModules[testType] = moduleGroups;
     });
 
     // Get counts for each test type
@@ -1436,7 +1484,8 @@ const quizzes = async (req, res) => {
       title: 'Available Quizzes | ELKABLY',
       student,
       quizzes: allQuizzes, // Keep for backward compatibility if needed
-      groupedQuizzes, // New grouped structure
+      groupedQuizzes, // Grouped by test type only
+      quizzesByModules, // Grouped by modules within test types
       testTypeCounts, // Counts for each test type
       studentQuizAttempts,
       pagination: {

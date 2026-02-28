@@ -1,0 +1,586 @@
+<%- include('./partials/admin-header', { pageCSS: 'quiz-modules' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: currentPage }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Edit Module',
+        breadcrumbSubtitle: 'Manage module details and assigned quizzes'
+    }) %>
+    
+    <!-- Content -->
+    <div class="admin-content">
+      <!-- Back Button -->
+      <div style="margin-bottom: 24px;">
+        <a href="/admin/quiz-modules" class="admin-action-btn secondary">
+          <i class="fas fa-arrow-left"></i>
+          Back to Modules
+        </a>
+      </div>
+
+      <!-- Module Header Card -->
+      <div class="module-header-card" style="background: var(--admin-primary); border-radius: 20px; padding: 32px; margin-bottom: 32px; color: white; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+        <div style="position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+        
+        <div style="position: relative; z-index: 1;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 20px;">
+              <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 20px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-layer-group" style="font-size: 36px;"></i>
+              </div>
+              <div>
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 4px;">
+                  <%= module.testType %> Module
+                </div>
+                <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">
+                  <%= module.name %>
+                </h1>
+                <div style="font-size: 14px; opacity: 0.9;">
+                  <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; margin-right: 8px;">
+                    <%= module.code %>
+                  </span>
+                  <span style="background: <%= module.status === 'active' ? 'rgba(34, 197, 94, 0.9)' : module.status === 'inactive' ? 'rgba(249, 115, 22, 0.9)' : 'rgba(107, 114, 128, 0.9)' %>; padding: 4px 12px; border-radius: 20px;">
+                    <%= module.status %>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <button class="btn" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 12px 20px; border-radius: 12px;" onclick="openEditModuleModal()">
+                <i class="fas fa-edit" style="margin-right: 8px;"></i>
+                Edit Details
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Left Column: Module Quizzes -->
+        <div class="col-lg-8 mb-4">
+          <div style="background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--admin-border-light);">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="font-size: 18px; font-weight: 700; color: var(--admin-text-light); margin: 0;">
+                  <i class="fas fa-list-ul" style="margin-right: 10px; color: var(--admin-primary);"></i>
+                  Module Quizzes (<span id="moduleQuizCount"><%= availableQuizzes.filter(q => q.module && q.module.toString() === module._id.toString()).length %></span>)
+                </h3>
+                <button class="admin-action-btn primary" onclick="openAddQuizzesModal()">
+                  <i class="fas fa-plus"></i>
+                  Add Quizzes
+                </button>
+              </div>
+            </div>
+            
+            <div id="moduleQuizzesList" style="padding: 20px;">
+              <% 
+                const moduleQuizzes = availableQuizzes.filter(q => q.module && q.module.toString() === module._id.toString()).sort((a, b) => (a.moduleOrder || 0) - (b.moduleOrder || 0));
+              %>
+              <% if (moduleQuizzes.length > 0) { %>
+                <div class="sortable-quizzes" id="sortableQuizzes">
+                  <% moduleQuizzes.forEach((quiz, index) => { %>
+                    <div class="quiz-list-item" data-quiz-id="<%= quiz._id %>" style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--admin-bg-light); border: 1px solid var(--admin-border-light); border-radius: 12px; margin-bottom: 12px; transition: all 0.2s ease;">
+                      <div class="drag-handle" style="cursor: grab; color: var(--admin-text-muted); padding: 8px;">
+                        <i class="fas fa-grip-vertical"></i>
+                      </div>
+                      <div style="width: 40px; height: 40px; background: var(--admin-card-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--admin-primary);">
+                        <%= index + 1 %>
+                      </div>
+                      <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--admin-text-light); margin-bottom: 4px;">
+                          <%= quiz.title %>
+                        </div>
+                        <div style="font-size: 12px; color: var(--admin-text-muted);">
+                          <span style="margin-right: 12px;"><i class="fas fa-code" style="margin-right: 4px;"></i><%= quiz.code %></span>
+                          <span style="margin-right: 12px;"><i class="fas fa-signal" style="margin-right: 4px;"></i><%= quiz.difficulty %></span>
+                          <span class="quiz-status-badge quiz-status-<%= quiz.status %>" style="font-size: 10px; padding: 2px 8px;"><%= quiz.status %></span>
+                        </div>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <a href="/admin/quizzes/<%= quiz._id %>/edit" class="btn btn-sm btn-outline-primary" title="Edit Quiz">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeQuizFromModule('<%= quiz._id %>')" title="Remove from Module">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  <% }); %>
+                </div>
+              <% } else { %>
+                <div style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+                  <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                  <p style="margin-bottom: 16px;">No quizzes assigned to this module yet</p>
+                  <button class="admin-action-btn primary" onclick="openAddQuizzesModal()">
+                    <i class="fas fa-plus"></i>
+                    Add Your First Quiz
+                  </button>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Available Quizzes to Add -->
+        <div class="col-lg-4 mb-4">
+          <div style="background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--admin-border-light);">
+              <h3 style="font-size: 18px; font-weight: 700; color: var(--admin-text-light); margin: 0;">
+                <i class="fas fa-clipboard-list" style="margin-right: 10px; color: var(--admin-secondary);"></i>
+                Quick Add
+              </h3>
+              <p style="font-size: 13px; color: var(--admin-text-muted); margin: 8px 0 0 0;">
+                Unassigned <%= module.testType %> quizzes
+              </p>
+            </div>
+            
+            <div style="padding: 16px; max-height: 500px; overflow-y: auto;">
+              <% 
+                const unassignedQuizzes = availableQuizzes.filter(q => !q.module);
+              %>
+              <% if (unassignedQuizzes.length > 0) { %>
+                <% unassignedQuizzes.forEach(quiz => { %>
+                  <div class="quick-add-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--admin-bg-light); border: 1px solid var(--admin-border-light); border-radius: 10px; margin-bottom: 8px; transition: all 0.2s ease;">
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-weight: 600; color: var(--admin-text-light); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <%= quiz.title %>
+                      </div>
+                      <div style="font-size: 11px; color: var(--admin-text-muted);">
+                        <%= quiz.code %> • <%= quiz.difficulty %>
+                      </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="quickAddQuiz('<%= quiz._id %>')" title="Add to Module">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                <% }); %>
+              <% } else { %>
+                <div style="text-align: center; padding: 20px; color: var(--admin-text-muted);">
+                  <i class="fas fa-check-circle" style="font-size: 32px; color: #22c55e; margin-bottom: 12px;"></i>
+                  <p style="font-size: 13px; margin: 0;">All <%= module.testType %> quizzes are assigned!</p>
+                </div>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Module Info Card -->
+          <div style="background: var(--admin-card-light); border: 2px solid var(--admin-border-light); border-radius: 16px; margin-top: 20px; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--admin-border-light);">
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--admin-text-light); margin: 0;">
+                <i class="fas fa-info-circle" style="margin-right: 10px; color: var(--admin-primary);"></i>
+                Module Info
+              </h3>
+            </div>
+            <div style="padding: 16px;">
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--admin-border-light);">
+                <span style="color: var(--admin-text-muted);">Test Type</span>
+                <span style="font-weight: 600; color: var(--admin-text-light);"><%= module.testType %></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--admin-border-light);">
+                <span style="color: var(--admin-text-muted);">Display Order</span>
+                <span style="font-weight: 600; color: var(--admin-text-light);"><%= module.order || 0 %></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--admin-border-light);">
+                <span style="color: var(--admin-text-muted);">Created</span>
+                <span style="font-weight: 600; color: var(--admin-text-light);"><%= new Date(module.createdAt).toLocaleDateString() %></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="color: var(--admin-text-muted);">Updated</span>
+                <span style="font-weight: 600; color: var(--admin-text-light);"><%= new Date(module.updatedAt).toLocaleDateString() %></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Edit Module Modal -->
+<div class="modal fade" id="editModuleModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-edit" style="margin-right: 8px; color: var(--admin-primary);"></i>
+          Edit Module Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <form id="editModuleForm">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Module Name *</label>
+            <input type="text" class="form-control" id="editModuleName" value="<%= module.name %>" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Test Type</label>
+              <select class="form-select" id="editModuleTestType">
+                <option value="EST" <%= module.testType === 'EST' ? 'selected' : '' %>>EST</option>
+                <option value="SAT" <%= module.testType === 'SAT' ? 'selected' : '' %>>SAT</option>
+                <option value="ACT" <%= module.testType === 'ACT' ? 'selected' : '' %>>ACT</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Status</label>
+              <select class="form-select" id="editModuleStatus">
+                <option value="active" <%= module.status === 'active' ? 'selected' : '' %>>Active</option>
+                <option value="inactive" <%= module.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+                <option value="archived" <%= module.status === 'archived' ? 'selected' : '' %>>Archived</option>
+              </select>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveModuleDetails()">
+          <i class="fas fa-save" style="margin-right: 6px;"></i>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Quizzes Modal -->
+<div class="modal fade" id="addQuizzesModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content admin-modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-plus-circle" style="margin-right: 8px; color: var(--admin-primary);"></i>
+          Add Quizzes to Module
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <div style="margin-bottom: 16px;">
+          <input type="text" class="form-control" id="searchQuizzes" placeholder="Search quizzes..." style="border-radius: 10px;">
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <span style="color: var(--admin-text-muted);">
+            <span id="selectedCount">0</span> quizzes selected
+          </span>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllQuizzes()">
+            Select All
+          </button>
+        </div>
+
+        <div id="addQuizzesList" style="max-height: 400px; overflow-y: auto;">
+          <% 
+            const unassignedForModal = availableQuizzes.filter(q => !q.module);
+          %>
+          <% if (unassignedForModal.length > 0) { %>
+            <% unassignedForModal.forEach(quiz => { %>
+              <label class="quiz-checkbox-item" data-title="<%= quiz.title.toLowerCase() %>" data-code="<%= quiz.code.toLowerCase() %>" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--admin-bg-light); border: 2px solid var(--admin-border-light); border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s ease;">
+                <input type="checkbox" name="selectedQuizzes" value="<%= quiz._id %>" class="form-check-input" style="width: 20px; height: 20px;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; color: var(--admin-text-light);"><%= quiz.title %></div>
+                  <div style="font-size: 12px; color: var(--admin-text-muted);">
+                    <span><%= quiz.code %></span>
+                    <span style="margin: 0 8px;">•</span>
+                    <span><%= quiz.difficulty %></span>
+                    <span style="margin: 0 8px;">•</span>
+                    <span class="quiz-status-badge quiz-status-<%= quiz.status %>" style="font-size: 10px; padding: 2px 8px;"><%= quiz.status %></span>
+                  </div>
+                </div>
+              </label>
+            <% }); %>
+          <% } else { %>
+            <div style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+              <p>No unassigned quizzes available for this test type.</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="addSelectedQuizzes()">
+          <i class="fas fa-plus" style="margin-right: 6px;"></i>
+          Add Selected Quizzes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .quick-add-item:hover {
+    border-color: var(--admin-primary);
+    background: var(--admin-card-light);
+  }
+  
+  .quiz-list-item:hover {
+    border-color: var(--admin-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  .quiz-checkbox-item:hover {
+    border-color: var(--admin-primary);
+  }
+  
+  .quiz-checkbox-item:has(input:checked) {
+    border-color: var(--admin-primary);
+    background: rgba(99, 102, 241, 0.05);
+  }
+  
+  .sortable-ghost {
+    opacity: 0.4;
+    background: var(--admin-primary);
+  }
+  
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+const moduleId = '<%= module._id %>';
+
+// Initialize sortable for quiz reordering
+document.addEventListener('DOMContentLoaded', function() {
+  const sortableList = document.getElementById('sortableQuizzes');
+  if (sortableList) {
+    new Sortable(sortableList, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: function(evt) {
+        saveQuizOrder();
+      }
+    });
+  }
+  
+  // Search quizzes in modal
+  const searchInput = document.getElementById('searchQuizzes');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const query = this.value.toLowerCase();
+      document.querySelectorAll('.quiz-checkbox-item').forEach(item => {
+        const title = item.dataset.title;
+        const code = item.dataset.code;
+        if (title.includes(query) || code.includes(query)) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+  }
+  
+  // Update selected count
+  document.querySelectorAll('input[name="selectedQuizzes"]').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedCount);
+  });
+  
+});
+
+function updateSelectedCount() {
+  const count = document.querySelectorAll('input[name="selectedQuizzes"]:checked').length;
+  document.getElementById('selectedCount').textContent = count;
+}
+
+function selectAllQuizzes() {
+  const checkboxes = document.querySelectorAll('input[name="selectedQuizzes"]');
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  checkboxes.forEach(cb => cb.checked = !allChecked);
+  updateSelectedCount();
+}
+
+function openEditModuleModal() {
+  const modal = new bootstrap.Modal(document.getElementById('editModuleModal'));
+  modal.show();
+}
+
+function openAddQuizzesModal() {
+  const modal = new bootstrap.Modal(document.getElementById('addQuizzesModal'));
+  modal.show();
+}
+
+async function saveModuleDetails() {
+  const data = {
+    name: document.getElementById('editModuleName').value,
+    testType: document.getElementById('editModuleTestType').value,
+    status: document.getElementById('editModuleStatus').value,
+  };
+  
+  try {
+    const response = await fetch(`/admin/quiz-modules/${moduleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Module updated successfully', 'success');
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      showNotification(result.message || 'Failed to update module', 'error');
+    }
+  } catch (error) {
+    console.error('Error updating module:', error);
+    showNotification('Failed to update module', 'error');
+  }
+}
+
+async function addSelectedQuizzes() {
+  const checkboxes = document.querySelectorAll('input[name="selectedQuizzes"]:checked');
+  const quizIds = Array.from(checkboxes).map(cb => cb.value);
+  
+  if (quizIds.length === 0) {
+    showNotification('Please select at least one quiz', 'error');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/admin/quiz-modules/${moduleId}/quizzes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quizIds }),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification(result.message, 'success');
+      bootstrap.Modal.getInstance(document.getElementById('addQuizzesModal')).hide();
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      showNotification(result.message || 'Failed to add quizzes', 'error');
+    }
+  } catch (error) {
+    console.error('Error adding quizzes:', error);
+    showNotification('Failed to add quizzes', 'error');
+  }
+}
+
+async function quickAddQuiz(quizId) {
+  try {
+    const response = await fetch(`/admin/quiz-modules/${moduleId}/quizzes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quizIds: [quizId] }),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Quiz added to module', 'success');
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      showNotification(result.message || 'Failed to add quiz', 'error');
+    }
+  } catch (error) {
+    console.error('Error adding quiz:', error);
+    showNotification('Failed to add quiz', 'error');
+  }
+}
+
+async function removeQuizFromModule(quizId) {
+  if (!confirm('Remove this quiz from the module?')) return;
+  
+  try {
+    const response = await fetch(`/admin/quiz-modules/${moduleId}/quizzes/${quizId}`, {
+      method: 'DELETE',
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Quiz removed from module', 'success');
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      showNotification(result.message || 'Failed to remove quiz', 'error');
+    }
+  } catch (error) {
+    console.error('Error removing quiz:', error);
+    showNotification('Failed to remove quiz', 'error');
+  }
+}
+
+async function saveQuizOrder() {
+  const items = document.querySelectorAll('#sortableQuizzes .quiz-list-item');
+  const quizOrder = Array.from(items).map((item, index) => ({
+    quizId: item.dataset.quizId,
+    order: index + 1,
+  }));
+  
+  try {
+    const response = await fetch(`/admin/quiz-modules/${moduleId}/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quizOrder }),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Quiz order saved', 'success');
+    } else {
+      showNotification(result.message || 'Failed to save order', 'error');
+    }
+  } catch (error) {
+    console.error('Error saving order:', error);
+    showNotification('Failed to save order', 'error');
+  }
+}
+
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#6366f1'};
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    animation: slideIn 0.3s ease;
+  `;
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+</script>
+
+<style>
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+</style>
+
+<%- include('./partials/admin-footer') %>

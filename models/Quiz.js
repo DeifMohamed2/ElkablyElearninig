@@ -92,6 +92,18 @@ const quizSchema = new mongoose.Schema(
         message: 'Test type must be EST, SAT, or ACT',
       },
     },
+    // Reference to Quiz Module for organization
+    module: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'QuizModule',
+      default: null,
+    },
+    // Order within the module
+    moduleOrder: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     difficulty: {
       type: String,
       required: [true, 'Difficulty level is required'],

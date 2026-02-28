@@ -1,6 +1,7 @@
 const BundleCourse = require('../models/BundleCourse');
 const Course = require('../models/Course');
 const Quiz = require('../models/Quiz');
+const QuizModule = require('../models/QuizModule');
 const User = require('../models/User');
 const BrilliantStudent = require('../models/BrilliantStudent');
 const GameRoom = require('../models/GameRoom');
@@ -672,7 +673,7 @@ const getBundleContent = async (req, res) => {
 // Get EST test type page
 const getESTTests = async (req, res) => {
   try {
-    const { page = 1, limit = 12, search, difficulty } = req.query;
+    const { page = 1, limit = 12, search, difficulty, moduleId } = req.query;
     const skip = (page - 1) * limit;
 
     const filter = {
@@ -688,16 +689,61 @@ const getESTTests = async (req, res) => {
       ];
     }
     if (difficulty) filter.difficulty = difficulty;
+    if (moduleId) filter.module = moduleId;
 
-    const quizzes = await Quiz.find(filter)
-      .populate('questionBank', 'name bankCode description totalQuestions')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean({ virtuals: true });
+    const [quizzes, total, modules] = await Promise.all([
+      Quiz.find(filter)
+        .populate('questionBank', 'name bankCode description totalQuestions')
+        .populate('module', 'name code icon color description')
+        .sort({ module: 1, moduleOrder: 1, createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean({ virtuals: true }),
+      Quiz.countDocuments(filter),
+      QuizModule.find({ testType: 'EST', status: 'active', isDeleted: { $ne: true } })
+        .sort({ order: 1 })
+        .lean()
+    ]);
 
-    const total = await Quiz.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
+
+    // Group quizzes by module for collapsible display
+    const quizzesByModule = [];
+    const moduleMap = new Map();
+    
+    // First, add all modules (even empty ones for display)
+    modules.forEach(mod => {
+      moduleMap.set(mod._id.toString(), { module: mod, quizzes: [] });
+    });
+    
+    // Group quizzes into modules
+    quizzes.forEach(quiz => {
+      if (quiz.module) {
+        const moduleKey = quiz.module._id ? quiz.module._id.toString() : quiz.module.toString();
+        if (moduleMap.has(moduleKey)) {
+          moduleMap.get(moduleKey).quizzes.push(quiz);
+        } else {
+          // Module not in active modules, create entry with quiz's populated module data
+          moduleMap.set(moduleKey, { module: quiz.module, quizzes: [quiz] });
+        }
+      } else {
+        // Quizzes without modules
+        if (!moduleMap.has('unassigned')) {
+          moduleMap.set('unassigned', { module: null, quizzes: [] });
+        }
+        moduleMap.get('unassigned').quizzes.push(quiz);
+      }
+    });
+    
+    // Convert to array (modules first, then unassigned)
+    moduleMap.forEach((value, key) => {
+      if (key !== 'unassigned' && value.quizzes.length > 0) {
+        quizzesByModule.push(value);
+      }
+    });
+    if (moduleMap.has('unassigned') && moduleMap.get('unassigned').quizzes.length > 0) {
+      quizzesByModule.push(moduleMap.get('unassigned'));
+    }
 
     // Get filter options
     const difficulties = await Quiz.distinct('difficulty', {
@@ -715,10 +761,12 @@ const getESTTests = async (req, res) => {
       testTypeDescription:
         'Comprehensive preparation for the Egyptian Scholastic Test with math and science focus',
       quizzes,
+      quizzesByModule,
+      modules,
       user,
       cart: req.session.cart || [],
       filterOptions: { difficulties },
-      currentFilters: { search, difficulty },
+      currentFilters: { search, difficulty, moduleId },
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -741,7 +789,7 @@ const getESTTests = async (req, res) => {
 // Get SAT test type page
 const getSATTests = async (req, res) => {
   try {
-    const { page = 1, limit = 12, search, difficulty } = req.query;
+    const { page = 1, limit = 12, search, difficulty, moduleId } = req.query;
     const skip = (page - 1) * limit;
 
     const filter = {
@@ -757,16 +805,56 @@ const getSATTests = async (req, res) => {
       ];
     }
     if (difficulty) filter.difficulty = difficulty;
+    if (moduleId) filter.module = moduleId;
 
-    const quizzes = await Quiz.find(filter)
-      .populate('questionBank', 'name bankCode description totalQuestions')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean({ virtuals: true });
+    const [quizzes, total, modules] = await Promise.all([
+      Quiz.find(filter)
+        .populate('questionBank', 'name bankCode description totalQuestions')
+        .populate('module', 'name code icon color description')
+        .sort({ module: 1, moduleOrder: 1, createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean({ virtuals: true }),
+      Quiz.countDocuments(filter),
+      QuizModule.find({ testType: 'SAT', status: 'active', isDeleted: { $ne: true } })
+        .sort({ order: 1 })
+        .lean()
+    ]);
 
-    const total = await Quiz.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
+
+    // Group quizzes by module for collapsible display
+    const quizzesByModule = [];
+    const moduleMap = new Map();
+    
+    modules.forEach(mod => {
+      moduleMap.set(mod._id.toString(), { module: mod, quizzes: [] });
+    });
+    
+    quizzes.forEach(quiz => {
+      if (quiz.module) {
+        const moduleKey = quiz.module._id ? quiz.module._id.toString() : quiz.module.toString();
+        if (moduleMap.has(moduleKey)) {
+          moduleMap.get(moduleKey).quizzes.push(quiz);
+        } else {
+          moduleMap.set(moduleKey, { module: quiz.module, quizzes: [quiz] });
+        }
+      } else {
+        if (!moduleMap.has('unassigned')) {
+          moduleMap.set('unassigned', { module: null, quizzes: [] });
+        }
+        moduleMap.get('unassigned').quizzes.push(quiz);
+      }
+    });
+    
+    moduleMap.forEach((value, key) => {
+      if (key !== 'unassigned' && value.quizzes.length > 0) {
+        quizzesByModule.push(value);
+      }
+    });
+    if (moduleMap.has('unassigned') && moduleMap.get('unassigned').quizzes.length > 0) {
+      quizzesByModule.push(moduleMap.get('unassigned'));
+    }
 
     // Get filter options
     const difficulties = await Quiz.distinct('difficulty', {
@@ -784,10 +872,12 @@ const getSATTests = async (req, res) => {
       testTypeDescription:
         'Comprehensive preparation for the Scholastic Assessment Test for college admissions',
       quizzes,
+      quizzesByModule,
+      modules,
       user,
       cart: req.session.cart || [],
       filterOptions: { difficulties },
-      currentFilters: { search, difficulty },
+      currentFilters: { search, difficulty, moduleId },
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -810,7 +900,7 @@ const getSATTests = async (req, res) => {
 // Get ACT test type page
 const getACTTests = async (req, res) => {
   try {
-    const { page = 1, limit = 12, search, difficulty } = req.query;
+    const { page = 1, limit = 12, search, difficulty, moduleId } = req.query;
     const skip = (page - 1) * limit;
 
     const filter = {
@@ -826,16 +916,56 @@ const getACTTests = async (req, res) => {
       ];
     }
     if (difficulty) filter.difficulty = difficulty;
+    if (moduleId) filter.module = moduleId;
 
-    const quizzes = await Quiz.find(filter)
-      .populate('questionBank', 'name bankCode description totalQuestions')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean({ virtuals: true });
+    const [quizzes, total, modules] = await Promise.all([
+      Quiz.find(filter)
+        .populate('questionBank', 'name bankCode description totalQuestions')
+        .populate('module', 'name code icon color description')
+        .sort({ module: 1, moduleOrder: 1, createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean({ virtuals: true }),
+      Quiz.countDocuments(filter),
+      QuizModule.find({ testType: 'ACT', status: 'active', isDeleted: { $ne: true } })
+        .sort({ order: 1 })
+        .lean()
+    ]);
 
-    const total = await Quiz.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
+
+    // Group quizzes by module for collapsible display
+    const quizzesByModule = [];
+    const moduleMap = new Map();
+    
+    modules.forEach(mod => {
+      moduleMap.set(mod._id.toString(), { module: mod, quizzes: [] });
+    });
+    
+    quizzes.forEach(quiz => {
+      if (quiz.module) {
+        const moduleKey = quiz.module._id ? quiz.module._id.toString() : quiz.module.toString();
+        if (moduleMap.has(moduleKey)) {
+          moduleMap.get(moduleKey).quizzes.push(quiz);
+        } else {
+          moduleMap.set(moduleKey, { module: quiz.module, quizzes: [quiz] });
+        }
+      } else {
+        if (!moduleMap.has('unassigned')) {
+          moduleMap.set('unassigned', { module: null, quizzes: [] });
+        }
+        moduleMap.get('unassigned').quizzes.push(quiz);
+      }
+    });
+    
+    moduleMap.forEach((value, key) => {
+      if (key !== 'unassigned' && value.quizzes.length > 0) {
+        quizzesByModule.push(value);
+      }
+    });
+    if (moduleMap.has('unassigned') && moduleMap.get('unassigned').quizzes.length > 0) {
+      quizzesByModule.push(moduleMap.get('unassigned'));
+    }
 
     // Get filter options
     const difficulties = await Quiz.distinct('difficulty', {
@@ -853,10 +983,12 @@ const getACTTests = async (req, res) => {
       testTypeDescription:
         'Comprehensive preparation for the American College Testing with science reasoning',
       quizzes,
+      quizzesByModule,
+      modules,
       user,
       cart: req.session.cart || [],
       filterOptions: { difficulties },
-      currentFilters: { search, difficulty },
+      currentFilters: { search, difficulty, moduleId },
       pagination: {
         currentPage: parseInt(page),
         totalPages,

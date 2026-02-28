@@ -1,0 +1,124 @@
+<!-- Quiz Card Partial -->
+<div class="quiz-card-modern admin-slide-in">
+  <!-- Quiz Header -->
+  <div class="quiz-card-header">
+    <div class="quiz-card-thumbnail" style="position: relative; overflow: hidden; border-radius: 8px;">
+      <% if (quiz.thumbnail && quiz.thumbnail.url) { %>
+        <img src="<%= quiz.thumbnail.url %>" alt="<%= quiz.title %>" class="quiz-thumbnail-img">
+        <div class="quiz-thumbnail-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.3s ease; border-radius: 8px;">
+          <button class="btn btn-sm btn-outline-light" onclick="editThumbnail('<%= quiz._id %>')" title="Edit Thumbnail" style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(255, 255, 255, 0.8); color: #374151; font-weight: 500; padding: 8px 12px; border-radius: 6px; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+            <i class="fas fa-edit" style="margin-right: 4px;"></i>
+            Edit
+          </button>
+        </div>
+      <% } else { %>
+        <div class="quiz-thumbnail-placeholder" onclick="editThumbnail('<%= quiz._id %>')" style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border: 2px dashed #cbd5e1; border-radius: 8px; transition: all 0.3s ease;">
+          <i class="fas fa-image" style="font-size: 24px; color: #64748b; margin-bottom: 8px;"></i>
+          <div class="add-thumbnail-btn" style="background: #3b82f6; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+            <i class="fas fa-plus"></i>
+          </div>
+          <span style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">Add Thumbnail</span>
+        </div>
+      <% } %>
+    </div>
+    <div class="quiz-card-header-content">
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+        <div class="quiz-status-badge quiz-status-<%= quiz.status %>">
+          <%= quiz.status %>
+        </div>
+        <% if (quiz.testType) { %>
+          <span style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;">
+            <%= quiz.testType %>
+          </span>
+        <% } %>
+        <% if (quiz.module) { %>
+          <span style="background: var(--admin-primary); color: white; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 4px;">
+            <i class="fas fa-layer-group" style="font-size: 9px;"></i>
+            <%= quiz.module.name %>
+          </span>
+        <% } else { %>
+          <span style="background: #6b7280; color: white; font-size: 10px; font-weight: 500; padding: 4px 10px; border-radius: 20px;">
+            Unassigned
+          </span>
+        <% } %>
+      </div>
+      <h3 class="quiz-title"><%= quiz.title %></h3>
+      <div class="quiz-code"><%= quiz.code %></div>
+    </div>
+  </div>
+
+  <!-- Quiz Body -->
+  <div class="quiz-card-body">
+    <p class="quiz-description"><%= quiz.description || '' %></p>
+
+    <!-- Quiz Stats -->
+    <div class="quiz-stats-grid">
+      <div class="quiz-stat-item">
+        <span class="quiz-stat-number"><%= quiz.selectedQuestions ? quiz.selectedQuestions.length : 0 %></span>
+        <span class="quiz-stat-label">Questions</span>
+      </div>
+      <div class="quiz-stat-item">
+        <span class="quiz-stat-number"><%= quiz.totalPoints || 0 %></span>
+        <span class="quiz-stat-label">Points</span>
+      </div>
+      <div class="quiz-stat-item">
+        <span class="quiz-stat-number"><%= quiz.duration || 0 %></span>
+        <span class="quiz-stat-label">Minutes</span>
+      </div>
+      <div class="quiz-stat-item">
+        <span class="quiz-stat-number"><%= quiz.passingScore || 0 %>%</span>
+        <span class="quiz-stat-label">Passing</span>
+      </div>
+    </div>
+
+    <!-- Quiz Meta -->
+    <div class="quiz-meta">
+      <div class="quiz-meta-item">
+        <i class="fas fa-signal"></i>
+        <span><%= quiz.difficulty || 'medium' %></span>
+      </div>
+      <div class="quiz-meta-item">
+        <i class="fas fa-database"></i>
+        <span><%= quiz.questionBank?.name || 'No Bank' %></span>
+      </div>
+      <div class="quiz-meta-item">
+        <i class="fas fa-user"></i>
+        <span><%= quiz.createdBy?.userName || 'Unknown' %></span>
+      </div>
+      <div class="quiz-meta-item">
+        <i class="fas fa-calendar"></i>
+        <span><%= quiz.createdAt ? new Date(quiz.createdAt).toLocaleDateString() : 'N/A' %></span>
+      </div>
+    </div>
+
+    <!-- Quiz Tags -->
+    <% if (quiz.tags && quiz.tags.length > 0) { %>
+      <div class="quiz-tags">
+        <% quiz.tags.slice(0, 3).forEach(tag => { %>
+          <span class="quiz-tag"><%= tag %></span>
+        <% }) %>
+        <% if (quiz.tags.length > 3) { %>
+          <span class="quiz-tag">+<%= quiz.tags.length - 3 %></span>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Quiz Footer -->
+  <div class="quiz-card-footer">
+    <div class="quiz-actions">
+      <a href="/admin/quizzes/<%= quiz._id %>" class="quiz-action-btn quiz-action-btn-primary">
+        <i class="fas fa-eye"></i>
+        View
+      </a>
+      <a href="/admin/quizzes/<%= quiz._id %>/edit" class="quiz-action-btn quiz-action-btn-secondary">
+        <i class="fas fa-edit"></i>
+        Edit
+      </a>
+      <button class="quiz-action-btn quiz-action-btn-danger" onclick="deleteQuiz('<%= quiz._id %>')">
+        <i class="fas fa-trash"></i>
+        Delete
+      </button>
+    </div>
+  </div>
+</div>

@@ -122,6 +122,15 @@ const AdminLogSchema = new mongoose.Schema(
         'DELETE_GAME_ROOM',
         'PERMANENT_DELETE_GAME_ROOM',
         
+        // Quiz Module Actions
+        'MODULE_CREATED',
+        'MODULE_UPDATED',
+        'MODULE_DELETED',
+        'MODULE_RESTORED',
+        'MODULE_PERMANENTLY_DELETED',
+        'QUIZZES_ADDED_TO_MODULE',
+        'QUIZ_REMOVED_FROM_MODULE',
+        
         // Zoom Meeting Actions
         'CREATE_ZOOM_MEETING',
         'START_ZOOM_MEETING',
@@ -169,6 +178,7 @@ const AdminLogSchema = new mongoose.Schema(
         'PROMO_CODE_MANAGEMENT',
         'TEAM_MANAGEMENT',
         'GAME_ROOM_MANAGEMENT',
+        'MODULE_MANAGEMENT',
         'ZOOM_MANAGEMENT',
         'COMMUNICATION',
         'EXPORT',
@@ -197,6 +207,7 @@ const AdminLogSchema = new mongoose.Schema(
         'BrilliantStudent',
         'TeamMember',
         'GameRoom',
+        'QuizModule',
         'ZoomMeeting',
         'Multiple',
         'System',

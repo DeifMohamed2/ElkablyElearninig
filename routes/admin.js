@@ -276,6 +276,26 @@ const {
   deleteOldLogs,
 } = require('../controllers/adminLogController');
 
+// Import Quiz Module Controller
+const {
+  getAllModules,
+  getCreateModule,
+  createModule,
+  getEditModule,
+  updateModule,
+  deleteModule,
+  restoreModule,
+  getTrashModules,
+  permanentDeleteModule,
+  addQuizzesToModule,
+  removeQuizFromModule,
+  reorderModuleQuizzes,
+  reorderModules,
+  getModuleStats,
+  getModulesForSelect,
+  getQuizzesByModules,
+} = require('../controllers/quizModuleController');
+
 // Admin Dashboard
 router.get('/dashboard', isAdmin, getAdminDashboard);
 router.get('/dashboard/chart-data', isAdmin, getDashboardChartData);
@@ -712,5 +732,23 @@ router.get('/guest-users/quiz/:quizId', isAdmin, getGuestsByQuiz);
 router.get('/guest-users/:id/details', isAdmin, getGuestUserDetails);
 router.get('/guest-users/:guestId/quiz/:quizId/attempt/:attemptNumber', isAdmin, getGuestQuizAttemptResults);
 router.delete('/guest-users/:id', isAdmin, deleteGuestUser);
+
+// Quiz Modules Management Routes
+router.get('/quiz-modules', isAdmin, getAllModules);
+router.get('/quiz-modules/create', isAdmin, getCreateModule);
+router.post('/quiz-modules/create', isAdmin, createModule);
+router.get('/quiz-modules/trash', isAdmin, getTrashModules);
+router.get('/quiz-modules/stats', isAdmin, getModuleStats);
+router.get('/quiz-modules/select', isAdmin, getModulesForSelect);
+router.put('/quiz-modules/reorder', isAdmin, reorderModules);
+router.get('/quiz-modules/by-test-type/:testType', getQuizzesByModules);
+router.get('/quiz-modules/:id/edit', isAdmin, getEditModule);
+router.put('/quiz-modules/:id', isAdmin, updateModule);
+router.delete('/quiz-modules/:id', isAdmin, deleteModule);
+router.post('/quiz-modules/:id/restore', isAdmin, restoreModule);
+router.delete('/quiz-modules/:id/permanent', isAdmin, permanentDeleteModule);
+router.post('/quiz-modules/:id/quizzes', isAdmin, addQuizzesToModule);
+router.delete('/quiz-modules/:id/quizzes/:quizId', isAdmin, removeQuizFromModule);
+router.put('/quiz-modules/:id/reorder', isAdmin, reorderModuleQuizzes);
 
 module.exports = router;
