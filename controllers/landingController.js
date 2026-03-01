@@ -74,12 +74,29 @@ const getLandingPage = async (req, res) => {
         .limit(4)
         .lean(),
 
-      // Get test counts in parallel
+      // Get test counts in parallel (prefer module count when modules exist, otherwise quiz count)
       Promise.all([
+        // EST
         Quiz.countDocuments({ testType: 'EST', status: 'active' }),
+        QuizModule.countDocuments({ testType: 'EST', status: 'active', isDeleted: { $ne: true } }),
+        // SAT
         Quiz.countDocuments({ testType: 'SAT', status: 'active' }),
+        QuizModule.countDocuments({ testType: 'SAT', status: 'active', isDeleted: { $ne: true } }),
+        // ACT
         Quiz.countDocuments({ testType: 'ACT', status: 'active' }),
-      ]).then(([EST, SAT, ACT]) => ({ EST, SAT, ACT })),
+        QuizModule.countDocuments({ testType: 'ACT', status: 'active', isDeleted: { $ne: true } }),
+      ]).then(([
+        estQuizCount,
+        estModuleCount,
+        satQuizCount,
+        satModuleCount,
+        actQuizCount,
+        actModuleCount,
+      ]) => ({
+        EST: estModuleCount > 0 ? estModuleCount : estQuizCount,
+        SAT: satModuleCount > 0 ? satModuleCount : satQuizCount,
+        ACT: actModuleCount > 0 ? actModuleCount : actQuizCount,
+      })),
 
       // Get featured game rooms with minimal data
       GameRoom.find({
