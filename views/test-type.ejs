@@ -22,12 +22,18 @@
       <p class="section-subtitle-new">Master your <%= testType %> preparation with our comprehensive practice test collection</p>
     </div>
 
+    <%
+      const safeQuizzesByModuleForCount = typeof quizzesByModule !== 'undefined' ? quizzesByModule : [];
+      const hasModulesForCount = safeQuizzesByModuleForCount.length > 0;
+      const displayCount = hasModulesForCount ? safeQuizzesByModuleForCount.length : (quizzes ? quizzes.length : 0);
+      const displayLabel = hasModulesForCount ? 'modules available' : 'practice tests available';
+    %>
     <!-- Enhanced Results Count -->
     <div class="results-count-enhanced mb-4">
       <div class="results-info">
         <div class="results-stats">
-          <span class="results-number"><%= quizzes.length %></span>
-          <span class="results-label">practice tests available</span>
+          <span class="results-number"><%= displayCount %></span>
+          <span class="results-label"><%= displayLabel %></span>
         </div>
         <div class="results-type">
           <i class="fas fa-clipboard-check"></i>
@@ -648,6 +654,33 @@
     flex: 1;
   }
   
+  /* Dark mode: ensure quiz card text is visible (title, code, description, stats) */
+  .dark-theme .quiz-code-pro,
+  .dark-theme .quiz-date-pro {
+    color: #94a3b8;
+  }
+  
+  .dark-theme .quiz-code-pro i,
+  .dark-theme .quiz-date-pro i {
+    color: #f87171;
+  }
+  
+  .dark-theme .quiz-title-pro {
+    color: #f1f5f9;
+  }
+  
+  .dark-theme .quiz-description-pro {
+    color: #cbd5e1;
+  }
+  
+  .dark-theme .stat-value-pro {
+    color: #f1f5f9;
+  }
+  
+  .dark-theme .stat-label-pro {
+    color: #94a3b8;
+  }
+  
   /* Stats */
   .quiz-stats-pro {
     display: grid;
@@ -831,27 +864,61 @@
     margin: 0 0 25px;
   }
   
-  /* Dark Theme */
+  /* Dark Theme – card and text contrast (avoid black-on-black) */
   .dark-theme .quiz-card-professional {
-    background: var(--card-bg, #1e293b);
+    background: #334155;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid #475569;
   }
   
   .dark-theme .quiz-card-professional:hover {
+    background: #475569;
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+    border-color: #64748b;
   }
   
   .dark-theme .quiz-difficulty-badge-pro:not(.easy):not(.medium):not(.hard) {
-    background: rgba(30, 41, 59, 0.95);
+    background: rgba(51, 65, 85, 0.95);
     color: #f1f5f9;
   }
   
   .dark-theme .quiz-stats-pro {
-    border-color: var(--border-color, #334155);
+    border-color: #475569;
+  }
+  
+  .dark-theme .quiz-stat-item-pro {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  
+  .dark-theme .quiz-stat-item-pro:hover {
+    background: rgba(255, 255, 255, 0.1);
   }
   
   .dark-theme .no-tests-message {
-    background: var(--card-bg, #1e293b);
+    background: #334155;
+    border: 1px solid #475569;
+  }
+  
+  /* Results count in dark mode – ensure number and label are visible */
+  .dark-theme .results-count-enhanced {
+    background: #334155;
+    border: 1px solid #475569;
+  }
+  
+  .dark-theme .results-number {
+    color: #f87171;
+  }
+  
+  .dark-theme .results-label {
+    color: #cbd5e1;
+  }
+  
+  .dark-theme .section-title-new {
+    color: #f1f5f9;
+  }
+  
+  .dark-theme .section-subtitle-new {
+    color: #cbd5e1;
   }
   
   /* Responsive */
