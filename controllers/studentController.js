@@ -267,10 +267,10 @@ const enrolledCourses = async (req, res) => {
         .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
       
       if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
-        // Check if student has purchased the bundle
-        const hasPurchasedBundle = student.hasPurchasedBundle(bundleId.toString());
+        // Check if student has purchased the bundle OR is enrolled in any of its courses
+        const canAccessBook = await student.canAccessBundleBook(bundleId.toString());
         
-        if (hasPurchasedBundle) {
+        if (canAccessBook) {
           // Check if student has already ordered the book
           const hasOrderedBook = await BookOrder.hasUserOrderedBook(
             studentId,
@@ -379,10 +379,10 @@ const courseDetails = async (req, res) => {
         .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
       
       if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
-        // Check if student has purchased the bundle
-        const hasPurchasedBundle = student.hasPurchasedBundle(bundle._id.toString());
+        // Check if student has purchased the bundle OR is enrolled in any of its courses
+        const canAccessBook = await student.canAccessBundleBook(bundle._id.toString());
         
-        if (hasPurchasedBundle) {
+        if (canAccessBook) {
           // Check if student has already ordered the book
           const hasOrderedBook = await BookOrder.hasUserOrderedBook(
             studentId,
@@ -626,10 +626,10 @@ const courseContent = async (req, res) => {
         .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
       
       if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
-        // Check if student has purchased the bundle
-        const hasPurchasedBundle = student.hasPurchasedBundle(bundle._id.toString());
+        // Check if student has purchased the bundle OR is enrolled in any of its courses
+        const canAccessBook = await student.canAccessBundleBook(bundle._id.toString());
         
-        if (hasPurchasedBundle) {
+        if (canAccessBook) {
           // Check if student has already ordered the book
           const hasOrderedBook = await BookOrder.hasUserOrderedBook(
             studentId,

@@ -1219,6 +1219,24 @@ UserSchema.methods.hasPurchasedBundle = function (bundleId) {
   );
 };
 
+// Instance method to check if user is enrolled in any course belonging to a bundle
+UserSchema.methods.isEnrolledInBundleCourse = async function (bundleId) {
+  const Course = mongoose.model('Course');
+  const bundleCourseIds = await Course.find({ bundle: bundleId }).distinct('_id');
+  const bundleCourseIdStrs = bundleCourseIds.map((id) => id.toString());
+  return this.enrolledCourses.some((ec) => {
+    if (!ec.course) return false;
+    const courseId = (ec.course._id || ec.course).toString();
+    return bundleCourseIdStrs.includes(courseId);
+  });
+};
+
+// Check if user can buy the book for a bundle (purchased OR enrolled in any course of the bundle)
+UserSchema.methods.canAccessBundleBook = async function (bundleId) {
+  if (this.hasPurchasedBundle(bundleId)) return true;
+  return this.isEnrolledInBundleCourse(bundleId);
+};
+
 // Instance method to check if user has access to a course (either through individual purchase or bundle purchase)
 UserSchema.methods.hasAccessToCourse = function (courseId) {
   // Normalize courseId to string for comparison

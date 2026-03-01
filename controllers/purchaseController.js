@@ -1716,9 +1716,10 @@ const getBookCheckout = async (req, res) => {
       return res.redirect('/auth/login');
     }
 
-    // Check if user has purchased the bundle
-    if (!user.hasPurchasedBundle(bundleId)) {
-      req.flash('error_msg', 'You must purchase the bundle first before buying the book');
+    // Check if user has purchased the bundle or is enrolled in any of its courses
+    const canAccessBook = await user.canAccessBundleBook(bundleId);
+    if (!canAccessBook) {
+      req.flash('error_msg', 'You must be enrolled in the bundle to buy the book');
       return res.redirect('/student/enrolled-courses');
     }
 
@@ -1788,9 +1789,10 @@ const getCheckout = async (req, res) => {
       
       // Validate the book purchase is still valid
       const user = await User.findById(req.session.user.id);
-      if (!user.hasPurchasedBundle(bookPurchase.bundleId)) {
+      const canAccessBook = await user.canAccessBundleBook(bookPurchase.bundleId);
+      if (!canAccessBook) {
         delete req.session.bookOnlyPurchase;
-        req.flash('error_msg', 'You must purchase the bundle first before buying the book');
+        req.flash('error_msg', 'You must be enrolled in the bundle to buy the book');
         return res.redirect('/student/enrolled-courses');
       }
 
@@ -2364,12 +2366,13 @@ const processPayment = async (req, res) => {
       const bookPurchase = req.session.bookOnlyPurchase;
       const user = await User.findById(req.session.user.id);
 
-      // Validate user has purchased the bundle
-      if (!user.hasPurchasedBundle(bookPurchase.bundleId)) {
+      // Validate user has purchased the bundle or is enrolled in any of its courses
+      const canAccessBook = await user.canAccessBundleBook(bookPurchase.bundleId);
+      if (!canAccessBook) {
         delete req.session.bookOnlyPurchase;
         return res.status(400).json({
           success: false,
-          message: 'You must purchase the bundle first before buying the book',
+          message: 'You must be enrolled in the bundle to buy the book',
         });
       }
 
