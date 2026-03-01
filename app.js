@@ -7,12 +7,12 @@ const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
 const methodOverride = require('method-override');
 const compression = require('compression');
 const morgan = require('morgan');
+const { connectDB } = require('./config/db');
 
 // Professional Logging System
 const { logger, logSystem, logError, morganStream } = require('./utils/logger');
@@ -188,9 +188,9 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl: process.env.DATABASE_URL,
-      touchAfter: 24 * 3600, // lazy session update - only touch the session if it's been more than 24 hours
-      ttl: 7 * 24 * 60 * 60, // 7 days session expiration
+      clientPromise: connectDB(),
+      touchAfter: 24 * 3600,
+      ttl: 7 * 24 * 60 * 60,
     }),
     cookie: {
       secure: false, // Set to true in production with HTTPS
@@ -343,20 +343,16 @@ app.set('io', io);
 console.log('Socket.IO initialized', io.engine.clientsCount);
 
 // Database connection and server startup
-const dbURI = process.env.DATABASE_URL;
 const PORT = process.env.PORT || 4091;
 
-mongoose
-  .connect(dbURI)
-  .then((result) => {
-    // Log database connection
+connectDB()
+  .then(() => {
     logSystem('DATABASE_CONNECTED', {
-      database: dbURI.replace(/\/\/.*@/, '//**:**@'), // Hide credentials
+      database: process.env.DATABASE_URL.replace(/\/\/.*@/, '//**:**@'),
     });
     logger.info('Database connected successfully');
 
     server.listen(PORT, '0.0.0.0', () => {
-      // Log server startup
       logSystem('SERVER_STARTED', {
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
@@ -369,7 +365,6 @@ mongoose
       console.log('Server accessible on http://82.25.101.207:' + PORT);
       logger.info(`🚀 Server started on port ${PORT}`);
 
-      // Start the pending payment verification job after server is ready
       startPendingPaymentJob();
     });
   })
