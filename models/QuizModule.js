@@ -115,6 +115,8 @@ quizModuleSchema.virtual('quizCount', {
 quizModuleSchema.index({ testType: 1, status: 1, order: 1 });
 quizModuleSchema.index({ code: 1 });
 quizModuleSchema.index({ isDeleted: 1 });
+// Pre-find hook + test type filter combined
+quizModuleSchema.index({ isDeleted: 1, testType: 1, order: 1 });
 
 // Pre-find middleware to exclude deleted modules by default
 quizModuleSchema.pre(/^find/, function (next) {

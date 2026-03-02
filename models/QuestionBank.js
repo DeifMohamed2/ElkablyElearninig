@@ -139,4 +139,14 @@ QuestionBankSchema.methods.syncQuestionsArray = async function() {
   await this.save();
 };
 
+// ==================== Performance Indexes ====================
+// Active bank listing
+QuestionBankSchema.index({ status: 1, isActive: 1 });
+// Test type filtering
+QuestionBankSchema.index({ testType: 1, status: 1 });
+// Admin-created bank lookups
+QuestionBankSchema.index({ createdBy: 1 });
+// Date-sorted bank listing
+QuestionBankSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('QuestionBank', QuestionBankSchema);

@@ -387,5 +387,13 @@ CourseSchema.statics.getBundleCoursesWithStatus = async function (
 // Performance indexes
 CourseSchema.index({ status: 1, createdAt: -1 });
 CourseSchema.index({ bundle: 1, status: 1 });
+// Sequential course ordering within a bundle (isCourseUnlocked)
+CourseSchema.index({ bundle: 1, order: 1 });
+// Category-based admin filtering
+CourseSchema.index({ category: 1, status: 1 });
+// Active course listing for students/landing pages
+CourseSchema.index({ isActive: 1, status: 1 });
+// Admin-created course lookups
+CourseSchema.index({ createdBy: 1 });
 
 module.exports = mongoose.model('Course', CourseSchema);

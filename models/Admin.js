@@ -52,6 +52,10 @@ AdminSchema.methods.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };
 
+// ==================== Performance Indexes ====================
+// Admin listing filter by role and active status
+AdminSchema.index({ role: 1, isActive: 1 });
+
 module.exports = mongoose.model('Admin', AdminSchema);
 
 

@@ -596,8 +596,15 @@
           }
 
           @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+              transform: translateY(-20px);
+              opacity: 0;
+            }
+
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
           }
 
           .bulk-action-bar.show {
@@ -704,7 +711,7 @@
             <div class="admin-stat-header">
               <div class="admin-stat-icon"><i class="fas fa-tasks"></i></div>
             </div>
-            <h3 class="admin-stat-number"><%= analytics.contentCompletionRate %>%</h3>
+            <h3 class="admin-stat-number" id="contentCompletionStat">-</h3>
             <p class="admin-stat-label">Content Completion</p>
           </div>
         </div>
@@ -940,121 +947,18 @@
               </div>
             </div>
 
-            <!-- Topics Tab -->
+            <!-- Topics Tab (Lazy-loaded via AJAX) -->
             <div class="tab-pane fade" id="topics" role="tabpanel">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Topics & Content Analytics</h5>
               </div>
-              <% if (topicsAnalytics && topicsAnalytics.length) { %>
-              <div class="accordion accordion-pro" id="topicsAccordion">
-                <% topicsAnalytics.forEach((topic, tIdx) => { %>
-                <div class="accordion-item">
-                  <h2 class="accordion-header" id="heading-<%= topic._id %>">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= topic._id %>" aria-expanded="false" aria-controls="collapse-<%= topic._id %>">
-                      <span class="badge bg-secondary me-2" style="min-width: 32px;">#<%= topic.order %></span>
-                      <strong class="me-2"><%= topic.title %></strong>
-                      <span class="topic-meta">
-                        <span class="badge-soft"><i class="fas fa-file-alt me-1"></i><%= topic.contentCount %> items</span>
-                        <span class="badge-soft"><i class="fas fa-eye me-1"></i><%= topic.totals.viewers %> views</span>
-                        <span class="badge-soft"><i class="fas fa-check me-1"></i><%= topic.totals.completions %> done</span>
-                      </span>
-                    </button>
-                  </h2>
-                  <div id="collapse-<%= topic._id %>" class="accordion-collapse collapse" aria-labelledby="heading-<%= topic._id %>" data-bs-parent="#topicsAccordion">
-                    <div class="accordion-body">
-                      <div class="table-overflow">
-                        <table class="table-pro">
-                          <thead>
-                            <tr>
-                              <th class="col-min">#</th>
-                              <th>Content Title</th>
-                              <th>Type</th>
-                              <th>
-                                <i class="fas fa-eye me-1"></i>Views
-                              </th>
-                              <th>
-                                <i class="fas fa-check-circle me-1"></i>Completions
-                              </th>
-                              <th>
-                                <i class="fas fa-clock me-1"></i>Avg Time
-                              </th>
-                              <th>
-                                <i class="fas fa-redo me-1"></i>Attempts
-                              </th>
-                              <th>
-                                <i class="fas fa-chart-line me-1"></i>Avg Score
-                              </th>
-                              <th>
-                                <i class="fas fa-percentage me-1"></i>Pass Rate
-                              </th>
-                              <th>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <% topic.contents.sort((a,b)=>a.order-b.order).forEach((ci, cIdx) => { %>
-                            <tr>
-                              <td class="col-min" style="opacity:.7;font-weight:600"><%= cIdx+1 %></td>
-                              <td style="font-weight: 500;"><%= ci.title %></td>
-                              <td><span class="content-type-badge content-type-<%= ci.type %>"><i class="fas fa-<%= ci.type === 'video' ? 'play-circle' : ci.type === 'pdf' ? 'file-pdf' : ci.type === 'quiz' ? 'question-circle' : ci.type === 'homework' ? 'tasks' : ci.type === 'zoom' ? 'video' : 'file' %> me-1"></i><%= ci.type %></span></td>
-                              <td><span class="badge-soft"><%= ci.viewers %></span></td>
-                              <td>
-                                <span class="badge-soft" style="<%= ci.completions > 0 ? 'background: rgba(16, 185, 129, 0.1); color: #059669;' : '' %>">
-                                  <%= ci.completions %>
-                                </span>
-                              </td>
-                              <td><%= ci.averageTimeSpent %> min</td>
-                              <td>
-                                <% if (ci.attempts > 0) { %>
-                                <span class="badge-soft"><%= ci.attempts %></span>
-                                <% } else { %>
-                                <span class="text-muted">-</span>
-                                <% } %>
-                              </td>
-                              <td>
-                                <% if (ci.averageScore !== null) { %>
-                                <span style="font-weight: 600; color: <%= ci.averageScore >= 70 ? '#059669' : ci.averageScore >= 60 ? '#d97706' : '#dc2626' %>">
-                                  <%= ci.averageScore %>%
-                                </span>
-                                <% } else { %>
-                                <span class="text-muted">-</span>
-                                <% } %>
-                              </td>
-                              <td>
-                                <% if (ci.passRate !== null) { %>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                  <div style="width: 60px; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
-                                    <div style="width: <%= ci.passRate %>%; height: 100%; background: <%= ci.passRate >= 70 ? '#059669' : ci.passRate >= 50 ? '#d97706' : '#dc2626' %>; transition: width 0.5s ease;"></div>
-                                  </div>
-                                  <span style="font-weight: 600; font-size: 0.85rem; color: <%= ci.passRate >= 70 ? '#059669' : ci.passRate >= 50 ? '#d97706' : '#dc2626' %>">
-                                    <%= ci.passRate %>%
-                                  </span>
-                                </div>
-                                <% } else { %>
-                                <span class="text-muted">-</span>
-                                <% } %>
-                              </td>
-                              <td>
-                                <a href="/admin/courses/<%= course.courseCode %>/topics/<%= topic._id %>/content/<%= ci._id %>" class="btn btn-sm btn-outline-primary" title="View Content Details">
-                                  <i class="fas fa-chart-bar"></i>
-                                </a>
-                              </td>
-                            </tr>
-                            <% }) %>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
+              <div id="topicsLoader" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                  <span class="visually-hidden">Loading...</span>
                 </div>
-                <% }) %>
+                <p class="mt-3 text-muted">Loading topics analytics...</p>
               </div>
-              <% } else { %>
-              <div class="empty-state">
-                <i class="fas fa-list"></i>
-                <h3>No topics yet</h3>
-                <p>Add topics and content to this course to see analytics here.</p>
-              </div>
-              <% } %>
+              <div id="topicsContent" style="display:none;"></div>
             </div>
           </div>
         </div>
@@ -1070,7 +974,98 @@
   document.addEventListener('DOMContentLoaded', function() {
     animateProgressBars();
     initializeServerSideFilters();
+    initTopicsLazyLoad();
   });
+
+  // ── Lazy-load Topics & Analytics tab ──
+  let topicsLoaded = false;
+  function initTopicsLazyLoad() {
+    const topicsTab = document.querySelector('a[data-bs-toggle="tab"][href="#topics"], button[data-bs-toggle="tab"][data-bs-target="#topics"]');
+    if (!topicsTab) return;
+    topicsTab.addEventListener('shown.bs.tab', function() {
+      if (!topicsLoaded) loadTopicsAnalytics();
+    });
+  }
+
+  function loadTopicsAnalytics() {
+    const loader = document.getElementById('topicsLoader');
+    const content = document.getElementById('topicsContent');
+    fetch('/admin/courses/<%= course.courseCode %>/topics-analytics')
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) throw new Error(data.message);
+        topicsLoaded = true;
+        // Update content completion stat card
+        const statEl = document.getElementById('contentCompletionStat');
+        if (statEl) statEl.textContent = (data.contentCompletionRate || 0) + '%';
+        // Render topics
+        content.innerHTML = renderTopicsHTML(data.topicsAnalytics || []);
+        loader.style.display = 'none';
+        content.style.display = 'block';
+      })
+      .catch(err => {
+        loader.innerHTML = '<div class="text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load analytics. <a href="javascript:void(0)" onclick="loadTopicsAnalytics()">Retry</a></div>';
+        console.error(err);
+      });
+  }
+
+  function renderTopicsHTML(topics) {
+    if (!topics.length) {
+      return '<div class="empty-state"><i class="fas fa-list"></i><h3>No topics yet</h3><p>Add topics and content to this course to see analytics here.</p></div>';
+    }
+    const typeIcon = {video:'play-circle',pdf:'file-pdf',quiz:'question-circle',homework:'tasks',zoom:'video'};
+    let html = '<div class="accordion accordion-pro" id="topicsAccordion">';
+    topics.forEach(topic => {
+      html += `<div class="accordion-item">
+        <h2 class="accordion-header" id="heading-${topic._id}">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${topic._id}" aria-expanded="false">
+            <span class="badge bg-secondary me-2" style="min-width:32px;">#${topic.order}</span>
+            <strong class="me-2">${escH(topic.title)}</strong>
+            <span class="topic-meta">
+              <span class="badge-soft"><i class="fas fa-file-alt me-1"></i>${topic.contentCount} items</span>
+              <span class="badge-soft"><i class="fas fa-eye me-1"></i>${topic.totals.viewers} views</span>
+              <span class="badge-soft"><i class="fas fa-check me-1"></i>${topic.totals.completions} done</span>
+            </span>
+          </button>
+        </h2>
+        <div id="collapse-${topic._id}" class="accordion-collapse collapse" data-bs-parent="#topicsAccordion">
+          <div class="accordion-body"><div class="table-overflow">
+            <table class="table-pro"><thead><tr>
+              <th class="col-min">#</th><th>Content Title</th><th>Type</th>
+              <th><i class="fas fa-eye me-1"></i>Views</th>
+              <th><i class="fas fa-check-circle me-1"></i>Completions</th>
+              <th><i class="fas fa-clock me-1"></i>Avg Time</th>
+              <th><i class="fas fa-redo me-1"></i>Attempts</th>
+              <th><i class="fas fa-chart-line me-1"></i>Avg Score</th>
+              <th><i class="fas fa-percentage me-1"></i>Pass Rate</th>
+              <th>Actions</th>
+            </tr></thead><tbody>`;
+      const sorted = (topic.contents || []).slice().sort((a,b) => (a.order||0)-(b.order||0));
+      sorted.forEach((ci, idx) => {
+        const icon = typeIcon[ci.type] || 'file';
+        const scoreColor = ci.averageScore >= 70 ? '#059669' : ci.averageScore >= 60 ? '#d97706' : '#dc2626';
+        const passColor = ci.passRate >= 70 ? '#059669' : ci.passRate >= 50 ? '#d97706' : '#dc2626';
+        const compStyle = ci.completions > 0 ? 'background:rgba(16,185,129,0.1);color:#059669;' : '';
+        html += `<tr>
+          <td class="col-min" style="opacity:.7;font-weight:600">${idx+1}</td>
+          <td style="font-weight:500;">${escH(ci.title)}</td>
+          <td><span class="content-type-badge content-type-${ci.type}"><i class="fas fa-${icon} me-1"></i>${ci.type}</span></td>
+          <td><span class="badge-soft">${ci.viewers}</span></td>
+          <td><span class="badge-soft" style="${compStyle}">${ci.completions}</span></td>
+          <td>${ci.averageTimeSpent} min</td>
+          <td>${ci.attempts > 0 ? '<span class="badge-soft">'+ci.attempts+'</span>' : '<span class="text-muted">-</span>'}</td>
+          <td>${ci.averageScore !== null ? '<span style="font-weight:600;color:'+scoreColor+'">'+ci.averageScore+'%</span>' : '<span class="text-muted">-</span>'}</td>
+          <td>${ci.passRate !== null ? '<div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#e9ecef;border-radius:3px;overflow:hidden"><div style="width:'+ci.passRate+'%;height:100%;background:'+passColor+';transition:width .5s ease"></div></div><span style="font-weight:600;font-size:.85rem;color:'+passColor+'">'+ci.passRate+'%</span></div>' : '<span class="text-muted">-</span>'}</td>
+          <td><a href="/admin/courses/<%= course.courseCode %>/topics/${topic._id}/content/${ci._id}" class="btn btn-sm btn-outline-primary" title="View Content Details"><i class="fas fa-chart-bar"></i></a></td>
+        </tr>`;
+      });
+      html += '</tbody></table></div></div></div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function escH(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   let searchDebounceTimer = null;
 
@@ -1087,7 +1082,10 @@
     if (search) params.set('search', search);
     if (status) params.set('status', status);
     if (progress) params.set('progress', progress);
-    if (sort) { params.set('sort', sort); params.set('dir', dir); }
+    if (sort) {
+      params.set('sort', sort);
+      params.set('dir', dir);
+    }
     // Reset to page 1 on filter changes unless page is overridden
     if (overrides.page) params.set('page', overrides.page);
 
@@ -1106,7 +1104,9 @@
       searchInput.addEventListener('input', function() {
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => {
-          window.location.href = buildFilterUrl({ search: this.value });
+          window.location.href = buildFilterUrl({
+            search: this.value
+          });
         }, 500);
       });
       // Enter key submits immediately
@@ -1114,7 +1114,9 @@
         if (e.key === 'Enter') {
           e.preventDefault();
           clearTimeout(searchDebounceTimer);
-          window.location.href = buildFilterUrl({ search: this.value });
+          window.location.href = buildFilterUrl({
+            search: this.value
+          });
         }
       });
     }
@@ -1122,12 +1124,16 @@
     // Dropdown changes navigate immediately
     if (statusFilter) {
       statusFilter.addEventListener('change', function() {
-        window.location.href = buildFilterUrl({ status: this.value });
+        window.location.href = buildFilterUrl({
+          status: this.value
+        });
       });
     }
     if (progressFilter) {
       progressFilter.addEventListener('change', function() {
-        window.location.href = buildFilterUrl({ progress: this.value });
+        window.location.href = buildFilterUrl({
+          progress: this.value
+        });
       });
     }
 
@@ -1141,14 +1147,20 @@
   }
 
   // Server-side sort: navigate with sort params
-  let currentSort = { column: '<%= pagination.sort %>', direction: '<%= pagination.dir %>' };
+  let currentSort = {
+    column: '<%= pagination.sort %>',
+    direction: '<%= pagination.dir %>'
+  };
 
   function sortStudents(column) {
     let dir = 'asc';
     if (currentSort.column === column && currentSort.direction === 'asc') {
       dir = 'desc';
     }
-    window.location.href = buildFilterUrl({ sort: column, dir: dir });
+    window.location.href = buildFilterUrl({
+      sort: column,
+      dir: dir
+    });
   }
 
   function animateProgressBars() {
@@ -1291,7 +1303,7 @@
     try {
       const response = await fetch(`/admin/api/students-for-enrollment?search=${encodeURIComponent(search)}&courseId=<%= course._id %>&page=1&limit=50`);
       const data = await response.json();
-      
+
       if (data.success) {
         renderStudentList(data.students);
       }
@@ -1338,14 +1350,14 @@
 
   // Toggle student selection
   const selectedStudents = new Set();
-  
+
   // Toggle student card selection (when clicking the whole card)
   function toggleStudentCardSelection(studentId) {
     const checkbox = document.querySelector(`input[value="${studentId}"]`);
     const studentItem = document.querySelector(`[data-student-id="${studentId}"]`);
-    
+
     if (!checkbox || !studentItem) return;
-    
+
     // Toggle selection
     if (selectedStudents.has(studentId)) {
       selectedStudents.delete(studentId);
@@ -1360,10 +1372,10 @@
       studentItem.style.background = 'rgba(184, 1, 1, 0.05)';
       studentItem.style.borderColor = 'rgba(184, 1, 1, 0.5)';
     }
-    
+
     updateEnrollButton();
   }
-  
+
   function toggleStudentSelection(studentId) {
     toggleStudentCardSelection(studentId);
   }
@@ -1372,9 +1384,9 @@
   function updateEnrollButton() {
     const btn = document.getElementById('confirmEnrollBtn');
     btn.disabled = selectedStudents.size === 0;
-    btn.textContent = selectedStudents.size > 0 
-      ? `Enroll ${selectedStudents.size} Student(s)` 
-      : 'Select Students to Enroll';
+    btn.textContent = selectedStudents.size > 0 ?
+      `Enroll ${selectedStudents.size} Student(s)` :
+      'Select Students to Enroll';
   }
 
   // Confirm manual enrollment
@@ -1410,7 +1422,7 @@
         showNotification(data.message, 'success');
         bootstrap.Modal.getInstance(document.getElementById('manualEnrollModal')).hide();
         selectedStudents.clear();
-        
+
         // Reload page to show updated student list
         setTimeout(() => window.location.reload(), 1500);
       } else {
@@ -1438,7 +1450,7 @@
     const form = event.target;
     const formData = new FormData(form);
     const submitBtn = form.querySelector('button[type="submit"]');
-    
+
     try {
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
@@ -1527,13 +1539,14 @@
       ` : ''}
     `;
     modal.show();
-    
+
     // Close bulk enroll modal
     bootstrap.Modal.getInstance(document.getElementById('bulkEnrollModal')).hide();
   }
 
   // Search students in manual enrollment modal
   let searchTimeout;
+
   function searchStudentsForEnrollment() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
@@ -1543,7 +1556,7 @@
   }
 
   // ============= BULK REMOVAL SELECTION FUNCTIONS =============
-  
+
   let bulkSelectionMode = false;
   const selectedStudentsForRemoval = new Set();
 
@@ -1569,7 +1582,7 @@
       toggleBtn.classList.add('btn-outline-danger');
       selectAllHeader.style.display = 'none';
       selectionCells.forEach(cell => cell.style.display = 'none');
-      
+
       // Clear all selections
       clearAllSelections();
     }
@@ -1578,7 +1591,7 @@
   // Toggle individual student selection for removal
   function toggleStudentSelectForRemoval(checkbox, studentId) {
     const row = checkbox.closest('tr');
-    
+
     if (checkbox.checked) {
       selectedStudentsForRemoval.add(studentId);
       row.classList.add('selected');
@@ -1586,7 +1599,7 @@
       selectedStudentsForRemoval.delete(studentId);
       row.classList.remove('selected');
     }
-    
+
     updateBulkActionBar();
     updateSelectAllCheckbox();
   }
@@ -1594,11 +1607,11 @@
   // Toggle select all
   function toggleSelectAll(checkbox) {
     const visibleCheckboxes = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .student-select');
-    
+
     visibleCheckboxes.forEach(cb => {
       const studentId = cb.value;
       const row = cb.closest('tr');
-      
+
       if (checkbox.checked) {
         cb.checked = true;
         selectedStudentsForRemoval.add(studentId);
@@ -1609,7 +1622,7 @@
         row.classList.remove('selected');
       }
     });
-    
+
     updateBulkActionBar();
   }
 
@@ -1618,7 +1631,7 @@
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     const visibleCheckboxes = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .student-select');
     const checkedCount = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .student-select:checked').length;
-    
+
     if (visibleCheckboxes.length === 0) {
       selectAllCheckbox.checked = false;
       selectAllCheckbox.indeterminate = false;
@@ -1638,7 +1651,7 @@
   function updateBulkActionBar() {
     const actionBar = document.getElementById('bulkActionBar');
     const selectedCountEl = document.getElementById('selectedCount');
-    
+
     if (selectedStudentsForRemoval.size > 0) {
       actionBar.classList.add('show');
       selectedCountEl.textContent = selectedStudentsForRemoval.size;
@@ -1665,24 +1678,24 @@
       showNotification('Please select at least one student', 'error');
       return;
     }
-    
+
     const modal = new bootstrap.Modal(document.getElementById('bulkRemoveConfirmModal'));
     document.getElementById('bulkRemoveCount').textContent = selectedStudentsForRemoval.size;
-    
+
     // Build list of selected students
     const studentsList = document.getElementById('selectedStudentsList');
     const selectedRows = Array.from(document.querySelectorAll('#studentsTable tbody tr.selected'));
-    
+
     studentsList.innerHTML = selectedRows.slice(0, 10).map(row => {
       const name = row.getAttribute('data-name');
       const code = row.getAttribute('data-code');
       return `<li class="list-group-item py-2"><strong>${name}</strong> <span class="text-muted">(${code})</span></li>`;
     }).join('');
-    
+
     if (selectedRows.length > 10) {
       studentsList.innerHTML += `<li class="list-group-item py-2 text-muted">...and ${selectedRows.length - 10} more</li>`;
     }
-    
+
     modal.show();
   }
 
@@ -1690,11 +1703,11 @@
   async function executeBulkRemoval() {
     const btn = document.getElementById('confirmBulkRemoveBtn');
     const originalText = btn.innerHTML;
-    
+
     try {
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Removing...';
-      
+
       const response = await fetch(`/admin/courses/<%= course._id %>/bulk-remove-students`, {
         method: 'POST',
         headers: {
@@ -1704,13 +1717,13 @@
           studentIds: Array.from(selectedStudentsForRemoval),
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         // Close confirmation modal
         bootstrap.Modal.getInstance(document.getElementById('bulkRemoveConfirmModal')).hide();
-        
+
         // Show results
         showBulkRemovalResults(data.results);
       } else {
@@ -1871,7 +1884,7 @@
             <strong>Instructions:</strong> Upload an Excel file with student identifiers (Email, Phone, or Student Code).
             <br><small>Download template: <a href="/admin/enrollment-template.xlsx" download>enrollment-template.xlsx</a></small>
           </div>
-          
+
           <div class="mb-3">
             <label for="excelFile" class="form-label">Select Excel File</label>
             <input type="file" class="form-control" id="excelFile" name="excelFile" accept=".xlsx,.xls" required>
@@ -1936,12 +1949,12 @@
           <i class="fas fa-exclamation-circle me-2"></i>
           You are about to remove <strong id="bulkRemoveCount">0</strong> student(s) from <strong><%= course.title %></strong>.
         </div>
-        
+
         <p class="text-muted mb-2">This will remove the following students from this course:</p>
         <ul class="list-group mb-3" id="selectedStudentsList" style="max-height: 200px; overflow-y: auto;">
           <!-- Student list will be inserted here -->
         </ul>
-        
+
         <div class="alert alert-info mb-0">
           <i class="fas fa-info-circle me-2"></i>
           <strong>Note:</strong> This action removes the course enrollment only. It does not delete the student accounts or affect their other course enrollments.

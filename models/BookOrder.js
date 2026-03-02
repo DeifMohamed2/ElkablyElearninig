@@ -135,6 +135,12 @@ const BookOrderSchema = new mongoose.Schema(
 BookOrderSchema.index({ user: 1, bundle: 1 });
 BookOrderSchema.index({ status: 1 });
 BookOrderSchema.index({ createdAt: -1 });
+// Find book orders by purchase ID (admin order details)
+BookOrderSchema.index({ purchase: 1 });
+// User book order filtering by status
+BookOrderSchema.index({ user: 1, status: 1 });
+// Admin dashboard: status + date sort
+BookOrderSchema.index({ status: 1, createdAt: -1 });
 
 // Virtual for status display
 BookOrderSchema.virtual('statusDisplay').get(function () {

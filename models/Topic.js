@@ -372,4 +372,14 @@ TopicSchema.pre('save', function (next) {
   next();
 });
 
+// ==================== Performance Indexes ====================
+// Primary query pattern: topics in a course, sorted by order
+TopicSchema.index({ course: 1, order: 1 });
+// Topic count and listing by course
+TopicSchema.index({ course: 1 });
+// Published topic filtering (student-facing)
+TopicSchema.index({ isPublished: 1 });
+// Admin-created topic lookups
+TopicSchema.index({ createdBy: 1 });
+
 module.exports = mongoose.model('Topic', TopicSchema);

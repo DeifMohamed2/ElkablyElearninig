@@ -402,5 +402,13 @@ PurchaseSchema.index({ createdAt: -1 });
 PurchaseSchema.index({ user: 1, status: 1 });
 PurchaseSchema.index({ status: 1, refundedAt: 1 });
 PurchaseSchema.index({ paymentStatus: 1 });
+// User purchase history listing (sorted by date)
+PurchaseSchema.index({ user: 1, createdAt: -1 });
+// Find purchases containing a specific course/bundle item
+PurchaseSchema.index({ 'items.item': 1 });
+// Admin payment dashboard: payment status + date sort
+PurchaseSchema.index({ paymentStatus: 1, createdAt: -1 });
+// Combined status filtering
+PurchaseSchema.index({ status: 1, paymentStatus: 1 });
 
 module.exports = mongoose.model('Purchase', PurchaseSchema);

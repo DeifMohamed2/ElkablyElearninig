@@ -231,6 +231,17 @@ async function processSuccessfulPayment(purchase, req = null) {
 
           // Increment current uses
           promoCode.currentUses += 1;
+
+          // If this is a single-use bulk code, mark it as used by this student
+          if (promoCode.isSingleUseOnly && !promoCode.usedByStudent) {
+            promoCode.usedByStudent = purchaseToProcess.user._id;
+            if (user.studentEmail) {
+              promoCode.usedByStudentEmail = user.studentEmail.toLowerCase();
+            } else if (user.email) {
+              promoCode.usedByStudentEmail = user.email.toLowerCase();
+            }
+          }
+
           await promoCode.save();
 
           console.log('Promo code usage tracked:', {

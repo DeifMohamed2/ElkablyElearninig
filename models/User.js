@@ -1222,7 +1222,9 @@ UserSchema.methods.hasPurchasedBundle = function (bundleId) {
 // Instance method to check if user is enrolled in any course belonging to a bundle
 UserSchema.methods.isEnrolledInBundleCourse = async function (bundleId) {
   const Course = mongoose.model('Course');
-  const bundleCourseIds = await Course.find({ bundle: bundleId }).distinct('_id');
+  const bundleCourseIds = await Course.find({ bundle: bundleId }).distinct(
+    '_id',
+  );
   const bundleCourseIdStrs = bundleCourseIds.map((id) => id.toString());
   return this.enrolledCourses.some((ec) => {
     if (!ec.course) return false;
@@ -1275,7 +1277,7 @@ UserSchema.methods.addPurchasedCourse = async function (
   // Normalize courseId - handle populated objects
   const normalizedCourseId = courseId._id ? courseId._id : courseId;
   const courseIdStr = normalizedCourseId.toString();
-  
+
   // Check for existing active purchase
   const existingPurchase = this.purchasedCourses.find(
     (purchase) =>
@@ -1308,10 +1310,10 @@ UserSchema.methods.addPurchasedCourseWithEnrollment = async function (
   // Normalize courseId - handle populated objects
   const normalizedCourseId = courseId._id ? courseId._id : courseId;
   const courseIdStr = normalizedCourseId.toString();
-  
+
   let purchaseAdded = false;
   let enrollmentAdded = false;
-  
+
   // Check for existing active purchase
   const existingPurchase = this.purchasedCourses.find(
     (purchase) =>
@@ -1337,8 +1339,7 @@ UserSchema.methods.addPurchasedCourseWithEnrollment = async function (
   // Check for existing enrollment
   const existingEnrollment = this.enrolledCourses.find(
     (enrollment) =>
-      enrollment.course &&
-      enrollment.course.toString() === courseIdStr,
+      enrollment.course && enrollment.course.toString() === courseIdStr,
   );
 
   if (!existingEnrollment) {
@@ -1360,7 +1361,9 @@ UserSchema.methods.addPurchasedCourseWithEnrollment = async function (
   // Single save for both operations
   if (purchaseAdded || enrollmentAdded) {
     await this.save();
-    console.log(`✅ Saved purchase and enrollment atomically for: ${courseIdStr}`);
+    console.log(
+      `✅ Saved purchase and enrollment atomically for: ${courseIdStr}`,
+    );
   }
 
   return { purchaseAdded, enrollmentAdded };
@@ -2374,5 +2377,11 @@ UserSchema.index({ studentCode: 1, role: 1 });
 UserSchema.index({ parentNumber: 1, parentCountryCode: 1, role: 1 });
 // Standalone index for course enrollment lookups (used by getCourseDetails aggregation)
 UserSchema.index({ 'enrolledCourses.course': 1 });
+// Login via phone + student code (findByPhoneAndCode)
+UserSchema.index({ studentNumber: 1, studentCode: 1 });
+// Admin dashboard: inactive student filtering sorted by date
+UserSchema.index({ isActive: 1, createdAt: -1 });
+// Standalone date sort for queries without role filter
+UserSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('User', UserSchema);

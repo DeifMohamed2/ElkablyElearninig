@@ -222,6 +222,14 @@ quizSchema.index({ createdBy: 1 });
 quizSchema.index({ createdAt: -1 });
 quizSchema.index({ isDeleted: 1 });
 quizSchema.index({ deletedAt: -1 });
+// Module-based quiz ordering
+quizSchema.index({ module: 1, moduleOrder: 1 });
+// Test type filtering
+quizSchema.index({ testType: 1, status: 1 });
+// Soft-delete + status compound (pre-find hook optimization)
+quizSchema.index({ isDeleted: 1, status: 1 });
+// Module quiz listing (used by QuizModule virtual)
+quizSchema.index({ module: 1, isDeleted: 1 });
 
 // Instance method to validate quiz
 quizSchema.methods.validateQuiz = function () {

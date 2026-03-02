@@ -246,16 +246,17 @@ const AdminLogSchema = new mongoose.Schema(
   },
   { 
     timestamps: true,
-    // Add indexes for better query performance
-    indexes: [
-      { admin: 1, createdAt: -1 },
-      { action: 1, createdAt: -1 },
-      { actionCategory: 1, createdAt: -1 },
-      { targetModel: 1, targetId: 1 },
-      { createdAt: -1 },
-    ],
   }
 );
+
+// ==================== Performance Indexes ====================
+// Admin activity log queries (previously in schema options — NOT supported by Mongoose)
+AdminLogSchema.index({ admin: 1, createdAt: -1 });
+AdminLogSchema.index({ action: 1, createdAt: -1 });
+AdminLogSchema.index({ actionCategory: 1, createdAt: -1 });
+AdminLogSchema.index({ targetModel: 1, targetId: 1 });
+AdminLogSchema.index({ createdAt: -1 });
+AdminLogSchema.index({ status: 1, createdAt: -1 });
 
 // Add virtual for formatted date
 AdminLogSchema.virtual('formattedDate').get(function () {

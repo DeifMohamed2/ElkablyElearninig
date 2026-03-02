@@ -423,6 +423,64 @@
             </button>
           </div>
           <% } %>
+
+          <!-- Pagination Controls -->
+          <% if (pagination && pagination.totalPages > 1) { %>
+          <div class="d-flex justify-content-center align-items-center mt-4 mb-3 flex-wrap gap-2">
+            <%
+              // Build URL preserving current filters
+              function buildCoursesPageUrl(pg) {
+                const params = new URLSearchParams();
+                if (currentFilters.status && currentFilters.status !== 'all') params.set('status', currentFilters.status);
+                if (currentFilters.level) params.set('level', currentFilters.level);
+                if (currentFilters.bundle) params.set('bundle', currentFilters.bundle);
+                if (currentFilters.search) params.set('search', currentFilters.search);
+                if (currentFilters.sortBy && currentFilters.sortBy !== 'createdAt') params.set('sortBy', currentFilters.sortBy);
+                if (currentFilters.sortOrder && currentFilters.sortOrder !== 'desc') params.set('sortOrder', currentFilters.sortOrder);
+                if (pg > 1) params.set('page', pg);
+                const qs = params.toString();
+                return '/admin/courses' + (qs ? '?' + qs : '');
+              }
+            %>
+            <nav aria-label="Courses pagination">
+              <ul class="pagination mb-0" style="gap: 4px;">
+                <li class="page-item <%= pagination.currentPage <= 1 ? 'disabled' : '' %>">
+                  <a class="page-link" href="<%= buildCoursesPageUrl(pagination.currentPage - 1) %>" style="border-radius: 8px; min-width: 38px; text-align: center;">
+                    <i class="fas fa-chevron-left"></i>
+                  </a>
+                </li>
+                <% 
+                  const cp = pagination.currentPage;
+                  const tp = pagination.totalPages;
+                  const delta = 2;
+                  let pages = [];
+                  for (let i = Math.max(1, cp - delta); i <= Math.min(tp, cp + delta); i++) {
+                    pages.push(i);
+                  }
+                  if (pages[0] > 1) { pages.unshift(1); if (pages[1] > 2) pages.splice(1, 0, '...'); }
+                  if (pages[pages.length-1] < tp) { if (pages[pages.length-1] < tp-1) pages.push('...'); pages.push(tp); }
+                %>
+                <% pages.forEach(function(p) { %>
+                  <% if (p === '...') { %>
+                  <li class="page-item disabled"><span class="page-link" style="border-radius: 8px;">...</span></li>
+                  <% } else { %>
+                  <li class="page-item <%= p === cp ? 'active' : '' %>">
+                    <a class="page-link" href="<%= buildCoursesPageUrl(p) %>" style="border-radius: 8px; min-width: 38px; text-align: center;"><%= p %></a>
+                  </li>
+                  <% } %>
+                <% }); %>
+                <li class="page-item <%= pagination.currentPage >= pagination.totalPages ? 'disabled' : '' %>">
+                  <a class="page-link" href="<%= buildCoursesPageUrl(pagination.currentPage + 1) %>" style="border-radius: 8px; min-width: 38px; text-align: center;">
+                    <i class="fas fa-chevron-right"></i>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+            <span class="text-muted ms-3" style="font-size: 0.9rem;">
+              Page <%= pagination.currentPage %> of <%= pagination.totalPages %> (<%= pagination.totalCourses %> total)
+            </span>
+          </div>
+          <% } %>
         </div>
 
       </div>

@@ -2581,23 +2581,31 @@ function displayBulkCollectionDetails(data) {
   `;
   
   data.codes.forEach(code => {
-    const isUsed = code.usedByStudent !== null;
+    const isUsed = code.usedByStudent !== null || code.currentUses > 0 || code.usageHistory.length > 0;
     const usedAt = code.usageHistory.length > 0 
-      ? new Date(code.usageHistory[0].usedAt).toLocaleString()
+      ? new Date(code.usageHistory[code.usageHistory.length - 1].usedAt).toLocaleString()
       : '-';
+    
+    // Get student info from usedByStudent or fallback to usageHistory.user
+    let studentInfo = null;
+    if (code.usedByStudent) {
+      studentInfo = code.usedByStudent;
+    } else if (isUsed && code.usageHistory.length > 0 && code.usageHistory[0].user) {
+      studentInfo = typeof code.usageHistory[0].user === 'object' ? code.usageHistory[0].user : null;
+    }
     
     html += `
       <tr>
         <td><code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px;">${code.code}</code></td>
         <td>
           ${isUsed 
-            ? '<span class="badge bg-success">Used</span>' 
-            : '<span class="badge bg-warning">Unused</span>'}
+            ? '<span class="badge bg-success">USED</span>' 
+            : '<span class="badge bg-warning">UNUSED</span>'}
         </td>
         <td>
-          ${isUsed && code.usedByStudent 
-            ? `${code.usedByStudent.firstName} ${code.usedByStudent.lastName}<br><small class="text-muted">${code.usedByStudent.studentEmail}</small>` 
-            : '-'}
+          ${studentInfo 
+            ? `${studentInfo.firstName || ''} ${studentInfo.lastName || ''}<br><small class="text-muted">${studentInfo.studentEmail || ''}</small>` 
+            : (isUsed ? '<small class="text-muted">Student info unavailable</small>' : '-')}
         </td>
         <td>${usedAt}</td>
       </tr>

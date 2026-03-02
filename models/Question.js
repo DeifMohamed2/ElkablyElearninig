@@ -435,5 +435,9 @@ QuestionSchema.index({ bank: 1, difficulty: 1 });
 QuestionSchema.index({ bank: 1, tags: 1 });
 QuestionSchema.index({ bank: 1, status: 1 });
 QuestionSchema.index({ questionText: 'text', explanation: 'text' });
+// Active question filtering per bank
+QuestionSchema.index({ bank: 1, isActive: 1 });
+// Chronological listing per bank
+QuestionSchema.index({ bank: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Question', QuestionSchema);

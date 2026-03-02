@@ -224,5 +224,7 @@ BundleCourseSchema.index({ createdBy: 1 });
 BundleCourseSchema.index({ testType: 1 });
 BundleCourseSchema.index({ courseType: 1, testType: 1, subject: 1 });
 BundleCourseSchema.index({ courseType: 1, status: 1, isActive: 1 });
+// Active bundle listing with date sort
+BundleCourseSchema.index({ isActive: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('BundleCourse', BundleCourseSchema);

@@ -165,6 +165,10 @@ promoCodeSchema.index({ 'usageHistory.user': 1 });
 promoCodeSchema.index({ isBulkCode: 1, bulkCollectionId: 1 });
 promoCodeSchema.index({ bulkCollectionName: 1 });
 promoCodeSchema.index({ isSingleUseOnly: 1, usedByStudent: 1 });
+// Admin-created promo code tracking
+promoCodeSchema.index({ createdBy: 1 });
+// Date-sorted promo code listing
+promoCodeSchema.index({ createdAt: -1 });
 
 // Virtual for checking if promo code is valid
 promoCodeSchema.virtual('isValid').get(function() {
@@ -368,7 +372,8 @@ promoCodeSchema.statics.getBulkCollectionStats = async function(bulkCollectionId
   const codes = await this.find({ bulkCollectionId });
   
   const totalCodes = codes.length;
-  const usedCodes = codes.filter(code => code.usedByStudent).length;
+  // Check both usedByStudent AND currentUses/usageHistory as fallback
+  const usedCodes = codes.filter(code => code.usedByStudent || code.currentUses > 0 || code.usageHistory.length > 0).length;
   const unusedCodes = totalCodes - usedCodes;
   const activeCodes = codes.filter(code => code.isActive).length;
   

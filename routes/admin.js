@@ -73,6 +73,7 @@ const {
   createCourse,
   getCourse,
   getCourseDetails,
+  getCourseTopicsAnalytics,
   getCourseData,
   updateCourse,
   deleteCourse,
@@ -305,6 +306,7 @@ router.get('/courses', isAdmin, getCourses);
 router.post('/courses/create', isAdmin, createCourse);
 router.get('/courses/:courseCode', isAdmin, getCourse);
 router.get('/courses/:courseCode/details', isAdmin, getCourseDetails);
+router.get('/courses/:courseCode/topics-analytics', isAdmin, getCourseTopicsAnalytics);
 router.get('/courses/:courseCode/data', isAdmin, getCourseData);
 router.put('/courses/:courseCode', isAdmin, updateCourse);
 router.delete('/courses/:courseCode', isAdmin, deleteCourse);

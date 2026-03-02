@@ -229,6 +229,10 @@ guestUserSchema.index({ phone: 1 });
 guestUserSchema.index({ createdAt: -1 });
 guestUserSchema.index({ 'quizAttempts.quiz': 1 });
 guestUserSchema.index({ sessionExpiresAt: 1 });
+// Active guest listing with date sort
+guestUserSchema.index({ isActive: 1, createdAt: -1 });
+// Recent activity sorting
+guestUserSchema.index({ lastActiveAt: -1 });
 
 // Static method to find or create guest user
 guestUserSchema.statics.findOrCreateBySession = async function (sessionId, userData) {

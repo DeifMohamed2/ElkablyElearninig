@@ -716,7 +716,11 @@ ProgressSchema.pre('save', function (next) {
 
 // Performance indexes
 ProgressSchema.index({ student: 1, course: 1 });
-ProgressSchema.index({ completed: 1 });
+ProgressSchema.index({ status: 1 }); // Fixed: was { completed: 1 } which references a non-existent field
 ProgressSchema.index({ timestamp: -1 });
+// Content completion checks (student + course + activity + status)
+ProgressSchema.index({ student: 1, course: 1, activity: 1, status: 1 });
+// Course analytics ($match stage optimization)
+ProgressSchema.index({ course: 1, timestamp: -1 });
 
 module.exports = mongoose.model('Progress', ProgressSchema);
