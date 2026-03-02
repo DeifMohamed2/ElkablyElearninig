@@ -700,33 +700,69 @@ const getCourseDetails = async (req, res) => {
       return res.redirect('/admin/courses');
     }
 
-    // Find students enrolled in this course
-    const enrolledStudents = await User.find({
-      'enrolledCourses.course': course._id,
-    })
-      .select(
-        'firstName lastName username studentEmail studentCode enrolledCourses lastLogin isActive grade schoolName',
-      )
-      .lean();
+    const courseId = course._id;
 
-    // Map of topicId -> topic and content maps for quick lookup
-    const topicIdToTopic = new Map();
-    const contentIndex = new Map(); // key: contentId string -> { topicId, contentItem }
-    (course.topics || []).forEach((t) => {
-      topicIdToTopic.set(t._id.toString(), t);
-      (t.content || []).forEach((ci) => {
-        contentIndex.set(ci._id.toString(), {
-          topicId: t._id.toString(),
-          content: ci,
-        });
-      });
-    });
+    // ── OPTIMIZED: Use aggregation to extract ONLY this course's enrollment ──
+    // This avoids loading ALL enrolledCourses (with heavy nested contentProgress,
+    // quizAttempts.answers, watchHistory, etc.) for every student.
+    const enrolledStudents = await User.aggregate([
+      // Match students enrolled in this specific course
+      { $match: { 'enrolledCourses.course': courseId } },
+      // Extract only the matching enrollment, strip heavy nested fields
+      {
+        $project: {
+          firstName: 1,
+          lastName: 1,
+          studentEmail: 1,
+          studentCode: 1,
+          lastLogin: 1,
+          isActive: 1,
+          grade: 1,
+          schoolName: 1,
+          enrollment: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: '$enrolledCourses',
+                  as: 'ec',
+                  cond: { $eq: ['$$ec.course', courseId] },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      // Second projection: keep only the contentProgress fields we actually need
+      // (drops quizAttempts.answers, watchHistory, shuffledQuestionOrder, etc.)
+      {
+        $project: {
+          firstName: 1,
+          lastName: 1,
+          studentEmail: 1,
+          studentCode: 1,
+          lastLogin: 1,
+          isActive: 1,
+          grade: 1,
+          schoolName: 1,
+          'enrollment.progress': 1,
+          'enrollment.status': 1,
+          'enrollment.enrolledAt': 1,
+          'enrollment.lastAccessed': 1,
+          'enrollment.contentProgress.contentId': 1,
+          'enrollment.contentProgress.completionStatus': 1,
+          'enrollment.contentProgress.timeSpent': 1,
+          'enrollment.contentProgress.bestScore': 1,
+          'enrollment.contentProgress.quizAttempts.score': 1,
+          'enrollment.contentProgress.quizAttempts.passed': 1,
+          'enrollment.contentProgress.quizAttempts.passingScore': 1,
+        },
+      },
+    ]);
 
-    // Build enrolled student rows with progress for this course
-    const studentsTable = enrolledStudents.map((stu) => {
-      const enrollment = (stu.enrolledCourses || []).find(
-        (e) => e.course && e.course.toString() === course._id.toString(),
-      );
+    // ── Build student table rows (flat data, no nested array search needed) ──
+    const allStudentsTable = enrolledStudents.map((stu) => {
+      const enrollment = stu.enrollment;
       const progress = enrollment?.progress || 0;
       const status =
         enrollment?.status ||
@@ -750,81 +786,167 @@ const getCourseDetails = async (req, res) => {
       };
     });
 
-    // Compute topics analytics using enrollment.contentProgress
-    const topicsAnalytics = (course.topics || []).map((topic) => {
-      // For each content item, compute views/completions/quiz stats
-      const contents = (topic.content || []).map((ci) => {
-        let viewers = 0;
-        let completions = 0;
-        let totalTimeSpent = 0;
-        let attempts = 0;
-        let scores = [];
+    // ── Server-side search, filter, sort & pagination ──
+    const searchQuery = (req.query.search || '').trim().toLowerCase();
+    const statusFilter = (req.query.status || '').trim();
+    const progressFilter = (req.query.progress || '').trim();
+    const sortBy = req.query.sort || '';
+    const sortDir = req.query.dir === 'desc' ? 'desc' : 'asc';
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = 50;
 
-        enrolledStudents.forEach((stu) => {
-          const enrollment = (stu.enrolledCourses || []).find(
-            (e) => e.course && e.course.toString() === course._id.toString(),
-          );
-          if (!enrollment || !enrollment.contentProgress) return;
-          const cp = enrollment.contentProgress.find(
-            (p) => p.contentId && p.contentId.toString() === ci._id.toString(),
-          );
-          if (!cp) return;
-          // Viewed if has any progress or lastAccessed present
-          viewers += 1;
-          if (cp.completionStatus === 'completed') completions += 1;
-          totalTimeSpent += cp.timeSpent || 0;
-          if (
-            (ci.type === 'quiz' || ci.type === 'homework') &&
-            cp.quizAttempts &&
-            cp.quizAttempts.length
-          ) {
-            attempts += cp.quizAttempts.length;
-            if (typeof cp.bestScore === 'number') {
-              scores.push(cp.bestScore);
-            } else if (cp.quizAttempts[0]?.score !== undefined) {
-              scores.push(
-                cp.quizAttempts[cp.quizAttempts.length - 1].score || 0,
-              );
-            }
-          }
+    // Apply filters
+    let filteredStudents = allStudentsTable;
+    if (searchQuery) {
+      filteredStudents = filteredStudents.filter((s) => {
+        return (
+          (s.name || '').toLowerCase().includes(searchQuery) ||
+          (s.email || '').toLowerCase().includes(searchQuery) ||
+          (s.studentCode || '').toLowerCase().includes(searchQuery)
+        );
+      });
+    }
+    if (statusFilter) {
+      filteredStudents = filteredStudents.filter((s) => s.status === statusFilter);
+    }
+    if (progressFilter) {
+      const parts = progressFilter.split('-').map(Number);
+      if (parts.length === 2) {
+        const [pMin, pMax] = parts;
+        filteredStudents = filteredStudents.filter(
+          (s) => s.progress >= pMin && s.progress <= pMax,
+        );
+      }
+    }
+
+    // Apply sort
+    if (sortBy) {
+      filteredStudents.sort((a, b) => {
+        let aVal, bVal;
+        if (sortBy === 'name') {
+          aVal = (a.name || '').toLowerCase();
+          bVal = (b.name || '').toLowerCase();
+        } else if (sortBy === 'progress') {
+          aVal = a.progress || 0;
+          bVal = b.progress || 0;
+        } else if (sortBy === 'enrolled') {
+          aVal = a.enrolledAt ? new Date(a.enrolledAt).getTime() : 0;
+          bVal = b.enrolledAt ? new Date(b.enrolledAt).getTime() : 0;
+        }
+        if (sortDir === 'asc') return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+      });
+    }
+
+    // Paginate
+    const totalFiltered = filteredStudents.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / limit));
+    const currentPage = Math.min(page, totalPages);
+    const startIndex = (currentPage - 1) * limit;
+    const studentsTable = filteredStudents.slice(startIndex, startIndex + limit);
+
+    const pagination = {
+      currentPage,
+      totalPages,
+      totalFiltered,
+      totalAll: allStudentsTable.length,
+      limit,
+      search: req.query.search || '',
+      status: statusFilter,
+      progress: progressFilter,
+      sort: sortBy,
+      dir: sortDir,
+      startIndex,
+    };
+
+    // ── OPTIMIZED: Single-pass content analytics using a Map ──
+    // Instead of O(Topics × Content × Students) nested loops,
+    // we iterate students once and accumulate stats per contentId.
+    const contentStatsMap = new Map();
+
+    // Initialize stats for every content item from course topics
+    (course.topics || []).forEach((topic) => {
+      (topic.content || []).forEach((ci) => {
+        contentStatsMap.set(ci._id.toString(), {
+          viewers: 0,
+          completions: 0,
+          totalTimeSpent: 0,
+          totalAttempts: 0,
+          scores: [],
+          quizTaken: 0,
+          quizPassed: 0,
+          contentType: ci.type,
+          passingScore:
+            ci.quizSettings?.passingScore ||
+            ci.homeworkSettings?.passingScore ||
+            60,
         });
+      });
+    });
 
+    // Single pass through all students' contentProgress
+    let totalCompletedContentMarks = 0;
+    for (let i = 0; i < enrolledStudents.length; i++) {
+      const cpArr = enrolledStudents[i].enrollment?.contentProgress;
+      if (!cpArr) continue;
+      for (let j = 0; j < cpArr.length; j++) {
+        const p = cpArr[j];
+        const key = p.contentId?.toString();
+        if (!key) continue;
+        const stats = contentStatsMap.get(key);
+        if (!stats) continue;
+
+        stats.viewers += 1;
+        if (p.completionStatus === 'completed') {
+          stats.completions += 1;
+          totalCompletedContentMarks += 1;
+        }
+        stats.totalTimeSpent += p.timeSpent || 0;
+
+        // Quiz/homework specific stats
+        if (
+          (stats.contentType === 'quiz' || stats.contentType === 'homework') &&
+          p.quizAttempts?.length
+        ) {
+          stats.totalAttempts += p.quizAttempts.length;
+          stats.quizTaken += 1;
+          if (typeof p.bestScore === 'number') {
+            stats.scores.push(p.bestScore);
+          } else if (p.quizAttempts[0]?.score !== undefined) {
+            stats.scores.push(
+              p.quizAttempts[p.quizAttempts.length - 1].score || 0,
+            );
+          }
+          const last = p.quizAttempts[p.quizAttempts.length - 1];
+          if ((last?.score || 0) >= stats.passingScore) {
+            stats.quizPassed += 1;
+          }
+        }
+      }
+    }
+
+    // ── Build topicsAnalytics from the pre-computed Map ──
+    const topicsAnalytics = (course.topics || []).map((topic) => {
+      const contents = (topic.content || []).map((ci) => {
+        const stats = contentStatsMap.get(ci._id.toString()) || {};
+        const viewers = stats.viewers || 0;
+        const completions = stats.completions || 0;
         const averageTimeSpent =
-          viewers > 0 ? Math.round((totalTimeSpent / viewers) * 10) / 10 : 0;
+          viewers > 0
+            ? Math.round(((stats.totalTimeSpent || 0) / viewers) * 10) / 10
+            : 0;
         const averageScore =
-          scores.length > 0
-            ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+          stats.scores?.length > 0
+            ? Math.round(
+                stats.scores.reduce((a, b) => a + b, 0) / stats.scores.length,
+              )
             : null;
         const passRate =
-          ci.type === 'quiz' || ci.type === 'homework'
-            ? (() => {
-                let passed = 0;
-                let taken = 0;
-                enrolledStudents.forEach((stu) => {
-                  const enrollment = (stu.enrolledCourses || []).find(
-                    (e) =>
-                      e.course && e.course.toString() === course._id.toString(),
-                  );
-                  if (!enrollment || !enrollment.contentProgress) return;
-                  const cp = enrollment.contentProgress.find(
-                    (p) =>
-                      p.contentId &&
-                      p.contentId.toString() === ci._id.toString(),
-                  );
-                  if (!cp) return;
-                  if (cp.quizAttempts && cp.quizAttempts.length) {
-                    taken += 1;
-                    const last = cp.quizAttempts[cp.quizAttempts.length - 1];
-                    const passing =
-                      cp.passingScore ||
-                      ci.quizSettings?.passingScore ||
-                      ci.homeworkSettings?.passingScore ||
-                      60;
-                    if ((last?.score || 0) >= passing) passed += 1;
-                  }
-                });
-                return taken > 0 ? Math.round((passed / taken) * 100) : null;
-              })()
+          (ci.type === 'quiz' || ci.type === 'homework') &&
+          (stats.quizTaken || 0) > 0
+            ? Math.round(
+                ((stats.quizPassed || 0) / stats.quizTaken) * 100,
+              )
             : null;
 
         return {
@@ -833,15 +955,14 @@ const getCourseDetails = async (req, res) => {
           type: ci.type,
           viewers,
           completions,
-          averageTimeSpent, // minutes
-          attempts,
+          averageTimeSpent,
+          attempts: stats.totalAttempts || 0,
           averageScore,
           passRate,
           order: ci.order || 0,
         };
       });
 
-      // Topic-level aggregates
       const totalContent = contents.length;
       const totalViewers = contents.reduce((s, c) => s + c.viewers, 0);
       const totalCompletions = contents.reduce((s, c) => s + c.completions, 0);
@@ -859,16 +980,16 @@ const getCourseDetails = async (req, res) => {
       };
     });
 
-    // Overall analytics
-    const totalEnrolled = studentsTable.length;
+    // ── Overall analytics (use ALL students, not paginated slice) ──
+    const totalEnrolled = allStudentsTable.length;
     const averageProgress =
       totalEnrolled > 0
         ? Math.round(
-            studentsTable.reduce((s, st) => s + (st.progress || 0), 0) /
+            allStudentsTable.reduce((s, st) => s + (st.progress || 0), 0) /
               totalEnrolled,
           )
         : 0;
-    const completedStudents = studentsTable.filter(
+    const completedStudents = allStudentsTable.filter(
       (s) => s.progress >= 100,
     ).length;
     const completionRate =
@@ -876,21 +997,10 @@ const getCourseDetails = async (req, res) => {
         ? Math.round((completedStudents / totalEnrolled) * 100)
         : 0;
 
-    // Content completion rate based on all contents
     const allContentsCount = (course.topics || []).reduce(
       (sum, t) => sum + (t.content || []).length,
       0,
     );
-    let totalCompletedContentMarks = 0;
-    enrolledStudents.forEach((stu) => {
-      const enrollment = (stu.enrolledCourses || []).find(
-        (e) => e.course && e.course.toString() === course._id.toString(),
-      );
-      if (!enrollment || !enrollment.contentProgress) return;
-      totalCompletedContentMarks += enrollment.contentProgress.filter(
-        (cp) => cp.completionStatus === 'completed',
-      ).length;
-    });
     const contentCompletionRate =
       allContentsCount > 0 && totalEnrolled > 0
         ? Math.round(
@@ -915,6 +1025,7 @@ const getCourseDetails = async (req, res) => {
       students: studentsTable,
       topicsAnalytics,
       analytics,
+      pagination,
     });
   } catch (error) {
     console.error('Error fetching course details:', error);

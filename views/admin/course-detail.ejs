@@ -723,7 +723,7 @@
             <!-- Students Tab -->
             <div class="tab-pane fade show active" id="students" role="tabpanel">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Enrolled Students (<span id="studentCount"><%= students ? students.length : 0 %></span>)</h5>
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Enrolled Students (<span id="studentCount"><%= pagination.totalFiltered %></span><% if (pagination.totalFiltered !== pagination.totalAll) { %> of <%= pagination.totalAll %><% } %>)</h5>
                 <div class="d-flex gap-2">
                   <button class="btn btn-success btn-sm" onclick="showManualEnrollModal()">
                     <i class="fas fa-user-plus me-1"></i> Enroll Students
@@ -735,25 +735,29 @@
                     <i class="fas fa-check-square me-1"></i> Select for Removal
                   </button>
                 </div>
-                <div class="search-filters">
+                <form id="studentFilterForm" method="GET" action="/admin/courses/<%= course.courseCode %>/details" class="search-filters">
                   <div class="search-box-wrapper">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="studentSearch" class="form-control" placeholder="Search by name, email, or code..." autocomplete="off">
+                    <input type="text" id="studentSearch" name="search" class="form-control" placeholder="Search by name, email, or code..." autocomplete="off" value="<%= pagination.search %>">
                   </div>
-                  <select id="statusFilter" class="filter-select">
+                  <select id="statusFilter" name="status" class="filter-select">
                     <option value="">All Status</option>
-                    <option value="completed">✓ Completed</option>
-                    <option value="in_progress">⏳ In Progress</option>
-                    <option value="not_started">○ Not Started</option>
+                    <option value="completed" <%= pagination.status === 'completed' ? 'selected' : '' %>>✓ Completed</option>
+                    <option value="active" <%= pagination.status === 'active' ? 'selected' : '' %>>⏳ In Progress</option>
+                    <option value="not_started" <%= pagination.status === 'not_started' ? 'selected' : '' %>>○ Not Started</option>
                   </select>
-                  <select id="progressFilter" class="filter-select">
+                  <select id="progressFilter" name="progress" class="filter-select">
                     <option value="">All Progress</option>
-                    <option value="90-100">90-100%</option>
-                    <option value="70-89">70-89%</option>
-                    <option value="50-69">50-69%</option>
-                    <option value="0-49">Below 50%</option>
+                    <option value="90-100" <%= pagination.progress === '90-100' ? 'selected' : '' %>>90-100%</option>
+                    <option value="70-89" <%= pagination.progress === '70-89' ? 'selected' : '' %>>70-89%</option>
+                    <option value="50-69" <%= pagination.progress === '50-69' ? 'selected' : '' %>>50-69%</option>
+                    <option value="0-49" <%= pagination.progress === '0-49' ? 'selected' : '' %>>Below 50%</option>
                   </select>
-                </div>
+                  <% if (pagination.sort) { %>
+                  <input type="hidden" name="sort" value="<%= pagination.sort %>">
+                  <input type="hidden" name="dir" value="<%= pagination.dir %>">
+                  <% } %>
+                </form>
               </div>
               <!-- Bulk Action Bar -->
               <div class="bulk-action-bar" id="bulkActionBar">
@@ -813,7 +817,7 @@
                         <td class="col-min selection-cell" style="display: none;">
                           <input type="checkbox" class="selection-checkbox student-select" value="<%= s._id %>" onchange="toggleStudentSelectForRemoval(this, '<%= s._id %>')">
                         </td>
-                        <td class="col-min row-number" style="opacity: .7; font-weight: 600;"><%= idx+1 %></td>
+                        <td class="col-min row-number" style="opacity: .7; font-weight: 600;"><%= pagination.startIndex + idx + 1 %></td>
                         <td>
                           <div class="student-profile">
                             <div class="student-avatar">
@@ -862,11 +866,75 @@
                     </tbody>
                   </table>
                 </div>
+                <!-- Pagination Controls -->
+                <% if (pagination.totalPages > 1) { %>
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                  <div class="text-muted small">
+                    Showing <%= pagination.startIndex + 1 %> – <%= Math.min(pagination.startIndex + pagination.limit, pagination.totalFiltered) %> of <%= pagination.totalFiltered %> students
+                    <% if (pagination.totalFiltered !== pagination.totalAll) { %>(filtered from <%= pagination.totalAll %> total)<% } %>
+                  </div>
+                  <nav aria-label="Student pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                      <%
+                        // Build the base URL preserving current filters
+                        const paginationParams = new URLSearchParams();
+                        if (pagination.search) paginationParams.set('search', pagination.search);
+                        if (pagination.status) paginationParams.set('status', pagination.status);
+                        if (pagination.progress) paginationParams.set('progress', pagination.progress);
+                        if (pagination.sort) { paginationParams.set('sort', pagination.sort); paginationParams.set('dir', pagination.dir); }
+                        const baseUrl = `/admin/courses/${course.courseCode}/details`;
+                        function pageUrl(p) {
+                          const params = new URLSearchParams(paginationParams);
+                          params.set('page', p);
+                          return baseUrl + '?' + params.toString();
+                        }
+
+                        // Calculate visible page range (show max 7 pages)
+                        let startPage = Math.max(1, pagination.currentPage - 3);
+                        let endPage = Math.min(pagination.totalPages, startPage + 6);
+                        if (endPage - startPage < 6) startPage = Math.max(1, endPage - 6);
+                      %>
+                      <li class="page-item <%= pagination.currentPage <= 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="<%= pageUrl(1) %>"><i class="fas fa-angle-double-left"></i></a>
+                      </li>
+                      <li class="page-item <%= pagination.currentPage <= 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="<%= pageUrl(pagination.currentPage - 1) %>"><i class="fas fa-angle-left"></i></a>
+                      </li>
+                      <% if (startPage > 1) { %>
+                      <li class="page-item disabled"><span class="page-link">…</span></li>
+                      <% } %>
+                      <% for (let p = startPage; p <= endPage; p++) { %>
+                      <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
+                        <a class="page-link" href="<%= pageUrl(p) %>"><%= p %></a>
+                      </li>
+                      <% } %>
+                      <% if (endPage < pagination.totalPages) { %>
+                      <li class="page-item disabled"><span class="page-link">…</span></li>
+                      <% } %>
+                      <li class="page-item <%= pagination.currentPage >= pagination.totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="<%= pageUrl(pagination.currentPage + 1) %>"><i class="fas fa-angle-right"></i></a>
+                      </li>
+                      <li class="page-item <%= pagination.currentPage >= pagination.totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="<%= pageUrl(pagination.totalPages) %>"><i class="fas fa-angle-double-right"></i></a>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+                <% } else if (students && students.length) { %>
+                <div class="text-muted small mt-3">
+                  Showing all <%= pagination.totalFiltered %> students
+                </div>
+                <% } %>
                 <% } else { %>
                 <div class="empty-state">
                   <i class="fas fa-users"></i>
                   <h3>No enrolled students</h3>
                   <p>Students will appear here once they enroll in this course.</p>
+                  <% if (pagination.search || pagination.status || pagination.progress) { %>
+                  <a href="/admin/courses/<%= course.courseCode %>/details" class="btn btn-outline-primary btn-sm mt-2">
+                    <i class="fas fa-times me-1"></i>Clear Filters
+                  </a>
+                  <% } %>
                 </div>
                 <% } %>
               </div>
@@ -998,113 +1066,93 @@
 <%- include('./partials/admin-footer') %>
 
 <script>
-  // Enhanced search and filtering functionality
+  // ── Server-side search, filter, sort and pagination ──
   document.addEventListener('DOMContentLoaded', function() {
-    initializeTableFeatures();
     animateProgressBars();
+    initializeServerSideFilters();
   });
 
-  let allStudents = [];
-  let filteredStudents = [];
-  let currentSort = {
-    column: null,
-    direction: 'asc'
-  };
+  let searchDebounceTimer = null;
 
-  function initializeTableFeatures() {
-    // Store all student rows
-    const rows = document.querySelectorAll('#studentsTable tbody tr');
-    allStudents = Array.from(rows);
-    filteredStudents = [...allStudents];
+  // Build URL for current filters + given overrides
+  function buildFilterUrl(overrides = {}) {
+    const form = document.getElementById('studentFilterForm');
+    const params = new URLSearchParams();
+    const search = overrides.search !== undefined ? overrides.search : (form.querySelector('[name="search"]')?.value || '');
+    const status = overrides.status !== undefined ? overrides.status : (form.querySelector('[name="status"]')?.value || '');
+    const progress = overrides.progress !== undefined ? overrides.progress : (form.querySelector('[name="progress"]')?.value || '');
+    const sort = overrides.sort !== undefined ? overrides.sort : (form.querySelector('[name="sort"]')?.value || '<%= pagination.sort %>');
+    const dir = overrides.dir !== undefined ? overrides.dir : (form.querySelector('[name="dir"]')?.value || '<%= pagination.dir %>');
 
-    // Setup search
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+    if (progress) params.set('progress', progress);
+    if (sort) { params.set('sort', sort); params.set('dir', dir); }
+    // Reset to page 1 on filter changes unless page is overridden
+    if (overrides.page) params.set('page', overrides.page);
+
+    const qs = params.toString();
+    return `/admin/courses/<%= course.courseCode %>/details` + (qs ? '?' + qs : '');
+  }
+
+  function initializeServerSideFilters() {
     const searchInput = document.getElementById('studentSearch');
-    if (searchInput) {
-      searchInput.addEventListener('input', applyFilters);
-    }
-
-    // Setup filters
     const statusFilter = document.getElementById('statusFilter');
     const progressFilter = document.getElementById('progressFilter');
+    const form = document.getElementById('studentFilterForm');
 
+    // Debounced search on typing
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+          window.location.href = buildFilterUrl({ search: this.value });
+        }, 500);
+      });
+      // Enter key submits immediately
+      searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clearTimeout(searchDebounceTimer);
+          window.location.href = buildFilterUrl({ search: this.value });
+        }
+      });
+    }
+
+    // Dropdown changes navigate immediately
     if (statusFilter) {
-      statusFilter.addEventListener('change', applyFilters);
+      statusFilter.addEventListener('change', function() {
+        window.location.href = buildFilterUrl({ status: this.value });
+      });
     }
-
     if (progressFilter) {
-      progressFilter.addEventListener('change', applyFilters);
+      progressFilter.addEventListener('change', function() {
+        window.location.href = buildFilterUrl({ progress: this.value });
+      });
+    }
+
+    // Prevent normal form submission (we handle it via JS)
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        window.location.href = buildFilterUrl();
+      });
     }
   }
 
-  function applyFilters() {
-    const searchTerm = document.getElementById('studentSearch')?.value.toLowerCase() || '';
-    const selectedStatus = document.getElementById('statusFilter')?.value || '';
-    const selectedProgress = document.getElementById('progressFilter')?.value || '';
+  // Server-side sort: navigate with sort params
+  let currentSort = { column: '<%= pagination.sort %>', direction: '<%= pagination.dir %>' };
 
-    filteredStudents = allStudents.filter(row => {
-      const name = row.getAttribute('data-name')?.toLowerCase() || '';
-      const email = row.getAttribute('data-email')?.toLowerCase() || '';
-      const code = row.getAttribute('data-code')?.toLowerCase() || '';
-      const status = row.getAttribute('data-status') || '';
-      const progress = parseInt(row.getAttribute('data-progress')) || 0;
-
-      // Search filter
-      const matchesSearch = !searchTerm ||
-        name.includes(searchTerm) ||
-        email.includes(searchTerm) ||
-        code.includes(searchTerm);
-
-      // Status filter
-      const matchesStatus = !selectedStatus || status === selectedStatus;
-
-      // Progress filter
-      let matchesProgress = true;
-      if (selectedProgress) {
-        const [min, max] = selectedProgress.split('-').map(Number);
-        matchesProgress = progress >= min && progress <= max;
-      }
-
-      return matchesSearch && matchesStatus && matchesProgress;
-    });
-
-    renderFilteredStudents();
-  }
-
-  function renderFilteredStudents() {
-    const tbody = document.querySelector('#studentsTable tbody');
-    if (!tbody) return;
-
-    // Hide all rows first
-    allStudents.forEach(row => row.style.display = 'none');
-
-    // Show filtered rows and update numbering
-    filteredStudents.forEach((row, index) => {
-      row.style.display = '';
-      // Select the number cell by class
-      const numberCell = row.querySelector('.row-number');
-      if (numberCell) {
-        numberCell.textContent = index + 1;
-      }
-    });
-
-    // Update count
-    updateStudentCount();
-
-    // Animate progress bars for visible rows
-    setTimeout(() => {
-      animateProgressBars();
-    }, 50);
-  }
-
-  function updateStudentCount() {
-    const countElement = document.getElementById('studentCount');
-    if (countElement) {
-      countElement.textContent = filteredStudents.length;
+  function sortStudents(column) {
+    let dir = 'asc';
+    if (currentSort.column === column && currentSort.direction === 'asc') {
+      dir = 'desc';
     }
+    window.location.href = buildFilterUrl({ sort: column, dir: dir });
   }
 
   function animateProgressBars() {
-    const visibleFills = document.querySelectorAll('#studentsTable tbody tr:not([style*="display: none"]) .progress-fill');
+    const visibleFills = document.querySelectorAll('#studentsTable .progress-fill');
     visibleFills.forEach(fill => {
       const progress = fill.getAttribute('data-progress');
       fill.style.width = '0%';
@@ -1114,58 +1162,15 @@
     });
   }
 
-  function sortStudents(column) {
-    // Toggle sort direction
-    if (currentSort.column === column) {
-      currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-    } else {
-      currentSort.column = column;
-      currentSort.direction = 'asc';
-    }
-
-    // Sort filtered students
-    filteredStudents.sort((a, b) => {
-      let aVal, bVal;
-
-      if (column === 'name') {
-        aVal = a.getAttribute('data-name')?.toLowerCase() || '';
-        bVal = b.getAttribute('data-name')?.toLowerCase() || '';
-      } else if (column === 'progress') {
-        aVal = parseInt(a.getAttribute('data-progress')) || 0;
-        bVal = parseInt(b.getAttribute('data-progress')) || 0;
-      } else if (column === 'enrolled') {
-        // nth-child(9) because of the hidden selection checkbox column
-        const aDate = a.querySelector('td:nth-child(9)')?.textContent || '';
-        const bDate = b.querySelector('td:nth-child(9)')?.textContent || '';
-        aVal = aDate === '-' ? 0 : new Date(aDate).getTime();
-        bVal = bDate === '-' ? 0 : new Date(bDate).getTime();
-      }
-
-      if (currentSort.direction === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      } else {
-        return aVal < bVal ? 1 : -1;
-      }
-    });
-
-    renderFilteredStudents();
-    updateSortIndicators();
-  }
-
-  function updateSortIndicators() {
-    // Reset all sort icons
-    document.querySelectorAll('.sort-btn i').forEach(icon => {
-      icon.className = 'fas fa-sort';
-    });
-
-    // Update active sort icon
+  // Update sort indicators on load
+  (function updateSortIndicators() {
     if (currentSort.column) {
       const sortBtn = document.querySelector(`[onclick="sortStudents('${currentSort.column}')"] i`);
       if (sortBtn) {
         sortBtn.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'}`;
       }
     }
-  }
+  })();
 
   // View student details
   function viewStudentDetails(email) {

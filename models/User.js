@@ -2372,5 +2372,7 @@ UserSchema.index({ role: 1, 'purchasedBundles.bundle': 1 });
 UserSchema.index({ role: 1, lastLogin: -1 });
 UserSchema.index({ studentCode: 1, role: 1 });
 UserSchema.index({ parentNumber: 1, parentCountryCode: 1, role: 1 });
+// Standalone index for course enrollment lookups (used by getCourseDetails aggregation)
+UserSchema.index({ 'enrolledCourses.course': 1 });
 
 module.exports = mongoose.model('User', UserSchema);
