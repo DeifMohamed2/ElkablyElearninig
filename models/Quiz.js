@@ -188,7 +188,7 @@ const quizSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for total questions
@@ -201,7 +201,7 @@ quizSchema.virtual('totalPoints').get(function () {
   if (!this.selectedQuestions) return 0;
   return this.selectedQuestions.reduce(
     (total, q) => total + (q.points || 1),
-    0
+    0,
   );
 });
 
@@ -364,7 +364,7 @@ quizSchema.methods.canUserAttempt = function (userAttempts) {
   }
 
   const userQuizAttempt = userAttempts.find(
-    (attempt) => attempt.quiz.toString() === this._id.toString()
+    (attempt) => attempt.quiz.toString() === this._id.toString(),
   );
 
   if (!userQuizAttempt) {
@@ -377,7 +377,7 @@ quizSchema.methods.canUserAttempt = function (userAttempts) {
 
   // Check if user has already passed the quiz
   const passedAttempt = userQuizAttempt.attempts.find(
-    (attempt) => attempt.status === 'completed' && attempt.passed === true
+    (attempt) => attempt.status === 'completed' && attempt.passed === true,
   );
 
   if (passedAttempt) {
@@ -393,7 +393,7 @@ quizSchema.methods.canUserAttempt = function (userAttempts) {
     (attempt) =>
       attempt.status === 'completed' ||
       attempt.status === 'timeout' ||
-      attempt.status === 'abandoned'
+      attempt.status === 'abandoned',
   ).length;
 
   if (completedAttempts >= this.maxAttempts) {
@@ -418,7 +418,7 @@ quizSchema.methods.getUserBestScore = function (userAttempts) {
   }
 
   const userQuizAttempt = userAttempts.find(
-    (attempt) => attempt.quiz.toString() === this._id.toString()
+    (attempt) => attempt.quiz.toString() === this._id.toString(),
   );
 
   return userQuizAttempt ? userQuizAttempt.bestScore : null;
@@ -431,7 +431,7 @@ quizSchema.methods.getUserAttemptHistory = function (userAttempts) {
   }
 
   const userQuizAttempt = userAttempts.find(
-    (attempt) => attempt.quiz.toString() === this._id.toString()
+    (attempt) => attempt.quiz.toString() === this._id.toString(),
   );
 
   return userQuizAttempt ? userQuizAttempt.attempts : [];
@@ -444,7 +444,7 @@ quizSchema.methods.getActiveAttempt = function (userAttempts) {
   }
 
   const userQuizAttempt = userAttempts.find(
-    (attempt) => attempt.quiz.toString() === this._id.toString()
+    (attempt) => attempt.quiz.toString() === this._id.toString(),
   );
 
   if (!userQuizAttempt) {
@@ -452,7 +452,7 @@ quizSchema.methods.getActiveAttempt = function (userAttempts) {
   }
 
   return userQuizAttempt.attempts.find(
-    (attempt) => attempt.status === 'in_progress'
+    (attempt) => attempt.status === 'in_progress',
   );
 };
 
@@ -492,7 +492,7 @@ quizSchema.methods.cleanupRelatedData = async function () {
   // Remove quiz attempts from all users
   await User.updateMany(
     { 'quizAttempts.quiz': this._id },
-    { $pull: { quizAttempts: { quiz: this._id } } }
+    { $pull: { quizAttempts: { quiz: this._id } } },
   );
 
   // Remove quiz attempts from course content progress
@@ -502,7 +502,7 @@ quizSchema.methods.cleanupRelatedData = async function () {
       $pull: {
         'enrolledCourses.$[].contentProgress.$[].quizAttempts': {},
       },
-    }
+    },
   );
 
   console.log(`Cleaned up related data for quiz: ${this._id}`);

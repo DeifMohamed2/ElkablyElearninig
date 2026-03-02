@@ -470,7 +470,8 @@ const getCourses = async (req, res) => {
 
     // Only select the fields actually used in the courses view
     // (topics field NOT needed — never used in listing page)
-    const selectFields = 'title shortDescription courseCode status level duration price discountPrice thumbnail order bundle requiresSequential';
+    const selectFields =
+      'title shortDescription courseCode status level duration price discountPrice thumbnail order bundle requiresSequential';
 
     // Get total count for pagination
     const totalCourses = await Course.countDocuments(filter);
@@ -681,7 +682,9 @@ const getCourse = async (req, res) => {
 
     // Compute virtuals for lean doc
     course.topicCount = course.topics ? course.topics.length : 0;
-    course.enrolledCount = course.enrolledStudents ? course.enrolledStudents.length : 0;
+    course.enrolledCount = course.enrolledStudents
+      ? course.enrolledStudents.length
+      : 0;
 
     if (!course) {
       req.flash('error_msg', 'Course not found');
@@ -708,7 +711,11 @@ const getCourseDetails = async (req, res) => {
 
     // Only load course with topics (no heavy content analytics on initial load)
     const course = await Course.findOne({ courseCode })
-      .populate({ path: 'topics', select: 'title order _id', options: { sort: { order: 1 } } })
+      .populate({
+        path: 'topics',
+        select: 'title order _id',
+        options: { sort: { order: 1 } },
+      })
       .populate('bundle', 'title bundleCode year')
       .lean();
 
@@ -917,7 +924,9 @@ const getCourseTopicsAnalytics = async (req, res) => {
       .lean();
 
     if (!course) {
-      return res.status(404).json({ success: false, message: 'Course not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'Course not found' });
     }
 
     const courseId = course._id;
@@ -1082,7 +1091,9 @@ const getCourseTopicsAnalytics = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching topics analytics:', error);
-    return res.status(500).json({ success: false, message: 'Failed to load analytics' });
+    return res
+      .status(500)
+      .json({ success: false, message: 'Failed to load analytics' });
   }
 };
 
@@ -2282,17 +2293,21 @@ const getTopicDetails = async (req, res) => {
   try {
     const { courseCode, topicId } = req.params;
 
-    const course = await Course.findOne({ courseCode }).populate(
-      'bundle',
-      'title bundleCode year',
-    ).lean();
+    const course = await Course.findOne({ courseCode })
+      .populate('bundle', 'title bundleCode year')
+      .lean();
 
     if (!course) {
       req.flash('error_msg', 'Course not found');
       return res.redirect('/admin/courses');
     }
 
-    const topic = await Topic.findById(topicId).populate('content.zoomMeeting', 'meetingName joinUrl status scheduledStartTime').lean();
+    const topic = await Topic.findById(topicId)
+      .populate(
+        'content.zoomMeeting',
+        'meetingName joinUrl status scheduledStartTime',
+      )
+      .lean();
     if (!topic) {
       req.flash('error_msg', 'Topic not found');
       return res.redirect(`/admin/courses/${courseCode}/content`);
@@ -2565,7 +2580,9 @@ const getTopicContentStudentStats = async (req, res) => {
         .status(404)
         .json({ success: false, message: 'Topic not found' });
 
-    const contentItem = topic.content.find(c => c._id.toString() === contentId);
+    const contentItem = topic.content.find(
+      (c) => c._id.toString() === contentId,
+    );
     if (!contentItem)
       return res
         .status(404)
@@ -2716,7 +2733,8 @@ const getContentDetailsPage = async (req, res) => {
         .populate('bundle', 'title bundleCode year')
         .populate({
           path: 'topics',
-          select: 'title order content._id content.title content.type content.prerequisites',
+          select:
+            'title order content._id content.title content.type content.prerequisites',
         })
         .lean(),
       Topic.findById(topicId).lean(),
@@ -2733,7 +2751,9 @@ const getContentDetailsPage = async (req, res) => {
     }
 
     // Find the specific content item (use .find() since topic is a lean object)
-    const contentItem = (topic.content || []).find(c => c._id.toString() === contentId);
+    const contentItem = (topic.content || []).find(
+      (c) => c._id.toString() === contentId,
+    );
     if (!contentItem) {
       req.flash('error_msg', 'Content item not found');
       return res.redirect(`/admin/courses/${courseCode}/content`);
@@ -2766,9 +2786,11 @@ const getContentDetailsPage = async (req, res) => {
     const enrolledStudents = await User.find({
       'enrolledCourses.course': course._id,
       isActive: true,
-    }).select(
-      'firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses',
-    ).lean();
+    })
+      .select(
+        'firstName lastName studentEmail studentCode parentNumber parentCountryCode studentNumber studentCountryCode enrolledCourses',
+      )
+      .lean();
 
     const studentProgress = [];
 
@@ -4816,7 +4838,9 @@ const getOrderDetails = async (req, res) => {
       Purchase.find({
         'billingAddress.email': order.billingAddress.email,
         status: { $ne: 'refunded' },
-      }).select('total').lean(),
+      })
+        .select('total')
+        .lean(),
     ]);
 
     const totalSpent = customerPurchases.reduce(
@@ -7170,10 +7194,9 @@ const getBundleStudents = async (req, res) => {
   try {
     const { bundleCode } = req.params;
 
-    const bundle = await BundleCourse.findOne({ bundleCode }).populate(
-      'courses',
-      'title courseCode enrolledStudents',
-    ).lean();
+    const bundle = await BundleCourse.findOne({ bundleCode })
+      .populate('courses', 'title courseCode enrolledStudents')
+      .lean();
 
     if (!bundle) {
       req.flash('error_msg', 'Bundle not found');
@@ -7798,7 +7821,8 @@ const getStudentDetails = async (req, res) => {
       .populate({
         path: 'quizAttempts.quiz',
         model: 'Quiz',
-        select: 'title code testType difficulty passingScore duration maxAttempts',
+        select:
+          'title code testType difficulty passingScore duration maxAttempts',
       })
       .select('-password')
       .lean();
@@ -8504,7 +8528,7 @@ const exportStudentData = async (req, res) => {
 
       // Group progress by course for efficient lookup
       const progressByCourse = {};
-      allProgressData.forEach(p => {
+      allProgressData.forEach((p) => {
         const cid = p.course?.toString();
         if (cid) {
           if (!progressByCourse[cid]) progressByCourse[cid] = [];
@@ -8725,24 +8749,36 @@ const exportStudentData = async (req, res) => {
       const quizIds = Object.keys(quizGroups);
       const [quizDetailsMap, courseDetailsMap] = await (async () => {
         if (quizIds.length === 0) return [{}, {}];
-        const quizDocs = await Quiz.find({ _id: { $in: quizIds } }).select('selectedQuestions passingScore title code course').lean();
+        const quizDocs = await Quiz.find({ _id: { $in: quizIds } })
+          .select('selectedQuestions passingScore title code course')
+          .lean();
         const qMap = {};
         const courseIdsNeeded = [];
-        quizDocs.forEach(q => {
+        quizDocs.forEach((q) => {
           qMap[q._id.toString()] = q;
           if (q.course) courseIdsNeeded.push(q.course);
         });
         // Also include course refs from the populated quiz objects
-        Object.values(quizGroups).forEach(qg => {
-          if (qg.quiz?.course && !courseIdsNeeded.find(c => c.toString() === qg.quiz.course.toString())) {
+        Object.values(quizGroups).forEach((qg) => {
+          if (
+            qg.quiz?.course &&
+            !courseIdsNeeded.find(
+              (c) => c.toString() === qg.quiz.course.toString(),
+            )
+          ) {
             courseIdsNeeded.push(qg.quiz.course);
           }
         });
-        const courseDocs = courseIdsNeeded.length > 0
-          ? await Course.find({ _id: { $in: courseIdsNeeded } }).select('title').lean()
-          : [];
+        const courseDocs =
+          courseIdsNeeded.length > 0
+            ? await Course.find({ _id: { $in: courseIdsNeeded } })
+                .select('title')
+                .lean()
+            : [];
         const cMap = {};
-        courseDocs.forEach(c => { cMap[c._id.toString()] = c; });
+        courseDocs.forEach((c) => {
+          cMap[c._id.toString()] = c;
+        });
         return [qMap, cMap];
       })();
 
@@ -8756,7 +8792,9 @@ const exportStudentData = async (req, res) => {
           // Use batch-loaded quiz details instead of individual queries
           const quizDetails = quizDetailsMap[quizId];
           const courseId = quiz.course?._id || quiz.course;
-          const course = courseId ? courseDetailsMap[courseId.toString()] : null;
+          const course = courseId
+            ? courseDetailsMap[courseId.toString()]
+            : null;
 
           const scores = attempts.map((a) => a.score || 0);
           const bestScore = Math.max(...scores);
@@ -8830,62 +8868,72 @@ const exportStudentData = async (req, res) => {
           if (!bundle) return null;
 
           // Get courses included in this bundle - batch load missing courses
-          const courseRefsToLoad = (bundle.courses || []).filter(cr => !cr.title);
-          const loadedCourses = courseRefsToLoad.length > 0
-            ? await Course.find({ _id: { $in: courseRefsToLoad.map(cr => cr._id || cr) } }).select('title courseCode').lean()
-            : [];
+          const courseRefsToLoad = (bundle.courses || []).filter(
+            (cr) => !cr.title,
+          );
+          const loadedCourses =
+            courseRefsToLoad.length > 0
+              ? await Course.find({
+                  _id: { $in: courseRefsToLoad.map((cr) => cr._id || cr) },
+                })
+                  .select('title courseCode')
+                  .lean()
+              : [];
           const loadedCourseMap = {};
-          loadedCourses.forEach(c => { loadedCourseMap[c._id.toString()] = c; });
+          loadedCourses.forEach((c) => {
+            loadedCourseMap[c._id.toString()] = c;
+          });
 
           const includedCourses = (bundle.courses || []).map((courseRef) => {
-              const courseId = courseRef._id || courseRef;
-              const course = courseRef.title
-                ? courseRef
-                : loadedCourseMap[courseId.toString()];
-              const enrollment = student.enrolledCourses?.find(
-                (e) =>
-                  e.course && e.course._id.toString() === courseId.toString(),
-              );
+            const courseId = courseRef._id || courseRef;
+            const course = courseRef.title
+              ? courseRef
+              : loadedCourseMap[courseId.toString()];
+            const enrollment = student.enrolledCourses?.find(
+              (e) =>
+                e.course && e.course._id.toString() === courseId.toString(),
+            );
 
-              // Reuse allProgressData instead of querying again
-              const courseProgressData = progressByCourse[courseId.toString()] || [];
+            // Reuse allProgressData instead of querying again
+            const courseProgressData =
+              progressByCourse[courseId.toString()] || [];
 
-              const progress =
+            const progress =
+              courseProgressData.length > 0
+                ? Math.round(
+                    courseProgressData.reduce(
+                      (sum, p) => sum + (p.progress || 0),
+                      0,
+                    ) / courseProgressData.length,
+                  )
+                : 0;
+
+            return {
+              title: course?.title || 'Unknown Course',
+              courseCode: course?.courseCode || 'N/A',
+              enrollmentDate:
+                enrollment?.enrollmentDate || enrollment?.enrolledAt || null,
+              progress,
+              status:
+                progress === 100
+                  ? 'Completed'
+                  : progress > 0
+                    ? 'In Progress'
+                    : 'Not Started',
+              timeSpent: courseProgressData.reduce(
+                (sum, p) => sum + (p.timeSpent || 0),
+                0,
+              ),
+              lastAccessed:
                 courseProgressData.length > 0
-                  ? Math.round(
-                      courseProgressData.reduce(
-                        (sum, p) => sum + (p.progress || 0),
-                        0,
-                      ) / courseProgressData.length,
+                  ? Math.max(
+                      ...courseProgressData.map(
+                        (p) => new Date(p.lastAccessed || 0),
+                      ),
                     )
-                  : 0;
-
-              return {
-                title: course?.title || 'Unknown Course',
-                courseCode: course?.courseCode || 'N/A',
-                enrollmentDate:
-                  enrollment?.enrollmentDate || enrollment?.enrolledAt || null,
-                progress,
-                status:
-                  progress === 100
-                    ? 'Completed'
-                    : progress > 0
-                      ? 'In Progress'
-                      : 'Not Started',
-                timeSpent: courseProgressData.reduce(
-                  (sum, p) => sum + (p.timeSpent || 0),
-                  0,
-                ),
-                lastAccessed:
-                  courseProgressData.length > 0
-                    ? Math.max(
-                        ...courseProgressData.map(
-                          (p) => new Date(p.lastAccessed || 0),
-                        ),
-                      )
-                    : null,
-              };
-            });
+                  : null,
+            };
+          });
 
           const bundleProgress =
             includedCourses.length > 0
@@ -8932,12 +8980,13 @@ const exportStudentData = async (req, res) => {
       }
 
       // Add progress activities (reuse allProgressData from earlier if available, otherwise fetch)
-      const activityProgressData = allProgressData.length > 0 ? await Promise.resolve(
-        allProgressData.map(p => ({ ...p }))
-      ) : await Progress.find({ student: studentId })
-        .populate('course', 'title')
-        .populate('topic', 'title')
-        .lean();
+      const activityProgressData =
+        allProgressData.length > 0
+          ? await Promise.resolve(allProgressData.map((p) => ({ ...p })))
+          : await Progress.find({ student: studentId })
+              .populate('course', 'title')
+              .populate('topic', 'title')
+              .lean();
 
       activityProgressData.forEach((progress) => {
         activityTimeline.push({
@@ -9094,14 +9143,16 @@ const exportStudentData = async (req, res) => {
       .lean();
 
     // Batch load progress data for ALL students in one query instead of N+1
-    const studentIds = students.map(s => s._id);
-    const allBulkProgressData = await Progress.find({ student: { $in: studentIds } })
+    const studentIds = students.map((s) => s._id);
+    const allBulkProgressData = await Progress.find({
+      student: { $in: studentIds },
+    })
       .select('student course timeSpent timestamp')
       .lean();
 
     // Group progress by student
     const progressByStudent = {};
-    allBulkProgressData.forEach(p => {
+    allBulkProgressData.forEach((p) => {
       const sid = p.student.toString();
       if (!progressByStudent[sid]) progressByStudent[sid] = [];
       progressByStudent[sid].push(p);
@@ -9109,25 +9160,24 @@ const exportStudentData = async (req, res) => {
 
     // Add analytics to each student using pre-loaded data
     const studentsWithAnalytics = students.map((student) => {
-        const progressData = progressByStudent[student._id.toString()] || [];
+      const progressData = progressByStudent[student._id.toString()] || [];
 
-        return {
-          ...student,
-          totalTimeSpent: calculateTotalTimeSpent(student, progressData),
-          averageQuizScore: calculateAverageQuizScore(student),
-          completionRate:
-            student.enrolledCourses?.length > 0
-              ? Math.round(
-                  student.enrolledCourses.reduce(
-                    (sum, ec) => sum + (ec.progress || 0),
-                    0,
-                  ) / student.enrolledCourses.length,
-                )
-              : 0,
-          engagementScore: calculateEngagementScore(student, progressData),
-        };
-      },
-    );
+      return {
+        ...student,
+        totalTimeSpent: calculateTotalTimeSpent(student, progressData),
+        averageQuizScore: calculateAverageQuizScore(student),
+        completionRate:
+          student.enrolledCourses?.length > 0
+            ? Math.round(
+                student.enrolledCourses.reduce(
+                  (sum, ec) => sum + (ec.progress || 0),
+                  0,
+                ) / student.enrolledCourses.length,
+              )
+            : 0,
+        engagementScore: calculateEngagementScore(student, progressData),
+      };
+    });
 
     const exporter = new ExcelExporter();
     const workbook = await exporter.exportStudents(
@@ -14191,10 +14241,14 @@ const getStudentsForEnrollment = async (req, res) => {
 
     // Exclude already-enrolled students directly in the DB query (avoids loading heavy fields)
     if (courseId) {
-      query['enrolledCourses.course'] = { $ne: new mongoose.Types.ObjectId(courseId) };
+      query['enrolledCourses.course'] = {
+        $ne: new mongoose.Types.ObjectId(courseId),
+      };
     }
     if (bundleId) {
-      query['purchasedBundles.bundle'] = { $ne: new mongoose.Types.ObjectId(bundleId) };
+      query['purchasedBundles.bundle'] = {
+        $ne: new mongoose.Types.ObjectId(bundleId),
+      };
     }
 
     const pageNum = Math.max(1, parseInt(page));
@@ -14206,7 +14260,9 @@ const getStudentsForEnrollment = async (req, res) => {
 
     // Only select light fields — NO enrolledCourses, NO purchasedBundles
     const students = await User.find(query)
-      .select('firstName lastName studentEmail studentNumber studentCode username grade schoolName')
+      .select(
+        'firstName lastName studentEmail studentNumber studentCode username grade schoolName',
+      )
       .sort({ firstName: 1, lastName: 1 })
       .skip(skip)
       .limit(limitNum)
@@ -14540,27 +14596,31 @@ const getPromoCodes = async (req, res) => {
     }
 
     // Get promo codes and stats in parallel
-    const [promoCodes, totalCodes, activeCodes, expiredCodes, totalUsesResult] = await Promise.all([
-      PromoCode.find(filter)
-        .populate('createdBy', 'userName email')
-        .populate('allowedStudents', 'firstName lastName studentEmail studentCode')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      PromoCode.countDocuments(),
-      PromoCode.countDocuments({
-        isActive: true,
-        validFrom: { $lte: new Date() },
-        validUntil: { $gte: new Date() },
-      }),
-      PromoCode.countDocuments({
-        validUntil: { $lt: new Date() },
-      }),
-      PromoCode.aggregate([
-        { $group: { _id: null, totalUses: { $sum: '$currentUses' } } },
-      ]),
-    ]);
+    const [promoCodes, totalCodes, activeCodes, expiredCodes, totalUsesResult] =
+      await Promise.all([
+        PromoCode.find(filter)
+          .populate('createdBy', 'userName email')
+          .populate(
+            'allowedStudents',
+            'firstName lastName studentEmail studentCode',
+          )
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(parseInt(limit))
+          .lean(),
+        PromoCode.countDocuments(),
+        PromoCode.countDocuments({
+          isActive: true,
+          validFrom: { $lte: new Date() },
+          validUntil: { $gte: new Date() },
+        }),
+        PromoCode.countDocuments({
+          validUntil: { $lt: new Date() },
+        }),
+        PromoCode.aggregate([
+          { $group: { _id: null, totalUses: { $sum: '$currentUses' } } },
+        ]),
+      ]);
     const totalUses = totalUsesResult[0]?.totalUses || 0;
 
     const stats = {
@@ -14782,10 +14842,12 @@ const getPromoCode = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const promoCode = await PromoCode.findById(id).populate(
-      'allowedStudents',
-      'firstName lastName studentEmail studentCode',
-    ).lean();
+    const promoCode = await PromoCode.findById(id)
+      .populate(
+        'allowedStudents',
+        'firstName lastName studentEmail studentCode',
+      )
+      .lean();
 
     if (!promoCode) {
       return res.status(404).json({
@@ -15178,7 +15240,19 @@ const getBulkCollections = async (req, res) => {
           collectionName: { $first: '$bulkCollectionName' },
           totalCodes: { $sum: 1 },
           usedCodes: {
-            $sum: { $cond: [{ $or: [{ $ne: ['$usedByStudent', null] }, { $gt: ['$currentUses', 0] }, { $gt: [{ $size: '$usageHistory' }, 0] }] }, 1, 0] },
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $ne: ['$usedByStudent', null] },
+                    { $gt: ['$currentUses', 0] },
+                    { $gt: [{ $size: '$usageHistory' }, 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           activeCodes: {
             $sum: { $cond: ['$isActive', 1, 0] },
@@ -15225,7 +15299,10 @@ const getBulkCollectionDetails = async (req, res) => {
     // Get all codes in this collection
     const codes = await PromoCode.find({ bulkCollectionId })
       .populate('usedByStudent', 'firstName lastName studentEmail studentCode')
-      .populate('usageHistory.user', 'firstName lastName studentEmail studentCode')
+      .populate(
+        'usageHistory.user',
+        'firstName lastName studentEmail studentCode',
+      )
       .sort({ code: 1 });
 
     if (codes.length === 0) {
@@ -15263,7 +15340,10 @@ const exportBulkCollection = async (req, res) => {
     // Get all codes in this collection
     const codes = await PromoCode.find({ bulkCollectionId })
       .populate('usedByStudent', 'firstName lastName studentEmail studentCode')
-      .populate('usageHistory.user', 'firstName lastName studentEmail studentCode')
+      .populate(
+        'usageHistory.user',
+        'firstName lastName studentEmail studentCode',
+      )
       .sort({ code: 1 });
 
     if (codes.length === 0) {
@@ -15306,15 +15386,25 @@ const exportBulkCollection = async (req, res) => {
 
     // Add data rows
     codes.forEach((code) => {
-      const isUsed = code.usedByStudent || code.currentUses > 0 || code.usageHistory.length > 0;
+      const isUsed =
+        code.usedByStudent ||
+        code.currentUses > 0 ||
+        code.usageHistory.length > 0;
       const usedAt =
         code.usageHistory.length > 0
-          ? new Date(code.usageHistory[code.usageHistory.length - 1].usedAt).toLocaleString()
+          ? new Date(
+              code.usageHistory[code.usageHistory.length - 1].usedAt,
+            ).toLocaleString()
           : 'Not Used';
 
       // Get student info from usedByStudent or fallback to usageHistory.user
-      const studentInfo = code.usedByStudent 
-        || (isUsed && code.usageHistory.length > 0 && typeof code.usageHistory[0].user === 'object' ? code.usageHistory[0].user : null);
+      const studentInfo =
+        code.usedByStudent ||
+        (isUsed &&
+        code.usageHistory.length > 0 &&
+        typeof code.usageHistory[0].user === 'object'
+          ? code.usageHistory[0].user
+          : null);
 
       worksheet.addRow({
         code: code.code,
@@ -15390,8 +15480,8 @@ const deleteBulkCollection = async (req, res) => {
       $or: [
         { usedByStudent: { $ne: null } },
         { currentUses: { $gt: 0 } },
-        { 'usageHistory.0': { $exists: true } }
-      ]
+        { 'usageHistory.0': { $exists: true } },
+      ],
     });
 
     if (usedCodesCount > 0) {
@@ -15752,10 +15842,12 @@ const getTeamManagementPage = async (req, res) => {
     }
 
     // Fetch all team members without pagination
-    const teamMembers = await TeamMember.find(query).sort({
-      displayOrder: 1,
-      createdAt: -1,
-    }).lean();
+    const teamMembers = await TeamMember.find(query)
+      .sort({
+        displayOrder: 1,
+        createdAt: -1,
+      })
+      .lean();
 
     const totalMembers = teamMembers.length;
 
@@ -16094,7 +16186,9 @@ const getCoursesForSMS = async (req, res) => {
     const coursesWithCount = courses.map((course) => ({
       _id: course._id,
       title: course.title,
-      studentCount: course.enrolledStudents ? course.enrolledStudents.length : 0,
+      studentCount: course.enrolledStudents
+        ? course.enrolledStudents.length
+        : 0,
     }));
 
     res.json({
@@ -16122,7 +16216,9 @@ const getBundlesForSMS = async (req, res) => {
     const bundlesWithCount = bundles.map((bundle) => ({
       _id: bundle._id,
       title: bundle.title,
-      studentCount: bundle.enrolledStudents ? bundle.enrolledStudents.length : 0,
+      studentCount: bundle.enrolledStudents
+        ? bundle.enrolledStudents.length
+        : 0,
     }));
 
     res.json({
@@ -16144,7 +16240,9 @@ const getCourseStudentsCount = async (req, res) => {
     const { courseId } = req.params;
 
     // Use enrolledStudents array count instead of expensive Progress.distinct
-    const course = await Course.findById(courseId).select('enrolledStudents').lean();
+    const course = await Course.findById(courseId)
+      .select('enrolledStudents')
+      .lean();
     const count = course?.enrolledStudents?.length || 0;
 
     res.json({
@@ -16166,7 +16264,9 @@ const getBundleStudentsCount = async (req, res) => {
     const { bundleId } = req.params;
 
     // Use enrolledStudents array count instead of expensive populate + Progress.distinct
-    const bundle = await BundleCourse.findById(bundleId).select('enrolledStudents').lean();
+    const bundle = await BundleCourse.findById(bundleId)
+      .select('enrolledStudents')
+      .lean();
     if (!bundle) {
       return res.status(404).json({
         success: false,
@@ -16296,9 +16396,11 @@ const sendBulkSMS = async (req, res) => {
         'enrolledCourses.course': targetId,
         role: 'student',
         isActive: true,
-      }).select(
-        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
-      ).lean();
+      })
+        .select(
+          'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
+        )
+        .lean();
 
       if (!students || students.length === 0) {
         return res.status(404).json({
@@ -16331,7 +16433,9 @@ const sendBulkSMS = async (req, res) => {
       });
     } else if (targetType === 'bundle' && targetId) {
       // Get students enrolled in bundle directly from BundleCourse.enrolledStudents
-      const bundle = await BundleCourse.findById(targetId).select('enrolledStudents').lean();
+      const bundle = await BundleCourse.findById(targetId)
+        .select('enrolledStudents')
+        .lean();
       if (!bundle) {
         return res.status(404).json({
           success: false,
@@ -16343,9 +16447,11 @@ const sendBulkSMS = async (req, res) => {
         _id: { $in: bundle.enrolledStudents || [] },
         role: 'student',
         isActive: true,
-      }).select(
-        'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
-      ).lean();
+      })
+        .select(
+          'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode',
+        )
+        .lean();
 
       students.forEach((student) => {
         if (recipientType === 'parents' || recipientType === 'both') {
@@ -17052,7 +17158,9 @@ const skipContentForStudents = async (req, res) => {
     // Batch load ALL students at once instead of one-by-one in loop
     const allStudents = await User.find({ _id: { $in: studentIds } });
     const studentMap = {};
-    allStudents.forEach(s => { studentMap[s._id.toString()] = s; });
+    allStudents.forEach((s) => {
+      studentMap[s._id.toString()] = s;
+    });
 
     // Process each student
     for (const studentId of studentIds) {
@@ -17282,7 +17390,11 @@ const getGuestUsers = async (req, res) => {
 
     // Get all quizzes for the filter dropdown AND aggregate stats in parallel using aggregation (not loading all guests)
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const [allQuizzes, guestStatsAgg, activeCountsAgg] = await Promise.all([
@@ -17292,15 +17404,26 @@ const getGuestUsers = async (req, res) => {
         .lean(),
       // Aggregate quiz stats from all guests WITHOUT loading them all
       GuestUser.aggregate([
-        { $unwind: { path: '$quizAttempts', preserveNullAndEmptyArrays: false } },
-        { $unwind: { path: '$quizAttempts.attempts', preserveNullAndEmptyArrays: false } },
+        {
+          $unwind: { path: '$quizAttempts', preserveNullAndEmptyArrays: false },
+        },
+        {
+          $unwind: {
+            path: '$quizAttempts.attempts',
+            preserveNullAndEmptyArrays: false,
+          },
+        },
         { $match: { 'quizAttempts.attempts.status': 'completed' } },
         {
           $group: {
             _id: null,
             totalAttempts: { $sum: 1 },
-            passedAttempts: { $sum: { $cond: ['$quizAttempts.attempts.passed', 1, 0] } },
-            failedAttempts: { $sum: { $cond: ['$quizAttempts.attempts.passed', 0, 1] } },
+            passedAttempts: {
+              $sum: { $cond: ['$quizAttempts.attempts.passed', 1, 0] },
+            },
+            failedAttempts: {
+              $sum: { $cond: ['$quizAttempts.attempts.passed', 0, 1] },
+            },
             avgScore: { $avg: '$quizAttempts.attempts.score' },
           },
         },
@@ -17323,7 +17446,12 @@ const getGuestUsers = async (req, res) => {
       ]),
     ]);
 
-    const guestStats = guestStatsAgg[0] || { totalAttempts: 0, passedAttempts: 0, failedAttempts: 0, avgScore: 0 };
+    const guestStats = guestStatsAgg[0] || {
+      totalAttempts: 0,
+      passedAttempts: 0,
+      failedAttempts: 0,
+      avgScore: 0,
+    };
     const activeCounts = activeCountsAgg[0] || {};
     const totalGuestsCount = activeCounts.totalGuests?.[0]?.count || 0;
     const activeToday = activeCounts.activeToday?.[0]?.count || 0;
@@ -17332,7 +17460,10 @@ const getGuestUsers = async (req, res) => {
     const passedAttempts = guestStats.passedAttempts;
     const failedAttempts = guestStats.failedAttempts;
     const averageScore = Math.round(guestStats.avgScore || 0);
-    const passRate = totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0;
+    const passRate =
+      totalAttempts > 0
+        ? Math.round((passedAttempts / totalAttempts) * 100)
+        : 0;
 
     // Calculate stats for each guest
     guests.forEach((guest) => {

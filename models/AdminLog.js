@@ -25,7 +25,7 @@ const AdminLogSchema = new mongoose.Schema(
         'DELETE_COURSE',
         'DUPLICATE_COURSE',
         'BULK_UPDATE_COURSE_STATUS',
-        
+
         // Topic Actions
         'CREATE_TOPIC',
         'UPDATE_TOPIC',
@@ -33,14 +33,14 @@ const AdminLogSchema = new mongoose.Schema(
         'DUPLICATE_TOPIC',
         'REORDER_TOPICS',
         'UPDATE_TOPIC_VISIBILITY',
-        
+
         // Content Actions
         'CREATE_CONTENT',
         'UPDATE_CONTENT',
         'DELETE_CONTENT',
         'REORDER_CONTENT',
         'RESET_CONTENT_ATTEMPTS',
-        
+
         // Bundle Actions
         'CREATE_BUNDLE',
         'UPDATE_BUNDLE',
@@ -48,7 +48,7 @@ const AdminLogSchema = new mongoose.Schema(
         'ADD_COURSE_TO_BUNDLE',
         'REMOVE_COURSE_FROM_BUNDLE',
         'REORDER_BUNDLE_COURSES',
-        
+
         // Student Actions
         'CREATE_STUDENT',
         'UPDATE_STUDENT',
@@ -59,7 +59,7 @@ const AdminLogSchema = new mongoose.Schema(
         'REMOVE_STUDENT_ENROLLMENT',
         'BULK_REMOVE_STUDENT_ENROLLMENT',
         'BULK_ENROLL_STUDENTS',
-        
+
         // Quiz Actions
         'CREATE_QUIZ',
         'UPDATE_QUIZ',
@@ -68,13 +68,13 @@ const AdminLogSchema = new mongoose.Schema(
         'UPDATE_QUIZ_STATUS',
         'RESET_QUIZ_ATTEMPTS',
         'UPLOAD_QUIZ_THUMBNAIL',
-        
+
         // Question Bank Actions
         'CREATE_QUESTION_BANK',
         'UPDATE_QUESTION_BANK',
         'DELETE_QUESTION_BANK',
         'SYNC_QUESTION_BANKS',
-        
+
         // Question Actions
         'CREATE_QUESTION',
         'UPDATE_QUESTION',
@@ -83,19 +83,19 @@ const AdminLogSchema = new mongoose.Schema(
         'IMPORT_QUESTIONS',
         'BULK_DELETE_QUESTIONS',
         'BULK_UPDATE_QUESTION_IMAGE',
-        
+
         // Order Actions
         'REFUND_ORDER',
         'COMPLETE_FAILED_PAYMENT',
         'UPDATE_BOOK_ORDER_STATUS',
         'BULK_UPDATE_BOOK_ORDERS',
-        
+
         // Admin Management
         'CREATE_ADMIN',
         'UPDATE_ADMIN',
         'DELETE_ADMIN',
         'TOGGLE_ADMIN_STATUS',
-        
+
         // Promo Code Actions
         'CREATE_PROMO_CODE',
         'UPDATE_PROMO_CODE',
@@ -103,25 +103,25 @@ const AdminLogSchema = new mongoose.Schema(
         'CREATE_BULK_PROMO_CODES',
         'DELETE_BULK_COLLECTION',
         'TOGGLE_BULK_COLLECTION_STATUS',
-        
+
         // Brilliant Students
         'CREATE_BRILLIANT_STUDENT',
         'UPDATE_BRILLIANT_STUDENT',
         'DELETE_BRILLIANT_STUDENT',
         'REORDER_BRILLIANT_STUDENTS',
-        
+
         // Team Management
         'CREATE_TEAM_MEMBER',
         'UPDATE_TEAM_MEMBER',
         'DELETE_TEAM_MEMBER',
         'REORDER_TEAM_MEMBERS',
-        
+
         // Game Room Actions
         'CREATE_GAME_ROOM',
         'UPDATE_GAME_ROOM',
         'DELETE_GAME_ROOM',
         'PERMANENT_DELETE_GAME_ROOM',
-        
+
         // Quiz Module Actions
         'MODULE_CREATED',
         'MODULE_UPDATED',
@@ -130,33 +130,33 @@ const AdminLogSchema = new mongoose.Schema(
         'MODULE_PERMANENTLY_DELETED',
         'QUIZZES_ADDED_TO_MODULE',
         'QUIZ_REMOVED_FROM_MODULE',
-        
+
         // Zoom Meeting Actions
         'CREATE_ZOOM_MEETING',
         'START_ZOOM_MEETING',
         'END_ZOOM_MEETING',
         'DELETE_ZOOM_MEETING',
-        
+
         // Communication Actions
         'SEND_BULK_SMS',
         'SEND_BULK_WHATSAPP',
         'SEND_TEST_MESSAGE',
-        
+
         // Export Actions
         'EXPORT_STUDENTS',
         'EXPORT_COURSES',
         'EXPORT_ORDERS',
         'EXPORT_QUIZZES',
         'EXPORT_COMPREHENSIVE_REPORT',
-        
+
         // Other Actions
         'CLEANUP_DUPLICATES',
         'UPLOAD_PDF',
-        
+
         // Enrollment Sync Actions
         'SYNC_ENROLLMENT',
         'BULK_SYNC_ENROLLMENTS',
-        
+
         // OTP Master Generator Actions
         'OTP_GENERATED',
         'OTP_VALIDATED',
@@ -244,9 +244,9 @@ const AdminLogSchema = new mongoose.Schema(
       type: Number, // Time taken in milliseconds
     },
   },
-  { 
+  {
     timestamps: true,
-  }
+  },
 );
 
 // ==================== Performance Indexes ====================
@@ -295,11 +295,7 @@ AdminLogSchema.statics.getLogs = async function (filters = {}, options = {}) {
     search,
   } = filters;
 
-  const {
-    page = 1,
-    limit = 50,
-    sort = { createdAt: -1 },
-  } = options;
+  const { page = 1, limit = 50, sort = { createdAt: -1 } } = options;
 
   const query = {};
 
@@ -308,7 +304,7 @@ AdminLogSchema.statics.getLogs = async function (filters = {}, options = {}) {
   if (actionCategory) query.actionCategory = actionCategory;
   if (targetModel) query.targetModel = targetModel;
   if (status) query.status = status;
-  
+
   if (startDate || endDate) {
     query.createdAt = {};
     if (startDate) query.createdAt.$gte = new Date(startDate);
@@ -347,7 +343,7 @@ AdminLogSchema.statics.getLogs = async function (filters = {}, options = {}) {
 // Add static method to get statistics
 AdminLogSchema.statics.getStats = async function (filters = {}) {
   const { startDate, endDate, adminId } = filters;
-  
+
   const matchQuery = {};
   if (adminId) matchQuery.admin = mongoose.Types.ObjectId(adminId);
   if (startDate || endDate) {
@@ -370,16 +366,18 @@ AdminLogSchema.statics.getStats = async function (filters = {}) {
           { $limit: 10 },
         ],
         byAdmin: [
-          { $group: { _id: '$admin', adminName: { $first: '$adminName' }, count: { $sum: 1 } } },
+          {
+            $group: {
+              _id: '$admin',
+              adminName: { $first: '$adminName' },
+              count: { $sum: 1 },
+            },
+          },
           { $sort: { count: -1 } },
           { $limit: 10 },
         ],
-        byStatus: [
-          { $group: { _id: '$status', count: { $sum: 1 } } },
-        ],
-        total: [
-          { $count: 'count' },
-        ],
+        byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+        total: [{ $count: 'count' }],
       },
     },
   ]);
@@ -388,13 +386,3 @@ AdminLogSchema.statics.getStats = async function (filters = {}) {
 };
 
 module.exports = mongoose.model('AdminLog', AdminLogSchema);
-
-
-
-
-
-
-
-
-
-

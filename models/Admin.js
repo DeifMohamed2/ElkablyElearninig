@@ -36,7 +36,7 @@ const AdminSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Hash password before save
@@ -57,5 +57,3 @@ AdminSchema.methods.matchPassword = async function (enteredPassword) {
 AdminSchema.index({ role: 1, isActive: 1 });
 
 module.exports = mongoose.model('Admin', AdminSchema);
-
-

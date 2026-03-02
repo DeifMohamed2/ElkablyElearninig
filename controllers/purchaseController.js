@@ -33,11 +33,18 @@ async function getStudentStartingOrderInBundle(userId, bundleId) {
     let bundleStartingOrder = null;
     for (const bundleCourse of bundleCourses) {
       const enrollment = user.enrolledCourses.find(
-        (e) => e.course && e.course.toString() === bundleCourse._id.toString()
+        (e) => e.course && e.course.toString() === bundleCourse._id.toString(),
       );
-      if (enrollment && enrollment.startingOrder !== null && enrollment.startingOrder !== undefined) {
+      if (
+        enrollment &&
+        enrollment.startingOrder !== null &&
+        enrollment.startingOrder !== undefined
+      ) {
         // Use the minimum startingOrder found in the bundle
-        if (bundleStartingOrder === null || enrollment.startingOrder < bundleStartingOrder) {
+        if (
+          bundleStartingOrder === null ||
+          enrollment.startingOrder < bundleStartingOrder
+        ) {
           bundleStartingOrder = enrollment.startingOrder;
         }
       }
@@ -71,22 +78,26 @@ async function processSuccessfulPayment(purchase, req = null) {
     // Only update if status is pending (idempotency check)
     if (freshPurchase.status !== 'pending') {
       console.log(
-        `⚠️ Purchase ${freshPurchase.orderNumber} already processed with status: ${freshPurchase.status}`
+        `⚠️ Purchase ${freshPurchase.orderNumber} already processed with status: ${freshPurchase.status}`,
       );
-      
+
       // If already completed, verify enrollments are in place
       if (freshPurchase.status === 'completed') {
         const user = await User.findById(freshPurchase.user._id);
         let allEnrolled = true;
-        
+
         for (const item of freshPurchase.items) {
           if (item.itemType === 'bundle') {
-            const bundle = await BundleCourse.findById(item.item).populate('courses');
+            const bundle = await BundleCourse.findById(item.item).populate(
+              'courses',
+            );
             if (bundle) {
               for (const course of bundle.courses) {
                 if (!user.isEnrolled(course._id)) {
                   allEnrolled = false;
-                  console.log(`⚠️ Missing enrollment for course ${course._id} in bundle ${bundle._id}`);
+                  console.log(
+                    `⚠️ Missing enrollment for course ${course._id} in bundle ${bundle._id}`,
+                  );
                 }
               }
             }
@@ -97,39 +108,51 @@ async function processSuccessfulPayment(purchase, req = null) {
             }
           }
         }
-        
+
         // If enrollments are missing, re-enroll
         if (!allEnrolled) {
-          console.log(`🔧 Re-enrolling user for order ${freshPurchase.orderNumber}`);
+          console.log(
+            `🔧 Re-enrolling user for order ${freshPurchase.orderNumber}`,
+          );
           // Continue with enrollment process below
         } else {
-          return { success: true, alreadyProcessed: true, purchase: freshPurchase };
+          return {
+            success: true,
+            alreadyProcessed: true,
+            purchase: freshPurchase,
+          };
         }
       } else {
-        return { success: true, alreadyProcessed: true, purchase: freshPurchase };
+        return {
+          success: true,
+          alreadyProcessed: true,
+          purchase: freshPurchase,
+        };
       }
     }
 
     // ATOMIC UPDATE: Use findOneAndUpdate to ensure only one process can update at a time
     const updatedPurchase = await Purchase.findOneAndUpdate(
-      { 
+      {
         _id: freshPurchase._id,
-        status: 'pending' // Only update if still pending (prevents race conditions)
+        status: 'pending', // Only update if still pending (prevents race conditions)
       },
       {
         $set: {
           status: 'completed',
           paymentStatus: 'completed',
           completedAt: new Date(),
-        }
+        },
       },
-      { new: true }
-    ).populate('user').populate('items.item');
+      { new: true },
+    )
+      .populate('user')
+      .populate('items.item');
 
     // If update failed (another process already updated it), return
     if (!updatedPurchase || updatedPurchase.status !== 'completed') {
       console.log(
-        `⚠️ Purchase ${freshPurchase.orderNumber} was updated by another process`
+        `⚠️ Purchase ${freshPurchase.orderNumber} was updated by another process`,
       );
       const reloaded = await Purchase.findById(freshPurchase._id)
         .populate('user')
@@ -141,21 +164,24 @@ async function processSuccessfulPayment(purchase, req = null) {
     const purchaseToProcess = updatedPurchase;
 
     // Update book orders status to 'processing' when payment is completed
-    if (purchaseToProcess.bookOrders && purchaseToProcess.bookOrders.length > 0) {
+    if (
+      purchaseToProcess.bookOrders &&
+      purchaseToProcess.bookOrders.length > 0
+    ) {
       await BookOrder.updateMany(
         { _id: { $in: purchaseToProcess.bookOrders } },
-        { 
+        {
           status: 'processing',
-          $unset: { cancelledAt: '' } // Remove cancelledAt if it exists
-        }
+          $unset: { cancelledAt: '' }, // Remove cancelledAt if it exists
+        },
       );
       console.log(
-        `📚 Updated ${purchaseToProcess.bookOrders.length} book order(s) to 'processing' status`
+        `📚 Updated ${purchaseToProcess.bookOrders.length} book order(s) to 'processing' status`,
       );
     }
 
     console.log(
-      `✅ Processing successful payment for order: ${purchaseToProcess.orderNumber}`
+      `✅ Processing successful payment for order: ${purchaseToProcess.orderNumber}`,
     );
 
     // Get user with all necessary data
@@ -171,18 +197,18 @@ async function processSuccessfulPayment(purchase, req = null) {
     // Process user enrollments - CRITICAL: This must complete successfully
     for (const purchaseItem of purchaseToProcess.items) {
       // Normalize item ID - handle both populated and non-populated cases
-      const itemId = purchaseItem.item._id ? purchaseItem.item._id : purchaseItem.item;
-      
+      const itemId = purchaseItem.item._id
+        ? purchaseItem.item._id
+        : purchaseItem.item;
+
       if (purchaseItem.itemType === 'bundle') {
         await user.addPurchasedBundle(
           itemId,
           purchaseItem.price,
-          purchaseToProcess.orderNumber
+          purchaseToProcess.orderNumber,
         );
 
-        const bundle = await BundleCourse.findById(itemId).populate(
-          'courses'
-        );
+        const bundle = await BundleCourse.findById(itemId).populate('courses');
         if (bundle) {
           await user.enrollInBundleCourses(bundle);
           console.log(`✅ Enrolled user in bundle: ${bundle.title}`);
@@ -193,17 +219,22 @@ async function processSuccessfulPayment(purchase, req = null) {
         const result = await user.addPurchasedCourseWithEnrollment(
           itemId,
           purchaseItem.price,
-          purchaseToProcess.orderNumber
+          purchaseToProcess.orderNumber,
         );
-        
+
         if (result.purchaseAdded || result.enrollmentAdded) {
-          console.log(`✅ Processed course: ${purchaseItem.title} (purchase: ${result.purchaseAdded}, enrollment: ${result.enrollmentAdded})`);
+          console.log(
+            `✅ Processed course: ${purchaseItem.title} (purchase: ${result.purchaseAdded}, enrollment: ${result.enrollmentAdded})`,
+          );
         }
       }
     }
 
     // Handle promo code usage if applied
-    if (purchaseToProcess.appliedPromoCode && purchaseToProcess.discountAmount > 0) {
+    if (
+      purchaseToProcess.appliedPromoCode &&
+      purchaseToProcess.discountAmount > 0
+    ) {
       try {
         // Add promo code usage to user
         await user.addPromoCodeUsage(
@@ -211,12 +242,12 @@ async function processSuccessfulPayment(purchase, req = null) {
           freshPurchase._id,
           freshPurchase.discountAmount,
           freshPurchase.originalAmount,
-          freshPurchase.total
+          freshPurchase.total,
         );
 
         // Update promo code usage count and history
         const promoCode = await PromoCode.findById(
-          purchaseToProcess.appliedPromoCode
+          purchaseToProcess.appliedPromoCode,
         );
         if (promoCode) {
           // Add to usage history
@@ -257,15 +288,18 @@ async function processSuccessfulPayment(purchase, req = null) {
     }
 
     // Send library notification for book orders if they exist
-    if (purchaseToProcess.bookOrders && purchaseToProcess.bookOrders.length > 0) {
+    if (
+      purchaseToProcess.bookOrders &&
+      purchaseToProcess.bookOrders.length > 0
+    ) {
       try {
         console.log(
-          `📚 Initiating library notification for book orders: ${purchaseToProcess.orderNumber}`
+          `📚 Initiating library notification for book orders: ${purchaseToProcess.orderNumber}`,
         );
 
         const libraryResult = await sendLibraryBookOrderNotification(
           purchaseToProcess.bookOrders,
-          user
+          user,
         );
         if (libraryResult.success) {
           console.log(`✅ Library notification completed successfully`);
@@ -281,7 +315,7 @@ async function processSuccessfulPayment(purchase, req = null) {
     // Clear cart and book-only purchase session after payment is confirmed completed
     if (req && req.session) {
       clearCart(req, 'payment completed');
-      
+
       // Clear book-only purchase session
       if (req.session.bookOnlyPurchase) {
         delete req.session.bookOnlyPurchase;
@@ -289,12 +323,14 @@ async function processSuccessfulPayment(purchase, req = null) {
       }
 
       // Track purchase completion
-      const itemNames = purchaseToProcess.items.map(i => i.title).join(', ');
-      PurchaseTracker.completed(req, purchaseToProcess._id.toString(), 
-        purchaseToProcess.items[0]?.item?._id?.toString() || '', 
-        itemNames, 
+      const itemNames = purchaseToProcess.items.map((i) => i.title).join(', ');
+      PurchaseTracker.completed(
+        req,
+        purchaseToProcess._id.toString(),
+        purchaseToProcess.items[0]?.item?._id?.toString() || '',
+        itemNames,
         purchaseToProcess.totalAmount,
-        purchaseToProcess.paymentMethod || 'paymob'
+        purchaseToProcess.paymentMethod || 'paymob',
       );
     }
 
@@ -307,7 +343,7 @@ async function processSuccessfulPayment(purchase, req = null) {
     });
 
     console.log(
-      `✅ Successfully processed payment and enrollment for order: ${purchaseToProcess.orderNumber}`
+      `✅ Successfully processed payment and enrollment for order: ${purchaseToProcess.orderNumber}`,
     );
 
     return { success: true, purchase: purchaseToProcess };
@@ -321,7 +357,11 @@ async function processSuccessfulPayment(purchase, req = null) {
 /**
  * Process failed payment - Centralized function for webhook and redirect handlers
  */
-async function processFailedPayment(purchase, failureReason, paymentGatewayResponse = {}) {
+async function processFailedPayment(
+  purchase,
+  failureReason,
+  paymentGatewayResponse = {},
+) {
   try {
     // Reload purchase to ensure we have latest data
     const freshPurchase = await Purchase.findById(purchase._id || purchase);
@@ -333,7 +373,7 @@ async function processFailedPayment(purchase, failureReason, paymentGatewayRespo
     // Only process if status is pending (idempotency check)
     if (freshPurchase.status !== 'pending') {
       console.log(
-        `⚠️ Purchase ${freshPurchase.orderNumber} already processed with status: ${freshPurchase.status}`
+        `⚠️ Purchase ${freshPurchase.orderNumber} already processed with status: ${freshPurchase.status}`,
       );
       return { success: true, alreadyProcessed: true, purchase: freshPurchase };
     }
@@ -349,10 +389,10 @@ async function processFailedPayment(purchase, failureReason, paymentGatewayRespo
     if (freshPurchase.bookOrders && freshPurchase.bookOrders.length > 0) {
       await BookOrder.updateMany(
         { _id: { $in: freshPurchase.bookOrders } },
-        { status: 'cancelled' }
+        { status: 'cancelled' },
       );
       console.log(
-        `📚 Cancelled ${freshPurchase.bookOrders.length} book order(s) for failed payment`
+        `📚 Cancelled ${freshPurchase.bookOrders.length} book order(s) for failed payment`,
       );
     }
 
@@ -387,80 +427,104 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
   try {
     console.log('\n📚 ========== LIBRARY NOTIFICATION ==========');
     console.log('📚 Book order IDs:', bookOrderIds);
-    
+
     if (!bookOrderIds || bookOrderIds.length === 0) {
       console.log('❌ No book order IDs provided');
       return { success: false, message: 'No book orders to notify' };
     }
 
     // Convert to array if single ID
-    const idsArray = Array.isArray(bookOrderIds) ? bookOrderIds : [bookOrderIds];
-    
+    const idsArray = Array.isArray(bookOrderIds)
+      ? bookOrderIds
+      : [bookOrderIds];
+
     // Convert all to strings for consistency
-    const cleanIds = idsArray.map(id => {
+    const cleanIds = idsArray.map((id) => {
       if (typeof id === 'string') return id;
       if (id._id) return id._id.toString();
       return id.toString();
     });
-    
+
     console.log('📚 Cleaned IDs:', cleanIds);
-    
+
     // Fetch BookOrder documents from database
     const BookOrder = require('../models/BookOrder');
-    const bookOrders = await BookOrder.find({ _id: { $in: cleanIds } })
-      .populate('bundle', 'title bundleCode');
-    
+    const bookOrders = await BookOrder.find({
+      _id: { $in: cleanIds },
+    }).populate('bundle', 'title bundleCode');
+
     console.log(`📚 Found ${bookOrders.length} book orders in database`);
-    
+
     if (bookOrders.length === 0) {
       console.log('❌ No book orders found in database');
       return { success: false, message: 'Book orders not found' };
     }
-    
+
     const firstBookOrder = bookOrders[0];
-    
+
     // Check if library notification was already sent for this purchase
     const Purchase = require('../models/Purchase');
     const purchase = await Purchase.findById(firstBookOrder.purchase);
-    
+
     if (purchase && purchase.libraryNotificationSent) {
-      console.log('⚠️ Library notification already sent for this purchase:', purchase.orderNumber);
-      console.log('📚 Notification was sent at:', purchase.libraryNotificationSentAt);
-      return { 
-        success: true, 
-        message: 'Library notification already sent', 
+      console.log(
+        '⚠️ Library notification already sent for this purchase:',
+        purchase.orderNumber,
+      );
+      console.log(
+        '📚 Notification was sent at:',
+        purchase.libraryNotificationSentAt,
+      );
+      return {
+        success: true,
+        message: 'Library notification already sent',
         alreadySent: true,
-        sentAt: purchase.libraryNotificationSentAt
+        sentAt: purchase.libraryNotificationSentAt,
       };
     }
-    
+
     // Validate shipping address
     if (!firstBookOrder.shippingAddress) {
-      console.error('❌ Book order missing shippingAddress:', firstBookOrder._id);
+      console.error(
+        '❌ Book order missing shippingAddress:',
+        firstBookOrder._id,
+      );
       return { success: false, message: 'Book order missing shipping address' };
     }
-    
+
     console.log('✓ Shipping address validated');
 
     // Get WhatsApp session API key
-    const SESSION_API_KEY = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
+    const SESSION_API_KEY =
+      process.env.WASENDER_SESSION_API_KEY ||
+      process.env.WHATSAPP_SESSION_API_KEY ||
+      '';
     if (!SESSION_API_KEY) {
       console.error('❌ WhatsApp session API key not configured');
-      return { success: false, message: 'WhatsApp session API key not configured' };
+      return {
+        success: false,
+        message: 'WhatsApp session API key not configured',
+      };
     }
     console.log('✓ API key found');
 
     // Determine library phone number based on country
     const country = firstBookOrder.shippingAddress?.country || '';
     console.log(`📚 Shipping country: ${country}`);
-    const isEgypt = country.toLowerCase().includes('egypt') || country.toLowerCase().includes('مصر') || country === 'EG' || country === 'Egypt';
+    const isEgypt =
+      country.toLowerCase().includes('egypt') ||
+      country.toLowerCase().includes('مصر') ||
+      country === 'EG' ||
+      country === 'Egypt';
     console.log(`📚 Is Egypt: ${isEgypt}`);
-    
+
     // Library phone numbers - Both Egypt and International use same number
-        // Library phone numbers (local Egyptian format, will be converted to international format)
+    // Library phone numbers (local Egyptian format, will be converted to international format)
     const egyptLibraryPhone = '01026652507'; // Egypt library
     const internationalLibraryPhone = '01026652507'; // International library
-    const libraryPhone = isEgypt ? egyptLibraryPhone : internationalLibraryPhone;
+    const libraryPhone = isEgypt
+      ? egyptLibraryPhone
+      : internationalLibraryPhone;
 
     // Format phone number for WhatsApp
     const formatPhoneForWhatsApp = (phone) => {
@@ -483,14 +547,16 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
       if (!phoneNumber || phoneNumber === 'N/A') return 'N/A';
       if (!countryCode) return phoneNumber;
       // Ensure country code has + sign
-      const code = countryCode.startsWith('+') ? countryCode : `+${countryCode}`;
+      const code = countryCode.startsWith('+')
+        ? countryCode
+        : `+${countryCode}`;
       return `${code}${phoneNumber}`;
     };
 
     // Build WhatsApp message
     let message = '📚 *طلب جديد*\n\n';
     message += '═══════════════════\n\n';
-    
+
     // Add order details for each book
     for (let i = 0; i < bookOrders.length; i++) {
       const bookOrder = bookOrders[i];
@@ -513,7 +579,7 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
       message += `*الاسم:* ${(address.firstName || '').trim()} ${(address.lastName || '').trim()}\n`;
       message += `*البريد الإلكتروني:* ${address.email || 'N/A'}\n`;
       message += `*رقم الهاتف:* ${address.phone || 'N/A'}\n`;
-      
+
       // Street address details
       if (address.streetName) {
         message += `*اسم الشارع:* ${address.streetName.trim()}\n`;
@@ -524,12 +590,12 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
       if (address.apartmentNumber) {
         message += `*رقم الشقة:* ${address.apartmentNumber}\n`;
       }
-      
+
       // Governorate (if exists)
       if (address.governorate) {
         message += `*المحافظة:* ${address.governorate}\n`;
       }
-      
+
       // Zone/City (use city field, not state)
       if (address.city) {
         message += `*المنطقة:* ${address.city}\n`;
@@ -538,13 +604,19 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
       // if (address.zipCode) {
       //   message += `*الرمز البريدي:* ${address.zipCode}\n`;
       // }
-      
+
       // Location on map with Google Maps link
-      if (address.location && (address.location.link || (address.location.lat && address.location.lng))) {
-        const mapsLink = address.location.link || `https://www.google.com/maps?q=${address.location.lat},${address.location.lng}`;
+      if (
+        address.location &&
+        (address.location.link ||
+          (address.location.lat && address.location.lng))
+      ) {
+        const mapsLink =
+          address.location.link ||
+          `https://www.google.com/maps?q=${address.location.lat},${address.location.lng}`;
         message += `\n*📍 موقع التوصيل:* ${mapsLink}\n`;
       }
-      
+
       message += '\n';
     }
 
@@ -552,9 +624,15 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     if (user) {
       message += '*معلومات الطالب والوالد:*\n';
       message += `*اسم الطالب:* ${(user.firstName || '').trim()} ${(user.lastName || '').trim()}\n`;
-      const studentPhone = formatPhoneNumber(user.studentCountryCode, user.studentNumber);
+      const studentPhone = formatPhoneNumber(
+        user.studentCountryCode,
+        user.studentNumber,
+      );
       message += `*رقم هاتف الطالب:* ${studentPhone}\n`;
-      const parentPhone = formatPhoneNumber(user.parentCountryCode, user.parentNumber);
+      const parentPhone = formatPhoneNumber(
+        user.parentCountryCode,
+        user.parentNumber,
+      );
       message += `*رقم هاتف الوالد:* ${parentPhone}\n`;
     }
 
@@ -562,8 +640,18 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     // Format date in Arabic
     const date = new Date();
     const arabicMonths = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
     ];
     const day = date.getDate();
     const month = arabicMonths[date.getMonth()];
@@ -571,16 +659,22 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     const hour = date.getHours();
     const minute = date.getMinutes();
     const period = hour >= 12 ? 'م' : 'ص';
-    const hour12 = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+    const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     message += `*التاريخ:* ${day} ${month} ${year} في ${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}\n`;
-    
+
     console.log('📚 Message built - length:', message.length, 'characters');
 
     // Send WhatsApp message
-    console.log(`📚 Sending to ${isEgypt ? 'Egypt' : 'International'} Library: ${libraryJid}`);
-    
-    const result = await wasender.sendTextMessage(SESSION_API_KEY, libraryJid, message);
-    
+    console.log(
+      `📚 Sending to ${isEgypt ? 'Egypt' : 'International'} Library: ${libraryJid}`,
+    );
+
+    const result = await wasender.sendTextMessage(
+      SESSION_API_KEY,
+      libraryJid,
+      message,
+    );
+
     console.log('📚 WhatsApp API Response:', JSON.stringify(result, null, 2));
 
     if (result.success) {
@@ -591,22 +685,26 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
         await purchase.save();
         console.log('✅ Purchase marked with library notification sent flag');
       }
-      
+
       console.log('✅ Library notification sent successfully!');
-      console.log('📚 ========== END LIBRARY NOTIFICATION (SUCCESS) ==========\n');
-      return { 
-        success: true, 
-        message: 'Library notification sent successfully', 
+      console.log(
+        '📚 ========== END LIBRARY NOTIFICATION (SUCCESS) ==========\n',
+      );
+      return {
+        success: true,
+        message: 'Library notification sent successfully',
         libraryPhone: formattedLibraryPhone,
-        orderCount: bookOrders.length
+        orderCount: bookOrders.length,
       };
     } else {
       console.error('❌ WhatsApp API returned failure:', result.message);
-      console.log('📚 ========== END LIBRARY NOTIFICATION (FAILED) ==========\n');
-      return { 
-        success: false, 
+      console.log(
+        '📚 ========== END LIBRARY NOTIFICATION (FAILED) ==========\n',
+      );
+      return {
+        success: false,
         message: result.message || 'Failed to send library notification',
-        error: result.error
+        error: result.error,
       };
     }
   } catch (error) {
@@ -614,10 +712,10 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
     console.error('❌ Error:', error.message);
     console.error('❌ Stack:', error.stack);
     console.error('❌ ========== END ERROR ==========\n');
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: error.message || 'Error sending library notification',
-      error: error.name
+      error: error.name,
     };
   }
 }
@@ -625,7 +723,9 @@ async function sendLibraryBookOrderNotification(bookOrderIds, user) {
 // Helper function to validate course ordering when adding to cart
 async function validateCourseOrdering(courseId, userId, cartItems = []) {
   try {
-    const course = await Course.findById(courseId).select('order bundle requiresSequential');
+    const course = await Course.findById(courseId).select(
+      'order bundle requiresSequential',
+    );
     if (!course) {
       return { valid: false, message: 'Course not found' };
     }
@@ -642,7 +742,7 @@ async function validateCourseOrdering(courseId, userId, cartItems = []) {
 
     // Find current course index
     const currentIndex = bundleCourses.findIndex(
-      (c) => c._id.toString() === courseId.toString()
+      (c) => c._id.toString() === courseId.toString(),
     );
 
     // First course (order 0 or lowest order) is always valid
@@ -654,14 +754,17 @@ async function validateCourseOrdering(courseId, userId, cartItems = []) {
     const user = await User.findById(userId)
       .populate('purchasedCourses.course')
       .populate('enrolledCourses.course');
-    
+
     if (!user) {
       return { valid: false, message: 'User not found' };
     }
 
     // Check if student has a startingOrder set for this bundle (manual enrollment)
-    const startingOrder = await getStudentStartingOrderInBundle(userId, course.bundle);
-    
+    const startingOrder = await getStudentStartingOrderInBundle(
+      userId,
+      course.bundle,
+    );
+
     // If student has a startingOrder, check if this course is at or after that order
     if (startingOrder !== null) {
       if (course.order >= startingOrder) {
@@ -686,7 +789,7 @@ async function validateCourseOrdering(courseId, userId, cartItems = []) {
     for (const cartItem of cartItems) {
       if (cartItem.type === 'course') {
         const cartCourse = bundleCourses.find(
-          c => c._id.toString() === cartItem.id
+          (c) => c._id.toString() === cartItem.id,
         );
         if (cartCourse && cartCourse.order > highestPurchasedOrder) {
           highestPurchasedOrder = cartCourse.order;
@@ -707,23 +810,27 @@ async function validateCourseOrdering(courseId, userId, cartItems = []) {
 
     for (const prevCourse of previousCourses) {
       // Skip if this previous course is before or equal to the student's highest purchased order
-      if (highestPurchasedOrder >= 0 && prevCourse.order <= highestPurchasedOrder) {
+      if (
+        highestPurchasedOrder >= 0 &&
+        prevCourse.order <= highestPurchasedOrder
+      ) {
         continue; // Student already has access to courses up to highestPurchasedOrder
       }
 
       // Check if user has purchased/enrolled in this course
       const hasPurchased = user.hasAccessToCourse(prevCourse._id.toString());
-      
+
       // Check if course is in cart
       const inCart = cartItems.some(
-        (item) => item.type === 'course' && item.id === prevCourse._id.toString()
+        (item) =>
+          item.type === 'course' && item.id === prevCourse._id.toString(),
       );
 
       if (!hasPurchased && !inCart) {
         missingCourses.push({
           id: prevCourse._id.toString(),
           title: prevCourse.title,
-          order: prevCourse.order
+          order: prevCourse.order,
         });
       }
     }
@@ -732,11 +839,11 @@ async function validateCourseOrdering(courseId, userId, cartItems = []) {
       // Sort by order and get the first missing course
       missingCourses.sort((a, b) => a.order - b.order);
       const firstMissing = missingCourses[0];
-      
+
       return {
         valid: false,
         message: `Please purchase "${firstMissing.title}" (Order ${firstMissing.order}) first. Courses must be added in sequential order.`,
-        missingCourse: firstMissing
+        missingCourse: firstMissing,
       };
     }
 
@@ -750,7 +857,9 @@ async function validateCourseOrdering(courseId, userId, cartItems = []) {
 // Helper function to validate course ordering when removing from cart
 async function validateCourseRemoval(courseId, userId, cartItems = []) {
   try {
-    const course = await Course.findById(courseId).select('order bundle requiresSequential');
+    const course = await Course.findById(courseId).select(
+      'order bundle requiresSequential',
+    );
     if (!course) {
       return { valid: true }; // If course not found, allow removal
     }
@@ -767,7 +876,7 @@ async function validateCourseRemoval(courseId, userId, cartItems = []) {
 
     // Find current course index
     const currentIndex = bundleCourses.findIndex(
-      (c) => c._id.toString() === courseId.toString()
+      (c) => c._id.toString() === courseId.toString(),
     );
 
     // Check if any courses with higher order depend on this course
@@ -777,14 +886,15 @@ async function validateCourseRemoval(courseId, userId, cartItems = []) {
     for (const depCourse of dependentCourses) {
       // Check if dependent course is in cart
       const inCart = cartItems.some(
-        (item) => item.type === 'course' && item.id === depCourse._id.toString()
+        (item) =>
+          item.type === 'course' && item.id === depCourse._id.toString(),
       );
 
       if (inCart) {
         blockingCourses.push({
           id: depCourse._id.toString(),
           title: depCourse.title,
-          order: depCourse.order
+          order: depCourse.order,
         });
       }
     }
@@ -793,11 +903,11 @@ async function validateCourseRemoval(courseId, userId, cartItems = []) {
       // Sort by order and get the first blocking course
       blockingCourses.sort((a, b) => a.order - b.order);
       const firstBlocking = blockingCourses[0];
-      
+
       return {
         valid: false,
         message: `Cannot remove. "${firstBlocking.title}" (Order ${firstBlocking.order}) requires this course. Remove courses in reverse order.`,
-        blockingCourse: firstBlocking
+        blockingCourse: firstBlocking,
       };
     }
 
@@ -811,8 +921,8 @@ async function validateCourseRemoval(courseId, userId, cartItems = []) {
 // Helper function to validate all courses in cart have proper ordering
 async function validateCartOrdering(cartItems, userId) {
   try {
-    const courseItems = cartItems.filter(item => item.type === 'course');
-    
+    const courseItems = cartItems.filter((item) => item.type === 'course');
+
     if (courseItems.length === 0) {
       return { valid: true };
     }
@@ -828,7 +938,7 @@ async function validateCartOrdering(cartItems, userId) {
         }
         bundleGroups[bundleId].push({
           id: item.id,
-          order: course.order || 0
+          order: course.order || 0,
         });
       }
     }
@@ -837,7 +947,7 @@ async function validateCartOrdering(cartItems, userId) {
     for (const [bundleId, courses] of Object.entries(bundleGroups)) {
       // Sort by order
       courses.sort((a, b) => a.order - b.order);
-      
+
       // Get all courses in this bundle
       const bundleCourses = await Course.find({ bundle: bundleId })
         .select('_id title order requiresSequential')
@@ -853,19 +963,22 @@ async function validateCartOrdering(cartItems, userId) {
       }
 
       // Check if student has a startingOrder set for this bundle (manual enrollment)
-      const startingOrder = await getStudentStartingOrderInBundle(userId, bundleId);
+      const startingOrder = await getStudentStartingOrderInBundle(
+        userId,
+        bundleId,
+      );
 
       // Check ordering for each course in cart
       for (let i = 0; i < courses.length; i++) {
         const cartCourse = courses[i];
         const courseIndex = bundleCourses.findIndex(
-          c => c._id.toString() === cartCourse.id
+          (c) => c._id.toString() === cartCourse.id,
         );
 
         if (courseIndex === -1) continue;
 
         const course = bundleCourses[courseIndex];
-        
+
         // Skip if sequential requirement is disabled
         if (!course.requiresSequential) continue;
 
@@ -892,7 +1005,7 @@ async function validateCartOrdering(cartItems, userId) {
         // Also check cart for highest order
         for (const cartCourse of courses) {
           const bundleCourse = bundleCourses.find(
-            c => c._id.toString() === cartCourse.id
+            (c) => c._id.toString() === cartCourse.id,
           );
           if (bundleCourse && bundleCourse.order > highestPurchasedOrder) {
             highestPurchasedOrder = bundleCourse.order;
@@ -901,7 +1014,10 @@ async function validateCartOrdering(cartItems, userId) {
 
         // If student has purchased any course in this bundle, they can purchase courses
         // that come after their highest purchased course without needing earlier ones
-        if (highestPurchasedOrder >= 0 && course.order > highestPurchasedOrder) {
+        if (
+          highestPurchasedOrder >= 0 &&
+          course.order > highestPurchasedOrder
+        ) {
           // Student can purchase this course (it's after their highest purchased)
           continue;
         }
@@ -915,12 +1031,19 @@ async function validateCartOrdering(cartItems, userId) {
           }
 
           // Skip if this previous course is before the student's highest purchased order
-          if (highestPurchasedOrder >= 0 && prevCourse.order <= highestPurchasedOrder) {
+          if (
+            highestPurchasedOrder >= 0 &&
+            prevCourse.order <= highestPurchasedOrder
+          ) {
             continue; // Student already has access to courses up to highestPurchasedOrder
           }
 
-          const hasPurchased = user.hasAccessToCourse(prevCourse._id.toString());
-          const inCart = courses.some(c => c.id === prevCourse._id.toString());
+          const hasPurchased = user.hasAccessToCourse(
+            prevCourse._id.toString(),
+          );
+          const inCart = courses.some(
+            (c) => c.id === prevCourse._id.toString(),
+          );
 
           if (!hasPurchased && !inCart) {
             return {
@@ -929,8 +1052,8 @@ async function validateCartOrdering(cartItems, userId) {
               missingCourse: {
                 id: prevCourse._id.toString(),
                 title: prevCourse.title,
-                order: prevCourse.order
-              }
+                order: prevCourse.order,
+              },
             };
           }
         }
@@ -977,13 +1100,13 @@ async function recalculateCartFromDB(cart, userId = null) {
           user.hasPurchasedBundle(cartItem.id)
         ) {
           console.log(
-            `Removing already purchased bundle from cart: ${cartItem.id}`
+            `Removing already purchased bundle from cart: ${cartItem.id}`,
           );
           continue;
         }
         if (cartItem.type === 'course' && user.hasAccessToCourse(cartItem.id)) {
           console.log(
-            `Removing already purchased course from cart: ${cartItem.id}`
+            `Removing already purchased course from cart: ${cartItem.id}`,
           );
           continue;
         }
@@ -992,11 +1115,11 @@ async function recalculateCartFromDB(cart, userId = null) {
       let dbItem;
       if (cartItem.type === 'bundle') {
         dbItem = await BundleCourse.findById(cartItem.id).select(
-          'title price discountPrice thumbnail status isActive'
+          'title price discountPrice thumbnail status isActive',
         );
       } else {
         dbItem = await Course.findById(cartItem.id).select(
-          'title price discountPrice thumbnail status isActive'
+          'title price discountPrice thumbnail status isActive',
         );
       }
 
@@ -1032,7 +1155,7 @@ async function recalculateCartFromDB(cart, userId = null) {
         subtotal += finalPrice;
       } else {
         console.log(
-          `Removing invalid item from cart: ${cartItem.id} (${cartItem.type})`
+          `Removing invalid item from cart: ${cartItem.id} (${cartItem.type})`,
         );
       }
     } catch (error) {
@@ -1063,13 +1186,13 @@ function clearCart(req, reason = 'successful payment') {
         console.error('Error saving session after clearing cart:', err);
       } else {
         console.log(
-          `Cart cleared after ${reason}. ${cartCount} items removed.`
+          `Cart cleared after ${reason}. ${cartCount} items removed.`,
         );
       }
     });
   } else {
     console.log(
-      `Cart was already empty when attempting to clear after ${reason}.`
+      `Cart was already empty when attempting to clear after ${reason}.`,
     );
   }
 
@@ -1081,7 +1204,7 @@ const validateCartMiddleware = async (req, res, next) => {
   try {
     // Check if this is a book-only purchase - skip cart validation
     const isBookOnly = req.session.bookOnlyPurchase;
-    
+
     if (isBookOnly) {
       // For book-only purchases, set validated cart to empty but allow it
       req.validatedCart = {
@@ -1100,7 +1223,7 @@ const validateCartMiddleware = async (req, res, next) => {
       const userId = req.session.user ? req.session.user.id : null;
       const recalculatedCart = await recalculateCartFromDB(
         req.session.cart,
-        userId
+        userId,
       );
 
       // Update session cart with validated items
@@ -1116,7 +1239,7 @@ const validateCartMiddleware = async (req, res, next) => {
       };
 
       console.log(
-        `Cart validation complete. ${recalculatedCart.items.length} valid items, total: EGP${recalculatedCart.total}`
+        `Cart validation complete. ${recalculatedCart.items.length} valid items, total: EGP${recalculatedCart.total}`,
       );
     } else {
       req.validatedCart = {
@@ -1150,14 +1273,14 @@ async function validateAndApplyPromoCode(
   userId,
   cartItems,
   subtotal,
-  userEmail = null
+  userEmail = null,
 ) {
   try {
     // Check if promo code exists and is valid
     const promo = await PromoCode.findValidPromoCode(
       promoCode,
       userId,
-      userEmail
+      userEmail,
     );
 
     if (!promo) {
@@ -1223,7 +1346,7 @@ const validatePromoCode = async (req, res) => {
 
     // For book-only purchases or regular cart with books, include books in total
     const isBookOnly = validatedCart.isBookOnly;
-    
+
     // Allow promo code validation for book-only purchases or regular cart
     if (validatedCart.cartCount === 0 && !isBookOnly && booksSubtotal <= 0) {
       return res.status(400).json({
@@ -1253,7 +1376,7 @@ const validatePromoCode = async (req, res) => {
       req.session.user.id,
       itemsForPromo,
       totalAmount, // Use total including books
-      req.session.user.email || req.session.user.studentEmail
+      req.session.user.email || req.session.user.studentEmail,
     );
 
     if (result.success) {
@@ -1289,7 +1412,6 @@ const validatePromoCode = async (req, res) => {
     });
   }
 };
-
 
 // API endpoint to remove promo code
 const removePromoCode = async (req, res) => {
@@ -1327,7 +1449,7 @@ const clearInvalidPromoCode = (req) => {
   if (req.session.appliedPromoCode) {
     console.log(
       'Clearing invalid promo code from session:',
-      req.session.appliedPromoCode.code
+      req.session.appliedPromoCode.code,
     );
     delete req.session.appliedPromoCode;
   }
@@ -1419,11 +1541,11 @@ const addToCart = async (req, res) => {
     let item;
     if (itemType === 'bundle') {
       item = await BundleCourse.findById(itemId).select(
-        'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage'
+        'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage',
       );
     } else {
       item = await Course.findById(itemId).select(
-        'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage'
+        'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage',
       );
     }
 
@@ -1497,7 +1619,7 @@ const addToCart = async (req, res) => {
 
     // Check if item already in cart
     const existingItem = req.session.cart.find(
-      (cartItem) => cartItem.id === itemId && cartItem.type === itemType
+      (cartItem) => cartItem.id === itemId && cartItem.type === itemType,
     );
 
     if (existingItem) {
@@ -1513,14 +1635,14 @@ const addToCart = async (req, res) => {
       const orderValidation = await validateCourseOrdering(
         itemId,
         req.session.user.id,
-        req.session.cart
+        req.session.cart,
       );
 
       if (!orderValidation.valid) {
         return res.status(400).json({
           success: false,
           message: orderValidation.message,
-          missingCourse: orderValidation.missingCourse
+          missingCourse: orderValidation.missingCourse,
         });
       }
 
@@ -1528,7 +1650,7 @@ const addToCart = async (req, res) => {
       for (const cartItem of req.session.cart) {
         if (cartItem.type === 'bundle') {
           const bundle = await BundleCourse.findById(cartItem.id).populate(
-            'courses'
+            'courses',
           );
           if (
             bundle &&
@@ -1550,7 +1672,7 @@ const addToCart = async (req, res) => {
           const existingCourse = req.session.cart.find(
             (cartItem) =>
               cartItem.type === 'course' &&
-              cartItem.id === course._id.toString()
+              cartItem.id === course._id.toString(),
           );
           if (existingCourse) {
             conflictingCourses.push(course.title);
@@ -1561,7 +1683,7 @@ const addToCart = async (req, res) => {
           return res.status(400).json({
             success: false,
             message: `This bundle contains courses that are already in your cart: ${conflictingCourses.join(
-              ', '
+              ', ',
             )}. Please remove those individual courses first if you want to purchase the bundle.`,
           });
         }
@@ -1621,20 +1743,20 @@ const removeFromCart = async (req, res) => {
       const removalValidation = await validateCourseRemoval(
         itemId,
         req.session.user.id,
-        req.session.cart
+        req.session.cart,
       );
 
       if (!removalValidation.valid) {
         return res.status(400).json({
           success: false,
           message: removalValidation.message,
-          blockingCourse: removalValidation.blockingCourse
+          blockingCourse: removalValidation.blockingCourse,
         });
       }
     }
 
     req.session.cart = req.session.cart.filter(
-      (item) => !(item.id === itemId && item.type === itemType)
+      (item) => !(item.id === itemId && item.type === itemType),
     );
 
     res.json({
@@ -1664,7 +1786,7 @@ const updateCartQuantity = async (req, res) => {
     }
 
     const item = req.session.cart.find(
-      (cartItem) => cartItem.id === itemId && cartItem.type === itemType
+      (cartItem) => cartItem.id === itemId && cartItem.type === itemType,
     );
 
     if (!item) {
@@ -1676,7 +1798,7 @@ const updateCartQuantity = async (req, res) => {
 
     if (quantity <= 0) {
       req.session.cart = req.session.cart.filter(
-        (cartItem) => !(cartItem.id === itemId && cartItem.type === itemType)
+        (cartItem) => !(cartItem.id === itemId && cartItem.type === itemType),
       );
     } else {
       item.quantity = Math.min(quantity, 1); // Max quantity is 1
@@ -1685,7 +1807,7 @@ const updateCartQuantity = async (req, res) => {
     // Calculate totals
     const subtotal = req.session.cart.reduce(
       (sum, item) => sum + item.price,
-      0
+      0,
     );
     const tax = 0; // No tax
     const total = subtotal + tax;
@@ -1730,14 +1852,17 @@ const getBookCheckout = async (req, res) => {
     // Check if user has purchased the bundle or is enrolled in any of its courses
     const canAccessBook = await user.canAccessBundleBook(bundleId);
     if (!canAccessBook) {
-      req.flash('error_msg', 'You must be enrolled in the bundle to buy the book');
+      req.flash(
+        'error_msg',
+        'You must be enrolled in the bundle to buy the book',
+      );
       return res.redirect('/student/enrolled-courses');
     }
 
     // Check if user has already ordered the book
     const hasOrderedBook = await BookOrder.hasUserOrderedBook(
       user._id,
-      bundleId
+      bundleId,
     );
 
     if (hasOrderedBook) {
@@ -1746,8 +1871,9 @@ const getBookCheckout = async (req, res) => {
     }
 
     // Get bundle details
-    const bundle = await BundleCourse.findById(bundleId)
-      .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
+    const bundle = await BundleCourse.findById(bundleId).select(
+      '_id title bundleCode hasBook bookName bookPrice thumbnail',
+    );
 
     if (!bundle || !bundle.hasBook || bundle.bookPrice <= 0) {
       req.flash('error_msg', 'Book is not available for this bundle');
@@ -1756,7 +1882,7 @@ const getBookCheckout = async (req, res) => {
 
     // Clear cart and set up book-only purchase
     req.session.cart = [];
-    
+
     // Create a book-only cart item (we'll handle this specially in checkout)
     req.session.bookOnlyPurchase = {
       bundleId: bundle._id.toString(),
@@ -1792,24 +1918,31 @@ const getCheckout = async (req, res) => {
 
     // Check if this is a book-only purchase (check session first, then query param)
     // Session is the source of truth, query param is just for the redirect
-    const isBookOnly = req.session.bookOnlyPurchase && (req.query.bookOnly === 'true' || req.session.bookOnlyPurchase);
-    
+    const isBookOnly =
+      req.session.bookOnlyPurchase &&
+      (req.query.bookOnly === 'true' || req.session.bookOnlyPurchase);
+
     if (isBookOnly) {
       // Handle book-only checkout
       const bookPurchase = req.session.bookOnlyPurchase;
-      
+
       // Validate the book purchase is still valid
       const user = await User.findById(req.session.user.id);
-      const canAccessBook = await user.canAccessBundleBook(bookPurchase.bundleId);
+      const canAccessBook = await user.canAccessBundleBook(
+        bookPurchase.bundleId,
+      );
       if (!canAccessBook) {
         delete req.session.bookOnlyPurchase;
-        req.flash('error_msg', 'You must be enrolled in the bundle to buy the book');
+        req.flash(
+          'error_msg',
+          'You must be enrolled in the bundle to buy the book',
+        );
         return res.redirect('/student/enrolled-courses');
       }
 
       const hasOrderedBook = await BookOrder.hasUserOrderedBook(
         user._id,
-        bookPurchase.bundleId
+        bookPurchase.bundleId,
       );
 
       if (hasOrderedBook) {
@@ -1819,14 +1952,16 @@ const getCheckout = async (req, res) => {
       }
 
       // Render checkout with book-only data
-      const availableBooks = [{
-        bundleId: bookPurchase.bundleId,
-        bundleTitle: bookPurchase.bundleTitle,
-        bundleCode: bookPurchase.bundleCode,
-        bookName: bookPurchase.bookName,
-        bookPrice: bookPurchase.bookPrice,
-        thumbnail: bookPurchase.thumbnail,
-      }];
+      const availableBooks = [
+        {
+          bundleId: bookPurchase.bundleId,
+          bundleTitle: bookPurchase.bundleTitle,
+          bundleCode: bookPurchase.bundleCode,
+          bookName: bookPurchase.bookName,
+          bookPrice: bookPurchase.bookPrice,
+          thumbnail: bookPurchase.thumbnail,
+        },
+      ];
 
       // Check if there's an applied promo code in session
       let appliedPromo = null;
@@ -1872,13 +2007,15 @@ const getCheckout = async (req, res) => {
 
       // Check if bundle is already in cart
       const existingBundle = req.session.cart.find(
-        (cartItem) => cartItem.id === bundleId && cartItem.type === 'bundle'
+        (cartItem) => cartItem.id === bundleId && cartItem.type === 'bundle',
       );
 
       if (!existingBundle) {
         // Add bundle to cart - fetch with courses populated for conflict check
         const bundle = await BundleCourse.findById(bundleId)
-          .select('title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage')
+          .select(
+            'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage',
+          )
           .populate('courses');
 
         if (!bundle) {
@@ -1888,7 +2025,10 @@ const getCheckout = async (req, res) => {
 
         // Check if bundle is fully booked
         if (bundle.isFullyBooked) {
-          req.flash('error_msg', bundle.fullyBookedMessage || 'This bundle is fully booked');
+          req.flash(
+            'error_msg',
+            bundle.fullyBookedMessage || 'This bundle is fully booked',
+          );
           return res.redirect('back');
         }
 
@@ -1912,7 +2052,7 @@ const getCheckout = async (req, res) => {
             const existingCourse = req.session.cart.find(
               (cartItem) =>
                 cartItem.type === 'course' &&
-                cartItem.id === course._id.toString()
+                cartItem.id === course._id.toString(),
             );
             if (existingCourse) {
               conflictingCourses.push(course.title);
@@ -1920,7 +2060,10 @@ const getCheckout = async (req, res) => {
           }
 
           if (conflictingCourses.length > 0) {
-            req.flash('error_msg', `This bundle contains courses that are already in your cart: ${conflictingCourses.join(', ')}. Please remove those individual courses first if you want to purchase the bundle.`);
+            req.flash(
+              'error_msg',
+              `This bundle contains courses that are already in your cart: ${conflictingCourses.join(', ')}. Please remove those individual courses first if you want to purchase the bundle.`,
+            );
             return res.redirect('back');
           }
         }
@@ -1931,7 +2074,8 @@ const getCheckout = async (req, res) => {
         let finalPrice = originalPrice;
 
         if (discountPercentage > 0) {
-          finalPrice = originalPrice - originalPrice * (discountPercentage / 100);
+          finalPrice =
+            originalPrice - originalPrice * (discountPercentage / 100);
         }
 
         // Add bundle to cart
@@ -1956,13 +2100,13 @@ const getCheckout = async (req, res) => {
 
       // Check if course is already in cart
       const existingCourse = req.session.cart.find(
-        (cartItem) => cartItem.id === courseId && cartItem.type === 'course'
+        (cartItem) => cartItem.id === courseId && cartItem.type === 'course',
       );
 
       if (!existingCourse) {
         // Add course to cart
         const course = await Course.findById(courseId).select(
-          'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage'
+          'title price discountPrice thumbnail status isActive isFullyBooked fullyBookedMessage',
         );
 
         if (!course) {
@@ -1972,7 +2116,10 @@ const getCheckout = async (req, res) => {
 
         // Check if course is fully booked
         if (course.isFullyBooked) {
-          req.flash('error_msg', course.fullyBookedMessage || 'This course is fully booked');
+          req.flash(
+            'error_msg',
+            course.fullyBookedMessage || 'This course is fully booked',
+          );
           return res.redirect('back');
         }
 
@@ -1993,7 +2140,7 @@ const getCheckout = async (req, res) => {
         const orderValidation = await validateCourseOrdering(
           courseId,
           req.session.user.id,
-          req.session.cart
+          req.session.cart,
         );
 
         if (!orderValidation.valid) {
@@ -2004,12 +2151,17 @@ const getCheckout = async (req, res) => {
         // Check if this course is already in a bundle that's in the cart
         for (const cartItem of req.session.cart) {
           if (cartItem.type === 'bundle') {
-            const bundle = await BundleCourse.findById(cartItem.id).populate('courses');
+            const bundle = await BundleCourse.findById(cartItem.id).populate(
+              'courses',
+            );
             if (
               bundle &&
               bundle.courses.some((c) => c._id.toString() === courseId)
             ) {
-              req.flash('error_msg', `This course is already included in the "${bundle.title}" bundle in your cart. Please remove the bundle first if you want to purchase this course individually.`);
+              req.flash(
+                'error_msg',
+                `This course is already included in the "${bundle.title}" bundle in your cart. Please remove the bundle first if you want to purchase this course individually.`,
+              );
               return res.redirect('back');
             }
           }
@@ -2021,7 +2173,8 @@ const getCheckout = async (req, res) => {
         let finalPrice = originalPrice;
 
         if (discountPercentage > 0) {
-          finalPrice = originalPrice - originalPrice * (discountPercentage / 100);
+          finalPrice =
+            originalPrice - originalPrice * (discountPercentage / 100);
         }
 
         // Add course to cart
@@ -2043,12 +2196,12 @@ const getCheckout = async (req, res) => {
     // If we added items from query params, we need to re-validate the cart
     // since validateCartMiddleware already ran before getCheckout
     let validatedCart = req.validatedCart;
-    
+
     if (bundleId || courseId) {
       // Recalculate cart from database to include newly added items
       const recalculatedCart = await recalculateCartFromDB(
         req.session.cart,
-        req.session.user.id
+        req.session.user.id,
       );
 
       // Update session cart with validated items
@@ -2064,8 +2217,9 @@ const getCheckout = async (req, res) => {
     }
 
     // Don't redirect if this is a book-only purchase (check both query param and session)
-    const isBookOnlyRequest = req.query.bookOnly === 'true' || req.session.bookOnlyPurchase;
-    
+    const isBookOnlyRequest =
+      req.query.bookOnly === 'true' || req.session.bookOnlyPurchase;
+
     if (validatedCart.cartCount === 0 && !isBookOnlyRequest) {
       req.flash('error_msg', 'Your cart is empty or contains invalid items');
       return res.redirect('/');
@@ -2075,7 +2229,7 @@ const getCheckout = async (req, res) => {
     if (req.session.user) {
       const cartOrderValidation = await validateCartOrdering(
         validatedCart.items,
-        req.session.user.id
+        req.session.user.id,
       );
 
       if (!cartOrderValidation.valid) {
@@ -2118,15 +2272,15 @@ const getCheckout = async (req, res) => {
         // Check if user has already ordered the book for this bundle
         const hasOrderedBook = await BookOrder.hasUserOrderedBook(
           user._id,
-          bundle._id
+          bundle._id,
         );
 
         if (!hasOrderedBook) {
           // Check if this book is already in availableBooks (avoid duplicates)
           const alreadyAdded = availableBooks.some(
-            book => book.bundleId === bundle._id.toString()
+            (book) => book.bundleId === bundle._id.toString(),
           );
-          
+
           if (!alreadyAdded) {
             availableBooks.push({
               bundleId: bundle._id.toString(),
@@ -2202,14 +2356,14 @@ const directCheckout = async (req, res) => {
     if (req.session.user) {
       const cartOrderValidation = await validateCartOrdering(
         validatedCart.items,
-        req.session.user.id
+        req.session.user.id,
       );
 
       if (!cartOrderValidation.valid) {
         return res.status(400).json({
           success: false,
           message: cartOrderValidation.message,
-          missingCourse: cartOrderValidation.missingCourse
+          missingCourse: cartOrderValidation.missingCourse,
         });
       }
     }
@@ -2271,7 +2425,7 @@ const directCheckout = async (req, res) => {
       await purchase.save();
       console.log(
         'Purchase saved successfully with order number:',
-        purchase.orderNumber
+        purchase.orderNumber,
       );
     } catch (saveError) {
       console.error('Error saving purchase:', saveError);
@@ -2287,7 +2441,7 @@ const directCheckout = async (req, res) => {
         await user.addPurchasedBundle(
           item.id,
           item.price, // Database-validated price
-          purchase.orderNumber
+          purchase.orderNumber,
         );
 
         // Enroll user in all courses in the bundle
@@ -2298,9 +2452,9 @@ const directCheckout = async (req, res) => {
         const result = await user.addPurchasedCourseWithEnrollment(
           item.id,
           item.price, // Database-validated price
-          purchase.orderNumber
+          purchase.orderNumber,
         );
-        
+
         if (result.purchaseAdded || result.enrollmentAdded) {
           console.log(`✅ Direct checkout - course processed: ${item.title}`);
         }
@@ -2314,11 +2468,11 @@ const directCheckout = async (req, res) => {
     try {
       console.log(
         '📱 Sending WhatsApp notification for direct checkout:',
-        purchase.orderNumber
+        purchase.orderNumber,
       );
       await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
         user._id,
-        purchase
+        purchase,
       );
 
       // Mark WhatsApp notification as sent
@@ -2328,7 +2482,7 @@ const directCheckout = async (req, res) => {
     } catch (whatsappError) {
       console.error(
         '❌ WhatsApp notification error for direct checkout:',
-        whatsappError
+        whatsappError,
       );
       // Don't fail the direct checkout if WhatsApp fails
     }
@@ -2378,7 +2532,9 @@ const processPayment = async (req, res) => {
       const user = await User.findById(req.session.user.id);
 
       // Validate user has purchased the bundle or is enrolled in any of its courses
-      const canAccessBook = await user.canAccessBundleBook(bookPurchase.bundleId);
+      const canAccessBook = await user.canAccessBundleBook(
+        bookPurchase.bundleId,
+      );
       if (!canAccessBook) {
         delete req.session.bookOnlyPurchase;
         return res.status(400).json({
@@ -2390,7 +2546,7 @@ const processPayment = async (req, res) => {
       // Validate user hasn't already ordered the book
       const hasOrderedBook = await BookOrder.hasUserOrderedBook(
         user._id,
-        bookPurchase.bundleId
+        bookPurchase.bundleId,
       );
 
       if (hasOrderedBook) {
@@ -2436,14 +2592,14 @@ const processPayment = async (req, res) => {
       // Validate course ordering at checkout
       const cartOrderValidation = await validateCartOrdering(
         validatedCart.items,
-        req.session.user.id
+        req.session.user.id,
       );
 
       if (!cartOrderValidation.valid) {
         return res.status(400).json({
           success: false,
           message: cartOrderValidation.message,
-          missingCourse: cartOrderValidation.missingCourse
+          missingCourse: cartOrderValidation.missingCourse,
         });
       }
 
@@ -2463,7 +2619,7 @@ const processPayment = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: `You already have access to: ${alreadyPurchasedItems.join(
-            ', '
+            ', ',
           )}. Please remove these items from your cart.`,
         });
       }
@@ -2520,8 +2676,8 @@ const processPayment = async (req, res) => {
     }
 
     // Calculate base subtotal (cart items + books)
-    const baseSubtotal = isBookOnly 
-      ? booksSubtotal 
+    const baseSubtotal = isBookOnly
+      ? booksSubtotal
       : validatedCart.subtotal + booksSubtotal;
 
     // Handle promo code if applied - SECURITY: Always recalculate from server
@@ -2532,13 +2688,15 @@ const processPayment = async (req, res) => {
 
     if (req.session.appliedPromoCode) {
       // For book-only purchases, create a dummy item for promo validation
-      const itemsForPromo = isBookOnly 
-        ? [{
-            id: req.session.bookOnlyPurchase.bundleId,
-            type: 'book',
-            title: req.session.bookOnlyPurchase.bookName,
-            price: booksSubtotal,
-          }]
+      const itemsForPromo = isBookOnly
+        ? [
+            {
+              id: req.session.bookOnlyPurchase.bundleId,
+              type: 'book',
+              title: req.session.bookOnlyPurchase.bookName,
+              price: booksSubtotal,
+            },
+          ]
         : validatedCart.items;
 
       // SECURITY: Re-validate promo code and recalculate amounts from server
@@ -2547,7 +2705,7 @@ const processPayment = async (req, res) => {
         req.session.user.id,
         itemsForPromo,
         baseSubtotal,
-        req.session.user.email || req.session.user.studentEmail
+        req.session.user.email || req.session.user.studentEmail,
       );
 
       if (promoValidation.success) {
@@ -2572,7 +2730,7 @@ const processPayment = async (req, res) => {
               serverDiscount: discountAmount,
               sessionFinal,
               serverFinal: finalTotal,
-            }
+            },
           );
         }
 
@@ -2597,7 +2755,7 @@ const processPayment = async (req, res) => {
     const totalWithBooks = finalTotal;
 
     // Create purchase record with pending status using validated cart data
-    const purchaseItems = isBookOnly 
+    const purchaseItems = isBookOnly
       ? [] // Empty items for book-only purchase
       : validatedCart.items.map((item) => ({
           itemType: item.type,
@@ -2613,7 +2771,7 @@ const processPayment = async (req, res) => {
       items: purchaseItems,
       // For book-only purchases, finalSubtotal already includes booksSubtotal
       // For regular purchases, we need to add booksSubtotal to finalSubtotal
-      subtotal: isBookOnly ? finalSubtotal : (finalSubtotal + booksSubtotal),
+      subtotal: isBookOnly ? finalSubtotal : finalSubtotal + booksSubtotal,
       total: totalWithBooks,
       booksSubtotal: booksSubtotal,
       currency: 'EGP',
@@ -2633,7 +2791,7 @@ const processPayment = async (req, res) => {
     await purchase.save();
 
     // Create book orders if books were selected (or if book-only purchase)
-    const bookBundleIds = isBookOnly 
+    const bookBundleIds = isBookOnly
       ? [req.session.bookOnlyPurchase.bundleId]
       : selectedBooks;
 
@@ -2665,7 +2823,7 @@ const processPayment = async (req, res) => {
     }
 
     // Create Paymob payment session using validated data
-    const orderItems = isBookOnly 
+    const orderItems = isBookOnly
       ? [] // Empty items for book-only purchase
       : validatedCart.items.map((item) => ({
           title: item.title,
@@ -2717,15 +2875,19 @@ const processPayment = async (req, res) => {
 
     // Handle zero-payment orders (100% discount)
     if (totalWithBooks <= 0) {
-      console.log('💯 Zero payment order detected - completing order directly without payment gateway');
-      
+      console.log(
+        '💯 Zero payment order detected - completing order directly without payment gateway',
+      );
+
       try {
         // Process the successful payment directly
         const result = await processSuccessfulPayment(purchase, req);
-        
+
         if (result.success) {
-          console.log(`✅ Zero-payment order completed successfully: ${purchase.orderNumber}`);
-          
+          console.log(
+            `✅ Zero-payment order completed successfully: ${purchase.orderNumber}`,
+          );
+
           // Clear cart and book-only purchase session
           clearCart(req, 'zero payment order');
           if (req.session.bookOnlyPurchase) {
@@ -2735,10 +2897,10 @@ const processPayment = async (req, res) => {
           if (req.session.appliedPromoCode) {
             delete req.session.appliedPromoCode;
           }
-          
+
           // Save session
           req.session.save();
-          
+
           return res.json({
             success: true,
             message: 'Order completed successfully with 100% discount!',
@@ -2750,25 +2912,27 @@ const processPayment = async (req, res) => {
             },
           });
         } else {
-          throw new Error(result.error || 'Failed to process zero-payment order');
+          throw new Error(
+            result.error || 'Failed to process zero-payment order',
+          );
         }
       } catch (zeroPaymentError) {
         console.error('Error processing zero-payment order:', zeroPaymentError);
-        
+
         // Update purchase status to failed
         purchase.status = 'failed';
         purchase.paymentStatus = 'failed';
         purchase.failureReason = 'Zero-payment order processing failed';
         await purchase.save();
-        
+
         // Cancel book orders
         if (purchase.bookOrders && purchase.bookOrders.length > 0) {
           await BookOrder.updateMany(
             { _id: { $in: purchase.bookOrders } },
-            { status: 'cancelled' }
+            { status: 'cancelled' },
           );
         }
-        
+
         return res.status(500).json({
           success: false,
           message: 'Error completing your order. Please try again.',
@@ -2780,14 +2944,14 @@ const processPayment = async (req, res) => {
     const enhancedBillingAddress = {
       ...billingAddress,
       redirectUrl: `${req.protocol}://${req.get(
-        'host'
+        'host',
       )}/purchase/payment/success?merchantOrderId=${merchantOrderId}`,
     };
 
     const paymentSession = await paymobService.createPaymentSession(
       orderData,
       enhancedBillingAddress,
-      req.body.selectedPaymentMethod || 'card' // 'card' or 'wallet'
+      req.body.selectedPaymentMethod || 'card', // 'card' or 'wallet'
     );
 
     if (!paymentSession.success) {
@@ -2800,9 +2964,11 @@ const processPayment = async (req, res) => {
       if (purchase.bookOrders && purchase.bookOrders.length > 0) {
         await BookOrder.updateMany(
           { _id: { $in: purchase.bookOrders } },
-          { status: 'cancelled' }
+          { status: 'cancelled' },
         );
-        console.log(`📚 Cancelled ${purchase.bookOrders.length} book order(s) due to payment session creation failure`);
+        console.log(
+          `📚 Cancelled ${purchase.bookOrders.length} book order(s) due to payment session creation failure`,
+        );
       }
 
       return res.status(500).json({
@@ -2816,7 +2982,9 @@ const processPayment = async (req, res) => {
     if (paymentSession.intentionId) {
       purchase.paymobIntentionId = paymentSession.intentionId;
       await purchase.save();
-      console.log(`💾 Stored Paymob Intention ID: ${paymentSession.intentionId} on purchase ${purchase.orderNumber}`);
+      console.log(
+        `💾 Stored Paymob Intention ID: ${paymentSession.intentionId} on purchase ${purchase.orderNumber}`,
+      );
     }
 
     // Store purchase order number for webhook verification
@@ -3083,7 +3251,7 @@ const handlePaymentSuccess = async (req, res) => {
     // Handle both direct merchant order ID and Paymob redirect parameters
     let merchantOrderId =
       req.query.merchantOrderId || req.query.merchant_order_id;
-    
+
     // Also accept orderNumber for zero-payment orders (100% discount)
     const orderNumber = req.query.orderNumber;
 
@@ -3094,7 +3262,7 @@ const handlePaymentSuccess = async (req, res) => {
 
     // Find purchase by merchant order ID or order number
     let purchase = null;
-    
+
     if (orderNumber) {
       // Zero-payment order - find by order number
       purchase = await Purchase.findOne({
@@ -3120,7 +3288,6 @@ const handlePaymentSuccess = async (req, res) => {
       });
     }
 
-
     // If purchase is marked as failed, show failure page
     if (purchase.status === 'failed' || purchase.paymentStatus === 'failed') {
       return res.render('payment-fail', {
@@ -3141,11 +3308,11 @@ const handlePaymentSuccess = async (req, res) => {
         try {
           console.log(
             '📱 Sending WhatsApp notification for completed purchase:',
-            purchase.orderNumber
+            purchase.orderNumber,
           );
           await whatsappSMSNotificationService.sendPurchaseInvoiceNotification(
             purchase.user._id,
-            purchase
+            purchase,
           );
 
           purchase.whatsappNotificationSent = true;
@@ -3181,7 +3348,7 @@ const handlePaymentSuccess = async (req, res) => {
     // (Webhook might not have arrived yet)
     if (purchase.status === 'pending' || purchase.paymentStatus === 'pending') {
       console.log(
-        '⏳ Purchase still pending, checking with Paymob Transaction Inquiry...'
+        '⏳ Purchase still pending, checking with Paymob Transaction Inquiry...',
       );
 
       try {
@@ -3189,7 +3356,7 @@ const handlePaymentSuccess = async (req, res) => {
         const transactionStatus = await paymobService.queryTransactionStatus(
           merchantOrderId,
           purchase.paymobOrderId,
-          purchase.paymobTransactionId
+          purchase.paymobTransactionId,
         );
 
         if (transactionStatus) {
@@ -3199,7 +3366,7 @@ const handlePaymentSuccess = async (req, res) => {
           // If payment is successful, process it now
           if (webhookData.isSuccess) {
             console.log(
-              '✅ Transaction Inquiry: Payment successful, processing now...'
+              '✅ Transaction Inquiry: Payment successful, processing now...',
             );
 
             // Save Paymob transaction details
@@ -3221,7 +3388,7 @@ const handlePaymentSuccess = async (req, res) => {
               .populate('user');
           } else if (webhookData.isFailed) {
             console.log(
-              '❌ Transaction Inquiry: Payment failed, processing now...'
+              '❌ Transaction Inquiry: Payment failed, processing now...',
             );
 
             const failureReason =
@@ -3232,7 +3399,7 @@ const handlePaymentSuccess = async (req, res) => {
             await processFailedPayment(
               purchase,
               failureReason,
-              webhookData.rawPayload
+              webhookData.rawPayload,
             );
 
             return res.render('payment-fail', {
@@ -3246,7 +3413,7 @@ const handlePaymentSuccess = async (req, res) => {
       } catch (verifyError) {
         console.warn(
           'Could not verify transaction status:',
-          verifyError.message
+          verifyError.message,
         );
         // Continue to show pending message
       }
@@ -3264,9 +3431,12 @@ const handlePaymentSuccess = async (req, res) => {
 
     // Only clear cart if payment is actually completed
     // Don't clear if still pending - user might come back to complete payment
-    if (purchase.status === 'completed' && purchase.paymentStatus === 'completed') {
+    if (
+      purchase.status === 'completed' &&
+      purchase.paymentStatus === 'completed'
+    ) {
       clearCart(req, 'payment success page');
-      
+
       // Also clear book-only purchase session if it exists
       if (req.session.bookOnlyPurchase) {
         delete req.session.bookOnlyPurchase;
@@ -3323,10 +3493,12 @@ const handlePaymentFailure = async (req, res) => {
 
       if (purchase) {
         // If purchase is already marked as failed by webhook, just show failure page
-        if (purchase.status === 'failed' || purchase.paymentStatus === 'failed') {
+        if (
+          purchase.status === 'failed' ||
+          purchase.paymentStatus === 'failed'
+        ) {
           const errorMessage =
-            purchase.failureReason ||
-            reason
+            purchase.failureReason || reason
               ? decodeURIComponent(reason)
               : 'Your payment could not be processed. Please try again or contact support.';
 
@@ -3341,13 +3513,12 @@ const handlePaymentFailure = async (req, res) => {
         // Try Transaction Inquiry as fallback
         if (purchase.status === 'pending') {
           console.log(
-            '⏳ Purchase still pending, checking with Paymob Transaction Inquiry...'
+            '⏳ Purchase still pending, checking with Paymob Transaction Inquiry...',
           );
 
           try {
-            const transactionStatus = await paymobService.queryTransactionStatus(
-              merchantOrderId
-            );
+            const transactionStatus =
+              await paymobService.queryTransactionStatus(merchantOrderId);
 
             if (transactionStatus) {
               const webhookData =
@@ -3372,7 +3543,7 @@ const handlePaymentFailure = async (req, res) => {
                 await processFailedPayment(
                   purchase,
                   failureReason,
-                  webhookData.rawPayload
+                  webhookData.rawPayload,
                 );
 
                 return res.render('payment-fail', {
@@ -3383,14 +3554,14 @@ const handlePaymentFailure = async (req, res) => {
               } else if (webhookData.isSuccess) {
                 // Payment actually succeeded! Redirect to success page
                 return res.redirect(
-                  `/purchase/payment/success?merchantOrderId=${merchantOrderId}`
+                  `/purchase/payment/success?merchantOrderId=${merchantOrderId}`,
                 );
               }
             }
           } catch (verifyError) {
             console.warn(
               'Could not verify transaction status:',
-              verifyError.message
+              verifyError.message,
             );
           }
         }
@@ -3428,11 +3599,11 @@ const handlePaymentFailure = async (req, res) => {
 const handlePaymobWebhook = async (req, res) => {
   let purchase = null;
   const startTime = Date.now();
-  
+
   // Immediately acknowledge webhook receipt to Paymob
   // This prevents timeout/retry issues
   res.status(200).send('OK');
-  
+
   try {
     const rawBody = req.body;
     const signature =
@@ -3445,7 +3616,9 @@ const handlePaymobWebhook = async (req, res) => {
     if (process.env.NODE_ENV === 'production') {
       const isValid = paymobService.verifyWebhookSignature(rawBody, signature);
       if (!isValid) {
-        console.warn('❌ [Webhook] Signature verification failed - but will process anyway for safety');
+        console.warn(
+          '❌ [Webhook] Signature verification failed - but will process anyway for safety',
+        );
         // Don't return - continue processing to avoid missing valid payments
       }
     }
@@ -3458,15 +3631,41 @@ const handlePaymobWebhook = async (req, res) => {
     console.log('==========================================');
     console.log('Timestamp:', new Date().toISOString());
     console.log('Transaction ID:', payload?.obj?.id || payload?.id);
-    console.log('Merchant Order ID:', payload?.obj?.order?.merchant_order_id || payload?.merchant_order_id);
-    console.log('Paymob Order ID:', payload?.obj?.order?.id || payload?.obj?.order);
-    console.log('Intention ID:', payload?.obj?.intention?.id || payload?.intention?.id || payload?.obj?.intention_id || 'NOT PRESENT');
-    console.log('Special Reference:', payload?.obj?.special_reference || payload?.special_reference || 'NOT PRESENT');
-    console.log('Extras:', JSON.stringify(payload?.obj?.extras || payload?.extras || {}));
-    console.log('Payment Key Claims Extras:', JSON.stringify(payload?.obj?.payment_key_claims?.extra || {}));
+    console.log(
+      'Merchant Order ID:',
+      payload?.obj?.order?.merchant_order_id || payload?.merchant_order_id,
+    );
+    console.log(
+      'Paymob Order ID:',
+      payload?.obj?.order?.id || payload?.obj?.order,
+    );
+    console.log(
+      'Intention ID:',
+      payload?.obj?.intention?.id ||
+        payload?.intention?.id ||
+        payload?.obj?.intention_id ||
+        'NOT PRESENT',
+    );
+    console.log(
+      'Special Reference:',
+      payload?.obj?.special_reference ||
+        payload?.special_reference ||
+        'NOT PRESENT',
+    );
+    console.log(
+      'Extras:',
+      JSON.stringify(payload?.obj?.extras || payload?.extras || {}),
+    );
+    console.log(
+      'Payment Key Claims Extras:',
+      JSON.stringify(payload?.obj?.payment_key_claims?.extra || {}),
+    );
     console.log('Success Flag:', payload?.obj?.success);
     console.log('Is Success:', payload?.obj?.is_success);
-    console.log('Transaction Status:', payload?.obj?.transaction_status || payload?.transaction_status);
+    console.log(
+      'Transaction Status:',
+      payload?.obj?.transaction_status || payload?.transaction_status,
+    );
     console.log('Amount (cents):', payload?.obj?.amount_cents);
     console.log('Paid Amount (cents):', payload?.obj?.order?.paid_amount_cents);
     console.log('==========================================\n');
@@ -3483,12 +3682,19 @@ const handlePaymobWebhook = async (req, res) => {
 
     // ENHANCED PURCHASE LOOKUP - Multiple fallback strategies
     const transactionId = String(payload?.obj?.id || payload?.id || '');
-    const paymobOrderId = String(webhookData.paymobOrderId || payload?.obj?.order?.id || payload?.obj?.order || '');
-    const webhookIntentionId = payload?.obj?.intention?.id || 
-                               payload?.intention?.id || 
-                               payload?.obj?.intention_id ||
-                               payload?.intention_id || '';
-    
+    const paymobOrderId = String(
+      webhookData.paymobOrderId ||
+        payload?.obj?.order?.id ||
+        payload?.obj?.order ||
+        '',
+    );
+    const webhookIntentionId =
+      payload?.obj?.intention?.id ||
+      payload?.intention?.id ||
+      payload?.obj?.intention_id ||
+      payload?.intention_id ||
+      '';
+
     console.log('🔍 [Webhook] Looking up purchase with:');
     console.log('  - Merchant Order ID:', webhookData.merchantOrderId);
     console.log('  - Transaction ID:', transactionId);
@@ -3511,7 +3717,10 @@ const handlePaymobWebhook = async (req, res) => {
         paymobTransactionId: transactionId,
       }).populate('user');
       if (purchase) {
-        console.log('✅ [Webhook] Found purchase by transaction ID:', transactionId);
+        console.log(
+          '✅ [Webhook] Found purchase by transaction ID:',
+          transactionId,
+        );
       }
     }
 
@@ -3521,22 +3730,29 @@ const handlePaymobWebhook = async (req, res) => {
         paymobOrderId: paymobOrderId,
       }).populate('user');
       if (purchase) {
-        console.log('✅ [Webhook] Found purchase by Paymob order ID:', paymobOrderId);
+        console.log(
+          '✅ [Webhook] Found purchase by Paymob order ID:',
+          paymobOrderId,
+        );
       }
     }
 
     // Strategy 3.5: Find by Paymob intention ID (for unified checkout/wallet payments)
     // The intention ID might be in various places in the webhook payload
-    const intentionId = payload?.obj?.intention?.id || 
-                        payload?.intention?.id || 
-                        payload?.obj?.intention_id ||
-                        payload?.intention_id;
+    const intentionId =
+      payload?.obj?.intention?.id ||
+      payload?.intention?.id ||
+      payload?.obj?.intention_id ||
+      payload?.intention_id;
     if (!purchase && intentionId) {
       purchase = await Purchase.findOne({
         paymobIntentionId: String(intentionId),
       }).populate('user');
       if (purchase) {
-        console.log('✅ [Webhook] Found purchase by Paymob intention ID:', intentionId);
+        console.log(
+          '✅ [Webhook] Found purchase by Paymob intention ID:',
+          intentionId,
+        );
       }
     }
 
@@ -3545,11 +3761,15 @@ const handlePaymobWebhook = async (req, res) => {
     // IMPORTANT: With the root cause fix (merchant_order_id at root level), this should rarely be needed
     if (!purchase && webhookData.isSuccess) {
       const amountInEGP = (payload?.obj?.amount_cents || 0) / 100;
-      console.log('🔍 [Webhook] Trying amount-based lookup for:', amountInEGP, 'EGP');
-      
+      console.log(
+        '🔍 [Webhook] Trying amount-based lookup for:',
+        amountInEGP,
+        'EGP',
+      );
+
       // Find recent pending purchases with matching amount (within last 30 minutes)
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-      
+
       const pendingPurchases = await Purchase.find({
         status: 'pending',
         paymentStatus: 'pending',
@@ -3564,44 +3784,68 @@ const handlePaymobWebhook = async (req, res) => {
       if (pendingPurchases.length === 1) {
         // Only use if exactly one match to avoid confusion
         purchase = pendingPurchases[0];
-        console.log('✅ [Webhook] Found purchase by amount match:', purchase.orderNumber);
+        console.log(
+          '✅ [Webhook] Found purchase by amount match:',
+          purchase.orderNumber,
+        );
       } else if (pendingPurchases.length > 1) {
-        console.log(`⚠️ [Webhook] Multiple pending purchases (${pendingPurchases.length}) with amount ${amountInEGP}`);
-        console.log('Pending purchases:', pendingPurchases.map(p => ({
-          orderNumber: p.orderNumber, 
-          paymentIntentId: p.paymentIntentId,
-          paymobIntentionId: p.paymobIntentionId,
-          userPhone: p.user?.phone || p.billingAddress?.phone
-        })));
-        
+        console.log(
+          `⚠️ [Webhook] Multiple pending purchases (${pendingPurchases.length}) with amount ${amountInEGP}`,
+        );
+        console.log(
+          'Pending purchases:',
+          pendingPurchases.map((p) => ({
+            orderNumber: p.orderNumber,
+            paymentIntentId: p.paymentIntentId,
+            paymobIntentionId: p.paymobIntentionId,
+            userPhone: p.user?.phone || p.billingAddress?.phone,
+          })),
+        );
+
         // Try to match by phone number if available
-        const sourcePhone = payload?.obj?.source_data?.phone_number || 
-                           payload?.obj?.source_data?.sub_type;
+        const sourcePhone =
+          payload?.obj?.source_data?.phone_number ||
+          payload?.obj?.source_data?.sub_type;
         if (sourcePhone) {
           console.log('🔍 [Webhook] Source phone from payment:', sourcePhone);
           for (const pp of pendingPurchases) {
             const userPhone = pp.user?.phone || pp.billingAddress?.phone;
             // Normalize phone numbers for comparison
-            const normalizedSourcePhone = sourcePhone.replace(/\D/g, '').slice(-10);
-            const normalizedUserPhone = userPhone?.replace(/\D/g, '').slice(-10);
-            
-            if (normalizedUserPhone && normalizedSourcePhone && 
-                normalizedUserPhone === normalizedSourcePhone) {
+            const normalizedSourcePhone = sourcePhone
+              .replace(/\D/g, '')
+              .slice(-10);
+            const normalizedUserPhone = userPhone
+              ?.replace(/\D/g, '')
+              .slice(-10);
+
+            if (
+              normalizedUserPhone &&
+              normalizedSourcePhone &&
+              normalizedUserPhone === normalizedSourcePhone
+            ) {
               purchase = pp;
-              console.log('✅ [Webhook] Found purchase by phone match:', purchase.orderNumber);
+              console.log(
+                '✅ [Webhook] Found purchase by phone match:',
+                purchase.orderNumber,
+              );
               break;
             }
           }
         }
-        
+
         // SAFETY: Do NOT use most recent blindly - this caused wrong enrollments!
         // Log error and let manual verification handle it
         if (!purchase) {
-          console.error('❌ [Webhook] CRITICAL: Multiple pending purchases with same amount - cannot determine correct one!');
+          console.error(
+            '❌ [Webhook] CRITICAL: Multiple pending purchases with same amount - cannot determine correct one!',
+          );
           console.error('This payment requires manual verification.');
           console.error('Transaction ID:', transactionId);
           console.error('Amount:', amountInEGP, 'EGP');
-          console.error('Pending order numbers:', pendingPurchases.map(p => p.orderNumber));
+          console.error(
+            'Pending order numbers:',
+            pendingPurchases.map((p) => p.orderNumber),
+          );
         }
       }
     }
@@ -3620,7 +3864,8 @@ const handlePaymobWebhook = async (req, res) => {
 
     // Save Paymob transaction details
     const txnId = payload?.obj?.id || payload?.id || webhookData.transactionId;
-    const pOrderId = payload?.obj?.order?.id || payload?.obj?.order || payload?.order;
+    const pOrderId =
+      payload?.obj?.order?.id || payload?.obj?.order || payload?.order;
 
     // Always update transaction IDs if not set
     let needsSave = false;
@@ -3635,21 +3880,27 @@ const handlePaymobWebhook = async (req, res) => {
 
     // CRITICAL: Handle payment that's already completed - verify enrollments
     if (purchase.status === 'completed') {
-      console.log(`ℹ️ [Webhook] Purchase ${purchase.orderNumber} already completed - verifying enrollments...`);
-      
+      console.log(
+        `ℹ️ [Webhook] Purchase ${purchase.orderNumber} already completed - verifying enrollments...`,
+      );
+
       // Verify user is actually enrolled (safety net)
       try {
         const user = await User.findById(purchase.user._id);
         let allEnrolled = true;
-        
+
         for (const item of purchase.items) {
           if (item.itemType === 'bundle') {
-            const bundle = await BundleCourse.findById(item.item).populate('courses');
+            const bundle = await BundleCourse.findById(item.item).populate(
+              'courses',
+            );
             if (bundle) {
               for (const course of bundle.courses) {
                 if (!user.isEnrolled(course._id)) {
                   allEnrolled = false;
-                  console.log(`⚠️ [Webhook] Missing enrollment for course ${course._id}, re-enrolling...`);
+                  console.log(
+                    `⚠️ [Webhook] Missing enrollment for course ${course._id}, re-enrolling...`,
+                  );
                   user.enrolledCourses.push({
                     course: course._id,
                     enrolledAt: new Date(),
@@ -3664,7 +3915,9 @@ const handlePaymobWebhook = async (req, res) => {
           } else {
             if (!user.isEnrolled(item.item)) {
               allEnrolled = false;
-              console.log(`⚠️ [Webhook] Missing enrollment for course ${item.item}, re-enrolling...`);
+              console.log(
+                `⚠️ [Webhook] Missing enrollment for course ${item.item}, re-enrolling...`,
+              );
               user.enrolledCourses.push({
                 course: item.item,
                 enrolledAt: new Date(),
@@ -3676,24 +3929,28 @@ const handlePaymobWebhook = async (req, res) => {
             }
           }
         }
-        
+
         if (!allEnrolled) {
           await user.save();
-          console.log('✅ [Webhook] Fixed missing enrollments for completed purchase');
+          console.log(
+            '✅ [Webhook] Fixed missing enrollments for completed purchase',
+          );
         }
       } catch (enrollError) {
         console.error('❌ [Webhook] Error verifying enrollments:', enrollError);
       }
-      
+
       return; // Already sent 200 OK
     }
 
     // CRITICAL FIX: If webhook says SUCCESS but purchase was marked FAILED, correct it
     if (webhookData.isSuccess && purchase.status === 'failed') {
-      console.log('🔧 [Webhook] CORRECTING: Payment was incorrectly marked as failed!');
+      console.log(
+        '🔧 [Webhook] CORRECTING: Payment was incorrectly marked as failed!',
+      );
       console.log('Order:', purchase.orderNumber);
       console.log('Previous failure reason:', purchase.failureReason);
-      
+
       // Reset to pending so processSuccessfulPayment can handle it
       purchase.status = 'pending';
       purchase.paymentStatus = 'pending';
@@ -3707,7 +3964,9 @@ const handlePaymobWebhook = async (req, res) => {
 
     // Skip if already in final state (after correction check)
     if (purchase.status !== 'pending') {
-      console.log(`ℹ️ [Webhook] Purchase ${purchase.orderNumber} status: ${purchase.status}`);
+      console.log(
+        `ℹ️ [Webhook] Purchase ${purchase.orderNumber} status: ${purchase.status}`,
+      );
       return; // Already sent 200 OK
     }
 
@@ -3735,31 +3994,41 @@ const handlePaymobWebhook = async (req, res) => {
       // Multiple retry attempts to ensure enrollment completes
       let processSuccess = false;
       let lastError = null;
-      
+
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          console.log(`🔄 [Webhook] Processing payment (attempt ${attempt}/3)...`);
+          console.log(
+            `🔄 [Webhook] Processing payment (attempt ${attempt}/3)...`,
+          );
           await processSuccessfulPayment(purchase, null);
           processSuccess = true;
-          console.log(`✅ [Webhook] Successfully processed and enrolled! Order: ${purchase.orderNumber}`);
+          console.log(
+            `✅ [Webhook] Successfully processed and enrolled! Order: ${purchase.orderNumber}`,
+          );
           break;
         } catch (processError) {
           lastError = processError;
-          console.error(`❌ [Webhook] Attempt ${attempt} failed:`, processError.message);
+          console.error(
+            `❌ [Webhook] Attempt ${attempt} failed:`,
+            processError.message,
+          );
           if (attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           }
         }
       }
 
       if (!processSuccess) {
-        console.error('❌❌❌ [Webhook] CRITICAL: All processing attempts failed!');
+        console.error(
+          '❌❌❌ [Webhook] CRITICAL: All processing attempts failed!',
+        );
         console.error('Order:', purchase.orderNumber);
         console.error('Last error:', lastError);
         console.error('MANUAL INTERVENTION REQUIRED');
-        
+
         // Mark the purchase as needing manual review
-        purchase.notes = (purchase.notes || '') + 
+        purchase.notes =
+          (purchase.notes || '') +
           `\n[${new Date().toISOString()}] CRITICAL: Webhook received SUCCESS but enrollment failed after 3 attempts. Error: ${lastError?.message}`;
         await purchase.save();
       }
@@ -3783,15 +4052,11 @@ const handlePaymobWebhook = async (req, res) => {
 
       console.log('Failure reason:', failureReason);
 
-      await processFailedPayment(
-        purchase,
-        failureReason,
-        {
-          webhookPayload: payload,
-          webhookProcessedAt: new Date(),
-          webhookSource: 'paymob_webhook_v2',
-        }
-      );
+      await processFailedPayment(purchase, failureReason, {
+        webhookPayload: payload,
+        webhookProcessedAt: new Date(),
+        webhookSource: 'paymob_webhook_v2',
+      });
 
       console.log(`⏱️ [Webhook] Processing time: ${Date.now() - startTime}ms`);
       return; // Already sent 200 OK
@@ -3800,10 +4065,13 @@ const handlePaymobWebhook = async (req, res) => {
     // ====================================
     // HANDLE PENDING/UNKNOWN
     // ====================================
-    console.log('⏳ [Webhook] Payment status unclear for:', purchase.orderNumber);
+    console.log(
+      '⏳ [Webhook] Payment status unclear for:',
+      purchase.orderNumber,
+    );
     console.log('isSuccess:', webhookData.isSuccess);
     console.log('isFailed:', webhookData.isFailed);
-    
+
     // Save webhook data but don't change status
     purchase.paymentGatewayResponse = {
       webhookPayload: payload,
@@ -3812,10 +4080,9 @@ const handlePaymobWebhook = async (req, res) => {
       status: 'pending_review',
     };
     await purchase.save();
-    
+
     console.log(`⏱️ [Webhook] Processing time: ${Date.now() - startTime}ms`);
     // Already sent 200 OK
-    
   } catch (error) {
     console.error('❌ [Webhook] CRITICAL ERROR:', error);
     console.error('Stack:', error.stack);
@@ -3842,7 +4109,7 @@ const handlePaymobWebhookRedirect = async (req, res) => {
     // Try to find purchase by transaction ID or session user
     if (!merchantOrderId && req.query.id) {
       console.log(
-        '🔀 [Redirect] Unified checkout callback - looking up purchase...'
+        '🔀 [Redirect] Unified checkout callback - looking up purchase...',
       );
 
       // Try to find the most recent pending purchase for the session user
@@ -3911,7 +4178,7 @@ const handlePaymobWebhookRedirect = async (req, res) => {
     if (purchase.status === 'completed') {
       // Payment already processed by webhook, redirect to success
       return res.redirect(
-        `/purchase/payment/success?merchantOrderId=${merchantOrderId}`
+        `/purchase/payment/success?merchantOrderId=${merchantOrderId}`,
       );
     } else if (purchase.status === 'failed') {
       // Payment already processed by webhook, redirect to failure
@@ -3923,44 +4190,62 @@ const handlePaymobWebhookRedirect = async (req, res) => {
       // Payment still pending - webhook should process it
       // IMPROVED: Wait briefly for webhook, then use Transaction Inquiry API as fallback
       console.log('🔀 [Redirect] Payment pending, waiting for webhook...');
-      
+
       // Wait 3 seconds to give webhook time to arrive (webhooks are usually faster)
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
       // Re-fetch purchase status after waiting
       const updatedPurchase = await Purchase.findById(purchase._id);
-      
+
       if (updatedPurchase.status === 'completed') {
-        console.log('✅ [Redirect] Webhook processed payment successfully during wait');
-        return res.redirect(`/purchase/payment/success?merchantOrderId=${merchantOrderId}`);
+        console.log(
+          '✅ [Redirect] Webhook processed payment successfully during wait',
+        );
+        return res.redirect(
+          `/purchase/payment/success?merchantOrderId=${merchantOrderId}`,
+        );
       } else if (updatedPurchase.status === 'failed') {
-        console.log('❌ [Redirect] Webhook marked payment as failed during wait');
-        const reason = updatedPurchase.failureReason ? encodeURIComponent(updatedPurchase.failureReason) : 'payment_failed';
+        console.log(
+          '❌ [Redirect] Webhook marked payment as failed during wait',
+        );
+        const reason = updatedPurchase.failureReason
+          ? encodeURIComponent(updatedPurchase.failureReason)
+          : 'payment_failed';
         return res.redirect(`/purchase/payment/fail?reason=${reason}`);
       }
-      
+
       // Still pending - use Transaction Inquiry API as definitive source
       // This is a fallback ONLY if webhook hasn't arrived yet
-      console.log('⏳ [Redirect] Still pending, querying Paymob Transaction Inquiry API as fallback...');
-      
+      console.log(
+        '⏳ [Redirect] Still pending, querying Paymob Transaction Inquiry API as fallback...',
+      );
+
       try {
         // Use all available IDs for better lookup
         const transactionStatus = await paymobService.queryTransactionStatus(
           merchantOrderId,
           updatedPurchase.paymobOrderId,
-          updatedPurchase.paymobTransactionId || req.query.id
+          updatedPurchase.paymobTransactionId || req.query.id,
         );
-        
+
         if (transactionStatus) {
-          const apiWebhookData = paymobService.processWebhookPayload(transactionStatus);
-          
+          const apiWebhookData =
+            paymobService.processWebhookPayload(transactionStatus);
+
           if (apiWebhookData.isSuccess) {
-            console.log('✅ [Redirect] Transaction Inquiry confirms SUCCESS, processing payment...');
-            
+            console.log(
+              '✅ [Redirect] Transaction Inquiry confirms SUCCESS, processing payment...',
+            );
+
             // Save Paymob transaction details
             const purchaseToUpdate = await Purchase.findById(purchase._id);
-            if (apiWebhookData.transactionId && !purchaseToUpdate.paymobTransactionId) {
-              purchaseToUpdate.paymobTransactionId = String(apiWebhookData.transactionId);
+            if (
+              apiWebhookData.transactionId &&
+              !purchaseToUpdate.paymobTransactionId
+            ) {
+              purchaseToUpdate.paymobTransactionId = String(
+                apiWebhookData.transactionId,
+              );
             }
             purchaseToUpdate.paymentGatewayResponse = {
               apiResponse: transactionStatus,
@@ -3969,28 +4254,35 @@ const handlePaymobWebhookRedirect = async (req, res) => {
               source: 'transaction_inquiry_api_fallback',
             };
             await purchaseToUpdate.save();
-            
+
             // Process successful payment - this will enroll the student
             await processSuccessfulPayment(purchaseToUpdate, req);
-            return res.redirect(`/purchase/payment/success?merchantOrderId=${merchantOrderId}`);
+            return res.redirect(
+              `/purchase/payment/success?merchantOrderId=${merchantOrderId}`,
+            );
           } else if (apiWebhookData.isFailed) {
             console.log('❌ [Redirect] Transaction Inquiry confirms FAILED');
-            
-            const failureReason = transactionStatus?.obj?.data?.message || 
-                                  transactionStatus?.data?.message || 
-                                  'Payment declined or failed';
-            
+
+            const failureReason =
+              transactionStatus?.obj?.data?.message ||
+              transactionStatus?.data?.message ||
+              'Payment declined or failed';
+
             await processFailedPayment(purchase, failureReason, {
               apiResponse: transactionStatus,
               processedAt: new Date(),
               status: 'failed',
               source: 'transaction_inquiry_api_fallback',
             });
-            
-            return res.redirect(`/purchase/payment/fail?reason=${encodeURIComponent(failureReason)}`);
+
+            return res.redirect(
+              `/purchase/payment/fail?reason=${encodeURIComponent(failureReason)}`,
+            );
           } else {
             // Transaction Inquiry returned pending status
-            console.log('⏳ [Redirect] Transaction Inquiry also shows pending - showing processing page');
+            console.log(
+              '⏳ [Redirect] Transaction Inquiry also shows pending - showing processing page',
+            );
             return res.render('payment-processing', {
               title: 'Payment Processing | ELKABLY',
               theme: req.cookies.theme || 'light',
@@ -4000,7 +4292,10 @@ const handlePaymobWebhookRedirect = async (req, res) => {
           }
         }
       } catch (inquiryError) {
-        console.warn('⚠️ [Redirect] Transaction Inquiry failed:', inquiryError.message);
+        console.warn(
+          '⚠️ [Redirect] Transaction Inquiry failed:',
+          inquiryError.message,
+        );
         // Show processing page - webhook will process when it arrives
         return res.render('payment-processing', {
           title: 'Payment Processing | ELKABLY',
@@ -4009,10 +4304,12 @@ const handlePaymobWebhookRedirect = async (req, res) => {
           orderNumber: purchase.orderNumber,
         });
       }
-      
+
       // Final fallback: Show processing page
       // Webhook will process the payment when it arrives
-      console.log('⏳ [Redirect] Payment still pending - showing processing page');
+      console.log(
+        '⏳ [Redirect] Payment still pending - showing processing page',
+      );
       return res.render('payment-processing', {
         title: 'Payment Processing | ELKABLY',
         theme: req.cookies.theme || 'light',
@@ -4056,4 +4353,3 @@ module.exports = {
   processSuccessfulPayment,
   processFailedPayment,
 };
-

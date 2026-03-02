@@ -91,7 +91,7 @@ const quizModuleSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for quiz count (populated dynamically)
@@ -127,27 +127,29 @@ quizModuleSchema.pre(/^find/, function (next) {
 });
 
 // Static method to generate unique module code
-quizModuleSchema.statics.generateModuleCode = async function (testType = 'EST') {
+quizModuleSchema.statics.generateModuleCode = async function (
+  testType = 'EST',
+) {
   const prefix = testType.substring(0, 3).toUpperCase();
   const count = await this.countDocuments({});
   const randomNum = Math.floor(Math.random() * 1000)
     .toString()
     .padStart(3, '0');
   const code = `MOD-${prefix}-${count + 1}${randomNum}`;
-  
+
   // Check if code already exists
   const existing = await this.findOne({ code });
   if (existing) {
     return this.generateModuleCode(testType);
   }
-  
+
   return code;
 };
 
 // Static method to get module statistics
 quizModuleSchema.statics.getModuleStats = async function () {
   const Quiz = mongoose.model('Quiz');
-  
+
   const [totalModules, activeModules, modulesByType] = await Promise.all([
     this.countDocuments({ isDeleted: false }),
     this.countDocuments({ isDeleted: false, status: 'active' }),

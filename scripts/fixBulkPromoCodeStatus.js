@@ -1,9 +1,9 @@
 /**
  * Migration Script: Fix Bulk Promo Code Status
- * 
+ *
  * This script fixes bulk promo codes that have usageHistory entries
  * but usedByStudent was never set (due to the bug in purchaseController).
- * 
+ *
  * Run: node scripts/fixBulkPromoCodeStatus.js
  */
 
@@ -24,11 +24,13 @@ async function fixBulkPromoCodeStatus() {
       usedByStudent: null,
       $or: [
         { currentUses: { $gt: 0 } },
-        { 'usageHistory.0': { $exists: true } }
-      ]
+        { 'usageHistory.0': { $exists: true } },
+      ],
     }).populate('usageHistory.user', 'firstName lastName studentEmail email');
 
-    console.log(`Found ${brokenCodes.length} bulk promo codes with missing usedByStudent`);
+    console.log(
+      `Found ${brokenCodes.length} bulk promo codes with missing usedByStudent`,
+    );
 
     if (brokenCodes.length === 0) {
       console.log('No codes to fix. All data is consistent.');
@@ -44,26 +46,33 @@ async function fixBulkPromoCodeStatus() {
         const firstUsage = code.usageHistory[0];
         if (firstUsage && firstUsage.user) {
           code.usedByStudent = firstUsage.user._id;
-          
+
           // Try to get email from populated user
           if (firstUsage.user.studentEmail) {
-            code.usedByStudentEmail = firstUsage.user.studentEmail.toLowerCase();
+            code.usedByStudentEmail =
+              firstUsage.user.studentEmail.toLowerCase();
           } else if (firstUsage.user.email) {
             code.usedByStudentEmail = firstUsage.user.email.toLowerCase();
           }
-          
+
           await code.save();
           fixed++;
-          console.log(`  Fixed: ${code.code} -> usedByStudent: ${firstUsage.user._id}`);
+          console.log(
+            `  Fixed: ${code.code} -> usedByStudent: ${firstUsage.user._id}`,
+          );
         } else {
           // If user reference exists but not populated, just set the ID
           if (firstUsage && firstUsage.user) {
             code.usedByStudent = firstUsage.user;
             await code.save();
             fixed++;
-            console.log(`  Fixed (ID only): ${code.code} -> usedByStudent: ${firstUsage.user}`);
+            console.log(
+              `  Fixed (ID only): ${code.code} -> usedByStudent: ${firstUsage.user}`,
+            );
           } else {
-            console.log(`  Skipped: ${code.code} - no usage history user found`);
+            console.log(
+              `  Skipped: ${code.code} - no usage history user found`,
+            );
           }
         }
       } catch (err) {

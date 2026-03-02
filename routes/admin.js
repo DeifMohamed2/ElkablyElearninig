@@ -58,7 +58,10 @@ const uploadPDFMiddleware = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for PDFs
   fileFilter: function (req, file, cb) {
     // Only allow PDF files
-    if (file.mimetype === 'application/pdf' || path.extname(file.originalname).toLowerCase() === '.pdf') {
+    if (
+      file.mimetype === 'application/pdf' ||
+      path.extname(file.originalname).toLowerCase() === '.pdf'
+    ) {
       cb(null, true);
     } else {
       cb(new Error('Only PDF files are allowed'));
@@ -306,7 +309,11 @@ router.get('/courses', isAdmin, getCourses);
 router.post('/courses/create', isAdmin, createCourse);
 router.get('/courses/:courseCode', isAdmin, getCourse);
 router.get('/courses/:courseCode/details', isAdmin, getCourseDetails);
-router.get('/courses/:courseCode/topics-analytics', isAdmin, getCourseTopicsAnalytics);
+router.get(
+  '/courses/:courseCode/topics-analytics',
+  isAdmin,
+  getCourseTopicsAnalytics,
+);
 router.get('/courses/:courseCode/data', isAdmin, getCourseData);
 router.put('/courses/:courseCode', isAdmin, updateCourse);
 router.delete('/courses/:courseCode', isAdmin, deleteCourse);
@@ -318,100 +325,104 @@ router.get('/courses/:courseCode/content', isAdmin, getCourseContent);
 router.get(
   '/courses/:courseCode/topics/:topicId/details',
   isAdmin,
-  getTopicDetails
+  getTopicDetails,
 );
 router.post('/courses/:courseCode/topics/create', isAdmin, createTopic);
 router.put('/courses/:courseCode/topics/reorder', isAdmin, reorderTopics);
 router.put(
   '/courses/:courseCode/topics/:topicId/content/reorder',
   isAdmin,
-  reorderContent
+  reorderContent,
 );
 router.put(
   '/courses/:courseCode/topics/:topicId/visibility',
   isAdmin,
-  updateTopicVisibility
+  updateTopicVisibility,
 );
 router.put('/courses/:courseCode/topics/:topicId', isAdmin, updateTopic);
-router.post('/courses/:courseCode/topics/:topicId/duplicate', isAdmin, duplicateTopic);
+router.post(
+  '/courses/:courseCode/topics/:topicId/duplicate',
+  isAdmin,
+  duplicateTopic,
+);
 router.delete('/courses/:courseCode/topics/:topicId', isAdmin, deleteTopic);
 router.post(
   '/courses/:courseCode/topics/:topicId/content/create',
   isAdmin,
-  addTopicContent
+  addTopicContent,
 );
 router.get(
   '/courses/:courseCode/topics/:topicId/content/:contentId/details',
   isAdmin,
-  getContentDetailsPage
+  getContentDetailsPage,
 );
 router.get(
   '/courses/:courseCode/topics/:topicId/content/:contentId/edit-details',
   isAdmin,
-  getContentDetailsForEdit
+  getContentDetailsForEdit,
 );
 router.get(
   '/courses/:courseCode/topics/:topicId/content/:contentId/students',
   isAdmin,
-  getTopicContentStudentStats
+  getTopicContentStudentStats,
 );
 router.post(
   '/courses/:courseCode/topics/:topicId/content/:contentId/students/:studentId/reset',
   isAdmin,
-  resetContentAttempts
+  resetContentAttempts,
 );
 // Skip content for students API routes
 router.get(
   '/api/students-for-skip-content',
   isAdmin,
-  getStudentsForSkipContent
+  getStudentsForSkipContent,
 );
 router.post(
   '/courses/:courseId/topics/:topicId/content/:contentId/skip',
   isAdmin,
-  skipContentForStudents
+  skipContentForStudents,
 );
 router.put(
   '/courses/:courseCode/topics/:topicId/content/:contentId',
   isAdmin,
-  updateTopicContent
+  updateTopicContent,
 );
 router.delete(
   '/courses/:courseCode/topics/:topicId/content/:contentId',
   isAdmin,
-  deleteTopicContent
+  deleteTopicContent,
 );
 
 // Quiz/Homework Content Routes
 router.get(
   '/courses/:courseCode/topics/:topicId/question-banks',
   isAdmin,
-  getQuestionBanksForContent
+  getQuestionBanksForContent,
 );
 router.get(
   '/courses/:courseCode/topics/:topicId/question-banks/:bankId/questions',
   isAdmin,
-  getQuestionsFromBankForContent
+  getQuestionsFromBankForContent,
 );
 router.post(
   '/courses/:courseCode/topics/:topicId/question-banks/multiple/questions',
   isAdmin,
-  getQuestionsFromMultipleBanksForContent
+  getQuestionsFromMultipleBanksForContent,
 );
 router.get(
   '/courses/:courseCode/topics/:topicId/questions/:questionId/preview',
   isAdmin,
-  getQuestionPreviewForContent
+  getQuestionPreviewForContent,
 );
 router.post(
   '/courses/:courseCode/topics/:topicId/content/quiz',
   isAdmin,
-  addQuizContent
+  addQuizContent,
 );
 router.post(
   '/courses/:courseCode/topics/:topicId/content/homework',
   isAdmin,
-  addHomeworkContent
+  addHomeworkContent,
 );
 
 // Bundle Course Routes
@@ -426,23 +437,19 @@ router.get('/bundles/:bundleCode/students', isAdmin, getBundleStudents);
 router.post(
   '/bundles/:bundleCode/courses/:courseId/add',
   isAdmin,
-  addCourseToBundle
+  addCourseToBundle,
 );
 router.delete(
   '/bundles/:bundleCode/courses/:courseId/remove',
   isAdmin,
-  removeCourseFromBundle
+  removeCourseFromBundle,
 );
 router.post(
   '/bundles/:bundleCode/courses/create',
   isAdmin,
-  createCourseForBundle
+  createCourseForBundle,
 );
-router.put(
-  '/bundles/:bundleCode/courses/reorder',
-  isAdmin,
-  updateCourseOrder
-);
+router.put('/bundles/:bundleCode/courses/reorder', isAdmin, updateCourseOrder);
 
 // API Routes
 router.get('/api/bundles', isAdmin, getBundlesAPI);
@@ -456,14 +463,14 @@ router.post(
   '/students/bulk-import',
   isAdmin,
   uploadFile.single('excelFile'),
-  bulkImportStudents
+  bulkImportStudents,
 );
 router.get('/students/:studentId/edit', isAdmin, getStudentEditPage);
 router.post(
   '/students/:studentId/update',
   isAdmin,
   uploadFile.single('profilePicture'),
-  updateStudent
+  updateStudent,
 );
 router.get('/students/:studentId', isAdmin, getStudentDetails);
 router.get('/students/:studentId/export', isAdmin, exportStudentData);
@@ -471,7 +478,7 @@ router.put('/students/:studentId/status', isAdmin, toggleStudentStatus);
 router.put(
   '/students/:studentId/parent-phone-status',
   isAdmin,
-  toggleParentPhoneStatus
+  toggleParentPhoneStatus,
 );
 router.put('/students/bulk-status', isAdmin, bulkToggleStudentStatus);
 router.put('/students/:studentId', isAdmin, updateStudent);
@@ -484,29 +491,29 @@ router.post(
   '/courses/:courseId/bulk-enroll',
   isAdmin,
   uploadFile.single('excelFile'),
-  bulkEnrollStudentsToCourse
+  bulkEnrollStudentsToCourse,
 );
 router.delete(
   '/courses/:courseId/students/:studentId',
   isAdmin,
-  removeStudentFromCourse
+  removeStudentFromCourse,
 );
 router.post(
   '/courses/:courseId/bulk-remove-students',
   isAdmin,
-  bulkRemoveStudentsFromCourse
+  bulkRemoveStudentsFromCourse,
 );
 router.post('/bundles/:bundleId/enroll', isAdmin, enrollStudentsToBundle);
 router.post(
   '/bundles/:bundleId/bulk-enroll',
   isAdmin,
   uploadFile.single('excelFile'),
-  bulkEnrollStudentsToBundle
+  bulkEnrollStudentsToBundle,
 );
 router.delete(
   '/bundles/:bundleId/students/:studentId',
   isAdmin,
-  removeStudentFromBundle
+  removeStudentFromBundle,
 );
 
 // Question Bank Routes
@@ -516,12 +523,24 @@ router.use('/question-banks', questionBankRoutes);
 router.get('/orders', isAdmin, getOrders);
 router.get('/orders/export', isAdmin, exportOrders);
 router.get('/orders/pending-payments', isAdmin, getPendingPayments);
-router.post('/orders/pending-payments/check', isAdmin, triggerPendingPaymentsCheck);
+router.post(
+  '/orders/pending-payments/check',
+  isAdmin,
+  triggerPendingPaymentsCheck,
+);
 router.get('/orders/:orderNumber', isAdmin, getOrderDetails);
 router.get('/orders/:orderNumber/invoice', isAdmin, generateInvoice);
 router.post('/orders/:orderNumber/refund', isAdmin, refundOrder);
-router.post('/orders/:orderNumber/complete-failed', isAdmin, completeFailedPayment);
-router.post('/orders/:orderNumber/verify-pending', isAdmin, verifyPendingPayment);
+router.post(
+  '/orders/:orderNumber/complete-failed',
+  isAdmin,
+  completeFailedPayment,
+);
+router.post(
+  '/orders/:orderNumber/verify-pending',
+  isAdmin,
+  verifyPendingPayment,
+);
 
 // Book Orders Management
 router.get('/book-orders', isAdmin, getBookOrders);
@@ -567,14 +586,14 @@ router.get('/game-rooms/:id/delete', isAdmin, deleteGameRoom); // GET route for 
 router.post(
   '/game-rooms/:id/permanent-delete',
   isAdmin,
-  permanentDeleteGameRoom
+  permanentDeleteGameRoom,
 ); // Permanent delete route
 router.get('/game-rooms/:id/stats', isAdmin, getGameRoomStats);
 // API - fetch questions by bank
 router.get(
   '/api/question-banks/:bankId/questions',
   isAdmin,
-  getQuestionsByBank
+  getQuestionsByBank,
 );
 
 // Admin Management Routes
@@ -600,7 +619,7 @@ router.get('/courses/:courseId/export', isAdmin, exportCourseDetails);
 router.get(
   '/courses/:courseCode/topics/:topicId/export',
   isAdmin,
-  exportTopicDetails
+  exportTopicDetails,
 );
 router.get('/export/orders', isAdmin, exportOrders);
 router.get('/export/quizzes', isAdmin, exportQuizzes);
@@ -629,22 +648,22 @@ router.get('/promo-codes/bulk/collections', isAdmin, getBulkCollections);
 router.get(
   '/promo-codes/bulk/collections/:bulkCollectionId',
   isAdmin,
-  getBulkCollectionDetails
+  getBulkCollectionDetails,
 );
 router.get(
   '/promo-codes/bulk/collections/:bulkCollectionId/export',
   isAdmin,
-  exportBulkCollection
+  exportBulkCollection,
 );
 router.delete(
   '/promo-codes/bulk/collections/:bulkCollectionId',
   isAdmin,
-  deleteBulkCollection
+  deleteBulkCollection,
 );
 router.put(
   '/promo-codes/bulk/collections/:bulkCollectionId/status',
   isAdmin,
-  toggleBulkCollectionStatus
+  toggleBulkCollectionStatus,
 );
 
 // WhatsApp Management Routes
@@ -656,7 +675,7 @@ router.get('/whatsapp/sessions/:sessionId/qrcode', isAdmin, getQRCode);
 router.post(
   '/whatsapp/sessions/:sessionId/disconnect',
   isAdmin,
-  disconnectSession
+  disconnectSession,
 );
 router.delete('/whatsapp/sessions/:sessionId', isAdmin, deleteSession);
 router.post('/whatsapp/bulk-message', isAdmin, sendBulkMessage);
@@ -675,38 +694,44 @@ router.get('/bulk-sms/bundles', isAdmin, getBundlesForSMS);
 router.get(
   '/bulk-sms/course-students-count/:courseId',
   isAdmin,
-  getCourseStudentsCount
+  getCourseStudentsCount,
 );
 router.get(
   '/bulk-sms/bundle-students-count/:bundleId',
   isAdmin,
-  getBundleStudentsCount
+  getBundleStudentsCount,
 );
 router.post('/bulk-sms/send', isAdmin, sendBulkSMS);
 
 // PDF Upload Route
-router.post('/upload/pdf', isAdmin, uploadPDFMiddleware.single('pdf'), (err, req, res, next) => {
-  // Handle multer errors
-  if (err) {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
+router.post(
+  '/upload/pdf',
+  isAdmin,
+  uploadPDFMiddleware.single('pdf'),
+  (err, req, res, next) => {
+    // Handle multer errors
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'File too large. Maximum file size is 50MB.',
+          });
+        }
         return res.status(400).json({
           success: false,
-          message: 'File too large. Maximum file size is 50MB.',
+          message: 'File upload error: ' + err.message,
         });
       }
       return res.status(400).json({
         success: false,
-        message: 'File upload error: ' + err.message,
+        message: err.message || 'File upload error',
       });
     }
-    return res.status(400).json({
-      success: false,
-      message: err.message || 'File upload error',
-    });
-  }
-  next();
-}, uploadPDF);
+    next();
+  },
+  uploadPDF,
+);
 
 router.get('/whatsapp/session-details', isAdmin, getSessionDetails);
 
@@ -732,7 +757,11 @@ router.get('/guest-users', isAdmin, getGuestUsers);
 router.get('/guest-users/export', isAdmin, exportGuestUsers);
 router.get('/guest-users/quiz/:quizId', isAdmin, getGuestsByQuiz);
 router.get('/guest-users/:id/details', isAdmin, getGuestUserDetails);
-router.get('/guest-users/:guestId/quiz/:quizId/attempt/:attemptNumber', isAdmin, getGuestQuizAttemptResults);
+router.get(
+  '/guest-users/:guestId/quiz/:quizId/attempt/:attemptNumber',
+  isAdmin,
+  getGuestQuizAttemptResults,
+);
 router.delete('/guest-users/:id', isAdmin, deleteGuestUser);
 
 // Quiz Modules Management Routes
@@ -750,7 +779,11 @@ router.delete('/quiz-modules/:id', isAdmin, deleteModule);
 router.post('/quiz-modules/:id/restore', isAdmin, restoreModule);
 router.delete('/quiz-modules/:id/permanent', isAdmin, permanentDeleteModule);
 router.post('/quiz-modules/:id/quizzes', isAdmin, addQuizzesToModule);
-router.delete('/quiz-modules/:id/quizzes/:quizId', isAdmin, removeQuizFromModule);
+router.delete(
+  '/quiz-modules/:id/quizzes/:quizId',
+  isAdmin,
+  removeQuizFromModule,
+);
 router.put('/quiz-modules/:id/reorder', isAdmin, reorderModuleQuizzes);
 
 module.exports = router;

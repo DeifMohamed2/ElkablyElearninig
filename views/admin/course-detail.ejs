@@ -979,6 +979,7 @@
 
   // ── Lazy-load Topics & Analytics tab ──
   let topicsLoaded = false;
+
   function initTopicsLazyLoad() {
     const topicsTab = document.querySelector('a[data-bs-toggle="tab"][href="#topics"], button[data-bs-toggle="tab"][data-bs-target="#topics"]');
     if (!topicsTab) return;
@@ -1013,7 +1014,13 @@
     if (!topics.length) {
       return '<div class="empty-state"><i class="fas fa-list"></i><h3>No topics yet</h3><p>Add topics and content to this course to see analytics here.</p></div>';
     }
-    const typeIcon = {video:'play-circle',pdf:'file-pdf',quiz:'question-circle',homework:'tasks',zoom:'video'};
+    const typeIcon = {
+      video: 'play-circle',
+      pdf: 'file-pdf',
+      quiz: 'question-circle',
+      homework: 'tasks',
+      zoom: 'video'
+    };
     let html = '<div class="accordion accordion-pro" id="topicsAccordion">';
     topics.forEach(topic => {
       html += `<div class="accordion-item">
@@ -1040,7 +1047,7 @@
               <th><i class="fas fa-percentage me-1"></i>Pass Rate</th>
               <th>Actions</th>
             </tr></thead><tbody>`;
-      const sorted = (topic.contents || []).slice().sort((a,b) => (a.order||0)-(b.order||0));
+      const sorted = (topic.contents || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
       sorted.forEach((ci, idx) => {
         const icon = typeIcon[ci.type] || 'file';
         const scoreColor = ci.averageScore >= 70 ? '#059669' : ci.averageScore >= 60 ? '#d97706' : '#dc2626';
@@ -1065,7 +1072,11 @@
     return html;
   }
 
-  function escH(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function escH(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
 
   let searchDebounceTimer = null;
 

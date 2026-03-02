@@ -65,7 +65,7 @@
     .admin-main-content {
       margin-left: 0;
     }
-    
+
     .admin-promo-codes-container {
       padding: 15px;
     }
@@ -234,7 +234,7 @@
   }
 
   /* Ensure Bootstrap modal backdrop doesn't interfere */
-  .modal-open .modal-backdrop + .modal-backdrop {
+  .modal-open .modal-backdrop+.modal-backdrop {
     z-index: 10050 !important;
   }
 </style>
@@ -247,297 +247,297 @@
     <%- include('partials/admin-topbar') %>
     <div class="admin-promo-codes-container">
       <div class="promo-codes-container">
-  <!-- Page Header -->
-  <div class="promo-codes-header">
-    <div>
-      <h1 class="promo-codes-title">
-        <i class="fas fa-tags"></i>
-        Promo Codes Management
-      </h1>
-      <p class="promo-codes-subtitle">Create and manage discount codes for your customers</p>
-    </div>
-    <div style="display: flex; gap: 1rem;">
-      <button class="create-promo-btn" onclick="openCreatePromoModal()">
-        <i class="fas fa-plus"></i>
-        Create Promo Code
-      </button>
-      <button class="create-promo-btn" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="openBulkPromoModal()">
-        <i class="fas fa-layer-group"></i>
-        Create Bulk Codes
-      </button>
-    </div>
-  </div>
-
-  <!-- Stats Cards -->
-  <div class="promo-stats-grid">
-    <div class="promo-stat-card">
-      <div class="promo-stat-header">
-        <div class="promo-stat-icon active">
-          <i class="fas fa-check-circle"></i>
+        <!-- Page Header -->
+        <div class="promo-codes-header">
+          <div>
+            <h1 class="promo-codes-title">
+              <i class="fas fa-tags"></i>
+              Promo Codes Management
+            </h1>
+            <p class="promo-codes-subtitle">Create and manage discount codes for your customers</p>
+          </div>
+          <div style="display: flex; gap: 1rem;">
+            <button class="create-promo-btn" onclick="openCreatePromoModal()">
+              <i class="fas fa-plus"></i>
+              Create Promo Code
+            </button>
+            <button class="create-promo-btn" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="openBulkPromoModal()">
+              <i class="fas fa-layer-group"></i>
+              Create Bulk Codes
+            </button>
+          </div>
         </div>
-        <div>
-          <h3 class="promo-stat-title">Active Codes</h3>
-          <p class="promo-stat-value"><%= stats.activeCodes %></p>
+
+        <!-- Stats Cards -->
+        <div class="promo-stats-grid">
+          <div class="promo-stat-card">
+            <div class="promo-stat-header">
+              <div class="promo-stat-icon active">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div>
+                <h3 class="promo-stat-title">Active Codes</h3>
+                <p class="promo-stat-value"><%= stats.activeCodes %></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="promo-stat-card">
+            <div class="promo-stat-header">
+              <div class="promo-stat-icon expired">
+                <i class="fas fa-times-circle"></i>
+              </div>
+              <div>
+                <h3 class="promo-stat-title">Expired Codes</h3>
+                <p class="promo-stat-value"><%= stats.expiredCodes %></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="promo-stat-card">
+            <div class="promo-stat-header">
+              <div class="promo-stat-icon used">
+                <i class="fas fa-users"></i>
+              </div>
+              <div>
+                <h3 class="promo-stat-title">Total Uses</h3>
+                <p class="promo-stat-value"><%= stats.totalUses %></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="promo-stat-card">
+            <div class="promo-stat-header">
+              <div class="promo-stat-icon total">
+                <i class="fas fa-tags"></i>
+              </div>
+              <div>
+                <h3 class="promo-stat-title">Total Codes</h3>
+                <p class="promo-stat-value"><%= stats.totalCodes %></p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="promo-stat-card">
-      <div class="promo-stat-header">
-        <div class="promo-stat-icon expired">
-          <i class="fas fa-times-circle"></i>
+        <!-- Bulk Collections Section -->
+        <div class="promo-codes-table-container" id="bulkCollectionsSection" style="margin-bottom: 2rem;">
+          <div class="promo-codes-table-header">
+            <h2 class="promo-codes-table-title">
+              <i class="fas fa-layer-group"></i>
+              Bulk Code Collections
+            </h2>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadBulkCollections()">
+              <i class="fas fa-sync-alt"></i>
+              Refresh
+            </button>
+          </div>
+
+          <!-- Advanced Filters -->
+          <div class="promo-codes-filters" style="padding: 1rem; background: var(--admin-bg-light); border-radius: 8px; margin-bottom: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <!-- Search by Collection Name -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-search"></i> Search Collection
+              </label>
+              <input type="text" class="promo-search-input" id="bulkSearchInput" placeholder="Search by name..." style="width: 100%;">
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-filter"></i> Status
+              </label>
+              <select class="promo-filter-select" id="bulkStatusFilter" style="width: 100%;">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            <!-- Usage Filter -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-chart-pie"></i> Usage
+              </label>
+              <select class="promo-filter-select" id="bulkUsageFilter" style="width: 100%;">
+                <option value="">All Usage</option>
+                <option value="unused">Completely Unused (0%)</option>
+                <option value="partial">Partially Used (1-99%)</option>
+                <option value="full">Fully Used (100%)</option>
+                <option value="high">High Usage (>50%)</option>
+                <option value="low">Low Usage (<50%)< /option>
+              </select>
+            </div>
+
+            <!-- Discount Type Filter -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-percentage"></i> Discount Type
+              </label>
+              <select class="promo-filter-select" id="bulkDiscountTypeFilter" style="width: 100%;">
+                <option value="">All Types</option>
+                <option value="percentage">Percentage</option>
+                <option value="fixed">Fixed Amount</option>
+              </select>
+            </div>
+
+            <!-- Date Range Filter - From -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-calendar"></i> Created From
+              </label>
+              <input type="date" class="promo-form-control" id="bulkDateFrom" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <!-- Date Range Filter - To -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-calendar"></i> Created To
+              </label>
+              <input type="date" class="promo-form-control" id="bulkDateTo" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <!-- Validity Filter -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-clock"></i> Validity
+              </label>
+              <select class="promo-filter-select" id="bulkValidityFilter" style="width: 100%;">
+                <option value="">All Validity</option>
+                <option value="valid">Currently Valid</option>
+                <option value="expired">Expired</option>
+                <option value="future">Future Start</option>
+              </select>
+            </div>
+
+            <!-- Sort By -->
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
+                <i class="fas fa-sort"></i> Sort By
+              </label>
+              <select class="promo-filter-select" id="bulkSortBy" style="width: 100%;">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name">Name (A-Z)</option>
+                <option value="usage-high">Usage (High to Low)</option>
+                <option value="usage-low">Usage (Low to High)</option>
+                <option value="codes-most">Most Codes</option>
+                <option value="codes-least">Least Codes</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Filter Actions -->
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; justify-content: flex-end;">
+            <button class="btn btn-sm btn-primary" onclick="applyBulkFilters()">
+              <i class="fas fa-filter"></i>
+              Apply Filters
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="clearBulkFilters()">
+              <i class="fas fa-times"></i>
+              Clear Filters
+            </button>
+            <button class="btn btn-sm btn-success" onclick="exportFilteredBulkCollections()">
+              <i class="fas fa-file-excel"></i>
+              Export Filtered
+            </button>
+          </div>
+
+          <!-- Active Filters Display -->
+          <div id="activeBulkFilters" style="margin-bottom: 1rem; display: none;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-size: 0.9rem; color: var(--admin-text-light); font-weight: 600;">Active Filters:</span>
+              <div id="activeBulkFilterTags" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+            </div>
+          </div>
+
+          <!-- Filter Statistics -->
+          <div id="filterStatistics" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+              <div>
+                <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Total Collections</p>
+                <p id="statTotalCollections" style="margin: 0; color: #1f2937; font-size: 1.25rem; font-weight: 700;">0</p>
+              </div>
+              <div>
+                <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Total Codes</p>
+                <p id="statTotalCodes" style="margin: 0; color: #1f2937; font-size: 1.25rem; font-weight: 700;">0</p>
+              </div>
+              <div>
+                <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Used Codes</p>
+                <p id="statUsedCodes" style="margin: 0; color: #10b981; font-size: 1.25rem; font-weight: 700;">0</p>
+              </div>
+              <div>
+                <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Unused Codes</p>
+                <p id="statUnusedCodes" style="margin: 0; color: #f59e0b; font-size: 1.25rem; font-weight: 700;">0</p>
+              </div>
+              <div>
+                <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Avg Usage</p>
+                <p id="statAvgUsage" style="margin: 0; color: #3b82f6; font-size: 1.25rem; font-weight: 700;">0%</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="promo-codes-table">
+              <thead>
+                <tr>
+                  <th>Collection Name</th>
+                  <th>Discount</th>
+                  <th>Total Codes</th>
+                  <th>Used</th>
+                  <th>Unused</th>
+                  <th>Usage %</th>
+                  <th>Status</th>
+                  <th>Valid Until</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bulkCollectionsTableBody">
+                <tr>
+                  <td colspan="9" class="text-center">
+                    <i class="fas fa-spinner fa-spin"></i> Loading bulk collections...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div>
-          <h3 class="promo-stat-title">Expired Codes</h3>
-          <p class="promo-stat-value"><%= stats.expiredCodes %></p>
-        </div>
-      </div>
-    </div>
 
-    <div class="promo-stat-card">
-      <div class="promo-stat-header">
-        <div class="promo-stat-icon used">
-          <i class="fas fa-users"></i>
-        </div>
-        <div>
-          <h3 class="promo-stat-title">Total Uses</h3>
-          <p class="promo-stat-value"><%= stats.totalUses %></p>
-        </div>
-      </div>
-    </div>
+        <!-- Promo Codes Table -->
+        <div class="promo-codes-table-container">
+          <div class="promo-codes-table-header">
+            <h2 class="promo-codes-table-title">All Promo Codes</h2>
+            <div class="promo-codes-filters">
+              <select class="promo-filter-select" id="statusFilter" onchange="filterPromoCodes()">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <input type="text" class="promo-search-input" id="searchInput" placeholder="Search promo codes..." onkeyup="searchPromoCodes()">
+            </div>
+          </div>
 
-    <div class="promo-stat-card">
-      <div class="promo-stat-header">
-        <div class="promo-stat-icon total">
-          <i class="fas fa-tags"></i>
-        </div>
-        <div>
-          <h3 class="promo-stat-title">Total Codes</h3>
-          <p class="promo-stat-value"><%= stats.totalCodes %></p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bulk Collections Section -->
-  <div class="promo-codes-table-container" id="bulkCollectionsSection" style="margin-bottom: 2rem;">
-    <div class="promo-codes-table-header">
-      <h2 class="promo-codes-table-title">
-        <i class="fas fa-layer-group"></i>
-        Bulk Code Collections
-      </h2>
-      <button class="btn btn-sm btn-outline-primary" onclick="loadBulkCollections()">
-        <i class="fas fa-sync-alt"></i>
-        Refresh
-      </button>
-    </div>
-
-    <!-- Advanced Filters -->
-    <div class="promo-codes-filters" style="padding: 1rem; background: var(--admin-bg-light); border-radius: 8px; margin-bottom: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-      <!-- Search by Collection Name -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-search"></i> Search Collection
-        </label>
-        <input type="text" class="promo-search-input" id="bulkSearchInput" placeholder="Search by name..." style="width: 100%;">
-      </div>
-
-      <!-- Status Filter -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-filter"></i> Status
-        </label>
-        <select class="promo-filter-select" id="bulkStatusFilter" style="width: 100%;">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="expired">Expired</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      <!-- Usage Filter -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-chart-pie"></i> Usage
-        </label>
-        <select class="promo-filter-select" id="bulkUsageFilter" style="width: 100%;">
-          <option value="">All Usage</option>
-          <option value="unused">Completely Unused (0%)</option>
-          <option value="partial">Partially Used (1-99%)</option>
-          <option value="full">Fully Used (100%)</option>
-          <option value="high">High Usage (>50%)</option>
-          <option value="low">Low Usage (<50%)</option>
-        </select>
-      </div>
-
-      <!-- Discount Type Filter -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-percentage"></i> Discount Type
-        </label>
-        <select class="promo-filter-select" id="bulkDiscountTypeFilter" style="width: 100%;">
-          <option value="">All Types</option>
-          <option value="percentage">Percentage</option>
-          <option value="fixed">Fixed Amount</option>
-        </select>
-      </div>
-
-      <!-- Date Range Filter - From -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-calendar"></i> Created From
-        </label>
-        <input type="date" class="promo-form-control" id="bulkDateFrom" style="width: 100%; padding: 0.5rem;">
-      </div>
-
-      <!-- Date Range Filter - To -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-calendar"></i> Created To
-        </label>
-        <input type="date" class="promo-form-control" id="bulkDateTo" style="width: 100%; padding: 0.5rem;">
-      </div>
-
-      <!-- Validity Filter -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-clock"></i> Validity
-        </label>
-        <select class="promo-filter-select" id="bulkValidityFilter" style="width: 100%;">
-          <option value="">All Validity</option>
-          <option value="valid">Currently Valid</option>
-          <option value="expired">Expired</option>
-          <option value="future">Future Start</option>
-        </select>
-      </div>
-
-      <!-- Sort By -->
-      <div>
-        <label style="display: block; font-size: 0.85rem; color: var(--admin-text-light); margin-bottom: 0.25rem;">
-          <i class="fas fa-sort"></i> Sort By
-        </label>
-        <select class="promo-filter-select" id="bulkSortBy" style="width: 100%;">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="name">Name (A-Z)</option>
-          <option value="usage-high">Usage (High to Low)</option>
-          <option value="usage-low">Usage (Low to High)</option>
-          <option value="codes-most">Most Codes</option>
-          <option value="codes-least">Least Codes</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Filter Actions -->
-    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; justify-content: flex-end;">
-      <button class="btn btn-sm btn-primary" onclick="applyBulkFilters()">
-        <i class="fas fa-filter"></i>
-        Apply Filters
-      </button>
-      <button class="btn btn-sm btn-secondary" onclick="clearBulkFilters()">
-        <i class="fas fa-times"></i>
-        Clear Filters
-      </button>
-      <button class="btn btn-sm btn-success" onclick="exportFilteredBulkCollections()">
-        <i class="fas fa-file-excel"></i>
-        Export Filtered
-      </button>
-    </div>
-
-    <!-- Active Filters Display -->
-    <div id="activeBulkFilters" style="margin-bottom: 1rem; display: none;">
-      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-        <span style="font-size: 0.9rem; color: var(--admin-text-light); font-weight: 600;">Active Filters:</span>
-        <div id="activeBulkFilterTags" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
-      </div>
-    </div>
-
-    <!-- Filter Statistics -->
-    <div id="filterStatistics" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 8px; border-left: 4px solid #3b82f6;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
-        <div>
-          <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Total Collections</p>
-          <p id="statTotalCollections" style="margin: 0; color: #1f2937; font-size: 1.25rem; font-weight: 700;">0</p>
-        </div>
-        <div>
-          <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Total Codes</p>
-          <p id="statTotalCodes" style="margin: 0; color: #1f2937; font-size: 1.25rem; font-weight: 700;">0</p>
-        </div>
-        <div>
-          <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Used Codes</p>
-          <p id="statUsedCodes" style="margin: 0; color: #10b981; font-size: 1.25rem; font-weight: 700;">0</p>
-        </div>
-        <div>
-          <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Unused Codes</p>
-          <p id="statUnusedCodes" style="margin: 0; color: #f59e0b; font-size: 1.25rem; font-weight: 700;">0</p>
-        </div>
-        <div>
-          <p style="margin: 0; color: #6b7280; font-size: 0.85rem; font-weight: 600;">Avg Usage</p>
-          <p id="statAvgUsage" style="margin: 0; color: #3b82f6; font-size: 1.25rem; font-weight: 700;">0%</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-responsive">
-      <table class="promo-codes-table">
-        <thead>
-          <tr>
-            <th>Collection Name</th>
-            <th>Discount</th>
-            <th>Total Codes</th>
-            <th>Used</th>
-            <th>Unused</th>
-            <th>Usage %</th>
-            <th>Status</th>
-            <th>Valid Until</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="bulkCollectionsTableBody">
-          <tr>
-            <td colspan="9" class="text-center">
-              <i class="fas fa-spinner fa-spin"></i> Loading bulk collections...
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Promo Codes Table -->
-  <div class="promo-codes-table-container">
-    <div class="promo-codes-table-header">
-      <h2 class="promo-codes-table-title">All Promo Codes</h2>
-      <div class="promo-codes-filters">
-        <select class="promo-filter-select" id="statusFilter" onchange="filterPromoCodes()">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="expired">Expired</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <input type="text" class="promo-search-input" id="searchInput" placeholder="Search promo codes..." onkeyup="searchPromoCodes()">
-      </div>
-    </div>
-
-    <div class="table-responsive">
-      <table class="promo-codes-table">
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Discount</th>
-            <th>Status</th>
-            <th>Usage</th>
-            <th>Policy</th>
-            <th>Restriction</th>
-            <th>Valid Until</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="promoCodesTableBody">
-          <% if (promoCodes && promoCodes.length > 0) { %>
-            <% promoCodes.forEach(promoCode => { %>
-              <tr class="promo-code-row" data-status="<%= 
+          <div class="table-responsive">
+            <table class="promo-codes-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Discount</th>
+                  <th>Status</th>
+                  <th>Usage</th>
+                  <th>Policy</th>
+                  <th>Restriction</th>
+                  <th>Valid Until</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="promoCodesTableBody">
+                <% if (promoCodes && promoCodes.length > 0) { %>
+                <% promoCodes.forEach(promoCode => { %>
+                <tr class="promo-code-row" data-status="<%= 
                 (() => {
                   const now = new Date();
                   const isExpired = new Date(promoCode.validUntil) < now;
@@ -552,31 +552,31 @@
                   return 'inactive';
                 })()
               %>">
-                <td>
-                  <span class="promo-code-badge"><%= promoCode.code %></span>
-                </td>
-                <td>
-                  <div>
-                    <strong><%= promoCode.name %></strong>
-                    <% if (promoCode.description) { %>
+                  <td>
+                    <span class="promo-code-badge"><%= promoCode.code %></span>
+                  </td>
+                  <td>
+                    <div>
+                      <strong><%= promoCode.name %></strong>
+                      <% if (promoCode.description) { %>
                       <br><small class="text-muted"><%= promoCode.description %></small>
-                    <% } %>
-                  </div>
-                </td>
-                <td>
-                  <div class="discount-display <%= promoCode.discountType %>">
-                    <% if (promoCode.discountType === 'percentage') { %>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="discount-display <%= promoCode.discountType %>">
+                      <% if (promoCode.discountType === 'percentage') { %>
                       <%= promoCode.discountValue %>% off
-                    <% } else { %>
+                      <% } else { %>
                       EGP <%= promoCode.discountValue %> off
-                    <% } %>
-                    <% if (promoCode.minOrderAmount > 0) { %>
+                      <% } %>
+                      <% if (promoCode.minOrderAmount > 0) { %>
                       <br><small class="text-muted">Min: EGP <%= promoCode.minOrderAmount %></small>
-                    <% } %>
-                  </div>
-                </td>
-                <td>
-                  <% 
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <% 
                     const now = new Date();
                     const isExpired = new Date(promoCode.validUntil) < now;
                     const isActive = promoCode.isActive;
@@ -584,790 +584,790 @@
                     const hasUsesLeft = promoCode.maxUses === null || promoCode.currentUses < promoCode.maxUses;
                     const isValid = isActive && isWithinValidPeriod && hasUsesLeft;
                   %>
-                  <% if (isValid) { %>
+                    <% if (isValid) { %>
                     <span class="status-badge active mb-4">Active</span>
-                  <% } else if (isExpired) { %>
+                    <% } else if (isExpired) { %>
                     <span class="status-badge expired mb-4">Expired</span>
-                  <% } else if (!isActive) { %>
+                    <% } else if (!isActive) { %>
                     <span class="status-badge inactive mb-4">Inactive</span>
-                  <% } else if (!hasUsesLeft) { %>
+                    <% } else if (!hasUsesLeft) { %>
                     <span class="status-badge expired mb-4">Used Up</span>
-                  <% } else { %>
+                    <% } else { %>
                     <span class="status-badge inactive mb-4">Not Started</span>
-                  <% } %>
-                </td>
-                <td>
-                  <div class="usage-info">
-                    <%= promoCode.currentUses %> / <%= promoCode.maxUses || '∞' %>
-                    <% if (promoCode.maxUses) { %>
+                    <% } %>
+                  </td>
+                  <td>
+                    <div class="usage-info">
+                      <%= promoCode.currentUses %> / <%= promoCode.maxUses || '∞' %>
+                      <% if (promoCode.maxUses) { %>
                       <div class="usage-progress">
                         <div class="usage-progress-bar" style="width: <%= (promoCode.currentUses / promoCode.maxUses) * 100 %>%"></div>
                       </div>
-                    <% } %>
-                  </div>
-                </td>
-                <td>
-                  <div class="policy-display">
-                    <% if (promoCode.allowMultipleUses) { %>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="policy-display">
+                      <% if (promoCode.allowMultipleUses) { %>
                       <span class="policy-badge multiple">Multiple Uses</span>
-                    <% } else { %>
+                      <% } else { %>
                       <span class="policy-badge single">One Use</span>
-                    <% } %>
-                  </div>
-                </td>
-                <td>
-                  <div class="policy-display">
-                    <% if (promoCode.restrictToStudents) { %>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="policy-display">
+                      <% if (promoCode.restrictToStudents) { %>
                       <span class="policy-badge" style="background-color: #fef3c7; color: #d97706; border: 1px solid #fcd34d;">
                         <i class="fas fa-user-lock me-1"></i>
                         <%= promoCode.allowedStudents?.length || 0 %> Students
                       </span>
-                    <% } else { %>
+                      <% } else { %>
                       <span class="policy-badge" style="background-color: #d1fae5; color: #059669; border: 1px solid #6ee7b7;">
                         <i class="fas fa-users me-1"></i>
                         All Students
                       </span>
-                    <% } %>
-                  </div>
-                </td>
-                <td>
-                  <%= new Date(promoCode.validUntil).toLocaleDateString() %>
-                  <br><small class="text-muted"><%= new Date(promoCode.validUntil).toLocaleTimeString() %></small>
-                </td>
-                <td>
-                  <div class="promo-actions">
-                    <button class="promo-action-btn view" onclick="viewPromoUsage('<%= promoCode._id %>')" title="View Usage History">
-                      <i class="fas fa-eye"></i>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <%= new Date(promoCode.validUntil).toLocaleDateString() %>
+                    <br><small class="text-muted"><%= new Date(promoCode.validUntil).toLocaleTimeString() %></small>
+                  </td>
+                  <td>
+                    <div class="promo-actions">
+                      <button class="promo-action-btn view" onclick="viewPromoUsage('<%= promoCode._id %>')" title="View Usage History">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="promo-action-btn edit" onclick="editPromoCode('<%= promoCode._id %>')" title="Edit Promo Code">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="promo-action-btn delete" onclick="deletePromoCode('<%= promoCode._id %>')" title="Delete Promo Code">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <% }); %>
+                <% } else { %>
+                <tr>
+                  <td colspan="9" class="empty-state">
+                    <div class="empty-state-icon">
+                      <i class="fas fa-tags"></i>
+                    </div>
+                    <h3 class="empty-state-title">No Promo Codes Found</h3>
+                    <button class="create-promo-btn" onclick="openCreatePromoModal()">
+                      <i class="fas fa-plus"></i>
+                      Create Your First Promo Code
                     </button>
-                    <button class="promo-action-btn edit" onclick="editPromoCode('<%= promoCode._id %>')" title="Edit Promo Code">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="promo-action-btn delete" onclick="deletePromoCode('<%= promoCode._id %>')" title="Delete Promo Code">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            <% }); %>
-          <% } else { %>
-            <tr>
-              <td colspan="9" class="empty-state">
-                <div class="empty-state-icon">
-                  <i class="fas fa-tags"></i>
-                </div>
-                <h3 class="empty-state-title">No Promo Codes Found</h3>
-                <button class="create-promo-btn" onclick="openCreatePromoModal()">
-                  <i class="fas fa-plus"></i>
-                  Create Your First Promo Code
-                </button>
-              </td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Create Promo Code Modal -->
-<div class="create-promo-modal" id="createPromoModal">
-  <div class="create-promo-modal-content">
-    <div class="create-promo-modal-header">
-      <h2 class="create-promo-modal-title">
-        <i class="fas fa-plus"></i>
-        Create New Promo Code
-      </h2>
-      <button class="create-promo-modal-close" onclick="closeCreatePromoModal()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="create-promo-modal-body">
-      <form id="createPromoForm" onsubmit="createPromoCode(event)">
-        <!-- Basic Information -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="promoName">Promo Code Name *</label>
-          <input type="text" id="promoName" name="name" class="promo-form-control" required placeholder="e.g., Summer Sale 2024">
-          <div class="promo-form-help">A descriptive name for this promo code</div>
+                  </td>
+                </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
 
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="promoDescription">Description (Optional)</label>
-          <textarea id="promoDescription" name="description" class="promo-form-control" rows="3" placeholder="Optional description for this promo code"></textarea>
-          <div class="promo-form-help">Optional description to help identify this promo code</div>
-        </div>
-
-        <!-- Code Generation -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="promoCode">Promo Code *</label>
-          <div class="code-generation">
-            <input type="text" id="promoCode" name="code" class="promo-form-control" required placeholder="e.g., SUMMER2024" maxlength="20">
-            <button type="button" class="generate-code-btn" onclick="generateRandomCode()">
-              <i class="fas fa-random"></i>
-              Generate
+      <!-- Create Promo Code Modal -->
+      <div class="create-promo-modal" id="createPromoModal">
+        <div class="create-promo-modal-content">
+          <div class="create-promo-modal-header">
+            <h2 class="create-promo-modal-title">
+              <i class="fas fa-plus"></i>
+              Create New Promo Code
+            </h2>
+            <button class="create-promo-modal-close" onclick="closeCreatePromoModal()">
+              <i class="fas fa-times"></i>
             </button>
           </div>
-          <div class="promo-form-help">Enter a custom code or generate a random one</div>
-        </div>
+          <div class="create-promo-modal-body">
+            <form id="createPromoForm" onsubmit="createPromoCode(event)">
+              <!-- Basic Information -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="promoName">Promo Code Name *</label>
+                <input type="text" id="promoName" name="name" class="promo-form-control" required placeholder="e.g., Summer Sale 2024">
+                <div class="promo-form-help">A descriptive name for this promo code</div>
+              </div>
 
-        <!-- Discount Type -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Discount Type *</label>
-          <div class="discount-type-toggle">
-            <div class="discount-type-option active" data-type="percentage" onclick="selectDiscountType('percentage')">
-              <i class="fas fa-percentage"></i>
-              Percentage
-            </div>
-            <div class="discount-type-option" data-type="fixed" onclick="selectDiscountType('fixed')">
-              <i class="fas fa-coins"></i>
-              Fixed Amount
-            </div>
-          </div>
-        </div>
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="promoDescription">Description (Optional)</label>
+                <textarea id="promoDescription" name="description" class="promo-form-control" rows="3" placeholder="Optional description for this promo code"></textarea>
+                <div class="promo-form-help">Optional description to help identify this promo code</div>
+              </div>
 
-        <!-- Discount Value -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="discountValue">Discount Value *</label>
-          <div class="promo-form-row">
-            <input type="number" id="discountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01" placeholder="10">
-            <input type="number" id="maxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
-          </div>
-          <div class="promo-form-help" id="discountHelp">Enter the percentage discount (1-100)</div>
-        </div>
+              <!-- Code Generation -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="promoCode">Promo Code *</label>
+                <div class="code-generation">
+                  <input type="text" id="promoCode" name="code" class="promo-form-control" required placeholder="e.g., SUMMER2024" maxlength="20">
+                  <button type="button" class="generate-code-btn" onclick="generateRandomCode()">
+                    <i class="fas fa-random"></i>
+                    Generate
+                  </button>
+                </div>
+                <div class="promo-form-help">Enter a custom code or generate a random one</div>
+              </div>
 
-        <!-- Minimum Order Amount -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="minOrderAmount">Minimum Order Amount</label>
-          <input type="number" id="minOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0" value="0">
-          <div class="promo-form-help">Minimum order amount required to use this promo code</div>
-        </div>
+              <!-- Discount Type -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Discount Type *</label>
+                <div class="discount-type-toggle">
+                  <div class="discount-type-option active" data-type="percentage" onclick="selectDiscountType('percentage')">
+                    <i class="fas fa-percentage"></i>
+                    Percentage
+                  </div>
+                  <div class="discount-type-option" data-type="fixed" onclick="selectDiscountType('fixed')">
+                    <i class="fas fa-coins"></i>
+                    Fixed Amount
+                  </div>
+                </div>
+              </div>
 
-        <!-- Usage Limits -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="maxUses">Maximum Uses</label>
-          <input type="number" id="maxUses" name="maxUses" class="promo-form-control" min="1" placeholder="Leave empty for unlimited">
-          <div class="promo-form-help">Maximum number of times this code can be used (leave empty for unlimited)</div>
-        </div>
+              <!-- Discount Value -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="discountValue">Discount Value *</label>
+                <div class="promo-form-row">
+                  <input type="number" id="discountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01" placeholder="10">
+                  <input type="number" id="maxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
+                </div>
+                <div class="promo-form-help" id="discountHelp">Enter the percentage discount (1-100)</div>
+              </div>
 
-        <!-- Multiple Uses Per User -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Usage Policy</label>
-          <div class="promo-form-checkbox-group">
-            <label class="promo-form-checkbox-label">
-              <input type="checkbox" id="allowMultipleUses" name="allowMultipleUses" value="true">
-              <span class="promo-form-checkbox-text">Allow multiple uses per user</span>
-            </label>
-          </div>
-          <div class="promo-form-help">If checked, users can use this promo code multiple times. If unchecked, each user can only use it once.</div>
-        </div>
+              <!-- Minimum Order Amount -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="minOrderAmount">Minimum Order Amount</label>
+                <input type="number" id="minOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0" value="0">
+                <div class="promo-form-help">Minimum order amount required to use this promo code</div>
+              </div>
 
-        <!-- Validity Period -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Validity Period *</label>
-          <div class="promo-form-row">
-            <input type="date" id="validFrom" name="validFrom" class="promo-form-control" required>
-            <input type="date" id="validUntil" name="validUntil" class="promo-form-control" required>
-          </div>
-          <div class="promo-form-help">Select the start and end dates for this promo code</div>
-        </div>
+              <!-- Usage Limits -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="maxUses">Maximum Uses</label>
+                <input type="number" id="maxUses" name="maxUses" class="promo-form-control" min="1" placeholder="Leave empty for unlimited">
+                <div class="promo-form-help">Maximum number of times this code can be used (leave empty for unlimited)</div>
+              </div>
 
-        <!-- Applicable To -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="applicableTo">Applicable To</label>
-          <select id="applicableTo" name="applicableTo" class="promo-form-control">
-            <option value="all">All Products</option>
-            <option value="bundles">Course Only</option>
-            <option value="courses">Weeks Only</option>
-          </select>
-        </div>
+              <!-- Multiple Uses Per User -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Usage Policy</label>
+                <div class="promo-form-checkbox-group">
+                  <label class="promo-form-checkbox-label">
+                    <input type="checkbox" id="allowMultipleUses" name="allowMultipleUses" value="true">
+                    <span class="promo-form-checkbox-text">Allow multiple uses per user</span>
+                  </label>
+                </div>
+                <div class="promo-form-help">If checked, users can use this promo code multiple times. If unchecked, each user can only use it once.</div>
+              </div>
 
-        <!-- Restrict to Specific Students -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Student Restriction</label>
-          <div class="promo-form-checkbox-group">
-            <label class="promo-form-checkbox-label">
-              <input type="checkbox" id="restrictToStudents" name="restrictToStudents" value="true" onchange="toggleStudentSelection()">
-              <span class="promo-form-checkbox-text">Restrict to specific students only</span>
-            </label>
-          </div>
-          <div class="promo-form-help">If checked, only selected students can use this promo code</div>
-        </div>
+              <!-- Validity Period -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Validity Period *</label>
+                <div class="promo-form-row">
+                  <input type="date" id="validFrom" name="validFrom" class="promo-form-control" required>
+                  <input type="date" id="validUntil" name="validUntil" class="promo-form-control" required>
+                </div>
+                <div class="promo-form-help">Select the start and end dates for this promo code</div>
+              </div>
 
-        <!-- Student Selection Section -->
-        <div class="promo-form-group" id="studentSelectionSection" style="display: none;">
-          <label class="promo-form-label">Select Students</label>
-          <button type="button" class="btn btn-outline-primary" onclick="openStudentSelectionModal('create')">
-            <i class="fas fa-user-plus me-1"></i>
-            <span id="selectedStudentsCount">Select Students</span>
-          </button>
-          <div id="selectedStudentsList" class="mt-2"></div>
-          <input type="hidden" id="allowedStudentIds" name="allowedStudentIds" value="[]">
-        </div>
+              <!-- Applicable To -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="applicableTo">Applicable To</label>
+                <select id="applicableTo" name="applicableTo" class="promo-form-control">
+                  <option value="all">All Products</option>
+                  <option value="bundles">Course Only</option>
+                  <option value="courses">Weeks Only</option>
+                </select>
+              </div>
 
-        <!-- Submit Button -->
-        <div class="promo-form-group">
-          <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center;">
-            <i class="fas fa-save"></i>
-            Create Promo Code
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+              <!-- Restrict to Specific Students -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Student Restriction</label>
+                <div class="promo-form-checkbox-group">
+                  <label class="promo-form-checkbox-label">
+                    <input type="checkbox" id="restrictToStudents" name="restrictToStudents" value="true" onchange="toggleStudentSelection()">
+                    <span class="promo-form-checkbox-text">Restrict to specific students only</span>
+                  </label>
+                </div>
+                <div class="promo-form-help">If checked, only selected students can use this promo code</div>
+              </div>
 
-<!-- Edit Promo Code Modal -->
-<div class="edit-promo-modal" id="editPromoModal">
-  <div class="edit-promo-modal-content">
-    <div class="edit-promo-modal-header">
-      <h2 class="edit-promo-modal-title">
-        <i class="fas fa-edit"></i>
-        Edit Promo Code
-      </h2>
-      <button class="edit-promo-modal-close" onclick="closeEditPromoModal()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="edit-promo-modal-body">
-      <form id="editPromoForm" onsubmit="updatePromoCode(event)">
-        <input type="hidden" id="editPromoId" name="id">
-        
-        <!-- Basic Information -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="editPromoName">Promo Code Name *</label>
-          <input type="text" id="editPromoName" name="name" class="promo-form-control" required>
-          <div class="promo-form-help">A descriptive name for this promo code</div>
-        </div>
+              <!-- Student Selection Section -->
+              <div class="promo-form-group" id="studentSelectionSection" style="display: none;">
+                <label class="promo-form-label">Select Students</label>
+                <button type="button" class="btn btn-outline-primary" onclick="openStudentSelectionModal('create')">
+                  <i class="fas fa-user-plus me-1"></i>
+                  <span id="selectedStudentsCount">Select Students</span>
+                </button>
+                <div id="selectedStudentsList" class="mt-2"></div>
+                <input type="hidden" id="allowedStudentIds" name="allowedStudentIds" value="[]">
+              </div>
 
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="editPromoDescription">Description (Optional)</label>
-          <textarea id="editPromoDescription" name="description" class="promo-form-control" rows="3"></textarea>
-          <div class="promo-form-help">Optional description to help identify this promo code</div>
-        </div>
-
-        <!-- Code (Read-only if used) -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="editPromoCode">Promo Code *</label>
-          <input type="text" id="editPromoCode" name="code" class="promo-form-control" required readonly>
-          <div class="promo-form-help" id="editCodeHelp">Promo code cannot be changed if it has been used</div>
-        </div>
-
-        <!-- Status Toggle -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Status</label>
-          <div class="status-toggle-container">
-            <label class="status-toggle">
-              <input type="checkbox" id="editPromoIsActive" name="isActive">
-              <span class="status-toggle-slider"></span>
-              <span class="status-toggle-label">Active</span>
-            </label>
-          </div>
-          <div class="promo-form-help">Toggle to activate or deactivate this promo code</div>
-        </div>
-
-        <!-- Discount Type -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Discount Type *</label>
-          <div class="discount-type-toggle">
-            <div class="discount-type-option" data-type="percentage" onclick="selectEditDiscountType('percentage')">
-              <i class="fas fa-percentage"></i>
-              Percentage
-            </div>
-            <div class="discount-type-option" data-type="fixed" onclick="selectEditDiscountType('fixed')">
-              <i class="fas fa-coins"></i>
-              Fixed Amount
-            </div>
-          </div>
-        </div>
-
-        <!-- Discount Value -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="editDiscountValue">Discount Value *</label>
-          <div class="promo-form-row">
-            <input type="number" id="editDiscountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01">
-            <input type="number" id="editMaxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
-          </div>
-          <div class="promo-form-help" id="editDiscountHelp">Enter the percentage discount (1-100)</div>
-        </div>
-
-        <!-- Minimum Order Amount -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="editMinOrderAmount">Minimum Order Amount</label>
-          <input type="number" id="editMinOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0">
-          <div class="promo-form-help">Minimum order amount required to use this promo code</div>
-        </div>
-
-        <!-- Usage Limits -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="editMaxUses">Maximum Uses</label>
-          <input type="number" id="editMaxUses" name="maxUses" class="promo-form-control" min="1" placeholder="Leave empty for unlimited">
-          <div class="promo-form-help">Maximum number of times this code can be used (leave empty for unlimited)</div>
-        </div>
-
-        <!-- Multiple Uses Per User -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Usage Policy</label>
-          <div class="promo-form-checkbox-group">
-            <label class="promo-form-checkbox-label">
-              <input type="checkbox" id="editAllowMultipleUses" name="allowMultipleUses" value="true">
-              <span class="promo-form-checkbox-text">Allow multiple uses per user</span>
-            </label>
-          </div>
-          <div class="promo-form-help">If checked, users can use this promo code multiple times. If unchecked, each user can only use it once.</div>
-        </div>
-
-        <!-- Validity Period -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Validity Period *</label>
-          <div class="promo-form-row">
-            <input type="date" id="editValidFrom" name="validFrom" class="promo-form-control" required>
-            <input type="date" id="editValidUntil" name="validUntil" class="promo-form-control" required>
-          </div>
-          <div class="promo-form-help">Select the start and end dates for this promo code</div>
-        </div>
-
-        <!-- Applicable To -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="editApplicableTo">Applicable To</label>
-          <select id="editApplicableTo" name="applicableTo" class="promo-form-control">
-            <option value="all">All Products</option>
-            <option value="bundles">Course Bundles Only</option>
-            <option value="courses">Individual Courses Only</option>
-          </select>
-        </div>
-
-        <!-- Restrict to Specific Students -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Student Restriction</label>
-          <div class="promo-form-checkbox-group">
-            <label class="promo-form-checkbox-label">
-              <input type="checkbox" id="editRestrictToStudents" name="restrictToStudents" value="true" onchange="toggleEditStudentSelection()">
-              <span class="promo-form-checkbox-text">Restrict to specific students only</span>
-            </label>
-          </div>
-          <div class="promo-form-help">If checked, only selected students can use this promo code</div>
-        </div>
-
-        <!-- Student Selection Section -->
-        <div class="promo-form-group" id="editStudentSelectionSection" style="display: none;">
-          <label class="promo-form-label">Select Students</label>
-          <button type="button" class="btn btn-outline-primary" onclick="openStudentSelectionModal('edit')">
-            <i class="fas fa-user-plus me-1"></i>
-            <span id="editSelectedStudentsCount">Select Students</span>
-          </button>
-          <div id="editSelectedStudentsList" class="mt-2"></div>
-          <input type="hidden" id="editAllowedStudentIds" name="allowedStudentIds" value="[]">
-        </div>
-
-        <!-- Submit Button -->
-        <div class="promo-form-group">
-          <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center;">
-            <i class="fas fa-save"></i>
-            Update Promo Code
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Usage History Modal -->
-<div class="usage-history-modal" id="usageHistoryModal">
-  <div class="usage-history-modal-content">
-    <div class="usage-history-modal-header">
-      <h2 class="usage-history-modal-title">
-        <i class="fas fa-history"></i>
-        Usage History
-      </h2>
-      <button class="usage-history-modal-close" onclick="closeUsageHistoryModal()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="usage-history-modal-body" id="usageHistoryBody">
-      <!-- Usage history will be loaded here -->
-    </div>
-  </div>
-</div>
-
-<!-- Student Selection Modal -->
-<div class="modal fade" id="studentSelectionModal" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="fas fa-user-plus me-2"></i>Select Students for Promo Code
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <input type="text" id="studentSearchInputPromo" class="form-control" placeholder="Search by name, email, or code..." oninput="searchStudentsForPromo()">
-        </div>
-        <div id="studentListContainerPromo" style="max-height: 400px; overflow-y: auto;">
-          <div class="text-center">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
-            <p class="text-muted mt-2">Loading students...</p>
+              <!-- Submit Button -->
+              <div class="promo-form-group">
+                <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center;">
+                  <i class="fas fa-save"></i>
+                  Create Promo Code
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-success" id="confirmStudentSelectionBtn" onclick="confirmStudentSelection()">
-          <i class="fas fa-check me-1"></i>
-          <span id="confirmSelectionText">Confirm Selection</span>
-        </button>
+
+      <!-- Edit Promo Code Modal -->
+      <div class="edit-promo-modal" id="editPromoModal">
+        <div class="edit-promo-modal-content">
+          <div class="edit-promo-modal-header">
+            <h2 class="edit-promo-modal-title">
+              <i class="fas fa-edit"></i>
+              Edit Promo Code
+            </h2>
+            <button class="edit-promo-modal-close" onclick="closeEditPromoModal()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="edit-promo-modal-body">
+            <form id="editPromoForm" onsubmit="updatePromoCode(event)">
+              <input type="hidden" id="editPromoId" name="id">
+
+              <!-- Basic Information -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="editPromoName">Promo Code Name *</label>
+                <input type="text" id="editPromoName" name="name" class="promo-form-control" required>
+                <div class="promo-form-help">A descriptive name for this promo code</div>
+              </div>
+
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="editPromoDescription">Description (Optional)</label>
+                <textarea id="editPromoDescription" name="description" class="promo-form-control" rows="3"></textarea>
+                <div class="promo-form-help">Optional description to help identify this promo code</div>
+              </div>
+
+              <!-- Code (Read-only if used) -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="editPromoCode">Promo Code *</label>
+                <input type="text" id="editPromoCode" name="code" class="promo-form-control" required readonly>
+                <div class="promo-form-help" id="editCodeHelp">Promo code cannot be changed if it has been used</div>
+              </div>
+
+              <!-- Status Toggle -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Status</label>
+                <div class="status-toggle-container">
+                  <label class="status-toggle">
+                    <input type="checkbox" id="editPromoIsActive" name="isActive">
+                    <span class="status-toggle-slider"></span>
+                    <span class="status-toggle-label">Active</span>
+                  </label>
+                </div>
+                <div class="promo-form-help">Toggle to activate or deactivate this promo code</div>
+              </div>
+
+              <!-- Discount Type -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Discount Type *</label>
+                <div class="discount-type-toggle">
+                  <div class="discount-type-option" data-type="percentage" onclick="selectEditDiscountType('percentage')">
+                    <i class="fas fa-percentage"></i>
+                    Percentage
+                  </div>
+                  <div class="discount-type-option" data-type="fixed" onclick="selectEditDiscountType('fixed')">
+                    <i class="fas fa-coins"></i>
+                    Fixed Amount
+                  </div>
+                </div>
+              </div>
+
+              <!-- Discount Value -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="editDiscountValue">Discount Value *</label>
+                <div class="promo-form-row">
+                  <input type="number" id="editDiscountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01">
+                  <input type="number" id="editMaxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
+                </div>
+                <div class="promo-form-help" id="editDiscountHelp">Enter the percentage discount (1-100)</div>
+              </div>
+
+              <!-- Minimum Order Amount -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="editMinOrderAmount">Minimum Order Amount</label>
+                <input type="number" id="editMinOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0">
+                <div class="promo-form-help">Minimum order amount required to use this promo code</div>
+              </div>
+
+              <!-- Usage Limits -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="editMaxUses">Maximum Uses</label>
+                <input type="number" id="editMaxUses" name="maxUses" class="promo-form-control" min="1" placeholder="Leave empty for unlimited">
+                <div class="promo-form-help">Maximum number of times this code can be used (leave empty for unlimited)</div>
+              </div>
+
+              <!-- Multiple Uses Per User -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Usage Policy</label>
+                <div class="promo-form-checkbox-group">
+                  <label class="promo-form-checkbox-label">
+                    <input type="checkbox" id="editAllowMultipleUses" name="allowMultipleUses" value="true">
+                    <span class="promo-form-checkbox-text">Allow multiple uses per user</span>
+                  </label>
+                </div>
+                <div class="promo-form-help">If checked, users can use this promo code multiple times. If unchecked, each user can only use it once.</div>
+              </div>
+
+              <!-- Validity Period -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Validity Period *</label>
+                <div class="promo-form-row">
+                  <input type="date" id="editValidFrom" name="validFrom" class="promo-form-control" required>
+                  <input type="date" id="editValidUntil" name="validUntil" class="promo-form-control" required>
+                </div>
+                <div class="promo-form-help">Select the start and end dates for this promo code</div>
+              </div>
+
+              <!-- Applicable To -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="editApplicableTo">Applicable To</label>
+                <select id="editApplicableTo" name="applicableTo" class="promo-form-control">
+                  <option value="all">All Products</option>
+                  <option value="bundles">Course Bundles Only</option>
+                  <option value="courses">Individual Courses Only</option>
+                </select>
+              </div>
+
+              <!-- Restrict to Specific Students -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Student Restriction</label>
+                <div class="promo-form-checkbox-group">
+                  <label class="promo-form-checkbox-label">
+                    <input type="checkbox" id="editRestrictToStudents" name="restrictToStudents" value="true" onchange="toggleEditStudentSelection()">
+                    <span class="promo-form-checkbox-text">Restrict to specific students only</span>
+                  </label>
+                </div>
+                <div class="promo-form-help">If checked, only selected students can use this promo code</div>
+              </div>
+
+              <!-- Student Selection Section -->
+              <div class="promo-form-group" id="editStudentSelectionSection" style="display: none;">
+                <label class="promo-form-label">Select Students</label>
+                <button type="button" class="btn btn-outline-primary" onclick="openStudentSelectionModal('edit')">
+                  <i class="fas fa-user-plus me-1"></i>
+                  <span id="editSelectedStudentsCount">Select Students</span>
+                </button>
+                <div id="editSelectedStudentsList" class="mt-2"></div>
+                <input type="hidden" id="editAllowedStudentIds" name="allowedStudentIds" value="[]">
+              </div>
+
+              <!-- Submit Button -->
+              <div class="promo-form-group">
+                <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center;">
+                  <i class="fas fa-save"></i>
+                  Update Promo Code
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
 
-<!-- Bulk Promo Code Creation Modal -->
-<div class="create-promo-modal" id="bulkPromoModal">
-  <div class="create-promo-modal-content">
-    <div class="create-promo-modal-header">
-      <h2 class="create-promo-modal-title">
-        <i class="fas fa-layer-group"></i>
-        Create Bulk Promo Codes
-      </h2>
-      <button class="create-promo-modal-close" onclick="closeBulkPromoModal()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="create-promo-modal-body">
-      <form id="bulkPromoForm" onsubmit="createBulkPromoCodes(event)">
-        <!-- Collection Information -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="bulkCollectionName">Collection Name *</label>
-          <input type="text" id="bulkCollectionName" name="collectionName" class="promo-form-control" required placeholder="e.g., School X Codes">
-          <div class="promo-form-help">A descriptive name to identify this collection (e.g., "School X", "Summer Campaign 2024")</div>
+      <!-- Usage History Modal -->
+      <div class="usage-history-modal" id="usageHistoryModal">
+        <div class="usage-history-modal-content">
+          <div class="usage-history-modal-header">
+            <h2 class="usage-history-modal-title">
+              <i class="fas fa-history"></i>
+              Usage History
+            </h2>
+            <button class="usage-history-modal-close" onclick="closeUsageHistoryModal()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="usage-history-modal-body" id="usageHistoryBody">
+            <!-- Usage history will be loaded here -->
+          </div>
         </div>
+      </div>
 
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="bulkCodeCount">Number of Codes *</label>
-          <input type="number" id="bulkCodeCount" name="count" class="promo-form-control" required min="1" max="1000" placeholder="50">
-          <div class="promo-form-help">How many unique codes to generate (1-1000). Each code can only be used once by one student.</div>
-        </div>
-
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="bulkCodePrefix">Code Prefix (Optional)</label>
-          <input type="text" id="bulkCodePrefix" name="codePrefix" class="promo-form-control" maxlength="5" placeholder="SCHOOL">
-          <div class="promo-form-help">Optional prefix for all codes (e.g., "SCHOOL" will generate codes like "SCHOOLABC123")</div>
-        </div>
-
-        <!-- Discount Type -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Discount Type *</label>
-          <div class="discount-type-toggle">
-            <div class="discount-type-option active" data-type="percentage" onclick="selectBulkDiscountType('percentage')">
-              <i class="fas fa-percentage"></i>
-              Percentage
+      <!-- Student Selection Modal -->
+      <div class="modal fade" id="studentSelectionModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                <i class="fas fa-user-plus me-2"></i>Select Students for Promo Code
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="discount-type-option" data-type="fixed" onclick="selectBulkDiscountType('fixed')">
-              <i class="fas fa-coins"></i>
-              Fixed Amount
+            <div class="modal-body">
+              <div class="mb-3">
+                <input type="text" id="studentSearchInputPromo" class="form-control" placeholder="Search by name, email, or code..." oninput="searchStudentsForPromo()">
+              </div>
+              <div id="studentListContainerPromo" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center">
+                  <i class="fas fa-spinner fa-spin fa-2x"></i>
+                  <p class="text-muted mt-2">Loading students...</p>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-success" id="confirmStudentSelectionBtn" onclick="confirmStudentSelection()">
+                <i class="fas fa-check me-1"></i>
+                <span id="confirmSelectionText">Confirm Selection</span>
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Discount Value -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="bulkDiscountValue">Discount Value *</label>
-          <div class="promo-form-row">
-            <input type="number" id="bulkDiscountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01" placeholder="80">
-            <input type="number" id="bulkMaxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
+      <!-- Bulk Promo Code Creation Modal -->
+      <div class="create-promo-modal" id="bulkPromoModal">
+        <div class="create-promo-modal-content">
+          <div class="create-promo-modal-header">
+            <h2 class="create-promo-modal-title">
+              <i class="fas fa-layer-group"></i>
+              Create Bulk Promo Codes
+            </h2>
+            <button class="create-promo-modal-close" onclick="closeBulkPromoModal()">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-          <div class="promo-form-help" id="bulkDiscountHelp">Enter the percentage discount (1-100)</div>
-        </div>
+          <div class="create-promo-modal-body">
+            <form id="bulkPromoForm" onsubmit="createBulkPromoCodes(event)">
+              <!-- Collection Information -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="bulkCollectionName">Collection Name *</label>
+                <input type="text" id="bulkCollectionName" name="collectionName" class="promo-form-control" required placeholder="e.g., School X Codes">
+                <div class="promo-form-help">A descriptive name to identify this collection (e.g., "School X", "Summer Campaign 2024")</div>
+              </div>
 
-        <!-- Minimum Order Amount -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="bulkMinOrderAmount">Minimum Order Amount</label>
-          <input type="number" id="bulkMinOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0" value="0">
-          <div class="promo-form-help">Minimum order amount required to use these codes</div>
-        </div>
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="bulkCodeCount">Number of Codes *</label>
+                <input type="number" id="bulkCodeCount" name="count" class="promo-form-control" required min="1" max="1000" placeholder="50">
+                <div class="promo-form-help">How many unique codes to generate (1-1000). Each code can only be used once by one student.</div>
+              </div>
 
-        <!-- Validity Period -->
-        <div class="promo-form-group">
-          <label class="promo-form-label">Validity Period *</label>
-          <div class="promo-form-row">
-            <input type="date" id="bulkValidFrom" name="validFrom" class="promo-form-control" required>
-            <input type="date" id="bulkValidUntil" name="validUntil" class="promo-form-control" required>
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="bulkCodePrefix">Code Prefix (Optional)</label>
+                <input type="text" id="bulkCodePrefix" name="codePrefix" class="promo-form-control" maxlength="5" placeholder="SCHOOL">
+                <div class="promo-form-help">Optional prefix for all codes (e.g., "SCHOOL" will generate codes like "SCHOOLABC123")</div>
+              </div>
+
+              <!-- Discount Type -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Discount Type *</label>
+                <div class="discount-type-toggle">
+                  <div class="discount-type-option active" data-type="percentage" onclick="selectBulkDiscountType('percentage')">
+                    <i class="fas fa-percentage"></i>
+                    Percentage
+                  </div>
+                  <div class="discount-type-option" data-type="fixed" onclick="selectBulkDiscountType('fixed')">
+                    <i class="fas fa-coins"></i>
+                    Fixed Amount
+                  </div>
+                </div>
+              </div>
+
+              <!-- Discount Value -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="bulkDiscountValue">Discount Value *</label>
+                <div class="promo-form-row">
+                  <input type="number" id="bulkDiscountValue" name="discountValue" class="promo-form-control" required min="0" step="0.01" placeholder="80">
+                  <input type="number" id="bulkMaxDiscountAmount" name="maxDiscountAmount" class="promo-form-control" placeholder="Max discount (optional)" min="0" step="0.01">
+                </div>
+                <div class="promo-form-help" id="bulkDiscountHelp">Enter the percentage discount (1-100)</div>
+              </div>
+
+              <!-- Minimum Order Amount -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="bulkMinOrderAmount">Minimum Order Amount</label>
+                <input type="number" id="bulkMinOrderAmount" name="minOrderAmount" class="promo-form-control" min="0" step="0.01" placeholder="0" value="0">
+                <div class="promo-form-help">Minimum order amount required to use these codes</div>
+              </div>
+
+              <!-- Validity Period -->
+              <div class="promo-form-group">
+                <label class="promo-form-label">Validity Period *</label>
+                <div class="promo-form-row">
+                  <input type="date" id="bulkValidFrom" name="validFrom" class="promo-form-control" required>
+                  <input type="date" id="bulkValidUntil" name="validUntil" class="promo-form-control" required>
+                </div>
+                <div class="promo-form-help">Select the start and end dates for these promo codes</div>
+              </div>
+
+              <!-- Applicable To -->
+              <div class="promo-form-group">
+                <label class="promo-form-label" for="bulkApplicableTo">Applicable To</label>
+                <select id="bulkApplicableTo" name="applicableTo" class="promo-form-control">
+                  <option value="all">All Products</option>
+                  <option value="bundles">Course Bundles Only</option>
+                  <option value="courses">Individual Courses Only</option>
+                </select>
+              </div>
+
+              <!-- Info Box -->
+              <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: start; gap: 0.5rem;">
+                  <i class="fas fa-info-circle" style="color: #d97706; margin-top: 2px;"></i>
+                  <div style="color: #78350f; font-size: 0.9rem;">
+                    <strong>Important:</strong> Each code in this collection can only be used <strong>once by one student</strong>.
+                    After creation, you'll be able to download an Excel file with all codes to distribute to your users.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="promo-form-group">
+                <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #059669, #10b981);">
+                  <i class="fas fa-layer-group"></i>
+                  Create Bulk Codes
+                </button>
+              </div>
+            </form>
           </div>
-          <div class="promo-form-help">Select the start and end dates for these promo codes</div>
         </div>
+      </div>
 
-        <!-- Applicable To -->
-        <div class="promo-form-group">
-          <label class="promo-form-label" for="bulkApplicableTo">Applicable To</label>
-          <select id="bulkApplicableTo" name="applicableTo" class="promo-form-control">
-            <option value="all">All Products</option>
-            <option value="bundles">Course Bundles Only</option>
-            <option value="courses">Individual Courses Only</option>
-          </select>
-        </div>
-
-        <!-- Info Box -->
-        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-          <div style="display: flex; align-items: start; gap: 0.5rem;">
-            <i class="fas fa-info-circle" style="color: #d97706; margin-top: 2px;"></i>
-            <div style="color: #78350f; font-size: 0.9rem;">
-              <strong>Important:</strong> Each code in this collection can only be used <strong>once by one student</strong>. 
-              After creation, you'll be able to download an Excel file with all codes to distribute to your users.
-            </div>
+      <!-- Bulk Collection Details Modal -->
+      <div class="usage-history-modal" id="bulkCollectionDetailsModal">
+        <div class="usage-history-modal-content" style="max-width: 1200px;">
+          <div class="usage-history-modal-header">
+            <h2 class="usage-history-modal-title">
+              <i class="fas fa-layer-group"></i>
+              Bulk Collection Details
+            </h2>
+            <button class="usage-history-modal-close" onclick="closeBulkCollectionDetailsModal()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="usage-history-modal-body" id="bulkCollectionDetailsBody">
+            <!-- Details will be loaded here -->
           </div>
         </div>
+      </div>
 
-        <!-- Submit Button -->
-        <div class="promo-form-group">
-          <button type="submit" class="create-promo-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #059669, #10b981);">
-            <i class="fas fa-layer-group"></i>
-            Create Bulk Codes
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+      <script>
+        // Global variables
+        let currentDiscountType = 'percentage';
+        let currentEditDiscountType = 'percentage';
+        let currentBulkDiscountType = 'percentage';
+        let selectedStudentsForPromo = new Set();
+        let currentModalMode = 'create'; // 'create' or 'edit'
+        let allBulkCollections = []; // Store all collections for client-side filtering
+        let filteredBulkCollections = []; // Store filtered collections
 
-<!-- Bulk Collection Details Modal -->
-<div class="usage-history-modal" id="bulkCollectionDetailsModal">
-  <div class="usage-history-modal-content" style="max-width: 1200px;">
-    <div class="usage-history-modal-header">
-      <h2 class="usage-history-modal-title">
-        <i class="fas fa-layer-group"></i>
-        Bulk Collection Details
-      </h2>
-      <button class="usage-history-modal-close" onclick="closeBulkCollectionDetailsModal()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="usage-history-modal-body" id="bulkCollectionDetailsBody">
-      <!-- Details will be loaded here -->
-    </div>
-  </div>
-</div>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+          try {
+            // Initialize sidebar toggle
+            initializeSidebarToggle();
 
-<script>
-// Global variables
-let currentDiscountType = 'percentage';
-let currentEditDiscountType = 'percentage';
-let currentBulkDiscountType = 'percentage';
-let selectedStudentsForPromo = new Set();
-let currentModalMode = 'create'; // 'create' or 'edit'
-let allBulkCollections = []; // Store all collections for client-side filtering
-let filteredBulkCollections = []; // Store filtered collections
+            // Set default dates
+            const today = new Date();
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-// Initialize page
-document.addEventListener('DOMContentLoaded', function() {
-  try {
-    // Initialize sidebar toggle
-    initializeSidebarToggle();
-    
-    // Set default dates
-    const today = new Date();
-    const nextMonth = new Date(today);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    
-    document.getElementById('validFrom').value = today.toISOString().split('T')[0];
-    document.getElementById('validUntil').value = nextMonth.toISOString().split('T')[0];
-    
-    // Set default discount value based on type
-    updateDiscountInput();
-    
-    // Load bulk collections
-    loadBulkCollections();
-  } catch (error) {
-    console.error('Error initializing page:', error);
-  }
-});
+            document.getElementById('validFrom').value = today.toISOString().split('T')[0];
+            document.getElementById('validUntil').value = nextMonth.toISOString().split('T')[0];
 
-// Modal functions
-function openCreatePromoModal() {
-  document.getElementById('createPromoModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
+            // Set default discount value based on type
+            updateDiscountInput();
 
-function closeCreatePromoModal() {
-  document.getElementById('createPromoModal').classList.remove('show');
-  document.body.style.overflow = 'auto';
-  document.getElementById('createPromoForm').reset();
-  currentDiscountType = 'percentage';
-  selectDiscountType('percentage');
-}
+            // Load bulk collections
+            loadBulkCollections();
+          } catch (error) {
+            console.error('Error initializing page:', error);
+          }
+        });
 
-function openUsageHistoryModal() {
-  document.getElementById('usageHistoryModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
+        // Modal functions
+        function openCreatePromoModal() {
+          document.getElementById('createPromoModal').classList.add('show');
+          document.body.style.overflow = 'hidden';
+        }
 
-function closeUsageHistoryModal() {
-  document.getElementById('usageHistoryModal').classList.remove('show');
-  document.body.style.overflow = 'auto';
-}
+        function closeCreatePromoModal() {
+          document.getElementById('createPromoModal').classList.remove('show');
+          document.body.style.overflow = 'auto';
+          document.getElementById('createPromoForm').reset();
+          currentDiscountType = 'percentage';
+          selectDiscountType('percentage');
+        }
 
-// Edit modal functions
-function openEditPromoModal() {
-  document.getElementById('editPromoModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
+        function openUsageHistoryModal() {
+          document.getElementById('usageHistoryModal').classList.add('show');
+          document.body.style.overflow = 'hidden';
+        }
 
-function closeEditPromoModal() {
-  document.getElementById('editPromoModal').classList.remove('show');
-  document.body.style.overflow = 'auto';
-  document.getElementById('editPromoForm').reset();
-  currentEditDiscountType = 'percentage';
-  selectEditDiscountType('percentage');
-}
+        function closeUsageHistoryModal() {
+          document.getElementById('usageHistoryModal').classList.remove('show');
+          document.body.style.overflow = 'auto';
+        }
 
-// Discount type selection
-function selectDiscountType(type) {
-  currentDiscountType = type;
-  
-  // Update toggle buttons
-  document.querySelectorAll('.discount-type-option').forEach(option => {
-    option.classList.remove('active');
-  });
-  document.querySelector(`[data-type="${type}"]`).classList.add('active');
-  
-  // Update input and help text
-  updateDiscountInput();
-}
+        // Edit modal functions
+        function openEditPromoModal() {
+          document.getElementById('editPromoModal').classList.add('show');
+          document.body.style.overflow = 'hidden';
+        }
 
-function updateDiscountInput() {
-  const discountValueInput = document.getElementById('discountValue');
-  const discountHelp = document.getElementById('discountHelp');
-  const maxDiscountInput = document.getElementById('maxDiscountAmount');
-  
-  if (currentDiscountType === 'percentage') {
-    discountValueInput.placeholder = '10';
-    discountValueInput.max = '100';
-    discountValueInput.step = '1';
-    discountHelp.textContent = 'Enter the percentage discount (1-100)';
-    maxDiscountInput.style.display = 'block';
-  } else {
-    discountValueInput.placeholder = '50';
-    discountValueInput.max = '';
-    discountValueInput.step = '0.01';
-    discountHelp.textContent = 'Enter the fixed discount amount in EGP';
-    maxDiscountInput.style.display = 'none';
-  }
-}
+        function closeEditPromoModal() {
+          document.getElementById('editPromoModal').classList.remove('show');
+          document.body.style.overflow = 'auto';
+          document.getElementById('editPromoForm').reset();
+          currentEditDiscountType = 'percentage';
+          selectEditDiscountType('percentage');
+        }
 
-// Edit discount type selection
-function selectEditDiscountType(type) {
-  currentEditDiscountType = type;
-  
-  // Update toggle buttons
-  document.querySelectorAll('#editPromoModal .discount-type-option').forEach(option => {
-    option.classList.remove('active');
-  });
-  document.querySelector(`#editPromoModal [data-type="${type}"]`).classList.add('active');
-  
-  // Update input and help text
-  updateEditDiscountInput();
-}
+        // Discount type selection
+        function selectDiscountType(type) {
+          currentDiscountType = type;
 
-function updateEditDiscountInput() {
-  const discountValueInput = document.getElementById('editDiscountValue');
-  const discountHelp = document.getElementById('editDiscountHelp');
-  const maxDiscountInput = document.getElementById('editMaxDiscountAmount');
-  
-  if (currentEditDiscountType === 'percentage') {
-    discountValueInput.placeholder = '10';
-    discountValueInput.max = '100';
-    discountValueInput.step = '1';
-    discountHelp.textContent = 'Enter the percentage discount (1-100)';
-    maxDiscountInput.style.display = 'block';
-  } else {
-    discountValueInput.placeholder = '50';
-    discountValueInput.max = '';
-    discountValueInput.step = '0.01';
-    discountHelp.textContent = 'Enter the fixed discount amount in EGP';
-    maxDiscountInput.style.display = 'none';
-  }
-}
+          // Update toggle buttons
+          document.querySelectorAll('.discount-type-option').forEach(option => {
+            option.classList.remove('active');
+          });
+          document.querySelector(`[data-type="${type}"]`).classList.add('active');
 
-// Generate random code
-function generateRandomCode() {
-  const length = 8;
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  
-  document.getElementById('promoCode').value = result;
-}
+          // Update input and help text
+          updateDiscountInput();
+        }
 
-// Create promo code
-async function createPromoCode(event) {
-  event.preventDefault();
-  
-  const formData = new FormData(event.target);
-  const data = {
-    name: formData.get('name'),
-    description: formData.get('description') || null, // Handle empty description
-    code: formData.get('code').toUpperCase(),
-    discountType: currentDiscountType,
-    discountValue: parseFloat(formData.get('discountValue')),
-    maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
-    minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
-    maxUses: formData.get('maxUses') ? parseInt(formData.get('maxUses')) : null,
-    allowMultipleUses: formData.get('allowMultipleUses') === 'true',
-    validFrom: formData.get('validFrom'),
-    validUntil: formData.get('validUntil'),
-    applicableTo: formData.get('applicableTo'),
-    restrictToStudents: formData.get('restrictToStudents') === 'true',
-    allowedStudentIds: formData.get('allowedStudentIds')
-  };
-  
-  try {
-    const response = await fetch('/admin/promo-codes/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      showNotification('Promo code created successfully!', 'success');
-      closeCreatePromoModal();
-      location.reload(); // Refresh to show new promo code
-    } else {
-      showNotification(result.message || 'Failed to create promo code', 'error');
-    }
-  } catch (error) {
-    console.error('Error creating promo code:', error);
-    showNotification('Error creating promo code', 'error');
-  }
-}
+        function updateDiscountInput() {
+          const discountValueInput = document.getElementById('discountValue');
+          const discountHelp = document.getElementById('discountHelp');
+          const maxDiscountInput = document.getElementById('maxDiscountAmount');
 
-// View promo usage history
-async function viewPromoUsage(promoCodeId) {
-  try {
-    const response = await fetch(`/admin/promo-codes/${promoCodeId}/usage`);
-    const result = await response.json();
-    
-    if (result.success) {
-      displayUsageHistory(result.usageHistory, result.promoCode);
-      openUsageHistoryModal();
-    } else {
-      showNotification(result.message || 'Failed to load usage history', 'error');
-    }
-  } catch (error) {
-    console.error('Error loading usage history:', error);
-    showNotification('Error loading usage history', 'error');
-  }
-}
+          if (currentDiscountType === 'percentage') {
+            discountValueInput.placeholder = '10';
+            discountValueInput.max = '100';
+            discountValueInput.step = '1';
+            discountHelp.textContent = 'Enter the percentage discount (1-100)';
+            maxDiscountInput.style.display = 'block';
+          } else {
+            discountValueInput.placeholder = '50';
+            discountValueInput.max = '';
+            discountValueInput.step = '0.01';
+            discountHelp.textContent = 'Enter the fixed discount amount in EGP';
+            maxDiscountInput.style.display = 'none';
+          }
+        }
 
-function displayUsageHistory(usageHistory, promoCode) {
-  const modalBody = document.getElementById('usageHistoryBody');
-  
-  if (!usageHistory || usageHistory.length === 0) {
-    modalBody.innerHTML = `
+        // Edit discount type selection
+        function selectEditDiscountType(type) {
+          currentEditDiscountType = type;
+
+          // Update toggle buttons
+          document.querySelectorAll('#editPromoModal .discount-type-option').forEach(option => {
+            option.classList.remove('active');
+          });
+          document.querySelector(`#editPromoModal [data-type="${type}"]`).classList.add('active');
+
+          // Update input and help text
+          updateEditDiscountInput();
+        }
+
+        function updateEditDiscountInput() {
+          const discountValueInput = document.getElementById('editDiscountValue');
+          const discountHelp = document.getElementById('editDiscountHelp');
+          const maxDiscountInput = document.getElementById('editMaxDiscountAmount');
+
+          if (currentEditDiscountType === 'percentage') {
+            discountValueInput.placeholder = '10';
+            discountValueInput.max = '100';
+            discountValueInput.step = '1';
+            discountHelp.textContent = 'Enter the percentage discount (1-100)';
+            maxDiscountInput.style.display = 'block';
+          } else {
+            discountValueInput.placeholder = '50';
+            discountValueInput.max = '';
+            discountValueInput.step = '0.01';
+            discountHelp.textContent = 'Enter the fixed discount amount in EGP';
+            maxDiscountInput.style.display = 'none';
+          }
+        }
+
+        // Generate random code
+        function generateRandomCode() {
+          const length = 8;
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+          let result = '';
+
+          for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+
+          document.getElementById('promoCode').value = result;
+        }
+
+        // Create promo code
+        async function createPromoCode(event) {
+          event.preventDefault();
+
+          const formData = new FormData(event.target);
+          const data = {
+            name: formData.get('name'),
+            description: formData.get('description') || null, // Handle empty description
+            code: formData.get('code').toUpperCase(),
+            discountType: currentDiscountType,
+            discountValue: parseFloat(formData.get('discountValue')),
+            maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
+            minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
+            maxUses: formData.get('maxUses') ? parseInt(formData.get('maxUses')) : null,
+            allowMultipleUses: formData.get('allowMultipleUses') === 'true',
+            validFrom: formData.get('validFrom'),
+            validUntil: formData.get('validUntil'),
+            applicableTo: formData.get('applicableTo'),
+            restrictToStudents: formData.get('restrictToStudents') === 'true',
+            allowedStudentIds: formData.get('allowedStudentIds')
+          };
+
+          try {
+            const response = await fetch('/admin/promo-codes/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              showNotification('Promo code created successfully!', 'success');
+              closeCreatePromoModal();
+              location.reload(); // Refresh to show new promo code
+            } else {
+              showNotification(result.message || 'Failed to create promo code', 'error');
+            }
+          } catch (error) {
+            console.error('Error creating promo code:', error);
+            showNotification('Error creating promo code', 'error');
+          }
+        }
+
+        // View promo usage history
+        async function viewPromoUsage(promoCodeId) {
+          try {
+            const response = await fetch(`/admin/promo-codes/${promoCodeId}/usage`);
+            const result = await response.json();
+
+            if (result.success) {
+              displayUsageHistory(result.usageHistory, result.promoCode);
+              openUsageHistoryModal();
+            } else {
+              showNotification(result.message || 'Failed to load usage history', 'error');
+            }
+          } catch (error) {
+            console.error('Error loading usage history:', error);
+            showNotification('Error loading usage history', 'error');
+          }
+        }
+
+        function displayUsageHistory(usageHistory, promoCode) {
+          const modalBody = document.getElementById('usageHistoryBody');
+
+          if (!usageHistory || usageHistory.length === 0) {
+            modalBody.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">
           <i class="fas fa-history"></i>
@@ -1376,21 +1376,21 @@ function displayUsageHistory(usageHistory, promoCode) {
         <p class="empty-state-description">This promo code hasn't been used yet.</p>
       </div>
     `;
-    return;
-  }
-  
-  let html = `
+            return;
+          }
+
+          let html = `
     <div style="margin-bottom: 1rem; padding: 1rem; background: #f8fafc; border-radius: 10px;">
       <h3 style="margin: 0 0 0.5rem 0; color: #1f2937;">${promoCode.name}</h3>
       <p style="margin: 0; color: #6b7280;">Code: <strong>${promoCode.code}</strong> | Total Uses: <strong>${usageHistory.length}</strong></p>
     </div>
   `;
-  
-  usageHistory.forEach(usage => {
-    const user = usage.user;
-    const purchase = usage.purchase;
-    
-    html += `
+
+          usageHistory.forEach(usage => {
+            const user = usage.user;
+            const purchase = usage.purchase;
+
+            html += `
       <div class="usage-history-item">
         <div class="usage-history-user">
           <div class="usage-history-avatar">
@@ -1408,69 +1408,69 @@ function displayUsageHistory(usageHistory, promoCode) {
         </div>
       </div>
     `;
-  });
-  
-  modalBody.innerHTML = html;
-}
+          });
 
-// Edit promo code
-async function editPromoCode(promoCodeId) {
-  try {
-    const response = await fetch(`/admin/promo-codes/${promoCodeId}`);
-    const result = await response.json();
-    
-    if (result.success) {
-      populateEditModal(result.promoCode);
-      openEditPromoModal();
-    } else {
-      showNotification(result.message || 'Failed to load promo code', 'error');
-    }
-  } catch (error) {
-    console.error('Error loading promo code:', error);
-    showNotification('Error loading promo code', 'error');
-  }
-}
+          modalBody.innerHTML = html;
+        }
 
-// Populate edit modal with promo code data
-function populateEditModal(promoCode) {
-  document.getElementById('editPromoId').value = promoCode._id;
-  document.getElementById('editPromoName').value = promoCode.name;
-  document.getElementById('editPromoDescription').value = promoCode.description || '';
-  document.getElementById('editPromoCode').value = promoCode.code;
-  document.getElementById('editPromoIsActive').checked = promoCode.isActive;
-  
-  // Set discount type
-  currentEditDiscountType = promoCode.discountType;
-  selectEditDiscountType(promoCode.discountType);
-  
-  document.getElementById('editDiscountValue').value = promoCode.discountValue;
-  document.getElementById('editMaxDiscountAmount').value = promoCode.maxDiscountAmount || '';
-  document.getElementById('editMinOrderAmount').value = promoCode.minOrderAmount || 0;
-  document.getElementById('editMaxUses').value = promoCode.maxUses || '';
-  document.getElementById('editAllowMultipleUses').checked = promoCode.allowMultipleUses || false;
-  document.getElementById('editValidFrom').value = new Date(promoCode.validFrom).toISOString().split('T')[0];
-  document.getElementById('editValidUntil').value = new Date(promoCode.validUntil).toISOString().split('T')[0];
-  document.getElementById('editApplicableTo').value = promoCode.applicableTo || 'all';
-  
-  // Handle student restriction
-  const restrictCheckbox = document.getElementById('editRestrictToStudents');
-  restrictCheckbox.checked = promoCode.restrictToStudents || false;
-  toggleEditStudentSelection();
-  
-  if (promoCode.restrictToStudents && promoCode.allowedStudents && promoCode.allowedStudents.length > 0) {
-    // Set allowed students
-    const studentIds = promoCode.allowedStudents.map(s => s._id || s);
-    document.getElementById('editAllowedStudentIds').value = JSON.stringify(studentIds);
-    selectedStudentsForPromo = new Set(studentIds);
-    
-    // Update display
-    const countSpan = document.getElementById('editSelectedStudentsCount');
-    const listDiv = document.getElementById('editSelectedStudentsList');
-    
-    countSpan.textContent = `${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`;
-    
-    if (promoCode.allowedStudents[0] && typeof promoCode.allowedStudents[0] === 'object') {
-      listDiv.innerHTML = promoCode.allowedStudents.map(student => `
+        // Edit promo code
+        async function editPromoCode(promoCodeId) {
+          try {
+            const response = await fetch(`/admin/promo-codes/${promoCodeId}`);
+            const result = await response.json();
+
+            if (result.success) {
+              populateEditModal(result.promoCode);
+              openEditPromoModal();
+            } else {
+              showNotification(result.message || 'Failed to load promo code', 'error');
+            }
+          } catch (error) {
+            console.error('Error loading promo code:', error);
+            showNotification('Error loading promo code', 'error');
+          }
+        }
+
+        // Populate edit modal with promo code data
+        function populateEditModal(promoCode) {
+          document.getElementById('editPromoId').value = promoCode._id;
+          document.getElementById('editPromoName').value = promoCode.name;
+          document.getElementById('editPromoDescription').value = promoCode.description || '';
+          document.getElementById('editPromoCode').value = promoCode.code;
+          document.getElementById('editPromoIsActive').checked = promoCode.isActive;
+
+          // Set discount type
+          currentEditDiscountType = promoCode.discountType;
+          selectEditDiscountType(promoCode.discountType);
+
+          document.getElementById('editDiscountValue').value = promoCode.discountValue;
+          document.getElementById('editMaxDiscountAmount').value = promoCode.maxDiscountAmount || '';
+          document.getElementById('editMinOrderAmount').value = promoCode.minOrderAmount || 0;
+          document.getElementById('editMaxUses').value = promoCode.maxUses || '';
+          document.getElementById('editAllowMultipleUses').checked = promoCode.allowMultipleUses || false;
+          document.getElementById('editValidFrom').value = new Date(promoCode.validFrom).toISOString().split('T')[0];
+          document.getElementById('editValidUntil').value = new Date(promoCode.validUntil).toISOString().split('T')[0];
+          document.getElementById('editApplicableTo').value = promoCode.applicableTo || 'all';
+
+          // Handle student restriction
+          const restrictCheckbox = document.getElementById('editRestrictToStudents');
+          restrictCheckbox.checked = promoCode.restrictToStudents || false;
+          toggleEditStudentSelection();
+
+          if (promoCode.restrictToStudents && promoCode.allowedStudents && promoCode.allowedStudents.length > 0) {
+            // Set allowed students
+            const studentIds = promoCode.allowedStudents.map(s => s._id || s);
+            document.getElementById('editAllowedStudentIds').value = JSON.stringify(studentIds);
+            selectedStudentsForPromo = new Set(studentIds);
+
+            // Update display
+            const countSpan = document.getElementById('editSelectedStudentsCount');
+            const listDiv = document.getElementById('editSelectedStudentsList');
+
+            countSpan.textContent = `${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`;
+
+            if (promoCode.allowedStudents[0] && typeof promoCode.allowedStudents[0] === 'object') {
+              listDiv.innerHTML = promoCode.allowedStudents.map(student => `
         <div class="badge bg-primary me-2 mb-2" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">
           <i class="fas fa-user me-1"></i>
           ${student.firstName} ${student.lastName}
@@ -1478,141 +1478,141 @@ function populateEditModal(promoCode) {
             onclick="removeStudentFromSelection('${student._id}')"></button>
         </div>
       `).join('');
-    } else {
-      countSpan.textContent = `${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`;
-      listDiv.innerHTML = '<p class="text-muted small">Click "Select Students" to view or modify</p>';
-    }
-  } else {
-    document.getElementById('editAllowedStudentIds').value = '[]';
-    selectedStudentsForPromo = new Set();
-    document.getElementById('editSelectedStudentsCount').textContent = 'Select Students';
-    document.getElementById('editSelectedStudentsList').innerHTML = '';
-  }
-  
-  // Make code field read-only if it has been used
-  const codeInput = document.getElementById('editPromoCode');
-  const codeHelp = document.getElementById('editCodeHelp');
-  if (promoCode.currentUses > 0) {
-    codeInput.readOnly = true;
-    codeInput.style.backgroundColor = '#f3f4f6';
-    codeHelp.textContent = 'Promo code cannot be changed because it has been used';
-    codeHelp.style.color = '#ef4444';
-  } else {
-    codeInput.readOnly = false;
-    codeInput.style.backgroundColor = '';
-    codeHelp.textContent = 'Promo code cannot be changed if it has been used';
-    codeHelp.style.color = '#6b7280';
-  }
-}
+            } else {
+              countSpan.textContent = `${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`;
+              listDiv.innerHTML = '<p class="text-muted small">Click "Select Students" to view or modify</p>';
+            }
+          } else {
+            document.getElementById('editAllowedStudentIds').value = '[]';
+            selectedStudentsForPromo = new Set();
+            document.getElementById('editSelectedStudentsCount').textContent = 'Select Students';
+            document.getElementById('editSelectedStudentsList').innerHTML = '';
+          }
 
-// Update promo code
-async function updatePromoCode(event) {
-  event.preventDefault();
-  
-  const formData = new FormData(event.target);
-  const promoCodeId = formData.get('id');
-  
-  const data = {
-    name: formData.get('name'),
-    description: formData.get('description') || null,
-    code: formData.get('code').toUpperCase(),
-    isActive: formData.get('isActive') === 'on',
-    discountType: currentEditDiscountType,
-    discountValue: parseFloat(formData.get('discountValue')),
-    maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
-    minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
-    maxUses: formData.get('maxUses') ? parseInt(formData.get('maxUses')) : null,
-    allowMultipleUses: formData.get('allowMultipleUses') === 'true',
-    validFrom: formData.get('validFrom'),
-    validUntil: formData.get('validUntil'),
-    applicableTo: formData.get('applicableTo'),
-    restrictToStudents: formData.get('restrictToStudents') === 'true',
-    allowedStudentIds: formData.get('allowedStudentIds')
-  };
-  
-  try {
-    const response = await fetch(`/admin/promo-codes/${promoCodeId}/update`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      showNotification('Promo code updated successfully!', 'success');
-      closeEditPromoModal();
-      location.reload(); // Refresh to show updated promo code
-    } else {
-      showNotification(result.message || 'Failed to update promo code', 'error');
-    }
-  } catch (error) {
-    console.error('Error updating promo code:', error);
-    showNotification('Error updating promo code', 'error');
-  }
-}
+          // Make code field read-only if it has been used
+          const codeInput = document.getElementById('editPromoCode');
+          const codeHelp = document.getElementById('editCodeHelp');
+          if (promoCode.currentUses > 0) {
+            codeInput.readOnly = true;
+            codeInput.style.backgroundColor = '#f3f4f6';
+            codeHelp.textContent = 'Promo code cannot be changed because it has been used';
+            codeHelp.style.color = '#ef4444';
+          } else {
+            codeInput.readOnly = false;
+            codeInput.style.backgroundColor = '';
+            codeHelp.textContent = 'Promo code cannot be changed if it has been used';
+            codeHelp.style.color = '#6b7280';
+          }
+        }
 
-// Delete promo code
-async function deletePromoCode(promoCodeId) {
-  if (!confirm('Are you sure you want to delete this promo code? This action cannot be undone.')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/admin/promo-codes/${promoCodeId}/delete`, {
-      method: 'DELETE'
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      showNotification('Promo code deleted successfully!', 'success');
-      location.reload();
-    } else {
-      showNotification(result.message || 'Failed to delete promo code', 'error');
-    }
-  } catch (error) {
-    console.error('Error deleting promo code:', error);
-    showNotification('Error deleting promo code', 'error');
-  }
-}
+        // Update promo code
+        async function updatePromoCode(event) {
+          event.preventDefault();
 
-// Filter and search functions
-function filterPromoCodes() {
-  const statusFilter = document.getElementById('statusFilter').value;
-  const rows = document.querySelectorAll('.promo-code-row');
-  
-  rows.forEach(row => {
-    const status = row.getAttribute('data-status');
-    if (!statusFilter || status === statusFilter) {
-      row.style.display = '';
-    } else {
-      row.style.display = 'none';
-    }
-  });
-}
+          const formData = new FormData(event.target);
+          const promoCodeId = formData.get('id');
 
-function searchPromoCodes() {
-  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-  const rows = document.querySelectorAll('.promo-code-row');
-  
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    if (text.includes(searchTerm)) {
-      row.style.display = '';
-    } else {
-      row.style.display = 'none';
-    }
-  });
-}
+          const data = {
+            name: formData.get('name'),
+            description: formData.get('description') || null,
+            code: formData.get('code').toUpperCase(),
+            isActive: formData.get('isActive') === 'on',
+            discountType: currentEditDiscountType,
+            discountValue: parseFloat(formData.get('discountValue')),
+            maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
+            minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
+            maxUses: formData.get('maxUses') ? parseInt(formData.get('maxUses')) : null,
+            allowMultipleUses: formData.get('allowMultipleUses') === 'true',
+            validFrom: formData.get('validFrom'),
+            validUntil: formData.get('validUntil'),
+            applicableTo: formData.get('applicableTo'),
+            restrictToStudents: formData.get('restrictToStudents') === 'true',
+            allowedStudentIds: formData.get('allowedStudentIds')
+          };
 
-// Notification function
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.style.cssText = `
+          try {
+            const response = await fetch(`/admin/promo-codes/${promoCodeId}/update`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              showNotification('Promo code updated successfully!', 'success');
+              closeEditPromoModal();
+              location.reload(); // Refresh to show updated promo code
+            } else {
+              showNotification(result.message || 'Failed to update promo code', 'error');
+            }
+          } catch (error) {
+            console.error('Error updating promo code:', error);
+            showNotification('Error updating promo code', 'error');
+          }
+        }
+
+        // Delete promo code
+        async function deletePromoCode(promoCodeId) {
+          if (!confirm('Are you sure you want to delete this promo code? This action cannot be undone.')) {
+            return;
+          }
+
+          try {
+            const response = await fetch(`/admin/promo-codes/${promoCodeId}/delete`, {
+              method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              showNotification('Promo code deleted successfully!', 'success');
+              location.reload();
+            } else {
+              showNotification(result.message || 'Failed to delete promo code', 'error');
+            }
+          } catch (error) {
+            console.error('Error deleting promo code:', error);
+            showNotification('Error deleting promo code', 'error');
+          }
+        }
+
+        // Filter and search functions
+        function filterPromoCodes() {
+          const statusFilter = document.getElementById('statusFilter').value;
+          const rows = document.querySelectorAll('.promo-code-row');
+
+          rows.forEach(row => {
+            const status = row.getAttribute('data-status');
+            if (!statusFilter || status === statusFilter) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        }
+
+        function searchPromoCodes() {
+          const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+          const rows = document.querySelectorAll('.promo-code-row');
+
+          rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        }
+
+        // Notification function
+        function showNotification(message, type = 'info') {
+          const notification = document.createElement('div');
+          notification.className = `notification notification-${type}`;
+          notification.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
@@ -1626,165 +1626,167 @@ function showNotification(message, type = 'info') {
     transform: translateX(100%);
     transition: transform 0.3s ease;
   `;
-  
-  if (type === 'success') {
-    notification.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-  } else if (type === 'error') {
-    notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-  } else {
-    notification.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
-  }
-  
-  notification.innerHTML = `
+
+          if (type === 'success') {
+            notification.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          } else if (type === 'error') {
+            notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+          } else {
+            notification.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+          }
+
+          notification.innerHTML = `
     <div style="display: flex; align-items: center; gap: 0.5rem;">
       <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
       <span>${message}</span>
     </div>
   `;
-  
-  document.body.appendChild(notification);
-  
-  setTimeout(() => notification.style.transform = 'translateX(0)', 100);
-  
-  setTimeout(() => {
-    notification.style.transform = 'translateX(100%)';
-    setTimeout(() => notification.remove(), 300);
-  }, 5000);
-}
 
-// Initialize sidebar toggle functionality
-function initializeSidebarToggle() {
-  const sidebarToggle = document.getElementById('sidebarToggle');
-  const mainContent = document.querySelector('.admin-main-content');
-  const sidebar = document.querySelector('.admin-sidebar');
-  
-  if (sidebarToggle && mainContent && sidebar) {
-    sidebarToggle.addEventListener('click', function() {
-      // Toggle sidebar visibility
-      sidebar.classList.toggle('sidebar-hidden');
-      
-      // Adjust main content margin
-      if (sidebar.classList.contains('sidebar-hidden')) {
-        mainContent.style.marginLeft = '0';
-      } else {
-        mainContent.style.marginLeft = '280px';
-      }
-    });
-    
-    // Handle window resize
-    window.addEventListener('resize', function() {
-      if (window.innerWidth <= 1024) {
-        sidebar.classList.add('sidebar-hidden');
-        mainContent.style.marginLeft = '0';
-      } else {
-        sidebar.classList.remove('sidebar-hidden');
-        mainContent.style.marginLeft = '280px';
-      }
-    });
-    
-    // Initialize based on screen size
-    if (window.innerWidth <= 1024) {
-      sidebar.classList.add('sidebar-hidden');
-      mainContent.style.marginLeft = '0';
-    }
-  }
-}
+          document.body.appendChild(notification);
 
-// Close modals when clicking outside
-document.addEventListener('click', function(event) {
-  if (event.target.classList.contains('create-promo-modal')) {
-    closeCreatePromoModal();
-  }
-  if (event.target.classList.contains('edit-promo-modal')) {
-    closeEditPromoModal();
-  }
-  if (event.target.classList.contains('usage-history-modal')) {
-    closeUsageHistoryModal();
-  }
-});
+          setTimeout(() => notification.style.transform = 'translateX(0)', 100);
 
-// ==================== STUDENT SELECTION FUNCTIONS ====================
+          setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => notification.remove(), 300);
+          }, 5000);
+        }
 
-// Toggle student selection section visibility
-function toggleStudentSelection() {
-  const checkbox = document.getElementById('restrictToStudents');
-  const section = document.getElementById('studentSelectionSection');
-  section.style.display = checkbox.checked ? 'block' : 'none';
-}
+        // Initialize sidebar toggle functionality
+        function initializeSidebarToggle() {
+          const sidebarToggle = document.getElementById('sidebarToggle');
+          const mainContent = document.querySelector('.admin-main-content');
+          const sidebar = document.querySelector('.admin-sidebar');
 
-function toggleEditStudentSelection() {
-  const checkbox = document.getElementById('editRestrictToStudents');
-  const section = document.getElementById('editStudentSelectionSection');
-  section.style.display = checkbox.checked ? 'block' : 'none';
-}
+          if (sidebarToggle && mainContent && sidebar) {
+            sidebarToggle.addEventListener('click', function() {
+              // Toggle sidebar visibility
+              sidebar.classList.toggle('sidebar-hidden');
 
-// Open student selection modal
-function openStudentSelectionModal(mode) {
-  currentModalMode = mode;
-  
-  // Load current selections
-  const hiddenInput = mode === 'create' ? 
-    document.getElementById('allowedStudentIds') : 
-    document.getElementById('editAllowedStudentIds');
-  
-  try {
-    const currentIds = JSON.parse(hiddenInput.value || '[]');
-    selectedStudentsForPromo = new Set(currentIds);
-  } catch (e) {
-    selectedStudentsForPromo = new Set();
-  }
-  
-  // Show modal with proper z-index
-  const modalElement = document.getElementById('studentSelectionModal');
-  const modal = new bootstrap.Modal(modalElement, {
-    backdrop: 'static',
-    keyboard: false
-  });
-  
-  // Add event listener to set z-index when modal is shown
-  modalElement.addEventListener('shown.bs.modal', function() {
-    // Find all backdrops and set the latest one to higher z-index
-    const backdrops = document.querySelectorAll('.modal-backdrop');
-    if (backdrops.length > 0) {
-      const latestBackdrop = backdrops[backdrops.length - 1];
-      latestBackdrop.classList.add('student-selection-backdrop');
-      latestBackdrop.style.zIndex = '10050';
-    }
-    modalElement.style.zIndex = '10100';
-  }, { once: true });
-  
-  modal.show();
-  
-  // Load students
-  loadStudentsForPromo();
-}
+              // Adjust main content margin
+              if (sidebar.classList.contains('sidebar-hidden')) {
+                mainContent.style.marginLeft = '0';
+              } else {
+                mainContent.style.marginLeft = '280px';
+              }
+            });
 
-// Load students for promo code
-async function loadStudentsForPromo(search = '') {
-  try {
-    const response = await fetch(`/admin/api/students-for-enrollment?search=${encodeURIComponent(search)}&page=1&limit=100`);
-    const data = await response.json();
-    
-    if (data.success) {
-      renderStudentListForPromo(data.students);
-    }
-  } catch (error) {
-    console.error('Error loading students:', error);
-    showNotification('Failed to load students', 'error');
-  }
-}
+            // Handle window resize
+            window.addEventListener('resize', function() {
+              if (window.innerWidth <= 1024) {
+                sidebar.classList.add('sidebar-hidden');
+                mainContent.style.marginLeft = '0';
+              } else {
+                sidebar.classList.remove('sidebar-hidden');
+                mainContent.style.marginLeft = '280px';
+              }
+            });
 
-// Render student list in modal
-function renderStudentListForPromo(students) {
-  const container = document.getElementById('studentListContainerPromo');
-  if (students.length === 0) {
-    container.innerHTML = '<p class="text-muted text-center">No students found</p>';
-    return;
-  }
+            // Initialize based on screen size
+            if (window.innerWidth <= 1024) {
+              sidebar.classList.add('sidebar-hidden');
+              mainContent.style.marginLeft = '0';
+            }
+          }
+        }
 
-  container.innerHTML = students.map(student => {
-    const isSelected = selectedStudentsForPromo.has(student._id);
-    return `
+        // Close modals when clicking outside
+        document.addEventListener('click', function(event) {
+          if (event.target.classList.contains('create-promo-modal')) {
+            closeCreatePromoModal();
+          }
+          if (event.target.classList.contains('edit-promo-modal')) {
+            closeEditPromoModal();
+          }
+          if (event.target.classList.contains('usage-history-modal')) {
+            closeUsageHistoryModal();
+          }
+        });
+
+        // ==================== STUDENT SELECTION FUNCTIONS ====================
+
+        // Toggle student selection section visibility
+        function toggleStudentSelection() {
+          const checkbox = document.getElementById('restrictToStudents');
+          const section = document.getElementById('studentSelectionSection');
+          section.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        function toggleEditStudentSelection() {
+          const checkbox = document.getElementById('editRestrictToStudents');
+          const section = document.getElementById('editStudentSelectionSection');
+          section.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        // Open student selection modal
+        function openStudentSelectionModal(mode) {
+          currentModalMode = mode;
+
+          // Load current selections
+          const hiddenInput = mode === 'create' ?
+            document.getElementById('allowedStudentIds') :
+            document.getElementById('editAllowedStudentIds');
+
+          try {
+            const currentIds = JSON.parse(hiddenInput.value || '[]');
+            selectedStudentsForPromo = new Set(currentIds);
+          } catch (e) {
+            selectedStudentsForPromo = new Set();
+          }
+
+          // Show modal with proper z-index
+          const modalElement = document.getElementById('studentSelectionModal');
+          const modal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: false
+          });
+
+          // Add event listener to set z-index when modal is shown
+          modalElement.addEventListener('shown.bs.modal', function() {
+            // Find all backdrops and set the latest one to higher z-index
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            if (backdrops.length > 0) {
+              const latestBackdrop = backdrops[backdrops.length - 1];
+              latestBackdrop.classList.add('student-selection-backdrop');
+              latestBackdrop.style.zIndex = '10050';
+            }
+            modalElement.style.zIndex = '10100';
+          }, {
+            once: true
+          });
+
+          modal.show();
+
+          // Load students
+          loadStudentsForPromo();
+        }
+
+        // Load students for promo code
+        async function loadStudentsForPromo(search = '') {
+          try {
+            const response = await fetch(`/admin/api/students-for-enrollment?search=${encodeURIComponent(search)}&page=1&limit=100`);
+            const data = await response.json();
+
+            if (data.success) {
+              renderStudentListForPromo(data.students);
+            }
+          } catch (error) {
+            console.error('Error loading students:', error);
+            showNotification('Failed to load students', 'error');
+          }
+        }
+
+        // Render student list in modal
+        function renderStudentListForPromo(students) {
+          const container = document.getElementById('studentListContainerPromo');
+          if (students.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">No students found</p>';
+            return;
+          }
+
+          container.innerHTML = students.map(student => {
+            const isSelected = selectedStudentsForPromo.has(student._id);
+            return `
       <div class="student-item ${isSelected ? 'selected' : ''} d-flex align-items-center justify-content-between p-3 border rounded mb-2" 
            data-student-id="${student._id}"
            onclick="toggleStudentCardSelection('${student._id}')">
@@ -1804,85 +1806,85 @@ function renderStudentListForPromo(students) {
         </div>
       </div>
     `;
-  }).join('');
-  
-  updateConfirmButtonText();
-}
+          }).join('');
 
-// Toggle student card selection (when clicking the whole card)
-function toggleStudentCardSelection(studentId) {
-  const checkbox = document.querySelector(`input[value="${studentId}"]`);
-  const studentItem = document.querySelector(`[data-student-id="${studentId}"]`);
-  
-  if (!checkbox || !studentItem) return;
-  
-  // Toggle selection
-  if (selectedStudentsForPromo.has(studentId)) {
-    selectedStudentsForPromo.delete(studentId);
-    checkbox.checked = false;
-    studentItem.classList.remove('selected');
-  } else {
-    selectedStudentsForPromo.add(studentId);
-    checkbox.checked = true;
-    studentItem.classList.add('selected');
-  }
-  
-  updateConfirmButtonText();
-}
+          updateConfirmButtonText();
+        }
 
-// Toggle student selection (legacy function, kept for compatibility)
-function toggleStudentSelectionForPromo(studentId) {
-  toggleStudentCardSelection(studentId);
-}
+        // Toggle student card selection (when clicking the whole card)
+        function toggleStudentCardSelection(studentId) {
+          const checkbox = document.querySelector(`input[value="${studentId}"]`);
+          const studentItem = document.querySelector(`[data-student-id="${studentId}"]`);
 
-// Update confirm button text
-function updateConfirmButtonText() {
-  const btn = document.getElementById('confirmStudentSelectionBtn');
-  const text = document.getElementById('confirmSelectionText');
-  const count = selectedStudentsForPromo.size;
-  
-  if (count > 0) {
-    text.textContent = `Confirm Selection (${count} student${count !== 1 ? 's' : ''})`;
-    btn.disabled = false;
-  } else {
-    text.textContent = 'Select at least one student';
-    btn.disabled = true;
-  }
-}
+          if (!checkbox || !studentItem) return;
 
-// Confirm student selection
-async function confirmStudentSelection() {
-  if (selectedStudentsForPromo.size === 0) {
-    showNotification('Please select at least one student', 'error');
-    return;
-  }
-  
-  try {
-    // Get student details for display
-    const studentIds = Array.from(selectedStudentsForPromo);
-    const response = await fetch('/admin/api/students-for-enrollment?page=1&limit=1000');
-    const data = await response.json();
-    
-    if (data.success) {
-      const selectedStudents = data.students.filter(s => studentIds.includes(s._id));
-      
-      // Update hidden input
-      const hiddenInput = currentModalMode === 'create' ? 
-        document.getElementById('allowedStudentIds') : 
-        document.getElementById('editAllowedStudentIds');
-      hiddenInput.value = JSON.stringify(studentIds);
-      
-      // Update display
-      const countSpan = currentModalMode === 'create' ? 
-        document.getElementById('selectedStudentsCount') : 
-        document.getElementById('editSelectedStudentsCount');
-      const listDiv = currentModalMode === 'create' ? 
-        document.getElementById('selectedStudentsList') : 
-        document.getElementById('editSelectedStudentsList');
-      
-      countSpan.textContent = `${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`;
-      
-      listDiv.innerHTML = selectedStudents.map(student => `
+          // Toggle selection
+          if (selectedStudentsForPromo.has(studentId)) {
+            selectedStudentsForPromo.delete(studentId);
+            checkbox.checked = false;
+            studentItem.classList.remove('selected');
+          } else {
+            selectedStudentsForPromo.add(studentId);
+            checkbox.checked = true;
+            studentItem.classList.add('selected');
+          }
+
+          updateConfirmButtonText();
+        }
+
+        // Toggle student selection (legacy function, kept for compatibility)
+        function toggleStudentSelectionForPromo(studentId) {
+          toggleStudentCardSelection(studentId);
+        }
+
+        // Update confirm button text
+        function updateConfirmButtonText() {
+          const btn = document.getElementById('confirmStudentSelectionBtn');
+          const text = document.getElementById('confirmSelectionText');
+          const count = selectedStudentsForPromo.size;
+
+          if (count > 0) {
+            text.textContent = `Confirm Selection (${count} student${count !== 1 ? 's' : ''})`;
+            btn.disabled = false;
+          } else {
+            text.textContent = 'Select at least one student';
+            btn.disabled = true;
+          }
+        }
+
+        // Confirm student selection
+        async function confirmStudentSelection() {
+          if (selectedStudentsForPromo.size === 0) {
+            showNotification('Please select at least one student', 'error');
+            return;
+          }
+
+          try {
+            // Get student details for display
+            const studentIds = Array.from(selectedStudentsForPromo);
+            const response = await fetch('/admin/api/students-for-enrollment?page=1&limit=1000');
+            const data = await response.json();
+
+            if (data.success) {
+              const selectedStudents = data.students.filter(s => studentIds.includes(s._id));
+
+              // Update hidden input
+              const hiddenInput = currentModalMode === 'create' ?
+                document.getElementById('allowedStudentIds') :
+                document.getElementById('editAllowedStudentIds');
+              hiddenInput.value = JSON.stringify(studentIds);
+
+              // Update display
+              const countSpan = currentModalMode === 'create' ?
+                document.getElementById('selectedStudentsCount') :
+                document.getElementById('editSelectedStudentsCount');
+              const listDiv = currentModalMode === 'create' ?
+                document.getElementById('selectedStudentsList') :
+                document.getElementById('editSelectedStudentsList');
+
+              countSpan.textContent = `${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`;
+
+              listDiv.innerHTML = selectedStudents.map(student => `
         <div class="badge bg-primary me-2 mb-2" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">
           <i class="fas fa-user me-1"></i>
           ${student.firstName} ${student.lastName}
@@ -1890,541 +1892,632 @@ async function confirmStudentSelection() {
             onclick="removeStudentFromSelection('${student._id}')"></button>
         </div>
       `).join('');
-      
-      // Close modal
-      bootstrap.Modal.getInstance(document.getElementById('studentSelectionModal')).hide();
-      showNotification(`${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`, 'success');
-    }
-  } catch (error) {
-    console.error('Error confirming selection:', error);
-    showNotification('Error confirming selection', 'error');
-  }
-}
 
-// Remove student from selection
-function removeStudentFromSelection(studentId) {
-  selectedStudentsForPromo.delete(studentId);
-  
-  // Update hidden input
-  const hiddenInput = currentModalMode === 'create' ? 
-    document.getElementById('allowedStudentIds') : 
-    document.getElementById('editAllowedStudentIds');
-  hiddenInput.value = JSON.stringify(Array.from(selectedStudentsForPromo));
-  
-  // Re-open modal to update
-  openStudentSelectionModal(currentModalMode);
-}
-
-// Search students for promo
-let searchTimeoutPromo;
-function searchStudentsForPromo() {
-  clearTimeout(searchTimeoutPromo);
-  searchTimeoutPromo = setTimeout(() => {
-    const search = document.getElementById('studentSearchInputPromo').value;
-    loadStudentsForPromo(search);
-  }, 500);
-}
-
-// ==================== BULK PROMO CODES FUNCTIONS ====================
-
-// Open bulk promo modal
-function openBulkPromoModal() {
-  document.getElementById('bulkPromoModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-  
-  // Set default dates
-  const today = new Date();
-  const nextMonth = new Date(today);
-  nextMonth.setMonth(nextMonth.getMonth() + 1);
-  
-  document.getElementById('bulkValidFrom').value = today.toISOString().split('T')[0];
-  document.getElementById('bulkValidUntil').value = nextMonth.toISOString().split('T')[0];
-}
-
-// Close bulk promo modal
-function closeBulkPromoModal() {
-  document.getElementById('bulkPromoModal').classList.remove('show');
-  document.body.style.overflow = 'auto';
-  document.getElementById('bulkPromoForm').reset();
-  currentBulkDiscountType = 'percentage';
-  selectBulkDiscountType('percentage');
-}
-
-// Select bulk discount type
-function selectBulkDiscountType(type) {
-  currentBulkDiscountType = type;
-  
-  // Update toggle buttons
-  document.querySelectorAll('#bulkPromoModal .discount-type-option').forEach(option => {
-    option.classList.remove('active');
-  });
-  document.querySelector(`#bulkPromoModal [data-type="${type}"]`).classList.add('active');
-  
-  // Update input and help text
-  updateBulkDiscountInput();
-}
-
-function updateBulkDiscountInput() {
-  const discountValueInput = document.getElementById('bulkDiscountValue');
-  const discountHelp = document.getElementById('bulkDiscountHelp');
-  const maxDiscountInput = document.getElementById('bulkMaxDiscountAmount');
-  
-  if (currentBulkDiscountType === 'percentage') {
-    discountValueInput.placeholder = '80';
-    discountValueInput.max = '100';
-    discountValueInput.step = '1';
-    discountHelp.textContent = 'Enter the percentage discount (1-100)';
-    maxDiscountInput.style.display = 'block';
-  } else {
-    discountValueInput.placeholder = '50';
-    discountValueInput.max = '';
-    discountValueInput.step = '0.01';
-    discountHelp.textContent = 'Enter the fixed discount amount in EGP';
-    maxDiscountInput.style.display = 'none';
-  }
-}
-
-// Create bulk promo codes
-async function createBulkPromoCodes(event) {
-  event.preventDefault();
-  
-  const formData = new FormData(event.target);
-  const data = {
-    collectionName: formData.get('collectionName'),
-    count: parseInt(formData.get('count')),
-    codePrefix: formData.get('codePrefix') || '',
-    discountType: currentBulkDiscountType,
-    discountValue: parseFloat(formData.get('discountValue')),
-    maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
-    minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
-    validFrom: formData.get('validFrom'),
-    validUntil: formData.get('validUntil'),
-    applicableTo: formData.get('applicableTo')
-  };
-  
-  try {
-    const response = await fetch('/admin/promo-codes/bulk/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      showNotification(`Successfully created ${result.totalCodes} promo codes!`, 'success');
-      closeBulkPromoModal();
-      
-      // Reload bulk collections
-      loadBulkCollections();
-      
-      // Show option to download Excel
-      setTimeout(() => {
-        if (confirm(`${result.totalCodes} codes created successfully! Would you like to download the Excel file with all codes now?`)) {
-          window.location.href = `/admin/promo-codes/bulk/collections/${result.bulkCollectionId}/export`;
+              // Close modal
+              bootstrap.Modal.getInstance(document.getElementById('studentSelectionModal')).hide();
+              showNotification(`${studentIds.length} student${studentIds.length !== 1 ? 's' : ''} selected`, 'success');
+            }
+          } catch (error) {
+            console.error('Error confirming selection:', error);
+            showNotification('Error confirming selection', 'error');
+          }
         }
-      }, 500);
-    } else {
-      showNotification(result.message || 'Failed to create bulk promo codes', 'error');
-    }
-  } catch (error) {
-    console.error('Error creating bulk promo codes:', error);
-    showNotification('Error creating bulk promo codes', 'error');
-  }
-}
 
-// Load bulk collections
-async function loadBulkCollections() {
-  try {
-    const response = await fetch('/admin/promo-codes/bulk/collections');
-    const result = await response.json();
-    
-    if (result.success) {
-      allBulkCollections = result.collections;
-      filteredBulkCollections = [...allBulkCollections];
-      applyBulkFilters(); // Apply any active filters
-    } else {
-      showNotification('Failed to load bulk collections', 'error');
-    }
-  } catch (error) {
-    console.error('Error loading bulk collections:', error);
-    document.getElementById('bulkCollectionsTableBody').innerHTML = `
+        // Remove student from selection
+        function removeStudentFromSelection(studentId) {
+          selectedStudentsForPromo.delete(studentId);
+
+          // Update hidden input
+          const hiddenInput = currentModalMode === 'create' ?
+            document.getElementById('allowedStudentIds') :
+            document.getElementById('editAllowedStudentIds');
+          hiddenInput.value = JSON.stringify(Array.from(selectedStudentsForPromo));
+
+          // Re-open modal to update
+          openStudentSelectionModal(currentModalMode);
+        }
+
+        // Search students for promo
+        let searchTimeoutPromo;
+
+        function searchStudentsForPromo() {
+          clearTimeout(searchTimeoutPromo);
+          searchTimeoutPromo = setTimeout(() => {
+            const search = document.getElementById('studentSearchInputPromo').value;
+            loadStudentsForPromo(search);
+          }, 500);
+        }
+
+        // ==================== BULK PROMO CODES FUNCTIONS ====================
+
+        // Open bulk promo modal
+        function openBulkPromoModal() {
+          document.getElementById('bulkPromoModal').classList.add('show');
+          document.body.style.overflow = 'hidden';
+
+          // Set default dates
+          const today = new Date();
+          const nextMonth = new Date(today);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+          document.getElementById('bulkValidFrom').value = today.toISOString().split('T')[0];
+          document.getElementById('bulkValidUntil').value = nextMonth.toISOString().split('T')[0];
+        }
+
+        // Close bulk promo modal
+        function closeBulkPromoModal() {
+          document.getElementById('bulkPromoModal').classList.remove('show');
+          document.body.style.overflow = 'auto';
+          document.getElementById('bulkPromoForm').reset();
+          currentBulkDiscountType = 'percentage';
+          selectBulkDiscountType('percentage');
+        }
+
+        // Select bulk discount type
+        function selectBulkDiscountType(type) {
+          currentBulkDiscountType = type;
+
+          // Update toggle buttons
+          document.querySelectorAll('#bulkPromoModal .discount-type-option').forEach(option => {
+            option.classList.remove('active');
+          });
+          document.querySelector(`#bulkPromoModal [data-type="${type}"]`).classList.add('active');
+
+          // Update input and help text
+          updateBulkDiscountInput();
+        }
+
+        function updateBulkDiscountInput() {
+          const discountValueInput = document.getElementById('bulkDiscountValue');
+          const discountHelp = document.getElementById('bulkDiscountHelp');
+          const maxDiscountInput = document.getElementById('bulkMaxDiscountAmount');
+
+          if (currentBulkDiscountType === 'percentage') {
+            discountValueInput.placeholder = '80';
+            discountValueInput.max = '100';
+            discountValueInput.step = '1';
+            discountHelp.textContent = 'Enter the percentage discount (1-100)';
+            maxDiscountInput.style.display = 'block';
+          } else {
+            discountValueInput.placeholder = '50';
+            discountValueInput.max = '';
+            discountValueInput.step = '0.01';
+            discountHelp.textContent = 'Enter the fixed discount amount in EGP';
+            maxDiscountInput.style.display = 'none';
+          }
+        }
+
+        // Create bulk promo codes
+        async function createBulkPromoCodes(event) {
+          event.preventDefault();
+
+          const formData = new FormData(event.target);
+          const data = {
+            collectionName: formData.get('collectionName'),
+            count: parseInt(formData.get('count')),
+            codePrefix: formData.get('codePrefix') || '',
+            discountType: currentBulkDiscountType,
+            discountValue: parseFloat(formData.get('discountValue')),
+            maxDiscountAmount: formData.get('maxDiscountAmount') ? parseFloat(formData.get('maxDiscountAmount')) : null,
+            minOrderAmount: parseFloat(formData.get('minOrderAmount')) || 0,
+            validFrom: formData.get('validFrom'),
+            validUntil: formData.get('validUntil'),
+            applicableTo: formData.get('applicableTo')
+          };
+
+          try {
+            const response = await fetch('/admin/promo-codes/bulk/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              showNotification(`Successfully created ${result.totalCodes} promo codes!`, 'success');
+              closeBulkPromoModal();
+
+              // Reload bulk collections
+              loadBulkCollections();
+
+              // Show option to download Excel
+              setTimeout(() => {
+                if (confirm(`${result.totalCodes} codes created successfully! Would you like to download the Excel file with all codes now?`)) {
+                  window.location.href = `/admin/promo-codes/bulk/collections/${result.bulkCollectionId}/export`;
+                }
+              }, 500);
+            } else {
+              showNotification(result.message || 'Failed to create bulk promo codes', 'error');
+            }
+          } catch (error) {
+            console.error('Error creating bulk promo codes:', error);
+            showNotification('Error creating bulk promo codes', 'error');
+          }
+        }
+
+        // Load bulk collections
+        async function loadBulkCollections() {
+          try {
+            const response = await fetch('/admin/promo-codes/bulk/collections');
+            const result = await response.json();
+
+            if (result.success) {
+              allBulkCollections = result.collections;
+              filteredBulkCollections = [...allBulkCollections];
+              applyBulkFilters(); // Apply any active filters
+            } else {
+              showNotification('Failed to load bulk collections', 'error');
+            }
+          } catch (error) {
+            console.error('Error loading bulk collections:', error);
+            document.getElementById('bulkCollectionsTableBody').innerHTML = `
       <tr>
         <td colspan="9" class="text-center text-danger">
           <i class="fas fa-exclamation-triangle"></i> Error loading bulk collections
         </td>
       </tr>
     `;
-  }
-}
+          }
+        }
 
-// Apply bulk filters
-function applyBulkFilters() {
-  const searchTerm = document.getElementById('bulkSearchInput').value.toLowerCase();
-  const statusFilter = document.getElementById('bulkStatusFilter').value;
-  const usageFilter = document.getElementById('bulkUsageFilter').value;
-  const discountTypeFilter = document.getElementById('bulkDiscountTypeFilter').value;
-  const dateFrom = document.getElementById('bulkDateFrom').value;
-  const dateTo = document.getElementById('bulkDateTo').value;
-  const validityFilter = document.getElementById('bulkValidityFilter').value;
-  const sortBy = document.getElementById('bulkSortBy').value;
-  
-  const now = new Date();
-  
-  // Start with all collections
-  filteredBulkCollections = allBulkCollections.filter(collection => {
-    // Search filter
-    if (searchTerm && !collection.collectionName.toLowerCase().includes(searchTerm)) {
-      return false;
-    }
-    
-    // Status filter
-    if (statusFilter) {
-      const validUntil = new Date(collection.validUntil);
-      const isExpired = validUntil < now;
-      const isActive = collection.activeCodes > 0;
-      
-      if (statusFilter === 'active' && (!isActive || isExpired)) return false;
-      if (statusFilter === 'expired' && !isExpired) return false;
-      if (statusFilter === 'inactive' && isActive) return false;
-    }
-    
-    // Usage filter
-    if (usageFilter) {
-      const usagePercent = parseFloat(collection.usagePercentage);
-      
-      if (usageFilter === 'unused' && usagePercent > 0) return false;
-      if (usageFilter === 'partial' && (usagePercent <= 0 || usagePercent >= 100)) return false;
-      if (usageFilter === 'full' && usagePercent < 100) return false;
-      if (usageFilter === 'high' && usagePercent <= 50) return false;
-      if (usageFilter === 'low' && usagePercent >= 50) return false;
-    }
-    
-    // Discount type filter
-    if (discountTypeFilter && collection.discountType !== discountTypeFilter) {
-      return false;
-    }
-    
-    // Date range filter
-    if (dateFrom) {
-      const collectionDate = new Date(collection.createdAt);
-      const filterDate = new Date(dateFrom);
-      if (collectionDate < filterDate) return false;
-    }
-    
-    if (dateTo) {
-      const collectionDate = new Date(collection.createdAt);
-      const filterDate = new Date(dateTo);
-      filterDate.setHours(23, 59, 59, 999); // End of day
-      if (collectionDate > filterDate) return false;
-    }
-    
-    // Validity filter
-    if (validityFilter) {
-      const validFrom = new Date(collection.validFrom);
-      const validUntil = new Date(collection.validUntil);
-      
-      if (validityFilter === 'valid' && (validFrom > now || validUntil < now)) return false;
-      if (validityFilter === 'expired' && validUntil >= now) return false;
-      if (validityFilter === 'future' && validFrom <= now) return false;
-    }
-    
-    return true;
-  });
-  
-  // Sort collections
-  filteredBulkCollections.sort((a, b) => {
-    switch (sortBy) {
-      case 'newest':
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      case 'oldest':
-        return new Date(a.createdAt) - new Date(b.createdAt);
-      case 'name':
-        return a.collectionName.localeCompare(b.collectionName);
-      case 'usage-high':
-        return parseFloat(b.usagePercentage) - parseFloat(a.usagePercentage);
-      case 'usage-low':
-        return parseFloat(a.usagePercentage) - parseFloat(b.usagePercentage);
-      case 'codes-most':
-        return b.totalCodes - a.totalCodes;
-      case 'codes-least':
-        return a.totalCodes - b.totalCodes;
-      default:
-        return new Date(b.createdAt) - new Date(a.createdAt);
-    }
-  });
-  
-  // Update active filters display
-  updateActiveFiltersDisplay();
-  
-  // Render filtered collections
-  renderBulkCollections(filteredBulkCollections);
-}
+        // Apply bulk filters
+        function applyBulkFilters() {
+          const searchTerm = document.getElementById('bulkSearchInput').value.toLowerCase();
+          const statusFilter = document.getElementById('bulkStatusFilter').value;
+          const usageFilter = document.getElementById('bulkUsageFilter').value;
+          const discountTypeFilter = document.getElementById('bulkDiscountTypeFilter').value;
+          const dateFrom = document.getElementById('bulkDateFrom').value;
+          const dateTo = document.getElementById('bulkDateTo').value;
+          const validityFilter = document.getElementById('bulkValidityFilter').value;
+          const sortBy = document.getElementById('bulkSortBy').value;
 
-// Update active filters display
-function updateActiveFiltersDisplay() {
-  const activeFiltersDiv = document.getElementById('activeBulkFilters');
-  const tagsDiv = document.getElementById('activeBulkFilterTags');
-  const filters = [];
-  
-  const searchTerm = document.getElementById('bulkSearchInput').value;
-  const statusFilter = document.getElementById('bulkStatusFilter').value;
-  const usageFilter = document.getElementById('bulkUsageFilter').value;
-  const discountTypeFilter = document.getElementById('bulkDiscountTypeFilter').value;
-  const dateFrom = document.getElementById('bulkDateFrom').value;
-  const dateTo = document.getElementById('bulkDateTo').value;
-  const validityFilter = document.getElementById('bulkValidityFilter').value;
-  const sortBy = document.getElementById('bulkSortBy').value;
-  
-  if (searchTerm) filters.push({ label: `Search: "${searchTerm}"`, value: 'search' });
-  if (statusFilter) filters.push({ label: `Status: ${statusFilter}`, value: 'status' });
-  if (usageFilter) filters.push({ label: `Usage: ${usageFilter}`, value: 'usage' });
-  if (discountTypeFilter) filters.push({ label: `Type: ${discountTypeFilter}`, value: 'discountType' });
-  if (dateFrom) filters.push({ label: `From: ${new Date(dateFrom).toLocaleDateString()}`, value: 'dateFrom' });
-  if (dateTo) filters.push({ label: `To: ${new Date(dateTo).toLocaleDateString()}`, value: 'dateTo' });
-  if (validityFilter) filters.push({ label: `Validity: ${validityFilter}`, value: 'validity' });
-  if (sortBy !== 'newest') filters.push({ label: `Sort: ${sortBy}`, value: 'sort' });
-  
-  if (filters.length > 0) {
-    activeFiltersDiv.style.display = 'block';
-    tagsDiv.innerHTML = filters.map(filter => `
+          const now = new Date();
+
+          // Start with all collections
+          filteredBulkCollections = allBulkCollections.filter(collection => {
+            // Search filter
+            if (searchTerm && !collection.collectionName.toLowerCase().includes(searchTerm)) {
+              return false;
+            }
+
+            // Status filter
+            if (statusFilter) {
+              const validUntil = new Date(collection.validUntil);
+              const isExpired = validUntil < now;
+              const isActive = collection.activeCodes > 0;
+
+              if (statusFilter === 'active' && (!isActive || isExpired)) return false;
+              if (statusFilter === 'expired' && !isExpired) return false;
+              if (statusFilter === 'inactive' && isActive) return false;
+            }
+
+            // Usage filter
+            if (usageFilter) {
+              const usagePercent = parseFloat(collection.usagePercentage);
+
+              if (usageFilter === 'unused' && usagePercent > 0) return false;
+              if (usageFilter === 'partial' && (usagePercent <= 0 || usagePercent >= 100)) return false;
+              if (usageFilter === 'full' && usagePercent < 100) return false;
+              if (usageFilter === 'high' && usagePercent <= 50) return false;
+              if (usageFilter === 'low' && usagePercent >= 50) return false;
+            }
+
+            // Discount type filter
+            if (discountTypeFilter && collection.discountType !== discountTypeFilter) {
+              return false;
+            }
+
+            // Date range filter
+            if (dateFrom) {
+              const collectionDate = new Date(collection.createdAt);
+              const filterDate = new Date(dateFrom);
+              if (collectionDate < filterDate) return false;
+            }
+
+            if (dateTo) {
+              const collectionDate = new Date(collection.createdAt);
+              const filterDate = new Date(dateTo);
+              filterDate.setHours(23, 59, 59, 999); // End of day
+              if (collectionDate > filterDate) return false;
+            }
+
+            // Validity filter
+            if (validityFilter) {
+              const validFrom = new Date(collection.validFrom);
+              const validUntil = new Date(collection.validUntil);
+
+              if (validityFilter === 'valid' && (validFrom > now || validUntil < now)) return false;
+              if (validityFilter === 'expired' && validUntil >= now) return false;
+              if (validityFilter === 'future' && validFrom <= now) return false;
+            }
+
+            return true;
+          });
+
+          // Sort collections
+          filteredBulkCollections.sort((a, b) => {
+            switch (sortBy) {
+              case 'newest':
+                return new Date(b.createdAt) - new Date(a.createdAt);
+              case 'oldest':
+                return new Date(a.createdAt) - new Date(b.createdAt);
+              case 'name':
+                return a.collectionName.localeCompare(b.collectionName);
+              case 'usage-high':
+                return parseFloat(b.usagePercentage) - parseFloat(a.usagePercentage);
+              case 'usage-low':
+                return parseFloat(a.usagePercentage) - parseFloat(b.usagePercentage);
+              case 'codes-most':
+                return b.totalCodes - a.totalCodes;
+              case 'codes-least':
+                return a.totalCodes - b.totalCodes;
+              default:
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            }
+          });
+
+          // Update active filters display
+          updateActiveFiltersDisplay();
+
+          // Render filtered collections
+          renderBulkCollections(filteredBulkCollections);
+        }
+
+        // Update active filters display
+        function updateActiveFiltersDisplay() {
+          const activeFiltersDiv = document.getElementById('activeBulkFilters');
+          const tagsDiv = document.getElementById('activeBulkFilterTags');
+          const filters = [];
+
+          const searchTerm = document.getElementById('bulkSearchInput').value;
+          const statusFilter = document.getElementById('bulkStatusFilter').value;
+          const usageFilter = document.getElementById('bulkUsageFilter').value;
+          const discountTypeFilter = document.getElementById('bulkDiscountTypeFilter').value;
+          const dateFrom = document.getElementById('bulkDateFrom').value;
+          const dateTo = document.getElementById('bulkDateTo').value;
+          const validityFilter = document.getElementById('bulkValidityFilter').value;
+          const sortBy = document.getElementById('bulkSortBy').value;
+
+          if (searchTerm) filters.push({
+            label: `Search: "${searchTerm}"`,
+            value: 'search'
+          });
+          if (statusFilter) filters.push({
+            label: `Status: ${statusFilter}`,
+            value: 'status'
+          });
+          if (usageFilter) filters.push({
+            label: `Usage: ${usageFilter}`,
+            value: 'usage'
+          });
+          if (discountTypeFilter) filters.push({
+            label: `Type: ${discountTypeFilter}`,
+            value: 'discountType'
+          });
+          if (dateFrom) filters.push({
+            label: `From: ${new Date(dateFrom).toLocaleDateString()}`,
+            value: 'dateFrom'
+          });
+          if (dateTo) filters.push({
+            label: `To: ${new Date(dateTo).toLocaleDateString()}`,
+            value: 'dateTo'
+          });
+          if (validityFilter) filters.push({
+            label: `Validity: ${validityFilter}`,
+            value: 'validity'
+          });
+          if (sortBy !== 'newest') filters.push({
+            label: `Sort: ${sortBy}`,
+            value: 'sort'
+          });
+
+          if (filters.length > 0) {
+            activeFiltersDiv.style.display = 'block';
+            tagsDiv.innerHTML = filters.map(filter => `
       <span class="badge" style="background: linear-gradient(135deg, #3b82f6, #2563eb); padding: 0.5rem 0.75rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.5rem;">
         ${filter.label}
         <i class="fas fa-times" style="cursor: pointer;" onclick="removeFilter('${filter.value}')"></i>
       </span>
     `).join('');
-  } else {
-    activeFiltersDiv.style.display = 'none';
-  }
-  
-  // Update results count
-  const resultsText = `Showing ${filteredBulkCollections.length} of ${allBulkCollections.length} collection${allBulkCollections.length !== 1 ? 's' : ''}`;
-  document.querySelector('#bulkCollectionsSection .promo-codes-table-title').innerHTML = `
+          } else {
+            activeFiltersDiv.style.display = 'none';
+          }
+
+          // Update results count
+          const resultsText = `Showing ${filteredBulkCollections.length} of ${allBulkCollections.length} collection${allBulkCollections.length !== 1 ? 's' : ''}`;
+          document.querySelector('#bulkCollectionsSection .promo-codes-table-title').innerHTML = `
     <i class="fas fa-layer-group"></i>
     Bulk Code Collections
     <span style="font-size: 0.8rem; color: #6b7280; font-weight: normal; margin-left: 0.5rem;">(${resultsText})</span>
   `;
-  
-  // Update filter statistics
-  if (filteredBulkCollections.length > 0) {
-    const totalCollections = filteredBulkCollections.length;
-    const totalCodes = filteredBulkCollections.reduce((sum, c) => sum + c.totalCodes, 0);
-    const totalUsed = filteredBulkCollections.reduce((sum, c) => sum + c.usedCodes, 0);
-    const totalUnused = filteredBulkCollections.reduce((sum, c) => sum + c.unusedCodes, 0);
-    const avgUsage = totalCodes > 0 ? ((totalUsed / totalCodes) * 100).toFixed(1) : 0;
-    
-    document.getElementById('statTotalCollections').textContent = totalCollections;
-    document.getElementById('statTotalCodes').textContent = totalCodes.toLocaleString();
-    document.getElementById('statUsedCodes').textContent = totalUsed.toLocaleString();
-    document.getElementById('statUnusedCodes').textContent = totalUnused.toLocaleString();
-    document.getElementById('statAvgUsage').textContent = `${avgUsage}%`;
-    
-    document.getElementById('filterStatistics').style.display = 'block';
-  } else {
-    document.getElementById('filterStatistics').style.display = 'none';
-  }
-}
 
-// Remove specific filter
-function removeFilter(filterType) {
-  switch (filterType) {
-    case 'search':
-      document.getElementById('bulkSearchInput').value = '';
-      break;
-    case 'status':
-      document.getElementById('bulkStatusFilter').value = '';
-      break;
-    case 'usage':
-      document.getElementById('bulkUsageFilter').value = '';
-      break;
-    case 'discountType':
-      document.getElementById('bulkDiscountTypeFilter').value = '';
-      break;
-    case 'dateFrom':
-      document.getElementById('bulkDateFrom').value = '';
-      break;
-    case 'dateTo':
-      document.getElementById('bulkDateTo').value = '';
-      break;
-    case 'validity':
-      document.getElementById('bulkValidityFilter').value = '';
-      break;
-    case 'sort':
-      document.getElementById('bulkSortBy').value = 'newest';
-      break;
-  }
-  applyBulkFilters();
-}
+          // Update filter statistics
+          if (filteredBulkCollections.length > 0) {
+            const totalCollections = filteredBulkCollections.length;
+            const totalCodes = filteredBulkCollections.reduce((sum, c) => sum + c.totalCodes, 0);
+            const totalUsed = filteredBulkCollections.reduce((sum, c) => sum + c.usedCodes, 0);
+            const totalUnused = filteredBulkCollections.reduce((sum, c) => sum + c.unusedCodes, 0);
+            const avgUsage = totalCodes > 0 ? ((totalUsed / totalCodes) * 100).toFixed(1) : 0;
 
-// Clear all bulk filters
-function clearBulkFilters() {
-  document.getElementById('bulkSearchInput').value = '';
-  document.getElementById('bulkStatusFilter').value = '';
-  document.getElementById('bulkUsageFilter').value = '';
-  document.getElementById('bulkDiscountTypeFilter').value = '';
-  document.getElementById('bulkDateFrom').value = '';
-  document.getElementById('bulkDateTo').value = '';
-  document.getElementById('bulkValidityFilter').value = '';
-  document.getElementById('bulkSortBy').value = 'newest';
-  
-  applyBulkFilters();
-  showNotification('Filters cleared', 'success');
-}
+            document.getElementById('statTotalCollections').textContent = totalCollections;
+            document.getElementById('statTotalCodes').textContent = totalCodes.toLocaleString();
+            document.getElementById('statUsedCodes').textContent = totalUsed.toLocaleString();
+            document.getElementById('statUnusedCodes').textContent = totalUnused.toLocaleString();
+            document.getElementById('statAvgUsage').textContent = `${avgUsage}%`;
 
-// Export filtered bulk collections
-async function exportFilteredBulkCollections() {
-  if (filteredBulkCollections.length === 0) {
-    showNotification('No collections to export', 'error');
-    return;
-  }
-  
-  try {
-    const ExcelJS = window.ExcelJS || await import('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
-    
-    showNotification('Generating Excel file...', 'info');
-    
-    // Create workbook
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Bulk Collections');
-    
-    // Set column headers
-    worksheet.columns = [
-      { header: 'Collection Name', key: 'name', width: 30 },
-      { header: 'Collection ID', key: 'id', width: 25 },
-      { header: 'Discount Type', key: 'discountType', width: 15 },
-      { header: 'Discount Value', key: 'discountValue', width: 15 },
-      { header: 'Total Codes', key: 'totalCodes', width: 12 },
-      { header: 'Used Codes', key: 'usedCodes', width: 12 },
-      { header: 'Unused Codes', key: 'unusedCodes', width: 12 },
-      { header: 'Usage %', key: 'usagePercent', width: 10 },
-      { header: 'Active Codes', key: 'activeCodes', width: 12 },
-      { header: 'Status', key: 'status', width: 12 },
-      { header: 'Valid From', key: 'validFrom', width: 20 },
-      { header: 'Valid Until', key: 'validUntil', width: 20 },
-      { header: 'Created At', key: 'createdAt', width: 20 }
-    ];
-    
-    // Style header row
-    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    worksheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFB80101' }
-    };
-    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
-    
-    // Add data rows
-    const now = new Date();
-    filteredBulkCollections.forEach(collection => {
-      const validUntil = new Date(collection.validUntil);
-      const isExpired = validUntil < now;
-      const isActive = collection.activeCodes > 0;
-      
-      let status = 'Inactive';
-      if (isExpired) status = 'Expired';
-      else if (isActive) status = 'Active';
-      
-      worksheet.addRow({
-        name: collection.collectionName,
-        id: collection._id,
-        discountType: collection.discountType === 'percentage' ? 'Percentage' : 'Fixed',
-        discountValue: collection.discountType === 'percentage' 
-          ? `${collection.discountValue}%` 
-          : `EGP ${collection.discountValue}`,
-        totalCodes: collection.totalCodes,
-        usedCodes: collection.usedCodes,
-        unusedCodes: collection.unusedCodes,
-        usagePercent: `${collection.usagePercentage}%`,
-        activeCodes: collection.activeCodes,
-        status: status,
-        validFrom: new Date(collection.validFrom).toLocaleString(),
-        validUntil: new Date(collection.validUntil).toLocaleString(),
-        createdAt: new Date(collection.createdAt).toLocaleString()
-      });
-    });
-    
-    // Add summary
-    worksheet.addRow([]);
-    worksheet.addRow([]);
-    const summaryRow = worksheet.lastRow.number + 1;
-    worksheet.addRow(['Summary']);
-    worksheet.getRow(summaryRow).font = { bold: true, size: 14 };
-    
-    const totalCollections = filteredBulkCollections.length;
-    const totalCodes = filteredBulkCollections.reduce((sum, c) => sum + c.totalCodes, 0);
-    const totalUsed = filteredBulkCollections.reduce((sum, c) => sum + c.usedCodes, 0);
-    const totalUnused = filteredBulkCollections.reduce((sum, c) => sum + c.unusedCodes, 0);
-    const avgUsage = totalCodes > 0 ? ((totalUsed / totalCodes) * 100).toFixed(2) : 0;
-    
-    worksheet.addRow(['Total Collections:', totalCollections]);
-    worksheet.addRow(['Total Codes:', totalCodes]);
-    worksheet.addRow(['Total Used:', totalUsed]);
-    worksheet.addRow(['Total Unused:', totalUnused]);
-    worksheet.addRow(['Average Usage:', `${avgUsage}%`]);
-    
-    // Generate file
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `bulk-collections-filtered-${Date.now()}.xlsx`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-    
-    showNotification('Excel file downloaded successfully!', 'success');
-  } catch (error) {
-    console.error('Error exporting:', error);
-    showNotification('Error generating Excel file. Downloading individual collections instead.', 'error');
-    
-    // Fallback: download first collection
-    if (filteredBulkCollections.length > 0) {
-      exportBulkCollection(filteredBulkCollections[0]._id);
-    }
-  }
-}
+            document.getElementById('filterStatistics').style.display = 'block';
+          } else {
+            document.getElementById('filterStatistics').style.display = 'none';
+          }
+        }
 
-// Add real-time filtering on input
-document.addEventListener('DOMContentLoaded', function() {
-  // Auto-apply filters on input change
-  const filterInputs = [
-    'bulkSearchInput',
-    'bulkStatusFilter',
-    'bulkUsageFilter',
-    'bulkDiscountTypeFilter',
-    'bulkDateFrom',
-    'bulkDateTo',
-    'bulkValidityFilter',
-    'bulkSortBy'
-  ];
-  
-  filterInputs.forEach(inputId => {
-    const element = document.getElementById(inputId);
-    if (element) {
-      if (element.tagName === 'SELECT') {
-        element.addEventListener('change', applyBulkFilters);
-      } else if (element.type === 'date') {
-        element.addEventListener('change', applyBulkFilters);
-      } else {
-        // Debounce text input
-        let timeout;
-        element.addEventListener('input', () => {
-          clearTimeout(timeout);
-          timeout = setTimeout(applyBulkFilters, 300);
+        // Remove specific filter
+        function removeFilter(filterType) {
+          switch (filterType) {
+            case 'search':
+              document.getElementById('bulkSearchInput').value = '';
+              break;
+            case 'status':
+              document.getElementById('bulkStatusFilter').value = '';
+              break;
+            case 'usage':
+              document.getElementById('bulkUsageFilter').value = '';
+              break;
+            case 'discountType':
+              document.getElementById('bulkDiscountTypeFilter').value = '';
+              break;
+            case 'dateFrom':
+              document.getElementById('bulkDateFrom').value = '';
+              break;
+            case 'dateTo':
+              document.getElementById('bulkDateTo').value = '';
+              break;
+            case 'validity':
+              document.getElementById('bulkValidityFilter').value = '';
+              break;
+            case 'sort':
+              document.getElementById('bulkSortBy').value = 'newest';
+              break;
+          }
+          applyBulkFilters();
+        }
+
+        // Clear all bulk filters
+        function clearBulkFilters() {
+          document.getElementById('bulkSearchInput').value = '';
+          document.getElementById('bulkStatusFilter').value = '';
+          document.getElementById('bulkUsageFilter').value = '';
+          document.getElementById('bulkDiscountTypeFilter').value = '';
+          document.getElementById('bulkDateFrom').value = '';
+          document.getElementById('bulkDateTo').value = '';
+          document.getElementById('bulkValidityFilter').value = '';
+          document.getElementById('bulkSortBy').value = 'newest';
+
+          applyBulkFilters();
+          showNotification('Filters cleared', 'success');
+        }
+
+        // Export filtered bulk collections
+        async function exportFilteredBulkCollections() {
+          if (filteredBulkCollections.length === 0) {
+            showNotification('No collections to export', 'error');
+            return;
+          }
+
+          try {
+            const ExcelJS = window.ExcelJS || await import('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
+
+            showNotification('Generating Excel file...', 'info');
+
+            // Create workbook
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Bulk Collections');
+
+            // Set column headers
+            worksheet.columns = [{
+                header: 'Collection Name',
+                key: 'name',
+                width: 30
+              },
+              {
+                header: 'Collection ID',
+                key: 'id',
+                width: 25
+              },
+              {
+                header: 'Discount Type',
+                key: 'discountType',
+                width: 15
+              },
+              {
+                header: 'Discount Value',
+                key: 'discountValue',
+                width: 15
+              },
+              {
+                header: 'Total Codes',
+                key: 'totalCodes',
+                width: 12
+              },
+              {
+                header: 'Used Codes',
+                key: 'usedCodes',
+                width: 12
+              },
+              {
+                header: 'Unused Codes',
+                key: 'unusedCodes',
+                width: 12
+              },
+              {
+                header: 'Usage %',
+                key: 'usagePercent',
+                width: 10
+              },
+              {
+                header: 'Active Codes',
+                key: 'activeCodes',
+                width: 12
+              },
+              {
+                header: 'Status',
+                key: 'status',
+                width: 12
+              },
+              {
+                header: 'Valid From',
+                key: 'validFrom',
+                width: 20
+              },
+              {
+                header: 'Valid Until',
+                key: 'validUntil',
+                width: 20
+              },
+              {
+                header: 'Created At',
+                key: 'createdAt',
+                width: 20
+              }
+            ];
+
+            // Style header row
+            worksheet.getRow(1).font = {
+              bold: true,
+              color: {
+                argb: 'FFFFFFFF'
+              }
+            };
+            worksheet.getRow(1).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: {
+                argb: 'FFB80101'
+              }
+            };
+            worksheet.getRow(1).alignment = {
+              vertical: 'middle',
+              horizontal: 'center'
+            };
+
+            // Add data rows
+            const now = new Date();
+            filteredBulkCollections.forEach(collection => {
+              const validUntil = new Date(collection.validUntil);
+              const isExpired = validUntil < now;
+              const isActive = collection.activeCodes > 0;
+
+              let status = 'Inactive';
+              if (isExpired) status = 'Expired';
+              else if (isActive) status = 'Active';
+
+              worksheet.addRow({
+                name: collection.collectionName,
+                id: collection._id,
+                discountType: collection.discountType === 'percentage' ? 'Percentage' : 'Fixed',
+                discountValue: collection.discountType === 'percentage' ?
+                  `${collection.discountValue}%` :
+                  `EGP ${collection.discountValue}`,
+                totalCodes: collection.totalCodes,
+                usedCodes: collection.usedCodes,
+                unusedCodes: collection.unusedCodes,
+                usagePercent: `${collection.usagePercentage}%`,
+                activeCodes: collection.activeCodes,
+                status: status,
+                validFrom: new Date(collection.validFrom).toLocaleString(),
+                validUntil: new Date(collection.validUntil).toLocaleString(),
+                createdAt: new Date(collection.createdAt).toLocaleString()
+              });
+            });
+
+            // Add summary
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+            const summaryRow = worksheet.lastRow.number + 1;
+            worksheet.addRow(['Summary']);
+            worksheet.getRow(summaryRow).font = {
+              bold: true,
+              size: 14
+            };
+
+            const totalCollections = filteredBulkCollections.length;
+            const totalCodes = filteredBulkCollections.reduce((sum, c) => sum + c.totalCodes, 0);
+            const totalUsed = filteredBulkCollections.reduce((sum, c) => sum + c.usedCodes, 0);
+            const totalUnused = filteredBulkCollections.reduce((sum, c) => sum + c.unusedCodes, 0);
+            const avgUsage = totalCodes > 0 ? ((totalUsed / totalCodes) * 100).toFixed(2) : 0;
+
+            worksheet.addRow(['Total Collections:', totalCollections]);
+            worksheet.addRow(['Total Codes:', totalCodes]);
+            worksheet.addRow(['Total Used:', totalUsed]);
+            worksheet.addRow(['Total Unused:', totalUnused]);
+            worksheet.addRow(['Average Usage:', `${avgUsage}%`]);
+
+            // Generate file
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `bulk-collections-filtered-${Date.now()}.xlsx`;
+            link.click();
+            window.URL.revokeObjectURL(url);
+
+            showNotification('Excel file downloaded successfully!', 'success');
+          } catch (error) {
+            console.error('Error exporting:', error);
+            showNotification('Error generating Excel file. Downloading individual collections instead.', 'error');
+
+            // Fallback: download first collection
+            if (filteredBulkCollections.length > 0) {
+              exportBulkCollection(filteredBulkCollections[0]._id);
+            }
+          }
+        }
+
+        // Add real-time filtering on input
+        document.addEventListener('DOMContentLoaded', function() {
+          // Auto-apply filters on input change
+          const filterInputs = [
+            'bulkSearchInput',
+            'bulkStatusFilter',
+            'bulkUsageFilter',
+            'bulkDiscountTypeFilter',
+            'bulkDateFrom',
+            'bulkDateTo',
+            'bulkValidityFilter',
+            'bulkSortBy'
+          ];
+
+          filterInputs.forEach(inputId => {
+            const element = document.getElementById(inputId);
+            if (element) {
+              if (element.tagName === 'SELECT') {
+                element.addEventListener('change', applyBulkFilters);
+              } else if (element.type === 'date') {
+                element.addEventListener('change', applyBulkFilters);
+              } else {
+                // Debounce text input
+                let timeout;
+                element.addEventListener('input', () => {
+                  clearTimeout(timeout);
+                  timeout = setTimeout(applyBulkFilters, 300);
+                });
+              }
+            }
+          });
         });
-      }
-    }
-  });
-});
 
-// Render bulk collections
-function renderBulkCollections(collections) {
-  const tbody = document.getElementById('bulkCollectionsTableBody');
-  
-  if (!collections || collections.length === 0) {
-    tbody.innerHTML = `
+        // Render bulk collections
+        function renderBulkCollections(collections) {
+          const tbody = document.getElementById('bulkCollectionsTableBody');
+
+          if (!collections || collections.length === 0) {
+            tbody.innerHTML = `
       <tr>
         <td colspan="9" class="empty-state">
           <div class="empty-state-icon">
@@ -2439,16 +2532,16 @@ function renderBulkCollections(collections) {
         </td>
       </tr>
     `;
-    return;
-  }
-  
-  tbody.innerHTML = collections.map(collection => {
-    const now = new Date();
-    const validUntil = new Date(collection.validUntil);
-    const isExpired = validUntil < now;
-    const isActive = collection.activeCodes > 0;
-    
-    return `
+            return;
+          }
+
+          tbody.innerHTML = collections.map(collection => {
+            const now = new Date();
+            const validUntil = new Date(collection.validUntil);
+            const isExpired = validUntil < now;
+            const isActive = collection.activeCodes > 0;
+
+            return `
       <tr>
         <td>
           <strong>${collection.collectionName}</strong>
@@ -2507,33 +2600,33 @@ function renderBulkCollections(collections) {
         </td>
       </tr>
     `;
-  }).join('');
-}
+          }).join('');
+        }
 
-// View bulk collection details
-async function viewBulkCollectionDetails(bulkCollectionId) {
-  try {
-    const response = await fetch(`/admin/promo-codes/bulk/collections/${bulkCollectionId}`);
-    const result = await response.json();
-    
-    if (result.success) {
-      displayBulkCollectionDetails(result);
-      document.getElementById('bulkCollectionDetailsModal').classList.add('show');
-      document.body.style.overflow = 'hidden';
-    } else {
-      showNotification('Failed to load collection details', 'error');
-    }
-  } catch (error) {
-    console.error('Error loading collection details:', error);
-    showNotification('Error loading collection details', 'error');
-  }
-}
+        // View bulk collection details
+        async function viewBulkCollectionDetails(bulkCollectionId) {
+          try {
+            const response = await fetch(`/admin/promo-codes/bulk/collections/${bulkCollectionId}`);
+            const result = await response.json();
 
-// Display bulk collection details
-function displayBulkCollectionDetails(data) {
-  const modalBody = document.getElementById('bulkCollectionDetailsBody');
-  
-  let html = `
+            if (result.success) {
+              displayBulkCollectionDetails(result);
+              document.getElementById('bulkCollectionDetailsModal').classList.add('show');
+              document.body.style.overflow = 'hidden';
+            } else {
+              showNotification('Failed to load collection details', 'error');
+            }
+          } catch (error) {
+            console.error('Error loading collection details:', error);
+            showNotification('Error loading collection details', 'error');
+          }
+        }
+
+        // Display bulk collection details
+        function displayBulkCollectionDetails(data) {
+          const modalBody = document.getElementById('bulkCollectionDetailsBody');
+
+          let html = `
     <div style="margin-bottom: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-radius: 12px;">
       <h3 style="margin: 0 0 1rem 0; color: #1f2937; display: flex; align-items: center; gap: 0.5rem;">
         <i class="fas fa-layer-group"></i>
@@ -2579,22 +2672,22 @@ function displayBulkCollectionDetails(data) {
         </thead>
         <tbody>
   `;
-  
-  data.codes.forEach(code => {
-    const isUsed = code.usedByStudent !== null || code.currentUses > 0 || code.usageHistory.length > 0;
-    const usedAt = code.usageHistory.length > 0 
-      ? new Date(code.usageHistory[code.usageHistory.length - 1].usedAt).toLocaleString()
-      : '-';
-    
-    // Get student info from usedByStudent or fallback to usageHistory.user
-    let studentInfo = null;
-    if (code.usedByStudent) {
-      studentInfo = code.usedByStudent;
-    } else if (isUsed && code.usageHistory.length > 0 && code.usageHistory[0].user) {
-      studentInfo = typeof code.usageHistory[0].user === 'object' ? code.usageHistory[0].user : null;
-    }
-    
-    html += `
+
+          data.codes.forEach(code => {
+            const isUsed = code.usedByStudent !== null || code.currentUses > 0 || code.usageHistory.length > 0;
+            const usedAt = code.usageHistory.length > 0 ?
+              new Date(code.usageHistory[code.usageHistory.length - 1].usedAt).toLocaleString() :
+              '-';
+
+            // Get student info from usedByStudent or fallback to usageHistory.user
+            let studentInfo = null;
+            if (code.usedByStudent) {
+              studentInfo = code.usedByStudent;
+            } else if (isUsed && code.usageHistory.length > 0 && code.usageHistory[0].user) {
+              studentInfo = typeof code.usageHistory[0].user === 'object' ? code.usageHistory[0].user : null;
+            }
+
+            html += `
       <tr>
         <td><code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px;">${code.code}</code></td>
         <td>
@@ -2610,105 +2703,107 @@ function displayBulkCollectionDetails(data) {
         <td>${usedAt}</td>
       </tr>
     `;
-  });
-  
-  html += `
+          });
+
+          html += `
         </tbody>
       </table>
     </div>
   `;
-  
-  modalBody.innerHTML = html;
-}
 
-// Close bulk collection details modal
-function closeBulkCollectionDetailsModal() {
-  document.getElementById('bulkCollectionDetailsModal').classList.remove('show');
-  document.body.style.overflow = 'auto';
-}
+          modalBody.innerHTML = html;
+        }
 
-// Export bulk collection
-function exportBulkCollection(bulkCollectionId) {
-  window.location.href = `/admin/promo-codes/bulk/collections/${bulkCollectionId}/export`;
-  showNotification('Downloading Excel file...', 'success');
-}
+        // Close bulk collection details modal
+        function closeBulkCollectionDetailsModal() {
+          document.getElementById('bulkCollectionDetailsModal').classList.remove('show');
+          document.body.style.overflow = 'auto';
+        }
 
-// Toggle bulk collection status
-async function toggleBulkCollectionStatus(bulkCollectionId, isActive) {
-  if (!confirm(`Are you sure you want to ${isActive ? 'activate' : 'deactivate'} all codes in this collection?`)) {
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/admin/promo-codes/bulk/collections/${bulkCollectionId}/status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ isActive })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      showNotification(`Successfully ${isActive ? 'activated' : 'deactivated'} ${result.modifiedCount} codes`, 'success');
-      loadBulkCollections();
-    } else {
-      showNotification(result.message || 'Failed to update collection status', 'error');
-    }
-  } catch (error) {
-    console.error('Error updating collection status:', error);
-    showNotification('Error updating collection status', 'error');
-  }
-}
+        // Export bulk collection
+        function exportBulkCollection(bulkCollectionId) {
+          window.location.href = `/admin/promo-codes/bulk/collections/${bulkCollectionId}/export`;
+          showNotification('Downloading Excel file...', 'success');
+        }
 
-// Delete bulk collection
-async function deleteBulkCollection(bulkCollectionId) {
-  if (!confirm('Are you sure you want to delete this entire collection? This action cannot be undone. Note: Collections with used codes cannot be deleted.')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/admin/promo-codes/bulk/collections/${bulkCollectionId}`, {
-      method: 'DELETE'
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      showNotification(result.message, 'success');
-      loadBulkCollections();
-    } else {
-      showNotification(result.message || 'Failed to delete collection', 'error');
-    }
-  } catch (error) {
-    console.error('Error deleting collection:', error);
-    showNotification('Error deleting collection', 'error');
-  }
-}
+        // Toggle bulk collection status
+        async function toggleBulkCollectionStatus(bulkCollectionId, isActive) {
+          if (!confirm(`Are you sure you want to ${isActive ? 'activate' : 'deactivate'} all codes in this collection?`)) {
+            return;
+          }
 
-// Close modals when clicking outside (add bulk modals)
-document.addEventListener('click', function(event) {
-  if (event.target.classList.contains('create-promo-modal')) {
-    closeCreatePromoModal();
-  }
-  if (event.target.classList.contains('edit-promo-modal')) {
-    closeEditPromoModal();
-  }
-  if (event.target.classList.contains('usage-history-modal')) {
-    closeUsageHistoryModal();
-  }
-  if (event.target.id === 'bulkPromoModal') {
-    closeBulkPromoModal();
-  }
-  if (event.target.id === 'bulkCollectionDetailsModal') {
-    closeBulkCollectionDetailsModal();
-  }
-});
-</script>
+          try {
+            const response = await fetch(`/admin/promo-codes/bulk/collections/${bulkCollectionId}/status`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                isActive
+              })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              showNotification(`Successfully ${isActive ? 'activated' : 'deactivated'} ${result.modifiedCount} codes`, 'success');
+              loadBulkCollections();
+            } else {
+              showNotification(result.message || 'Failed to update collection status', 'error');
+            }
+          } catch (error) {
+            console.error('Error updating collection status:', error);
+            showNotification('Error updating collection status', 'error');
+          }
+        }
+
+        // Delete bulk collection
+        async function deleteBulkCollection(bulkCollectionId) {
+          if (!confirm('Are you sure you want to delete this entire collection? This action cannot be undone. Note: Collections with used codes cannot be deleted.')) {
+            return;
+          }
+
+          try {
+            const response = await fetch(`/admin/promo-codes/bulk/collections/${bulkCollectionId}`, {
+              method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              showNotification(result.message, 'success');
+              loadBulkCollections();
+            } else {
+              showNotification(result.message || 'Failed to delete collection', 'error');
+            }
+          } catch (error) {
+            console.error('Error deleting collection:', error);
+            showNotification('Error deleting collection', 'error');
+          }
+        }
+
+        // Close modals when clicking outside (add bulk modals)
+        document.addEventListener('click', function(event) {
+          if (event.target.classList.contains('create-promo-modal')) {
+            closeCreatePromoModal();
+          }
+          if (event.target.classList.contains('edit-promo-modal')) {
+            closeEditPromoModal();
+          }
+          if (event.target.classList.contains('usage-history-modal')) {
+            closeUsageHistoryModal();
+          }
+          if (event.target.id === 'bulkPromoModal') {
+            closeBulkPromoModal();
+          }
+          if (event.target.id === 'bulkCollectionDetailsModal') {
+            closeBulkCollectionDetailsModal();
+          }
+        });
+      </script>
 
     </div>
   </div>
-</div>
+  </div>
 
-<%- include('partials/admin-footer') %>
+  <%- include('partials/admin-footer') %>

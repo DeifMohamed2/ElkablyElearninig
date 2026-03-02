@@ -33,7 +33,15 @@ const QuestionBankSchema = new mongoose.Schema(
     },
     testType: {
       type: String,
-      enum: ['EST', 'SAT', 'ACT', 'EST 2', 'ACT 2', 'Basics ACT', 'Basics SAT & EST'],
+      enum: [
+        'EST',
+        'SAT',
+        'ACT',
+        'EST 2',
+        'ACT 2',
+        'Basics ACT',
+        'Basics SAT & EST',
+      ],
       required: false,
       trim: true,
       default: null,
@@ -47,14 +55,18 @@ const QuestionBankSchema = new mongoose.Schema(
       ref: 'Admin',
       default: null,
     },
-    questions: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Question',
-    }],
-    tags: [{
-      type: String,
-      trim: true,
-    }],
+    questions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Question',
+      },
+    ],
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     totalQuestions: {
       type: Number,
       default: 0,
@@ -72,70 +84,72 @@ const QuestionBankSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { 
+  {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  }
+    toObject: { virtuals: true },
+  },
 );
 
 // Virtual for question count
-QuestionBankSchema.virtual('questionCount').get(function() {
+QuestionBankSchema.virtual('questionCount').get(function () {
   return this.questions ? this.questions.length : 0;
 });
 
 // Generate bank code before saving
-QuestionBankSchema.pre('save', async function(next) {
+QuestionBankSchema.pre('save', async function (next) {
   if (this.isNew && !this.bankCode) {
     let bankCode;
     let isUnique = false;
     let attempts = 0;
-    
+
     while (!isUnique && attempts < 10) {
       const prefix = this.name.substring(0, 3).toUpperCase();
       const timestamp = Date.now().toString().slice(-6);
       const randomNum = Math.floor(Math.random() * 100);
       bankCode = `QB${prefix}${timestamp}${randomNum}`;
-      
+
       // Check if this bankCode already exists
-      const existingBank = await mongoose.model('QuestionBank').findOne({ bankCode });
+      const existingBank = await mongoose
+        .model('QuestionBank')
+        .findOne({ bankCode });
       if (!existingBank) {
         isUnique = true;
       }
       attempts++;
     }
-    
+
     this.bankCode = bankCode;
   }
   next();
 });
 
 // Update question counts when questions are added/removed
-QuestionBankSchema.methods.updateQuestionCounts = async function() {
+QuestionBankSchema.methods.updateQuestionCounts = async function () {
   const Question = mongoose.model('Question');
   const counts = await Question.aggregate([
     { $match: { bank: this._id } },
     {
       $group: {
         _id: '$difficulty',
-        count: { $sum: 1 }
-      }
-    }
+        count: { $sum: 1 },
+      },
+    },
   ]);
 
   this.totalQuestions = counts.reduce((sum, item) => sum + item.count, 0);
-  this.totalEasy = counts.find(c => c._id === 'Easy')?.count || 0;
-  this.totalMedium = counts.find(c => c._id === 'Medium')?.count || 0;
-  this.totalHard = counts.find(c => c._id === 'Hard')?.count || 0;
+  this.totalEasy = counts.find((c) => c._id === 'Easy')?.count || 0;
+  this.totalMedium = counts.find((c) => c._id === 'Medium')?.count || 0;
+  this.totalHard = counts.find((c) => c._id === 'Hard')?.count || 0;
 
   await this.save();
 };
 
 // Sync questions array with actual questions in database
-QuestionBankSchema.methods.syncQuestionsArray = async function() {
+QuestionBankSchema.methods.syncQuestionsArray = async function () {
   const Question = mongoose.model('Question');
   const actualQuestions = await Question.find({ bank: this._id }).select('_id');
-  this.questions = actualQuestions.map(q => q._id);
+  this.questions = actualQuestions.map((q) => q._id);
   await this.save();
 };
 

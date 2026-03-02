@@ -192,7 +192,7 @@ const guestUserSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for full phone number
@@ -235,16 +235,19 @@ guestUserSchema.index({ isActive: 1, createdAt: -1 });
 guestUserSchema.index({ lastActiveAt: -1 });
 
 // Static method to find or create guest user
-guestUserSchema.statics.findOrCreateBySession = async function (sessionId, userData) {
+guestUserSchema.statics.findOrCreateBySession = async function (
+  sessionId,
+  userData,
+) {
   let guestUser = await this.findOne({ sessionId });
-  
+
   if (!guestUser) {
     guestUser = await this.create({
       sessionId,
       ...userData,
     });
   }
-  
+
   return guestUser;
 };
 
@@ -264,7 +267,7 @@ guestUserSchema.statics.generateSessionId = function () {
 guestUserSchema.methods.startQuizAttempt = async function (quizId, duration) {
   // Find existing quiz attempt record
   let quizAttempt = this.quizAttempts.find(
-    (qa) => qa.quiz.toString() === quizId.toString()
+    (qa) => qa.quiz.toString() === quizId.toString(),
   );
 
   // If no existing record, create one
@@ -282,12 +285,15 @@ guestUserSchema.methods.startQuizAttempt = async function (quizId, duration) {
 
   // Check for in-progress attempt
   const inProgressAttempt = quizAttempt.attempts.find(
-    (a) => a.status === 'in_progress'
+    (a) => a.status === 'in_progress',
   );
 
   if (inProgressAttempt) {
     // Check if the attempt has expired
-    if (inProgressAttempt.expectedEnd && new Date() > inProgressAttempt.expectedEnd) {
+    if (
+      inProgressAttempt.expectedEnd &&
+      new Date() > inProgressAttempt.expectedEnd
+    ) {
       inProgressAttempt.status = 'timeout';
       inProgressAttempt.completedAt = new Date();
     } else {
@@ -305,9 +311,8 @@ guestUserSchema.methods.startQuizAttempt = async function (quizId, duration) {
   // Create new attempt
   const attemptNumber = quizAttempt.attempts.length + 1;
   const startedAt = new Date();
-  const expectedEnd = duration > 0
-    ? new Date(startedAt.getTime() + duration * 60 * 1000)
-    : null;
+  const expectedEnd =
+    duration > 0 ? new Date(startedAt.getTime() + duration * 60 * 1000) : null;
 
   const newAttempt = {
     attemptNumber,
@@ -336,7 +341,7 @@ guestUserSchema.methods.startQuizAttempt = async function (quizId, duration) {
 // Instance method to get active attempt for a quiz
 guestUserSchema.methods.getActiveAttempt = function (quizId) {
   const quizAttempt = this.quizAttempts.find(
-    (qa) => qa.quiz.toString() === quizId.toString()
+    (qa) => qa.quiz.toString() === quizId.toString(),
   );
 
   if (!quizAttempt) return null;
@@ -348,10 +353,10 @@ guestUserSchema.methods.getActiveAttempt = function (quizId) {
 guestUserSchema.methods.submitQuizAttempt = async function (
   quizId,
   answers,
-  timeSpent
+  timeSpent,
 ) {
   const quizAttempt = this.quizAttempts.find(
-    (qa) => qa.quiz.toString() === quizId.toString()
+    (qa) => qa.quiz.toString() === quizId.toString(),
   );
 
   if (!quizAttempt) {
@@ -359,7 +364,7 @@ guestUserSchema.methods.submitQuizAttempt = async function (
   }
 
   const activeAttempt = quizAttempt.attempts.find(
-    (a) => a.status === 'in_progress'
+    (a) => a.status === 'in_progress',
   );
 
   if (!activeAttempt) {
@@ -369,11 +374,16 @@ guestUserSchema.methods.submitQuizAttempt = async function (
   // Calculate results
   const totalQuestions = answers.length;
   const correctAnswers = answers.filter((a) => a.isCorrect).length;
-  const wrongAnswers = answers.filter((a) => !a.isCorrect && a.selectedAnswer !== null).length;
-  const skippedAnswers = answers.filter((a) => a.selectedAnswer === null).length;
-  const score = totalQuestions > 0
-    ? Math.round((correctAnswers / totalQuestions) * 100)
-    : 0;
+  const wrongAnswers = answers.filter(
+    (a) => !a.isCorrect && a.selectedAnswer !== null,
+  ).length;
+  const skippedAnswers = answers.filter(
+    (a) => a.selectedAnswer === null,
+  ).length;
+  const score =
+    totalQuestions > 0
+      ? Math.round((correctAnswers / totalQuestions) * 100)
+      : 0;
 
   // Update attempt
   activeAttempt.completedAt = new Date();
@@ -411,7 +421,7 @@ guestUserSchema.methods.submitQuizAttempt = async function (
 // Instance method to get quiz attempt history
 guestUserSchema.methods.getQuizAttemptHistory = function (quizId) {
   const quizAttempt = this.quizAttempts.find(
-    (qa) => qa.quiz.toString() === quizId.toString()
+    (qa) => qa.quiz.toString() === quizId.toString(),
   );
 
   if (!quizAttempt) return [];
@@ -430,7 +440,9 @@ guestUserSchema.statics.getStats = async function () {
         activeGuests: [
           {
             $match: {
-              lastActiveAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+              lastActiveAt: {
+                $gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+              },
             },
           },
           { $count: 'count' },
@@ -472,7 +484,9 @@ guestUserSchema.statics.getStats = async function () {
 };
 
 // Static method to get all guests with pagination
-guestUserSchema.statics.getGuestsWithPagination = async function (options = {}) {
+guestUserSchema.statics.getGuestsWithPagination = async function (
+  options = {},
+) {
   const {
     page = 1,
     limit = 20,
@@ -527,7 +541,7 @@ guestUserSchema.pre('save', function (next) {
 guestUserSchema.statics.cleanupExpiredSessions = async function () {
   const result = await this.updateMany(
     { sessionExpiresAt: { $lt: new Date() } },
-    { $set: { isActive: false } }
+    { $set: { isActive: false } },
   );
   return result.modifiedCount;
 };

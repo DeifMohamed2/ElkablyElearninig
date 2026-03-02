@@ -43,11 +43,13 @@ const BundleCourseSchema = new mongoose.Schema(
       required: true,
       default: 'online',
     },
-    courses: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Course',
-      required: true,
-    }],
+    courses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course',
+        required: true,
+      },
+    ],
     price: {
       type: Number,
       required: true,
@@ -75,22 +77,30 @@ const BundleCourseSchema = new mongoose.Schema(
       ref: 'Admin',
       required: true,
     },
-    enrolledStudents: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    }],
-    tags: [{
-      type: String,
-      trim: true,
-    }],
-    prerequisites: [{
-      type: String,
-      trim: true,
-    }],
-    features: [{
-      type: String,
-      trim: true,
-    }],
+    enrolledStudents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    prerequisites: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    features: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     duration: {
       type: Number, // Total duration in hours
       default: 0,
@@ -123,25 +133,25 @@ const BundleCourseSchema = new mongoose.Schema(
       default: 'FULLY BOOKED',
     },
   },
-  { 
+  {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  }
+    toObject: { virtuals: true },
+  },
 );
 
 // Virtual for course count
-BundleCourseSchema.virtual('courseCount').get(function() {
+BundleCourseSchema.virtual('courseCount').get(function () {
   return this.courses ? this.courses.length : 0;
 });
 
 // Virtual for enrolled student count
-BundleCourseSchema.virtual('enrolledCount').get(function() {
+BundleCourseSchema.virtual('enrolledCount').get(function () {
   return this.enrolledStudents ? this.enrolledStudents.length : 0;
 });
 
 // Virtual for savings calculation
-BundleCourseSchema.virtual('savings').get(function() {
+BundleCourseSchema.virtual('savings').get(function () {
   if (this.discountPrice && this.price) {
     return this.price * (this.discountPrice / 100);
   }
@@ -149,15 +159,15 @@ BundleCourseSchema.virtual('savings').get(function() {
 });
 
 // Virtual for final price after discount
-BundleCourseSchema.virtual('finalPrice').get(function() {
+BundleCourseSchema.virtual('finalPrice').get(function () {
   if (this.discountPrice && this.price) {
-    return this.price - (this.price * (this.discountPrice / 100));
+    return this.price - this.price * (this.discountPrice / 100);
   }
   return this.price;
 });
 
 // Virtual for savings percentage (this is the discount percentage)
-BundleCourseSchema.virtual('savingsPercentage').get(function() {
+BundleCourseSchema.virtual('savingsPercentage').get(function () {
   if (this.discountPrice) {
     return this.discountPrice;
   }
@@ -165,7 +175,7 @@ BundleCourseSchema.virtual('savingsPercentage').get(function() {
 });
 
 // Calculate total duration from courses
-BundleCourseSchema.virtual('totalDuration').get(function() {
+BundleCourseSchema.virtual('totalDuration').get(function () {
   if (this.courses && this.courses.length > 0) {
     return this.courses.reduce((total, course) => {
       return total + (course.duration || 0);
@@ -179,7 +189,7 @@ BundleCourseSchema.pre('save', async function (next) {
   if (this.isNew && !this.bundleCode) {
     let bundleCode;
     let isUnique = false;
-    
+
     // Generate bundle code based on subject only (year removed)
     let subjectPrefix;
     if (this.subject === 'Basics & Advanced') {
@@ -189,17 +199,19 @@ BundleCourseSchema.pre('save', async function (next) {
     } else {
       subjectPrefix = this.subject.substring(0, 3).toUpperCase();
     }
-    
+
     while (!isUnique) {
-      const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const randomNum = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, '0');
       bundleCode = `BND${subjectPrefix}${randomNum}`;
-      
+
       const existingBundle = await this.constructor.findOne({ bundleCode });
       if (!existingBundle) {
         isUnique = true;
       }
     }
-    
+
     this.bundleCode = bundleCode;
   }
   next();
@@ -211,7 +223,10 @@ BundleCourseSchema.pre('save', async function (next) {
     if (this.courses && this.courses.length > 0) {
       const Course = mongoose.model('Course');
       const courses = await Course.find({ _id: { $in: this.courses } });
-      this.duration = courses.reduce((total, course) => total + (course.duration || 0), 0);
+      this.duration = courses.reduce(
+        (total, course) => total + (course.duration || 0),
+        0,
+      );
     }
   }
   next();

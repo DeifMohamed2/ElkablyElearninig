@@ -120,7 +120,7 @@ const QuestionSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for option count
@@ -174,8 +174,8 @@ QuestionSchema.methods.isCorrectWrittenAnswer = function (userAnswer) {
             (correctAns) =>
               userAns === correctAns ||
               userAns.includes(correctAns) ||
-              correctAns.includes(userAns)
-          )
+              correctAns.includes(userAns),
+          ),
         );
 
         if (hasMatch) return true;
@@ -186,7 +186,7 @@ QuestionSchema.methods.isCorrectWrittenAnswer = function (userAnswer) {
             (answer) =>
               answer === normalizedUserAnswer ||
               normalizedUserAnswer.includes(answer) ||
-              answer.includes(normalizedUserAnswer)
+              answer.includes(normalizedUserAnswer),
           )
         ) {
           return true;
@@ -235,18 +235,18 @@ QuestionSchema.methods.isCorrectMCQAnswer = function (userAnswer) {
 
   // For MCQ questions, handle both text-based and index-based answers
   // Text-based answers are shuffle-safe, index-based are for backward compatibility
-  
+
   // First, try to match by option text (shuffle-safe approach)
   const userText = userAnswer.toString().trim();
   const textMatchIndex = this.options.findIndex(
-    (opt) => opt.text && opt.text.trim() === userText
+    (opt) => opt.text && opt.text.trim() === userText,
   );
-  
+
   if (textMatchIndex !== -1) {
     // Found a text match - check if this option is correct
     return this.options[textMatchIndex].isCorrect === true;
   }
-  
+
   // If no text match, try index-based matching (backward compatibility)
   let answerIndex;
   if (typeof userAnswer === 'string' && !isNaN(userAnswer)) {
@@ -270,7 +270,7 @@ QuestionSchema.methods.isCorrectMCQAnswer = function (userAnswer) {
 // Helper method to get detailed answer feedback
 QuestionSchema.methods.getAnswerFeedback = function (
   userAnswer,
-  showCorrectAnswer = false
+  showCorrectAnswer = false,
 ) {
   const isCorrect =
     this.questionType === 'Written'
@@ -313,7 +313,7 @@ QuestionSchema.pre('save', function (next) {
     // For written questions, validate correctAnswers array
     if (!this.correctAnswers || this.correctAnswers.length === 0) {
       return next(
-        new Error('Written questions must have at least one correct answer')
+        new Error('Written questions must have at least one correct answer'),
       );
     }
 
@@ -343,8 +343,8 @@ QuestionSchema.pre('save', function (next) {
     if (this.correctAnswers.length === 0) {
       return next(
         new Error(
-          'Written questions must have at least one non-empty correct answer'
-        )
+          'Written questions must have at least one non-empty correct answer',
+        ),
       );
     }
 
@@ -355,18 +355,18 @@ QuestionSchema.pre('save', function (next) {
     ) {
       return next(
         new Error(
-          'Written questions with single answer must have exactly one correct answer'
-        )
+          'Written questions with single answer must have exactly one correct answer',
+        ),
       );
     }
 
     // Ensure at least one mandatory answer exists
     const hasMandatoryAnswer = this.correctAnswers.some(
-      (answer) => answer.isMandatory === true
+      (answer) => answer.isMandatory === true,
     );
     if (!hasMandatoryAnswer) {
       return next(
-        new Error('Written questions must have at least one mandatory answer')
+        new Error('Written questions must have at least one mandatory answer'),
       );
     }
   } else {
@@ -380,20 +380,20 @@ QuestionSchema.pre('save', function (next) {
       // For True/False questions, ensure only 2 options exist
       if (this.questionType === 'True/False' && this.options.length !== 2) {
         return next(
-          new Error('True/False questions must have exactly 2 options')
+          new Error('True/False questions must have exactly 2 options'),
         );
       }
 
       // For True/False questions, ensure options are "True" and "False"
       if (this.questionType === 'True/False') {
         const optionTexts = this.options.map((option) =>
-          option.text.toLowerCase().trim()
+          option.text.toLowerCase().trim(),
         );
         if (!optionTexts.includes('true') || !optionTexts.includes('false')) {
           return next(
             new Error(
-              'True/False questions must have "True" and "False" as options'
-            )
+              'True/False questions must have "True" and "False" as options',
+            ),
           );
         }
       }
@@ -410,7 +410,7 @@ QuestionSchema.pre('save', function (next) {
     this.options.length > 0
   ) {
     const correctOptionIndex = this.options.findIndex(
-      (option) => option.isCorrect
+      (option) => option.isCorrect,
     );
 
     if (correctOptionIndex === -1) {
@@ -424,7 +424,7 @@ QuestionSchema.pre('save', function (next) {
     (!this.options || this.options.length === 0)
   ) {
     return next(
-      new Error('MCQ and True/False questions must have at least one option')
+      new Error('MCQ and True/False questions must have at least one option'),
     );
   }
   next();

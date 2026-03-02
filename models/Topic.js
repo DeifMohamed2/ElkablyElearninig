@@ -245,7 +245,7 @@ const ContentItemSchema = new mongoose.Schema(
       default: 'immediate',
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const TopicSchema = new mongoose.Schema(
@@ -314,7 +314,7 @@ const TopicSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual for content count
@@ -345,7 +345,7 @@ ContentItemSchema.methods.getTotalPoints = function () {
   }
   return this.selectedQuestions.reduce(
     (total, q) => total + (q.points || 1),
-    0
+    0,
   );
 };
 
