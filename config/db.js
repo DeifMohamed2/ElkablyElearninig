@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const MONGO_OPTIONS = {
-  maxPoolSize: 40,
+  maxPoolSize: 35,
   minPoolSize: 2,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
