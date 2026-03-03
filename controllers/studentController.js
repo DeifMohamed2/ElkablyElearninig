@@ -459,16 +459,10 @@ const courseContent = async (req, res) => {
       .populate({
         path: 'topics',
         options: { sort: { order: 1 } },
-        populate: [
-          {
-            path: 'content',
-            model: 'ContentItem',
-          },
-          {
-            path: 'content.zoomMeeting',
-            model: 'ZoomMeeting',
-          },
-        ],
+        populate: {
+          path: 'content.zoomMeeting',
+          model: 'ZoomMeeting',
+        },
       })
       .populate('bundle', 'name')
       .populate('createdBy', 'name');
@@ -688,16 +682,10 @@ const contentDetails = async (req, res) => {
     for (const enrollment of student.enrolledCourses) {
       const courseData = await Course.findById(enrollment.course).populate({
         path: 'topics',
-        populate: [
-          {
-            path: 'content',
-            model: 'ContentItem',
-          },
-          {
-            path: 'content.zoomMeeting',
-            model: 'ZoomMeeting',
-          },
-        ],
+        populate: {
+          path: 'content.zoomMeeting',
+          model: 'ZoomMeeting',
+        },
       });
 
       if (courseData) {

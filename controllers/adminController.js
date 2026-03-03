@@ -1873,7 +1873,7 @@ const getCourseContent = async (req, res) => {
         populate: {
           path: 'content.zoomMeeting',
           model: 'ZoomMeeting',
-          select: 'meetingName joinUrl status scheduledStartTime',
+          select: 'meetingName joinUrl status scheduledStartTime recordingUrl recordingStatus bunnyVideoId bunnyVideoUrl',
         },
       })
       .populate('bundle', 'title bundleCode year')
