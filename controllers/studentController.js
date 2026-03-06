@@ -1,4 +1,4 @@
- const User = require('../models/User');
+const User = require('../models/User');
 const Course = require('../models/Course');
 const Quiz = require('../models/Quiz');
 const QuizModule = require('../models/QuizModule');
@@ -64,9 +64,9 @@ const dashboard = async (req, res) => {
           total +
           quiz.attempts.reduce(
             (quizTotal, attempt) => quizTotal + (attempt.score || 0),
-            0
+            0,
           ),
-        0
+        0,
       ),
       wishlistCount: student.wishlist.length,
     };
@@ -74,7 +74,7 @@ const dashboard = async (req, res) => {
     // Get active courses (recently accessed)
     const activeCourses = student.enrolledCourses
       .filter(
-        (enrollment) => enrollment.status === 'active' && enrollment.course
+        (enrollment) => enrollment.status === 'active' && enrollment.course,
       )
       .sort((a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed))
       .slice(0, 6)
@@ -149,13 +149,13 @@ const enrolledCourses = async (req, res) => {
 
     // Filter out enrollments with null/deleted courses and recalculate progress
     const validEnrollments = student.enrolledCourses.filter(
-      (enrollment) => enrollment.course
+      (enrollment) => enrollment.course,
     );
 
     await Promise.all(
       validEnrollments.map(async (enrollment) => {
         await student.calculateCourseProgress(enrollment.course);
-      })
+      }),
     );
 
     // Update the student's enrolled courses to only include valid ones
@@ -170,7 +170,7 @@ const enrolledCourses = async (req, res) => {
       filteredCourses = filteredCourses.filter((enrollment) =>
         enrollment.course.title
           .toLowerCase()
-          .includes(searchQuery.toLowerCase())
+          .includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -179,7 +179,7 @@ const enrolledCourses = async (req, res) => {
       filteredCourses = filteredCourses.filter(
         (enrollment) =>
           enrollment.course.bundle &&
-          enrollment.course.bundle._id.toString() === bundleFilter
+          enrollment.course.bundle._id.toString() === bundleFilter,
       );
     }
 
@@ -208,7 +208,7 @@ const enrolledCourses = async (req, res) => {
     switch (sortBy) {
       case 'name':
         filteredCourses.sort((a, b) =>
-          a.course.title.localeCompare(b.course.title)
+          a.course.title.localeCompare(b.course.title),
         );
         break;
       case 'progress':
@@ -216,13 +216,13 @@ const enrolledCourses = async (req, res) => {
         break;
       case 'enrolledAt':
         filteredCourses.sort(
-          (a, b) => new Date(b.enrolledAt) - new Date(a.enrolledAt)
+          (a, b) => new Date(b.enrolledAt) - new Date(a.enrolledAt),
         );
         break;
       case 'lastAccessed':
       default:
         filteredCourses.sort(
-          (a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed)
+          (a, b) => new Date(b.lastAccessed) - new Date(a.lastAccessed),
         );
         break;
     }
@@ -233,7 +233,7 @@ const enrolledCourses = async (req, res) => {
       filteredCourses.map(async (enrollment) => {
         const unlockStatus = await Course.isCourseUnlocked(
           studentId,
-          enrollment.course._id
+          enrollment.course._id,
         );
         return {
           ...enrollment.toObject(),
@@ -241,7 +241,7 @@ const enrolledCourses = async (req, res) => {
           unlockReason: unlockStatus.reason,
           previousCourse: unlockStatus.previousCourse,
         };
-      })
+      }),
     );
 
     // Display all results without pagination
@@ -263,20 +263,23 @@ const enrolledCourses = async (req, res) => {
     // Get book purchase info for each bundle
     const bundleBookInfo = {};
     for (const bundleId of bundleIds) {
-      const bundle = await BundleCourse.findById(bundleId)
-        .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
-      
+      const bundle = await BundleCourse.findById(bundleId).select(
+        '_id title bundleCode hasBook bookName bookPrice thumbnail',
+      );
+
       if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
         // Check if student has purchased the bundle OR is enrolled in any of its courses
-        const canAccessBook = await student.canAccessBundleBook(bundleId.toString());
-        
+        const canAccessBook = await student.canAccessBundleBook(
+          bundleId.toString(),
+        );
+
         if (canAccessBook) {
           // Check if student has already ordered the book
           const hasOrderedBook = await BookOrder.hasUserOrderedBook(
             studentId,
-            bundleId
+            bundleId,
           );
-          
+
           if (!hasOrderedBook) {
             bundleBookInfo[bundleId.toString()] = {
               bundleId: bundle._id.toString(),
@@ -330,7 +333,7 @@ const courseDetails = async (req, res) => {
 
     const student = await User.findById(studentId);
     const enrollment = student.enrolledCourses.find(
-      (e) => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId,
     );
 
     if (!enrollment) {
@@ -359,14 +362,14 @@ const courseDetails = async (req, res) => {
       course.topics.map(async (topic) => {
         const topicProgress = await student.calculateTopicProgress(
           courseId,
-          topic._id
+          topic._id,
         );
         return {
           ...topic.toObject(),
           completed: enrollment.completedTopics.includes(topic._id),
           progress: topicProgress,
         };
-      })
+      }),
     );
 
     // Check if course has a bundle and if student can purchase the book
@@ -374,21 +377,24 @@ const courseDetails = async (req, res) => {
     if (course.bundle) {
       const BundleCourse = require('../models/BundleCourse');
       const BookOrder = require('../models/BookOrder');
-      
-      const bundle = await BundleCourse.findById(course.bundle._id || course.bundle)
-        .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
-      
+
+      const bundle = await BundleCourse.findById(
+        course.bundle._id || course.bundle,
+      ).select('_id title bundleCode hasBook bookName bookPrice thumbnail');
+
       if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
         // Check if student has purchased the bundle OR is enrolled in any of its courses
-        const canAccessBook = await student.canAccessBundleBook(bundle._id.toString());
-        
+        const canAccessBook = await student.canAccessBundleBook(
+          bundle._id.toString(),
+        );
+
         if (canAccessBook) {
           // Check if student has already ordered the book
           const hasOrderedBook = await BookOrder.hasUserOrderedBook(
             studentId,
-            bundle._id
+            bundle._id,
           );
-          
+
           if (!hasOrderedBook) {
             bookPurchaseInfo = {
               bundleId: bundle._id.toString(),
@@ -418,7 +424,10 @@ const courseDetails = async (req, res) => {
     StudentTracker.viewCourse(req, courseId, course.title);
   } catch (error) {
     console.error('Course details error:', error);
-    logError('Course details error', error, { studentId: req.session?.user?.id, courseId: req.params?.id });
+    logError('Course details error', error, {
+      studentId: req.session?.user?.id,
+      courseId: req.params?.id,
+    });
     req.flash('error_msg', 'Error loading course details');
     res.redirect('/student/enrolled-courses');
   }
@@ -447,7 +456,7 @@ const courseContent = async (req, res) => {
 
     const student = await User.findById(studentId);
     const enrollment = student.enrolledCourses.find(
-      (e) => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId,
     );
 
     if (!enrollment) {
@@ -478,7 +487,7 @@ const courseContent = async (req, res) => {
       req.flash(
         'error_msg',
         unlockStatus.reason ||
-          'This course is locked. Please complete the previous courses first.'
+          'This course is locked. Please complete the previous courses first.',
       );
       return res.redirect('/student/enrolled-courses');
     }
@@ -489,7 +498,7 @@ const courseContent = async (req, res) => {
     // Filter out unpublished (draft) topics - only show published topics to students
     // Sort by order field to match admin view ordering
     const publishedTopics = course.topics
-      .filter(topic => topic.isPublished === true)
+      .filter((topic) => topic.isPublished === true)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     // Process topics with enhanced content status
@@ -500,21 +509,26 @@ const courseContent = async (req, res) => {
         // Calculate topic progress based on actual completion percentages
         const topicProgress = await student.calculateTopicProgress(
           courseId,
-          topic._id
+          topic._id,
         );
 
         // Check if topic is unlocked based on topic-level unlock conditions
         let topicUnlocked = true;
         let topicUnlockReason = null;
-        
+
         if (topic.unlockConditions === 'previous_completed' && topicIndex > 0) {
           // Check if the previous topic is completed
           const previousTopic = publishedTopics[topicIndex - 1];
           if (previousTopic) {
-            const previousTopicContentIds = previousTopic.content.map((c) => c._id.toString());
-            const allPreviousTopicCompleted = previousTopicContentIds.length === 0 || 
-              previousTopicContentIds.every((contentId) => completedContentIds.includes(contentId));
-            
+            const previousTopicContentIds = previousTopic.content.map((c) =>
+              c._id.toString(),
+            );
+            const allPreviousTopicCompleted =
+              previousTopicContentIds.length === 0 ||
+              previousTopicContentIds.every((contentId) =>
+                completedContentIds.includes(contentId),
+              );
+
             if (!allPreviousTopicCompleted) {
               topicUnlocked = false;
               topicUnlockReason = `Complete all content in "${previousTopic.title}" first`;
@@ -525,9 +539,9 @@ const courseContent = async (req, res) => {
         // Process content items with enhanced unlock/completion status
         const contentWithStatus = topic.content.map((contentItem, index) => {
           const isCompleted = completedContentIds.includes(
-            contentItem._id.toString()
+            contentItem._id.toString(),
           );
-          
+
           // First check topic-level unlock status
           if (!topicUnlocked && !isCompleted) {
             return {
@@ -544,17 +558,17 @@ const courseContent = async (req, res) => {
               topicId: topic._id,
             };
           }
-          
+
           const unlockStatus = student.isContentUnlocked(
             courseId,
             contentItem._id,
-            contentItem
+            contentItem,
           );
 
           // Get content progress details for more accurate completion status
           const contentProgressDetails = student.getContentProgressDetails(
             courseId,
-            contentItem._id
+            contentItem._id,
           );
           const actualProgress = contentProgressDetails
             ? contentProgressDetails.progressPercentage
@@ -574,7 +588,7 @@ const courseContent = async (req, res) => {
             const allContent = course.topics.flatMap((t) => t.content);
             prerequisiteData = contentItem.prerequisites.map((prereqId) => {
               const prereqContent = allContent.find(
-                (c) => c._id.toString() === prereqId.toString()
+                (c) => c._id.toString() === prereqId.toString(),
               );
               return {
                 id: prereqId.toString(),
@@ -607,7 +621,7 @@ const courseContent = async (req, res) => {
           isUnlocked: topicUnlocked,
           unlockReason: topicUnlockReason,
         };
-      })
+      }),
     );
 
     // Check if course has a bundle and if student can purchase the book
@@ -615,21 +629,24 @@ const courseContent = async (req, res) => {
     if (course.bundle) {
       const BundleCourse = require('../models/BundleCourse');
       const BookOrder = require('../models/BookOrder');
-      
-      const bundle = await BundleCourse.findById(course.bundle._id || course.bundle)
-        .select('_id title bundleCode hasBook bookName bookPrice thumbnail');
-      
+
+      const bundle = await BundleCourse.findById(
+        course.bundle._id || course.bundle,
+      ).select('_id title bundleCode hasBook bookName bookPrice thumbnail');
+
       if (bundle && bundle.hasBook && bundle.bookPrice > 0) {
         // Check if student has purchased the bundle OR is enrolled in any of its courses
-        const canAccessBook = await student.canAccessBundleBook(bundle._id.toString());
-        
+        const canAccessBook = await student.canAccessBundleBook(
+          bundle._id.toString(),
+        );
+
         if (canAccessBook) {
           // Check if student has already ordered the book
           const hasOrderedBook = await BookOrder.hasUserOrderedBook(
             studentId,
-            bundle._id
+            bundle._id,
           );
-          
+
           if (!hasOrderedBook) {
             bookPurchaseInfo = {
               bundleId: bundle._id.toString(),
@@ -691,7 +708,7 @@ const contentDetails = async (req, res) => {
       if (courseData) {
         for (const topicData of courseData.topics) {
           const foundContent = topicData.content.find(
-            (c) => c._id.toString() === contentId
+            (c) => c._id.toString() === contentId,
           );
           if (foundContent) {
             contentItem = foundContent;
@@ -707,17 +724,21 @@ const contentDetails = async (req, res) => {
     if (!contentItem) {
       req.flash(
         'error_msg',
-        'Content not found or you are not enrolled in this course'
+        'Content not found or you are not enrolled in this course',
       );
       return res.redirect('/student/enrolled-courses');
     }
 
     // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
-    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    const courseUnlockStatus = await Course.isCourseUnlocked(
+      studentId,
+      course._id,
+    );
     if (!courseUnlockStatus.unlocked) {
       req.flash(
         'error_msg',
-        courseUnlockStatus.reason || 'This week is locked. Please complete the previous weeks first.'
+        courseUnlockStatus.reason ||
+          'This week is locked. Please complete the previous weeks first.',
       );
       return res.redirect('/student/enrolled-courses');
     }
@@ -736,7 +757,7 @@ const contentDetails = async (req, res) => {
 
     // Find the topic index among published topics
     const topicIndex = sortedPublishedTopics.findIndex(
-      (t) => t._id.toString() === topic._id.toString()
+      (t) => t._id.toString() === topic._id.toString(),
     );
 
     // Check topic unlock conditions
@@ -744,16 +765,23 @@ const contentDetails = async (req, res) => {
       const previousTopic = sortedPublishedTopics[topicIndex - 1];
       if (previousTopic) {
         const completedContentIds = student.getCompletedContentIds(course._id);
-        const previousTopicContentIds = previousTopic.content.map((c) => c._id.toString());
-        const allPreviousTopicCompleted = previousTopicContentIds.length === 0 ||
-          previousTopicContentIds.every((contentId) => completedContentIds.includes(contentId));
+        const previousTopicContentIds = previousTopic.content.map((c) =>
+          c._id.toString(),
+        );
+        const allPreviousTopicCompleted =
+          previousTopicContentIds.length === 0 ||
+          previousTopicContentIds.every((contentId) =>
+            completedContentIds.includes(contentId),
+          );
 
         if (!allPreviousTopicCompleted) {
           req.flash(
             'error_msg',
-            `This topic is locked. Complete all content in "${previousTopic.title}" first.`
+            `This topic is locked. Complete all content in "${previousTopic.title}" first.`,
           );
-          return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
+          return res.redirect(
+            `/student/course/${course._id}/content?lockedContent=${contentId}`,
+          );
         }
       }
     }
@@ -762,17 +790,19 @@ const contentDetails = async (req, res) => {
     const unlockStatus = student.isContentUnlocked(
       course._id,
       contentId,
-      contentItem
+      contentItem,
     );
     if (!unlockStatus.unlocked) {
       req.flash('error_msg', `Content is locked: ${unlockStatus.reason}`);
-      return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
+      return res.redirect(
+        `/student/course/${course._id}/content?lockedContent=${contentId}`,
+      );
     }
 
     // Get content progress with detailed data
     const contentProgress = student.getContentProgressDetails(
       course._id,
-      contentId
+      contentId,
     );
 
     // Special handling for Zoom content completion
@@ -792,7 +822,7 @@ const contentDetails = async (req, res) => {
       studentAttendedLiveMeeting =
         zoomMeeting.studentsAttended &&
         zoomMeeting.studentsAttended.some(
-          (attendance) => attendance.student.toString() === studentIdStr
+          (attendance) => attendance.student.toString() === studentIdStr,
         );
 
       // Check if student watched the recording
@@ -801,7 +831,7 @@ const contentDetails = async (req, res) => {
         zoomMeeting.studentsWatchedRecording.some(
           (record) =>
             record.student.toString() === studentIdStr &&
-            record.completedWatching
+            record.completedWatching,
         );
 
       // If student attended live, auto-mark as completed and save to DB
@@ -810,7 +840,7 @@ const contentDetails = async (req, res) => {
         // Auto-save progress to database for students who attended live
         try {
           const enrollment = student.enrolledCourses.find(
-            (e) => e.course.toString() === course._id.toString()
+            (e) => e.course.toString() === course._id.toString(),
           );
           if (enrollment) {
             await student.updateContentProgress(
@@ -823,26 +853,31 @@ const contentDetails = async (req, res) => {
                 progressPercentage: 100,
                 lastAccessed: new Date(),
                 completedAt: new Date(),
-              }
+              },
             );
           }
         } catch (autoCompleteError) {
-          console.error('Auto-complete error for Zoom attendee:', autoCompleteError);
+          console.error(
+            'Auto-complete error for Zoom attendee:',
+            autoCompleteError,
+          );
         }
       } else if (watchedRecording && !isCompleted) {
         // If student watched recording, mark as completed
         isCompleted = true;
       }
-
     }
 
     // AUTO-COMPLETE for PDF, reading, link, assignment content on page load
-    if (!isCompleted && ['pdf', 'reading', 'link', 'assignment'].includes(contentItem.type)) {
+    if (
+      !isCompleted &&
+      ['pdf', 'reading', 'link', 'assignment'].includes(contentItem.type)
+    ) {
       isCompleted = true;
       // Auto-save progress to database
       try {
         const enrollment = student.enrolledCourses.find(
-          (e) => e.course.toString() === course._id.toString()
+          (e) => e.course.toString() === course._id.toString(),
         );
         if (enrollment) {
           await student.updateContentProgress(
@@ -855,14 +890,13 @@ const contentDetails = async (req, res) => {
               progressPercentage: 100,
               lastAccessed: new Date(),
               completedAt: new Date(),
-            }
+            },
           );
         }
       } catch (autoCompleteError) {
         console.error('Auto-complete error for content:', autoCompleteError);
       }
     }
-
 
     const progressPercentage = contentProgress
       ? contentProgress.progressPercentage || 0
@@ -886,17 +920,17 @@ const contentDetails = async (req, res) => {
     const publishedTopics = course.topics
       .filter((t) => t.isPublished === true)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-    
+
     const allContent = publishedTopics.flatMap((t, topicIndex) =>
-      t.content.map((c) => ({ 
-        ...c.toObject(), 
+      t.content.map((c) => ({
+        ...c.toObject(),
         topicId: t._id,
         topicIndex: topicIndex,
-        topicUnlockConditions: t.unlockConditions || 'immediate'
-      }))
+        topicUnlockConditions: t.unlockConditions || 'immediate',
+      })),
     );
     const currentIndex = allContent.findIndex(
-      (c) => c._id.toString() === contentId
+      (c) => c._id.toString() === contentId,
     );
 
     let previousContent = null;
@@ -916,27 +950,36 @@ const contentDetails = async (req, res) => {
     if (nextContent) {
       // Get enrollment data for checking completed content
       const enrollment = student.enrolledCourses.find(
-        (e) => e.course.toString() === course._id.toString()
+        (e) => e.course.toString() === course._id.toString(),
       );
-      const completedContentIds = enrollment ? enrollment.contentProgress
-        .filter((cp) => cp.completionStatus === 'completed')
-        .map((cp) => cp.contentId.toString()) : [];
+      const completedContentIds = enrollment
+        ? enrollment.contentProgress
+            .filter((cp) => cp.completionStatus === 'completed')
+            .map((cp) => cp.contentId.toString())
+        : [];
 
       // Check if next content is in a different topic
-      const isNextContentInDifferentTopic = currentContent && nextContent && 
+      const isNextContentInDifferentTopic =
+        currentContent &&
+        nextContent &&
         currentContent.topicId.toString() !== nextContent.topicId.toString();
 
       // If next content is in a different topic, check topic unlock conditions
-      if (isNextContentInDifferentTopic && nextContent.topicUnlockConditions === 'previous_completed') {
+      if (
+        isNextContentInDifferentTopic &&
+        nextContent.topicUnlockConditions === 'previous_completed'
+      ) {
         // Find the current topic (previous topic for the next content)
         const currentTopicIndex = currentContent.topicIndex;
         const currentTopicInList = publishedTopics[currentTopicIndex];
-        
+
         if (currentTopicInList) {
           // Check if ALL content in the current topic is completed
-          const currentTopicContentIds = currentTopicInList.content.map((c) => c._id.toString());
+          const currentTopicContentIds = currentTopicInList.content.map((c) =>
+            c._id.toString(),
+          );
           const allCurrentTopicCompleted = currentTopicContentIds.every(
-            (contentId) => completedContentIds.includes(contentId)
+            (contentId) => completedContentIds.includes(contentId),
           );
 
           if (!allCurrentTopicCompleted) {
@@ -947,7 +990,7 @@ const contentDetails = async (req, res) => {
             const nextUnlockStatus = student.isContentUnlocked(
               course._id,
               nextContent._id,
-              nextContent
+              nextContent,
             );
             nextContentAccessible = nextUnlockStatus.unlocked;
           }
@@ -957,7 +1000,7 @@ const contentDetails = async (req, res) => {
         const nextUnlockStatus = student.isContentUnlocked(
           course._id,
           nextContent._id,
-          nextContent
+          nextContent,
         );
         nextContentAccessible = nextUnlockStatus.unlocked;
       }
@@ -967,33 +1010,39 @@ const contentDetails = async (req, res) => {
       if (!nextContentAccessible && isCompleted) {
         // Check if current content being completed unlocks the next content
         if (nextContent.prerequisites && nextContent.prerequisites.length > 0) {
-          const nextPrerequisites = nextContent.prerequisites.map((p) => p.toString());
+          const nextPrerequisites = nextContent.prerequisites.map((p) =>
+            p.toString(),
+          );
           const currentContentIdStr = contentId.toString();
-          
+
           // Check if all prerequisites are now met (including the just-completed current content)
           const updatedCompletedIds = [...completedContentIds];
           if (!updatedCompletedIds.includes(currentContentIdStr)) {
             updatedCompletedIds.push(currentContentIdStr);
           }
-          
-          const allPrereqsMet = nextPrerequisites.every(
-            (prereqId) => updatedCompletedIds.includes(prereqId)
+
+          const allPrereqsMet = nextPrerequisites.every((prereqId) =>
+            updatedCompletedIds.includes(prereqId),
           );
-          
+
           if (allPrereqsMet) {
             nextContentAccessible = true;
           }
-        } else if (!nextContent.prerequisites || nextContent.prerequisites.length === 0) {
+        } else if (
+          !nextContent.prerequisites ||
+          nextContent.prerequisites.length === 0
+        ) {
           // Next content has no prerequisites, check topic conditions again
           if (!isNextContentInDifferentTopic) {
             nextContentAccessible = true;
-          } else if (nextContent.topicUnlockConditions !== 'previous_completed') {
+          } else if (
+            nextContent.topicUnlockConditions !== 'previous_completed'
+          ) {
             nextContentAccessible = true;
           }
         }
       }
     }
-
 
     // Compute server timing for quiz/homework to reflect resume and remaining time
     let serverTiming = null;
@@ -1005,9 +1054,9 @@ const contentDetails = async (req, res) => {
             ? contentItem.quizSettings.duration
             : 0
           : contentItem.homeworkSettings &&
-            contentItem.homeworkSettings.duration
-          ? contentItem.homeworkSettings.duration
-          : contentItem.duration || 0;
+              contentItem.homeworkSettings.duration
+            ? contentItem.homeworkSettings.duration
+            : contentItem.duration || 0;
       const passingScore =
         contentItem.type === 'quiz'
           ? contentItem.quizSettings &&
@@ -1015,9 +1064,9 @@ const contentDetails = async (req, res) => {
             ? contentItem.quizSettings.passingScore
             : 60
           : contentItem.homeworkSettings &&
-            typeof contentItem.homeworkSettings.passingScore === 'number'
-          ? contentItem.homeworkSettings.passingScore
-          : 60;
+              typeof contentItem.homeworkSettings.passingScore === 'number'
+            ? contentItem.homeworkSettings.passingScore
+            : 60;
 
       let remainingSeconds = 0;
       let isExpired = false;
@@ -1030,8 +1079,8 @@ const contentDetails = async (req, res) => {
           0,
           Math.floor(
             (new Date(contentProgress.expectedEnd).getTime() - Date.now()) /
-              1000
-          )
+              1000,
+          ),
         );
         isExpired = remainingSeconds === 0;
       }
@@ -1049,9 +1098,9 @@ const contentDetails = async (req, res) => {
             ? contentItem.quizSettings.maxAttempts
             : 0
           : contentItem.homeworkSettings &&
-            contentItem.homeworkSettings.maxAttempts
-          ? contentItem.homeworkSettings.maxAttempts
-          : 0;
+              contentItem.homeworkSettings.maxAttempts
+            ? contentItem.homeworkSettings.maxAttempts
+            : 0;
       const totalAttemptsUsed = attempts;
       const remainingAttempts =
         maxAttempts > 0 ? Math.max(0, maxAttempts - totalAttemptsUsed) : null;
@@ -1064,8 +1113,13 @@ const contentDetails = async (req, res) => {
     if (contentItem.type === 'video') {
       const watchCount = contentProgress?.watchCount || 0;
       const maxWatchCount = contentItem.maxWatchCount;
-      const hasLimit = maxWatchCount !== null && maxWatchCount !== undefined && maxWatchCount !== -1;
-      const watchesLeft = hasLimit ? Math.max(0, maxWatchCount - watchCount) : null;
+      const hasLimit =
+        maxWatchCount !== null &&
+        maxWatchCount !== undefined &&
+        maxWatchCount !== -1;
+      const watchesLeft = hasLimit
+        ? Math.max(0, maxWatchCount - watchCount)
+        : null;
       const limitReached = hasLimit && watchCount >= maxWatchCount;
 
       watchLimitInfo = {
@@ -1127,12 +1181,11 @@ const updateContentProgress = async (req, res) => {
     const { courseId, topicId, contentId, contentType, progressData } =
       req.body;
 
-
     const student = await User.findById(studentId);
 
     // Validate enrollment
     const enrollment = student.enrolledCourses.find(
-      (e) => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId,
     );
 
     if (!enrollment) {
@@ -1144,17 +1197,18 @@ const updateContentProgress = async (req, res) => {
 
     console.log(
       'Before update - enrollment contentProgress length:',
-      enrollment.contentProgress.length
+      enrollment.contentProgress.length,
     );
 
     // Check if this is a NEW completion BEFORE updating (to avoid duplicate notifications)
     const existingProgress = enrollment.contentProgress.find(
-      (cp) => cp.contentId.toString() === contentId.toString()
+      (cp) => cp.contentId.toString() === contentId.toString(),
     );
-    const wasAlreadyCompleted = existingProgress && 
-      existingProgress.completionStatus === 'completed';
-    const isNewCompletion = progressData && 
-      progressData.completionStatus === 'completed' && 
+    const wasAlreadyCompleted =
+      existingProgress && existingProgress.completionStatus === 'completed';
+    const isNewCompletion =
+      progressData &&
+      progressData.completionStatus === 'completed' &&
       !wasAlreadyCompleted;
 
     // Get course and topic data for notification (before update)
@@ -1162,16 +1216,14 @@ const updateContentProgress = async (req, res) => {
     let isZoomContent = false;
     let shouldSendNotification = false;
     let contentItem = null;
-    
+
     // Fetch content item for validation
     try {
       const course = await Course.findById(courseId);
       const topic = await Topic.findById(topicId);
 
       if (topic && topic.content) {
-        contentItem = topic.content.find(
-          (c) => c._id.toString() === contentId
-        );
+        contentItem = topic.content.find((c) => c._id.toString() === contentId);
         if (contentItem) {
           contentTitle = contentItem.title;
           isZoomContent = contentItem.type === 'zoom';
@@ -1186,13 +1238,23 @@ const updateContentProgress = async (req, res) => {
     // VIDEO WATCH LIMIT VALIDATION
     // If this is a video content and trying to mark as completed, check watch limit
     // Check on EVERY completion attempt (not just new completions) to enforce limits
-    if (contentItem && contentItem.type === 'video' && progressData && progressData.completionStatus === 'completed') {
+    if (
+      contentItem &&
+      contentItem.type === 'video' &&
+      progressData &&
+      progressData.completionStatus === 'completed'
+    ) {
       const maxWatchCount = contentItem.maxWatchCount;
-      
+
       // If maxWatchCount is set (not null/undefined/-1), enforce the limit
-      if (maxWatchCount !== null && maxWatchCount !== undefined && maxWatchCount !== -1 && maxWatchCount > 0) {
+      if (
+        maxWatchCount !== null &&
+        maxWatchCount !== undefined &&
+        maxWatchCount !== -1 &&
+        maxWatchCount > 0
+      ) {
         const currentWatchCount = existingProgress?.watchCount || 0;
-        
+
         // Check if student has reached the watch limit BEFORE allowing this completion
         // Since watch count will increment after this check, we check if current count >= max
         if (currentWatchCount >= maxWatchCount) {
@@ -1205,7 +1267,7 @@ const updateContentProgress = async (req, res) => {
           });
         }
       }
-      
+
       // ==================== ANTI-SKIP VALIDATION ====================
       // Validate that student actually watched 90% of the video (not just skipped to the end)
       // NOTE: We use a slightly lower threshold (85%) on backend to account for:
@@ -1217,58 +1279,73 @@ const updateContentProgress = async (req, res) => {
         const watchData = progressData.watchData;
         const REQUIRED_WATCH_PERCENTAGE = 85; // Backend threshold (frontend uses 90%)
         const FRONTEND_REPORTED_PERCENTAGE = watchData.watchPercentage || 0;
-        
+
         // Backend validation: Calculate actual watched time from segments
         let totalWatchedTime = 0;
-        
-        if (watchData.watchedSegments && Array.isArray(watchData.watchedSegments)) {
+
+        if (
+          watchData.watchedSegments &&
+          Array.isArray(watchData.watchedSegments)
+        ) {
           // Merge and validate segments
           const segments = watchData.watchedSegments
-            .filter(seg => seg.start >= 0 && seg.end > seg.start) // Valid segments only
+            .filter((seg) => seg.start >= 0 && seg.end > seg.start) // Valid segments only
             .sort((a, b) => a.start - b.start);
-          
+
           // Merge overlapping segments to get accurate total
           // Use larger tolerance for mobile compatibility
           const mergedSegments = [];
           for (const segment of segments) {
             if (mergedSegments.length === 0) {
-              mergedSegments.push({start: segment.start, end: segment.end});
+              mergedSegments.push({ start: segment.start, end: segment.end });
             } else {
               const last = mergedSegments[mergedSegments.length - 1];
-              if (segment.start <= last.end + 2) { // Increased tolerance from 0.5 to 2 seconds
+              if (segment.start <= last.end + 2) {
+                // Increased tolerance from 0.5 to 2 seconds
                 // Overlapping or adjacent - merge
                 last.end = Math.max(last.end, segment.end);
               } else {
                 // New separate segment
-                mergedSegments.push({start: segment.start, end: segment.end});
+                mergedSegments.push({ start: segment.start, end: segment.end });
               }
             }
           }
-          
+
           // Calculate total watched time
           for (const segment of mergedSegments) {
-            totalWatchedTime += (segment.end - segment.start);
+            totalWatchedTime += segment.end - segment.start;
           }
         }
-        
+
         // Validate against video duration
         const videoDuration = watchData.videoDuration || 0;
-        
+
         if (videoDuration > 0) {
-          const actualWatchPercentage = (totalWatchedTime / videoDuration) * 100;
-          
+          const actualWatchPercentage =
+            (totalWatchedTime / videoDuration) * 100;
+
           // Log for debugging
-          console.log(`Video Watch Validation - Student: ${studentId}, Content: ${contentId}`);
-          console.log(`  Duration: ${videoDuration}s, Watched: ${totalWatchedTime.toFixed(2)}s (${actualWatchPercentage.toFixed(2)}%)`);
-          console.log(`  Frontend reported: ${FRONTEND_REPORTED_PERCENTAGE.toFixed(2)}%`);
-          console.log(`  Backend threshold: ${REQUIRED_WATCH_PERCENTAGE}%, Result: ${actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE ? 'PASS' : 'FAIL'}`);
-          
+          console.log(
+            `Video Watch Validation - Student: ${studentId}, Content: ${contentId}`,
+          );
+          console.log(
+            `  Duration: ${videoDuration}s, Watched: ${totalWatchedTime.toFixed(2)}s (${actualWatchPercentage.toFixed(2)}%)`,
+          );
+          console.log(
+            `  Frontend reported: ${FRONTEND_REPORTED_PERCENTAGE.toFixed(2)}%`,
+          );
+          console.log(
+            `  Backend threshold: ${REQUIRED_WATCH_PERCENTAGE}%, Result: ${actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE ? 'PASS' : 'FAIL'}`,
+          );
+
           // Accept if either:
           // 1. Backend calculation shows enough watched (85%+)
           // 2. Frontend reported 90%+ AND backend shows at least 75% (accounts for tracking gaps)
-          const backendPass = actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE;
-          const frontendReportedEnough = FRONTEND_REPORTED_PERCENTAGE >= 90 && actualWatchPercentage >= 75;
-          
+          const backendPass =
+            actualWatchPercentage >= REQUIRED_WATCH_PERCENTAGE;
+          const frontendReportedEnough =
+            FRONTEND_REPORTED_PERCENTAGE >= 90 && actualWatchPercentage >= 75;
+
           if (!backendPass && !frontendReportedEnough) {
             return res.status(400).json({
               success: false,
@@ -1277,9 +1354,11 @@ const updateContentProgress = async (req, res) => {
               requiredPercentage: 90,
             });
           }
-          
+
           if (frontendReportedEnough && !backendPass) {
-            console.log(`  NOTE: Accepted based on frontend report (mobile compatibility)`);
+            console.log(
+              `  NOTE: Accepted based on frontend report (mobile compatibility)`,
+            );
           }
         }
       }
@@ -1291,20 +1370,19 @@ const updateContentProgress = async (req, res) => {
       topicId,
       contentId,
       contentType,
-      progressData
+      progressData,
     );
 
     // Refresh student data to get updated progress
     const updatedStudent = await User.findById(studentId);
     const updatedEnrollment = updatedStudent.enrolledCourses.find(
-      (e) => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId,
     );
-
 
     // Get updated progress
     const updatedProgress = updatedStudent.getContentProgressDetails(
       courseId,
-      contentId
+      contentId,
     );
 
     // Send WhatsApp notification to parent for content completion
@@ -1313,28 +1391,33 @@ const updateContentProgress = async (req, res) => {
     try {
       // Check if content is completed AND it's a NEW completion
       // Skip zoom content - zoom meeting end will send detailed SMS
-      if (progressData && progressData.completionStatus === 'completed' && !isZoomContent && isNewCompletion) {
+      if (
+        progressData &&
+        progressData.completionStatus === 'completed' &&
+        !isZoomContent &&
+        isNewCompletion
+      ) {
         // Get course and topic data for notification (only if we need to send)
-      const course = await Course.findById(courseId);
-      const topic = await Topic.findById(topicId);
+        const course = await Course.findById(courseId);
+        const topic = await Topic.findById(topicId);
 
-      // Find the actual content item to get its title
-      let contentTitle = 'Content';
-      if (topic && topic.content) {
-        const contentItem = topic.content.find(
-          (c) => c._id.toString() === contentId
-        );
-        if (contentItem) {
-          contentTitle = contentItem.title;
+        // Find the actual content item to get its title
+        let contentTitle = 'Content';
+        if (topic && topic.content) {
+          const contentItem = topic.content.find(
+            (c) => c._id.toString() === contentId,
+          );
+          if (contentItem) {
+            contentTitle = contentItem.title;
+          }
         }
-      }
 
         // Send notification for NEW completion
-          await whatsappSMSNotificationService.sendContentCompletionNotification(
-            studentId,
-            { title: contentTitle, type: contentType },
-            course
-          );
+        await whatsappSMSNotificationService.sendContentCompletionNotification(
+          studentId,
+          { title: contentTitle, type: contentType },
+          course,
+        );
       }
     } catch (whatsappError) {
       console.error('WhatsApp notification error:', whatsappError);
@@ -1349,21 +1432,25 @@ const updateContentProgress = async (req, res) => {
       totalContentProgress: updatedEnrollment.contentProgress.length,
       message: 'Progress updated successfully',
     };
-    
+
     // Add watch count info for video content
     if (contentItem && contentItem.type === 'video') {
       const finalProgress = updatedEnrollment.contentProgress.find(
-        (cp) => cp.contentId.toString() === contentId.toString()
+        (cp) => cp.contentId.toString() === contentId.toString(),
       );
       response.watchCount = finalProgress?.watchCount || 0;
       response.maxWatchCount = contentItem.maxWatchCount;
     }
 
     // Track content progress update (only for completions)
-    if (progressData && progressData.completionStatus === 'completed' && isNewCompletion) {
+    if (
+      progressData &&
+      progressData.completionStatus === 'completed' &&
+      isNewCompletion
+    ) {
       StudentTracker.viewContent(req, contentId, contentType, topicId);
     }
-    
+
     res.json(response);
   } catch (error) {
     console.error('Update content progress error:', error);
@@ -1409,10 +1496,10 @@ const quizzes = async (req, res) => {
     const groupedQuizzes = {
       EST: [],
       SAT: [],
-      ACT: []
+      ACT: [],
     };
 
-    allQuizzes.forEach(quiz => {
+    allQuizzes.forEach((quiz) => {
       if (quiz.testType && groupedQuizzes[quiz.testType]) {
         groupedQuizzes[quiz.testType].push(quiz);
       }
@@ -1422,23 +1509,27 @@ const quizzes = async (req, res) => {
     const quizzesByModules = {
       EST: [],
       SAT: [],
-      ACT: []
+      ACT: [],
     };
 
-    ['EST', 'SAT', 'ACT'].forEach(testType => {
-      const testTypeModules = allModules.filter(m => m.testType === testType);
+    ['EST', 'SAT', 'ACT'].forEach((testType) => {
+      const testTypeModules = allModules.filter((m) => m.testType === testType);
       const testTypeQuizzes = groupedQuizzes[testType];
-      
+
       // Create module groups
-      const moduleGroups = testTypeModules.map(mod => ({
-        module: mod,
-        quizzes: testTypeQuizzes
-          .filter(q => q.module && q.module._id.toString() === mod._id.toString())
-          .sort((a, b) => (a.moduleOrder || 0) - (b.moduleOrder || 0)),
-      })).filter(g => g.quizzes.length > 0);
-      
+      const moduleGroups = testTypeModules
+        .map((mod) => ({
+          module: mod,
+          quizzes: testTypeQuizzes
+            .filter(
+              (q) => q.module && q.module._id.toString() === mod._id.toString(),
+            )
+            .sort((a, b) => (a.moduleOrder || 0) - (b.moduleOrder || 0)),
+        }))
+        .filter((g) => g.quizzes.length > 0);
+
       // Add unassigned quizzes
-      const unassignedQuizzes = testTypeQuizzes.filter(q => !q.module);
+      const unassignedQuizzes = testTypeQuizzes.filter((q) => !q.module);
       if (unassignedQuizzes.length > 0) {
         moduleGroups.push({
           module: {
@@ -1452,7 +1543,7 @@ const quizzes = async (req, res) => {
           quizzes: unassignedQuizzes,
         });
       }
-      
+
       quizzesByModules[testType] = moduleGroups;
     });
 
@@ -1460,7 +1551,7 @@ const quizzes = async (req, res) => {
     const testTypeCounts = {
       EST: groupedQuizzes.EST.length,
       SAT: groupedQuizzes.SAT.length,
-      ACT: groupedQuizzes.ACT.length
+      ACT: groupedQuizzes.ACT.length,
     };
 
     const totalQuizzes = allQuizzes.length;
@@ -1517,7 +1608,7 @@ const takeQuiz = async (req, res) => {
 
     // Check attempt limit
     const studentQuizAttempt = student.quizAttempts.find(
-      (attempt) => attempt.quiz.toString() === quizId
+      (attempt) => attempt.quiz.toString() === quizId,
     );
 
     if (
@@ -1526,7 +1617,7 @@ const takeQuiz = async (req, res) => {
     ) {
       req.flash(
         'error_msg',
-        `You have reached the maximum number of attempts (${quiz.maxAttempts}) for this quiz`
+        `You have reached the maximum number of attempts (${quiz.maxAttempts}) for this quiz`,
       );
       return res.redirect('/student/quizzes');
     }
@@ -1568,7 +1659,7 @@ const submitQuiz = async (req, res) => {
 
     const student = await User.findById(studentId);
     const quiz = await Quiz.findById(quizId).populate(
-      'selectedQuestions.question'
+      'selectedQuestions.question',
     );
 
     if (!quiz) {
@@ -1610,8 +1701,8 @@ const submitQuiz = async (req, res) => {
           question.questionType === 'Written'
             ? question.getAllCorrectAnswers()
             : Array.isArray(question.correctAnswer)
-            ? question.correctAnswer[0]
-            : question.correctAnswer,
+              ? question.correctAnswer[0]
+              : question.correctAnswer,
         isCorrect,
         points,
         questionType: question.questionType,
@@ -1659,7 +1750,7 @@ const submitQuiz = async (req, res) => {
         studentId,
         quiz,
         correctAnswers,
-        quiz.selectedQuestions.length
+        quiz.selectedQuestions.length,
       );
     } catch (whatsappError) {
       console.error('WhatsApp notification error:', whatsappError);
@@ -1667,7 +1758,13 @@ const submitQuiz = async (req, res) => {
     }
 
     // Track quiz submission
-    StudentTracker.submitQuiz(req, quizId, quiz.title, correctAnswers, quiz.selectedQuestions.length);
+    StudentTracker.submitQuiz(
+      req,
+      quizId,
+      quiz.title,
+      correctAnswers,
+      quiz.selectedQuestions.length,
+    );
 
     res.json({
       success: true,
@@ -1680,7 +1777,10 @@ const submitQuiz = async (req, res) => {
     });
   } catch (error) {
     console.error('Submit quiz error:', error);
-    logError('Submit quiz error', error, { studentId: req.session?.user?.id, quizId: req.params.id });
+    logError('Submit quiz error', error, {
+      studentId: req.session?.user?.id,
+      quizId: req.params.id,
+    });
     res.status(500).json({ success: false, message: 'Error submitting quiz' });
   }
 };
@@ -1711,7 +1811,7 @@ const wishlist = async (req, res) => {
     const wishlistCourses = await Course.find({
       _id: { $in: wishlistCourseIds },
     }).select(
-      'title description shortDescription thumbnail level duration tags topics price'
+      'title description shortDescription thumbnail level duration tags topics price',
     );
 
     // Fetch bundles
@@ -1720,7 +1820,7 @@ const wishlist = async (req, res) => {
     })
       .populate('courses', 'title duration')
       .select(
-        'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
+        'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses',
       );
 
     // Combine and paginate
@@ -1840,7 +1940,7 @@ const orderHistory = async (req, res) => {
       paginatedOrders.map(async (order) => {
         if (order.type === 'course') {
           const course = await Course.findById(order.course).select(
-            'title thumbnail level duration'
+            'title thumbnail level duration',
           );
           return { ...order, item: course };
         } else if (order.type === 'bundle') {
@@ -1850,7 +1950,7 @@ const orderHistory = async (req, res) => {
           return { ...order, item: bundle };
         }
         return order;
-      })
+      }),
     );
 
     res.render('student/order-history', {
@@ -1895,7 +1995,7 @@ const orderDetails = async (req, res) => {
     })
       .populate(
         'appliedPromoCode',
-        'code name description discountType discountValue'
+        'code name description discountType discountValue',
       )
       .populate('items.item')
       .lean();
@@ -1934,7 +2034,7 @@ const orderDetails = async (req, res) => {
         item = await Course.findById(firstItem.item)
           .populate('topics', 'title description')
           .select(
-            'title description shortDescription thumbnail level duration tags topics price'
+            'title description shortDescription thumbnail level duration tags topics price',
           );
       } else if (firstItem && firstItem.itemType === 'bundle') {
         itemType = 'bundle';
@@ -1942,10 +2042,10 @@ const orderDetails = async (req, res) => {
         item = await BundleCourse.findById(firstItem.item)
           .populate(
             'courses',
-            'title description shortDescription thumbnail level duration'
+            'title description shortDescription thumbnail level duration',
           )
           .select(
-            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
+            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses',
           );
       }
     } else {
@@ -1956,7 +2056,7 @@ const orderDetails = async (req, res) => {
         item = await Course.findById(order.course)
           .populate('topics', 'title description')
           .select(
-            'title description shortDescription thumbnail level duration tags topics price'
+            'title description shortDescription thumbnail level duration tags topics price',
           );
       } else if (order.type === 'bundle' && order.bundle) {
         itemType = 'bundle';
@@ -1964,10 +2064,10 @@ const orderDetails = async (req, res) => {
         item = await BundleCourse.findById(order.bundle)
           .populate(
             'courses',
-            'title description shortDescription thumbnail level duration'
+            'title description shortDescription thumbnail level duration',
           )
           .select(
-            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses'
+            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses',
           );
       }
     }
@@ -2126,7 +2226,7 @@ const sendProfileOTP = async (req, res) => {
     const blockedUntil = req.session[attemptsBlockedKey];
     if (blockedUntil && Date.now() < blockedUntil) {
       const remainingMinutes = Math.ceil(
-        (blockedUntil - Date.now()) / (60 * 1000)
+        (blockedUntil - Date.now()) / (60 * 1000),
       );
       return res.status(429).json({
         success: false,
@@ -2185,33 +2285,48 @@ const sendProfileOTP = async (req, res) => {
       } else {
         // Send via WhatsApp for non-Egyptian numbers
         const wasender = require('../utils/wasender');
-        const SESSION_API_KEY = process.env.WASENDER_SESSION_API_KEY || process.env.WHATSAPP_SESSION_API_KEY || '';
-        
+        const SESSION_API_KEY =
+          process.env.WASENDER_SESSION_API_KEY ||
+          process.env.WHATSAPP_SESSION_API_KEY ||
+          '';
+
         if (!SESSION_API_KEY) {
           throw new Error('WhatsApp session API key not configured');
         }
 
         // Format phone number for WhatsApp (remove + and ensure proper format)
-        const cleanPhone = fullPhoneNumber.replace(/^\+/, '').replace(/\D/g, '');
+        const cleanPhone = fullPhoneNumber
+          .replace(/^\+/, '')
+          .replace(/\D/g, '');
         const whatsappJid = `${cleanPhone}@s.whatsapp.net`;
-        
-        const result = await wasender.sendTextMessage(SESSION_API_KEY, whatsappJid, message);
-        
+
+        const result = await wasender.sendTextMessage(
+          SESSION_API_KEY,
+          whatsappJid,
+          message,
+        );
+
         if (!result.success) {
           // Check if the error is about JID not existing on WhatsApp
           const errorMessage = result.message || '';
-          const hasJidError = errorMessage.toLowerCase().includes('jid does not exist') || 
-                             errorMessage.toLowerCase().includes('does not exist on whatsapp') ||
-                             (result.errors && result.errors.to && 
-                              result.errors.to.some(err => err.toLowerCase().includes('does not exist')));
-          
+          const hasJidError =
+            errorMessage.toLowerCase().includes('jid does not exist') ||
+            errorMessage.toLowerCase().includes('does not exist on whatsapp') ||
+            (result.errors &&
+              result.errors.to &&
+              result.errors.to.some((err) =>
+                err.toLowerCase().includes('does not exist'),
+              ));
+
           if (hasJidError) {
-            throw new Error('This phone number does not have WhatsApp or WhatsApp is not available for this number. Please use an Egyptian phone number (+20) to receive OTP via SMS, or ensure your phone number is registered on WhatsApp.');
+            throw new Error(
+              'This phone number does not have WhatsApp or WhatsApp is not available for this number. Please use an Egyptian phone number (+20) to receive OTP via SMS, or ensure your phone number is registered on WhatsApp.',
+            );
           }
-          
+
           throw new Error(result.message || 'Failed to send WhatsApp message');
         }
-        
+
         console.log(`Profile OTP sent via WhatsApp to ${fullPhoneNumber}`);
       }
 
@@ -2332,7 +2447,7 @@ const updateProfile = async (req, res) => {
     delete updates.studentCode;
     delete updates.email; // Email should not be editable
     delete updates.username; // Username should not be editable
-    
+
     // Block phone number changes - students cannot change their phone numbers
     delete updates.studentNumber;
     delete updates.parentNumber;
@@ -2340,12 +2455,7 @@ const updateProfile = async (req, res) => {
     delete updates.parentCountryCode;
 
     // Only allow specific fields to be updated
-    const allowedFields = [
-      'firstName',
-      'lastName',
-      'schoolName',
-      'grade',
-    ];
+    const allowedFields = ['firstName', 'lastName', 'schoolName', 'grade'];
     const filteredUpdates = {};
 
     allowedFields.forEach((field) => {
@@ -2374,7 +2484,6 @@ const updateProfile = async (req, res) => {
         message: 'Last name must be at least 2 characters long',
       });
     }
-
 
     const student = await User.findByIdAndUpdate(studentId, filteredUpdates, {
       new: true,
@@ -2677,7 +2786,7 @@ const exportData = async (req, res) => {
       'Content-Disposition',
       `attachment; filename="elkably-learning-data-${student.studentCode}-${
         new Date().toISOString().split('T')[0]
-      }.json"`
+      }.json"`,
     );
 
     res.json(exportData);
@@ -2696,7 +2805,8 @@ const deleteAccount = async (req, res) => {
     // Account deletion is currently blocked
     return res.status(403).json({
       success: false,
-      message: 'Account deletion is temporarily disabled. Please contact support if you need assistance.',
+      message:
+        'Account deletion is temporarily disabled. Please contact support if you need assistance.',
     });
   } catch (error) {
     console.error('Delete account error:', error);
@@ -2732,7 +2842,7 @@ const takeContentQuiz = async (req, res) => {
       if (courseData) {
         for (const topicData of courseData.topics) {
           const foundContent = topicData.content.find(
-            (c) => c._id.toString() === contentId
+            (c) => c._id.toString() === contentId,
           );
           if (foundContent) {
             contentItem = foundContent;
@@ -2748,7 +2858,7 @@ const takeContentQuiz = async (req, res) => {
     if (!contentItem) {
       req.flash(
         'error_msg',
-        'Content not found or you are not enrolled in this course'
+        'Content not found or you are not enrolled in this course',
       );
       return res.redirect('/student/enrolled-courses');
     }
@@ -2760,11 +2870,15 @@ const takeContentQuiz = async (req, res) => {
     }
 
     // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
-    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    const courseUnlockStatus = await Course.isCourseUnlocked(
+      studentId,
+      course._id,
+    );
     if (!courseUnlockStatus.unlocked) {
       req.flash(
         'error_msg',
-        courseUnlockStatus.reason || 'This week is locked. Please complete the previous weeks first.'
+        courseUnlockStatus.reason ||
+          'This week is locked. Please complete the previous weeks first.',
       );
       return res.redirect('/student/enrolled-courses');
     }
@@ -2780,23 +2894,31 @@ const takeContentQuiz = async (req, res) => {
     }
 
     const currentTopicIndex = sortedTopics.findIndex(
-      (t) => t._id.toString() === topic._id.toString()
+      (t) => t._id.toString() === topic._id.toString(),
     );
 
-    if (topic.unlockConditions === 'previous_completed' && currentTopicIndex > 0) {
+    if (
+      topic.unlockConditions === 'previous_completed' &&
+      currentTopicIndex > 0
+    ) {
       const prevTopic = sortedTopics[currentTopicIndex - 1];
       if (prevTopic) {
         const completedIds = student.getCompletedContentIds(course._id);
-        const prevTopicContentIds = prevTopic.content.map((c) => c._id.toString());
-        const allPrevCompleted = prevTopicContentIds.length === 0 ||
+        const prevTopicContentIds = prevTopic.content.map((c) =>
+          c._id.toString(),
+        );
+        const allPrevCompleted =
+          prevTopicContentIds.length === 0 ||
           prevTopicContentIds.every((id) => completedIds.includes(id));
 
         if (!allPrevCompleted) {
           req.flash(
             'error_msg',
-            `This topic is locked. Complete all content in "${prevTopic.title}" first.`
+            `This topic is locked. Complete all content in "${prevTopic.title}" first.`,
           );
-          return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
+          return res.redirect(
+            `/student/course/${course._id}/content?lockedContent=${contentId}`,
+          );
         }
       }
     }
@@ -2805,11 +2927,13 @@ const takeContentQuiz = async (req, res) => {
     const unlockStatus = student.isContentUnlocked(
       course._id,
       contentId,
-      contentItem
+      contentItem,
     );
     if (!unlockStatus.unlocked) {
       req.flash('error_msg', `Content is locked: ${unlockStatus.reason}`);
-      return res.redirect(`/student/course/${course._id}/content?lockedContent=${contentId}`);
+      return res.redirect(
+        `/student/course/${course._id}/content?lockedContent=${contentId}`,
+      );
     }
 
     // Check attempt limits
@@ -2821,7 +2945,7 @@ const takeContentQuiz = async (req, res) => {
     const canAttempt = student.canAttemptQuiz(
       course._id,
       contentId,
-      maxAttempts
+      maxAttempts,
     );
     if (!canAttempt.canAttempt) {
       req.flash('error_msg', `Cannot attempt: ${canAttempt.reason}`);
@@ -2831,13 +2955,13 @@ const takeContentQuiz = async (req, res) => {
     // Check existing content progress and persistent timing
     let contentProgress = student.getContentProgressDetails(
       course._id,
-      contentId
+      contentId,
     );
 
     if (contentProgress && contentProgress.completionStatus === 'completed') {
       req.flash(
         'info_msg',
-        'You have already completed this quiz successfully!'
+        'You have already completed this quiz successfully!',
       );
       return res.redirect(`/student/content/${contentId}/results`);
     }
@@ -2849,8 +2973,8 @@ const takeContentQuiz = async (req, res) => {
           ? contentItem.quizSettings.duration
           : 0
         : contentItem.homeworkSettings && contentItem.homeworkSettings.duration
-        ? contentItem.homeworkSettings.duration
-        : contentItem.duration || 0;
+          ? contentItem.homeworkSettings.duration
+          : contentItem.duration || 0;
     const passingScore =
       contentItem.type === 'quiz'
         ? contentItem.quizSettings &&
@@ -2858,9 +2982,9 @@ const takeContentQuiz = async (req, res) => {
           ? contentItem.quizSettings.passingScore
           : 60
         : contentItem.homeworkSettings &&
-          typeof contentItem.homeworkSettings.passingScore === 'number'
-        ? contentItem.homeworkSettings.passingScore
-        : 60;
+            typeof contentItem.homeworkSettings.passingScore === 'number'
+          ? contentItem.homeworkSettings.passingScore
+          : 60;
 
     // If no progress, create with in_progress and expectedEnd; if exists and no expectedEnd, set it
     if (!contentProgress) {
@@ -2878,13 +3002,13 @@ const takeContentQuiz = async (req, res) => {
           progressPercentage: 0,
           lastAccessed: new Date(),
           expectedEnd: expectedEnd,
-        }
+        },
       );
       // refresh contentProgress after update
       const refreshed = await User.findById(studentId);
       contentProgress = refreshed.getContentProgressDetails(
         course._id,
-        contentId
+        contentId,
       );
     } else if (!contentProgress.expectedEnd && durationMinutes > 0) {
       // Set expectedEnd if missing
@@ -2901,12 +3025,12 @@ const takeContentQuiz = async (req, res) => {
               : contentProgress.completionStatus,
           expectedEnd: expectedEnd,
           lastAccessed: new Date(),
-        }
+        },
       );
       const refreshed = await User.findById(studentId);
       contentProgress = refreshed.getContentProgressDetails(
         course._id,
-        contentId
+        contentId,
       );
     }
 
@@ -2917,8 +3041,8 @@ const takeContentQuiz = async (req, res) => {
       remainingSeconds = Math.max(
         0,
         Math.floor(
-          (new Date(contentProgress.expectedEnd).getTime() - Date.now()) / 1000
-        )
+          (new Date(contentProgress.expectedEnd).getTime() - Date.now()) / 1000,
+        ),
       );
       isExpired = remainingSeconds === 0;
       // If expired and still not completed/failed, mark as failed progress-wise (attempt will be created on client auto-submit)
@@ -2936,7 +3060,7 @@ const takeContentQuiz = async (req, res) => {
             completionStatus: 'failed',
             progressPercentage: contentProgress.progressPercentage || 0,
             lastAccessed: new Date(),
-          }
+          },
         );
       }
     }
@@ -2957,12 +3081,13 @@ const takeContentQuiz = async (req, res) => {
     });
 
     const populatedContentItem = populatedContent.content.find(
-      (c) => c._id.toString() === contentId
+      (c) => c._id.toString() === contentId,
     );
     // Get quiz settings
-    const settings = populatedContentItem.type === 'quiz' 
-      ? populatedContentItem.quizSettings 
-      : populatedContentItem.homeworkSettings;
+    const settings =
+      populatedContentItem.type === 'quiz'
+        ? populatedContentItem.quizSettings
+        : populatedContentItem.homeworkSettings;
 
     res.render('student/take-content-quiz', {
       title: `Taking ${contentItem.title} | ELKABLY`,
@@ -3028,7 +3153,7 @@ const submitContentQuiz = async (req, res) => {
       if (courseData) {
         for (const topicData of courseData.topics) {
           const foundContent = topicData.content.find(
-            (c) => c._id.toString() === contentId
+            (c) => c._id.toString() === contentId,
           );
           if (foundContent) {
             contentItem = foundContent;
@@ -3049,7 +3174,10 @@ const submitContentQuiz = async (req, res) => {
     }
 
     // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
-    const courseUnlockCheck = await Course.isCourseUnlocked(studentId, course._id);
+    const courseUnlockCheck = await Course.isCourseUnlocked(
+      studentId,
+      course._id,
+    );
     if (!courseUnlockCheck.unlocked) {
       return res.status(403).json({
         success: false,
@@ -3070,15 +3198,18 @@ const submitContentQuiz = async (req, res) => {
     }
 
     const topicIdxSubmit = sortedTopicsSubmit.findIndex(
-      (t) => t._id.toString() === topic._id.toString()
+      (t) => t._id.toString() === topic._id.toString(),
     );
 
     if (topic.unlockConditions === 'previous_completed' && topicIdxSubmit > 0) {
       const prevTopicSubmit = sortedTopicsSubmit[topicIdxSubmit - 1];
       if (prevTopicSubmit) {
         const completedSubmit = student.getCompletedContentIds(course._id);
-        const prevIdsSubmit = prevTopicSubmit.content.map((c) => c._id.toString());
-        const allPrevCompleteSubmit = prevIdsSubmit.length === 0 ||
+        const prevIdsSubmit = prevTopicSubmit.content.map((c) =>
+          c._id.toString(),
+        );
+        const allPrevCompleteSubmit =
+          prevIdsSubmit.length === 0 ||
           prevIdsSubmit.every((id) => completedSubmit.includes(id));
 
         if (!allPrevCompleteSubmit) {
@@ -3091,7 +3222,11 @@ const submitContentQuiz = async (req, res) => {
     }
 
     // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
-    const contentUnlockCheck = student.isContentUnlocked(course._id, contentId, contentItem);
+    const contentUnlockCheck = student.isContentUnlocked(
+      course._id,
+      contentId,
+      contentItem,
+    );
     if (!contentUnlockCheck.unlocked) {
       return res.status(403).json({
         success: false,
@@ -3101,7 +3236,7 @@ const submitContentQuiz = async (req, res) => {
 
     // Validate enrollment
     const enrollment = student.enrolledCourses.find(
-      (e) => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId,
     );
 
     if (!enrollment) {
@@ -3122,7 +3257,7 @@ const submitContentQuiz = async (req, res) => {
     });
 
     const populatedContentItem = populatedContent.content.find(
-      (c) => c._id.toString() === contentId
+      (c) => c._id.toString() === contentId,
     );
 
     if (!populatedContentItem || !populatedContentItem.selectedQuestions) {
@@ -3171,8 +3306,8 @@ const submitContentQuiz = async (req, res) => {
           question.questionType === 'Written'
             ? question.getAllCorrectAnswers()
             : Array.isArray(question.correctAnswer)
-            ? question.correctAnswer[0]
-            : question.correctAnswer,
+              ? question.correctAnswer[0]
+              : question.correctAnswer,
         isCorrect,
         points,
         questionType: question.questionType,
@@ -3188,8 +3323,12 @@ const submitContentQuiz = async (req, res) => {
     // Get passing score (default: Quiz 50%, Homework 0% - students just need to submit)
     const passingScore =
       contentType === 'quiz'
-        ? (contentItem.quizSettings?.passingScore !== undefined ? contentItem.quizSettings.passingScore : 50)
-        : (contentItem.homeworkSettings?.passingScore !== undefined ? contentItem.homeworkSettings.passingScore : 0);
+        ? contentItem.quizSettings?.passingScore !== undefined
+          ? contentItem.quizSettings.passingScore
+          : 50
+        : contentItem.homeworkSettings?.passingScore !== undefined
+          ? contentItem.homeworkSettings.passingScore
+          : 0;
 
     const passed = score >= passingScore;
 
@@ -3213,7 +3352,7 @@ const submitContentQuiz = async (req, res) => {
       topicId,
       contentId,
       contentType,
-      attemptData
+      attemptData,
     );
 
     // Send WhatsApp notification to parent for content quiz completion
@@ -3225,7 +3364,7 @@ const submitContentQuiz = async (req, res) => {
           type: contentType,
         },
         correctAnswers,
-        totalQuestions
+        totalQuestions,
       );
     } catch (whatsappError) {
       console.error('WhatsApp notification error:', whatsappError);
@@ -3234,10 +3373,10 @@ const submitContentQuiz = async (req, res) => {
 
     // Get next content for navigation
     const allContent = course.topics.flatMap((t) =>
-      t.content.map((c) => ({ ...c.toObject(), topicId: t._id }))
+      t.content.map((c) => ({ ...c.toObject(), topicId: t._id })),
     );
     const currentIndex = allContent.findIndex(
-      (c) => c._id.toString() === contentId
+      (c) => c._id.toString() === contentId,
     );
     let nextContentId = null;
 
@@ -3246,7 +3385,7 @@ const submitContentQuiz = async (req, res) => {
       const nextUnlockStatus = student.isContentUnlocked(
         courseId,
         nextContent._id,
-        nextContent
+        nextContent,
       );
       if (nextUnlockStatus.unlocked) {
         nextContentId = nextContent._id;
@@ -3301,7 +3440,7 @@ const quizResults = async (req, res) => {
       if (courseData) {
         for (const topicData of courseData.topics) {
           const foundContent = topicData.content.find(
-            (c) => c._id.toString() === contentId
+            (c) => c._id.toString() === contentId,
           );
           if (foundContent) {
             contentItem = foundContent;
@@ -3317,7 +3456,7 @@ const quizResults = async (req, res) => {
     if (!contentItem) {
       req.flash(
         'error_msg',
-        'Content not found or you are not enrolled in this course'
+        'Content not found or you are not enrolled in this course',
       );
       return res.redirect('/student/enrolled-courses');
     }
@@ -3331,7 +3470,7 @@ const quizResults = async (req, res) => {
     // Get content progress
     const contentProgress = student.getContentProgressDetails(
       course._id,
-      contentId
+      contentId,
     );
 
     if (!contentProgress || contentProgress.quizAttempts.length === 0) {
@@ -3354,7 +3493,7 @@ const quizResults = async (req, res) => {
     });
 
     const populatedContentItem = populatedContent.content.find(
-      (c) => c._id.toString() === contentId
+      (c) => c._id.toString() === contentId,
     );
 
     // Check if answers can be shown; also require last attempt to be passed
@@ -3394,7 +3533,7 @@ const debugProgress = async (req, res) => {
 
     const student = await User.findById(studentId);
     const enrollment = student.enrolledCourses.find(
-      (e) => e.course.toString() === courseId
+      (e) => e.course.toString() === courseId,
     );
 
     if (!enrollment) {
@@ -3502,7 +3641,7 @@ const getQuizDetails = async (req, res) => {
       const expectedEnd = new Date(activeAttempt.expectedEnd);
       const remainingSeconds = Math.max(
         0,
-        Math.floor((expectedEnd - now) / 1000)
+        Math.floor((expectedEnd - now) / 1000),
       );
       const isExpired = remainingSeconds <= 0;
 
@@ -3590,7 +3729,10 @@ const startQuizAttempt = async (req, res) => {
     return res.redirect(`/student/quiz/${quizId}/take`);
   } catch (error) {
     console.error('Start quiz error:', error);
-    logError('Start quiz error', error, { studentId: req.session?.user?.id, quizId: req.params?.id });
+    logError('Start quiz error', error, {
+      studentId: req.session?.user?.id,
+      quizId: req.params?.id,
+    });
     req.flash('error_msg', 'Error starting quiz');
     res.redirect(`/student/quiz/${req.params.id}/details`);
   }
@@ -3615,7 +3757,7 @@ const takeQuizPage = async (req, res) => {
     }
 
     const quiz = await Quiz.findById(quizId).populate(
-      'selectedQuestions.question'
+      'selectedQuestions.question',
     );
 
     if (!quiz) {
@@ -3642,7 +3784,7 @@ const takeQuizPage = async (req, res) => {
     if (!activeAttempt) {
       const attemptResult = await student.startQuizAttempt(
         quizId,
-        quiz.duration
+        quiz.duration,
       );
       // Use the returned attempt data directly
       activeAttempt = attemptResult.newAttempt;
@@ -3664,7 +3806,7 @@ const takeQuizPage = async (req, res) => {
     const expectedEnd = new Date(activeAttempt.expectedEnd);
     const remainingSeconds = Math.max(
       0,
-      Math.floor((expectedEnd - now) / 1000)
+      Math.floor((expectedEnd - now) / 1000),
     );
     const isExpired = remainingSeconds <= 0;
 
@@ -3724,7 +3866,7 @@ const submitStandaloneQuiz = async (req, res) => {
     }
 
     const quiz = await Quiz.findById(quizId).populate(
-      'selectedQuestions.question'
+      'selectedQuestions.question',
     );
 
     if (!quiz) {
@@ -3776,7 +3918,7 @@ const submitStandaloneQuiz = async (req, res) => {
                 correctAnswers.some(
                   (answer) =>
                     answer === normalizedUserAnswer ||
-                    normalizedUserAnswer.includes(answer)
+                    normalizedUserAnswer.includes(answer),
                 )
               ) {
                 isCorrect = true;
@@ -3827,7 +3969,7 @@ const submitStandaloneQuiz = async (req, res) => {
     });
 
     const score = Math.round(
-      (correctAnswers / quiz.selectedQuestions.length) * 100
+      (correctAnswers / quiz.selectedQuestions.length) * 100,
     );
     const passed = score >= quiz.passingScore;
 
@@ -3848,7 +3990,7 @@ const submitStandaloneQuiz = async (req, res) => {
         req.session.user.id,
         quiz,
         correctAnswers,
-        quiz.selectedQuestions.length
+        quiz.selectedQuestions.length,
       );
     } catch (whatsappError) {
       console.error('WhatsApp notification error:', whatsappError);
@@ -3991,7 +4133,6 @@ const joinZoomMeeting = async (req, res) => {
     const { meetingId } = req.params;
     const studentId = req.session.user.id;
 
-
     // Find the Zoom meeting
     const zoomMeeting = await ZoomMeeting.findById(meetingId)
       .populate('topic', 'title')
@@ -4004,11 +4145,10 @@ const joinZoomMeeting = async (req, res) => {
       });
     }
 
-
     // Validate meeting exists in Zoom (optional but recommended)
     try {
       const zoomMeetingDetails = await zoomService.getMeetingDetails(
-        zoomMeeting.meetingId
+        zoomMeeting.meetingId,
       );
     } catch (zoomError) {
       // Continue anyway - might be a permissions issue
@@ -4034,7 +4174,7 @@ const joinZoomMeeting = async (req, res) => {
 
     // Get student information with populated enrolled courses
     const student = await User.findById(studentId).populate(
-      'enrolledCourses.course'
+      'enrolledCourses.course',
     );
 
     if (!student) {
@@ -4048,9 +4188,8 @@ const joinZoomMeeting = async (req, res) => {
     const isEnrolled = student.enrolledCourses.some(
       (enrollment) =>
         enrollment.course &&
-        enrollment.course._id.toString() === zoomMeeting.course._id.toString()
+        enrollment.course._id.toString() === zoomMeeting.course._id.toString(),
     );
-
 
     // For development/testing, you can temporarily disable this check
     const skipEnrollmentCheck =
@@ -4064,7 +4203,7 @@ const joinZoomMeeting = async (req, res) => {
         debug: {
           meetingCourse: zoomMeeting.course._id.toString(),
           studentCourses: student.enrolledCourses.map((e) =>
-            e.course ? e.course._id.toString() : 'null'
+            e.course ? e.course._id.toString() : 'null',
           ),
           suggestion: 'Add SKIP_ENROLLMENT_CHECK=true to .env for testing',
         },
@@ -4075,9 +4214,9 @@ const joinZoomMeeting = async (req, res) => {
     await zoomService.recordAttendance(
       zoomMeeting.meetingId,
       studentId,
-      'join_attempt'
+      'join_attempt',
     );
-    
+
     // Auto-mark content as completed when student joins live session
     // This ensures progress is updated immediately when they join
     try {
@@ -4085,25 +4224,31 @@ const joinZoomMeeting = async (req, res) => {
       const topicId = zoomMeeting.topic._id || zoomMeeting.topic;
       const Topic = require('../models/Topic');
       const topic = await Topic.findById(topicId);
-      
+
       if (topic && topic.content) {
         const zoomContentItem = topic.content.find(
-          (item) => item.type === 'zoom' && 
-          item.zoomMeeting && 
-          item.zoomMeeting.toString() === zoomMeeting._id.toString()
+          (item) =>
+            item.type === 'zoom' &&
+            item.zoomMeeting &&
+            item.zoomMeeting.toString() === zoomMeeting._id.toString(),
         );
 
         if (zoomContentItem) {
           // Refresh student to get latest data before updating
           const freshStudent = await User.findById(studentId);
-          
+
           // Check if already completed to avoid duplicate updates
           const existingProgress = freshStudent.enrolledCourses
-            .find(e => e.course.toString() === courseId.toString())
-            ?.contentProgress
-            ?.find(cp => cp.contentId.toString() === zoomContentItem._id.toString());
-          
-          if (!existingProgress || existingProgress.completionStatus !== 'completed') {
+            .find((e) => e.course.toString() === courseId.toString())
+            ?.contentProgress?.find(
+              (cp) =>
+                cp.contentId.toString() === zoomContentItem._id.toString(),
+            );
+
+          if (
+            !existingProgress ||
+            existingProgress.completionStatus !== 'completed'
+          ) {
             // Update content progress to mark as completed
             await freshStudent.updateContentProgress(
               courseId,
@@ -4114,8 +4259,8 @@ const joinZoomMeeting = async (req, res) => {
                 completionStatus: 'completed',
                 progressPercentage: 100,
                 lastAccessed: new Date(),
-                completedAt: new Date()
-              }
+                completedAt: new Date(),
+              },
             );
           }
         }
@@ -4138,9 +4283,8 @@ const joinZoomMeeting = async (req, res) => {
     const trackingJoinUrl = zoomService.generateTrackingJoinUrl(
       zoomMeeting.meetingId,
       studentInfo,
-      zoomMeeting.password
+      zoomMeeting.password,
     );
-
 
     // Return join URL for external redirect
     res.json({
@@ -4194,9 +4338,8 @@ const leaveZoomMeeting = async (req, res) => {
     await zoomService.recordAttendance(
       zoomMeeting.meetingId,
       studentId,
-      'leave'
+      'leave',
     );
-
 
     res.json({
       success: true,
@@ -4231,7 +4374,7 @@ const getZoomMeetingHistory = async (req, res) => {
     // Extract student's attendance data from each meeting
     const attendanceHistory = meetings.map((meeting) => {
       const studentAttendance = meeting.studentsAttended.find(
-        (att) => att.student.toString() === studentId
+        (att) => att.student.toString() === studentId,
       );
 
       return {
@@ -4314,7 +4457,7 @@ const getSecureQuestion = async (req, res) => {
       if (courseData) {
         for (const topicData of courseData.topics) {
           contentItem = topicData.content.find(
-            (c) => c._id.toString() === contentId
+            (c) => c._id.toString() === contentId,
           );
           if (contentItem) {
             course = courseData;
@@ -4334,7 +4477,10 @@ const getSecureQuestion = async (req, res) => {
     }
 
     // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
-    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    const courseUnlockStatus = await Course.isCourseUnlocked(
+      studentId,
+      course._id,
+    );
     if (!courseUnlockStatus.unlocked) {
       return res.status(403).json({
         success: false,
@@ -4355,15 +4501,20 @@ const getSecureQuestion = async (req, res) => {
     }
 
     const topicIdxCheck = publishedTopicsCheck.findIndex(
-      (t) => t._id.toString() === topic._id.toString()
+      (t) => t._id.toString() === topic._id.toString(),
     );
 
     if (topic.unlockConditions === 'previous_completed' && topicIdxCheck > 0) {
       const prevTopicCheck = publishedTopicsCheck[topicIdxCheck - 1];
       if (prevTopicCheck) {
-        const completedContentCheck = student.getCompletedContentIds(course._id);
-        const prevContentIds = prevTopicCheck.content.map((c) => c._id.toString());
-        const allPrevDone = prevContentIds.length === 0 ||
+        const completedContentCheck = student.getCompletedContentIds(
+          course._id,
+        );
+        const prevContentIds = prevTopicCheck.content.map((c) =>
+          c._id.toString(),
+        );
+        const allPrevDone =
+          prevContentIds.length === 0 ||
           prevContentIds.every((id) => completedContentCheck.includes(id));
 
         if (!allPrevDone) {
@@ -4376,7 +4527,11 @@ const getSecureQuestion = async (req, res) => {
     }
 
     // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
-    const contentLockStatus = student.isContentUnlocked(course._id, contentId, contentItem);
+    const contentLockStatus = student.isContentUnlocked(
+      course._id,
+      contentId,
+      contentItem,
+    );
     if (!contentLockStatus.unlocked) {
       return res.status(403).json({
         success: false,
@@ -4472,7 +4627,7 @@ const getSecureAllQuestions = async (req, res) => {
       if (courseData) {
         for (const topicData of courseData.topics) {
           contentItem = topicData.content.find(
-            (c) => c._id.toString() === contentId
+            (c) => c._id.toString() === contentId,
           );
           if (contentItem) {
             course = courseData;
@@ -4492,11 +4647,16 @@ const getSecureAllQuestions = async (req, res) => {
     }
 
     // ========== SECURITY CHECK 1: Is the course/week unlocked? ==========
-    const courseUnlockStatus = await Course.isCourseUnlocked(studentId, course._id);
+    const courseUnlockStatus = await Course.isCourseUnlocked(
+      studentId,
+      course._id,
+    );
     if (!courseUnlockStatus.unlocked) {
       return res.status(403).json({
         success: false,
-        message: courseUnlockStatus.reason || 'This week is locked. Please complete the previous weeks first.',
+        message:
+          courseUnlockStatus.reason ||
+          'This week is locked. Please complete the previous weeks first.',
       });
     }
 
@@ -4513,15 +4673,21 @@ const getSecureAllQuestions = async (req, res) => {
     }
 
     const topicIdxForCheck = sortedTopicsForCheck.findIndex(
-      (t) => t._id.toString() === topic._id.toString()
+      (t) => t._id.toString() === topic._id.toString(),
     );
 
-    if (topic.unlockConditions === 'previous_completed' && topicIdxForCheck > 0) {
+    if (
+      topic.unlockConditions === 'previous_completed' &&
+      topicIdxForCheck > 0
+    ) {
       const prevTopicForCheck = sortedTopicsForCheck[topicIdxForCheck - 1];
       if (prevTopicForCheck) {
         const completedIdsForCheck = student.getCompletedContentIds(course._id);
-        const prevTopicIds = prevTopicForCheck.content.map((c) => c._id.toString());
-        const allPrevTopicCompleted = prevTopicIds.length === 0 ||
+        const prevTopicIds = prevTopicForCheck.content.map((c) =>
+          c._id.toString(),
+        );
+        const allPrevTopicCompleted =
+          prevTopicIds.length === 0 ||
           prevTopicIds.every((id) => completedIdsForCheck.includes(id));
 
         if (!allPrevTopicCompleted) {
@@ -4534,7 +4700,11 @@ const getSecureAllQuestions = async (req, res) => {
     }
 
     // ========== SECURITY CHECK 3: Is the content unlocked (prerequisites)? ==========
-    const contentUnlockStatus = student.isContentUnlocked(course._id, contentId, contentItem);
+    const contentUnlockStatus = student.isContentUnlocked(
+      course._id,
+      contentId,
+      contentItem,
+    );
     if (!contentUnlockStatus.unlocked) {
       return res.status(403).json({
         success: false,
@@ -4543,14 +4713,15 @@ const getSecureAllQuestions = async (req, res) => {
     }
 
     // Get quiz settings
-    const settings = contentItem.type === 'quiz' 
-      ? contentItem.quizSettings 
-      : contentItem.homeworkSettings;
+    const settings =
+      contentItem.type === 'quiz'
+        ? contentItem.quizSettings
+        : contentItem.homeworkSettings;
 
     // Get content progress to check for existing shuffled order
     const contentProgress = student.getContentProgressDetails(
       course._id,
-      contentId
+      contentId,
     );
 
     // Get or create shuffled order for this attempt
@@ -4559,29 +4730,42 @@ const getSecureAllQuestions = async (req, res) => {
 
     if (contentProgress && contentProgress.quizAttempts) {
       const attempt = contentProgress.quizAttempts.find(
-        (a) => a.attemptNumber === parseInt(attemptNumber)
+        (a) => a.attemptNumber === parseInt(attemptNumber),
       );
 
-      if (attempt && attempt.shuffledQuestionOrder && attempt.shuffledQuestionOrder.length > 0) {
+      if (
+        attempt &&
+        attempt.shuffledQuestionOrder &&
+        attempt.shuffledQuestionOrder.length > 0
+      ) {
         // Use existing shuffled order
         shuffledQuestionOrder = attempt.shuffledQuestionOrder;
         if (attempt.shuffledOptionOrders) {
-          shuffledOptionOrders = new Map(Object.entries(attempt.shuffledOptionOrders));
+          shuffledOptionOrders = new Map(
+            Object.entries(attempt.shuffledOptionOrders),
+          );
         }
       } else if (settings?.shuffleQuestions || settings?.shuffleOptions) {
         // Create new shuffled order and save it
-        const originalQuestions = contentItem.selectedQuestions.map((_, idx) => idx);
+        const originalQuestions = contentItem.selectedQuestions.map(
+          (_, idx) => idx,
+        );
         // Define seed for deterministic shuffling (used for both questions and options)
         const seed = `${studentId}-${contentId}-${attemptNumber}`;
-        
+
         if (settings.shuffleQuestions) {
           // Fisher-Yates shuffle for deterministic but random order
           shuffledQuestionOrder = [...originalQuestions];
-          let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          let seedValue = seed
+            .split('')
+            .reduce((acc, char) => acc + char.charCodeAt(0), 0);
           for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
             seedValue = (seedValue * 9301 + 49297) % 233280; // Simple PRNG
             const j = seedValue % (i + 1);
-            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [
+              shuffledQuestionOrder[j],
+              shuffledQuestionOrder[i],
+            ];
           }
         } else {
           shuffledQuestionOrder = originalQuestions;
@@ -4591,17 +4775,31 @@ const getSecureAllQuestions = async (req, res) => {
         if (settings.shuffleOptions) {
           contentItem.selectedQuestions.forEach((selectedQuestion, qIdx) => {
             const question = selectedQuestion.question;
-            if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
-              const originalOptionIndices = question.options.map((_, idx) => idx);
+            if (
+              question.questionType !== 'Written' &&
+              question.options &&
+              question.options.length > 0
+            ) {
+              const originalOptionIndices = question.options.map(
+                (_, idx) => idx,
+              );
               const shuffledOptions = [...originalOptionIndices];
               const optionSeed = `${seed}-${question._id}`;
-              let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              let optionSeedValue = optionSeed
+                .split('')
+                .reduce((acc, char) => acc + char.charCodeAt(0), 0);
               for (let i = shuffledOptions.length - 1; i > 0; i--) {
                 optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
                 const j = optionSeedValue % (i + 1);
-                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+                [shuffledOptions[i], shuffledOptions[j]] = [
+                  shuffledOptions[j],
+                  shuffledOptions[i],
+                ];
               }
-              shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
+              shuffledOptionOrders.set(
+                question._id.toString(),
+                shuffledOptions,
+              );
             }
           });
         }
@@ -4609,7 +4807,8 @@ const getSecureAllQuestions = async (req, res) => {
         // Save shuffled order to attempt
         if (attempt) {
           attempt.shuffledQuestionOrder = shuffledQuestionOrder;
-          attempt.shuffledOptionOrders = Object.fromEntries(shuffledOptionOrders);
+          attempt.shuffledOptionOrders =
+            Object.fromEntries(shuffledOptionOrders);
           await student.save();
         } else {
           // Create attempt entry if it doesn't exist
@@ -4623,10 +4822,13 @@ const getSecureAllQuestions = async (req, res) => {
                 completionStatus: 'in_progress',
                 progressPercentage: 0,
                 lastAccessed: new Date(),
-              }
+              },
             );
             const refreshed = await User.findById(studentId);
-            const refreshedProgress = refreshed.getContentProgressDetails(course._id, contentId);
+            const refreshedProgress = refreshed.getContentProgressDetails(
+              course._id,
+              contentId,
+            );
             if (refreshedProgress && !refreshedProgress.quizAttempts) {
               refreshedProgress.quizAttempts = [];
             }
@@ -4651,22 +4853,31 @@ const getSecureAllQuestions = async (req, res) => {
         }
       } else {
         // No shuffling needed
-        shuffledQuestionOrder = contentItem.selectedQuestions.map((_, idx) => idx);
+        shuffledQuestionOrder = contentItem.selectedQuestions.map(
+          (_, idx) => idx,
+        );
       }
     } else {
       // No progress yet, create shuffled order if needed
       if (settings?.shuffleQuestions || settings?.shuffleOptions) {
-        const originalQuestions = contentItem.selectedQuestions.map((_, idx) => idx);
+        const originalQuestions = contentItem.selectedQuestions.map(
+          (_, idx) => idx,
+        );
         // Define seed for deterministic shuffling (used for both questions and options)
         const seed = `${studentId}-${contentId}-${attemptNumber}`;
-        
+
         if (settings.shuffleQuestions) {
           shuffledQuestionOrder = [...originalQuestions];
-          let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          let seedValue = seed
+            .split('')
+            .reduce((acc, char) => acc + char.charCodeAt(0), 0);
           for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
             seedValue = (seedValue * 9301 + 49297) % 233280;
             const j = seedValue % (i + 1);
-            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [
+              shuffledQuestionOrder[j],
+              shuffledQuestionOrder[i],
+            ];
           }
         } else {
           shuffledQuestionOrder = originalQuestions;
@@ -4675,61 +4886,83 @@ const getSecureAllQuestions = async (req, res) => {
         if (settings.shuffleOptions) {
           contentItem.selectedQuestions.forEach((selectedQuestion) => {
             const question = selectedQuestion.question;
-            if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
-              const originalOptionIndices = question.options.map((_, idx) => idx);
+            if (
+              question.questionType !== 'Written' &&
+              question.options &&
+              question.options.length > 0
+            ) {
+              const originalOptionIndices = question.options.map(
+                (_, idx) => idx,
+              );
               const shuffledOptions = [...originalOptionIndices];
               const optionSeed = `${seed}-${question._id}`;
-              let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              let optionSeedValue = optionSeed
+                .split('')
+                .reduce((acc, char) => acc + char.charCodeAt(0), 0);
               for (let i = shuffledOptions.length - 1; i > 0; i--) {
                 optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
                 const j = optionSeedValue % (i + 1);
-                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+                [shuffledOptions[i], shuffledOptions[j]] = [
+                  shuffledOptions[j],
+                  shuffledOptions[i],
+                ];
               }
-              shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
+              shuffledOptionOrders.set(
+                question._id.toString(),
+                shuffledOptions,
+              );
             }
           });
         }
       } else {
-        shuffledQuestionOrder = contentItem.selectedQuestions.map((_, idx) => idx);
+        shuffledQuestionOrder = contentItem.selectedQuestions.map(
+          (_, idx) => idx,
+        );
       }
     }
 
     // Create secure questions array in shuffled order
-    const secureQuestions = shuffledQuestionOrder.map((originalIndex, displayIndex) => {
-      const selectedQuestion = contentItem.selectedQuestions[originalIndex];
-      const question = selectedQuestion.question;
-      
-      let options = [];
-      if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
-        const optionOrder = shuffledOptionOrders.get(question._id.toString());
-        if (optionOrder && optionOrder.length > 0) {
-          // Use shuffled option order
-          options = optionOrder.map((optIdx) => ({
-            _id: question.options[optIdx]._id,
-            text: question.options[optIdx].text,
-            image: question.options[optIdx].image,
-          }));
-        } else {
-          // No shuffling or order not found, use original order
-          options = question.options.map((option) => ({
-            _id: option._id,
-            text: option.text,
-            image: option.image,
-          }));
-        }
-      }
+    const secureQuestions = shuffledQuestionOrder.map(
+      (originalIndex, displayIndex) => {
+        const selectedQuestion = contentItem.selectedQuestions[originalIndex];
+        const question = selectedQuestion.question;
 
-      return {
-        _id: question._id,
-        questionText: question.questionText,
-        questionType: question.questionType,
-        questionImage: question.questionImage,
-        points: selectedQuestion.points || 1,
-        index: displayIndex, // Display index (0-based in shuffled order)
-        originalIndex: originalIndex, // Original index for reference
-        options: options,
-      };
-    });
+        let options = [];
+        if (
+          question.questionType !== 'Written' &&
+          question.options &&
+          question.options.length > 0
+        ) {
+          const optionOrder = shuffledOptionOrders.get(question._id.toString());
+          if (optionOrder && optionOrder.length > 0) {
+            // Use shuffled option order
+            options = optionOrder.map((optIdx) => ({
+              _id: question.options[optIdx]._id,
+              text: question.options[optIdx].text,
+              image: question.options[optIdx].image,
+            }));
+          } else {
+            // No shuffling or order not found, use original order
+            options = question.options.map((option) => ({
+              _id: option._id,
+              text: option.text,
+              image: option.image,
+            }));
+          }
+        }
+
+        return {
+          _id: question._id,
+          questionText: question.questionText,
+          questionType: question.questionType,
+          questionImage: question.questionImage,
+          points: selectedQuestion.points || 1,
+          index: displayIndex, // Display index (0-based in shuffled order)
+          originalIndex: originalIndex, // Original index for reference
+          options: options,
+        };
+      },
+    );
 
     res.json({
       success: true,
@@ -4791,7 +5024,7 @@ const checkQuestionAnswered = async (req, res) => {
       if (courseData) {
         for (const topicData of courseData.topics) {
           contentItem = topicData.content.find(
-            (c) => c._id.toString() === contentId
+            (c) => c._id.toString() === contentId,
           );
           if (contentItem) break;
         }
@@ -4862,7 +5095,7 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
 
     // Get quiz attempt to check for existing shuffled order
     const quizAttempt = student.quizAttempts.find(
-      (attempt) => attempt.quiz.toString() === quizId
+      (attempt) => attempt.quiz.toString() === quizId,
     );
 
     let shuffledQuestionOrder = [];
@@ -4870,28 +5103,39 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
 
     if (quizAttempt && quizAttempt.attempts) {
       const attempt = quizAttempt.attempts.find(
-        (a) => a.attemptNumber === parseInt(attemptNumber)
+        (a) => a.attemptNumber === parseInt(attemptNumber),
       );
 
-      if (attempt && attempt.shuffledQuestionOrder && attempt.shuffledQuestionOrder.length > 0) {
+      if (
+        attempt &&
+        attempt.shuffledQuestionOrder &&
+        attempt.shuffledQuestionOrder.length > 0
+      ) {
         // Use existing shuffled order
         shuffledQuestionOrder = attempt.shuffledQuestionOrder;
         if (attempt.shuffledOptionOrders) {
-          shuffledOptionOrders = new Map(Object.entries(attempt.shuffledOptionOrders));
+          shuffledOptionOrders = new Map(
+            Object.entries(attempt.shuffledOptionOrders),
+          );
         }
       } else if (quiz.shuffleQuestions || quiz.shuffleOptions) {
         // Create new shuffled order
         const originalQuestions = quiz.selectedQuestions.map((_, idx) => idx);
         // Define seed for deterministic shuffling (used for both questions and options)
         const seed = `${studentId}-${quizId}-${attemptNumber}`;
-        
+
         if (quiz.shuffleQuestions) {
           shuffledQuestionOrder = [...originalQuestions];
-          let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          let seedValue = seed
+            .split('')
+            .reduce((acc, char) => acc + char.charCodeAt(0), 0);
           for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
             seedValue = (seedValue * 9301 + 49297) % 233280;
             const j = seedValue % (i + 1);
-            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+            [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [
+              shuffledQuestionOrder[j],
+              shuffledQuestionOrder[i],
+            ];
           }
         } else {
           shuffledQuestionOrder = originalQuestions;
@@ -4900,17 +5144,31 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
         if (quiz.shuffleOptions) {
           quiz.selectedQuestions.forEach((selectedQuestion) => {
             const question = selectedQuestion.question;
-            if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
-              const originalOptionIndices = question.options.map((_, idx) => idx);
+            if (
+              question.questionType !== 'Written' &&
+              question.options &&
+              question.options.length > 0
+            ) {
+              const originalOptionIndices = question.options.map(
+                (_, idx) => idx,
+              );
               const shuffledOptions = [...originalOptionIndices];
               const optionSeed = `${seed}-${question._id}`;
-              let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              let optionSeedValue = optionSeed
+                .split('')
+                .reduce((acc, char) => acc + char.charCodeAt(0), 0);
               for (let i = shuffledOptions.length - 1; i > 0; i--) {
                 optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
                 const j = optionSeedValue % (i + 1);
-                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+                [shuffledOptions[i], shuffledOptions[j]] = [
+                  shuffledOptions[j],
+                  shuffledOptions[i],
+                ];
               }
-              shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
+              shuffledOptionOrders.set(
+                question._id.toString(),
+                shuffledOptions,
+              );
             }
           });
         }
@@ -4918,7 +5176,8 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
         // Save shuffled order to attempt
         if (attempt) {
           attempt.shuffledQuestionOrder = shuffledQuestionOrder;
-          attempt.shuffledOptionOrders = Object.fromEntries(shuffledOptionOrders);
+          attempt.shuffledOptionOrders =
+            Object.fromEntries(shuffledOptionOrders);
           await student.save();
         } else {
           // Create attempt entry if it doesn't exist
@@ -4950,14 +5209,19 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
       const originalQuestions = quiz.selectedQuestions.map((_, idx) => idx);
       // Define seed for deterministic shuffling (used for both questions and options)
       const seed = `${studentId}-${quizId}-${attemptNumber}`;
-      
+
       if (quiz.shuffleQuestions) {
         shuffledQuestionOrder = [...originalQuestions];
-        let seedValue = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        let seedValue = seed
+          .split('')
+          .reduce((acc, char) => acc + char.charCodeAt(0), 0);
         for (let i = shuffledQuestionOrder.length - 1; i > 0; i--) {
           seedValue = (seedValue * 9301 + 49297) % 233280;
           const j = seedValue % (i + 1);
-          [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [shuffledQuestionOrder[j], shuffledQuestionOrder[i]];
+          [shuffledQuestionOrder[i], shuffledQuestionOrder[j]] = [
+            shuffledQuestionOrder[j],
+            shuffledQuestionOrder[i],
+          ];
         }
       } else {
         shuffledQuestionOrder = originalQuestions;
@@ -4966,15 +5230,24 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
       if (quiz.shuffleOptions) {
         quiz.selectedQuestions.forEach((selectedQuestion) => {
           const question = selectedQuestion.question;
-          if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
+          if (
+            question.questionType !== 'Written' &&
+            question.options &&
+            question.options.length > 0
+          ) {
             const originalOptionIndices = question.options.map((_, idx) => idx);
             const shuffledOptions = [...originalOptionIndices];
             const optionSeed = `${seed}-${question._id}`;
-            let optionSeedValue = optionSeed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            let optionSeedValue = optionSeed
+              .split('')
+              .reduce((acc, char) => acc + char.charCodeAt(0), 0);
             for (let i = shuffledOptions.length - 1; i > 0; i--) {
               optionSeedValue = (optionSeedValue * 9301 + 49297) % 233280;
               const j = optionSeedValue % (i + 1);
-              [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+              [shuffledOptions[i], shuffledOptions[j]] = [
+                shuffledOptions[j],
+                shuffledOptions[i],
+              ];
             }
             shuffledOptionOrders.set(question._id.toString(), shuffledOptions);
           }
@@ -4991,7 +5264,7 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
         // Refresh to get the newly created quizAttempt
         const refreshed = await User.findById(studentId);
         const refreshedQuizAttempt = refreshed.quizAttempts.find(
-          (attempt) => attempt.quiz.toString() === quizId
+          (attempt) => attempt.quiz.toString() === quizId,
         );
         if (refreshedQuizAttempt) {
           refreshedQuizAttempt.attempts.push({
@@ -5036,39 +5309,45 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
     }
 
     // Create secure questions array in shuffled order
-    const secureQuestions = shuffledQuestionOrder.map((originalIndex, displayIndex) => {
-      const selectedQuestion = quiz.selectedQuestions[originalIndex];
-      const question = selectedQuestion.question;
-      
-      let options = [];
-      if (question.questionType !== 'Written' && question.options && question.options.length > 0) {
-        const optionOrder = shuffledOptionOrders.get(question._id.toString());
-        if (optionOrder && optionOrder.length > 0) {
-          options = optionOrder.map((optIdx) => ({
-            _id: question.options[optIdx]._id,
-            text: question.options[optIdx].text,
-            image: question.options[optIdx].image,
-          }));
-        } else {
-          options = question.options.map((option) => ({
-            _id: option._id,
-            text: option.text,
-            image: option.image,
-          }));
-        }
-      }
+    const secureQuestions = shuffledQuestionOrder.map(
+      (originalIndex, displayIndex) => {
+        const selectedQuestion = quiz.selectedQuestions[originalIndex];
+        const question = selectedQuestion.question;
 
-      return {
-        _id: question._id,
-        questionText: question.questionText,
-        questionType: question.questionType,
-        questionImage: question.questionImage,
-        points: selectedQuestion.points || 1,
-        index: displayIndex,
-        originalIndex: originalIndex,
-        options: options,
-      };
-    });
+        let options = [];
+        if (
+          question.questionType !== 'Written' &&
+          question.options &&
+          question.options.length > 0
+        ) {
+          const optionOrder = shuffledOptionOrders.get(question._id.toString());
+          if (optionOrder && optionOrder.length > 0) {
+            options = optionOrder.map((optIdx) => ({
+              _id: question.options[optIdx]._id,
+              text: question.options[optIdx].text,
+              image: question.options[optIdx].image,
+            }));
+          } else {
+            options = question.options.map((option) => ({
+              _id: option._id,
+              text: option.text,
+              image: option.image,
+            }));
+          }
+        }
+
+        return {
+          _id: question._id,
+          questionText: question.questionText,
+          questionType: question.questionType,
+          questionImage: question.questionImage,
+          points: selectedQuestion.points || 1,
+          index: displayIndex,
+          originalIndex: originalIndex,
+          options: options,
+        };
+      },
+    );
 
     res.json({
       success: true,

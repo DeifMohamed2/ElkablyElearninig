@@ -81,6 +81,39 @@ router.post('/admin/zoom/:meetingId/add-recording', isAdmin, async (req, res) =>
   }
 });
 
+// Get fresh start URL for host (start_url tokens expire)
+router.get('/admin/zoom/:meetingId/start-url', isAdmin, async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const ZoomMeeting = require('../models/ZoomMeeting');
+    const zoomMeeting = await ZoomMeeting.findById(meetingId);
+
+    if (!zoomMeeting) {
+      return res.status(404).json({ success: false, message: 'Zoom meeting not found' });
+    }
+
+    if (zoomMeeting.status !== 'active') {
+      return res.status(400).json({ success: false, message: 'Meeting is not active' });
+    }
+
+    // Fetch fresh meeting details from Zoom API to get a non-expired start_url
+    const meetingDetails = await zoomService.getMeetingDetails(zoomMeeting.meetingId);
+
+    if (!meetingDetails || !meetingDetails.start_url) {
+      return res.status(500).json({ success: false, message: 'Could not retrieve fresh start URL from Zoom' });
+    }
+
+    // Update stored startUrl for reference
+    zoomMeeting.startUrl = meetingDetails.start_url;
+    await zoomMeeting.save();
+
+    res.json({ success: true, startUrl: meetingDetails.start_url });
+  } catch (error) {
+    console.error('❌ Error getting fresh start URL:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to get start URL' });
+  }
+});
+
 // Get Zoom meeting statistics
 router.get('/admin/zoom/:meetingId/stats', isAdmin, getZoomMeetingStats);
 

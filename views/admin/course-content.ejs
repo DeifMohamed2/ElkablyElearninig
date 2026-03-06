@@ -230,10 +230,10 @@
                         </button>
                         <small class="text-muted">Meeting is locked until started</small>
                         <% } else if (contentItem.zoomMeeting.status === 'active') { %>
-                        <a href="<%= contentItem.zoomMeeting.startUrl %>" target="_blank" class="btn btn-sm btn-primary me-2" title="Join as Host (External Zoom)">
+                        <button class="btn btn-sm btn-primary me-2" onclick="event.stopPropagation(); joinAsHost('<%= contentItem.zoomMeeting._id %>')" title="Join as Host (External Zoom)">
                           <i class="fas fa-user-crown"></i>
                           Join as Host
-                        </a>
+                        </button>
                         <button class="btn btn-sm btn-warning me-2" onclick="event.stopPropagation(); endZoomMeeting('<%= contentItem.zoomMeeting._id %>')" title="End Meeting for All Participants">
                           <i class="fas fa-stop"></i>
                           End Meeting
@@ -9760,6 +9760,29 @@ function getContentIcon(type) {
   }
 
   // ==================== ZOOM MEETING CONTROLS ====================
+
+  // Join as Host - fetches a fresh start URL from Zoom API (tokens expire)
+  async function joinAsHost(meetingId) {
+    try {
+      showNotification('Getting host link...', 'info');
+
+      const response = await fetch(`/zoom/admin/zoom/${meetingId}/start-url`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.startUrl) {
+        window.open(result.startUrl, '_blank');
+      } else {
+        showNotification(result.message || 'Failed to get host link', 'error');
+      }
+    } catch (error) {
+      console.error('Error getting host link:', error);
+      showNotification('Failed to get host link. Please try again.', 'error');
+    }
+  }
 
   // Start Zoom meeting
   async function startZoomMeeting(meetingId) {

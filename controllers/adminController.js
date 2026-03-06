@@ -1873,7 +1873,8 @@ const getCourseContent = async (req, res) => {
         populate: {
           path: 'content.zoomMeeting',
           model: 'ZoomMeeting',
-          select: 'meetingName joinUrl status scheduledStartTime recordingUrl recordingStatus bunnyVideoId bunnyVideoUrl',
+          select:
+            'meetingName joinUrl status scheduledStartTime recordingUrl recordingStatus bunnyVideoId bunnyVideoUrl',
         },
       })
       .populate('bundle', 'title bundleCode year')
@@ -12246,12 +12247,26 @@ const startZoomMeeting = async (req, res) => {
     // Update meeting status to active
     await zoomMeeting.startMeeting();
 
+    // Fetch fresh start URL from Zoom API (stored tokens expire)
+    let freshStartUrl = zoomMeeting.startUrl;
+    try {
+      const zoomService = require('../utils/zoomService');
+      const meetingDetails = await zoomService.getMeetingDetails(zoomMeeting.meetingId);
+      if (meetingDetails && meetingDetails.start_url) {
+        freshStartUrl = meetingDetails.start_url;
+        zoomMeeting.startUrl = freshStartUrl;
+        await zoomMeeting.save();
+      }
+    } catch (urlError) {
+      console.warn('⚠️ Could not refresh start URL, using stored one:', urlError.message);
+    }
+
     console.log('✅ Zoom meeting started successfully by admin');
 
     res.json({
       success: true,
       message: 'Zoom meeting started and unlocked for students',
-      startUrl: zoomMeeting.startUrl,
+      startUrl: freshStartUrl,
       zoomMeeting: zoomMeeting,
     });
   } catch (error) {
