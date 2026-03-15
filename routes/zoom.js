@@ -22,7 +22,7 @@ const {
 router.post(
   '/admin/courses/:courseCode/topics/:topicId/zoom/create',
   isAdmin,
-  createZoomMeeting
+  createZoomMeeting,
 );
 
 // Start Zoom meeting (unlock for students)
@@ -32,54 +32,58 @@ router.post('/admin/zoom/:meetingId/start', isAdmin, startZoomMeeting);
 router.post('/admin/zoom/:meetingId/end', isAdmin, endZoomMeeting);
 
 // Add recording URL to ended meeting
-router.post('/admin/zoom/:meetingId/add-recording', isAdmin, async (req, res) => {
-  try {
-    const { meetingId } = req.params;
-    const { recordingUrl } = req.body;
+router.post(
+  '/admin/zoom/:meetingId/add-recording',
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { meetingId } = req.params;
+      const { recordingUrl } = req.body;
 
-    if (!recordingUrl || !recordingUrl.trim()) {
-      return res.status(400).json({
+      if (!recordingUrl || !recordingUrl.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Recording URL is required',
+        });
+      }
+
+      const ZoomMeeting = require('../models/ZoomMeeting');
+      const zoomMeeting = await ZoomMeeting.findById(meetingId);
+
+      if (!zoomMeeting) {
+        return res.status(404).json({
+          success: false,
+          message: 'Zoom meeting not found',
+        });
+      }
+
+      if (zoomMeeting.status !== 'ended') {
+        return res.status(400).json({
+          success: false,
+          message: 'Can only add recording URL to ended meetings',
+        });
+      }
+
+      zoomMeeting.recordingUrl = recordingUrl.trim();
+      zoomMeeting.recordingStatus = 'completed';
+      await zoomMeeting.save();
+
+      console.log(`✅ Recording URL added to meeting ${meetingId}`);
+
+      res.json({
+        success: true,
+        message: 'Recording URL added successfully',
+        zoomMeeting: zoomMeeting,
+      });
+    } catch (error) {
+      console.error('❌ Error adding recording URL:', error);
+      res.status(500).json({
         success: false,
-        message: 'Recording URL is required',
+        message: error.message || 'Failed to add recording URL',
       });
     }
-
-    const ZoomMeeting = require('../models/ZoomMeeting');
-    const zoomMeeting = await ZoomMeeting.findById(meetingId);
-
-    if (!zoomMeeting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Zoom meeting not found',
-      });
-    }
-
-    if (zoomMeeting.status !== 'ended') {
-      return res.status(400).json({
-        success: false,
-        message: 'Can only add recording URL to ended meetings',
-      });
-    }
-
-    zoomMeeting.recordingUrl = recordingUrl.trim();
-    zoomMeeting.recordingStatus = 'completed';
-    await zoomMeeting.save();
-
-    console.log(`✅ Recording URL added to meeting ${meetingId}`);
-
-    res.json({
-      success: true,
-      message: 'Recording URL added successfully',
-      zoomMeeting: zoomMeeting,
-    });
-  } catch (error) {
-    console.error('❌ Error adding recording URL:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to add recording URL',
-    });
-  }
-});
+  },
+);
 
 // Get fresh start URL for host (start_url tokens expire)
 router.get('/admin/zoom/:meetingId/start-url', isAdmin, async (req, res) => {
@@ -89,18 +93,29 @@ router.get('/admin/zoom/:meetingId/start-url', isAdmin, async (req, res) => {
     const zoomMeeting = await ZoomMeeting.findById(meetingId);
 
     if (!zoomMeeting) {
-      return res.status(404).json({ success: false, message: 'Zoom meeting not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'Zoom meeting not found' });
     }
 
     if (zoomMeeting.status !== 'active') {
-      return res.status(400).json({ success: false, message: 'Meeting is not active' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Meeting is not active' });
     }
 
     // Fetch fresh meeting details from Zoom API to get a non-expired start_url
-    const meetingDetails = await zoomService.getMeetingDetails(zoomMeeting.meetingId);
+    const meetingDetails = await zoomService.getMeetingDetails(
+      zoomMeeting.meetingId,
+    );
 
     if (!meetingDetails || !meetingDetails.start_url) {
-      return res.status(500).json({ success: false, message: 'Could not retrieve fresh start URL from Zoom' });
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: 'Could not retrieve fresh start URL from Zoom',
+        });
     }
 
     // Update stored startUrl for reference
@@ -110,7 +125,12 @@ router.get('/admin/zoom/:meetingId/start-url', isAdmin, async (req, res) => {
     res.json({ success: true, startUrl: meetingDetails.start_url });
   } catch (error) {
     console.error('❌ Error getting fresh start URL:', error);
-    res.status(500).json({ success: false, message: error.message || 'Failed to get start URL' });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || 'Failed to get start URL',
+      });
   }
 });
 
@@ -164,7 +184,7 @@ router.post(
         .status(500)
         .json({ success: false, message: 'Failed to record join attempt' });
     }
-  }
+  },
 );
 
 // Leave Zoom meeting (record attendance)
@@ -182,7 +202,7 @@ router.post(
       const ZoomMeeting = require('../models/ZoomMeeting');
       const User = require('../models/User');
       const Topic = require('../models/Topic');
-      
+
       const zoomMeeting = await ZoomMeeting.findById(meetingId)
         .populate('course')
         .populate('topic');
@@ -204,7 +224,7 @@ router.post(
 
       // Check if student already watched the recording
       const alreadyWatched = zoomMeeting.studentsWatchedRecording.some(
-        (record) => record.student.toString() === studentId
+        (record) => record.student.toString() === studentId,
       );
 
       if (!alreadyWatched) {
@@ -224,20 +244,21 @@ router.post(
         // Get course and topic IDs (handle both populated and non-populated)
         const courseId = zoomMeeting.course._id || zoomMeeting.course;
         const topicId = zoomMeeting.topic._id || zoomMeeting.topic;
-        
+
         const topic = await Topic.findById(topicId);
-        
+
         if (topic && topic.content) {
           const zoomContentItem = topic.content.find(
-            (item) => item.type === 'zoom' && 
-            item.zoomMeeting && 
-            item.zoomMeeting.toString() === zoomMeeting._id.toString()
+            (item) =>
+              item.type === 'zoom' &&
+              item.zoomMeeting &&
+              item.zoomMeeting.toString() === zoomMeeting._id.toString(),
           );
 
           if (zoomContentItem) {
             // Refresh student to get latest data before updating
             const freshStudent = await User.findById(studentId);
-            
+
             // Update content progress to mark as completed
             await freshStudent.updateContentProgress(
               courseId,
@@ -248,8 +269,8 @@ router.post(
                 completionStatus: 'completed',
                 progressPercentage: 100,
                 lastAccessed: new Date(),
-                completedAt: new Date()
-              }
+                completedAt: new Date(),
+              },
             );
           }
         }
@@ -268,7 +289,7 @@ router.post(
         message: error.message || 'Failed to mark recording as watched',
       });
     }
-  }
+  },
 );
 
 // Get student's Zoom meeting history
@@ -308,7 +329,7 @@ router.post('/webhook', async (req, res) => {
 
       if (!webhookSecret) {
         console.error(
-          '❌ ZOOM_WEBHOOK_SECRET_TOKEN or ZOOM_WEBHOOK_SECRET not set in environment'
+          '❌ ZOOM_WEBHOOK_SECRET_TOKEN or ZOOM_WEBHOOK_SECRET not set in environment',
         );
         return res.status(500).json({
           error: 'Webhook secret not configured',

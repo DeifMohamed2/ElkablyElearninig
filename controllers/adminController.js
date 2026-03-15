@@ -6583,6 +6583,16 @@ const getBundleManage = async (req, res) => {
       return res.redirect('/admin/bundles');
     }
 
+    // Add computed pricing fields (same as bundles list) since .lean() strips virtuals
+    const discountPrice = bundle.discountPrice || 0;
+    const price = bundle.price || 0;
+    bundle.finalPrice =
+      discountPrice && price
+        ? price - price * (discountPrice / 100)
+        : price;
+    bundle.savings = discountPrice && price ? price * (discountPrice / 100) : 0;
+    bundle.savingsPercentage = discountPrice || 0;
+
     return res.render('admin/bundle-manage', {
       title: `Manage Bundle: ${bundle.title} | ELKABLY`,
       theme: req.cookies.theme || 'light',
@@ -12251,14 +12261,19 @@ const startZoomMeeting = async (req, res) => {
     let freshStartUrl = zoomMeeting.startUrl;
     try {
       const zoomService = require('../utils/zoomService');
-      const meetingDetails = await zoomService.getMeetingDetails(zoomMeeting.meetingId);
+      const meetingDetails = await zoomService.getMeetingDetails(
+        zoomMeeting.meetingId,
+      );
       if (meetingDetails && meetingDetails.start_url) {
         freshStartUrl = meetingDetails.start_url;
         zoomMeeting.startUrl = freshStartUrl;
         await zoomMeeting.save();
       }
     } catch (urlError) {
-      console.warn('⚠️ Could not refresh start URL, using stored one:', urlError.message);
+      console.warn(
+        '⚠️ Could not refresh start URL, using stored one:',
+        urlError.message,
+      );
     }
 
     console.log('✅ Zoom meeting started successfully by admin');

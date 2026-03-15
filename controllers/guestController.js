@@ -376,6 +376,7 @@ const takeGuestQuizPage = async (req, res) => {
         instructions: quiz.instructions || '',
       },
       theme: req.cookies.theme || 'light',
+      desmosApiKey: process.env.DESMOS_API_KEY || '',
     });
   } catch (error) {
     console.error('Take guest quiz error:', error);

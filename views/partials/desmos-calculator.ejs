@@ -1,0 +1,501 @@
+<%/* Desmos overlay: open via logo icon; desmosStorageKey + desmosApiKey */%>
+<!-- Floating Desmos action button -->
+<button type="button" class="desmos-fab" id="desmosFab" aria-label="Open Desmos graphing calculator" title="Open graphing calculator">
+  <span class="desmos-fab-inner">
+    <!-- Graph / calculator SVG icon - fills the button -->
+    <svg class="desmos-fab-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- X axis -->
+      <line x1="4" y1="26" x2="44" y2="26" stroke="white" stroke-width="1.8" stroke-opacity="0.55"/>
+      <!-- Y axis (vertical bar through center) -->
+      <line x1="24" y1="4" x2="24" y2="44" stroke="white" stroke-width="1.8" stroke-opacity="0.55"/>
+      <!-- Arrowhead up -->
+      <path d="M21 8 L24 3 L27 8" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-opacity="0.7"/>
+      <!-- Arrowhead right -->
+      <path d="M40 23 L45 26 L40 29" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-opacity="0.7"/>
+      <!-- Sine wave - big and bold -->
+      <path d="M4 26 C8 12 12 40 18 26 C22 16 26 36 32 26 C38 16 41 34 44 26" stroke="white" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <!-- Accent dot at peak -->
+      <circle cx="8" cy="18" r="3" fill="#86efac"/>
+    </svg>
+    <span class="desmos-fab-label">Desmos</span>
+  </span>
+</button>
+
+<!-- Overlay backdrop + card (hidden by default) -->
+<div id="desmos-overlay" class="desmos-overlay" aria-hidden="true">
+  <div class="desmos-overlay-backdrop" id="desmosOverlayBackdrop"></div>
+  <div class="desmos-overlay-card" role="dialog" aria-labelledby="desmos-overlay-title" aria-modal="true">
+    <!-- Header -->
+    <header class="desmos-overlay-header">
+      <div class="desmos-overlay-brand">
+        <div class="desmos-header-icon">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
+            <line x1="16" y1="4" x2="16" y2="28" stroke="white" stroke-width="1.2" stroke-opacity="0.6"/>
+            <line x1="4" y1="16" x2="28" y2="16" stroke="white" stroke-width="1.2" stroke-opacity="0.6"/>
+            <path d="M4 16 C7 10 10 22 13 16 C16 10 19 22 22 16 C25 10 28 20 30 14" stroke="#86efac" stroke-width="2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <div>
+          <h2 id="desmos-overlay-title" class="desmos-overlay-title">Graphing Calculator</h2>
+          <p class="desmos-overlay-subtitle">powered by Desmos</p>
+        </div>
+      </div>
+      <div class="desmos-header-actions">
+        <button type="button" class="desmos-overlay-close" id="desmosOverlayClose" aria-label="Close calculator">
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+            <path d="M4 4L16 16M4 16L16 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Body -->
+    <div class="desmos-overlay-body">
+      <div id="desmosCalculator" class="desmos-calculator-embed"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="desmos-overlay-footer">
+      <svg class="desmos-footer-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+        <circle cx="8" cy="8" r="7" stroke="#64748b" stroke-width="1.2"/>
+        <path d="M5 8 C6 5.5 7 10.5 8 8 C9 5.5 10 10.5 11 8" stroke="#64748b" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+      </svg>
+      <span class="desmos-powered-by">Your work is saved on refresh · <strong>Desmos</strong></span>
+    </footer>
+  </div>
+</div>
+
+<style>
+/* ─── Floating Action Button ─────────────────────────────────────────── */
+.desmos-fab {
+  position: fixed;
+  bottom: 1.75rem;
+  right: 1.75rem;
+  z-index: 900;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #16a34a 0%, #166534 60%, #14532d 100%);
+  box-shadow:
+    0 4px 24px rgba(22, 101, 52, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1),
+              box-shadow 0.22s ease;
+  animation: desmos-fab-pulse 3s ease-in-out infinite;
+}
+@keyframes desmos-fab-pulse {
+  0%, 100% { box-shadow: 0 4px 24px rgba(22,101,52,.45), 0 2px 8px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.2); }
+  50%       { box-shadow: 0 4px 32px rgba(22,101,52,.65), 0 2px 12px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.2); }
+}
+.desmos-fab:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow:
+    0 8px 32px rgba(22, 101, 52, 0.55),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  animation: none;
+}
+.desmos-fab:focus-visible {
+  outline: 3px solid #4ade80;
+  outline-offset: 3px;
+}
+.desmos-fab:active { transform: scale(0.97); }
+
+.desmos-fab-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.desmos-fab-svg {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+}
+.desmos-fab-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+/* ─── Overlay Backdrop ───────────────────────────────────────────────── */
+.desmos-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+.desmos-overlay.is-open {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+}
+.desmos-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ─── Modal Card ─────────────────────────────────────────────────────── */
+.desmos-overlay-card {
+  position: relative;
+  width: min(90vw, 880px);
+  height: min(88vh, 660px);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.06),
+    0 32px 64px rgba(0, 0, 0, 0.22),
+    0 8px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.94) translateY(12px);
+  transition: transform 0.28s cubic-bezier(.34,1.46,.64,1);
+}
+.desmos-overlay.is-open .desmos-overlay-card {
+  transform: scale(1) translateY(0);
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────── */
+.desmos-overlay-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+  background: linear-gradient(135deg, #14532d 0%, #166534 40%, #15803d 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.desmos-overlay-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.desmos-header-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.desmos-header-icon svg { width: 40px; height: 40px; }
+
+.desmos-overlay-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+.desmos-overlay-subtitle {
+  margin: 0;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.03em;
+}
+.desmos-header-actions { display: flex; align-items: center; gap: 0.5rem; }
+.desmos-overlay-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s, transform 0.18s;
+}
+.desmos-overlay-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: rotate(90deg) scale(1.1);
+}
+
+/* ─── Body (Calculator lives here) ──────────────────────────────────── */
+.desmos-overlay-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+/* The div Desmos injects into */
+.desmos-calculator-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+/* Force Desmos's internal iframe to fill the container */
+.desmos-calculator-embed iframe,
+.desmos-calculator-embed .dcg-calculator-api-container,
+.desmos-calculator-embed > div {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+}
+
+/* No-key fallback card */
+.desmos-no-key {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: #f8fafc;
+}
+.desmos-no-key-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.desmos-no-key h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+.desmos-no-key p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  max-width: 280px;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────── */
+.desmos-overlay-footer {
+  flex-shrink: 0;
+  padding: 0.45rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.desmos-footer-icon { opacity: 0.5; }
+.desmos-powered-by {
+  font-size: 0.72rem;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+.desmos-powered-by strong { color: #15803d; font-weight: 700; }
+
+/* ─── Dark Theme ─────────────────────────────────────────────────────── */
+.dark-theme .desmos-fab {
+  background: linear-gradient(135deg, #166534 0%, #14532d 100%);
+  box-shadow: 0 4px 24px rgba(22,101,52,0.5), 0 2px 8px rgba(0,0,0,0.4);
+}
+.dark-theme .desmos-overlay-card {
+  background: #1e293b;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 32px 64px rgba(0,0,0,0.5);
+}
+.dark-theme .desmos-overlay-body {
+  background: #1e293b;
+}
+.dark-theme .desmos-overlay-footer {
+  background: #0f172a;
+  border-top-color: #334155;
+}
+.dark-theme .desmos-powered-by { color: #94a3b8; }
+.dark-theme .desmos-powered-by strong { color: #86efac; }
+.dark-theme .desmos-no-key { background: #1e293b; }
+.dark-theme .desmos-no-key h3 { color: #f1f5f9; }
+.dark-theme .desmos-no-key p { color: #94a3b8; }
+.dark-theme .desmos-no-key-icon { background: linear-gradient(135deg,#166534,#14532d); }
+
+/* ─── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .desmos-overlay { padding: 0.5rem; }
+  .desmos-overlay-card {
+    width: 100%;
+    height: min(95vh, 560px);
+    border-radius: 16px;
+  }
+  .desmos-fab {
+    bottom: 1rem;
+    right: 1rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+  }
+  .desmos-fab-svg { width: 24px; height: 24px; }
+}
+</style>
+
+<script>
+(function() {
+  var storageKey = <%- JSON.stringify(typeof desmosStorageKey !== 'undefined' ? (desmosStorageKey || 'desmos-default') : 'desmos-default') %>;
+  var apiKey     = <%- JSON.stringify(typeof desmosApiKey !== 'undefined' ? (desmosApiKey || '') : '') %>;
+
+  var overlay  = document.getElementById('desmos-overlay');
+  var backdrop = document.getElementById('desmosOverlayBackdrop');
+  var closeBtn = document.getElementById('desmosOverlayClose');
+  var fab      = document.getElementById('desmosFab');
+  var calcEl   = document.getElementById('desmosCalculator');
+
+  /* ── Open / Close ──────────────────────────────────────────────────── */
+  function openOverlay() {
+    if (!overlay) return;
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    // Trigger resize so Desmos fills the now-visible container
+    triggerResize();
+  }
+
+  function closeOverlay() {
+    if (!overlay) return;
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    saveDesmosState();
+  }
+
+  function triggerResize() {
+    if (window.desmosCalculatorInstance) {
+      try {
+        window.desmosCalculatorInstance.resize();
+        // Second call after transition completes
+        setTimeout(function() {
+          if (window.desmosCalculatorInstance) {
+            window.desmosCalculatorInstance.resize();
+          }
+        }, 320);
+      } catch(e) {}
+    }
+  }
+
+  if (fab)      fab.addEventListener('click', openOverlay);
+  if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+  if (backdrop) backdrop.addEventListener('click', closeOverlay);
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && overlay && overlay.classList.contains('is-open')) {
+      closeOverlay();
+    }
+  });
+
+  /* ── Resize observer so calculator always fills the container ──────── */
+  if (typeof ResizeObserver !== 'undefined' && calcEl) {
+    var ro = new ResizeObserver(function() { triggerResize(); });
+    ro.observe(calcEl);
+  }
+
+  /* ── State persistence ─────────────────────────────────────────────── */
+  function saveDesmosState() {
+    try {
+      if (window.desmosCalculatorInstance &&
+          typeof window.desmosCalculatorInstance.getState === 'function') {
+        var state = window.desmosCalculatorInstance.getState();
+        if (state) {
+          localStorage.setItem('desmosState:' + storageKey, JSON.stringify(state));
+        }
+      }
+    } catch(e) {}
+  }
+
+  function loadDesmosState(calculator) {
+    try {
+      var raw = localStorage.getItem('desmosState:' + storageKey);
+      if (raw) {
+        var state = JSON.parse(raw);
+        if (state && typeof calculator.setState === 'function') {
+          calculator.setState(state);
+        }
+      }
+    } catch(e) {}
+  }
+
+  window.desmosSaveState = saveDesmosState;
+
+  /* ── No API key — friendly fallback ────────────────────────────────── */
+  function showNoKeyFallback() {
+    if (!calcEl) return;
+    calcEl.innerHTML = [
+      '<div class="desmos-no-key">',
+        '<div class="desmos-no-key-icon">',
+          '<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">',
+            '<path d="M14 6v16M6 14h16" stroke="#15803d" stroke-width="2.2" stroke-linecap="round"/>',
+            '<path d="M7 9 C9 6 11 12 13 9 C15 6 17 12 19 9" stroke="#15803d" stroke-width="1.8" stroke-linecap="round" fill="none"/>',
+          '</svg>',
+        '</div>',
+        '<h3>Calculator Unavailable</h3>',
+        '<p>Please ask your administrator to set the <strong>DESMOS_API_KEY</strong> environment variable to enable the graphing calculator.</p>',
+      '</div>'
+    ].join('');
+  }
+
+  /* ── Bootstrap Desmos ─────────────────────────────────────────────── */
+  if (typeof Desmos === 'undefined') {
+    if (!apiKey) {
+      showNoKeyFallback();
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = 'https://www.desmos.com/api/v1.11/calculator.js?apiKey=' + encodeURIComponent(apiKey);
+    script.async = true;
+    script.onload = initDesmos;
+    script.onerror = showNoKeyFallback;
+    document.head.appendChild(script);
+  } else {
+    initDesmos();
+  }
+
+  function initDesmos() {
+    if (!calcEl || typeof Desmos === 'undefined') return;
+    var isDark = document.body.classList.contains('dark-theme');
+    var calculator = Desmos.GraphingCalculator(calcEl, {
+      keypad:               true,
+      graphpaper:           true,
+      expressions:          true,
+      settingsMenu:         true,
+      zoomButtons:          true,
+      border:               false,
+      lockViewport:         false,
+      expressionsCollapsed: false,
+      invertedColors:       isDark,
+      autosize:             true
+    });
+    window.desmosCalculatorInstance = calculator;
+    loadDesmosState(calculator);
+
+    // Force a resize immediately after init and again once layout settles
+    setTimeout(triggerResize, 100);
+    setTimeout(triggerResize, 500);
+
+    // Auto-save every 15 s + on page unload
+    setInterval(saveDesmosState, 15000);
+    window.addEventListener('beforeunload', saveDesmosState);
+  }
+})();
+</script>

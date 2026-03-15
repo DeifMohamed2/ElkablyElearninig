@@ -1642,6 +1642,7 @@ const takeQuiz = async (req, res) => {
         instructions: quiz.instructions || '',
       },
       theme: req.cookies.theme || student.preferences?.theme || 'light',
+      desmosApiKey: process.env.DESMOS_API_KEY || '',
     });
   } catch (error) {
     console.error('Take quiz error:', error);
@@ -3110,6 +3111,7 @@ const takeContentQuiz = async (req, res) => {
         instructions: settings?.instructions || '',
       },
       theme: req.cookies.theme || student.preferences?.theme || 'light',
+      desmosApiKey: process.env.DESMOS_API_KEY || '',
     });
   } catch (error) {
     console.error('Take content quiz error:', error);
@@ -3836,6 +3838,7 @@ const takeQuizPage = async (req, res) => {
         instructions: quiz.instructions || '',
       },
       theme: student.preferences?.theme || 'light',
+      desmosApiKey: process.env.DESMOS_API_KEY || '',
     });
   } catch (error) {
     console.error('Take quiz error:', error);
