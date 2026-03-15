@@ -23,46 +23,58 @@
 
 <!-- Overlay backdrop + card (hidden by default) -->
 <div id="desmos-overlay" class="desmos-overlay" aria-hidden="true">
-  <div class="desmos-overlay-backdrop" id="desmosOverlayBackdrop"></div>
+  <!-- Removed backdrop blur entirely so user can click/see the page behind -->
   <div class="desmos-overlay-card" role="dialog" aria-labelledby="desmos-overlay-title" aria-modal="true">
-    <!-- Header -->
-    <header class="desmos-overlay-header">
-      <div class="desmos-overlay-brand">
-        <div class="desmos-header-icon">
-          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
-            <line x1="16" y1="4" x2="16" y2="28" stroke="white" stroke-width="1.2" stroke-opacity="0.6"/>
-            <line x1="4" y1="16" x2="28" y2="16" stroke="white" stroke-width="1.2" stroke-opacity="0.6"/>
-            <path d="M4 16 C7 10 10 22 13 16 C16 10 19 22 22 16 C25 10 28 20 30 14" stroke="#86efac" stroke-width="2" stroke-linecap="round" fill="none"/>
-          </svg>
-        </div>
-        <div>
-          <h2 id="desmos-overlay-title" class="desmos-overlay-title">Graphing Calculator</h2>
-          <p class="desmos-overlay-subtitle">powered by Desmos</p>
-        </div>
-      </div>
-      <div class="desmos-header-actions">
-        <button type="button" class="desmos-overlay-close" id="desmosOverlayClose" aria-label="Close calculator">
-          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-            <path d="M4 4L16 16M4 16L16 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-    </header>
+    <!-- Custom Resize Handles -->
+    <div class="resize-handle handle-t" data-dir="t"></div>
+    <div class="resize-handle handle-b" data-dir="b"></div>
+    <div class="resize-handle handle-l" data-dir="l"></div>
+    <div class="resize-handle handle-r" data-dir="r"></div>
+    <div class="resize-handle handle-tl" data-dir="tl"></div>
+    <div class="resize-handle handle-tr" data-dir="tr"></div>
+    <div class="resize-handle handle-bl" data-dir="bl"></div>
+    <div class="resize-handle handle-br" data-dir="br"></div>
 
-    <!-- Body -->
-    <div class="desmos-overlay-body">
-      <div id="desmosCalculator" class="desmos-calculator-embed"></div>
-    </div>
+    <div class="desmos-overlay-card-inner">
+      <!-- Header -->
+      <header class="desmos-overlay-header">
+        <div class="desmos-overlay-brand">
+          <div class="desmos-header-icon">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
+              <line x1="16" y1="4" x2="16" y2="28" stroke="white" stroke-width="1.2" stroke-opacity="0.6"/>
+              <line x1="4" y1="16" x2="28" y2="16" stroke="white" stroke-width="1.2" stroke-opacity="0.6"/>
+              <path d="M4 16 C7 10 10 22 13 16 C16 10 19 22 22 16 C25 10 28 20 30 14" stroke="#86efac" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div>
+            <h2 id="desmos-overlay-title" class="desmos-overlay-title">Graphing Calculator</h2>
+            <p class="desmos-overlay-subtitle">powered by Desmos</p>
+          </div>
+        </div>
+        <div class="desmos-header-actions">
+          <button type="button" class="desmos-overlay-close" id="desmosOverlayClose" aria-label="Close calculator">
+            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+              <path d="M4 4L16 16M4 16L16 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </header>
 
-    <!-- Footer -->
-    <footer class="desmos-overlay-footer">
-      <svg class="desmos-footer-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
-        <circle cx="8" cy="8" r="7" stroke="#64748b" stroke-width="1.2"/>
-        <path d="M5 8 C6 5.5 7 10.5 8 8 C9 5.5 10 10.5 11 8" stroke="#64748b" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-      </svg>
-      <span class="desmos-powered-by">Your work is saved on refresh · <strong>Desmos</strong></span>
-    </footer>
+      <!-- Body -->
+      <div class="desmos-overlay-body">
+        <div id="desmosCalculator" class="desmos-calculator-embed"></div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="desmos-overlay-footer">
+        <svg class="desmos-footer-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+          <circle cx="8" cy="8" r="7" stroke="#64748b" stroke-width="1.2"/>
+          <path d="M5 8 C6 5.5 7 10.5 8 8 C9 5.5 10 10.5 11 8" stroke="#64748b" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="desmos-powered-by">Your work is saved on refresh · <strong>Desmos</strong></span>
+      </footer>
+    </div> <!-- /inner -->
   </div>
 </div>
 
@@ -129,63 +141,84 @@
   margin-top: -1px;
 }
 
-/* ─── Overlay Backdrop ───────────────────────────────────────────────── */
+/* ─── Overlay Container (Pass-through) ───────────────────────────────── */
 .desmos-overlay {
   position: fixed;
   inset: 0;
   z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  pointer-events: none;
+  pointer-events: none; /* Let clicks pass through to the quiz */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.28s ease, visibility 0.28s ease;
 }
 .desmos-overlay.is-open {
-  pointer-events: auto;
   opacity: 1;
   visibility: visible;
 }
-.desmos-overlay-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
 
-/* ─── Modal Card ─────────────────────────────────────────────────────── */
+/* ─── Floating Modal Card ────────────────────────────────────────────── */
 .desmos-overlay-card {
-  position: relative;
-  width: min(90vw, 880px);
-  height: min(88vh, 660px);
+  position: absolute;
+  top: max(4rem, 10vh);
+  right: max(1rem, 5vw);
+  width: min(85vw, 600px);
+  height: min(80vh, 500px);
+  min-width: 320px;
+  min-height: 280px;
   background: #fff;
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow:
     0 0 0 1px rgba(0,0,0,0.06),
-    0 32px 64px rgba(0, 0, 0, 0.22),
-    0 8px 24px rgba(0, 0, 0, 0.12);
+    0 24px 48px rgba(0, 0, 0, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  transform: scale(0.94) translateY(12px);
-  transition: transform 0.28s cubic-bezier(.34,1.46,.64,1);
-}
-.desmos-overlay.is-open .desmos-overlay-card {
-  transform: scale(1) translateY(0);
+  overflow: visible; /* Changed to visible for resize handles to stick out slightly if needed */
+  pointer-events: auto; /* Catch clicks on the card itself */
+  /* resize: both removed in favor of 8 custom edges */
 }
 
-/* ─── Header ─────────────────────────────────────────────────────────── */
+/* Ensure inner contents don't bleed out over border radius */
+.desmos-overlay-card-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Custom Resize Handles ──────────────────────────────────────────── */
+.resize-handle {
+  position: absolute;
+  z-index: 10;
+  /* Visual feedback can go here if desired, otherwise invisible */
+}
+/* Edges */
+.handle-t { top: -4px; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
+.handle-b { bottom: -4px; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
+.handle-l { left: -4px; top: 8px; bottom: 8px; width: 8px; cursor: ew-resize; }
+.handle-r { right: -4px; top: 8px; bottom: 8px; width: 8px; cursor: ew-resize; }
+/* Corners */
+.handle-tl { top: -4px; left: -4px; width: 12px; height: 12px; cursor: nwse-resize; }
+.handle-tr { top: -4px; right: -4px; width: 12px; height: 12px; cursor: nesw-resize; }
+.handle-bl { bottom: -4px; left: -4px; width: 12px; height: 12px; cursor: nesw-resize; }
+.handle-br { bottom: -4px; right: -4px; width: 12px; height: 12px; cursor: nwse-resize; }
+
+/* ─── Header (Drag Handle) ───────────────────────────────────────────── */
 .desmos-overlay-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.9rem 1.1rem;
+  padding: 0.75rem 1rem;
   background: linear-gradient(135deg, #14532d 0%, #166534 40%, #15803d 100%);
   border-bottom: 1px solid rgba(255,255,255,0.08);
+  cursor: grab;
+  user-select: none;
+}
+.desmos-overlay-header:active {
+  cursor: grabbing;
 }
 .desmos-overlay-brand {
   display: flex;
@@ -335,12 +368,19 @@
 
 /* ─── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .desmos-overlay { padding: 0.5rem; }
+  .desmos-overlay { padding: 0; }
   .desmos-overlay-card {
-    width: 100%;
-    height: min(95vh, 560px);
-    border-radius: 16px;
+    top: auto !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 60vh;
+    border-radius: 16px 16px 0 0;
+    transform: none !important;
   }
+  .desmos-overlay-card .resize-handle { display: none; }
+  .desmos-overlay-card .handle-t { display: block; height: 16px; top: -8px; cursor: ns-resize; }
   .desmos-fab {
     bottom: 1rem;
     right: 1rem;
@@ -358,7 +398,8 @@
   var apiKey     = <%- JSON.stringify(typeof desmosApiKey !== 'undefined' ? (desmosApiKey || '') : '') %>;
 
   var overlay  = document.getElementById('desmos-overlay');
-  var backdrop = document.getElementById('desmosOverlayBackdrop');
+  var card     = document.querySelector('.desmos-overlay-card');
+  var header   = document.querySelector('.desmos-overlay-header');
   var closeBtn = document.getElementById('desmosOverlayClose');
   var fab      = document.getElementById('desmosFab');
   var calcEl   = document.getElementById('desmosCalculator');
@@ -366,10 +407,21 @@
   /* ── Open / Close ──────────────────────────────────────────────────── */
   function openOverlay() {
     if (!overlay) return;
+    if (overlay.classList.contains('is-open')) {
+      closeOverlay(); // Toggle behavior since there's no backdrop to click
+      return;
+    }
     overlay.classList.add('is-open');
     overlay.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-    // Trigger resize so Desmos fills the now-visible container
+    // Remove document.body.style.overflow = 'hidden' to let them scroll the quiz
+    
+    // Auto-focus if keypad exists
+    try {
+      if (window.desmosCalculatorInstance) {
+        window.desmosCalculatorInstance.focusFirstExpression();
+      }
+    } catch(e) {}
+    
     triggerResize();
   }
 
@@ -377,7 +429,6 @@
     if (!overlay) return;
     overlay.classList.remove('is-open');
     overlay.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
     saveDesmosState();
   }
 
@@ -397,7 +448,191 @@
 
   if (fab)      fab.addEventListener('click', openOverlay);
   if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
-  if (backdrop) backdrop.addEventListener('click', closeOverlay);
+
+  /* ── Dragging logic ────────────────────────────────────────────────── */
+  var isDragging = false;
+  var currentX;
+  var currentY;
+  var initialX;
+  var initialY;
+  var xOffset = 0;
+  var yOffset = 0;
+
+  if (header && card) {
+    header.addEventListener('mousedown', dragStart, false);
+    document.addEventListener('mouseup', dragEnd, false);
+    document.addEventListener('mousemove', drag, false);
+    
+    // Touch support
+    header.addEventListener('touchstart', dragStart, {passive: false});
+    document.addEventListener('touchend', dragEnd, false);
+    document.addEventListener('touchmove', drag, {passive: false});
+  }
+
+  function dragStart(e) {
+    // Don't drag if clicking the close button
+    if (e.target.closest('.desmos-overlay-close')) return;
+    
+    if (e.type === 'touchstart') {
+      initialX = e.touches[0].clientX - xOffset;
+      initialY = e.touches[0].clientY - yOffset;
+    } else {
+      initialX = e.clientX - xOffset;
+      initialY = e.clientY - yOffset;
+    }
+
+    if (e.target === header || header.contains(e.target)) {
+      isDragging = true;
+    }
+  }
+
+  function dragEnd(e) {
+    initialX = currentX;
+    initialY = currentY;
+    isDragging = false;
+  }
+
+  function drag(e) {
+    if (isDragging) {
+      e.preventDefault();
+      
+      if (e.type === 'touchmove') {
+        currentX = e.touches[0].clientX - initialX;
+        currentY = e.touches[0].clientY - initialY;
+      } else {
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+      }
+
+      xOffset = currentX;
+      yOffset = currentY;
+
+      setTranslate(currentX, currentY, card);
+    }
+  }
+
+  function setTranslate(xPos, yPos, el) {
+    el.style.transform = 'translate3d(' + xPos + 'px, ' + yPos + 'px, 0)';
+  }
+
+  /* ── 8-Edge Resizing Logic ─────────────────────────────────────────── */
+  var isResizing = false;
+  var resizeDir = '';
+  var startBounds = {};
+  var startMouse = {};
+
+  var handles = document.querySelectorAll('.resize-handle');
+  handles.forEach(function(h) {
+    h.addEventListener('mousedown', initResize, false);
+    h.addEventListener('touchstart', initResize, {passive: false});
+  });
+
+  function initResize(e) {
+    e.preventDefault();
+    if (e.type === 'touchstart') {
+      startMouse.x = e.touches[0].clientX;
+      startMouse.y = e.touches[0].clientY;
+    } else {
+      startMouse.x = e.clientX;
+      startMouse.y = e.clientY;
+    }
+    
+    // Fix current transform into explicit top/left before resizing begins
+    // so we don't have to battle translate3d() during resize geometry
+    var style = window.getComputedStyle(card);
+    var matrix = new WebKitCSSMatrix(style.transform);
+    var currentTop = card.offsetTop + matrix.m42;
+    var currentLeft = card.offsetLeft + matrix.m41;
+    
+    // Remove transform, bake into top/left directly
+    card.style.transform = 'none';
+    card.style.top = currentTop + 'px';
+    card.style.left = currentLeft + 'px';
+    card.style.right = 'auto'; // Break anchors since we control absolute px now
+    card.style.bottom = 'auto';
+
+    startBounds = {
+      width: parseInt(style.width, 10),
+      height: parseInt(style.height, 10),
+      top: currentTop,
+      left: currentLeft
+    };
+    
+    // Update dragging offsets too so drag doesn't jump next time
+    xOffset = 0; yOffset = 0;
+    currentX = 0; currentY = 0;
+
+    isResizing = true;
+    resizeDir = e.target.getAttribute('data-dir');
+    
+    document.addEventListener('mousemove', doResize, false);
+    document.addEventListener('mouseup', stopResize, false);
+    document.addEventListener('touchmove', doResize, {passive: false});
+    document.addEventListener('touchend', stopResize, false);
+  }
+
+  function doResize(e) {
+    if (!isResizing) return;
+    e.preventDefault();
+    
+    var clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+    var clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+    
+    var dx = clientX - startMouse.x;
+    var dy = clientY - startMouse.y;
+    
+    var minW = 320;
+    var minH = 280;
+
+    var newW = startBounds.width;
+    var newH = startBounds.height;
+    var newT = startBounds.top;
+    var newL = startBounds.left;
+
+    if (resizeDir.indexOf('r') !== -1) {
+      newW = startBounds.width + dx;
+      if (newW < minW) newW = minW;
+    }
+    if (resizeDir.indexOf('l') !== -1) {
+      var possibleW = startBounds.width - dx;
+      if (possibleW >= minW) {
+        newW = possibleW;
+        newL = startBounds.left + dx;
+      } else {
+        newW = minW;
+        newL = startBounds.left + (startBounds.width - minW);
+      }
+    }
+    if (resizeDir.indexOf('b') !== -1) {
+      newH = startBounds.height + dy;
+      if (newH < minH) newH = minH;
+    }
+    if (resizeDir.indexOf('t') !== -1) {
+      var possibleH = startBounds.height - dy;
+      if (possibleH >= minH) {
+        newH = possibleH;
+        newT = startBounds.top + dy;
+      } else {
+        newH = minH;
+        newT = startBounds.top + (startBounds.height - minH);
+      }
+    }
+
+    card.style.width  = newW + 'px';
+    card.style.height = newH + 'px';
+    card.style.top    = newT + 'px';
+    card.style.left   = newL + 'px';
+    
+    triggerResize(); // Tell Desmos API iframe to fill new size
+  }
+
+  function stopResize(e) {
+    isResizing = false;
+    document.removeEventListener('mousemove', doResize, false);
+    document.removeEventListener('mouseup', stopResize, false);
+    document.removeEventListener('touchmove', doResize, false);
+    document.removeEventListener('touchend', stopResize, false);
+  }
 
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && overlay && overlay.classList.contains('is-open')) {
