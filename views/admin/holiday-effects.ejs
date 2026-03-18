@@ -1,0 +1,135 @@
+<%- include('./partials/admin-header', { pageCSS: 'holiday-effects', title: 'Holiday Effects | ELKABLY Admin' }) %>
+
+<!-- Admin Layout -->
+<div class="admin-layout">
+  
+  <!-- Sidebar -->
+  <%- include('./partials/admin-sidebar', { currentPage: 'holiday-effects', admin: user }) %>
+  
+  <!-- Main Content -->
+  <main class="admin-main">
+    
+    <!-- Top Bar -->
+    <%- include('./partials/admin-topbar', { 
+        breadcrumb: 'Holiday Effects',
+        breadcrumbSubtitle: 'Manage seasonal effects on the landing page',
+        showSearch: false
+    }) %>
+    
+    <!-- Content Area -->
+    <div class="admin-content">
+      <div class="holiday-effects-page admin-fade-in">
+        
+        <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <%= success_msg %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <% } %>
+        
+        <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= error_msg %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <% } %>
+
+        <!-- Page Header -->
+        <div class="admin-dashboard-header mb-4">
+          <div class="dashboard-header-content">
+            <div class="dashboard-header-left">
+              <div class="dashboard-title-section">
+                <h1 class="admin-dashboard-title">
+                  <span class="title-icon">🎉</span>
+                  Holiday Effects
+                </h1>
+                <p class="admin-dashboard-subtitle">
+                  Enable or disable seasonal effects on the public landing page. When disabled, all related content is completely removed from the site.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Effect Cards -->
+        <div class="holiday-effects-grid">
+          
+          <!-- Eid Al-Fitr Effect -->
+          <div class="holiday-effect-card admin-card">
+            <div class="holiday-effect-card-header">
+              <div class="holiday-effect-icon eid-icon">
+                <i class="fas fa-mosque"></i>
+              </div>
+              <div class="holiday-effect-info">
+                <h3 class="holiday-effect-title">Eid Al-Fitr</h3>
+                <p class="holiday-effect-desc">Overlay, navbar icons, hero decorations, and stats area accents.</p>
+              </div>
+              <div class="holiday-effect-status">
+                <span class="admin-badge <%= eidEnabled ? 'admin-badge-success' : 'admin-badge-secondary' %>">
+                  <%= eidEnabled ? 'Enabled' : 'Disabled' %>
+                </span>
+              </div>
+            </div>
+            <div class="holiday-effect-card-body">
+              <form action="/admin/holiday-effects/eid" method="POST" class="d-inline">
+                <input type="hidden" name="enabled" value="<%= eidEnabled ? 'false' : 'true' %>">
+                <button type="submit" class="admin-action-btn <%= eidEnabled ? '' : 'primary' %>">
+                  <i class="fas fa-<%= eidEnabled ? 'toggle-off' : 'toggle-on' %>"></i>
+                  <%= eidEnabled ? 'Disable Eid Effect' : 'Enable Eid Effect' %>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Ramadan Effect - Coming Soon -->
+          <div class="holiday-effect-card admin-card holiday-effect-disabled">
+            <div class="holiday-effect-card-header">
+              <div class="holiday-effect-icon ramadan-icon">
+                <i class="fas fa-star-and-crescent"></i>
+              </div>
+              <div class="holiday-effect-info">
+                <h3 class="holiday-effect-title">Ramadan</h3>
+                <p class="holiday-effect-desc">Ramadan-themed decorations and effects.</p>
+              </div>
+              <div class="holiday-effect-status">
+                <span class="admin-badge admin-badge-secondary">Coming soon</span>
+              </div>
+            </div>
+            <div class="holiday-effect-card-body">
+              <button type="button" class="admin-action-btn" disabled>
+                <i class="fas fa-lock"></i>
+                Coming soon
+              </button>
+            </div>
+          </div>
+
+          <!-- New Year Effect - Coming Soon -->
+          <div class="holiday-effect-card admin-card holiday-effect-disabled">
+            <div class="holiday-effect-card-header">
+              <div class="holiday-effect-icon newyear-icon">
+                <i class="fas fa-fire"></i>
+              </div>
+              <div class="holiday-effect-info">
+                <h3 class="holiday-effect-title">New Year</h3>
+                <p class="holiday-effect-desc">New Year celebration effects.</p>
+              </div>
+              <div class="holiday-effect-status">
+                <span class="admin-badge admin-badge-secondary">Coming soon</span>
+              </div>
+            </div>
+            <div class="holiday-effect-card-body">
+              <button type="button" class="admin-action-btn" disabled>
+                <i class="fas fa-lock"></i>
+                Coming soon
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<%- include('./partials/admin-footer') %>

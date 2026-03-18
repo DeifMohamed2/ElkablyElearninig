@@ -25,6 +25,7 @@ const fs = require('fs');
 const { createLog } = require('../middlewares/adminLogger');
 const otpMasterUtil = require('../utils/otpMasterGenerator');
 const cache = require('../utils/cache');
+const SiteSetting = require('../models/SiteSetting');
 
 // Admin Dashboard with Real Data - OPTIMIZED
 const getAdminDashboard = async (req, res) => {
@@ -442,7 +443,11 @@ const getCourses = async (req, res) => {
 
     if (status && status !== 'all') {
       filter.status = status;
+    } else if (!status || status === '') {
+      // Default: exclude archived so "deleted" courses disappear from main list
+      filter.status = { $in: ['published', 'draft'] };
     }
+    // status === 'all' shows everything including archived
 
     if (level) {
       filter.level = level;
@@ -493,6 +498,65 @@ const getCourses = async (req, res) => {
       .skip(skip)
       .limit(effectiveLimit)
       .lean();
+
+    // Ensure complete bundles: when grouping by bundle, pagination can split a bundle
+    // across pages. For each bundle that appears on this page, fetch ALL its courses
+    // so the UI shows the full bundle (e.g. 10 courses, not just 5).
+    const bundleIdsOnPage = [
+      ...new Set(
+        courses
+          .filter((c) => c.bundle && (c.bundle._id || c.bundle))
+          .map((c) =>
+            (c.bundle._id || c.bundle).toString
+              ? (c.bundle._id || c.bundle).toString()
+              : String(c.bundle._id || c.bundle),
+          ),
+      ),
+    ];
+
+    if (bundleIdsOnPage.length > 0) {
+      const courseIdsWeHave = new Set(
+        courses.map((c) => (c._id && c._id.toString ? c._id.toString() : String(c._id))),
+      );
+
+      const bundlesWithCourses = await BundleCourse.find({
+        _id: { $in: bundleIdsOnPage.map((id) => new mongoose.Types.ObjectId(id)) },
+      })
+        .select('_id courses')
+        .lean();
+
+      const missingByBundle = [];
+      for (const b of bundlesWithCourses) {
+        const bundleIdStr = b._id.toString();
+        const fullCourseIds = (b.courses || []).map((cid) =>
+          cid.toString ? cid.toString() : String(cid),
+        );
+        const missingIds = fullCourseIds.filter((id) => !courseIdsWeHave.has(id));
+        if (missingIds.length > 0) {
+          missingByBundle.push({ bundleId: b._id, missingIds });
+        }
+      }
+
+      if (missingByBundle.length > 0) {
+        const allMissingIds = missingByBundle.flatMap((x) => x.missingIds);
+        // Fetch by ID only - we need to complete the bundle display regardless of
+        // status/search filters (e.g. duplicated courses are draft but should still show)
+        const missingCourses = await Course.find({
+          _id: { $in: allMissingIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        })
+          .select(selectFields)
+          .populate('bundle', 'title bundleCode thumbnail')
+          .sort(sort)
+          .lean();
+
+        for (const c of missingCourses) {
+          if (!courseIdsWeHave.has((c._id && c._id.toString ? c._id.toString() : String(c._id)))) {
+            courses.push(c);
+            courseIdsWeHave.add(c._id.toString ? c._id.toString() : String(c._id));
+          }
+        }
+      }
+    }
 
     // Compute virtuals manually (lean() strips them)
     courses.forEach((c) => {
@@ -1330,9 +1394,13 @@ const updateCourse = async (req, res) => {
 const deleteCourse = async (req, res) => {
   try {
     const { courseCode } = req.params;
+    // Normalize courseCode - DB stores uppercase, ensure match
+    const normalizedCode = (courseCode || '').trim().toUpperCase();
 
     // Find the course first
-    const course = await Course.findOne({ courseCode });
+    const course = await Course.findOne({
+      courseCode: normalizedCode || courseCode,
+    });
 
     if (!course) {
       return res.status(404).json({
@@ -1368,8 +1436,15 @@ const deleteCourse = async (req, res) => {
         },
       );
 
+      // Remove course from its bundle's courses array
+      if (course.bundle) {
+        await BundleCourse.findByIdAndUpdate(course.bundle, {
+          $pull: { courses: course._id },
+        });
+      }
+
       // Delete the course
-      await Course.findOneAndDelete({ courseCode });
+      await Course.findOneAndDelete({ courseCode: course.courseCode });
 
       // Log admin action
       await createLog(req, {
@@ -1394,7 +1469,7 @@ const deleteCourse = async (req, res) => {
     } else {
       // Archive the course instead of deleting
       await Course.findOneAndUpdate(
-        { courseCode },
+        { courseCode: course.courseCode },
         {
           status: 'archived',
           isActive: false,
@@ -1515,9 +1590,12 @@ const bulkUpdateCourseStatus = async (req, res) => {
 const duplicateCourse = async (req, res) => {
   try {
     const { courseCode } = req.params;
+    const normalizedCode = (courseCode || '').trim().toUpperCase();
 
     // Find the original course with all topics and content
-    const originalCourse = await Course.findOne({ courseCode })
+    const originalCourse = await Course.findOne({
+      courseCode: normalizedCode || courseCode,
+    })
       .populate({
         path: 'topics',
         options: { sort: { order: 1 } },
@@ -1531,15 +1609,11 @@ const duplicateCourse = async (req, res) => {
       });
     }
 
-    // Start a session for transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       // Determine the new order (count existing courses and assign next sequential order)
       const existingCoursesCount = await Course.countDocuments({
         bundle: originalCourse.bundle._id,
-      }).session(session);
+      });
       const newOrder = existingCoursesCount + 1;
 
       // Create new course with copied data
@@ -1566,13 +1640,12 @@ const duplicateCourse = async (req, res) => {
       };
 
       const newCourse = new Course(newCourseData);
-      await newCourse.save({ session });
+      await newCourse.save();
 
       // Add course to bundle
       await BundleCourse.findByIdAndUpdate(
         originalCourse.bundle._id,
         { $push: { courses: newCourse._id } },
-        { session },
       );
 
       // Map to track old content IDs to new content IDs for prerequisites/dependencies
@@ -1701,7 +1774,7 @@ const duplicateCourse = async (req, res) => {
           }
 
           // Save the new topic
-          await newTopic.save({ session });
+          await newTopic.save();
 
           // Now map content IDs after topic is saved
           // Note: We skip zoom content items, so we need to map indices carefully
@@ -1734,9 +1807,7 @@ const duplicateCourse = async (req, res) => {
       // Update prerequisites and dependencies in all content items
       // We need to do this after all topics are created
       if (originalCourse.topics && originalCourse.topics.length > 0) {
-        const newTopics = await Topic.find({ course: newCourse._id }).session(
-          session,
-        );
+        const newTopics = await Topic.find({ course: newCourse._id });
 
         for (let topicIndex = 0; topicIndex < newTopics.length; topicIndex++) {
           const newTopic = newTopics[topicIndex];
@@ -1811,17 +1882,13 @@ const duplicateCourse = async (req, res) => {
             }
 
             // Save the topic with updated content
-            await newTopic.save({ session });
+            await newTopic.save();
           }
         }
       }
 
       // Save the course with topics
-      await newCourse.save({ session });
-
-      // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
+      await newCourse.save();
 
       // Log admin action
       await createLog(req, {
@@ -1847,9 +1914,6 @@ const duplicateCourse = async (req, res) => {
         courseId: newCourse._id,
       });
     } catch (error) {
-      // Rollback transaction on error
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   } catch (error) {
@@ -3210,16 +3274,11 @@ const duplicateTopic = async (req, res) => {
       });
     }
 
-    // Start a session for transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       // Determine the new order (auto-assign next available order in course)
       const existingTopics = await Topic.find({ course: course._id })
         .sort({ order: -1 })
-        .limit(1)
-        .session(session);
+        .limit(1);
       const newOrder =
         existingTopics.length > 0 ? (existingTopics[0].order || 0) + 1 : 1;
 
@@ -3332,7 +3391,7 @@ const duplicateTopic = async (req, res) => {
       }
 
       // Save the new topic
-      await newTopic.save({ session });
+      await newTopic.save();
 
       // Now map content IDs after topic is saved
       if (originalTopic.content && originalTopic.content.length > 0) {
@@ -3422,19 +3481,14 @@ const duplicateTopic = async (req, res) => {
         }
 
         // Save the topic with updated content
-        await newTopic.save({ session });
+        await newTopic.save();
       }
 
       // Add topic to course
       await Course.findByIdAndUpdate(
         course._id,
         { $push: { topics: newTopic._id } },
-        { session },
       );
-
-      // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
 
       // Log admin action
       await createLog(req, {
@@ -3459,9 +3513,6 @@ const duplicateTopic = async (req, res) => {
         topicId: newTopic._id,
       });
     } catch (error) {
-      // Rollback transaction on error
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   } catch (error) {
@@ -17993,6 +18044,48 @@ const exportGuestUsers = async (req, res) => {
   }
 };
 
+// ==================== HOLIDAY EFFECTS ====================
+
+const getHolidayEffects = async (req, res) => {
+  try {
+    let eidEnabled = await SiteSetting.get('eid_effect_enabled');
+    if (eidEnabled === undefined) {
+      await SiteSetting.set('eid_effect_enabled', true);
+      eidEnabled = true;
+    }
+    eidEnabled = eidEnabled === true || eidEnabled === 'true';
+
+    res.render('admin/holiday-effects', {
+      title: 'Holiday Effects | ELKABLY Admin',
+      theme: req.cookies.theme || 'light',
+      user: req.session.user,
+      cacheBuster: Date.now(),
+      eidEnabled,
+    });
+  } catch (error) {
+    console.error('Error loading holiday effects:', error);
+    req.flash('error_msg', 'Error loading holiday effects');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+const updateHolidayEffect = async (req, res) => {
+  try {
+    const enabled = req.body.enabled === 'true' || req.body.enabled === true;
+    await SiteSetting.set('eid_effect_enabled', enabled);
+
+    req.flash(
+      'success_msg',
+      enabled ? 'Eid effect enabled successfully.' : 'Eid effect disabled successfully.'
+    );
+    res.redirect('/admin/holiday-effects');
+  } catch (error) {
+    console.error('Error updating holiday effect:', error);
+    req.flash('error_msg', 'Error updating holiday effect');
+    res.redirect('/admin/holiday-effects');
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -18161,4 +18254,6 @@ module.exports = {
   getGuestsByQuiz,
   deleteGuestUser,
   exportGuestUsers,
+  getHolidayEffects,
+  updateHolidayEffect,
 };

@@ -29,642 +29,491 @@
    Scoped by .eid-mode on body
    =========================== */
 
-/* ===== OVERLAY CONTAINER ===== */
+/* Overlay Container - Fixed fullscreen, no filters */
 .eid-mode .eid-overlay {
   position: fixed;
   inset: 0;
   z-index: 100000;
-  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.6s ease, visibility 0.6s ease;
-}
-
-/* Show overlay from first paint when user hasn't seen - prevents page flash */
-html[data-eid-seen="false"] .eid-overlay {
-  opacity: 1;
-  visibility: visible;
-}
-
-html[data-eid-seen="false"] body {
-  overflow: hidden;
-}
-
-.eid-mode .eid-overlay.eid-active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.eid-mode .eid-overlay.eid-fade-out {
-  opacity: 0;
-  visibility: hidden;
-}
-
-/* ===== LAYER 1: BACKGROUND WITH BLUR ===== */
-/* ONLY this layer has backdrop-filter */
-.eid-mode .eid-bg-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background:
-    radial-gradient(circle at 30% 40%, rgba(184, 1, 1, 0.2), transparent 65%),
-    radial-gradient(circle at 70% 60%, rgba(184, 1, 1, 0.22), transparent 65%),
-    radial-gradient(circle at 50% 85%, rgba(255, 255, 255, 0.08), transparent 60%),
-    linear-gradient(135deg, #0f0f14 0%, #1a141e 50%, #0f0f14 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  animation: eidBgPulse 8s ease-in-out infinite;
-}
-
-@keyframes eidBgPulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.95;
-  }
-}
-
-/* Brighten background during curtain opening */
-.eid-mode .eid-overlay.eid-opening .eid-bg-layer {
-  background:
-    radial-gradient(circle at 30% 40%, rgba(184, 1, 1, 0.25), transparent 65%),
-    radial-gradient(circle at 70% 60%, rgba(184, 1, 1, 0.28), transparent 65%),
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15), transparent 70%),
-    linear-gradient(135deg, #0f0f14 0%, #1a141e 50%, #0f0f14 100%);
-}
-
-/* ===== LAYER 2: CURTAINS ===== */
-.eid-mode .eid-curtains-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.eid-mode .eid-curtain-left,
-.eid-mode .eid-curtain-right {
-  position: absolute;
-  top: 0;
-  width: 52vw;
-  height: 100%;
-  transition: transform 1.5s cubic-bezier(0.65, 0, 0.35, 1);
-  will-change: transform;
-}
-
-/* Default: curtains start completely off-screen (invisible) */
-.eid-mode .eid-curtain-left {
-  left: 0;
-  transform: translateX(-105%);
-}
-
-.eid-mode .eid-curtain-right {
-  right: 0;
-  transform: translateX(105%);
-}
-
-/* When overlay is active: curtains slide in to cover screen */
-.eid-mode .eid-overlay.eid-active .eid-curtain-left {
-  transform: translateX(0);
-}
-
-.eid-mode .eid-overlay.eid-active .eid-curtain-right {
-  transform: translateX(0);
-}
-
-.eid-mode .eid-curtain-left img,
-.eid-mode .eid-curtain-right img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.5));
-}
-
-/* On Start Celebration: curtains open (slide off) */
-.eid-mode .eid-overlay.eid-opening .eid-curtain-left {
-  transform: translateX(-105%);
-}
-
-.eid-mode .eid-overlay.eid-opening .eid-curtain-right {
-  transform: translateX(105%);
-}
-
-/* Hide corner icons when celebration starts */
-.eid-mode .eid-overlay.eid-opening .eid-decorative-icons-layer {
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
   transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
-/* ===== LAYER 3: DECORATIVE CORNER ICONS ===== */
-.eid-mode .eid-decorative-icons-layer {
+.eid-mode .eid-overlay.eid-overlay-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.eid-mode .eid-overlay.eid-overlay-fade {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.eid-mode .eid-overlay-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  background:
+    radial-gradient(circle at 25% 35%, rgba(248, 193, 77, 0.12), transparent 55%),
+    radial-gradient(circle at 75% 45%, rgba(184, 1, 1, 0.18), transparent 58%),
+    radial-gradient(circle at 50% 85%, rgba(255, 255, 255, 0.07), transparent 55%),
+    linear-gradient(135deg, rgba(15, 15, 20, 0.96), rgba(25, 20, 30, 0.92));
+  backdrop-filter: blur(10px);
+  transition: opacity 1s ease;
+}
+
+/* Brighten backdrop during curtain opening */
+.eid-mode .eid-overlay-opening .eid-overlay-backdrop {
+  opacity: 0.85;
+  background:
+    radial-gradient(circle at 25% 35%, rgba(248, 193, 77, 0.18), transparent 55%),
+    radial-gradient(circle at 75% 45%, rgba(184, 1, 1, 0.25), transparent 58%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.12), transparent 65%),
+    linear-gradient(135deg, rgba(15, 15, 20, 0.90), rgba(25, 20, 30, 0.85));
+}
+
+/* Lightweight floating icons */
+.eid-mode .eid-floating-icons {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
 }
 
-.eid-mode .eid-corner-icon {
+.eid-mode .eid-floating-icon {
   position: absolute;
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
   opacity: 0;
   will-change: transform, opacity;
 }
 
-/* Animate corner icons dropping from top */
-.eid-mode .eid-corner-icon-1 {
-  top: -10%;
-  left: 6%;
-  animation: eidIconDrop 2.8s ease-out 0.3s forwards, eidIconFloat 8s ease-in-out 3.1s infinite;
+.eid-mode .eid-floating-icon-1 { 
+  top: -10%; 
+  left: 6%; 
+  animation: eidDropFromTop 3s ease-out 0.3s forwards, eidFloatContinuous 8s ease-in-out 3.3s infinite;
+}
+.eid-mode .eid-floating-icon-2 { 
+  top: -10%; 
+  right: 8%; 
+  animation: eidDropFromTop 3.2s ease-out 0.5s forwards, eidFloatContinuous 9s ease-in-out 3.7s infinite;
+}
+.eid-mode .eid-floating-icon-3 { 
+  top: -10%; 
+  left: 15%; 
+  animation: eidDropFromTop 3.5s ease-out 0.8s forwards, eidFloatContinuous 10s ease-in-out 4.3s infinite;
+}
+.eid-mode .eid-floating-icon-4 { 
+  top: -10%; 
+  right: 18%; 
+  animation: eidDropFromTop 3.3s ease-out 1s forwards, eidFloatContinuous 8.5s ease-in-out 4.3s infinite;
+}
+.eid-mode .eid-floating-icon-5 { 
+  top: -10%; 
+  left: 25%; 
+  animation: eidDropFromTop 3.8s ease-out 1.2s forwards, eidFloatContinuous 11s ease-in-out 5s infinite;
+}
+.eid-mode .eid-floating-icon-6 { 
+  top: -10%; 
+  right: 30%; 
+  animation: eidDropFromTop 3.4s ease-out 1.5s forwards, eidFloatContinuous 9.5s ease-in-out 4.9s infinite;
+}
+.eid-mode .eid-floating-icon-7 { 
+  top: -10%; 
+  left: 40%; 
+  animation: eidDropFromTop 3.6s ease-out 0.6s forwards, eidFloatContinuous 10.5s ease-in-out 4.2s infinite;
+}
+.eid-mode .eid-floating-icon-8 { 
+  top: -10%; 
+  right: 45%; 
+  animation: eidDropFromTop 3.7s ease-out 1.8s forwards, eidFloatContinuous 8.8s ease-in-out 5.5s infinite;
 }
 
-.eid-mode .eid-corner-icon-2 {
-  top: -10%;
-  right: 8%;
-  animation: eidIconDrop 3s ease-out 0.5s forwards, eidIconFloat 9s ease-in-out 3.5s infinite;
-}
-
-.eid-mode .eid-corner-icon-3 {
-  bottom: -10%;
-  left: 8%;
-  animation: eidIconDropReverse 2.9s ease-out 0.7s forwards, eidIconFloat 8.5s ease-in-out 3.6s infinite;
-}
-
-.eid-mode .eid-corner-icon-4 {
-  bottom: -10%;
-  right: 6%;
-  animation: eidIconDropReverse 3.1s ease-out 0.9s forwards, eidIconFloat 9.5s ease-in-out 4s infinite;
-}
-
-.eid-mode .eid-corner-icon-5 {
-  top: 18%;
-  right: 3%;
-  animation: eidIconDrop 2.7s ease-out 1.1s forwards, eidIconFloat 7.5s ease-in-out 3.8s infinite;
-}
-
-.eid-mode .eid-corner-icon-6 {
-  bottom: 18%;
-  left: 3%;
-  animation: eidIconDropReverse 2.8s ease-out 1.3s forwards, eidIconFloat 8.2s ease-in-out 4.1s infinite;
-}
-
-.eid-mode .eid-corner-icon-7 {
-  top: 50%;
-  left: 2%;
-  animation: eidIconDrop 3s ease-out 1.5s forwards, eidIconFloat 9s ease-in-out 4.5s infinite;
-}
-
-.eid-mode .eid-corner-icon-8 {
-  top: 50%;
-  right: 2%;
-  animation: eidIconDrop 3.2s ease-out 1.7s forwards, eidIconFloat 8.8s ease-in-out 4.9s infinite;
-}
-
-@keyframes eidIconDrop {
+@keyframes eidDropFromTop {
   0% {
+    transform: translate3d(0, -100vh, 0) rotate(0deg) scale(0.3);
     opacity: 0;
-    transform: translateY(-150px) rotate(0deg) scale(0.3);
   }
-  50% {
+  20% {
     opacity: 1;
   }
   100% {
-    opacity: 1;
-    transform: translateY(0) rotate(15deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(360deg) scale(1);
+    opacity: 0.92;
   }
 }
 
-@keyframes eidIconDropReverse {
-  0% {
-    opacity: 0;
-    transform: translateY(150px) rotate(0deg) scale(0.3);
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) rotate(-15deg) scale(1);
-  }
-}
-
-@keyframes eidIconFloat {
+@keyframes eidFloatContinuous {
   0%, 100% {
-    transform: translateY(0) rotate(15deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate3d(-15px, -25px, 0) rotate(-8deg) scale(1.08);
   }
   50% {
-    transform: translateY(-12px) rotate(20deg) scale(1.05);
+    transform: translate3d(10px, -15px, 0) rotate(5deg) scale(0.95);
+  }
+  75% {
+    transform: translate3d(-8px, -30px, 0) rotate(-4deg) scale(1.05);
   }
 }
 
-/* ===== LAYER 4: FALLING ICONS (from sky, looping) ===== */
-.eid-mode .eid-falling-layer {
+.eid-mode .eid-curtain {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60vw;
+  max-width: none;
+  transform-origin: center center;
+  z-index: 5;
+  overflow: visible;
+  transition: transform 2s cubic-bezier(0.65, 0, 0.35, 1), opacity 1s ease;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.eid-mode .eid-curtain-image {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: auto;
+  min-width: 120%;
+  min-height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.5)) 
+          drop-shadow(0 20px 60px rgba(0, 0, 0, 0.4));
+}
+
+/* Left curtain positioning */
+.eid-mode .eid-curtain-left {
+  left: 0;
+}
+
+.eid-mode .eid-curtain-left .eid-curtain-image {
+  left: 0;
+  right: auto;
+  object-position: left center;
+  transform-origin: right center;
+}
+
+/* Right curtain positioning */
+.eid-mode .eid-curtain-right {
+  right: 0;
+}
+
+.eid-mode .eid-curtain-right .eid-curtain-image {
+  right: 0;
+  left: auto;
+  object-position: right center;
+  transform-origin: left center;
+}
+
+/* Initial state - curtains are open (showing content) */
+.eid-mode .eid-curtain-left {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.eid-mode .eid-curtain-right {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+/* Closing animation on load */
+.eid-mode .eid-overlay-active .eid-curtain-left {
+  animation: eidCurtainCloseLeft 1.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.eid-mode .eid-overlay-active .eid-curtain-right {
+  animation: eidCurtainCloseRight 1.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+/* Opening animation when clicking Start Celebration */
+.eid-mode .eid-overlay-opening .eid-curtain-left {
+  animation: eidCurtainOpenLeft 2.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.eid-mode .eid-overlay-opening .eid-curtain-right {
+  animation: eidCurtainOpenRight 2.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+/* Closing animation keyframes */
+@keyframes eidCurtainCloseLeft {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes eidCurtainCloseRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Opening animation keyframes */
+@keyframes eidCurtainOpenLeft {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  15% {
+    transform: translateX(2%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-105%);
+    opacity: 0.6;
+  }
+}
+
+@keyframes eidCurtainOpenRight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  15% {
+    transform: translateX(-2%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(105%);
+    opacity: 0.6;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .eid-mode .eid-curtain {
+    width: 60vw;
+  }
+}
+
+@media (max-width: 480px) {
+  .eid-mode .eid-curtain {
+    width: 65vw;
+  }
+}
+
+.eid-mode .eid-overlay-content {
+  position: relative;
+  z-index: 15;
+  width: min(920px, 92vw);
+  padding: clamp(12px, 2vw, 20px);
+  text-align: center;
+  color: #fff;
+  margin-top: 10vh;
+  opacity: 0;
+  animation: eidContentFadeIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 1s forwards;
+}
+
+@keyframes eidContentFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(25px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Fade overlay during curtain opening */
+.eid-mode .eid-overlay-opening .eid-overlay-content {
+  animation: eidContentFadeOut 1.2s ease forwards;
+}
+
+@keyframes eidContentFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.eid-mode .eid-intro-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: eidIntroPanelFadeIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards;
+  opacity: 0;
+  transform: translateY(20px) scale(0.96);
+}
+
+@keyframes eidIntroPanelFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.eid-mode .eid-title-word {
+  display: inline-block;
+  margin: 0 4px;
+  opacity: 0;
+  transform: translateY(20px) scale(0.9);
+  animation: eidWordReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.eid-mode .eid-title-word:nth-child(1) {
+  animation-delay: 1.6s;
+}
+
+.eid-mode .eid-title-word:nth-child(2) {
+  animation-delay: 1.75s;
+}
+
+.eid-mode .eid-title-word:nth-child(3) {
+  animation-delay: 1.9s;
+}
+
+@keyframes eidWordReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===================================
+   EID CELEBRATION SCREEN (After Start Celebration)
+   Complete redesign - No background layers
+   =================================== */
+
+.eid-mode .eid-celebration-screen {
+  display: none;
+  position: relative;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.eid-mode .eid-celebration-hidden {
+  display: none;
+  opacity: 0;
+}
+
+.eid-mode .eid-celebration-visible {
+  display: block;
+  animation: eidCelebrationAppear 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes eidCelebrationAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Falling icons container */
+.eid-mode .eid-falling-icons-container {
   position: absolute;
   inset: 0;
-  z-index: 4;
   pointer-events: none;
+  z-index: 1;
   overflow: hidden;
 }
 
 .eid-mode .eid-falling-icon {
   position: absolute;
-  top: -100px;
-  width: 65px;
-  height: 65px;
-  object-fit: contain;
+  width: 50px;
+  height: 50px;
+  opacity: 0;
+  animation: eidIconDrop 3.5s ease-in forwards;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
-  opacity: 0;
-  animation: eidFallingAnimation 6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  will-change: transform, opacity;
 }
 
-@keyframes eidFallingAnimation {
+@keyframes eidIconDrop {
   0% {
     opacity: 0;
-    transform: translateY(-80px) rotate(0deg) scale(0.6);
+    transform: translateY(-100px) rotate(0deg) scale(0.4);
   }
-  8% {
+  5% {
+    opacity: 1;
+  }
+  100% {
     opacity: 0.9;
-  }
-  15% {
-    opacity: 1;
-  }
-  85% {
-    opacity: 0.95;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(calc(100vh + 120px)) rotate(360deg) scale(1);
+    transform: translateY(calc(100vh + 120px)) rotate(420deg) scale(1.1);
   }
 }
 
-/* ===== LAYER 5: CONTENT - NO BACKDROP FILTER ===== */
-/* This is the critical layer - ZERO filters to keep text crisp */
-.eid-mode .eid-content-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  isolation: isolate;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-/* ===== INTRO SCREEN ===== */
-.eid-mode .eid-intro-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  opacity: 1;
-  transform: scale(1);
-  transition: opacity 0.8s ease, transform 0.8s ease;
-}
-
-.eid-mode .eid-intro-state.eid-hidden {
-  opacity: 0;
-  transform: scale(0.95);
-  pointer-events: none;
-}
-
-.eid-mode .eid-intro-container {
-  text-align: center;
-  max-width: 700px;
-}
-
-.eid-mode .eid-intro-icon {
-  width: 130px;
-  height: 130px;
-  margin: 0 auto 24px;
-  animation: eidIntroIconFloat 3s ease-in-out infinite;
-}
-
-.eid-mode .eid-intro-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.4));
-}
-
-@keyframes eidIntroIconFloat {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-12px) scale(1.05);
-  }
-}
-
-.eid-mode .eid-intro-title {
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-weight: 900;
-  font-size: clamp(2.8rem, 6.5vw, 5.5rem);
-  line-height: 1.1;
-  margin: 0 0 16px;
-  color: #ffffff;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.7),
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    0 8px 24px rgba(0, 0, 0, 0.3);
-  letter-spacing: -0.5px;
-}
-
-.eid-mode .eid-intro-word {
-  display: inline-block;
-  margin: 0 8px;
-  opacity: 0;
-  transform: translateY(40px) scale(0.9);
-  animation: eidIntroWordAppear 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.eid-mode .eid-intro-word:nth-child(1) {
-  animation-delay: 0.3s;
-}
-
-.eid-mode .eid-intro-word:nth-child(2) {
-  animation-delay: 0.5s;
-}
-
-.eid-mode .eid-intro-word:nth-child(3) {
-  animation-delay: 0.7s;
-}
-
-@keyframes eidIntroWordAppear {
-  0% {
-    opacity: 0;
-    transform: translateY(40px) scale(0.9);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(-8px) scale(1.08);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.eid-mode .eid-intro-subtitle {
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: clamp(1.15rem, 2.2vw, 1.65rem);
-  color: #ffffff;
-  margin: 0 0 12px;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    0 4px 12px rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  animation: eidFadeInUp 0.8s ease 0.9s forwards;
-}
-
-.eid-mode .eid-intro-message {
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-weight: 400;
-  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.92);
-  margin: 0 0 36px;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    0 4px 12px rgba(0, 0, 0, 0.3);
-  opacity: 0;
-  animation: eidFadeInUp 0.8s ease 1.1s forwards;
-}
-
-@keyframes eidFadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Intro Button */
-.eid-mode .eid-btn-start {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 40px;
-  border: none;
-  border-radius: 999px;
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
-  color: #ffffff;
-  background: linear-gradient(135deg, #d40202 0%, #B80101 100%);
-  box-shadow:
-    0 8px 24px rgba(184, 1, 1, 0.35),
-    0 16px 48px rgba(0, 0, 0, 0.25);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  opacity: 0;
-  animation: eidBtnAppear 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s forwards;
-}
-
-.eid-mode .eid-btn-start:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow:
-    0 12px 32px rgba(184, 1, 1, 0.45),
-    0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.eid-mode .eid-btn-start:active {
-  transform: translateY(-2px) scale(1.02);
-}
-
-@keyframes eidBtnAppear {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.9);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(-6px) scale(1.06);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.eid-mode .eid-btn-text {
-  display: block;
-}
-
-.eid-mode .eid-btn-icon {
-  display: block;
-  font-size: 1.3em;
-  line-height: 1;
-}
-
-/* ===== CELEBRATION SCREEN ===== */
-.eid-mode .eid-celebration-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  opacity: 0;
-  transform: scale(0.9);
-  transition: opacity 1s ease, transform 1s ease;
-}
-
-.eid-mode .eid-celebration-state.eid-visible {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.eid-mode .eid-celebration-state.eid-hidden {
-  display: none;
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-.eid-mode .eid-celebration-container {
+/* Main content - no background */
+.eid-mode .eid-celebration-content {
   position: relative;
-  text-align: center;
-  max-width: 900px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-/* Decorative Icons on Celebration Screen */
-.eid-mode .eid-celebration-decor {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.eid-mode .eid-celebration-decor-icon {
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  object-fit: contain;
-  opacity: 0;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
-  animation: eidDecorFadeIn 1.2s ease forwards, eidDecorFloat 3.5s ease-in-out 1.2s infinite;
-}
-
-.eid-mode .eid-decor-1 {
-  top: -5%;
-  left: 8%;
-  width: 90px;
-  height: 90px;
-  animation-delay: 0.3s, 1.2s;
-}
-
-.eid-mode .eid-decor-2 {
-  top: 15%;
-  right: 5%;
-  width: 75px;
-  height: 75px;
-  animation-delay: 0.5s, 1.5s;
-}
-
-.eid-mode .eid-decor-3 {
-  top: 50%;
-  left: 2%;
-  width: 70px;
-  height: 70px;
-  animation-delay: 0.7s, 1.8s;
-}
-
-.eid-mode .eid-decor-4 {
-  top: 50%;
-  right: 3%;
-  width: 65px;
-  height: 65px;
-  animation-delay: 0.9s, 2.1s;
-}
-
-.eid-mode .eid-decor-5 {
-  bottom: 15%;
-  left: 6%;
-  width: 85px;
-  height: 85px;
-  animation-delay: 1.1s, 2.4s;
-}
-
-.eid-mode .eid-decor-6 {
-  bottom: 5%;
-  right: 7%;
-  width: 80px;
-  height: 80px;
-  animation-delay: 1.3s, 2.7s;
-}
-
-@keyframes eidDecorFadeIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.7) rotate(-10deg);
-  }
-  100% {
-    opacity: 0.7;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@keyframes eidDecorFloat {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-8px) scale(1);
-  }
-}
-
-/* Ensure text content is above decorative icons */
-.eid-mode .eid-celebration-container > *:not(.eid-celebration-decor) {
-  position: relative;
-  z-index: 1;
+  z-index: 2;
+  padding: 0;
 }
 
 /* English Title */
 .eid-mode .eid-celebration-title-en {
   font-family: 'Poppins', system-ui, sans-serif;
-  font-weight: 900;
-  font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4.2vw, 3.6rem);
   line-height: 1.15;
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   color: #ffffff;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.7),
-    0 4px 16px rgba(0, 0, 0, 0.5),
-    0 8px 32px rgba(0, 0, 0, 0.3);
-  letter-spacing: -0.3px;
+  text-shadow: 0 6px 25px rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.3px;
 }
 
 /* Arabic Title */
 .eid-mode .eid-celebration-title-ar {
   font-family: 'Amiri', 'Traditional Arabic', serif;
   font-weight: 700;
-  font-size: clamp(2.8rem, 6vw, 5rem);
-  line-height: 1.25;
-  margin: 28px 0 32px;
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  line-height: 1.2;
+  margin: 0 0 28px;
   direction: rtl;
   color: #ffffff;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.7),
-    0 4px 16px rgba(0, 0, 0, 0.5),
-    0 8px 32px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 6px 25px rgba(0, 0, 0, 0.45);
 }
 
-/* Celebration word animations */
+/* Word animations */
 .eid-mode .eid-celebration-word,
 .eid-mode .eid-celebration-word-ar {
   display: inline-block;
-  margin: 0 8px;
+  margin: 0 6px;
   opacity: 0;
-  transform: translateY(40px) scale(0.85);
+  transform: translateY(35px) scale(0.8);
   animation: eidCelebrationWordAppear 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
@@ -681,25 +530,25 @@ html[data-eid-seen="false"] body {
 }
 
 .eid-mode .eid-celebration-word-ar:nth-child(1) {
-  animation-delay: 1.6s;
+  animation-delay: 0.9s;
 }
 
 .eid-mode .eid-celebration-word-ar:nth-child(2) {
-  animation-delay: 1.8s;
+  animation-delay: 1.1s;
 }
 
 .eid-mode .eid-celebration-word-ar:nth-child(3) {
-  animation-delay: 2s;
+  animation-delay: 1.3s;
 }
 
 @keyframes eidCelebrationWordAppear {
   0% {
     opacity: 0;
-    transform: translateY(40px) scale(0.85);
+    transform: translateY(35px) scale(0.8);
   }
   60% {
     opacity: 1;
-    transform: translateY(-8px) scale(1.12);
+    transform: translateY(-6px) scale(1.1);
   }
   100% {
     opacity: 1;
@@ -712,13 +561,12 @@ html[data-eid-seen="false"] body {
   font-family: 'Poppins', system-ui, sans-serif;
   font-weight: 600;
   font-size: clamp(1.15rem, 2vw, 1.5rem);
+  margin: 0 0 10px;
   color: #ffffff;
-  margin: 0 0 12px;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    0 4px 12px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   opacity: 0;
-  animation: eidFadeInUp 0.9s ease 1s forwards;
+  animation: eidCelebrationFadeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 1.6s forwards;
+  transform: translateY(20px);
 }
 
 /* Arabic Subtitle */
@@ -726,599 +574,385 @@ html[data-eid-seen="false"] body {
   font-family: 'Amiri', 'Traditional Arabic', serif;
   font-weight: 600;
   font-size: clamp(1.25rem, 2.2vw, 1.65rem);
-  margin: 0 0 36px;
+  margin: 0 0 32px;
   direction: rtl;
   color: #ffffff;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    0 4px 12px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   opacity: 0;
-  animation: eidFadeInUp 0.9s ease 2.3s forwards;
+  animation: eidCelebrationFadeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 1.8s forwards;
+  transform: translateY(20px);
 }
 
-/* English Message */
-.eid-mode .eid-celebration-message-en {
+/* English Description */
+.eid-mode .eid-celebration-desc-en {
   font-family: 'Poppins', system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(1.05rem, 1.7vw, 1.3rem);
-  line-height: 1.75;
-  color: rgba(255, 255, 255, 0.94);
-  margin: 0 auto 14px;
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.7;
+  margin: 0 auto 12px;
   max-width: 70ch;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
   opacity: 0;
-  animation: eidFadeInUp 0.9s ease 1.3s forwards;
+  animation: eidCelebrationFadeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 2.1s forwards;
+  transform: translateY(20px);
 }
 
-/* Arabic Message */
-.eid-mode .eid-celebration-message-ar {
+/* Arabic Description */
+.eid-mode .eid-celebration-desc-ar {
   font-family: 'Amiri', 'Traditional Arabic', serif;
   font-weight: 400;
-  font-size: clamp(1.15rem, 1.85vw, 1.4rem);
-  line-height: 1.95;
-  margin: 0 auto 42px;
+  font-size: clamp(1.15rem, 1.75vw, 1.35rem);
+  line-height: 1.9;
+  margin: 0 auto 38px;
   max-width: 65ch;
   direction: rtl;
-  color: rgba(255, 255, 255, 0.94);
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
   opacity: 0;
-  animation: eidFadeInUp 0.9s ease 2.6s forwards;
+  animation: eidCelebrationFadeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 2.3s forwards;
+  transform: translateY(20px);
 }
 
-/* Close Button */
-.eid-mode .eid-btn-close {
+@keyframes eidCelebrationFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Button */
+.eid-mode .eid-celebration-btn {
+  opacity: 0;
+  animation: eidCelebrationBtnAppear 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.6s forwards;
+  transform: translateY(30px) scale(0.85);
+}
+
+@keyframes eidCelebrationBtnAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes eidTyping {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes eidCaret {
+  0%, 100% {
+    border-color: transparent;
+  }
+  50% {
+    border-color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+.eid-mode .eid-mark {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  animation: eidMarkFloat 3s ease-in-out infinite, eidMarkFadeIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.4s forwards;
+  opacity: 0;
+  transform: scale(0.8) translateY(15px);
+}
+
+@keyframes eidMarkFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes eidMarkFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.03);
+  }
+}
+
+.eid-mode .eid-mark-glow {
+  position: absolute;
+  inset: -28px;
+  background: radial-gradient(circle, rgba(248, 193, 77, 0.22), transparent 65%);
+  filter: blur(1px);
+}
+
+.eid-mode .eid-mark-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.35));
+}
+
+.eid-mode .eid-title {
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.8rem, 3.6vw, 3.1rem);
+  line-height: 1.1;
+  margin: 0 0 8px;
+  letter-spacing: 0.2px;
+  text-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.eid-mode .eid-title-sub {
+  display: block;
+  margin-top: 10px;
+  font-weight: 600;
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  color: rgba(255, 255, 255, 0.86);
+  opacity: 0;
+  animation: eidSubtitleFadeIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 2.1s forwards;
+  transform: translateY(15px);
+}
+
+@keyframes eidSubtitleFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.eid-mode .eid-subtitle {
+  margin: 0 auto 18px;
+  max-width: 58ch;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(0.95rem, 1.35vw, 1.08rem);
+  opacity: 0;
+  animation: eidSubtitleFadeIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 2.3s forwards;
+  transform: translateY(15px);
+}
+
+.eid-mode .eid-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  opacity: 0;
+  animation: eidActionsFadeIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.5s forwards;
+  transform: translateY(20px) scale(0.95);
+}
+
+@keyframes eidActionsFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+}
+
+/* Start Celebration button uses btn-primary-mathematical (Student Login style) */
+.eid-mode .eid-actions .btn-primary-mathematical:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  pointer-events: none;
+}
+
+.eid-mode .eid-skip-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 12px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.eid-mode .eid-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.eid-mode .eid-hint {
+  margin-top: 14px;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.eid-mode .hero-section-professor .eid-hero-chip {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 40px;
-  border: none;
+  gap: 10px;
+  padding: 10px 14px;
   border-radius: 999px;
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
-  color: #ffffff;
-  background: linear-gradient(135deg, #d40202 0%, #B80101 100%);
-  box-shadow:
-    0 8px 24px rgba(184, 1, 1, 0.35),
-    0 16px 48px rgba(0, 0, 0, 0.25);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  opacity: 0;
-  animation: eidBtnAppear 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.9s forwards;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    radial-gradient(circle at 25% 50%, rgba(248, 193, 77, 0.16), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+  margin-bottom: 14px;
 }
 
-.eid-mode .eid-btn-close:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow:
-    0 12px 32px rgba(184, 1, 1, 0.45),
-    0 20px 60px rgba(0, 0, 0, 0.3);
+.eid-mode .hero-section-professor .eid-hero-chip-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.25));
 }
 
-.eid-mode .eid-btn-close:active {
-  transform: translateY(-2px) scale(1.02);
+.eid-mode .hero-section-professor .eid-hero-chip-text {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.2px;
+  font-size: 0.95rem;
 }
 
-/* ===== AUDIO TOGGLE BUTTON ===== */
+.eid-mode .hero-section-professor .eid-hero-chip-sparkle {
+  color: rgba(255, 230, 166, 0.92);
+  animation: eidSparkle 1.8s ease-in-out infinite;
+}
+
+.eid-mode .eid-hero-decor {
+  position: absolute;
+  inset: -40px -20px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.eid-mode .eid-hero-icon {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.35));
+  opacity: 0.95;
+  animation: eidHeroFloat 12s ease-in-out infinite;
+}
+
+.eid-mode .eid-hero-icon-1 {
+  top: 4%;
+  left: -4%;
+  animation-delay: 0s;
+}
+
+.eid-mode .eid-hero-icon-2 {
+  top: 14%;
+  right: -6%;
+  animation-delay: 2s;
+}
+
+.eid-mode .eid-hero-icon-3 {
+  bottom: 4%;
+  left: -6%;
+  animation-delay: 4s;
+}
+
+.eid-mode .eid-hero-icon-4 {
+  bottom: -2%;
+  right: -4%;
+  animation-delay: 6s;
+}
+
+.eid-mode .eid-hero-icon-5 {
+  top: 45%;
+  right: -10%;
+  animation-delay: 8s;
+}
+
+@keyframes eidHeroFloat {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  25% {
+    transform: translate3d(6px, -10px, 0) scale(1.04);
+  }
+  50% {
+    transform: translate3d(-4px, -18px, 0) scale(0.98);
+  }
+  75% {
+    transform: translate3d(-8px, -8px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (max-width: 680px) {
+  .eid-mode .eid-curtain {
+    width: 58vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eid-mode .eid-fall-item {
+    animation: none;
+    display: none;
+  }
+  .eid-mode .eid-overlay-opening .eid-curtain-left,
+  .eid-mode .eid-overlay-opening .eid-curtain-right {
+    transition: none;
+  }
+}
+
 .eid-audio-toggle {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 100001;
-  width: 48px;
-  height: 48px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #d40202 0%, #B80101 100%);
-  color: #ffffff;
-  font-size: 1.4rem;
-  box-shadow: 0 8px 24px rgba(184, 1, 1, 0.4), 0 16px 48px rgba(0, 0, 0, 0.3);
+  background: radial-gradient(circle at 30% 20%, #ffe6a6, #f8c14d);
+  color: #10131a;
+  font-size: 1.3rem;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
 .eid-audio-toggle:hover {
-  transform: translateY(-3px) scale(1.08);
-  box-shadow: 0 12px 32px rgba(184, 1, 1, 0.5), 0 20px 60px rgba(0, 0, 0, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.4);
 }
 
 .eid-audio-toggle:active {
-  transform: translateY(-1px) scale(1.04);
-}
-
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
-  .eid-mode .eid-intro-icon {
-    width: 90px;
-    height: 90px;
-  }
-
-  .eid-mode .eid-intro-title,
-  .eid-mode .eid-celebration-title-en {
-    font-size: clamp(2rem, 8vw, 3rem);
-  }
-
-  .eid-mode .eid-celebration-title-ar {
-    font-size: clamp(2.2rem, 8.5vw, 3.5rem);
-  }
-
-  .eid-mode .eid-corner-icon {
-    width: 48px;
-    height: 48px;
-  }
-
-  .eid-mode .eid-curtain-left,
-  .eid-mode .eid-curtain-right {
-    width: 58vw;
-  }
-}
-
-@media (max-width: 480px) {
-  .eid-mode .eid-content-layer {
-    padding: 16px;
-  }
-
-  .eid-mode .eid-intro-icon {
-    width: 70px;
-    height: 70px;
-  }
-
-  .eid-mode .eid-btn-start,
-  .eid-mode .eid-btn-close {
-    padding: 14px 32px;
-    font-size: 1rem;
-  }
-
-  .eid-mode .eid-corner-icon {
-    width: 40px;
-    height: 40px;
-  }
-
-  /* Smaller decorative icons on mobile */
-  .eid-mode .eid-celebration-decor-icon {
-    width: 50px;
-    height: 50px;
-  }
-
-  .eid-mode .eid-decor-1 {
-    width: 55px;
-    height: 55px;
-  }
-
-  .eid-mode .eid-decor-2,
-  .eid-mode .eid-decor-5,
-  .eid-mode .eid-decor-6 {
-    width: 45px;
-    height: 45px;
-  }
-
-  .eid-mode .eid-decor-3,
-  .eid-mode .eid-decor-4 {
-    width: 40px;
-    height: 40px;
-  }
-}
-
-/* ===== ACCESSIBILITY ===== */
-@media (prefers-reduced-motion: reduce) {
-  .eid-mode .eid-overlay,
-  .eid-mode .eid-bg-layer,
-  .eid-mode .eid-curtain-left,
-  .eid-mode .eid-curtain-right,
-  .eid-mode .eid-corner-icon,
-  .eid-mode .eid-falling-icon,
-  .eid-mode .eid-celebration-decor-icon,
-  .eid-mode .eid-intro-state,
-  .eid-mode .eid-celebration-state,
-  .eid-mode .eid-intro-word,
-  .eid-mode .eid-celebration-word,
-  .eid-mode .eid-celebration-word-ar,
-  .eid-mode .eid-intro-subtitle,
-  .eid-mode .eid-intro-message,
-  .eid-mode .eid-celebration-subtitle-en,
-  .eid-mode .eid-celebration-subtitle-ar,
-  .eid-mode .eid-celebration-message-en,
-  .eid-mode .eid-celebration-message-ar,
-  .eid-mode .eid-btn-start,
-  .eid-mode .eid-btn-close {
-    animation: none !important;
-    transition: none !important;
-  }
-
-  .eid-mode .eid-falling-icon,
-  .eid-mode .eid-corner-icon,
-  .eid-mode .eid-celebration-decor-icon {
-    display: none !important;
-  }
-
-  .eid-mode .eid-overlay.eid-opening .eid-curtain-left {
-    transform: translateX(-105%);
-    transition: none !important;
-  }
-
-  .eid-mode .eid-overlay.eid-opening .eid-curtain-right {
-    transform: translateX(105%);
-    transition: none !important;
-  }
-}
-
-/* ===========================
-   Eid Seasonal Decorations - Navbar, Hero, Stats
-   Subtle festive enhancements
-   =========================== */
-
-/* ===== NAVBAR EID DECORATIONS ===== */
-.eid-nav-decorations {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.eid-nav-icon {
-  position: absolute;
-  width: 35px;
-  height: 35px;
-  object-fit: contain;
-  opacity: 0.7;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  animation: eidNavFloat 6s ease-in-out infinite;
-}
-
-.eid-nav-icon-1 {
-  top: 12px;
-  left: 15px;
-  animation-delay: 0s;
-}
-
-.eid-nav-icon-2 {
-  top: 12px;
-  right: 15px;
-  animation-delay: 1.5s;
-}
-
-@keyframes eidNavFloat {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-8px) rotate(3deg);
-  }
-  50% {
-    transform: translateY(0) rotate(0deg);
-  }
-  75% {
-    transform: translateY(-5px) rotate(-3deg);
-  }
-}
-
-/* ===== HERO SECTION EID DECORATIONS ===== */
-.eid-hero-float {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  opacity: 0.6;
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.25));
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Floating math elements mixed icons */
-.eid-float-1 {
-  top: 15%;
-  left: 12%;
-  width: 55px;
-  height: 55px;
-  animation: eidHeroFloat1 8s ease-in-out infinite;
-}
-
-.eid-float-2 {
-  top: 60%;
-  left: 8%;
-  width: 50px;
-  height: 50px;
-  animation: eidHeroFloat2 9s ease-in-out infinite;
-  animation-delay: 1s;
-}
-
-.eid-float-3 {
-  top: 35%;
-  right: 10%;
-  width: 45px;
-  height: 45px;
-  animation: eidHeroFloat3 7s ease-in-out infinite;
-  animation-delay: 2s;
-}
-
-/* Background equation area icons */
-.eid-bg-float-1 {
-  top: 20%;
-  right: 25%;
-  width: 58px;
-  height: 58px;
-  opacity: 0.5;
-  animation: eidBgFloat1 10s ease-in-out infinite;
-}
-
-.eid-bg-float-2 {
-  bottom: 25%;
-  left: 20%;
-  width: 52px;
-  height: 52px;
-  opacity: 0.55;
-  animation: eidBgFloat2 11s ease-in-out infinite;
-  animation-delay: 1.5s;
-}
-
-@keyframes eidHeroFloat1 {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-  }
-  33% {
-    transform: translate(15px, -15px) rotate(5deg) scale(1.05);
-  }
-  66% {
-    transform: translate(-10px, 10px) rotate(-5deg) scale(0.95);
-  }
-}
-
-@keyframes eidHeroFloat2 {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate(-20px, -20px) rotate(8deg);
-  }
-}
-
-@keyframes eidHeroFloat3 {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-  }
-  50% {
-    transform: translate(10px, 15px) rotate(-6deg) scale(1.08);
-  }
-}
-
-@keyframes eidBgFloat1 {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translate(-25px, 20px) rotate(10deg);
-    opacity: 0.65;
-  }
-}
-
-@keyframes eidBgFloat2 {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translate(20px, -15px) rotate(-8deg);
-    opacity: 0.7;
-  }
-}
-
-/* ===== STATS AREA EID DECORATIONS ===== */
-.mathematical-stats-grid {
-  position: relative;
-}
-
-.eid-stats-decor {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  opacity: 0.65;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
-  pointer-events: none;
-  z-index: 0;
-}
-
-.eid-stats-1 {
-  top: -15px;
-  left: -10px;
-  animation: eidStatsFloat1 7s ease-in-out infinite;
-}
-
-.eid-stats-2 {
-  top: 50%;
-  right: -15px;
-  transform: translateY(-50%);
-  width: 35px;
-  height: 35px;
-  animation: eidStatsFloat2 8s ease-in-out infinite;
-  animation-delay: 1s;
-}
-
-.eid-stats-3 {
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 38px;
-  height: 38px;
-  animation: eidStatsFloat3 6.5s ease-in-out infinite;
-  animation-delay: 0.5s;
-}
-
-@keyframes eidStatsFloat1 {
-  0%, 100% {
-    transform: rotate(0deg) scale(1);
-  }
-  50% {
-    transform: rotate(8deg) scale(1.1);
-  }
-}
-
-@keyframes eidStatsFloat2 {
-  0%, 100% {
-    transform: translateY(-50%) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-50%) rotate(-10deg) scale(1.08);
-  }
-}
-
-@keyframes eidStatsFloat3 {
-  0%, 100% {
-    transform: translateX(-50%) rotate(0deg);
-  }
-  50% {
-    transform: translateX(-50%) rotate(12deg) scale(1.05);
-  }
-}
-
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
-  /* Navbar icons - smaller on tablets */
-  .eid-nav-icon {
-    width: 28px;
-    height: 28px;
-  }
-  
-  .eid-nav-icon-1,
-  .eid-nav-icon-2 {
-    top: 10px;
-  }
-  
-  /* Hero icons - smaller */
-  .eid-hero-float {
-    width: 45px;
-    height: 45px;
-  }
-  
-  .eid-float-1 {
-    width: 42px;
-    height: 42px;
-  }
-  
-  .eid-float-2 {
-    width: 38px;
-    height: 38px;
-  }
-  
-  .eid-float-3 {
-    width: 35px;
-    height: 35px;
-  }
-  
-  .eid-bg-float-1 {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .eid-bg-float-2 {
-    width: 40px;
-    height: 40px;
-  }
-  
-  /* Stats icons - smaller */
-  .eid-stats-decor {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .eid-stats-2 {
-    width: 28px;
-    height: 28px;
-  }
-  
-  .eid-stats-3 {
-    width: 30px;
-    height: 30px;
-  }
-}
-
-@media (max-width: 480px) {
-  /* Navbar icons - even smaller on mobile */
-  .eid-nav-icon {
-    width: 22px;
-    height: 22px;
-  }
-  
-  .eid-nav-icon-1 {
-    left: 10px;
-  }
-  
-  .eid-nav-icon-2 {
-    right: 10px;
-  }
-  
-  /* Hero icons - minimal size */
-  .eid-hero-float {
-    width: 35px;
-    height: 35px;
-    opacity: 0.5;
-  }
-  
-  .eid-float-1 {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .eid-float-2 {
-    width: 30px;
-    height: 30px;
-  }
-  
-  .eid-float-3 {
-    width: 28px;
-    height: 28px;
-  }
-  
-  .eid-bg-float-1,
-  .eid-bg-float-2 {
-    width: 32px;
-    height: 32px;
-  }
-  
-  /* Stats icons - minimal */
-  .eid-stats-decor {
-    width: 25px;
-    height: 25px;
-  }
-  
-  .eid-stats-2 {
-    width: 22px;
-    height: 22px;
-  }
-  
-  .eid-stats-3 {
-    width: 24px;
-    height: 24px;
-  }
-  
-  /* Simplify animations on mobile */
-  .eid-nav-icon,
-  .eid-hero-float,
-  .eid-stats-decor {
-    animation-duration: 4s;
-  }
-}
-
-/* ===== ACCESSIBILITY - REDUCED MOTION ===== */
-@media (prefers-reduced-motion: reduce) {
-  .eid-nav-icon,
-  .eid-hero-float,
-  .eid-stats-decor {
-    animation: none !important;
-  }
-  
-  .eid-nav-icon,
-  .eid-hero-float,
-  .eid-stats-decor {
-    opacity: 0.5;
-  }
+  transform: translateY(0);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
 }
 
 /* Elkably Team Color Variables */

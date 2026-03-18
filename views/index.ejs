@@ -1,58 +1,142 @@
-<%- include('partials/header', { title: 'Home', isIndexPage: true }) %>
+<%- include('partials/header', { title: 'Home', isIndexPage: true, bodyClass: (typeof eidEnabled !== 'undefined' && eidEnabled) ? 'eid-mode' : '' }) %>
 
-<!-- Welcome Overlay Layer -->
-<div id="welcomeOverlay" class="welcome-overlay">
-  <div class="welcome-background">
-    <div class="welcome-gradient"></div>
-    <div class="welcome-particles">
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
-      <div class="particle"></div>
+<% if (typeof eidEnabled !== 'undefined' && eidEnabled) { %>
+<!-- Eid Celebration Overlay (Redesigned - Proper Layer Separation) -->
+<div id="eidOverlay" class="eid-overlay" role="dialog" aria-modal="true" aria-label="Eid celebration">
+  
+  <!-- Layer 1: Background with blur effect - ONLY layer with backdrop-filter -->
+  <div class="eid-bg-layer" aria-hidden="true"></div>
+  
+  <!-- Layer 2: Theater curtains -->
+  <div class="eid-curtains-layer" aria-hidden="true">
+    <div class="eid-curtain-left">
+      <img src="/images/left_side.svg" alt="" loading="eager" decoding="async">
+    </div>
+    <div class="eid-curtain-right">
+      <img src="/images/right_side.svg" alt="" loading="eager" decoding="async">
     </div>
   </div>
-  <div class="welcome-content">
-    <div class="welcome-logo-container">
-      <div class="welcome-logo-glow">
-        <img src="/images/KImage.jpg" alt="Elkably Logo" class="welcome-logo-image">
+  
+  <!-- Layer 3: Decorative floating corner icons -->
+  <div class="eid-decorative-icons-layer" aria-hidden="true">
+    <img class="eid-corner-icon eid-corner-icon-1" src="/images/EID%20ICONS%20AND%20photos/eid-mubarak.png" alt="">
+    <img class="eid-corner-icon eid-corner-icon-2" src="/images/EID%20ICONS%20AND%20photos/eid-mubarak%20(1).png" alt="">
+    <img class="eid-corner-icon eid-corner-icon-3" src="/images/EID%20ICONS%20AND%20photos/eid-al-fitr.png" alt="">
+    <img class="eid-corner-icon eid-corner-icon-4" src="/images/EID%20ICONS%20AND%20photos/eid-mubarak_4354898.png" alt="">
+    <img class="eid-corner-icon eid-corner-icon-5" src="/images/EID%20ICONS%20AND%20photos/eid-mubarak_10203127.png" alt="">
+    <img class="eid-corner-icon eid-corner-icon-6" src="/images/EID%20ICONS%20AND%20photos/money.png" alt="">
+    <img class="eid-corner-icon eid-corner-icon-7" src="/images/EID%20ICONS%20AND%20photos/mosque.png" alt="">
+    <img class="eid-corner-icon eid-corner-icon-8" src="/images/EID%20ICONS%20AND%20photos/eid-mubarak_4354898.png" alt="">
+  </div>
+  
+  <!-- Layer 4: Falling icons container (populated dynamically) -->
+  <div class="eid-falling-layer" aria-hidden="true"></div>
+  
+  <!-- Layer 5: Content - NO backdrop-filter - Crystal clear text -->
+  <div class="eid-content-layer">
+    
+    <!-- Intro Screen -->
+    <div class="eid-intro-state" id="eidIntroState">
+      <div class="eid-intro-container">
+        
+        <div class="eid-intro-icon">
+          <img
+            src="/images/EID%20ICONS%20AND%20photos/eid-al-fitr.png"
+            alt="Eid Al-Fitr"
+            loading="eager"
+            decoding="async"
+          >
+        </div>
+
+        <h1 class="eid-intro-title">
+          <span class="eid-intro-word">Eid</span>
+          <span class="eid-intro-word">Fitr</span>
+          <span class="eid-intro-word">Mubarak</span>
+        </h1>
+
+        <p class="eid-intro-subtitle">
+          Celebrating with Elkably Students
+        </p>
+
+        <p class="eid-intro-message">
+          May your Eid be full of joy, success, and beautiful memories.
+        </p>
+
+        <button id="eidStartBtn" class="eid-btn-start" type="button">
+          <span class="eid-btn-text">Start Celebration</span>
+          <span class="eid-btn-icon">✦</span>
+        </button>
       </div>
     </div>
-    <h1 class="welcome-title">
-      <span class="welcome-word" data-word="Welcome">Welcome</span>
-      <span class="welcome-word" data-word="to">to</span>
-      <span class="welcome-word" data-word="the">the</span>
-      <span class="welcome-word highlight-word" data-word="new">New</span>
-      <span class="welcome-word highlight-word" data-word="Generation">ERA</span>
-      <span class="welcome-word highlight-word" data-word="Of">Of</span>
-      <span class="welcome-word highlight-word" data-word="Elkably">Elkably</span>
-      <span class="welcome-word highlight-word" data-word="School ">Team</span>
-    </h1>
- 
-    
-    <!-- Start Button -->
-    <button id="startJourneyBtn" class="start-journey-btn">
-      <span class="btn-text">Start Journey</span>
-      <span class="btn-icon">🚀</span>
-    </button>
-    
-    <!-- Countdown Display (hidden initially, replaces welcome text) -->
-    <div id="countdownDisplay" class="countdown-display">
-      <div class="countdown-text"></div>
-    </div>
-    
-    <!-- Lottie Animation Launch -->
-    <div id="rocketLaunch" class="rocket-launch">
-      <dotlottie-wc src="/Remix of Rocket smoke effect.json" style="width: 300px;height: 300px" autoplay loop></dotlottie-wc>
-    </div>
-  </div>
-</div>
 
+    <!-- Celebration Screen -->
+    <div class="eid-celebration-state eid-hidden" id="eidCelebrationState">
+      <div class="eid-celebration-container">
+        
+        <!-- Decorative stationary icons -->
+        <div class="eid-celebration-decor">
+          <img src="/images/EID%20ICONS%20AND%20photos/eid-mubarak.png" class="eid-celebration-decor-icon eid-decor-1" alt="" aria-hidden="true">
+          <img src="/images/EID%20ICONS%20AND%20photos/mosque.png" class="eid-celebration-decor-icon eid-decor-2" alt="" aria-hidden="true">
+          <img src="/images/EID%20ICONS%20AND%20photos/eid-al-fitr.png" class="eid-celebration-decor-icon eid-decor-3" alt="" aria-hidden="true">
+          <img src="/images/EID%20ICONS%20AND%20photos/money.png" class="eid-celebration-decor-icon eid-decor-4" alt="" aria-hidden="true">
+          <img src="/images/EID%20ICONS%20AND%20photos/eid-mubarak%20(1).png" class="eid-celebration-decor-icon eid-decor-5" alt="" aria-hidden="true">
+          <img src="/images/EID%20ICONS%20AND%20photos/eid-mubarak_4354898.png" class="eid-celebration-decor-icon eid-decor-6" alt="" aria-hidden="true">
+        </div>
+        
+        <!-- English block -->
+        <h1 class="eid-celebration-title-en">
+          <span class="eid-celebration-word">Eid</span>
+          <span class="eid-celebration-word">Fitr</span>
+          <span class="eid-celebration-word">Mubarak</span>
+        </h1>
+
+        <p class="eid-celebration-subtitle-en">
+          Celebrating with Elkably Students
+        </p>
+
+        <p class="eid-celebration-message-en">
+          We celebrate Eid Fitr with all Elkably students and families,<br>
+          wishing you joy, peace, and outstanding success.
+        </p>
+
+        <!-- Arabic block -->
+        <h1 class="eid-celebration-title-ar">
+          <span class="eid-celebration-word-ar">عيد</span>
+          <span class="eid-celebration-word-ar">فطر</span>
+          <span class="eid-celebration-word-ar">مبارك</span>
+        </h1>
+
+        <p class="eid-celebration-subtitle-ar">
+          نحتفل مع طلاب الكابلي
+        </p>
+
+        <p class="eid-celebration-message-ar">
+          فريق الكابلي يهنئكم ويقول لكم عيد مبارك،<br>
+          أعاده الله عليكم بالنجاح والفرحة مع كل طلابنا الأعزاء.
+        </p>
+
+        <!-- Close Button -->
+        <button id="eidCloseBtn" class="eid-btn-close" type="button">
+          <span class="eid-btn-text">Happy Eid with Elkably Team</span>
+          <span class="eid-btn-icon">✦</span>
+        </button>
+      </div>
+    </div>
+    
+  </div>
+
+  <!-- Audio Element -->
+  <audio
+    id="eidAudio"
+    preload="auto"
+    src="/images/EID%20ICONS%20AND%20photos/u_mr84lzw2xf-eid-mubarak-201252.mp3"
+    loop
+  ></audio>
+  
+</div>
+<% } %>
+
+<!-- LEGACY_WELCOME_OVERLAY_DISABLED
 <style>
   /* Welcome Overlay Styles */
   .welcome-overlay {
@@ -762,6 +846,10 @@
     }
   })();
 </script>
+<!-- END_LEGACY_WELCOME_OVERLAY_DISABLED -->
+<% if (typeof eidEnabled !== 'undefined' && eidEnabled) { %>
+<script src="/js/eid-overlay.js" defer></script>
+<% } %>
 
 <style>
   .media-guard {
@@ -2273,6 +2361,12 @@
   <div class="math-element-professor" data-equation="∀">∀</div>
   <div class="math-element-professor" data-equation="ℝ">ℝ</div>
   <div class="math-element-professor" data-equation="ℂ">ℂ</div>
+  <% if (typeof eidEnabled !== 'undefined' && eidEnabled) { %>
+  <!-- Eid Icons Mixed with Math -->
+  <img src="/images/EID%20ICONS%20AND%20photos/mosque.png" alt="" class="eid-hero-float eid-float-1" aria-hidden="true">
+  <img src="/images/EID%20ICONS%20AND%20photos/eid-mubarak.png" alt="" class="eid-hero-float eid-float-2" aria-hidden="true">
+  <img src="/images/EID%20ICONS%20AND%20photos/money.png" alt="" class="eid-hero-float eid-float-3" aria-hidden="true">
+  <% } %>
 </div>
 
 <!-- Hero Section - Enhanced Mathematical Design -->
@@ -2292,6 +2386,11 @@
     <div class="equation-float eq-bg-2">(x-h)²+(y-k)²=r²</div>
     <div class="equation-float eq-bg-3">a²-b²=(a-b)(a+b)</div>
     <div class="equation-float eq-bg-4">ax²+bx+c</div>
+    <% if (typeof eidEnabled !== 'undefined' && eidEnabled) { %>
+    <!-- Eid Icons in Background -->
+    <img src="/images/EID%20ICONS%20AND%20photos/eid-al-fitr.png" alt="" class="eid-hero-float eid-bg-float-1" aria-hidden="true">
+    <img src="/images/EID%20ICONS%20AND%20photos/eid-mubarak%20(1).png" alt="" class="eid-hero-float eid-bg-float-2" aria-hidden="true">
+    <% } %>
   </div>
 
   <!-- Hero Glass Container -->
@@ -2324,6 +2423,12 @@
 
             <!-- Mathematical Stats -->
             <div class="mathematical-stats-grid" data-aos="fade-up" data-aos-delay="700">
+              <% if (typeof eidEnabled !== 'undefined' && eidEnabled) { %>
+              <!-- Eid Decorative Icons Around Stats -->
+              <img src="/images/EID%20ICONS%20AND%20photos/eid-al-fitr.png" alt="" class="eid-stats-decor eid-stats-1" aria-hidden="true">
+              <img src="/images/EID%20ICONS%20AND%20photos/money.png" alt="" class="eid-stats-decor eid-stats-2" aria-hidden="true">
+              <img src="/images/EID%20ICONS%20AND%20photos/eid-mubarak_4354898.png" alt="" class="eid-stats-decor eid-stats-3" aria-hidden="true">
+              <% } %>
               <div class="stat-card">
                 <div class="stat-icon">
                   <i class="fas fa-chalkboard-teacher"></i>

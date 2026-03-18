@@ -232,6 +232,8 @@ const {
   getGuestsByQuiz,
   deleteGuestUser,
   exportGuestUsers,
+  getHolidayEffects,
+  updateHolidayEffect,
 } = require('../controllers/adminController');
 
 // Import Question Bank routes
@@ -595,6 +597,11 @@ router.get(
   isAdmin,
   getQuestionsByBank,
 );
+
+// Holiday Effects Routes
+router.get('/holiday-effects', isAdmin, getHolidayEffects);
+router.post('/holiday-effects/eid', isAdmin, updateHolidayEffect);
+router.put('/holiday-effects/eid', isAdmin, updateHolidayEffect);
 
 // Admin Management Routes
 router.get('/create-admin', isAdmin, getCreateAdminForm);

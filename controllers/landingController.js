@@ -6,6 +6,7 @@ const User = require('../models/User');
 const BrilliantStudent = require('../models/BrilliantStudent');
 const GameRoom = require('../models/GameRoom');
 const TeamMember = require('../models/TeamMember');
+const SiteSetting = require('../models/SiteSetting');
 
 // Get landing page data
 const getLandingPage = async (req, res) => {
@@ -165,7 +166,8 @@ const getLandingPage = async (req, res) => {
       req.session.user ? User.findById(req.session.user.id): null
     ]);
 
-
+    const eidEnabledRaw = await SiteSetting.get('eid_effect_enabled');
+    const eidEnabled = eidEnabledRaw === undefined ? true : (eidEnabledRaw === true || eidEnabledRaw === 'true');
 
     res.render('index', {
       title: 'Home | ELKABLY',
@@ -182,9 +184,13 @@ const getLandingPage = async (req, res) => {
       brilliantStudents,
       teamMembers,
       stats,
+      eidEnabled,
     });
   } catch (error) {
     console.error('Error fetching landing page data:', error);
+    const eidEnabledRaw = await SiteSetting.get('eid_effect_enabled');
+    const eidEnabled = eidEnabledRaw === undefined ? true : (eidEnabledRaw === true || eidEnabledRaw === 'true');
+
     res.render('index', {
       title: 'Home | ELKABLY',
       theme: req.cookies.theme || 'light',
@@ -211,6 +217,7 @@ const getLandingPage = async (req, res) => {
         totalGameRooms: 0,
         totalStudents: 0,
       },
+      eidEnabled,
     });
   }
 };

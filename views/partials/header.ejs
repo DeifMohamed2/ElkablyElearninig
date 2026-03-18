@@ -42,6 +42,18 @@
   <!-- Preload Critical JS -->
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js" as="script">
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/gsap@3.9.1/dist/gsap.min.js" as="script">
+  <% if (typeof isIndexPage !== 'undefined' && isIndexPage && typeof bodyClass !== 'undefined' && bodyClass === 'eid-mode') { %>
+  <script>
+    (function(){
+      try {
+        var seen = localStorage.getItem('elkablyEidSeen_2026');
+        document.documentElement.dataset.eidSeen = seen ? 'true' : 'false';
+      } catch(e) {
+        document.documentElement.dataset.eidSeen = 'false';
+      }
+    })();
+  </script>
+  <% } %>
   <script>
     (function() {
       try {
@@ -73,7 +85,7 @@
   }
 </style>
 
-<body class="<%= theme %>-theme" data-initial-theme="<%= theme %>">
+<body class="<%= theme %>-theme <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>" data-initial-theme="<%= theme %>">
   <!-- Advanced Scroll Progress Bar -->
   <div class="scroll-progress-container">
     <div id="scroll-progress" class="scroll-progress-bar"></div>
@@ -92,6 +104,13 @@
         <span class="math-pattern">∇</span>
         <span class="math-pattern">∏</span>
       </div>
+      <% if (typeof bodyClass !== 'undefined' && bodyClass === 'eid-mode') { %>
+      <!-- Eid Decorative Icons -->
+      <div class="eid-nav-decorations">
+        <img src="/images/EID%20ICONS%20AND%20photos/mosque.png" alt="" class="eid-nav-icon eid-nav-icon-1" aria-hidden="true">
+        <img src="/images/EID%20ICONS%20AND%20photos/eid-mubarak.png" alt="" class="eid-nav-icon eid-nav-icon-2" aria-hidden="true">
+      </div>
+      <% } %>
     </div>
 
     <div class="header-container">

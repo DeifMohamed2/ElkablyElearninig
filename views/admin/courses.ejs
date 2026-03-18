@@ -2040,10 +2040,11 @@
         if (data.success) {
           // Show success toast
           showToast(data.message || 'Course duplicated successfully!', 'success');
-          // Reload the page to show the new course
+          // Redirect to the new course's content page so user immediately sees the duplicated course
+          // (reloading would keep filters - e.g. "Published" - and hide the new draft)
           setTimeout(() => {
-            location.reload();
-          }, 1500);
+            window.location.href = `/admin/courses/${data.courseCode}/content`;
+          }, 1000);
         } else {
           showToast(data.message || 'Error duplicating course', 'error');
           if (duplicateButton) {
