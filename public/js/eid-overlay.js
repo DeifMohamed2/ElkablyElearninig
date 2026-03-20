@@ -8,7 +8,6 @@
   if (!overlay) return;
 
   const startBtn = document.getElementById('eidStartBtn');
-  const closeBtn = document.getElementById('eidCloseBtn');
   const introState = document.getElementById('eidIntroState');
   const celebrationState = document.getElementById('eidCelebrationState');
   const audioEl = document.getElementById('eidAudio');
@@ -16,6 +15,7 @@
 
   let audioToggleBtn = null;
   let fallingIconsInterval = null;
+  let isClosing = false;
 
   const ICON_PATHS = [
     '/images/EID%20ICONS%20AND%20photos/eid-mubarak.png',
@@ -63,7 +63,7 @@
     safeLocalStorageSet(STORAGE_KEY, 'true');
   }
 
-  // Audio functions
+  // Audio functions - play once, overlay closes when audio ends
   async function playAudioFromGesture() {
     if (!audioEl) return;
     
@@ -74,7 +74,7 @@
       audioEl.volume = 0.85;
     }
     
-    audioEl.loop = true;
+    audioEl.loop = false; // Play once - overlay closes when sound ends
     
     try {
       await audioEl.play();
@@ -118,7 +118,7 @@
 
       if (audioEl.paused) {
         audioEl.muted = false;
-        audioEl.loop = true;
+        audioEl.loop = false;
         try {
           await audioEl.play();
           safeLocalStorageSet(AUDIO_MUTED_KEY, 'false');
@@ -196,19 +196,33 @@
     overlay.classList.add('eid-opening');
   }
 
-  // Transition from intro to celebration
+  // Transition from intro to celebration (triggered by button click - user gesture enables audio)
   async function startCelebration() {
     if (startBtn) startBtn.disabled = true;
+
+    // Start audio immediately on user click - works reliably with user gesture
+    await playAudioFromGesture();
+    createAudioToggleButton();
+
+    // When audio ends (~11s), close overlay with smooth animation
+    if (audioEl) {
+      audioEl.addEventListener('ended', () => {
+        closeOverlay();
+      }, { once: true });
+    }
+
+    // Fallback: close after 13s if 'ended' doesn't fire (e.g. audio error)
+    setTimeout(() => {
+      if (overlay && overlay.parentNode) {
+        closeOverlay();
+      }
+    }, 13000);
 
     // Hide intro immediately
     if (introState) {
       introState.style.display = 'none';
       introState.classList.add('eid-hidden');
     }
-
-    lockScroll();
-    await playAudioFromGesture();
-    createAudioToggleButton();
 
     // Open curtains
     openCurtains();
@@ -226,8 +240,11 @@
     }, celebrationDelay);
   }
 
-  // Close overlay
+  // Close overlay with smooth fade-out animation
   function closeOverlay() {
+    if (isClosing) return;
+    isClosing = true;
+
     markSeen();
     document.documentElement.dataset.eidSeen = 'true';
     stopFallingIcons();
@@ -236,15 +253,15 @@
     overlay.classList.remove('eid-active');
     overlay.classList.add('eid-fade-out');
 
+    // Wait for fade-out transition to complete before removing
     setTimeout(() => {
       overlay.remove();
       unlockScroll();
       
-      // Remove audio toggle button
       if (audioToggleBtn && audioToggleBtn.parentNode) {
         audioToggleBtn.remove();
       }
-    }, 700);
+    }, 800);
   }
 
   // Initialize
@@ -258,16 +275,12 @@
   lockScroll();
   overlay.classList.add('eid-active');
 
-  // Event listeners
+  // Start celebration on button click (user gesture ensures audio plays reliably)
   if (startBtn) {
     startBtn.addEventListener('click', startCelebration);
   }
 
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeOverlay);
-  }
-
-  // Keyboard support
+  // Keyboard support (optional early exit)
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeOverlay();
