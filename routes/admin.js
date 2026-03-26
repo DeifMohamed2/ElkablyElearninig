@@ -217,6 +217,7 @@ const {
   getBundlesForSMS,
   getCourseStudentsCount,
   getBundleStudentsCount,
+  getBulkSMSPreview,
   sendBulkSMS,
   uploadPDF,
   // OTP Master Generator
@@ -708,6 +709,7 @@ router.get(
   isAdmin,
   getBundleStudentsCount,
 );
+router.post('/bulk-sms/preview', isAdmin, getBulkSMSPreview);
 router.post('/bulk-sms/send', isAdmin, sendBulkSMS);
 
 // PDF Upload Route

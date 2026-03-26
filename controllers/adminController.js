@@ -18,7 +18,7 @@ const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
 const zoomService = require('../utils/zoomService');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
-const { sendSms, sendBulkSms } = require('../utils/sms');
+const { sendSms } = require('../utils/sms');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -16370,6 +16370,195 @@ const getBundleStudentsCount = async (req, res) => {
   }
 };
 
+const PREVIEW_ROW_LIMIT = 500;
+
+/** Build SMS recipient rows from student docs; used by send and preview (preview sets includeEmail). */
+function pushBulkSmsRecipientsFromStudent(
+  recipients,
+  student,
+  recipientType,
+  includeEmail = false,
+) {
+  const fullName = `${student.firstName} ${student.lastName}`;
+  if (recipientType === 'parents' || recipientType === 'both') {
+    if (student.parentNumber) {
+      const row = {
+        phoneNumber: student.parentNumber,
+        countryCode: student.parentCountryCode || null,
+        name: `${fullName}'s Parent`,
+        type: 'parent',
+      };
+      if (includeEmail) row.email = null;
+      recipients.push(row);
+    }
+  }
+  if (recipientType === 'students' || recipientType === 'both') {
+    if (student.studentNumber) {
+      const row = {
+        phoneNumber: student.studentNumber,
+        countryCode: student.studentCountryCode || null,
+        name: fullName,
+        type: 'student',
+      };
+      if (includeEmail) row.email = student.studentEmail || null;
+      recipients.push(row);
+    }
+  }
+}
+
+// Preview Bulk SMS recipients (names, emails, counts aligned with send)
+const getBulkSMSPreview = async (req, res) => {
+  try {
+    const { targetType, targetId, recipientType, selectedStudents } = req.body;
+
+    if (!targetType || typeof targetType !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Target type is required',
+      });
+    }
+
+    if (
+      !recipientType ||
+      !['students', 'parents', 'both'].includes(recipientType)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid recipient type is required (students, parents, or both)',
+      });
+    }
+
+    const selectFields =
+      'firstName lastName parentNumber parentCountryCode studentNumber studentCountryCode studentEmail';
+
+    let students = [];
+
+    if (targetType === 'selected_students') {
+      if (
+        !selectedStudents ||
+        !Array.isArray(selectedStudents) ||
+        selectedStudents.length === 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Select at least one student',
+        });
+      }
+      students = await User.find({
+        _id: { $in: selectedStudents },
+        role: 'student',
+        isActive: true,
+      })
+        .select(selectFields)
+        .lean();
+    } else if (targetType === 'all_students') {
+      students = await User.find({
+        role: 'student',
+        isActive: true,
+      })
+        .select(selectFields)
+        .lean();
+    } else if (targetType === 'course') {
+      if (!targetId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select a course',
+        });
+      }
+      students = await User.find({
+        'enrolledCourses.course': targetId,
+        role: 'student',
+        isActive: true,
+      })
+        .select(selectFields)
+        .lean();
+    } else if (targetType === 'bundle') {
+      if (!targetId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select a bundle',
+        });
+      }
+      const bundle = await BundleCourse.findById(targetId)
+        .select('enrolledStudents')
+        .lean();
+      if (!bundle) {
+        return res.status(404).json({
+          success: false,
+          message: 'Bundle not found',
+        });
+      }
+      students = await User.find({
+        _id: { $in: bundle.enrolledStudents || [] },
+        role: 'student',
+        isActive: true,
+      })
+        .select(selectFields)
+        .lean();
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid target type',
+      });
+    }
+
+    const recipients = [];
+    students.forEach((student) => {
+      pushBulkSmsRecipientsFromStudent(
+        recipients,
+        student,
+        recipientType,
+        true,
+      );
+    });
+
+    const studentRows = recipients.filter((r) => r.type === 'student');
+    const parentRows = recipients.filter((r) => r.type === 'parent');
+
+    let displayStudentCount = 0;
+    let displayParentCount = 0;
+    if (recipientType === 'students') {
+      displayStudentCount = studentRows.length;
+      displayParentCount = 0;
+    } else if (recipientType === 'parents') {
+      displayStudentCount = 0;
+      displayParentCount = parentRows.length;
+    } else {
+      displayStudentCount = studentRows.length;
+      displayParentCount = parentRows.length;
+    }
+
+    const totalMessages = recipients.length;
+    const truncated = recipients.length > PREVIEW_ROW_LIMIT;
+    const rows = recipients.slice(0, PREVIEW_ROW_LIMIT).map((r) => ({
+      name: r.name,
+      email: r.email !== undefined ? r.email : null,
+      audience: r.type,
+      phoneDisplay: r.countryCode
+        ? `${r.countryCode}${r.phoneNumber}`
+        : String(r.phoneNumber || ''),
+    }));
+
+    res.json({
+      success: true,
+      displayStudentCount,
+      displayParentCount,
+      totalMessages,
+      truncated,
+      enrollmentSlotCount: recipients.length,
+      uniquePhoneDestinations: recipients.length,
+      totalRecipientSlots: recipients.length,
+      rows,
+    });
+  } catch (error) {
+    console.error('Error building bulk SMS preview:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to build preview: ' + error.message,
+    });
+  }
+};
+
 // Send Bulk SMS
 const sendBulkSMS = async (req, res) => {
   try {
@@ -16409,7 +16598,6 @@ const sendBulkSMS = async (req, res) => {
       selectedStudents &&
       selectedStudents.length > 0
     ) {
-      // Get selected students
       const students = await User.find({
         _id: { $in: selectedStudents },
         role: 'student',
@@ -16419,29 +16607,14 @@ const sendBulkSMS = async (req, res) => {
       );
 
       students.forEach((student) => {
-        if (recipientType === 'parents' || recipientType === 'both') {
-          if (student.parentNumber) {
-            recipients.push({
-              phoneNumber: student.parentNumber,
-              countryCode: student.parentCountryCode || null,
-              name: `${student.firstName} ${student.lastName}'s Parent`,
-              type: 'parent',
-            });
-          }
-        }
-        if (recipientType === 'students' || recipientType === 'both') {
-          if (student.studentNumber) {
-            recipients.push({
-              phoneNumber: student.studentNumber,
-              countryCode: student.studentCountryCode || null,
-              name: `${student.firstName} ${student.lastName}`,
-              type: 'student',
-            });
-          }
-        }
+        pushBulkSmsRecipientsFromStudent(
+          recipients,
+          student,
+          recipientType,
+          false,
+        );
       });
     } else if (targetType === 'all_students') {
-      // Get all active students
       const students = await User.find({
         role: 'student',
         isActive: true,
@@ -16450,29 +16623,14 @@ const sendBulkSMS = async (req, res) => {
       );
 
       students.forEach((student) => {
-        if (recipientType === 'parents' || recipientType === 'both') {
-          if (student.parentNumber) {
-            recipients.push({
-              phoneNumber: student.parentNumber,
-              countryCode: student.parentCountryCode || null,
-              name: `${student.firstName} ${student.lastName}'s Parent`,
-              type: 'parent',
-            });
-          }
-        }
-        if (recipientType === 'students' || recipientType === 'both') {
-          if (student.studentNumber) {
-            recipients.push({
-              phoneNumber: student.studentNumber,
-              countryCode: student.studentCountryCode || null,
-              name: `${student.firstName} ${student.lastName}`,
-              type: 'student',
-            });
-          }
-        }
+        pushBulkSmsRecipientsFromStudent(
+          recipients,
+          student,
+          recipientType,
+          false,
+        );
       });
     } else if (targetType === 'course' && targetId) {
-      // Get students enrolled in course directly from User model
       const students = await User.find({
         'enrolledCourses.course': targetId,
         role: 'student',
@@ -16491,29 +16649,14 @@ const sendBulkSMS = async (req, res) => {
       }
 
       students.forEach((student) => {
-        if (recipientType === 'parents' || recipientType === 'both') {
-          if (student.parentNumber) {
-            recipients.push({
-              phoneNumber: student.parentNumber,
-              countryCode: student.parentCountryCode || null,
-              name: `${student.firstName} ${student.lastName}'s Parent`,
-              type: 'parent',
-            });
-          }
-        }
-        if (recipientType === 'students' || recipientType === 'both') {
-          if (student.studentNumber) {
-            recipients.push({
-              phoneNumber: student.studentNumber,
-              countryCode: student.studentCountryCode || null,
-              name: `${student.firstName} ${student.lastName}`,
-              type: 'student',
-            });
-          }
-        }
+        pushBulkSmsRecipientsFromStudent(
+          recipients,
+          student,
+          recipientType,
+          false,
+        );
       });
     } else if (targetType === 'bundle' && targetId) {
-      // Get students enrolled in bundle directly from BundleCourse.enrolledStudents
       const bundle = await BundleCourse.findById(targetId)
         .select('enrolledStudents')
         .lean();
@@ -16535,51 +16678,22 @@ const sendBulkSMS = async (req, res) => {
         .lean();
 
       students.forEach((student) => {
-        if (recipientType === 'parents' || recipientType === 'both') {
-          const parentPhone = student.parentCountryCode
-            ? `${student.parentCountryCode}${student.parentNumber}`
-            : student.parentNumber;
-          if (parentPhone) {
-            recipients.push({
-              phone: parentPhone,
-              name: `${student.firstName} ${student.lastName}'s Parent`,
-              type: 'parent',
-            });
-          }
-        }
-        if (recipientType === 'students' || recipientType === 'both') {
-          const studentPhone = student.studentCountryCode
-            ? `${student.studentCountryCode}${student.studentNumber}`
-            : student.studentNumber;
-          if (studentPhone) {
-            recipients.push({
-              phone: studentPhone,
-              name: `${student.firstName} ${student.lastName}`,
-              type: 'student',
-            });
-          }
-        }
+        pushBulkSmsRecipientsFromStudent(
+          recipients,
+          student,
+          recipientType,
+          false,
+        );
       });
     }
 
-    // Remove duplicates based on phoneNumber and countryCode combination
-    const uniqueRecipients = recipients.filter(
-      (recipient, index, self) =>
-        index ===
-        self.findIndex(
-          (r) =>
-            r.phoneNumber === recipient.phoneNumber &&
-            (r.countryCode || '') === (recipient.countryCode || ''),
-        ),
-    );
-
-    results.total = uniqueRecipients.length;
+    results.total = recipients.length;
 
     // Separate recipients into Egyptian (SMS) and non-Egyptian (WhatsApp) groups
     const egyptianRecipients = [];
     const nonEgyptianRecipients = [];
 
-    for (const recipient of uniqueRecipients) {
+    for (const recipient of recipients) {
       const isEgyptian = whatsappSMSNotificationService.isEgyptianNumber(
         recipient.phoneNumber,
         recipient.countryCode,
@@ -16592,56 +16706,27 @@ const sendBulkSMS = async (req, res) => {
       }
     }
 
-    // Send SMS to Egyptian recipients in batches using bulk API
+    // One SMS API call per row (duplicate numbers each get their own send; bulk API would merge)
     if (egyptianRecipients.length > 0) {
-      const BATCH_SIZE = 50; // Send 50 recipients per batch
-      const batches = [];
-
-      for (let i = 0; i < egyptianRecipients.length; i += BATCH_SIZE) {
-        batches.push(egyptianRecipients.slice(i, i + BATCH_SIZE));
-      }
-
-      // Process batches
-      for (const batch of batches) {
+      for (const recipient of egyptianRecipients) {
+        const fullPhone = recipient.countryCode
+          ? `${recipient.countryCode}${recipient.phoneNumber}`
+          : recipient.phoneNumber;
         try {
-          // Format phone numbers for SMS (combine country code if present)
-          const batchPhones = batch.map((r) => {
-            if (r.countryCode) {
-              return `${r.countryCode}${r.phoneNumber}`;
-            }
-            return r.phoneNumber;
-          });
-
-          // Send bulk SMS
-          await sendBulkSms({
-            recipients: batchPhones,
-            message: message.trim(),
-          });
-
-          // All recipients in batch succeeded
-          batch.forEach((recipient) => {
-            const fullPhone = recipient.countryCode
-              ? `${recipient.countryCode}${recipient.phoneNumber}`
-              : recipient.phoneNumber;
-            results.success.push({
-              phone: fullPhone,
-              name: recipient.name,
-              type: recipient.type,
-              method: 'SMS',
-            });
+          await sendSms({ recipient: fullPhone, message: message.trim() });
+          results.success.push({
+            phone: fullPhone,
+            name: recipient.name,
+            type: recipient.type,
+            method: 'SMS',
           });
         } catch (error) {
-          console.error(`Failed to send SMS batch:`, error);
+          console.error(`Failed to send SMS to ${fullPhone}:`, error);
 
-          // Extract error message from API response
           let errorMessage = 'Unknown error';
-
-          // Priority 1: Check if it's an API error with isApiError flag
           if (error.isApiError && error.message) {
             errorMessage = error.message;
-          }
-          // Priority 2: Check error.details for API error format (status: "error")
-          else if (error.details && typeof error.details === 'object') {
+          } else if (error.details && typeof error.details === 'object') {
             if (error.details.status === 'error') {
               errorMessage =
                 error.details.message || 'SMS API returned an error';
@@ -16652,13 +16737,9 @@ const sendBulkSMS = async (req, res) => {
                 error.details.help ||
                 JSON.stringify(error.details);
             }
-          }
-          // Priority 3: Check error.message (from utils/sms.js)
-          else if (error.message && error.message !== 'WhySMS API error') {
+          } else if (error.message && error.message !== 'WhySMS API error') {
             errorMessage = error.message;
-          }
-          // Priority 4: Check error.response.data for API error format
-          else if (error.response?.data) {
+          } else if (error.response?.data) {
             const responseData = error.response.data;
             if (responseData.status === 'error') {
               errorMessage =
@@ -16672,17 +16753,12 @@ const sendBulkSMS = async (req, res) => {
             } else {
               errorMessage = String(responseData);
             }
-          }
-          // Priority 5: Check error.details as string
-          else if (error.details) {
+          } else if (error.details) {
             errorMessage = String(error.details);
-          }
-          // Priority 6: Fallback to error.message
-          else if (error.message) {
+          } else if (error.message) {
             errorMessage = error.message;
           }
 
-          // Add status code if available for better error context (but not for API-level errors)
           if (!error.isApiError) {
             if (error.statusCode) {
               errorMessage = `[${error.statusCode}] ${errorMessage}`;
@@ -16691,19 +16767,12 @@ const sendBulkSMS = async (req, res) => {
             }
           }
 
-          // If bulk send fails, mark all recipients in batch as failed
-          // If we can't determine which specific ones failed, mark all
-          batch.forEach((recipient) => {
-            const fullPhone = recipient.countryCode
-              ? `${recipient.countryCode}${recipient.phoneNumber}`
-              : recipient.phoneNumber;
-            results.failed.push({
-              phone: fullPhone,
-              name: recipient.name,
-              type: recipient.type,
-              method: 'SMS',
-              error: errorMessage,
-            });
+          results.failed.push({
+            phone: fullPhone,
+            name: recipient.name,
+            type: recipient.type,
+            method: 'SMS',
+            error: errorMessage,
           });
         }
       }
@@ -18238,6 +18307,7 @@ module.exports = {
   getBundlesForSMS,
   getCourseStudentsCount,
   getBundleStudentsCount,
+  getBulkSMSPreview,
   sendBulkSMS,
   // Simple PDF Upload
   uploadPDF,

@@ -238,6 +238,26 @@
                       <span class="count-value" id="totalCount">0</span>
                     </div>
                   </div>
+                  <div id="previewRecipientLoading" class="preview-recipient-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading recipient preview…</span>
+                  </div>
+                  <p id="previewRecipientError" class="preview-recipient-error" style="display: none;" role="alert"></p>
+                  <p id="previewRecipientTruncated" class="preview-recipient-truncated" style="display: none;"></p>
+                  <div id="previewRecipientTableWrap" class="preview-recipient-table-wrap" style="display: none;">
+                    <table class="preview-recipient-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Phone</th>
+                          <th>Audience</th>
+                        </tr>
+                      </thead>
+                      <tbody id="previewRecipientTableBody">
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -327,6 +347,201 @@
   let currentSearch = '';
   let totalStudents = 0;
   let messageTextarea, charCount, maxCharCount, languageType, messagePreview;
+  let previewDebounceTimer = null;
+  let previewRequestId = 0;
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+  }
+
+  function clearPreviewRecipientUI() {
+    const loadingEl = document.getElementById('previewRecipientLoading');
+    const errorEl = document.getElementById('previewRecipientError');
+    const truncatedEl = document.getElementById('previewRecipientTruncated');
+    const tableWrap = document.getElementById('previewRecipientTableWrap');
+    const tbody = document.getElementById('previewRecipientTableBody');
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (errorEl) {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
+    if (truncatedEl) {
+      truncatedEl.style.display = 'none';
+      truncatedEl.textContent = '';
+    }
+    if (tableWrap) tableWrap.style.display = 'none';
+    if (tbody) tbody.innerHTML = '';
+  }
+
+  function updateMessageCountVisibility() {
+    const targetType = document.getElementById('targetType').value;
+    const targetId = document.getElementById('targetId').value;
+    const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value || 'students';
+    const messageCountPreviewSection = document.getElementById('messageCountPreviewSection');
+    const studentCountItem = document.getElementById('studentCountItem');
+    const parentCountItem = document.getElementById('parentCountItem');
+    const recipientTypeLabel = document.getElementById('recipientTypeLabel');
+    const recipientTypeTextMap = {
+      students: 'Students Only',
+      parents: 'Parents Only',
+      both: 'Both Students & Parents',
+    };
+    if (recipientTypeLabel) {
+      recipientTypeLabel.textContent = recipientTypeTextMap[recipientType] || 'Students Only';
+    }
+
+    if (recipientType === 'students') {
+      if (parentCountItem) parentCountItem.style.display = 'none';
+      if (studentCountItem) studentCountItem.style.display = 'flex';
+    } else if (recipientType === 'parents') {
+      if (studentCountItem) studentCountItem.style.display = 'none';
+      if (parentCountItem) parentCountItem.style.display = 'flex';
+    } else {
+      if (studentCountItem) studentCountItem.style.display = 'flex';
+      if (parentCountItem) parentCountItem.style.display = 'flex';
+    }
+
+    const needsTarget =
+      targetType === 'course' || targetType === 'bundle';
+    const hasTarget = Boolean(targetId);
+    const shouldShow =
+      targetType &&
+      (!needsTarget || hasTarget) &&
+      (targetType !== 'selected_students' || selectedStudents.size > 0);
+
+    if (!shouldShow) {
+      if (messageCountPreviewSection) messageCountPreviewSection.style.display = 'none';
+      clearPreviewRecipientUI();
+      return false;
+    }
+    if (messageCountPreviewSection) messageCountPreviewSection.style.display = 'block';
+    return true;
+  }
+
+  async function fetchPreviewData() {
+    const reqId = ++previewRequestId;
+    const loadingEl = document.getElementById('previewRecipientLoading');
+    const errorEl = document.getElementById('previewRecipientError');
+    const truncatedEl = document.getElementById('previewRecipientTruncated');
+    const tableWrap = document.getElementById('previewRecipientTableWrap');
+    const tbody = document.getElementById('previewRecipientTableBody');
+
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (errorEl) {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
+    if (truncatedEl) {
+      truncatedEl.style.display = 'none';
+      truncatedEl.textContent = '';
+    }
+    if (tableWrap) tableWrap.style.display = 'none';
+    if (tbody) tbody.innerHTML = '';
+
+    const targetType = document.getElementById('targetType').value;
+    const targetId = document.getElementById('targetId').value;
+    const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value || 'students';
+
+    try {
+      const res = await fetch('/admin/bulk-sms/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetType,
+          targetId: targetId || undefined,
+          recipientType,
+          selectedStudents:
+            targetType === 'selected_students' ? Array.from(selectedStudents) : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (reqId !== previewRequestId) return;
+      if (loadingEl) loadingEl.style.display = 'none';
+
+      if (!res.ok || !data.success) {
+        if (errorEl) {
+          errorEl.textContent = data.message || 'Preview failed';
+          errorEl.style.display = 'block';
+        }
+        return;
+      }
+
+      document.getElementById('studentCount').textContent = data.displayStudentCount;
+      document.getElementById('parentCount').textContent = data.displayParentCount;
+      document.getElementById('totalCount').textContent = data.totalMessages;
+
+      if (data.truncated && truncatedEl) {
+        truncatedEl.textContent =
+          'Showing first ' +
+          data.rows.length +
+          ' of ' +
+          (data.totalRecipientSlots || data.rows.length) +
+          ' messages.';
+        truncatedEl.style.display = 'block';
+      } else if (truncatedEl) {
+        truncatedEl.style.display = 'none';
+      }
+
+      if (tbody) {
+        if (!data.rows || data.rows.length === 0) {
+          tbody.innerHTML =
+            '<tr class="preview-recipient-empty"><td colspan="4">No recipients with phone numbers for this selection.</td></tr>';
+        } else {
+          tbody.innerHTML = data.rows
+            .map(function (row) {
+              const email =
+                row.email === null || row.email === '' ? '—' : row.email || '—';
+              const aud = row.audience === 'parent' ? 'Parent' : 'Student';
+              const phone =
+                row.phoneDisplay && String(row.phoneDisplay).trim()
+                  ? escapeHtml(row.phoneDisplay)
+                  : '—';
+              return (
+                '<tr><td>' +
+                escapeHtml(row.name) +
+                '</td><td>' +
+                escapeHtml(email) +
+                '</td><td>' +
+                phone +
+                '</td><td>' +
+                escapeHtml(aud) +
+                '</td></tr>'
+              );
+            })
+            .join('');
+        }
+      }
+      if (tableWrap) tableWrap.style.display = 'block';
+    } catch (err) {
+      if (reqId !== previewRequestId) return;
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (errorEl) {
+        errorEl.textContent = 'Could not load preview. Please try again.';
+        errorEl.style.display = 'block';
+      }
+      console.error(err);
+    }
+  }
+
+  function scheduleFetchPreview() {
+    clearTimeout(previewDebounceTimer);
+    previewDebounceTimer = setTimeout(function () {
+      if (!updateMessageCountVisibility()) return;
+      fetchPreviewData();
+    }, 300);
+  }
+
+  function updateMessageCount() {
+    const visible = updateMessageCountVisibility();
+    if (visible) {
+      scheduleFetchPreview();
+    } else {
+      clearTimeout(previewDebounceTimer);
+    }
+  }
 
   // Function to detect if message contains Arabic characters
   function containsArabic(text) {
@@ -468,114 +683,6 @@
         console.error('Error loading options:', error);
         targetId.innerHTML = '<option value="">Error loading options</option>';
       });
-  }
-  
-  // Update message count preview
-  async function updateMessageCount() {
-    const targetType = document.getElementById('targetType').value;
-    const targetId = document.getElementById('targetId').value;
-    const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value || 'students';
-    const messageCountPreviewSection = document.getElementById('messageCountPreviewSection');
-    const recipientTypeLabel = document.getElementById('recipientTypeLabel');
-    const studentCountItem = document.getElementById('studentCountItem');
-    const parentCountItem = document.getElementById('parentCountItem');
-    
-    let studentCount = 0;
-    let parentCount = 0;
-    
-    if (targetType === 'all_students') {
-      // Fetch total students count
-      try {
-        const response = await fetch('/admin/bulk-sms/students?limit=1');
-        const data = await response.json();
-        if (data.success) {
-          studentCount = data.pagination.total || 0;
-        }
-      } catch (error) {
-        console.error('Error fetching student count:', error);
-      }
-    } else if (targetType === 'selected_students') {
-      // Use selected students count
-      studentCount = selectedStudents.size;
-    } else if (targetType === 'course' && targetId) {
-      // Fetch student count for course
-      try {
-        const response = await fetch(`/admin/bulk-sms/course-students-count/${targetId}`);
-        const data = await response.json();
-        if (data.success) {
-          studentCount = data.count || 0;
-        }
-      } catch (error) {
-        console.error('Error fetching course student count:', error);
-      }
-    } else if (targetType === 'bundle' && targetId) {
-      // Fetch student count for bundle
-      try {
-        const response = await fetch(`/admin/bulk-sms/bundle-students-count/${targetId}`);
-        const data = await response.json();
-        if (data.success) {
-          studentCount = data.count || 0;
-        }
-      } catch (error) {
-        console.error('Error fetching bundle student count:', error);
-      }
-    }
-    
-    // Calculate parent count (same as student count, assuming each student has one parent)
-    parentCount = studentCount;
-    
-    // Update display based on recipient type
-    let displayStudentCount = 0;
-    let displayParentCount = 0;
-    let totalCount = 0;
-    let recipientTypeText = '';
-    
-    if (recipientType === 'students') {
-      displayStudentCount = studentCount;
-      displayParentCount = 0;
-      totalCount = studentCount;
-      recipientTypeText = 'Students Only';
-      // Hide parent count item
-      if (parentCountItem) parentCountItem.style.display = 'none';
-      if (studentCountItem) studentCountItem.style.display = 'flex';
-    } else if (recipientType === 'parents') {
-      displayStudentCount = 0;
-      displayParentCount = parentCount;
-      totalCount = parentCount;
-      recipientTypeText = 'Parents Only';
-      // Hide student count item
-      if (studentCountItem) studentCountItem.style.display = 'none';
-      if (parentCountItem) parentCountItem.style.display = 'flex';
-    } else if (recipientType === 'both') {
-      displayStudentCount = studentCount;
-      displayParentCount = parentCount;
-      totalCount = studentCount + parentCount;
-      recipientTypeText = 'Both Students & Parents';
-      // Show both items
-      if (studentCountItem) studentCountItem.style.display = 'flex';
-      if (parentCountItem) parentCountItem.style.display = 'flex';
-    }
-    
-    // Update UI
-    document.getElementById('studentCount').textContent = displayStudentCount;
-    document.getElementById('parentCount').textContent = displayParentCount;
-    document.getElementById('totalCount').textContent = totalCount;
-    
-    // Update recipient type label
-    if (recipientTypeLabel) {
-      recipientTypeLabel.textContent = recipientTypeText;
-    }
-    
-    // Show/hide preview section
-    if (targetType && (targetType !== 'selected_students' || selectedStudents.size > 0)) {
-      if (messageCountPreviewSection) {
-        messageCountPreviewSection.style.display = 'block';
-      }
-    } else {
-      if (messageCountPreviewSection) {
-        messageCountPreviewSection.style.display = 'none';
-      }
-    }
   }
 
   // Load students
