@@ -3850,6 +3850,7 @@
       if (isVideoContent && hasVideoContent && !watchLimitReached) {
         let player = null;
         let videoDuration = 0;
+        const serverVideoDurationSec = <%= (contentItem && contentItem.duration != null && !isNaN(Number(contentItem.duration))) ? Number(contentItem.duration) : 0 %>;
         let playerReady = false;
         // IMPORTANT: Initialize autoCompleted from server state
         // This prevents double-counting if video was already completed
@@ -3871,6 +3872,22 @@
         let lastSkipAlertTime = 0; // Prevent alert spam
         let wasPlayingBeforeSeek = false; // Track if was playing before seek
         let lastUpdateTime = Date.now(); // Track last update timestamp
+        let lastTimeupdateSeconds = -1; // Bunny/playerjs often omits "play"; infer playback from advancing time
+        
+        function applyVideoDurationSeconds(sec) {
+          if (typeof sec !== 'number' || !isFinite(sec) || sec <= 0) return false;
+          if (videoDuration <= 0 || Math.abs(videoDuration - sec) > 0.5) {
+            videoDuration = sec;
+            return true;
+          }
+          return false;
+        }
+        function syncVideoDurationFromPlayerData(d) {
+          if (!d || typeof d.duration !== 'number' || !isFinite(d.duration) || d.duration <= 0) return;
+          if (applyVideoDurationSeconds(d.duration)) {
+            if (typeof updateProgressIndicator === 'function') updateProgressIndicator();
+          }
+        }
         
         // LocalStorage key for this specific video
         const videoStorageKey = 'video_progress_<%= contentItem._id %>';
@@ -4078,8 +4095,9 @@
           const progressDiv = document.getElementById('videoWatchProgress');
           if (!progressDiv) return;
           
-          // Show indicator when video starts playing
-          if (!progressIndicatorVisible && isPlaying) {
+          // Show when playing OR when time is advancing (Bunny iframe often never fires player "play")
+          const playbackDetected = isPlaying || lastTimeupdateSeconds > 0.05;
+          if (!progressIndicatorVisible && playbackDetected) {
             progressDiv.style.display = 'block';
             progressIndicatorVisible = true;
           }
@@ -4167,8 +4185,8 @@
           const mobileSection = document.getElementById('mobileWatchProgress');
           if (!mobileSection) return;
           
-          // Show the section once video starts playing
-          if (isPlaying && mobileSection.style.display !== 'block') {
+          // Mobile layout only — avoid inline display:block on desktop (would override CSS and duplicate the overlay)
+          if ((isPlaying || lastTimeupdateSeconds > 0.05) && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches && mobileSection.style.display !== 'block') {
             mobileSection.style.display = 'block';
           }
           
@@ -4337,12 +4355,19 @@
 
               // Get duration once
               player.getDuration((dur) => {
-                videoDuration = dur;
+                const fromApi = typeof dur === 'number' && isFinite(dur) && dur > 0 ? dur : 0;
+                if (fromApi > 0) {
+                  videoDuration = fromApi;
+                } else if (serverVideoDurationSec > 0) {
+                  videoDuration = serverVideoDurationSec;
+                }
+                // else: remains 0 until syncVideoDurationFromPlayerData(timeupdate) runs
                 
                 // Load saved progress
                 const savedPosition = loadSavedProgress();
+                const durCap = videoDuration > 0 ? videoDuration : Number.MAX_SAFE_INTEGER;
                 
-                if (savedPosition > 0 && savedPosition < dur) {
+                if (savedPosition > 0 && savedPosition < durCap) {
                   // Restore to saved position
                   console.log('⏮️ Restoring to saved position:', savedPosition.toFixed(2));
                   lastTrackedTime = savedPosition;
@@ -4364,6 +4389,19 @@
                 } else {
                   lastTrackedTime = 0;
                 }
+              });
+              
+              // getDuration often returns 0 on Bunny at ready; retry while timeupdate may still fix duration
+              [1, 2, 4].forEach((delaySec) => {
+                setTimeout(() => {
+                  if (!player || videoDuration > 0) return;
+                  try {
+                    player.getDuration((d2) => {
+                      const v = typeof d2 === 'number' && isFinite(d2) && d2 > 0 ? d2 : 0;
+                      if (v > 0) applyVideoDurationSeconds(v);
+                    });
+                  } catch (e) {}
+                }, delaySec * 1000);
               });
             });
             
@@ -4445,7 +4483,16 @@
 
             // Event listeners for time updates
             player.on("timeupdate", (data) => {
+              syncVideoDurationFromPlayerData(data);
               const currentSeconds = data.seconds;
+              if (!isSeeking) {
+                if (lastTimeupdateSeconds >= 0 && currentSeconds > lastTimeupdateSeconds + 0.005) {
+                  isPlaying = true;
+                } else if (lastTimeupdateSeconds < 0 && currentSeconds > 0.05) {
+                  isPlaying = true;
+                }
+              }
+              lastTimeupdateSeconds = currentSeconds;
               const totalDuration = data.duration || videoDuration;
               const now = Date.now();
               const timeSinceLastUpdate = now - lastUpdateTime;
