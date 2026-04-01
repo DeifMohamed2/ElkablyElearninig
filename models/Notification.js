@@ -225,6 +225,74 @@ NotificationSchema.statics.createNotification = async function (notificationData
   return notification;
 };
 
+// --- Student mobile (query by student id) ---
+NotificationSchema.statics.getStudentUnreadCount = async function (studentId) {
+  return await this.countDocuments({ student: studentId, isRead: false });
+};
+
+NotificationSchema.statics.getStudentNotifications = async function (studentId, options = {}) {
+  const {
+    page = 1,
+    limit = 20,
+    unreadOnly = false,
+    type = null,
+  } = options;
+
+  const query = { student: studentId };
+
+  if (unreadOnly) {
+    query.isRead = false;
+  }
+
+  if (type) {
+    query.type = type;
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [notifications, total] = await Promise.all([
+    this.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    this.countDocuments(query),
+  ]);
+
+  return {
+    notifications,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      hasMore: skip + notifications.length < total,
+    },
+  };
+};
+
+NotificationSchema.statics.markStudentNotificationAsRead = async function (
+  notificationId,
+  studentId,
+) {
+  return await this.findOneAndUpdate(
+    { _id: notificationId, student: studentId },
+    { isRead: true, readAt: new Date() },
+    { new: true },
+  );
+};
+
+NotificationSchema.statics.markAllStudentNotificationsAsRead = async function (studentId) {
+  return await this.updateMany(
+    { student: studentId, isRead: false },
+    { isRead: true, readAt: new Date() },
+  );
+};
+
+NotificationSchema.statics.deleteStudentNotification = async function (notificationId, studentId) {
+  return await this.findOneAndDelete({ _id: notificationId, student: studentId });
+};
+
 // Instance method to update delivery status
 NotificationSchema.methods.updateDeliveryStatus = async function (channel, status) {
   const update = {};

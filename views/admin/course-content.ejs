@@ -4300,17 +4300,10 @@ function getContentIcon(type) {
       console.log('Edit Homework - Selected Questions:', selectedEditHomeworkQuestions);
     }
 
-    // Load question banks and initialize
     loadEditHomeworkQuestionBanks(contentData).then(() => {
-      // After banks are loaded, automatically load questions if banks exist
-      if (selectedEditHomeworkQuestionBankIds.length > 0) {
-        setTimeout(() => {
-          loadEditHomeworkQuestions();
-        }, 500); // Small delay to ensure UI is updated
-      }
+      // Questions load when user clicks Next on step 1 (supports changing banks first)
     });
 
-    // Update step display
     updateEditHomeworkStepDisplay();
   }
 
@@ -4492,13 +4485,11 @@ function getContentIcon(type) {
 
     updateEditHomeworkSelectedBanksCount();
 
-    // Automatically load questions when banks are selected
-    if (selectedEditHomeworkQuestionBankIds.length > 0) {
-      loadEditHomeworkQuestions();
-    } else {
-      // Clear questions if no banks selected
+    if (selectedEditHomeworkQuestionBankIds.length === 0) {
       editHomeworkQuestions = [];
+      selectedEditHomeworkQuestions = [];
       displayEditHomeworkQuestions({});
+      updateEditHomeworkSelectionSummary();
     }
   }
 
@@ -4554,12 +4545,32 @@ function getContentIcon(type) {
     if (stepNumber) stepNumber.textContent = currentEditQuizStep;
   }
 
-  // Edit Homework Step Navigation Functions
-  function nextEditHomeworkStep() {
+  async function nextEditHomeworkStep() {
+    if (currentEditHomeworkStep === 1) {
+      if (selectedEditHomeworkQuestionBankIds.length === 0) {
+        showNotification('Please select at least one question bank', 'error');
+        return;
+      }
+      const nextBtn = document.getElementById('editHomeworkNextBtn');
+      const prevHtml = nextBtn ? nextBtn.innerHTML : '';
+      if (nextBtn) {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Loading...';
+      }
+      try {
+        const ok = await loadEditHomeworkQuestions();
+        if (!ok) return;
+      } finally {
+        if (nextBtn) {
+          nextBtn.disabled = false;
+          nextBtn.innerHTML = prevHtml;
+        }
+      }
+    }
+
     if (currentEditHomeworkStep < 4) {
       currentEditHomeworkStep++;
       updateEditHomeworkStepDisplay();
-      // Render preview when reaching step 4
       if (currentEditHomeworkStep === 4) {
         renderEditHomeworkPreview();
       }
@@ -4773,21 +4784,19 @@ function getContentIcon(type) {
     if (selectedEditHomeworkQuestionBankIds.length === 0) {
       editHomeworkQuestions = [];
       displayEditHomeworkQuestions({});
-      return;
+      return false;
     }
 
     try {
-      // Show loading state
       const questionsGrid = document.getElementById('editHomeworkQuestionsGrid');
       if (questionsGrid) {
         questionsGrid.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading questions...</p></div>';
       }
 
-      // Get topicId from editContentData
       const topicId = window.editContentData?.topicId;
       if (!topicId) {
         showNotification('Topic ID not found', 'error');
-        return;
+        return false;
       }
 
       const response = await fetch(`/admin/courses/<%= courseCode %>/topics/${topicId}/question-banks/multiple/questions`, {
@@ -4865,13 +4874,11 @@ function getContentIcon(type) {
         if (editHomeworkQuestions.length === 0) {
           console.warn('Edit Homework - No questions were added to the array!');
           showNotification('No questions found in selected banks', 'warning');
-          const questionsGrid = document.getElementById('editHomeworkQuestionsGrid');
-          if (questionsGrid) {
-            questionsGrid.innerHTML = '';
-          }
+          const questionsGridEmpty = document.getElementById('editHomeworkQuestionsGrid');
+          if (questionsGridEmpty) questionsGridEmpty.innerHTML = '';
           const noQuestionsMsg = document.getElementById('editNoHomeworkQuestionsMessage');
           if (noQuestionsMsg) noQuestionsMsg.style.display = 'block';
-          return;
+          return false;
         }
 
         // Create a flat structure for display (for compatibility)
@@ -4905,39 +4912,29 @@ function getContentIcon(type) {
           noQuestionsMsg.style.display = 'none';
         }
 
-        // Verify questions were displayed and update UI
         setTimeout(() => {
           const displayedQuestions = questionsGrid ? questionsGrid.querySelectorAll('.question-item').length : 0;
-          console.log('Edit Homework - Questions displayed in UI:', displayedQuestions);
-
           if (displayedQuestions === 0 && editHomeworkQuestions.length > 0) {
-            console.error('Edit Homework - Questions not displayed! Forcing display...');
-            // Force display again
             displayEditHomeworkQuestions(flatQuestionsByBank);
           }
-
           updateEditHomeworkSelectionSummary();
-
-          // If we're on step 1 and questions loaded, automatically move to step 2
-          if (currentEditHomeworkStep === 1 && editHomeworkQuestions.length > 0) {
-            currentEditHomeworkStep = 2;
-            updateEditHomeworkStepDisplay();
-          }
         }, 200);
 
         showNotification(`Loaded ${editHomeworkQuestions.length} questions from ${selectedEditHomeworkQuestionBankIds.length} bank(s)`, 'success');
-      } else {
-        console.error('Edit Homework - Failed to load questions:', result);
-        showNotification(result.message || 'Failed to load questions', 'error');
-        editHomeworkQuestions = [];
-        displayEditHomeworkQuestions({});
-        updateEditHomeworkSelectionSummary();
+        return true;
       }
+      console.error('Edit Homework - Failed to load questions:', result);
+      showNotification(result.message || 'Failed to load questions', 'error');
+      editHomeworkQuestions = [];
+      displayEditHomeworkQuestions({});
+      updateEditHomeworkSelectionSummary();
+      return false;
     } catch (error) {
       console.error('Error loading questions:', error);
       showNotification('An error occurred while loading questions', 'error');
       editHomeworkQuestions = [];
       displayEditHomeworkQuestions({});
+      return false;
     }
   }
 
@@ -5631,14 +5628,20 @@ function getContentIcon(type) {
     rangeInput.value = '';
   }
 
+  function isEditHomeworkGridItemVisible(item) {
+    return item && window.getComputedStyle(item).display !== 'none';
+  }
+
   // Edit Homework Question Selection Tools
   function selectAllEditHomeworkQuestions() {
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])').forEach(item => {
-      const questionId = item.dataset.questionId;
-      if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
-        toggleEditHomeworkQuestionSelection(questionId);
-      }
-    });
+    Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item'))
+      .filter(isEditHomeworkGridItemVisible)
+      .forEach(item => {
+        const questionId = item.dataset.questionId;
+        if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+          toggleEditHomeworkQuestionSelection(questionId);
+        }
+      });
   }
 
   function clearEditHomeworkSelection() {
@@ -5650,29 +5653,35 @@ function getContentIcon(type) {
   }
 
   function selectEvenEditHomeworkQuestions() {
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])').forEach((item, index) => {
-      if (index % 2 === 1) {
-        const questionId = item.dataset.questionId;
-        if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
-          toggleEditHomeworkQuestionSelection(questionId);
+    Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item'))
+      .filter(isEditHomeworkGridItemVisible)
+      .forEach((item, index) => {
+        if (index % 2 === 1) {
+          const questionId = item.dataset.questionId;
+          if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+            toggleEditHomeworkQuestionSelection(questionId);
+          }
         }
-      }
-    });
+      });
   }
 
   function selectOddEditHomeworkQuestions() {
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])').forEach((item, index) => {
-      if (index % 2 === 0) {
-        const questionId = item.dataset.questionId;
-        if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
-          toggleEditHomeworkQuestionSelection(questionId);
+    Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item'))
+      .filter(isEditHomeworkGridItemVisible)
+      .forEach((item, index) => {
+        if (index % 2 === 0) {
+          const questionId = item.dataset.questionId;
+          if (questionId && !selectedEditHomeworkQuestions.find(sq => String(sq.question) === questionId)) {
+            toggleEditHomeworkQuestionSelection(questionId);
+          }
         }
-      }
-    });
+      });
   }
 
   function selectRandomEditHomeworkQuestions() {
-    const visibleQuestions = Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])'));
+    const visibleQuestions = Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item')).filter(
+      isEditHomeworkGridItemVisible
+    );
     const randomCount = Math.ceil(visibleQuestions.length * 0.3);
     const shuffled = visibleQuestions.sort(() => 0.5 - Math.random());
     shuffled.slice(0, randomCount).forEach(item => {
@@ -5691,7 +5700,9 @@ function getContentIcon(type) {
     if (!rangeText) return;
 
     const ranges = rangeText.split(',').map(r => r.trim());
-    const visibleQuestions = Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item:not([style*="display: none"])'));
+    const visibleQuestions = Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-item')).filter(
+      isEditHomeworkGridItemVisible
+    );
 
     ranges.forEach(range => {
       if (range.includes('-')) {
@@ -5898,98 +5909,6 @@ function getContentIcon(type) {
       }
     });
     updateEditQuizSelectionSummary();
-  }
-
-  // Edit Homework Question Selection Tools
-  function selectAllEditHomeworkQuestions() {
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-circle').forEach(circle => {
-      circle.classList.add('selected');
-      if (!window.editHomeworkSelectedQuestions.includes(circle.dataset.questionId)) {
-        window.editHomeworkSelectedQuestions.push(circle.dataset.questionId);
-      }
-    });
-    updateEditHomeworkSelectionSummary();
-  }
-
-  function clearEditHomeworkSelection() {
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-circle').forEach(circle => {
-      circle.classList.remove('selected');
-    });
-    window.editHomeworkSelectedQuestions = [];
-    updateEditHomeworkSelectionSummary();
-  }
-
-  function selectEvenEditHomeworkQuestions() {
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-circle').forEach((circle, index) => {
-      if ((index + 1) % 2 === 0) {
-        circle.classList.add('selected');
-        if (!window.editHomeworkSelectedQuestions.includes(circle.dataset.questionId)) {
-          window.editHomeworkSelectedQuestions.push(circle.dataset.questionId);
-        }
-      }
-    });
-    updateEditHomeworkSelectionSummary();
-  }
-
-  function selectOddEditHomeworkQuestions() {
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-circle').forEach((circle, index) => {
-      if ((index + 1) % 2 === 1) {
-        circle.classList.add('selected');
-        if (!window.editHomeworkSelectedQuestions.includes(circle.dataset.questionId)) {
-          window.editHomeworkSelectedQuestions.push(circle.dataset.questionId);
-        }
-      }
-    });
-    updateEditHomeworkSelectionSummary();
-  }
-
-  function selectRandomEditHomeworkQuestions() {
-    const circles = Array.from(document.querySelectorAll('#editHomeworkQuestionsGrid .question-circle'));
-    const randomCount = Math.ceil(circles.length * 0.3);
-    const randomIndices = [...Array(circles.length).keys()].sort(() => 0.5 - Math.random()).slice(0, randomCount);
-
-    circles.forEach((circle, index) => {
-      if (randomIndices.includes(index)) {
-        circle.classList.add('selected');
-        if (!window.editHomeworkSelectedQuestions.includes(circle.dataset.questionId)) {
-          window.editHomeworkSelectedQuestions.push(circle.dataset.questionId);
-        }
-      }
-    });
-    updateEditHomeworkSelectionSummary();
-  }
-
-  function selectEditHomeworkRange() {
-    const rangeInput = document.getElementById('editHomeworkRangeInput');
-    const range = rangeInput.value;
-
-    if (!range) return;
-
-    // Parse range (e.g., "1-5, 8, 10-12")
-    const parts = range.split(',');
-    const indices = new Set();
-
-    parts.forEach(part => {
-      part = part.trim();
-      if (part.includes('-')) {
-        const [start, end] = part.split('-').map(n => parseInt(n.trim()) - 1);
-        for (let i = start; i <= end; i++) {
-          indices.add(i);
-        }
-      } else {
-        indices.add(parseInt(part.trim()) - 1);
-      }
-    });
-
-    document.querySelectorAll('#editHomeworkQuestionsGrid .question-circle').forEach((circle, index) => {
-      if (indices.has(index)) {
-        circle.classList.add('selected');
-        if (!window.editHomeworkSelectedQuestions.includes(circle.dataset.questionId)) {
-          window.editHomeworkSelectedQuestions.push(circle.dataset.questionId);
-        }
-      }
-    });
-    updateEditHomeworkSelectionSummary();
   }
 
   async function deleteContent(topicId, contentId) {
@@ -8237,8 +8156,8 @@ function getContentIcon(type) {
   }
 
   function updateHomeworkStepDisplay() {
-    // Update step indicators
-    document.querySelectorAll('.homework-step').forEach((step, index) => {
+    // Scope to add-homework section only (avoid clashing with edit-homework duplicate markup)
+    document.querySelectorAll('#homeworkContentSection .homework-step').forEach((step, index) => {
       step.classList.remove('active', 'completed');
       if (index + 1 === currentHomeworkStep) {
         step.classList.add('active');
@@ -8247,8 +8166,7 @@ function getContentIcon(type) {
       }
     });
 
-    // Update step content visibility
-    document.querySelectorAll('.homework-step-content').forEach((content, index) => {
+    document.querySelectorAll('#homeworkContentSection .homework-step-content').forEach((content, index) => {
       content.style.display = index + 1 === currentHomeworkStep ? 'block' : 'none';
     });
 
@@ -8268,19 +8186,30 @@ function getContentIcon(type) {
     if (stepIndicator) stepIndicator.textContent = currentHomeworkStep;
   }
 
-  function nextHomeworkStep() {
+  async function nextHomeworkStep() {
     if (currentHomeworkStep === 1) {
-      // Validate that at least one bank is selected
       if (selectedHomeworkQuestionBankIds.length === 0) {
         showNotification('Please select at least one question bank', 'error');
         return;
       }
-      // Load questions from selected banks
-      loadHomeworkQuestions();
+      const nextBtn = document.getElementById('homeworkNextBtn');
+      const prevHtml = nextBtn ? nextBtn.innerHTML : '';
+      if (nextBtn) {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Loading...';
+      }
+      try {
+        const ok = await loadHomeworkQuestions();
+        if (!ok) return;
+      } finally {
+        if (nextBtn) {
+          nextBtn.disabled = false;
+          nextBtn.innerHTML = prevHtml;
+        }
+      }
     }
-    
+
     if (currentHomeworkStep === 3) {
-      // Moving to Step 4 (Preview) - render the preview
       renderHomeworkPreview();
     }
 
@@ -8933,12 +8862,15 @@ function getContentIcon(type) {
 
     updateHomeworkBanksCount();
 
-    // Reload questions if banks changed
-    if (selectedHomeworkQuestionBankIds.length > 0) {
-      loadHomeworkQuestions();
-    } else {
-      document.getElementById('homeworkQuestionsGrid').innerHTML = '';
-      document.getElementById('noHomeworkQuestionsMessage').style.display = 'flex';
+    // Do not fetch until user clicks Next (step 1 → 2); allow multi-bank selection first
+    if (selectedHomeworkQuestionBankIds.length === 0) {
+      homeworkQuestions = [];
+      selectedHomeworkQuestions = [];
+      const grid = document.getElementById('homeworkQuestionsGrid');
+      if (grid) grid.innerHTML = '';
+      const noMsg = document.getElementById('noHomeworkQuestionsMessage');
+      if (noMsg) noMsg.style.display = 'flex';
+      updateHomeworkSelectionSummary();
     }
   }
 
@@ -8951,10 +8883,17 @@ function getContentIcon(type) {
   function loadHomeworkQuestions() {
     if (selectedHomeworkQuestionBankIds.length === 0) {
       showNotification('No banks selected', 'error');
-      return;
+      return Promise.resolve(false);
     }
 
-    fetch('/admin/quizzes/api/banks/multiple/questions', {
+    const grid = document.getElementById('homeworkQuestionsGrid');
+    const noMsg = document.getElementById('noHomeworkQuestionsMessage');
+    if (grid) {
+      grid.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 mb-0">Loading questions from selected banks...</p></div>';
+    }
+    if (noMsg) noMsg.style.display = 'none';
+
+    return fetch('/admin/quizzes/api/banks/multiple/questions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -8969,7 +8908,6 @@ function getContentIcon(type) {
           homeworkQuestions = [];
           homeworkBankInfoMap = {};
 
-          // Flatten and add sourceBank to each question
           Object.entries(result.questions).forEach(([bankId, questions]) => {
             if (Array.isArray(questions)) {
               const bankCard = document.querySelector(`#homeworkQuestionBanksGrid [data-bank-id="${bankId}"]`);
@@ -8992,13 +8930,19 @@ function getContentIcon(type) {
 
           displayHomeworkQuestions(result.questions);
           showNotification(`Loaded ${homeworkQuestions.length} questions from ${selectedHomeworkQuestionBankIds.length} bank(s)`, 'success');
-        } else {
-          showNotification(result.message || 'Failed to load questions', 'error');
+          return true;
         }
+        showNotification(result.message || 'Failed to load questions', 'error');
+        if (grid) grid.innerHTML = '';
+        if (noMsg) noMsg.style.display = 'flex';
+        return false;
       })
       .catch(error => {
         console.error('Error loading questions:', error);
         showNotification('An error occurred while loading questions', 'error');
+        if (grid) grid.innerHTML = '';
+        if (noMsg) noMsg.style.display = 'flex';
+        return false;
       });
   }
 
@@ -9266,27 +9210,31 @@ function getContentIcon(type) {
     updateHomeworkSelectionSummary();
   }
 
+  function isHomeworkQuestionGridItemVisible(item) {
+    if (!item) return false;
+    return window.getComputedStyle(item).display !== 'none';
+  }
+
   function selectAllHomeworkQuestions() {
-    // Only select visible questions
-    const visibleQuestions = Array.from(document.querySelectorAll('#homeworkQuestionsGrid .question-item'))
-      .filter(item => item.style.display !== 'none')
+    const visibleItems = Array.from(document.querySelectorAll('#homeworkQuestionsGrid .question-item')).filter(
+      isHomeworkQuestionGridItemVisible
+    );
+    const visibleQuestions = visibleItems
       .map(item => {
-        const index = parseInt(item.dataset.questionIndex);
+        const index = parseInt(item.dataset.questionIndex, 10);
         return homeworkQuestions[index];
       })
       .filter(q => q);
 
-    selectedHomeworkQuestions = visibleQuestions.map(question => ({
+    selectedHomeworkQuestions = visibleQuestions.map((question, i) => ({
       question: question._id,
       sourceBank: question.sourceBank,
-      order: selectedHomeworkQuestions.length + 1,
+      order: i + 1,
       points: question.points || 1
     }));
 
-    document.querySelectorAll('#homeworkQuestionsGrid .question-item').forEach((item) => {
-      if (item.style.display !== 'none') {
-        item.classList.add('selected');
-      }
+    document.querySelectorAll('#homeworkQuestionsGrid .question-item').forEach(item => {
+      if (isHomeworkQuestionGridItemVisible(item)) item.classList.add('selected');
     });
 
     updateHomeworkSelectionSummary();

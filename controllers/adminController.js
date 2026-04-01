@@ -27,6 +27,51 @@ const otpMasterUtil = require('../utils/otpMasterGenerator');
 const cache = require('../utils/cache');
 const SiteSetting = require('../models/SiteSetting');
 
+/** Values safe to cast to ObjectId; rejects JSON/form literals like "null" / "undefined". */
+function toObjectIdString(value) {
+  if (value == null) return null;
+  if (value instanceof mongoose.Types.ObjectId) return value.toString();
+  if (typeof value === 'object' && value._id != null) {
+    return toObjectIdString(value._id);
+  }
+  const s = String(value).trim();
+  if (!s || s === 'null' || s === 'undefined') return null;
+  return mongoose.Types.ObjectId.isValid(s) ? s : null;
+}
+
+function normalizeTopicSelectedQuestions(parsedQuestions, defaultBankId) {
+  if (!Array.isArray(parsedQuestions) || parsedQuestions.length === 0) {
+    return [];
+  }
+  const defaultBankStr = toObjectIdString(defaultBankId);
+  const rows = [];
+  for (const q of parsedQuestions) {
+    const questionId =
+      q != null && typeof q === 'object' && !Array.isArray(q)
+        ? toObjectIdString(q.question) || toObjectIdString(q._id)
+        : toObjectIdString(q);
+    if (!questionId) continue;
+    const bankId =
+      (q != null && typeof q === 'object' && !Array.isArray(q)
+        ? toObjectIdString(q.sourceBank)
+        : null) || defaultBankStr;
+    if (!bankId) continue;
+    const rawPoints =
+      q != null && typeof q === 'object' && q.points != null && q.points !== ''
+        ? Number(q.points)
+        : 1;
+    const points =
+      Number.isFinite(rawPoints) && rawPoints >= 1 ? rawPoints : 1;
+    rows.push({
+      question: questionId,
+      sourceBank: bankId,
+      points,
+      order: rows.length + 1,
+    });
+  }
+  return rows;
+}
+
 // Admin Dashboard with Real Data - OPTIMIZED
 const getAdminDashboard = async (req, res) => {
   try {
@@ -4080,12 +4125,18 @@ const updateTopicContent = async (req, res) => {
 
       // Update selected questions if provided
       if (parsedQuestions.length > 0) {
-        contentItem.selectedQuestions = parsedQuestions.map((q, index) => ({
-          question: q.question || q,
-          sourceBank: q.sourceBank || selectedBankIds[0],
-          points: q.points || 1,
-          order: index + 1,
-        }));
+        const rows = normalizeTopicSelectedQuestions(
+          parsedQuestions,
+          selectedBankIds[0],
+        );
+        if (rows.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              'No valid question IDs in selected questions (remove placeholders or invalid entries)',
+          });
+        }
+        contentItem.selectedQuestions = rows;
       }
 
       // Update quiz settings
@@ -4209,12 +4260,18 @@ const updateTopicContent = async (req, res) => {
 
       // Update selected questions if provided
       if (parsedQuestions.length > 0) {
-        contentItem.selectedQuestions = parsedQuestions.map((q, index) => ({
-          question: q.question || q,
-          sourceBank: q.sourceBank || selectedBankIds[0],
-          points: q.points || 1,
-          order: index + 1,
-        }));
+        const rows = normalizeTopicSelectedQuestions(
+          parsedQuestions,
+          selectedBankIds[0],
+        );
+        if (rows.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              'No valid question IDs in selected questions (remove placeholders or invalid entries)',
+          });
+        }
+        contentItem.selectedQuestions = rows;
       }
 
       // Update homework settings

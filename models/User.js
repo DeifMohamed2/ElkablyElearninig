@@ -93,6 +93,16 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // FCM token for student mobile app push notifications
+    studentFcmToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    studentFcmTokenUpdatedAt: {
+      type: Date,
+      default: null,
+    },
     studentCountryCode: {
       type: String,
       required: true,
@@ -1097,30 +1107,15 @@ UserSchema.methods.removeCourseFromWishlist = async function (courseId) {
 
 // Instance method to remove bundle from wishlist
 UserSchema.methods.removeBundleFromWishlist = async function (bundleId) {
-  console.log('Removing bundle from wishlist:', bundleId);
-  console.log('Wishlist before removal:', this.wishlist.bundles);
-
-  // iterate and console log the wishlist.bundles
-  this.wishlist.bundles.forEach((id) => {
-    console.log(
-      'Wishlist bundle:',
-      id,
-      bundleId,
-      id.toString() === bundleId.toString(),
-    );
-  });
-
   this.wishlist.bundles = this.wishlist.bundles.filter(
     (id) => id.toString() !== bundleId.toString(),
   );
-  console.log('Wishlist after removal:', this.wishlist.bundles);
 
   // Mark the wishlist field as modified to ensure it gets saved
   this.markModified('wishlist');
 
   try {
     const savedUser = await this.save();
-    console.log('User saved successfully, wishlist:', savedUser.wishlist);
     return savedUser;
   } catch (error) {
     console.error('Error saving user:', error);

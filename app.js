@@ -248,6 +248,7 @@ const purchaseRoutes = require('./routes/purchase');
 const zoomRoutes = require('./routes/zoom');
 const uploadRoutes = require('./routes/upload');
 const parentRoutes = require('./routes/parent');
+const studentMobileRoutes = require('./routes/studentMobile');
 const guestRoutes = require('./routes/guest');
 const {
   createStudentFromExternalSystem,
@@ -269,6 +270,7 @@ app.use('/purchase', purchaseRoutes);
 app.use('/zoom', zoomRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/parent', parentRoutes);
+app.use('/api/student', studentMobileRoutes);
 app.use('/guest', guestRoutes);
 
 // Error tracking middleware
@@ -285,11 +287,15 @@ app.use((err, req, res, next) => {
   });
   console.error('Global error handler:', err);
 
-  // If it's an API route (starts with /admin/ and expects JSON), return JSON
-  if (
-    req.path.startsWith('/admin/') &&
-    (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')
-  ) {
+  // If it's an API route (starts with /admin/ or /api/student), return JSON
+  const isJsonApi =
+    (req.path.startsWith('/admin/') &&
+      (req.method === 'POST' ||
+        req.method === 'PUT' ||
+        req.method === 'DELETE')) ||
+    req.path.startsWith('/api/student');
+
+  if (isJsonApi) {
     return res.status(err.status || 500).json({
       success: false,
       message: err.message || 'An error occurred',
@@ -303,10 +309,12 @@ app.use((err, req, res, next) => {
 
 // 404 Error handler
 app.use((req, res) => {
-  // If it's an API route expecting JSON, return JSON 404
   if (
-    req.path.startsWith('/admin/') &&
-    (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')
+    (req.path.startsWith('/admin/') &&
+      (req.method === 'POST' ||
+        req.method === 'PUT' ||
+        req.method === 'DELETE')) ||
+    req.path.startsWith('/api/student')
   ) {
     return res.status(404).json({
       success: false,
