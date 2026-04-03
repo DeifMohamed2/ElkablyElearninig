@@ -151,11 +151,15 @@ app.set('view cache', false);
 
 // Import CSS helper
 const cssHelper = require('./helpers/cssHelper');
+const {
+  displayWeekNumberFromCourse,
+} = require('./utils/courseDisplayWeek');
 
 // Make CSS helper and cache buster available to all views
 app.use((req, res, next) => {
   res.locals.cssHelper = cssHelper;
   res.locals.cacheBuster = Date.now();
+  res.locals.displayWeekNumberFromCourse = displayWeekNumberFromCourse;
   next();
 });
 

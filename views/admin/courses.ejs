@@ -325,11 +325,12 @@
                 <div class="admin-course-badges">
                   <div class="admin-course-status <%= course.status %>"><%= course.status.charAt(0).toUpperCase() + course.status.slice(1) %></div>
                 </div>
-                <!-- Week Order Badge -->
-                <% if (course.order && course.order > 0) { %>
+                <!-- Week Order Badge (title week when DB order is wrong) -->
+                <% const _wkBadge = typeof displayWeekNumberFromCourse === 'function' ? displayWeekNumberFromCourse(course) : (course.order || 0); %>
+                <% if (Number(_wkBadge) > 0) { %>
                 <div style="position: absolute; top: 12px; left: 12px; background: rgba(59, 130, 246, 0.9); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: white; z-index: 5;">
                   <i class="fas fa-book" style="margin-right: 4px;"></i>
-                  Week <%= course.order %>
+                  Week <%= _wkBadge %>
                 </div>
                 <% } %>
               </div>

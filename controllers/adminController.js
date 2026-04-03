@@ -13571,13 +13571,18 @@ const enrollStudentsToCourse = async (req, res) => {
       });
     }
 
-    // Determine startingOrder: use provided value, or course's order, or null (from beginning)
+    const {
+      startingOrderFromCourseTitleOrOrder,
+    } = require('../utils/courseDisplayWeek');
+    // Determine startingOrder: use provided value, or week from title / course.order
     let finalStartingOrder = null;
     if (startingOrder !== undefined && startingOrder !== null) {
-      finalStartingOrder = parseInt(startingOrder);
-    } else if (course.order !== undefined && course.order !== null) {
-      // If no startingOrder provided, use the course's order (enroll from this week)
-      finalStartingOrder = course.order;
+      finalStartingOrder = parseInt(startingOrder, 10);
+    } else {
+      const derived = startingOrderFromCourseTitleOrOrder(course);
+      if (derived !== null && derived !== undefined && !Number.isNaN(derived)) {
+        finalStartingOrder = derived;
+      }
     }
 
     // Enroll all students using safe enrollment with startingOrder
