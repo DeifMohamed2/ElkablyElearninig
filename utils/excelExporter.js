@@ -1370,8 +1370,6 @@ class ExcelExporter {
       { key: 'courseCode', header: 'Course Code', width: 15 },
       { key: 'description', header: 'Description', width: 40 },
       { key: 'price', header: 'Price', width: 15, type: 'currency' },
-      { key: 'level', header: 'Level', width: 15 },
-      { key: 'duration', header: 'Duration', width: 15 },
       { key: 'enrolledStudents', header: 'Enrolled Students', width: 18 },
       { key: 'isActive', header: 'Status', width: 10 },
       { key: 'createdAt', header: 'Created Date', width: 15, type: 'date' },
@@ -1383,8 +1381,6 @@ class ExcelExporter {
       courseCode: course.courseCode,
       description: course.description || '',
       price: course.price || 0,
-      level: course.level || '',
-      duration: course.duration || '',
       enrolledStudents: course.enrolledStudents || 0,
       isActive: course.isActive ? 'Active' : 'Inactive',
       createdAt: course.createdAt,
@@ -1836,8 +1832,6 @@ class ExcelExporter {
     const courseInfo = [
       ['Course Code', course.courseCode || 'N/A'],
       ['Course Title', course.title || 'N/A'],
-
-      ['Level', course.level || 'N/A'],
       ['Subject', course.subject || 'N/A'],
       ['Status', course.status || 'N/A'],
       [

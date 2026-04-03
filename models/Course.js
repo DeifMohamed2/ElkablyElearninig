@@ -54,17 +54,17 @@ const CourseSchema = new mongoose.Schema(
     level: {
       type: String,
       enum: ['Beginner', 'Intermediate', 'Advanced'],
-      required: true,
+      default: 'Beginner',
     },
     category: {
       type: String,
-      required: true,
       trim: true,
+      default: 'General',
     },
     duration: {
-      type: Number, // in hours
-      required: true,
-      min: 1,
+      type: Number, // legacy hours field; not user-edited
+      default: 0,
+      min: 0,
     },
     price: {
       type: Number,
@@ -400,8 +400,6 @@ CourseSchema.index({ status: 1, createdAt: -1 });
 CourseSchema.index({ bundle: 1, status: 1 });
 // Sequential course ordering within a bundle (isCourseUnlocked)
 CourseSchema.index({ bundle: 1, order: 1 });
-// Category-based admin filtering
-CourseSchema.index({ category: 1, status: 1 });
 // Active course listing for students/landing pages
 CourseSchema.index({ isActive: 1, status: 1 });
 // Admin-created course lookups

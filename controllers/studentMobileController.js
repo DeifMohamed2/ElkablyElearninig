@@ -18,7 +18,7 @@ const studentId = (req) => req.studentMobileUser._id;
 
 /** Shared slim course shape — no topics/content population (topicCount from id array length) */
 const SLIM_COURSE_SELECT =
-  'title shortDescription thumbnail level category duration courseCode order topics requiresSequential isFullyBooked fullyBookedMessage bundle';
+  'title shortDescription thumbnail courseCode order topics requiresSequential isFullyBooked fullyBookedMessage bundle';
 
 const buildSlimCourseCard = (c) => {
   if (!c) return null;
@@ -29,9 +29,6 @@ const buildSlimCourseCard = (c) => {
     title: c.title,
     shortDescription: c.shortDescription || '',
     thumbnail: c.thumbnail || '',
-    level: c.level,
-    category: c.category,
-    duration: c.duration,
     courseCode: c.courseCode,
     order: c.order,
     requiresSequential: c.requiresSequential !== false,
@@ -1247,15 +1244,15 @@ const getWishlist = async (req, res) => {
     const wishlistCourses = await Course.find({
       _id: { $in: wishlistCourseIds },
     }).select(
-      'title description shortDescription thumbnail level duration tags topics price',
+      'title description shortDescription thumbnail tags topics price',
     );
 
     const wishlistBundles = await BundleCourse.find({
       _id: { $in: wishlistBundleIds },
     })
-      .populate('courses', 'title duration')
+      .populate('courses', 'title')
       .select(
-        'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses',
+        'title description shortDescription thumbnail year subject courseType price discountPrice tags courses',
       );
 
     const allItems = [
@@ -1400,14 +1397,14 @@ const getOrderHistory = async (req, res) => {
       paginatedOrders.map(async (order) => {
         if (order.type === 'course') {
           const course = await Course.findById(order.course)
-            .select('title thumbnail level duration')
+            .select('title thumbnail')
             .lean();
           return normalizeOrderHistoryRow({ ...order, item: course || null });
         }
         if (order.type === 'bundle') {
           const bundle = await BundleCourse.findById(order.bundle)
-            .populate('courses', 'title duration')
-            .select('title thumbnail year subject duration courses')
+            .populate('courses', 'title')
+            .select('title thumbnail year subject courses')
             .lean();
           return normalizeOrderHistoryRow({ ...order, item: bundle || null });
         }
@@ -1471,15 +1468,15 @@ const getOrderDetails = async (req, res) => {
         item = await Course.findById(firstItem.item)
           .populate('topics', 'title description')
           .select(
-            'title description shortDescription thumbnail level duration tags topics price',
+            'title description shortDescription thumbnail tags topics price',
           );
       } else if (firstItem && firstItem.itemType === 'bundle') {
         itemType = 'bundle';
         bundleId = firstItem.item;
         item = await BundleCourse.findById(firstItem.item)
-          .populate('courses', 'title description shortDescription thumbnail level duration')
+          .populate('courses', 'title description shortDescription thumbnail')
           .select(
-            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses',
+            'title description shortDescription thumbnail year subject courseType price discountPrice tags courses',
           );
       }
     } else {
@@ -1489,15 +1486,15 @@ const getOrderDetails = async (req, res) => {
         item = await Course.findById(order.course)
           .populate('topics', 'title description')
           .select(
-            'title description shortDescription thumbnail level duration tags topics price',
+            'title description shortDescription thumbnail tags topics price',
           );
       } else if (order.type === 'bundle' && order.bundle) {
         itemType = 'bundle';
         bundleId = order.bundle;
         item = await BundleCourse.findById(order.bundle)
-          .populate('courses', 'title description shortDescription thumbnail level duration')
+          .populate('courses', 'title description shortDescription thumbnail')
           .select(
-            'title description shortDescription thumbnail year subject courseType price discountPrice duration tags courses',
+            'title description shortDescription thumbnail year subject courseType price discountPrice tags courses',
           );
       }
     }

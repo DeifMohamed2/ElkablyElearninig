@@ -217,21 +217,6 @@ BundleCourseSchema.pre('save', async function (next) {
   next();
 });
 
-// Pre-save middleware to calculate total duration
-BundleCourseSchema.pre('save', async function (next) {
-  if (this.isModified('courses') || this.isNew) {
-    if (this.courses && this.courses.length > 0) {
-      const Course = mongoose.model('Course');
-      const courses = await Course.find({ _id: { $in: this.courses } });
-      this.duration = courses.reduce(
-        (total, course) => total + (course.duration || 0),
-        0,
-      );
-    }
-  }
-  next();
-});
-
 // Index for better query performance
 // year removed
 BundleCourseSchema.index({ status: 1 });

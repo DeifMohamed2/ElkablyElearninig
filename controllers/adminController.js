@@ -167,7 +167,7 @@ const getAdminDashboard = async (req, res) => {
             .populate('bundle', 'title')
             .sort({ createdAt: -1 })
             .limit(6)
-            .select('title level category status price featured bundle')
+            .select('title status price featured bundle')
             .lean(),
 
           // Student growth data (last 7 days)
@@ -301,8 +301,6 @@ const getAdminDashboard = async (req, res) => {
               : 0;
           return {
             title: course.title,
-            level: course.level || 'Beginner',
-            category: course.category || 'General',
             status: course.status,
             featured: course.featured || false,
             enrollments: stats.enrollments,
@@ -474,7 +472,6 @@ const getCourses = async (req, res) => {
   try {
     const {
       status,
-      level,
       bundle,
       search,
       sortBy = 'createdAt',
@@ -494,10 +491,6 @@ const getCourses = async (req, res) => {
     }
     // status === 'all' shows everything including archived
 
-    if (level) {
-      filter.level = level;
-    }
-
     if (bundle) {
       filter.bundle = bundle;
     }
@@ -512,7 +505,7 @@ const getCourses = async (req, res) => {
 
     // Check if any filters are applied
     const hasFilters =
-      (status && status !== 'all') || level || bundle || search;
+      (status && status !== 'all') || bundle || search;
 
     // Build sort object
     const sort = {};
@@ -521,7 +514,7 @@ const getCourses = async (req, res) => {
     // Only select the fields actually used in the courses view
     // (topics field NOT needed — never used in listing page)
     const selectFields =
-      'title shortDescription courseCode status level duration price discountPrice thumbnail order bundle requiresSequential';
+      'title shortDescription courseCode status price discountPrice thumbnail order bundle requiresSequential';
 
     // Get total count for pagination
     const totalCourses = await Course.countDocuments(filter);
@@ -627,7 +620,7 @@ const getCourses = async (req, res) => {
       courses,
       stats,
       filterOptions,
-      currentFilters: { status, level, bundle, search, sortBy, sortOrder },
+      currentFilters: { status, bundle, search, sortBy, sortOrder },
       pagination: {
         currentPage,
         totalPages,
@@ -651,13 +644,9 @@ const createCourse = async (req, res) => {
       title,
       description,
       shortDescription,
-      level,
-      year,
-      duration,
       price = 0,
       status = 'draft',
       bundleId,
-      category,
       thumbnail,
       order,
       requiresSequential,
@@ -667,7 +656,6 @@ const createCourse = async (req, res) => {
       title,
       thumbnail,
       bundleId,
-      category,
       order,
       requiresSequential,
     });
@@ -703,10 +691,6 @@ const createCourse = async (req, res) => {
       title: title.trim(),
       description: description ? description.trim() : '',
       shortDescription: shortDescription ? shortDescription.trim() : '',
-      level,
-      year, // Use provided year when creating course
-      category: category.trim(),
-      duration: duration && !isNaN(parseInt(duration)) ? parseInt(duration) : 0,
       price: parseFloat(price),
       status,
       createdBy: req.session.user.id,
@@ -742,8 +726,6 @@ const createCourse = async (req, res) => {
         courseCode: course.courseCode,
         bundleId: bundle._id.toString(),
         bundleName: bundle.title,
-        level: course.level,
-        year: course.year,
         price: course.price,
         status: course.status,
       },
@@ -1231,9 +1213,6 @@ const getCourseData = async (req, res) => {
         title: course.title,
         description: course.description,
         shortDescription: course.shortDescription,
-        level: course.level,
-        category: course.category,
-        duration: course.duration,
         price: course.price,
         discountPrice: course.discountPrice,
         status: course.status,
@@ -1304,6 +1283,10 @@ const updateCourse = async (req, res) => {
         }
       }
     });
+
+    delete updateData.level;
+    delete updateData.category;
+    delete updateData.duration;
 
     // Find the current course to get the old bundle
     const currentCourse = await Course.findOne({ courseCode });
@@ -1666,9 +1649,6 @@ const duplicateCourse = async (req, res) => {
         title: `${originalCourse.title} (Copy)`,
         description: originalCourse.description || '',
         shortDescription: originalCourse.shortDescription || '',
-        level: originalCourse.level,
-        category: originalCourse.category,
-        duration: originalCourse.duration,
         price: originalCourse.price,
         discountPrice: originalCourse.discountPrice || 0,
         thumbnail: originalCourse.thumbnail || '',
@@ -6832,11 +6812,6 @@ const createCourseForBundle = async (req, res) => {
       title,
       description,
       shortDescription,
-      level,
-      courseType,
-      subject,
-      category,
-      duration,
       price = 0,
       status = 'draft',
       order,
@@ -6873,11 +6848,6 @@ const createCourseForBundle = async (req, res) => {
       title: title.trim(),
       description: description ? description.trim() : '',
       shortDescription: shortDescription ? shortDescription.trim() : '',
-      level,
-      courseType,
-      subject,
-      category: category.trim(),
-      duration: parseInt(duration),
       price: parseFloat(price),
       status,
       createdBy: req.session.user.id,
@@ -7066,14 +7036,11 @@ const getFilterOptions = async () => {
   return cache.getOrSet(
     'course_filter_options',
     async () => {
-      const [levels, bundles] = await Promise.all([
-        Course.distinct('level'),
-        BundleCourse.find({ status: { $ne: 'archived' } })
-          .select('_id title bundleCode')
-          .sort({ title: 1 })
-          .lean(),
-      ]);
-      return { years: [], levels, bundles };
+      const bundles = await BundleCourse.find({ status: { $ne: 'archived' } })
+        .select('_id title bundleCode')
+        .sort({ title: 1 })
+        .lean();
+      return { years: [], bundles };
     },
     300,
   );
