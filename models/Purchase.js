@@ -410,5 +410,7 @@ PurchaseSchema.index({ 'items.item': 1 });
 PurchaseSchema.index({ paymentStatus: 1, createdAt: -1 });
 // Combined status filtering
 PurchaseSchema.index({ status: 1, paymentStatus: 1 });
+// Analytics: completed orders in date range
+PurchaseSchema.index({ status: 1, paymentStatus: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Purchase', PurchaseSchema);

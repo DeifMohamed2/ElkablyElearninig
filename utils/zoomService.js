@@ -147,7 +147,7 @@ class ZoomService {
 
   /**
    * Create a new Zoom meeting
-   * @param {Object} meetingData - Meeting configuration
+   * @param {Object} meetingData - Meeting configuration (no custom settings — Zoom account defaults apply)
    * @returns {Object} Created meeting data from Zoom API
    */
   async createMeeting(meetingData) {
@@ -160,51 +160,29 @@ class ZoomService {
         duration = 60,
         timezone = 'UTC',
         password,
-        settings = {},
       } = meetingData;
 
-      // Prepare meeting configuration
-      // Ensure all settings are properly applied
-      const joinBeforeHost = settings.joinBeforeHost === true || settings.joinBeforeHost === 'true';
-      const waitingRoom = settings.waitingRoom === true || settings.waitingRoom === 'true';
-      
-      // IMPORTANT: If join_before_host is enabled, waiting_room should be disabled
-      // Otherwise students will still need to wait for host to admit them
-      const finalWaitingRoom = joinBeforeHost ? false : waitingRoom;
-      
+      const startTime =
+        scheduledStartTime instanceof Date
+          ? scheduledStartTime.toISOString()
+          : scheduledStartTime ||
+            new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+      const durationMins = parseInt(duration, 10);
       const meetingConfig = {
         topic: topic || 'E-Learning Live Session',
         type: 2, // Scheduled meeting
-        start_time:
-          scheduledStartTime ||
-          new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-        duration: parseInt(duration),
+        start_time: startTime,
+        duration:
+          Number.isFinite(durationMins) && durationMins > 0 ? durationMins : 60,
         timezone: timezone,
-        password: password,
-        settings: {
-          // Apply settings explicitly - ensure boolean values are properly set
-          join_before_host: joinBeforeHost,
-          waiting_room: finalWaitingRoom, // Disabled if join_before_host is true
-          host_video: settings.hostVideo !== false && settings.hostVideo !== 'false',
-          participant_video: settings.participantVideo !== false && settings.participantVideo !== 'false',
-          audio: 'both',
-          mute_upon_entry: settings.muteUponEntry === true || settings.muteUponEntry === 'true',
-          enforce_login: false,
-          use_pmi: false,
-          approval_type: 2, // No registration required
-          registration_type: 1,
-        },
       };
-      
-      console.log('🔧 Zoom meeting settings:', {
-        join_before_host: meetingConfig.settings.join_before_host,
-        waiting_room: meetingConfig.settings.waiting_room,
-        host_video: meetingConfig.settings.host_video,
-        participant_video: meetingConfig.settings.participant_video,
-        mute_upon_entry: meetingConfig.settings.mute_upon_entry,
-      });
 
-      console.log('🔍 Creating Zoom meeting:', topic);
+      if (password != null && String(password).trim() !== '') {
+        meetingConfig.password = String(password).trim();
+      }
+
+      console.log('🔍 Creating Zoom meeting (account default settings):', topic);
 
       const response = await axios.post(
         `https://api.zoom.us/v2/users/${this.userId}/meetings`,

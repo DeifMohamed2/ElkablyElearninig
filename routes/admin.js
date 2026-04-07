@@ -283,6 +283,26 @@ const {
   deleteOldLogs,
 } = require('../controllers/adminLogController');
 
+const {
+  getAnalyticsPage,
+  getAnalyticsSummaryApi,
+  getAnalyticsDistributionsApi,
+  getAnalyticsCompareApi,
+  getAnalyticsWeeklyApi,
+  getAnalyticsWeeklyTrendApi,
+  getAnalyticsDemographicsApi,
+  getAnalyticsStudentSearchApi,
+  getAnalyticsStudentDetailApi,
+  exportAnalyticsExcel,
+  exportAnalyticsPdf,
+  exportCompareExcel,
+  exportComparePdf,
+  exportWeeklyExcel,
+  exportWeeklyPdf,
+  exportStudentsExcel,
+  exportStudentsPdf,
+} = require('../controllers/analyticsController');
+
 // Import Quiz Module Controller
 const {
   getAllModules,
@@ -306,6 +326,25 @@ const {
 // Admin Dashboard
 router.get('/dashboard', isAdmin, getAdminDashboard);
 router.get('/dashboard/chart-data', isAdmin, getDashboardChartData);
+
+// Admin Analytics (super admin only)
+router.get('/analytics', isSuperAdmin, getAnalyticsPage);
+router.get('/analytics/api/summary', isSuperAdmin, getAnalyticsSummaryApi);
+router.get('/analytics/api/distributions', isSuperAdmin, getAnalyticsDistributionsApi);
+router.get('/analytics/api/compare', isSuperAdmin, getAnalyticsCompareApi);
+router.get('/analytics/api/weekly', isSuperAdmin, getAnalyticsWeeklyApi);
+router.get('/analytics/api/weekly-trend', isSuperAdmin, getAnalyticsWeeklyTrendApi);
+router.get('/analytics/api/demographics', isSuperAdmin, getAnalyticsDemographicsApi);
+router.get('/analytics/api/students/search', isSuperAdmin, getAnalyticsStudentSearchApi);
+router.get('/analytics/api/students/:studentId', isSuperAdmin, getAnalyticsStudentDetailApi);
+router.get('/analytics/export.xlsx', isSuperAdmin, exportAnalyticsExcel);
+router.get('/analytics/export.pdf', isSuperAdmin, exportAnalyticsPdf);
+router.get('/analytics/export/compare.xlsx', isSuperAdmin, exportCompareExcel);
+router.get('/analytics/export/compare.pdf', isSuperAdmin, exportComparePdf);
+router.get('/analytics/export/weekly.xlsx', isSuperAdmin, exportWeeklyExcel);
+router.get('/analytics/export/weekly.pdf', isSuperAdmin, exportWeeklyPdf);
+router.get('/analytics/export/students.xlsx', isSuperAdmin, exportStudentsExcel);
+router.get('/analytics/export/students.pdf', isSuperAdmin, exportStudentsPdf);
 
 // Course Routes
 router.get('/courses', isAdmin, getCourses);
@@ -599,17 +638,17 @@ router.get(
   getQuestionsByBank,
 );
 
-// Holiday Effects Routes
-router.get('/holiday-effects', isAdmin, getHolidayEffects);
-router.post('/holiday-effects/eid', isAdmin, updateHolidayEffect);
-router.put('/holiday-effects/eid', isAdmin, updateHolidayEffect);
+// Holiday Effects Routes (super admin only)
+router.get('/holiday-effects', isSuperAdmin, getHolidayEffects);
+router.post('/holiday-effects/eid', isSuperAdmin, updateHolidayEffect);
+router.put('/holiday-effects/eid', isSuperAdmin, updateHolidayEffect);
 
-// Admin Management Routes
-router.get('/create-admin', isAdmin, getCreateAdminForm);
-router.post('/create-admin', isAdmin, createNewAdmin);
-router.put('/admins/:adminId', isAdmin, updateAdmin);
-router.delete('/admins/:adminId', isAdmin, deleteAdmin);
-router.post('/admins/:adminId/toggle-status', isAdmin, toggleAdminStatus);
+// Admin Management Routes (create-admin: super admin only)
+router.get('/create-admin', isSuperAdmin, getCreateAdminForm);
+router.post('/create-admin', isSuperAdmin, createNewAdmin);
+router.put('/admins/:adminId', isSuperAdmin, updateAdmin);
+router.delete('/admins/:adminId', isSuperAdmin, deleteAdmin);
+router.post('/admins/:adminId/toggle-status', isSuperAdmin, toggleAdminStatus);
 
 // Brilliant Students Management Routes
 router.get('/brilliant-students', isAdmin, getBrilliantStudents);

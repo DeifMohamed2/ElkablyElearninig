@@ -623,6 +623,12 @@ const UserSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    /** Mobile app JWT secret; independent from sessionToken (browser session). */
+    mobileSessionToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -1546,6 +1552,17 @@ UserSchema.methods.updateContentProgress = async function (
   contentType,
   progressData,
 ) {
+  const omitUndefined = (obj) => {
+    if (!obj || typeof obj !== 'object') return {};
+    const out = {};
+    for (const k of Object.keys(obj)) {
+      if (obj[k] !== undefined) out[k] = obj[k];
+    }
+    return out;
+  };
+
+  const pd = omitUndefined(progressData || {});
+
   const enrollment = this.enrolledCourses.find(
     (enrollment) =>
       enrollment.course && enrollment.course.toString() === courseId.toString(),
@@ -1563,17 +1580,22 @@ UserSchema.methods.updateContentProgress = async function (
   // Track if this is a NEW completion (wasn't completed before)
   const wasAlreadyCompleted =
     contentProgress && contentProgress.completionStatus === 'completed';
-  const isNowCompleted =
-    progressData && progressData.completionStatus === 'completed';
+  const isNowCompleted = pd && pd.completionStatus === 'completed';
   const isNewCompletion = isNowCompleted && !wasAlreadyCompleted;
 
   if (!contentProgress) {
-    // Create new content progress entry
+    const resolvedType = contentType || pd.contentType;
+    if (!resolvedType) {
+      throw new Error(
+        'contentType is required when creating content progress',
+      );
+    }
+    const { contentType: _ctDrop, ...pdRest } = pd;
     const newProgressEntry = {
       topicId,
       contentId,
-      contentType,
-      ...progressData,
+      contentType: resolvedType,
+      ...pdRest,
       watchCount: 0,
       watchHistory: [],
     };
@@ -1582,14 +1604,22 @@ UserSchema.methods.updateContentProgress = async function (
     contentProgress =
       enrollment.contentProgress[enrollment.contentProgress.length - 1];
   } else {
-    // Update existing content progress
-    Object.assign(contentProgress, progressData);
+    const { contentType: _ctDrop, ...pdRest } = pd;
+    Object.assign(contentProgress, pdRest);
+    if (contentType) {
+      contentProgress.contentType = contentType;
+    } else if (pd.contentType) {
+      contentProgress.contentType = pd.contentType;
+    }
   }
+
+  const contentTypeForVideo =
+    contentProgress.contentType || contentType || pd.contentType;
 
   // VIDEO WATCH COUNT TRACKING
   // If this is a video content and it's being completed, increment watch count EVERY time
   // This allows tracking multiple completions of the same video
-  if (contentType === 'video' && isNowCompleted) {
+  if (contentTypeForVideo === 'video' && isNowCompleted) {
     // Initialize watch count if it doesn't exist or is undefined/null
     if (
       contentProgress.watchCount === undefined ||
@@ -1670,6 +1700,32 @@ UserSchema.methods.updateContentProgress = async function (
   }
 
   // Course completion is now handled in calculateCourseProgress method
+
+  const missingType = enrollment.contentProgress.filter((cp) => !cp.contentType);
+  if (missingType.length > 0) {
+    const topicIdStrs = [
+      ...new Set(missingType.map((cp) => cp.topicId.toString())),
+    ];
+    const topicDocs = await Topic.find({ _id: { $in: topicIdStrs } }).select(
+      'content',
+    );
+    const byTopic = new Map(topicDocs.map((t) => [t._id.toString(), t]));
+    for (const cp of missingType) {
+      const t = byTopic.get(cp.topicId.toString());
+      const item = t?.content?.find(
+        (c) => c._id.toString() === cp.contentId.toString(),
+      );
+      if (item?.type) {
+        cp.contentType = item.type;
+      }
+    }
+    if (enrollment.contentProgress.some((cp) => !cp.contentType)) {
+      throw new Error(
+        'contentProgress is missing contentType and could not be inferred from topic content',
+      );
+    }
+    this.markModified('enrolledCourses');
+  }
 
   return await this.save();
 };
@@ -2366,6 +2422,8 @@ UserSchema.index({ role: 1, createdAt: -1 });
 UserSchema.index({ role: 1, grade: 1 });
 UserSchema.index({ role: 1, schoolName: 1 });
 UserSchema.index({ role: 1, 'enrolledCourses.course': 1 });
+UserSchema.index({ role: 1, 'enrolledCourses.course': 1, 'enrolledCourses.enrolledAt': 1 });
+UserSchema.index({ role: 1, 'enrolledCourses.enrolledAt': 1 });
 UserSchema.index({ role: 1, 'purchasedBundles.bundle': 1 });
 UserSchema.index({ role: 1, lastLogin: -1 });
 UserSchema.index({ studentCode: 1, role: 1 });

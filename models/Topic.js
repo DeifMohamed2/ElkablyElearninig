@@ -373,6 +373,8 @@ TopicSchema.pre('save', function (next) {
 });
 
 // ==================== Performance Indexes ====================
+// Mobile/content lookup by embedded content id (e.g. GET /content/:contentId)
+TopicSchema.index({ 'content._id': 1 });
 // Primary query pattern: topics in a course, sorted by order
 TopicSchema.index({ course: 1, order: 1 });
 // Topic count and listing by course

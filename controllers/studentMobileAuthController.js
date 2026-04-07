@@ -149,11 +149,11 @@ const login = async (req, res) => {
       });
     }
 
-    const sessionToken = crypto.randomBytes(32).toString('hex');
-    user.sessionToken = sessionToken;
+    const mobileSessionToken = crypto.randomBytes(32).toString('hex');
+    user.mobileSessionToken = mobileSessionToken;
     await user.save();
 
-    const token = signStudentToken(user, sessionToken);
+    const token = signStudentToken(user, mobileSessionToken);
 
     return res.status(200).json({
       success: true,
@@ -176,7 +176,14 @@ const login = async (req, res) => {
 const refreshToken = async (req, res) => {
   try {
     const user = req.studentMobileUser;
-    const token = signStudentToken(user, user.sessionToken);
+    const mobileTok = user.mobileSessionToken || user.sessionToken;
+    if (!mobileTok) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session expired. Please log in again.',
+      });
+    }
+    const token = signStudentToken(user, mobileTok);
     return res.status(200).json({
       success: true,
       message: 'Token refreshed successfully',
@@ -194,7 +201,7 @@ const refreshToken = async (req, res) => {
 const logout = async (req, res) => {
   try {
     const user = req.studentMobileUser;
-    user.sessionToken = null;
+    user.mobileSessionToken = null;
     user.studentFcmToken = null;
     user.studentFcmTokenUpdatedAt = null;
     await user.save();
@@ -468,10 +475,10 @@ const register = async (req, res) => {
       console.error('WhatsApp welcome:', wErr);
     }
 
-    const sessionToken = crypto.randomBytes(32).toString('hex');
-    savedUser.sessionToken = sessionToken;
+    const mobileSessionToken = crypto.randomBytes(32).toString('hex');
+    savedUser.mobileSessionToken = mobileSessionToken;
     await savedUser.save();
-    const token = signStudentToken(savedUser, sessionToken);
+    const token = signStudentToken(savedUser, mobileSessionToken);
 
     return res.status(201).json({
       success: true,
@@ -640,6 +647,7 @@ const resetPassword = async (req, res) => {
 
     user.password = newPassword;
     user.sessionToken = null;
+    user.mobileSessionToken = null;
     await user.save();
 
     return res.json({
@@ -751,7 +759,13 @@ const completeStudentData = async (req, res) => {
     await user.save();
 
     const fresh = await User.findById(user._id);
-    const token = signStudentToken(fresh, fresh.sessionToken);
+    let mobileTok = fresh.mobileSessionToken;
+    if (!mobileTok) {
+      mobileTok = crypto.randomBytes(32).toString('hex');
+      fresh.mobileSessionToken = mobileTok;
+      await fresh.save();
+    }
+    const token = signStudentToken(fresh, mobileTok);
 
     return res.json({
       success: true,

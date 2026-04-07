@@ -28,6 +28,7 @@ function getPageCSS(pageName) {
     'student-details': 'students',
     orders: 'orders',
     'order-details': 'orders',
+    analytics: 'analytics',
   };
 
   return cssMap[pageName] || null;
@@ -62,6 +63,7 @@ function getAvailableCSSFiles() {
     'question-banks',
     'students',
     'orders',
+    'analytics',
   ];
 }
 

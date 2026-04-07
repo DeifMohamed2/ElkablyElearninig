@@ -1178,8 +1178,18 @@ const contentDetails = async (req, res) => {
 const updateContentProgress = async (req, res) => {
   try {
     const studentId = req.session.user.id;
-    const { courseId, topicId, contentId, contentType, progressData } =
-      req.body;
+    let { courseId, topicId, contentId, contentType, progressData } = req.body;
+
+    if (typeof progressData === 'string') {
+      try {
+        progressData = JSON.parse(progressData);
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid progressData JSON',
+        });
+      }
+    }
 
     const student = await User.findById(studentId);
 
@@ -1194,11 +1204,6 @@ const updateContentProgress = async (req, res) => {
         message: 'You are not enrolled in this course',
       });
     }
-
-    console.log(
-      'Before update - enrollment contentProgress length:',
-      enrollment.contentProgress.length,
-    );
 
     // Check if this is a NEW completion BEFORE updating (to avoid duplicate notifications)
     const existingProgress = enrollment.contentProgress.find(
@@ -1233,6 +1238,19 @@ const updateContentProgress = async (req, res) => {
       }
     } catch (error) {
       console.error('Error checking content type:', error);
+    }
+
+    const resolvedContentType =
+      contentType ||
+      (progressData && progressData.contentType) ||
+      (contentItem && contentItem.type);
+
+    if (!resolvedContentType) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'contentType is required (send contentType, progressData.contentType, or a valid contentId in the topic)',
+      });
     }
 
     // VIDEO WATCH LIMIT VALIDATION
@@ -1369,7 +1387,7 @@ const updateContentProgress = async (req, res) => {
       courseId,
       topicId,
       contentId,
-      contentType,
+      resolvedContentType,
       progressData,
     );
 
@@ -1415,7 +1433,7 @@ const updateContentProgress = async (req, res) => {
         // Send notification for NEW completion
         await whatsappSMSNotificationService.sendContentCompletionNotification(
           studentId,
-          { title: contentTitle, type: contentType },
+          { title: contentTitle, type: resolvedContentType },
           course,
         );
       }
@@ -1448,7 +1466,7 @@ const updateContentProgress = async (req, res) => {
       progressData.completionStatus === 'completed' &&
       isNewCompletion
     ) {
-      StudentTracker.viewContent(req, contentId, contentType, topicId);
+      StudentTracker.viewContent(req, contentId, resolvedContentType, topicId);
     }
 
     res.json(response);

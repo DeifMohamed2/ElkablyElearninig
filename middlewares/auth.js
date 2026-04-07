@@ -20,7 +20,7 @@ const safeFlash = (req, type, message) => {
 // Middleware to check if user is authenticated
 const isAuthenticated = async (req, res, next) => {
   if (req.session && req.session.user && req.session.user.id) {
-    // For students, validate session token to ensure single device login
+    // For students, validate browser session token (independent from mobile app JWT)
     if (req.session.user.role === 'student') {
       try {
         const user = await User.findById(req.session.user.id);
@@ -40,7 +40,11 @@ const isAuthenticated = async (req, res, next) => {
             }
           });
           res.clearCookie('elkably.session');
-          safeFlash(req, 'error_msg', 'Your account is being used on another device. Please log in again.');
+          safeFlash(
+            req,
+            'error_msg',
+            'Your account was signed in from another browser. Please log in again.',
+          );
           return res.redirect('/auth/login');
         }
       } catch (err) {
@@ -82,7 +86,7 @@ const isAdmin = (req, res, next) => {
 // Middleware to check if user is student
 const isStudent = async (req, res, next) => {
   if (req.session && req.session.user && req.session.user.role === 'student') {
-    // Validate session token for single device login
+    // Validate browser session token (independent from mobile app JWT)
     try {
       const user = await User.findById(req.session.user.id);
       
@@ -101,7 +105,11 @@ const isStudent = async (req, res, next) => {
           }
         });
         res.clearCookie('elkably.session');
-        safeFlash(req, 'error_msg', 'Your account is being used on another device. Please log in again.');
+        safeFlash(
+          req,
+          'error_msg',
+          'Your account was signed in from another browser. Please log in again.',
+        );
         return res.redirect('/auth/login');
       }
       

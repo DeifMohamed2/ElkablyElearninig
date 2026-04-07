@@ -3950,11 +3950,6 @@ const updateTopicContent = async (req, res) => {
       scheduledStartTime,
       timezone,
       password,
-      joinBeforeHost,
-      waitingRoom,
-      hostVideo,
-      participantVideo,
-      muteUponEntry,
       // Legacy nested data support (for backward compatibility)
       quizData,
       homeworkData,
@@ -4299,28 +4294,40 @@ const updateTopicContent = async (req, res) => {
       };
     }
 
-    if (type === 'zoom') {
-      // Update zoom meeting settings
-      if (contentItem.zoomMeeting) {
-        contentItem.zoomMeeting.meetingName =
-          zoomMeetingName || contentItem.zoomMeeting.meetingName;
-        contentItem.zoomMeeting.meetingTopic =
-          zoomMeetingTopic || contentItem.zoomMeeting.meetingTopic;
-        contentItem.zoomMeeting.scheduledStartTime = scheduledStartTime
-          ? new Date(scheduledStartTime)
-          : contentItem.zoomMeeting.scheduledStartTime;
-        contentItem.zoomMeeting.timezone =
-          timezone || contentItem.zoomMeeting.timezone;
-        contentItem.zoomMeeting.password = password || '';
-        const finalJoinBeforeHost = joinBeforeHost !== false;
-        const finalWaitingRoom = finalJoinBeforeHost
-          ? false
-          : waitingRoom || false;
-        contentItem.zoomMeeting.joinBeforeHost = finalJoinBeforeHost;
-        contentItem.zoomMeeting.waitingRoom = finalWaitingRoom;
-        contentItem.zoomMeeting.hostVideo = hostVideo !== false;
-        contentItem.zoomMeeting.participantVideo = participantVideo !== false;
-        contentItem.zoomMeeting.muteUponEntry = muteUponEntry || false;
+    if (type === 'zoom' && contentItem.zoomMeeting) {
+      const zm = await ZoomMeeting.findById(contentItem.zoomMeeting);
+      if (zm) {
+        if (zoomMeetingName) zm.meetingName = zoomMeetingName.trim();
+        if (zoomMeetingTopic) zm.meetingTopic = zoomMeetingTopic.trim();
+        if (scheduledStartTime) {
+          zm.scheduledStartTime = new Date(scheduledStartTime);
+        }
+        if (timezone) zm.timezone = timezone;
+        if (password !== undefined) zm.password = password || '';
+        if (duration !== undefined && duration !== null && duration !== '') {
+          const parsedDuration = parseInt(duration, 10);
+          if (!isNaN(parsedDuration)) {
+            zm.duration = parsedDuration;
+            contentItem.duration = parsedDuration;
+          }
+        }
+        await zm.save();
+
+        const zoomPatch = {
+          topic: zm.meetingTopic,
+          start_time: zm.scheduledStartTime.toISOString(),
+          duration: zm.duration,
+          timezone: zm.timezone,
+        };
+        if (zm.password) zoomPatch.password = zm.password;
+        try {
+          await zoomService.updateMeeting(zm.meetingId, zoomPatch);
+        } catch (zoomErr) {
+          console.warn(
+            '⚠️ Zoom API schedule update failed:',
+            zoomErr.message || zoomErr,
+          );
+        }
       }
     }
 
@@ -4527,14 +4534,6 @@ const getContentDetailsForEdit = async (req, res) => {
         joinUrl: meeting.joinUrl || '',
         startUrl: meeting.startUrl || '',
         status: meeting.status || 'scheduled',
-        settings: {
-          joinBeforeHost: meeting.settings?.joinBeforeHost !== false,
-          waitingRoom: meeting.settings?.waitingRoom || false,
-          hostVideo: meeting.settings?.hostVideo !== false,
-          participantVideo: meeting.settings?.participantVideo !== false,
-          muteUponEntry: meeting.settings?.muteUponEntry || false,
-          recording: meeting.settings?.recording || false,
-        },
       };
     }
 
@@ -12195,11 +12194,6 @@ const createZoomMeeting = async (req, res) => {
       duration,
       timezone,
       password,
-      joinBeforeHost,
-      waitingRoom,
-      muteUponEntry,
-      hostVideo,
-      participantVideo,
     } = req.body;
 
     console.log('Creating Zoom meeting for topic:', topicId);
@@ -12215,21 +12209,13 @@ const createZoomMeeting = async (req, res) => {
       });
     }
 
-    // Create meeting on Zoom
+    // Create meeting on Zoom (uses host/account defaults; no per-meeting settings in API body)
     const zoomMeetingData = await zoomService.createMeeting({
       topic: meetingTopic || meetingName,
       scheduledStartTime: new Date(scheduledStartTime),
       duration: parseInt(duration) || 60,
       timezone: timezone || 'UTC',
       password: password,
-      settings: {
-        joinBeforeHost: joinBeforeHost === 'true' || joinBeforeHost === true,
-        waitingRoom: waitingRoom === 'true' || waitingRoom === true,
-        muteUponEntry: muteUponEntry === 'true' || muteUponEntry === true,
-        hostVideo: hostVideo === 'true' || hostVideo === true,
-        participantVideo:
-          participantVideo === 'true' || participantVideo === true,
-      },
     });
 
     // Save Zoom meeting to database
@@ -12247,18 +12233,6 @@ const createZoomMeeting = async (req, res) => {
       joinUrl: zoomMeetingData.joinUrl,
       startUrl: zoomMeetingData.startUrl,
       password: zoomMeetingData.password,
-      settings: {
-        joinBeforeHost: joinBeforeHost === 'true' || joinBeforeHost === true,
-        // If joinBeforeHost is enabled, waitingRoom must be disabled
-        waitingRoom:
-          joinBeforeHost === 'true' || joinBeforeHost === true
-            ? false
-            : waitingRoom === 'true' || waitingRoom === true,
-        muteUponEntry: muteUponEntry === 'true' || muteUponEntry === true,
-        hostVideo: hostVideo === 'true' || hostVideo === true,
-        participantVideo:
-          participantVideo === 'true' || participantVideo === true,
-      },
     });
 
     await zoomMeeting.save();

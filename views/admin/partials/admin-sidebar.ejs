@@ -22,10 +22,18 @@
   </div>
 
   <nav class="admin-sidebar-nav">
+    <% const adminUser = typeof admin !== 'undefined' ? admin : (typeof user !== 'undefined' ? user : null); %>
     <a href="/admin/dashboard" class="admin-nav-item <%= typeof currentPage !== 'undefined' && currentPage === 'dashboard' ? 'active' : '' %>">
       <i class="fas fa-tachometer-alt admin-nav-icon"></i>
       Dashboard
     </a>
+
+    <% if (adminUser && adminUser.role === 'superAdmin') { %>
+    <a href="/admin/analytics" class="admin-nav-item <%= typeof currentPage !== 'undefined' && currentPage === 'analytics' ? 'active' : '' %>">
+      <i class="fas fa-chart-line admin-nav-icon"></i>
+      Analytics
+    </a>
+    <% } %>
 
     <a href="/admin/students" class="admin-nav-item <%= typeof currentPage !== 'undefined' && currentPage === 'students' ? 'active' : '' %>">
       <i class="fas fa-users admin-nav-icon"></i>
@@ -102,10 +110,12 @@
       OTP Master
     </a>
 
+    <% if (adminUser && adminUser.role === 'superAdmin') { %>
     <a href="/admin/holiday-effects" class="admin-nav-item <%= typeof currentPage !== 'undefined' && currentPage === 'holiday-effects' ? 'active' : '' %>">
       <i class="fas fa-gift admin-nav-icon"></i>
       Holiday Effects
     </a>
+    <% } %>
 
     <!-- <a href="/admin/videos" class="admin-nav-item <%= typeof currentPage !== 'undefined' && currentPage === 'videos' ? 'active' : '' %>">
       <i class="fas fa-video admin-nav-icon"></i>
@@ -124,19 +134,17 @@
      -->
     <div class="admin-nav-divider"></div>
 
-    <% const adminUser = typeof admin !== 'undefined' ? admin : (typeof user !== 'undefined' ? user : null); %>
     <% if (adminUser && adminUser.role === 'superAdmin') { %>
     <a href="/admin/logs" class="admin-nav-item <%= typeof currentPage !== 'undefined' && currentPage === 'admin-logs' ? 'active' : '' %>">
       <i class="fas fa-history admin-nav-icon"></i>
       Admin Logs
       <span class="badge bg-danger ms-2">Super Admin</span>
     </a>
-    <% } %>
-
     <a href="/admin/create-admin" class="admin-nav-item <%= typeof currentPage !== 'undefined' && currentPage === 'create-admin' ? 'active' : '' %>">
       <i class="fas fa-user-plus admin-nav-icon"></i>
       Create Admin
     </a>
+    <% } %>
 
     <a href="/auth/logout" class="admin-nav-item">
       <i class="fas fa-sign-out-alt admin-nav-icon"></i>

@@ -10,6 +10,7 @@ const QuizModule = require('../models/QuizModule');
 const Progress = require('../models/Progress');
 const BundleCourse = require('../models/BundleCourse');
 const Topic = require('../models/Topic');
+const ZoomMeeting = require('../models/ZoomMeeting');
 const { wrapStudentHandler } = require('../utils/asStudentRequest');
 const studentController = require('./studentController');
 const { buildProfilePayload } = require('./studentMobileAuthController');
@@ -111,6 +112,27 @@ const buildCourseOutlineSummary = (course) => {
   };
 };
 
+/** Same numeric result as User.calculateTopicProgress without reloading the course from DB */
+const averageTopicProgressFromEnrollment = (topic, enrollment) => {
+  const items = topic.content || [];
+  if (!items.length) return 0;
+  let total = 0;
+  for (const item of items) {
+    const cp = enrollment.contentProgress.find(
+      (x) => x.contentId.toString() === item._id.toString(),
+    );
+    total += cp ? (cp.progressPercentage || 0) : 0;
+  }
+  return Math.round(total / items.length);
+};
+
+const enrollmentHasCompletedTopic = (enrollment, topicId) => {
+  const tid = topicId.toString();
+  return (enrollment.completedTopics || []).some(
+    (id) => id != null && id.toString() === tid,
+  );
+};
+
 const toPlainSettings = (s) => {
   if (!s) return {};
   const o = s.toObject ? s.toObject() : { ...s };
@@ -127,21 +149,260 @@ const toPlainSettings = (s) => {
   };
 };
 
+/** Mirrors Course.js sequencing helpers (not exported from model) — keep logic aligned with isCourseUnlocked */
+function weekNumberFromCourseTitle(title) {
+  if (!title || typeof title !== 'string') return null;
+  const m = title.match(/^\s*Week\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function sortBundleCoursesForSequenceMobile(courses) {
+  return [...courses].sort((a, b) => {
+    const wa = weekNumberFromCourseTitle(a.title);
+    const wb = weekNumberFromCourseTitle(b.title);
+    if (wa != null && wb != null && wa !== wb) return wa - wb;
+    const oa = a.order ?? 0;
+    const ob = b.order ?? 0;
+    if (oa !== ob) return oa - ob;
+    return String(a._id).localeCompare(String(b._id));
+  });
+}
+
+function allBundleCoursesShareSameOrderMobile(courses) {
+  if (!courses || courses.length <= 1) return false;
+  const first = courses[0].order ?? 0;
+  return courses.every((c) => (c.order ?? 0) === first);
+}
+
+/**
+ * Course id on an enrollment (ObjectId ref or populated subdoc).
+ * Course.isCourseUnlocked uses User without populate — refs are ObjectIds and .toString() works.
+ * getEnrolledCourses populates course; comparing enrollment.course.toString() to bundle ids often fails,
+ * which breaks minEnrolledIdx / bundleStartingOrder and wrongly requires "Complete Week 1 first".
+ */
+function enrollCourseIdStr(enrollment) {
+  const c = enrollment?.course;
+  if (!c) return '';
+  return (c._id != null ? c._id : c).toString();
+}
+
+/** Populated enrollments: User#getCourseProgress uses course.toString() and can miss the row */
+function enrollmentProgressForCourse(student, courseId) {
+  const cid = courseId.toString();
+  const e = student.enrolledCourses.find(
+    (x) => x.course && enrollCourseIdStr(x) === cid,
+  );
+  return e ? e.progress || 0 : 0;
+}
+
+function isCourseCompletedSync(student, courseId) {
+  const cid = courseId.toString();
+  const enrollment = student.enrolledCourses.find(
+    (e) => e.course && enrollCourseIdStr(e) === cid,
+  );
+  if (!enrollment) return false;
+  return enrollment.status === 'completed' || (enrollment.progress || 0) >= 100;
+}
+
+/**
+ * Same outcome as Course.isCourseUnlocked(studentId, courseId) without refetching User
+ * (avoids N User.findById calls on list endpoints).
+ */
+function unlockStatusForCourseSequential(student, course, bundleCourses) {
+  const courseId = course._id;
+  const uniformOrder = allBundleCoursesShareSameOrderMobile(bundleCourses);
+  const currentIndex = bundleCourses.findIndex(
+    (c) => c._id.toString() === courseId.toString(),
+  );
+  if (currentIndex === 0) {
+    return { unlocked: true, reason: 'First course in bundle' };
+  }
+  let minEnrolledIdx = Infinity;
+  for (let i = 0; i < bundleCourses.length; i++) {
+    const cid = bundleCourses[i]._id.toString();
+    const has = student.enrolledCourses.some(
+      (e) => e.course && enrollCourseIdStr(e) === cid,
+    );
+    if (has) minEnrolledIdx = Math.min(minEnrolledIdx, i);
+  }
+  if (minEnrolledIdx !== Infinity && currentIndex < minEnrolledIdx) {
+    const courseProgress = enrollmentProgressForCourse(student, courseId);
+    if (courseProgress > 0) {
+      return {
+        unlocked: true,
+        reason: `Course already started with ${courseProgress}% progress - access allowed`,
+      };
+    }
+    return {
+      unlocked: false,
+      reason: `This week is before your enrollment range. Your access starts at "${bundleCourses[minEnrolledIdx].title}".`,
+    };
+  }
+  let bundleStartingOrder = null;
+  for (const bundleCourse of bundleCourses) {
+    const bId = bundleCourse._id.toString();
+    const enrollment = student.enrolledCourses.find(
+      (e) => e.course && enrollCourseIdStr(e) === bId,
+    );
+    if (
+      enrollment &&
+      enrollment.startingOrder !== null &&
+      enrollment.startingOrder !== undefined
+    ) {
+      if (
+        bundleStartingOrder === null ||
+        enrollment.startingOrder < bundleStartingOrder
+      ) {
+        bundleStartingOrder = enrollment.startingOrder;
+      }
+    }
+  }
+  let chainStart = 0;
+  if (bundleStartingOrder !== null && !uniformOrder) {
+    // Match Course.isCourseUnlocked: use course.order as-is (undefined < n is false; do not coerce to 0)
+    if (course.order < bundleStartingOrder) {
+      const courseProgress = enrollmentProgressForCourse(student, courseId);
+      if (courseProgress > 0) {
+        return {
+          unlocked: true,
+          reason: `Course already started with ${courseProgress}% progress - access allowed`,
+        };
+      }
+      return {
+        unlocked: false,
+        reason: `You were enrolled from week ${bundleStartingOrder + 1}. This course is from an earlier week.`,
+      };
+    }
+    for (let idx = 0; idx < bundleCourses.length; idx++) {
+      if ((bundleCourses[idx].order ?? 0) >= bundleStartingOrder) {
+        chainStart = idx;
+        break;
+      }
+    }
+  }
+  if (minEnrolledIdx !== Infinity) {
+    if (uniformOrder) {
+      chainStart = minEnrolledIdx;
+    } else {
+      chainStart = Math.max(chainStart, minEnrolledIdx);
+    }
+  }
+  for (let i = chainStart; i < currentIndex; i++) {
+    const previousCourse = bundleCourses[i];
+    if (!isCourseCompletedSync(student, previousCourse._id)) {
+      return {
+        unlocked: false,
+        reason: `Complete "${previousCourse.title}" first`,
+        previousCourse: {
+          id: previousCourse._id,
+          title: previousCourse.title,
+          order: previousCourse.order,
+        },
+      };
+    }
+  }
+  const successReason =
+    bundleStartingOrder !== null && !uniformOrder
+      ? `Enrolled from week ${bundleStartingOrder + 1} and prerequisites completed`
+      : 'All prerequisites completed';
+  return { unlocked: true, reason: successReason };
+}
+
+/**
+ * Single-course unlock: delegate to model static so mobile matches web (studentController)
+ * exactly. Batched list path still uses unlockStatusForCourseSequential + batch queries.
+ */
+async function resolveCourseUnlockForStudent(student, course) {
+  if (!course || !course._id) {
+    return { unlocked: false, reason: 'Course not found', previousCourse: null };
+  }
+  const st = await Course.isCourseUnlocked(student._id, course._id);
+  return {
+    unlocked: st.unlocked,
+    reason: st.reason,
+    previousCourse: st.previousCourse || null,
+  };
+}
+
+/** One Course.find per distinct bundle; uses already-loaded student */
+async function batchUnlockStatusesForMobile(student, enrollments) {
+  const byCourseId = new Map();
+  const bundleIds = new Set();
+
+  for (const enrollment of enrollments) {
+    const c = enrollment.course;
+    if (!c || !c._id) continue;
+    const cid = c._id.toString();
+    if (c.requiresSequential === false) {
+      byCourseId.set(cid, {
+        unlocked: true,
+        reason: 'No sequential requirement',
+        previousCourse: null,
+      });
+      continue;
+    }
+    const b = c.bundle && (c.bundle._id || c.bundle);
+    if (!b) {
+      byCourseId.set(cid, {
+        unlocked: true,
+        reason: 'No sequential requirement',
+        previousCourse: null,
+      });
+      continue;
+    }
+    bundleIds.add(b.toString());
+  }
+
+  const bundleCache = new Map();
+  await Promise.all(
+    [...bundleIds].map(async (bid) => {
+      const raw = await Course.find({ bundle: bid })
+        .sort({ order: 1, _id: 1 })
+        .select('title order _id bundle requiresSequential')
+        .lean();
+      bundleCache.set(bid, sortBundleCoursesForSequenceMobile(raw));
+    }),
+  );
+
+  for (const enrollment of enrollments) {
+    const c = enrollment.course;
+    if (!c || !c._id) continue;
+    const cid = c._id.toString();
+    if (byCourseId.has(cid)) continue;
+
+    const b = c.bundle && (c.bundle._id || c.bundle);
+    const bundleCourses = bundleCache.get(b.toString());
+    if (!bundleCourses || !bundleCourses.length) {
+      byCourseId.set(cid, {
+        unlocked: false,
+        reason: 'Course not found',
+        previousCourse: null,
+      });
+      continue;
+    }
+    const st = unlockStatusForCourseSequential(student, c, bundleCourses);
+    byCourseId.set(cid, {
+      unlocked: st.unlocked,
+      reason: st.reason,
+      previousCourse: st.previousCourse || null,
+    });
+  }
+
+  return byCourseId;
+}
+
 const getDashboard = async (req, res) => {
   try {
     const uid = studentId(req);
-    const student = await User.findById(uid)
-      .populate({
-        path: 'enrolledCourses.course',
-        select: SLIM_COURSE_SELECT,
-        populate: {
-          path: 'bundle',
-          select: 'title bundleCode thumbnail',
-          model: 'BundleCourse',
-        },
-      })
-      .populate('wishlist')
-      .populate({ path: 'quizAttempts.quiz', model: 'Quiz' });
+    const student = await User.findById(uid).populate({
+      path: 'enrolledCourses.course',
+      select: SLIM_COURSE_SELECT,
+      populate: {
+        path: 'bundle',
+        select: 'title bundleCode thumbnail',
+        model: 'BundleCourse',
+      },
+    });
 
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
@@ -177,20 +438,8 @@ const getDashboard = async (req, res) => {
       .map(toDashboardActiveCourse)
       .filter(Boolean);
 
-    const courseIds = student.enrolledCourses
-      .filter((e) => e.course)
-      .map((e) => e.course._id);
-
-    const upcomingQuizzes =
-      courseIds.length > 0
-        ? await Quiz.find({
-            status: 'active',
-            _id: { $in: courseIds },
-          })
-            .populate('questionBank')
-            .sort({ createdAt: -1 })
-            .limit(5)
-        : [];
+    // Quiz._id is not course id; a proper "quizzes for my courses" query needs another schema link.
+    const upcomingQuizzes = [];
 
     return res.json({
       success: true,
@@ -232,14 +481,9 @@ const getEnrolledCourses = async (req, res) => {
 
     const validEnrollments = student.enrolledCourses.filter((e) => e.course);
 
-    await Promise.all(
-      validEnrollments.map(async (enrollment) => {
-        await student.calculateCourseProgress(enrollment.course);
-      }),
-    );
-
-    student.enrolledCourses = validEnrollments;
-    await student.save();
+    // Do not recalculate progress here: calculateCourseProgress loads each course with
+    // all topics and student.save() rewrites the whole user — too slow for a list API.
+    // Progress is updated when the student completes content via other mobile routes.
 
     let filtered = validEnrollments;
 
@@ -291,30 +535,31 @@ const getEnrolledCourses = async (req, res) => {
         );
     }
 
-    const coursesWithUnlockStatus = await Promise.all(
-      filtered.map(async (enrollment) => {
-        const unlockStatus = await Course.isCourseUnlocked(
-          uid,
-          enrollment.course._id,
-        );
-        const completedTopics = enrollment.completedTopics || [];
-        return {
-          _id: enrollment._id,
-          course: buildSlimCourseCard(enrollment.course),
-          enrolledAt: enrollment.enrolledAt,
-          progress: enrollment.progress,
-          lastAccessed: enrollment.lastAccessed,
-          status: enrollment.status,
-          startingOrder: enrollment.startingOrder,
-          completedTopics: completedTopics.map((id) =>
-            id != null && id.toString ? id.toString() : id,
-          ),
-          isUnlocked: unlockStatus.unlocked,
-          unlockReason: unlockStatus.reason,
-          previousCourse: unlockStatus.previousCourse || null,
-        };
-      }),
-    );
+    const unlockByCourseId = await batchUnlockStatusesForMobile(student, filtered);
+
+    const coursesWithUnlockStatus = filtered.map((enrollment) => {
+      const unlockStatus = unlockByCourseId.get(enrollment.course._id.toString()) || {
+        unlocked: false,
+        reason: 'Unknown',
+        previousCourse: null,
+      };
+      const completedTopics = enrollment.completedTopics || [];
+      return {
+        _id: enrollment._id,
+        course: buildSlimCourseCard(enrollment.course),
+        enrolledAt: enrollment.enrolledAt,
+        progress: enrollment.progress,
+        lastAccessed: enrollment.lastAccessed,
+        status: enrollment.status,
+        startingOrder: enrollment.startingOrder,
+        completedTopics: completedTopics.map((id) =>
+          id != null && id.toString ? id.toString() : id,
+        ),
+        isUnlocked: unlockStatus.unlocked,
+        unlockReason: unlockStatus.reason,
+        previousCourse: unlockStatus.previousCourse || null,
+      };
+    });
 
     const bundleIds = validEnrollments
       .map((e) => e.course.bundle?._id)
@@ -348,7 +593,26 @@ const getCourseContent = async (req, res) => {
     const uid = studentId(req);
     const courseId = req.params.courseId;
 
-    const student = await User.findById(uid);
+    const [student, course] = await Promise.all([
+      User.findById(uid),
+      Course.findById(courseId)
+        .populate({
+          path: 'topics',
+          options: { sort: { order: 1 } },
+          populate: {
+            path: 'content.zoomMeeting',
+            model: 'ZoomMeeting',
+          },
+        })
+        .populate('bundle', 'title thumbnail bundleCode')
+        .populate('createdBy', 'name')
+        .lean(),
+    ]);
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
     const enrollment = student.enrolledCourses.find(
       (e) => e.course.toString() === courseId,
     );
@@ -360,19 +624,11 @@ const getCourseContent = async (req, res) => {
       });
     }
 
-    const course = await Course.findById(courseId)
-      .populate({
-        path: 'topics',
-        options: { sort: { order: 1 } },
-      })
-      .populate('bundle', 'title thumbnail bundleCode')
-      .populate('createdBy', 'name');
-
     if (!course) {
       return res.status(404).json({ success: false, message: 'Course not found' });
     }
 
-    const unlockStatus = await Course.isCourseUnlocked(uid, courseId);
+    const unlockStatus = await resolveCourseUnlockForStudent(student, course);
     if (!unlockStatus.unlocked) {
       return res.status(403).json({
         success: false,
@@ -417,89 +673,87 @@ const getCourseContent = async (req, res) => {
       .filter((topic) => topic.isPublished === true)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    const topicsWithProgress = await Promise.all(
-      publishedTopics.map(async (topic, topicIndex) => {
-        const topicCompleted = enrollment.completedTopics.includes(topic._id);
-        const topicProgress = await student.calculateTopicProgress(courseId, topic._id);
+    const topicsWithProgress = publishedTopics.map((topic, topicIndex) => {
+      const topicCompleted = enrollmentHasCompletedTopic(enrollment, topic._id);
+      const topicProgress = averageTopicProgressFromEnrollment(topic, enrollment);
 
-        let topicUnlocked = true;
-        let topicUnlockReason = null;
+      let topicUnlocked = true;
+      let topicUnlockReason = null;
 
-        if (topic.unlockConditions === 'previous_completed' && topicIndex > 0) {
-          const previousTopic = publishedTopics[topicIndex - 1];
-          if (previousTopic) {
-            const previousTopicContentIds = (previousTopic.content || []).map((c) =>
-              c._id.toString(),
+      if (topic.unlockConditions === 'previous_completed' && topicIndex > 0) {
+        const previousTopic = publishedTopics[topicIndex - 1];
+        if (previousTopic) {
+          const previousTopicContentIds = (previousTopic.content || []).map((c) =>
+            c._id.toString(),
+          );
+          const allPreviousTopicCompleted =
+            previousTopicContentIds.length === 0 ||
+            previousTopicContentIds.every((contentId) =>
+              completedContentIds.includes(contentId),
             );
-            const allPreviousTopicCompleted =
-              previousTopicContentIds.length === 0 ||
-              previousTopicContentIds.every((contentId) =>
-                completedContentIds.includes(contentId),
-              );
 
-            if (!allPreviousTopicCompleted) {
-              topicUnlocked = false;
-              topicUnlockReason = `Complete all content in "${previousTopic.title}" first`;
-            }
+          if (!allPreviousTopicCompleted) {
+            topicUnlocked = false;
+            topicUnlockReason = `Complete all content in "${previousTopic.title}" first`;
           }
         }
+      }
 
-        const contentWithStatus = (topic.content || []).map((contentItem, index) => {
-          const isCompleted = completedContentIds.includes(contentItem._id.toString());
+      const contentWithStatus = (topic.content || []).map((contentItem, index) => {
+        const isCompleted = completedContentIds.includes(contentItem._id.toString());
 
-          if (!topicUnlocked && !isCompleted) {
-            return slimOutlineContentItem(contentItem, titleById, {
-              isUnlocked: false,
-              isCompleted,
-              actualProgress: 0,
-              watchCount: 0,
-              unlockReason: topicUnlockReason,
-              canAccess: false,
-              contentIndex: index,
-              topicId: topic._id,
-            });
-          }
-
-          const unlock = student.isContentUnlocked(courseId, contentItem._id, contentItem);
-          const contentProgressDetails = student.getContentProgressDetails(
-            courseId,
-            contentItem._id,
-          );
-          const actualProgress = contentProgressDetails
-            ? contentProgressDetails.progressPercentage
-            : 0;
-          const watchCount = contentProgressDetails?.watchCount || 0;
-
+        if (!topicUnlocked && !isCompleted) {
           return slimOutlineContentItem(contentItem, titleById, {
-            isUnlocked: unlock.unlocked,
+            isUnlocked: false,
             isCompleted,
-            actualProgress,
-            watchCount,
-            unlockReason: unlock.reason,
-            canAccess: unlock.unlocked || isCompleted,
+            actualProgress: 0,
+            watchCount: 0,
+            unlockReason: topicUnlockReason,
+            canAccess: false,
             contentIndex: index,
             topicId: topic._id,
           });
-        });
+        }
 
-        return {
-          _id: topic._id,
-          title: topic.title,
-          description: (topic.description || '').slice(0, 300),
-          order: topic.order,
-          isPublished: topic.isPublished,
-          estimatedTime: topic.estimatedTime,
-          difficulty: topic.difficulty,
-          unlockConditions: topic.unlockConditions,
-          contentCount: (topic.content || []).length,
-          completed: topicCompleted,
-          progress: topicProgress,
-          isUnlocked: topicUnlocked,
-          unlockReason: topicUnlockReason,
-          content: contentWithStatus,
-        };
-      }),
-    );
+        const unlock = student.isContentUnlocked(courseId, contentItem._id, contentItem);
+        const contentProgressDetails = student.getContentProgressDetails(
+          courseId,
+          contentItem._id,
+        );
+        const actualProgress = contentProgressDetails
+          ? contentProgressDetails.progressPercentage
+          : 0;
+        const watchCount = contentProgressDetails?.watchCount || 0;
+
+        return slimOutlineContentItem(contentItem, titleById, {
+          isUnlocked: unlock.unlocked,
+          isCompleted,
+          actualProgress,
+          watchCount,
+          unlockReason: unlock.reason,
+          canAccess: unlock.unlocked || isCompleted,
+          contentIndex: index,
+          topicId: topic._id,
+        });
+      });
+
+      return {
+        _id: topic._id,
+        title: topic.title,
+        description: (topic.description || '').slice(0, 300),
+        order: topic.order,
+        isPublished: topic.isPublished,
+        estimatedTime: topic.estimatedTime,
+        difficulty: topic.difficulty,
+        unlockConditions: topic.unlockConditions,
+        contentCount: (topic.content || []).length,
+        completed: topicCompleted,
+        progress: topicProgress,
+        isUnlocked: topicUnlocked,
+        unlockReason: topicUnlockReason,
+        content: contentWithStatus,
+      };
+    });
 
     return res.json({
       success: true,
@@ -521,42 +775,63 @@ const getContentDetails = async (req, res) => {
   try {
     const uid = studentId(req);
     const contentId = req.params.contentId;
-
-    const student = await User.findById(uid);
-    let contentItem = null;
-    let course = null;
-    let topic = null;
-
-    for (const enrollment of student.enrolledCourses) {
-      const courseData = await Course.findById(enrollment.course).populate({
-        path: 'topics',
-        populate: { path: 'content.zoomMeeting', model: 'ZoomMeeting' },
-      });
-
-      if (courseData) {
-        for (const topicData of courseData.topics) {
-          const foundContent = topicData.content.find(
-            (c) => c._id.toString() === contentId,
-          );
-          if (foundContent) {
-            contentItem = foundContent;
-            course = courseData;
-            topic = topicData;
-            break;
-          }
-        }
-        if (contentItem) break;
-      }
+    const contentObjectId = mongoose.Types.ObjectId.isValid(contentId)
+      ? new mongoose.Types.ObjectId(contentId)
+      : null;
+    if (!contentObjectId) {
+      return res.status(400).json({ success: false, message: 'Invalid content id' });
     }
 
-    if (!contentItem) {
+    const [student, topicDoc] = await Promise.all([
+      User.findById(uid),
+      Topic.findOne({ 'content._id': contentObjectId })
+        .select(
+          'course title order _id unlockConditions isPublished estimatedTime difficulty description content',
+        )
+        .lean(),
+    ]);
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    if (!topicDoc || !topicDoc.course) {
       return res.status(404).json({
         success: false,
         message: 'Content not found or you are not enrolled in this course',
       });
     }
 
-    const courseUnlockStatus = await Course.isCourseUnlocked(uid, course._id);
+    const courseIdStr = topicDoc.course.toString();
+    const enrolled = student.enrolledCourses.some(
+      (e) => e.course && e.course.toString() === courseIdStr,
+    );
+    if (!enrolled) {
+      return res.status(404).json({
+        success: false,
+        message: 'Content not found or you are not enrolled in this course',
+      });
+    }
+
+    const contentItemRaw = (topicDoc.content || []).find(
+      (c) => c._id.toString() === contentId,
+    );
+    if (!contentItemRaw) {
+      return res.status(404).json({
+        success: false,
+        message: 'Content not found or you are not enrolled in this course',
+      });
+    }
+
+    const courseMini = await Course.findById(courseIdStr)
+      .select('title requiresSequential bundle order _id')
+      .lean();
+
+    if (!courseMini) {
+      return res.status(404).json({ success: false, message: 'Course not found' });
+    }
+
+    const courseUnlockStatus = await resolveCourseUnlockForStudent(student, courseMini);
     if (!courseUnlockStatus.unlocked) {
       return res.status(403).json({
         success: false,
@@ -564,19 +839,32 @@ const getContentDetails = async (req, res) => {
       });
     }
 
+    let contentItem = { ...contentItemRaw };
+    if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
+      const ref = contentItem.zoomMeeting;
+      if (ref.status == null) {
+        const zmId = ref._id || ref;
+        const meeting = await ZoomMeeting.findById(zmId).lean();
+        contentItem = { ...contentItem, zoomMeeting: meeting || ref };
+      }
+    }
+
     const unlockStatus = student.isContentUnlocked(
-      course._id,
+      courseMini._id,
       contentItem._id,
       contentItem,
     );
-    const contentProgress = student.getContentProgressDetails(course._id, contentItem._id);
+    const contentProgress = student.getContentProgressDetails(
+      courseMini._id,
+      contentItem._id,
+    );
 
     return res.json({
       success: true,
       data: {
         contentItem,
-        course: { _id: course._id, title: course.title },
-        topic: { _id: topic._id, title: topic.title },
+        course: { _id: courseMini._id, title: courseMini.title },
+        topic: { _id: topicDoc._id, title: topicDoc.title },
         unlockStatus,
         contentProgress,
       },
@@ -631,7 +919,10 @@ const getContentQuizMeta = async (req, res) => {
       });
     }
 
-    const courseUnlockStatus = await Course.isCourseUnlocked(sid, courseIdStr);
+    const courseMini = await Course.findById(courseIdStr)
+      .select('requiresSequential bundle order _id title')
+      .lean();
+    const courseUnlockStatus = await resolveCourseUnlockForStudent(student, courseMini);
     if (!courseUnlockStatus.unlocked) {
       return res.status(403).json({
         success: false,

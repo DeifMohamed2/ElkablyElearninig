@@ -88,39 +88,6 @@ const zoomMeetingSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Meeting Settings
-  settings: {
-    joinBeforeHost: {
-      type: Boolean,
-      default: true,
-    },
-    waitingRoom: {
-      type: Boolean,
-      default: false,
-    },
-    muteUponEntry: {
-      type: Boolean,
-      default: false,
-    },
-    hostVideo: {
-      type: Boolean,
-      default: true,
-    },
-    participantVideo: {
-      type: Boolean,
-      default: true,
-    },
-    recording: {
-      type: Boolean,
-      default: false,
-    },
-    autoRecording: {
-      type: String,
-      enum: ['none', 'local', 'cloud'],
-      default: 'none',
-    },
-  },
-
   // Recording Information
   recordingStatus: {
     type: String,

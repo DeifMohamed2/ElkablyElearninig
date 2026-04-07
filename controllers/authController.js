@@ -111,11 +111,10 @@ const getLoginPage = async (req, res) => {
         req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 1 day
       }
 
-      // Generate session token for students to enforce single device login
+      // Browser session token (invalidates other web logins; mobile uses mobileSessionToken)
       let sessionToken = null;
       if (user.role === 'student') {
         sessionToken = crypto.randomBytes(32).toString('hex');
-        // Update user with new session token (this invalidates any previous sessions)
         user.sessionToken = sessionToken;
         await user.save();
       }
@@ -1205,11 +1204,10 @@ const loginUser = async (req, res) => {
       req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 1 day
     }
 
-    // Generate session token for students to enforce single device login
+    // Browser session token (invalidates other web logins; mobile uses mobileSessionToken)
     let sessionToken = null;
     if (user.role === 'student') {
       sessionToken = crypto.randomBytes(32).toString('hex');
-      // Update user with new session token (this invalidates any previous sessions)
       user.sessionToken = sessionToken;
       await user.save();
     }

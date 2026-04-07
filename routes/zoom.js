@@ -4,6 +4,10 @@ const crypto = require('crypto');
 const zoomService = require('../utils/zoomService');
 const { isAdmin, isStudent, isAuthenticated } = require('../middlewares/auth');
 const {
+  isStudentOrMobileZoom,
+  dispatchJoinZoomMeeting,
+} = require('../middlewares/zoomStudentAuth');
+const {
   createZoomMeeting,
   startZoomMeeting,
   endZoomMeeting,
@@ -162,8 +166,12 @@ router.get('/debug/config', (req, res) => {
   });
 });
 
-// Join Zoom meeting (redirect to external client)
-router.post('/student/zoom/:meetingId/join', isStudent, joinZoomMeeting);
+// Join Zoom meeting (web session or mobile Bearer JWT — same as /api/student/zoom/meetings/:id/join)
+router.post(
+  '/student/zoom/:meetingId/join',
+  isStudentOrMobileZoom,
+  dispatchJoinZoomMeeting(joinZoomMeeting),
+);
 
 // Record join attempt for analytics
 router.post(

@@ -1,0 +1,1494 @@
+<%- include('./partials/admin-header', { title: title, theme: theme, cacheBuster: cacheBuster, pageCSS: pageCSS, additionalCSS: additionalCSS }) %>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<div class="admin-layout">
+  <%- include('./partials/admin-sidebar', { currentPage: 'analytics', admin: user }) %>
+
+  <main class="admin-main">
+    <%- include('./partials/admin-topbar', {
+      breadcrumb: 'Analytics',
+      breadcrumbSubtitle: 'Revenue, enrollments & student insights',
+      showSearch: false
+    }) %>
+
+    <div class="admin-content">
+      <div class="admin-dashboard admin-fade-in">
+        <div class="admin-dashboard-header">
+          <div class="dashboard-header-content">
+            <div class="dashboard-header-left">
+              <h1 class="admin-dashboard-title">
+                <span class="title-icon">📈</span>
+                Analytics
+              </h1>
+              <p class="admin-dashboard-subtitle">
+                Filter by date range and courses/bundles. Paid checkout uses <strong>amounts students actually paid</strong> (promo discounts reduce totals). Students <strong>enrolled by admin</strong> without an order are counted as <strong>admin-placed revenue</strong> at today’s list prices.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <section class="analytics-filters analytics-filters-toolbar">
+          <div class="analytics-filters-head">
+            <h2 class="analytics-section-title mb-0">Filters</h2>
+            <p class="analytics-filters-hint mb-0">Date range applies to revenue (order date) and enrollments (enrolled date). Use search boxes to pick one or many bundles/courses.</p>
+          </div>
+          <div class="row g-3 align-items-end">
+            <div class="col-lg-2 col-md-4">
+              <label class="analytics-label" for="af-from">From</label>
+              <input type="date" id="af-from" class="form-control analytics-input" value="<%= initialFrom %>">
+            </div>
+            <div class="col-lg-2 col-md-4">
+              <label class="analytics-label" for="af-to">To</label>
+              <input type="date" id="af-to" class="form-control analytics-input" value="<%= initialTo %>">
+            </div>
+            <div class="col-lg-4 col-md-6">
+              <label class="analytics-label" for="af-bundles">Bundles <span class="text-muted fw-normal">(multi-select)</span></label>
+              <select id="af-bundles" multiple autocomplete="off" placeholder="Search bundles…"></select>
+            </div>
+            <div class="col-lg-4 col-md-6">
+              <label class="analytics-label" for="af-courses">Courses <span class="text-muted fw-normal">(multi-select)</span></label>
+              <select id="af-courses" multiple autocomplete="off" placeholder="Search courses…"></select>
+            </div>
+            <div class="col-lg-12 col-md-4 d-flex flex-wrap gap-2 justify-content-lg-end analytics-filter-actions">
+              <button type="button" id="af-apply" class="analytics-btn-primary analytics-btn-lg">
+                <i class="fas fa-filter me-2"></i>Apply filter
+              </button>
+              <a
+                href="#"
+                id="af-xlsx"
+                class="analytics-btn-outline analytics-btn-lg text-decoration-none d-inline-flex align-items-center"
+                title="Multi-sheet Excel export: summary, test type, bundles, courses, weekly trend, demographics, bundle weeks (if one bundle selected)"
+              >
+                <i class="fas fa-file-excel me-2"></i>Dashboard · Excel
+              </a>
+              <a
+                href="#"
+                id="af-pdf"
+                class="analytics-btn-outline analytics-btn-lg text-decoration-none d-inline-flex align-items-center"
+                title="Executive PDF: KPIs, charts data highlights, optional bundle week detail"
+              >
+                <i class="fas fa-file-pdf me-2"></i>Dashboard · PDF
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <div
+          id="analytics-dashboard-body"
+          class="analytics-dashboard-body analytics-dashboard-body--loading"
+          aria-busy="true"
+          aria-describedby="analytics-loader-status"
+        >
+          <div
+            id="analytics-page-loader"
+            class="analytics-page-loader"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="analytics-page-loader__card">
+              <div class="analytics-page-loader__spinner" aria-hidden="true"></div>
+              <p class="analytics-page-loader__title" id="analytics-loader-status">Loading analytics</p>
+              <p class="analytics-page-loader__hint">Fetching revenue, enrollments, and charts. This can take up to a minute for large date ranges.</p>
+            </div>
+          </div>
+
+        <section class="analytics-kpi-section" aria-label="Summary KPIs">
+          <div class="analytics-kpi-grid" id="af-kpi">
+            <article class="analytics-kpi-card">
+              <div class="analytics-kpi-icon-wrap"><i class="fas fa-coins" aria-hidden="true"></i></div>
+              <div class="analytics-kpi-text">
+                <span class="analytics-kpi-label">Total revenue <span class="analytics-kpi-hint" id="kpi-total-rev-hint">(platform)</span></span>
+                <span class="analytics-kpi-value" id="kpi-total-rev">—</span>
+                <p class="analytics-kpi-subline d-none" id="kpi-scoped-rev-wrap"><span id="kpi-scoped-rev">—</span></p>
+              </div>
+            </article>
+            <article class="analytics-kpi-card analytics-kpi-card-accent">
+              <div class="analytics-kpi-icon-wrap"><i class="fas fa-graduation-cap" aria-hidden="true"></i></div>
+              <div class="analytics-kpi-text">
+                <span class="analytics-kpi-label">SAT <span class="analytics-kpi-hint">(by test type)</span></span>
+                <span class="analytics-kpi-value" id="kpi-rev-sat">—</span>
+                <p class="analytics-kpi-subline"><span id="kpi-stu-sat">—</span> students enrolled</p>
+              </div>
+            </article>
+            <article class="analytics-kpi-card analytics-kpi-card-accent">
+              <div class="analytics-kpi-icon-wrap"><i class="fas fa-clipboard-check" aria-hidden="true"></i></div>
+              <div class="analytics-kpi-text">
+                <span class="analytics-kpi-label">EST <span class="analytics-kpi-hint">(by test type)</span></span>
+                <span class="analytics-kpi-value" id="kpi-rev-est">—</span>
+                <p class="analytics-kpi-subline"><span id="kpi-stu-est">—</span> students enrolled</p>
+              </div>
+            </article>
+            <article class="analytics-kpi-card">
+              <div class="analytics-kpi-icon-wrap"><i class="fas fa-users" aria-hidden="true"></i></div>
+              <div class="analytics-kpi-text">
+                <span class="analytics-kpi-label">All students <span class="analytics-kpi-hint">(distinct, in range)</span></span>
+                <span class="analytics-kpi-value" id="kpi-students">—</span>
+                <p class="analytics-kpi-subline text-truncate" id="kpi-other-types" title=""></p>
+              </div>
+            </article>
+          </div>
+          <p class="analytics-muted small mt-3 mb-0" id="kpi-rev-footnote" aria-live="polite"></p>
+        </section>
+
+        <div class="analytics-overview-card mb-4">
+          <h3 class="analytics-section-title mb-3">Revenue vs students <span class="analytics-kpi-hint">(paid checkout + admin-placed)</span></h3>
+          <div class="analytics-chart-tall">
+            <canvas id="chart-rev-vs-stu" height="280"></canvas>
+          </div>
+        </div>
+
+        <div class="analytics-overview-card mb-4">
+          <h3 class="analytics-section-title mb-1">Platform revenue by week</h3>
+          <p class="analytics-muted mb-3" id="weekly-trend-desc">Paid checkout only, by calendar week (ISO). Admin-placed revenue is not tied to a payment date, so it appears in weekly bundle breakdown and totals, not here.</p>
+          <div class="analytics-chart-tall">
+            <canvas id="chart-weekly-trend" height="260"></canvas>
+          </div>
+        </div>
+
+        <div class="analytics-chart-grid">
+          <div class="analytics-chart-card">
+            <h3>Revenue by test type</h3>
+            <canvas id="chart-rev-testtype" height="200"></canvas>
+          </div>
+          <div class="analytics-chart-card">
+            <h3>Students by bundle</h3>
+            <canvas id="chart-stu-bundle" height="200"></canvas>
+          </div>
+          <div class="analytics-chart-card">
+            <h3>Revenue by bundle (paid + admin-placed)</h3>
+            <canvas id="chart-rev-bundle" height="200"></canvas>
+          </div>
+          <div class="analytics-chart-card">
+            <h3>Revenue by course (paid + admin-placed)</h3>
+            <canvas id="chart-rev-course" height="200"></canvas>
+          </div>
+        </div>
+
+        <section class="analytics-compare-panel analytics-compare-pro">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+            <h3 class="analytics-section-title mb-0">Compare</h3>
+            <div class="analytics-section-export btn-group" role="group" aria-label="Export comparison">
+              <a href="#" id="cmp-xlsx" class="btn btn-sm btn-outline-secondary text-nowrap" title="Excel: comparison table + parameters sheet"
+                ><i class="fas fa-file-excel me-1"></i>Excel</a
+              >
+              <a href="#" id="cmp-pdf" class="btn btn-sm btn-outline-secondary text-nowrap" title="PDF report for current comparison settings"
+                ><i class="fas fa-file-pdf me-1"></i>PDF</a
+              >
+            </div>
+          </div>
+          <p class="analytics-muted mb-3">Courses: pick <strong>2+ courses</strong>. Bundles: pick <strong>2+ bundles</strong>. Weeks: one bundle + week numbers. Ranges: two date ranges. Factor <strong>Revenue + students</strong> shows both on one chart (two axes). Revenue includes paid checkout + course lines + <strong>admin-placed</strong> where applicable.</p>
+          <div id="cmp-status" class="analytics-cmp-alert d-none" role="status"></div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-2">
+              <label class="analytics-label" for="cmp-mode">Mode</label>
+              <select id="cmp-mode" class="form-select analytics-input">
+                <option value="courses">Courses</option>
+                <option value="bundles">Bundles</option>
+                <option value="weeks">Weeks (same bundle)</option>
+                <option value="ranges">Two date ranges</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="analytics-label" for="cmp-factor">Factor</label>
+              <select id="cmp-factor" class="form-select analytics-input">
+                <option value="revenue">Revenue</option>
+                <option value="students">Students</option>
+                <option value="both">Revenue + students</option>
+              </select>
+            </div>
+            <div class="col-md-4" id="cmp-courses-wrap">
+              <label class="analytics-label" for="cmp-courses">Compare courses</label>
+              <select id="cmp-courses" multiple autocomplete="off" placeholder="Pick 2+ courses…"></select>
+            </div>
+            <div class="col-md-4 d-none" id="cmp-bundles-wrap">
+              <label class="analytics-label" for="cmp-bundles">Compare bundles</label>
+              <select id="cmp-bundles" multiple autocomplete="off" placeholder="Pick 2+ bundles…"></select>
+            </div>
+            <div class="col-md-4 d-none" id="cmp-weeks-wrap">
+              <label class="analytics-label" for="cmp-week-bundle">Bundle</label>
+              <select id="cmp-week-bundle" autocomplete="off" placeholder="Select bundle…"></select>
+            </div>
+            <div class="col-md-4 d-none" id="cmp-weeks-input-wrap">
+              <label class="analytics-label" for="cmp-weeks">Week numbers</label>
+              <input type="text" id="cmp-weeks" class="form-control analytics-input" placeholder="e.g. 1, 2, 4">
+            </div>
+            <div class="col-md-3 d-none" id="cmp-rng-b-wrap">
+              <label class="analytics-label" for="cmp-from-b">Range B — from</label>
+              <input type="date" id="cmp-from-b" class="form-control analytics-input">
+            </div>
+            <div class="col-md-3 d-none" id="cmp-rng-b2-wrap">
+              <label class="analytics-label" for="cmp-to-b">Range B — to</label>
+              <input type="date" id="cmp-to-b" class="form-control analytics-input">
+            </div>
+          </div>
+          <button type="button" id="cmp-apply" class="analytics-btn-outline analytics-btn-lg">
+            <i class="fas fa-chart-bar me-2"></i>Update comparison chart
+          </button>
+          <div class="mt-3 analytics-compare-chart-wrap">
+            <canvas id="chart-compare"></canvas>
+          </div>
+        </section>
+
+        <section class="analytics-compare-panel">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+            <h3 class="analytics-section-title mb-0">Weekly breakdown</h3>
+            <div class="analytics-section-export btn-group" role="group" aria-label="Export weekly breakdown">
+              <a href="#" id="wk-xlsx" class="btn btn-sm btn-outline-secondary text-nowrap" title="Excel: totals + per-week rows (uses bundle selected below)"
+                ><i class="fas fa-file-excel me-1"></i>Excel</a
+              >
+              <a href="#" id="wk-pdf" class="btn btn-sm btn-outline-secondary text-nowrap" title="PDF for selected bundle"
+                ><i class="fas fa-file-pdf me-1"></i>PDF</a
+              >
+            </div>
+          </div>
+          <p class="analytics-muted mb-3"><strong>Active (period)</strong> = distinct students with an <strong>active</strong> enrollment whose <strong>start date</strong> falls in the filter range (used with revenue). <strong>On course</strong> = same headcount as the course details page (any status, any enrollment date). Revenue = direct + bundle share + admin-placed. Admin-placed counts only learners without paid access to that course; <strong>in admin-placed</strong> is how many enrollments added that value.</p>
+          <div class="row g-3 align-items-end mb-2">
+            <div class="col-md-5 col-lg-4">
+              <label class="analytics-label" for="wk-bundle">Bundle</label>
+              <select id="wk-bundle" autocomplete="off" placeholder="Search bundle…"></select>
+            </div>
+            <div class="col-md-auto">
+              <button type="button" id="wk-load" class="analytics-btn-primary analytics-btn-lg">
+                <i class="fas fa-calendar-week me-2"></i>Load weeks
+              </button>
+            </div>
+            <div class="col-lg-7 analytics-wk-totals">
+              <div class="analytics-wk-total-line">
+                <span>Total week revenue: <strong id="wk-total-rev">—</strong></span>
+              </div>
+              <div class="analytics-wk-subtotals text-muted small">
+                <span>Direct (course lines): <strong id="wk-total-direct">—</strong></span>
+                <span class="ms-3">Bundle allocation: <strong id="wk-total-alloc">—</strong></span>
+                <span class="ms-3" title="Students enrolled by admin without checkout, valued at list price">Admin-placed: <strong id="wk-total-imputed">—</strong></span>
+              </div>
+            </div>
+          </div>
+          <div class="analytics-weekly-cards" id="wk-cards"></div>
+          <canvas id="chart-weekly-stu" class="mt-3" height="120"></canvas>
+        </section>
+
+        <section class="analytics-demographics-section mb-4">
+          <h3 class="analytics-section-title mb-1">Demographics</h3>
+          <p class="analytics-muted mb-3" id="demo-scope-line"></p>
+          <div class="analytics-chart-grid">
+            <div class="analytics-chart-card">
+              <h3>Grades</h3>
+              <canvas id="chart-grade"></canvas>
+            </div>
+            <div class="analytics-chart-card">
+              <h3>English teachers</h3>
+              <canvas id="chart-teacher"></canvas>
+            </div>
+            <div class="analytics-chart-card">
+              <h3>Schools</h3>
+              <canvas id="chart-school"></canvas>
+            </div>
+            <div class="analytics-chart-card">
+              <h3>Countries</h3>
+              <canvas id="chart-country"></canvas>
+            </div>
+          </div>
+        </section>
+
+        </div>
+
+        <section class="analytics-student-log">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+            <h3 class="analytics-section-title mb-0">Student log</h3>
+            <div class="analytics-section-export btn-group" role="group" aria-label="Export search results">
+              <a href="#" id="stu-xlsx" class="btn btn-sm btn-outline-secondary text-nowrap" title="Excel: uses the same search text as the box below (min 2 characters)"
+                ><i class="fas fa-file-excel me-1"></i>Excel</a
+              >
+              <a href="#" id="stu-pdf" class="btn btn-sm btn-outline-secondary text-nowrap" title="PDF listing from current search"
+                ><i class="fas fa-file-pdf me-1"></i>PDF</a
+              >
+            </div>
+          </div>
+          <p class="analytics-muted mb-3">Search by name or code; open a row for payments, enrollments, and progress. Exports use the <strong>current search text</strong> (not the open detail panel).</p>
+          <div class="row g-3">
+            <div class="col-lg-5">
+              <label class="analytics-label" for="stu-q">Search</label>
+              <div class="input-group">
+                <span class="input-group-text analytics-input-group-text"><i class="fas fa-search"></i></span>
+                <input type="search" id="stu-q" class="form-control analytics-input" placeholder="Name or student code (min 2 characters)">
+              </div>
+            </div>
+            <div class="col-lg-7">
+              <label class="analytics-label">Results</label>
+              <div id="stu-results-wrap" class="analytics-table-wrap">
+                <div id="stu-results-empty" class="analytics-table-empty text-muted small">Type to search…</div>
+                <div id="stu-results" class="table-responsive d-none"></div>
+              </div>
+            </div>
+          </div>
+          <div id="stu-detail" class="analytics-student-detail d-none"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  const BUNDLES = <%- bundlesJson %>;
+  const COURSES = <%- coursesJson %>;
+
+  const chartColors = ['#b80101', '#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#4b5563'];
+
+  let charts = {};
+  let tsBundles;
+  let tsCourses;
+  let tsCmpCourses;
+  let tsCmpBundles;
+  let tsCmpWeekBundle;
+  let tsWkBundle;
+  let analyticsLoadGen = 0;
+
+  function buildAnalyticsSearchParams() {
+    const { from, to, bundleIds, courseIds } = filterParams();
+    const p = new URLSearchParams({ from, to });
+    bundleIds.forEach((id) => p.append('bundleIds', id));
+    courseIds.forEach((id) => p.append('courseIds', id));
+    return p;
+  }
+
+  function setDashboardLoading(loading) {
+    const shell = document.getElementById('analytics-dashboard-body');
+    const statusEl = document.getElementById('analytics-loader-status');
+    if (!shell) return;
+    shell.classList.toggle('analytics-dashboard-body--loading', !!loading);
+    shell.setAttribute('aria-busy', loading ? 'true' : 'false');
+    if (statusEl) statusEl.textContent = loading ? 'Loading analytics…' : 'Analytics loaded';
+  }
+
+  function money(n) {
+    if (n == null || isNaN(n)) return '—';
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n) + ' EGP';
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function tsMultiValues(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.tomselect) return [];
+    const v = el.tomselect.getValue();
+    return Array.isArray(v) ? v.filter(Boolean) : v ? [v] : [];
+  }
+
+  function tsSingleValue(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.tomselect) return el ? el.value : '';
+    const v = el.tomselect.getValue();
+    if (Array.isArray(v)) return v[0] || '';
+    return v || '';
+  }
+
+  const tsMultiDefaults = {
+    plugins: ['remove_button'],
+    maxOptions: null,
+    hideSelected: true,
+    create: false,
+    render: {
+      option: function (data, escape) {
+        return '<div class="analytics-ts-option">' + escape(data.text) + '</div>';
+      },
+      item: function (data, escape) {
+        return '<div class="analytics-ts-item">' + escape(data.text) + '</div>';
+      },
+    },
+  };
+
+  function filterParams() {
+    const from = document.getElementById('af-from').value;
+    const to = document.getElementById('af-to').value;
+    return { from, to, bundleIds: tsMultiValues('af-bundles'), courseIds: tsMultiValues('af-courses') };
+  }
+
+  function exportHref(kind) {
+    const { from, to, bundleIds, courseIds } = filterParams();
+    const p = new URLSearchParams({ from, to });
+    bundleIds.forEach((id) => p.append('bundleIds', id));
+    courseIds.forEach((id) => p.append('courseIds', id));
+    return kind === 'xlsx' ? '/admin/analytics/export.xlsx?' + p : '/admin/analytics/export.pdf?' + p;
+  }
+
+  function buildCompareExportQuery() {
+    const { from, to, bundleIds, courseIds } = filterParams();
+    const p = new URLSearchParams({ from, to });
+    bundleIds.forEach((id) => p.append('bundleIds', id));
+    courseIds.forEach((id) => p.append('courseIds', id));
+    p.set('compare', document.getElementById('cmp-mode').value);
+    p.set('factor', document.getElementById('cmp-factor').value);
+    const mode = document.getElementById('cmp-mode').value;
+    if (mode === 'courses') {
+      tsMultiValues('cmp-courses').forEach((id) => p.append('compareCourseIds', id));
+    } else if (mode === 'bundles') {
+      tsMultiValues('cmp-bundles').forEach((id) => p.append('compareBundleIds', id));
+    } else if (mode === 'weeks') {
+      p.set('weekBundleId', tsSingleValue('cmp-week-bundle'));
+      document
+        .getElementById('cmp-weeks')
+        .value.split(/[\s,]+/)
+        .forEach((w) => {
+          if (w) p.append('weeks', w);
+        });
+    } else if (mode === 'ranges') {
+      p.set('fromA', document.getElementById('af-from').value);
+      p.set('toA', document.getElementById('af-to').value);
+      p.set('fromB', document.getElementById('cmp-from-b').value);
+      p.set('toB', document.getElementById('cmp-to-b').value);
+    }
+    return p;
+  }
+
+  function buildWeeklyExportQuery() {
+    const p = buildAnalyticsSearchParams();
+    const bid = tsSingleValue('wk-bundle');
+    if (!bid) return null;
+    p.set('bundleId', bid);
+    return p;
+  }
+
+  function buildStudentExportQuery() {
+    const q = document.getElementById('stu-q').value.trim();
+    if (q.length < 2) return null;
+    return new URLSearchParams({ q });
+  }
+
+  function destroyChart(id) {
+    if (charts[id]) {
+      charts[id].destroy();
+      delete charts[id];
+    }
+  }
+
+  function doughnut(id, labels, data) {
+    destroyChart(id);
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+
+    const pairs = [];
+    (labels || []).forEach((l, i) => {
+      const v = Number(data[i]) || 0;
+      if (v > 0) pairs.push({ label: l || 'Unknown', value: v });
+    });
+    const sum = pairs.reduce((a, p) => a + p.value, 0);
+
+    if (!pairs.length || sum <= 0) {
+      charts[id] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['No data in this range'],
+          datasets: [
+            {
+              data: [1],
+              backgroundColor: ['#e2e8f0'],
+              borderWidth: 0,
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          },
+          maintainAspectRatio: true,
+        },
+      });
+      return;
+    }
+
+    const pctLabels = pairs.map((p) => {
+      const pct = Math.round((p.value / sum) * 100);
+      return p.label + ' · ' + pct + '%';
+    });
+
+    charts[id] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: pctLabels,
+        datasets: [
+          {
+            data: pairs.map((p) => p.value),
+            backgroundColor: pairs.map((_, i) => chartColors[i % chartColors.length]),
+            borderWidth: 2,
+            borderColor: '#ffffff',
+          },
+        ],
+      },
+      options: {
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+          tooltip: {
+            callbacks: {
+              label: function (c) {
+                const raw = pairs[c.dataIndex];
+                return raw ? raw.label + ': ' + raw.value + ' (' + Math.round((raw.value / sum) * 100) + '%)' : '';
+              },
+            },
+          },
+        },
+        maintainAspectRatio: true,
+      },
+    });
+  }
+
+  function barChart(id, labels, values, yLabel) {
+    destroyChart(id);
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    charts[id] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: yLabel,
+            data: values,
+            backgroundColor: labels.map((_, i) => chartColors[i % chartColors.length]),
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const v = ctx.parsed.y;
+                if (yLabel === 'EGP' || String(yLabel).includes('EGP')) return money(v);
+                return (ctx.dataset.label || '') + ': ' + v;
+              },
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { maxRotation: 40, minRotation: 0, autoSkip: false } },
+          y: { beginAtZero: true },
+        },
+      },
+    });
+  }
+
+  function compareBarChartDual(id, labels, revenueValues, studentValues) {
+    destroyChart(id);
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    const shortLabels = labels.map((t) => {
+      const s = String(t || '');
+      return s.length > 32 ? s.slice(0, 30) + '…' : s;
+    });
+    charts[id] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: shortLabels,
+        datasets: [
+          {
+            label: 'Students',
+            data: studentValues,
+            backgroundColor: 'rgba(37, 99, 235, 0.85)',
+            borderColor: '#2563eb',
+            borderWidth: 1,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Revenue (EGP)',
+            data: revenueValues,
+            backgroundColor: 'rgba(184, 1, 1, 0.85)',
+            borderColor: '#b80101',
+            borderWidth: 1,
+            yAxisID: 'y1',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: function (c) {
+                const v = c.parsed.y;
+                if (c.dataset.label === 'Revenue (EGP)') return c.dataset.label + ': ' + money(v);
+                return c.dataset.label + ': ' + v;
+              },
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { maxRotation: 45, minRotation: 0, autoSkip: false } },
+          y: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Students' },
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Revenue (EGP)' },
+          },
+        },
+      },
+    });
+  }
+
+  async function loadWeeklyTrend() {
+    const p = buildAnalyticsSearchParams();
+    const desc = document.getElementById('weekly-trend-desc');
+    const { bundleIds, courseIds } = filterParams();
+    const filtered = bundleIds.length > 0 || courseIds.length > 0;
+    if (desc) {
+      desc.textContent = filtered
+        ? 'Paid checkout for the selected bundle(s) and/or course(s) only, by calendar week (ISO). Admin-placed revenue is not tied to a payment date, so it appears in weekly bundle breakdown and totals, not here.'
+        : 'Paid checkout only, by calendar week (ISO). Admin-placed revenue is not tied to a payment date, so it appears in weekly bundle breakdown and totals, not here.';
+    }
+    const res = await fetch('/admin/analytics/api/weekly-trend?' + p);
+    const json = await res.json();
+    if (!json.success) return;
+    const pts = json.data.points || [];
+    destroyChart('chart-weekly-trend');
+    const ctx = document.getElementById('chart-weekly-trend');
+    if (!ctx) return;
+    if (!pts.length) {
+      charts['chart-weekly-trend'] = new Chart(ctx, {
+        type: 'line',
+        data: { labels: ['—'], datasets: [{ data: [0], borderColor: '#cbd5e1' }] },
+        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false },
+      });
+      return;
+    }
+    charts['chart-weekly-trend'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: pts.map((x) => x.label),
+        datasets: [
+          {
+            label: 'Revenue (EGP)',
+            data: pts.map((x) => x.revenue),
+            borderColor: '#b80101',
+            backgroundColor: 'rgba(184, 1, 1, 0.08)',
+            fill: true,
+            tension: 0.25,
+            pointRadius: 3,
+            pointBackgroundColor: '#b80101',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true },
+          tooltip: {
+            callbacks: {
+              label: function (c) {
+                return 'Revenue: ' + money(c.parsed.y);
+              },
+            },
+          },
+        },
+        scales: {
+          y: { beginAtZero: true },
+          x: { ticks: { maxRotation: 45 } },
+        },
+      },
+    });
+  }
+
+  function applySummary(json) {
+    if (!json || !json.success) return false;
+    const d = json.data;
+    document.getElementById('kpi-total-rev').textContent = money(d.totalRevenue);
+    const hintEl = document.getElementById('kpi-total-rev-hint');
+    if (hintEl) {
+      hintEl.textContent = d.revenueIsScoped ? '(filtered)' : '(platform)';
+    }
+    const foot = document.getElementById('kpi-rev-footnote');
+    if (foot) {
+      const parts = [];
+      const adminPl = d.adminPlacedRevenue ?? d.imputedRevenue;
+      if (d.revenueIsScoped) {
+        parts.push(
+          'Figures above are limited to the selected bundle(s) and/or course(s) in this date range. ' +
+            'Total = paid checkout ' +
+            money(d.cashRevenue) +
+            ' + admin-placed ' +
+            money(adminPl) +
+            ' (admin enrollments without payment, at list price).',
+        );
+        if (d.platformTotalRevenue != null) {
+          const pc = d.platformCashRevenue;
+          const pa = d.platformAdminPlacedRevenue;
+          parts.push(
+            'Platform reference (unfiltered): ' +
+              money(d.platformTotalRevenue) +
+              ' total (' +
+              money(pc) +
+              ' paid checkout + ' +
+              money(pa) +
+              ' admin-placed).',
+          );
+        }
+      } else if (d.cashRevenue != null && adminPl != null) {
+        parts.push(
+          'Platform total = paid checkout ' +
+            money(d.cashRevenue) +
+            ' + admin-placed ' +
+            money(adminPl) +
+            ' (students added by admin without payment, at list price).',
+        );
+      }
+      parts.push(
+        'SAT / EST / other amounts include paid lines for that test type in this view, plus admin-placed where applicable.',
+      );
+      parts.push(
+        'SAT and EST student counts can overlap (one learner in both); “All students” is unique headcount.',
+      );
+      if (d.revenueTypesMatchTotal === false && d.testTypeRevenueSum != null) {
+        parts.push(
+          'Note: sum of test-type revenue (' +
+            money(d.testTypeRevenueSum) +
+            ') differs slightly from total — check rounding or data.',
+        );
+      }
+      foot.textContent = parts.join(' ');
+    }
+    const wrap = document.getElementById('kpi-scoped-rev-wrap');
+    const scopedLine = document.getElementById('kpi-scoped-rev');
+    if (d.revenueIsScoped && d.platformTotalRevenue != null && scopedLine && wrap) {
+      wrap.classList.remove('d-none');
+      scopedLine.textContent =
+        'Platform reference: ' +
+        money(d.platformTotalRevenue) +
+        ' · paid ' +
+        money(d.platformCashRevenue) +
+        ' + admin-placed ' +
+        money(d.platformAdminPlacedRevenue);
+    } else if (wrap) {
+      wrap.classList.add('d-none');
+    }
+    document.getElementById('kpi-students').textContent = d.totalStudents;
+    const tt = d.testTypeRevenue || {};
+    document.getElementById('kpi-rev-sat').textContent = money(tt.SAT);
+    document.getElementById('kpi-rev-est').textContent = money(tt.EST);
+    const stt = d.studentsByTestType || {};
+    document.getElementById('kpi-stu-sat').textContent =
+      stt.SAT != null ? String(stt.SAT) : '—';
+    document.getElementById('kpi-stu-est').textContent =
+      stt.EST != null ? String(stt.EST) : '—';
+    const otherRev = Object.entries(tt).filter(([k]) => k !== 'SAT' && k !== 'EST');
+    const elOther = document.getElementById('kpi-other-types');
+    if (otherRev.length) {
+      elOther.textContent = otherRev.map(([k, v]) => k + ': ' + money(v)).join(' · ');
+      elOther.setAttribute('title', elOther.textContent);
+    } else {
+      elOther.textContent = '';
+      elOther.removeAttribute('title');
+    }
+    return true;
+  }
+
+  function applyDistributionData(json, sum) {
+    if (!json || !json.success || !sum || !sum.success) return;
+    const x = json.data;
+    const testTypeRev = sum.data.testTypeRevenue || {};
+    barChart(
+      'chart-rev-testtype',
+      Object.keys(testTypeRev),
+      Object.values(testTypeRev),
+      'EGP',
+    );
+    doughnut(
+      'chart-stu-bundle',
+      (x.studentsByBundle || []).map((r) => r.label),
+      (x.studentsByBundle || []).map((r) => r.count),
+    );
+    doughnut(
+      'chart-rev-bundle',
+      (x.revenueByBundle || []).map((r) => r.label),
+      (x.revenueByBundle || []).map((r) => r.revenue),
+    );
+    doughnut(
+      'chart-rev-course',
+      (x.revenueByCourse || []).map((r) => r.label),
+      (x.revenueByCourse || []).map((r) => r.revenue),
+    );
+    comboRevStudentsChart(x.studentsByBundle, x.revenueByBundle);
+  }
+
+  async function refreshDashboardData() {
+    const myGen = ++analyticsLoadGen;
+    setDashboardLoading(true);
+    const applyBtn = document.getElementById('af-apply');
+    if (applyBtn) applyBtn.disabled = true;
+    try {
+      const p = buildAnalyticsSearchParams();
+      const [sumRes, distRes] = await Promise.all([
+        fetch('/admin/analytics/api/summary?' + p),
+        fetch('/admin/analytics/api/distributions?' + p),
+      ]);
+      const sumJson = await sumRes.json();
+      const distJson = await distRes.json();
+      applySummary(sumJson);
+      applyDistributionData(distJson, sumJson);
+      await Promise.all([loadDemographics(), loadCompare(), loadWeeklyTrend()]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (myGen === analyticsLoadGen) {
+        setDashboardLoading(false);
+        if (applyBtn) applyBtn.disabled = false;
+      }
+    }
+  }
+
+  function comboRevStudentsChart(studentsByBundle, revenueByBundle) {
+    const revMap = Object.fromEntries((revenueByBundle || []).map((r) => [r.id, r.revenue]));
+    const bundles = studentsByBundle || [];
+    if (!bundles.length) {
+      destroyChart('chart-rev-vs-stu');
+      return;
+    }
+    const labels = bundles.map((b) => {
+      const t = b.label || '';
+      return t.length > 32 ? t.slice(0, 30) + '…' : t;
+    });
+    const stuData = bundles.map((b) => b.count);
+    const revData = bundles.map((b) => revMap[b.id] || 0);
+    destroyChart('chart-rev-vs-stu');
+    const ctx = document.getElementById('chart-rev-vs-stu');
+    if (!ctx) return;
+    charts['chart-rev-vs-stu'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Students',
+            data: stuData,
+            backgroundColor: 'rgba(37, 99, 235, 0.85)',
+            borderColor: '#2563eb',
+            borderWidth: 1,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Revenue (EGP)',
+            data: revData,
+            backgroundColor: 'rgba(184, 1, 1, 0.85)',
+            borderColor: '#b80101',
+            borderWidth: 1,
+            yAxisID: 'y1',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const v = ctx.parsed.y;
+                if (ctx.dataset.label === 'Revenue (EGP)')
+                  return ctx.dataset.label + ': ' + money(v);
+                return ctx.dataset.label + ': ' + v;
+              },
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { maxRotation: 45, minRotation: 0 } },
+          y: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Students' },
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Revenue (EGP)' },
+          },
+        },
+      },
+    });
+  }
+
+  async function loadDemographics() {
+    const { bundleIds, courseIds } = filterParams();
+    const p = new URLSearchParams();
+    bundleIds.forEach((id) => p.append('bundleIds', id));
+    courseIds.forEach((id) => p.append('courseIds', id));
+    const res = await fetch('/admin/analytics/api/demographics?' + p);
+    const json = await res.json();
+    const line = document.getElementById('demo-scope-line');
+    if (!json.success) {
+      if (line) line.textContent = 'Could not load demographics.';
+      return;
+    }
+    const d = json.data;
+    if (line) {
+      let t = d.scopeDescription || '';
+      if (d.message) t = (t ? t + ' — ' : '') + d.message;
+      line.textContent = t || '';
+    }
+    doughnut('chart-grade', (d.grades || []).map((g) => g.label), (d.grades || []).map((g) => g.count));
+    doughnut('chart-teacher', (d.teachers || []).map((g) => g.label), (d.teachers || []).map((g) => g.count));
+    doughnut('chart-school', (d.schools || []).map((g) => g.label), (d.schools || []).map((g) => g.count));
+    doughnut('chart-country', (d.countries || []).map((g) => g.label), (d.countries || []).map((g) => g.count));
+  }
+
+  async function loadCompare() {
+    const statusEl = document.getElementById('cmp-status');
+    statusEl.classList.add('d-none');
+    statusEl.textContent = '';
+
+    const { from, to, bundleIds, courseIds } = filterParams();
+    const mode = document.getElementById('cmp-mode').value;
+    const factor = document.getElementById('cmp-factor').value;
+    const p = new URLSearchParams({ from, to, compare: mode, factor });
+    bundleIds.forEach((id) => p.append('bundleIds', id));
+    courseIds.forEach((id) => p.append('courseIds', id));
+    if (mode === 'courses') {
+      tsMultiValues('cmp-courses').forEach((id) => p.append('compareCourseIds', id));
+    }
+    if (mode === 'bundles') {
+      tsMultiValues('cmp-bundles').forEach((id) => p.append('compareBundleIds', id));
+    }
+    if (mode === 'weeks') {
+      p.set('weekBundleId', tsSingleValue('cmp-week-bundle'));
+      document.getElementById('cmp-weeks').value.split(/[\s,]+/).forEach((w) => {
+        if (w) p.append('weeks', w);
+      });
+    }
+    if (mode === 'ranges') {
+      p.set('fromA', document.getElementById('af-from').value);
+      p.set('toA', document.getElementById('af-to').value);
+      p.set('fromB', document.getElementById('cmp-from-b').value);
+      p.set('toB', document.getElementById('cmp-to-b').value);
+    }
+    const res = await fetch('/admin/analytics/api/compare?' + p);
+    const json = await res.json();
+    if (!json.success) {
+      statusEl.textContent = json.message || 'Comparison failed.';
+      statusEl.classList.remove('d-none');
+      destroyChart('chart-compare');
+      return;
+    }
+    const d = json.data;
+    let labels = d.labels || [];
+    let values = d.values;
+
+    if (factor === 'both') {
+      const rev = d.valuesRevenue || [];
+      const stu = d.valuesStudents || [];
+      if (mode === 'ranges' && (!labels || !labels.length)) {
+        labels = ['Range A', 'Range B'];
+      }
+      const baseLabels = labels || [];
+      const len = Math.max(baseLabels.length, rev.length, stu.length);
+      const revPad = Array.from({ length: len }, (_, i) => Number(rev[i]) || 0);
+      const stuPad = Array.from({ length: len }, (_, i) => Number(stu[i]) || 0);
+      const lbl = Array.from({ length: len }, (_, i) => baseLabels[i] || '—');
+      const hasData =
+        len > 0 && (revPad.some((v) => v > 0) || stuPad.some((v) => v > 0));
+      if (!hasData) {
+        statusEl.textContent =
+          d.hint || 'Nothing to compare yet — check your selections or date range.';
+        statusEl.classList.remove('d-none');
+        destroyChart('chart-compare');
+        return;
+      }
+      statusEl.classList.add('d-none');
+      compareBarChartDual('chart-compare', lbl, revPad, stuPad);
+      return;
+    }
+
+    if (mode === 'ranges') {
+      labels = ['Range A', 'Range B'];
+      values = factor === 'students' ? d.totalStudents : d.totalRevenue;
+    }
+    const vals = values || [];
+    const hasData = vals.length > 0 && vals.some((v) => Number(v) > 0);
+    if (!hasData) {
+      statusEl.textContent =
+        d.hint || 'Nothing to compare yet — check your selections or date range.';
+      statusEl.classList.remove('d-none');
+      destroyChart('chart-compare');
+      return;
+    }
+    statusEl.classList.add('d-none');
+    barChart('chart-compare', labels, vals, factor === 'students' ? 'Students' : 'EGP');
+  }
+
+  async function loadWeekly() {
+    const bundleId = tsSingleValue('wk-bundle');
+    if (!bundleId) return;
+    const { from, to } = filterParams();
+    const p = new URLSearchParams({ from, to, bundleId });
+    const res = await fetch('/admin/analytics/api/weekly?' + p);
+    const json = await res.json();
+    if (!json.success) return;
+    const rows = json.data.rows || [];
+    const tr = json.data.totalRevenue ?? json.data.totalCourseRevenue ?? 0;
+    document.getElementById('wk-total-rev').textContent = money(tr);
+    document.getElementById('wk-total-direct').textContent = money(json.data.totalDirect ?? 0);
+    document.getElementById('wk-total-alloc').textContent = money(json.data.totalAllocated ?? 0);
+    const wkImp = document.getElementById('wk-total-imputed');
+    if (wkImp) wkImp.textContent = money(json.data.totalAdminPlaced ?? json.data.totalImputed ?? 0);
+    const host = document.getElementById('wk-cards');
+    host.innerHTML = '';
+    rows.forEach((r) => {
+      const el = document.createElement('div');
+      el.className = 'analytics-week-pill';
+      const sub = escapeHtml(r.displayTitle || r.title || '');
+      el.innerHTML =
+        '<strong>Week ' +
+        (r.weekNumber ?? '?') +
+        '</strong>' +
+        (sub ? '<div class="analytics-week-pill-subtitle">' + sub + '</div>' : '') +
+        '<div class="analytics-week-metrics"><span>' +
+        r.studentCount +
+        ' enrolled (period, any status)' +
+        (r.adminPlacedEnrollmentCount != null
+          ? ' · ' + r.adminPlacedEnrollmentCount + ' in admin-placed'
+          : '') +
+        '</span><span class="analytics-week-rev-total">' +
+        money(r.revenue) +
+        '</span></div>' +
+        '<div class="analytics-week-split small text-muted">Direct ' +
+        money(r.revenueDirect) +
+        ' · Bundle share ' +
+        money(r.revenueAllocated) +
+        ' · Admin-placed ' +
+        money(r.revenueAdminPlaced ?? r.revenueImputed ?? 0) +
+        '</div>';
+      host.appendChild(el);
+    });
+    destroyChart('chart-weekly-stu');
+    const ctx = document.getElementById('chart-weekly-stu');
+    charts['chart-weekly-stu'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: rows.map((r) => 'W' + (r.weekNumber ?? '?')),
+        datasets: [
+          {
+            label: 'Enrolled (period)',
+            data: rows.map((r) => r.studentCount),
+            backgroundColor: chartColors[1],
+          },
+          {
+            label: 'Revenue (paid + admin-placed)',
+            data: rows.map((r) => r.revenue),
+            backgroundColor: chartColors[0],
+            yAxisID: 'y1',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: function (items) {
+                const idx = items && items.length ? items[0].dataIndex : -1;
+                if (idx < 0) return '';
+                const row = rows[idx];
+                return (row && (row.displayTitle || row.title)) || '';
+              },
+            },
+          },
+        },
+        scales: {
+          y: { beginAtZero: true, position: 'left' },
+          y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } },
+        },
+      },
+    });
+  }
+
+  let searchTimer;
+  document.getElementById('stu-q').addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    const q = this.value.trim();
+    searchTimer = setTimeout(async () => {
+      const box = document.getElementById('stu-results');
+      const emptyEl = document.getElementById('stu-results-empty');
+      box.innerHTML = '';
+      if (q.length < 2) {
+        box.classList.add('d-none');
+        emptyEl.classList.remove('d-none');
+        emptyEl.textContent = 'Type at least 2 characters…';
+        return;
+      }
+      const res = await fetch('/admin/analytics/api/students/search?q=' + encodeURIComponent(q));
+      const json = await res.json();
+      if (!json.success) return;
+      if (!json.data.length) {
+        box.classList.add('d-none');
+        emptyEl.classList.remove('d-none');
+        emptyEl.textContent = 'No matches.';
+        return;
+      }
+      emptyEl.classList.add('d-none');
+      box.classList.remove('d-none');
+      let html =
+        '<table class="table table-hover table-sm align-middle analytics-stu-table mb-0"><thead><tr><th>Name</th><th>Code</th><th class="text-end">Details</th></tr></thead><tbody>';
+      json.data.forEach((u) => {
+        const id = u._id;
+        html +=
+          '<tr><td>' +
+          escapeHtml(u.firstName + ' ' + u.lastName) +
+          '</td><td><code class="analytics-code">' +
+          escapeHtml(u.studentCode) +
+          '</code></td><td class="text-end"><button type="button" class="btn btn-sm analytics-btn-view" data-stu-id="' +
+          escapeHtml(String(id)) +
+          '">View</button></td></tr>';
+      });
+      html += '</tbody></table>';
+      box.innerHTML = html;
+      box.querySelectorAll('[data-stu-id]').forEach((btn) => {
+        btn.addEventListener('click', () => loadStudent(btn.getAttribute('data-stu-id')));
+      });
+    }, 320);
+  });
+
+  function stuLineTypeLabel(t) {
+    if (!t) return '';
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
+  async function loadStudent(id) {
+    const { from, to } = filterParams();
+    const p = new URLSearchParams({ from, to });
+    const res = await fetch('/admin/analytics/api/students/' + id + '?' + p);
+    const json = await res.json();
+    const panel = document.getElementById('stu-detail');
+    if (!json.success) {
+      panel.classList.add('d-none');
+      return;
+    }
+    const d = json.data;
+    const pr = d.profile;
+    const activeBadge = pr.isActive
+      ? '<span class="analytics-stu-badge analytics-stu-badge--ok">Active</span>'
+      : '<span class="analytics-stu-badge analytics-stu-badge--muted">Inactive</span>';
+
+    let html = '<div class="analytics-stu-pro">';
+    html += '<div class="analytics-stu-pro-head">';
+    html += '<div>';
+    html +=
+      '<div class="analytics-stu-pro-name">' +
+      escapeHtml(pr.firstName + ' ' + pr.lastName) +
+      ' <span class="analytics-stu-code">#' +
+      escapeHtml(String(pr.studentCode)) +
+      '</span></div>';
+    html +=
+      '<div class="analytics-stu-pro-meta">' +
+      escapeHtml(pr.studentEmail || '') +
+      (pr.grade ? ' · ' + escapeHtml(pr.grade) : '') +
+      (pr.studentCountryCode ? ' · ' + escapeHtml(pr.studentCountryCode) : '') +
+      '</div>';
+    html += '<div class="analytics-stu-pro-signed">Signed up ' + new Date(pr.createdAt).toLocaleString() + '</div>';
+    html += '</div><div class="analytics-stu-pro-head-actions">' + activeBadge + '</div></div>';
+
+    if (d.showPaymentExplainer) {
+      html +=
+        '<div class="analytics-stu-callout analytics-stu-callout--compact">' +
+        '<strong>How to read orders:</strong> List = catalog list price before promo. Paid share = amount attributed to each course or bundle line (promos scale those lines so they match what applies to learning items on the order).</div>';
+    }
+
+    html += '<div class="analytics-stu-kpi-row">';
+    html +=
+      '<div class="analytics-stu-kpi"><div class="analytics-stu-kpi-label">Total charged</div><div class="analytics-stu-kpi-value">' +
+      money(d.totalPaid) +
+      '</div><div class="analytics-stu-kpi-hint">Courses & bundles only, in date range</div></div>';
+    html +=
+      '<div class="analytics-stu-kpi"><div class="analytics-stu-kpi-label">Orders</div><div class="analytics-stu-kpi-value">' +
+      (d.orderCount != null ? d.orderCount : (d.ordersDetail || d.purchases || []).length) +
+      '</div></div>';
+    if (d.sumCatalogLineList != null && Math.abs(Number(d.sumCatalogLineList) - Number(d.totalPaid)) > 0.5) {
+      html +=
+        '<div class="analytics-stu-kpi"><div class="analytics-stu-kpi-label">Sum of list (courses/bundles)</div><div class="analytics-stu-kpi-value analytics-stu-kpi-value--muted">' +
+        money(d.sumCatalogLineList) +
+        '</div><div class="analytics-stu-kpi-hint">Sum of list prices for shown lines; before promo scaling</div></div>';
+    }
+    if (d.adminPlacedValueInPeriodTotal != null && Number(d.adminPlacedValueInPeriodTotal) > 0) {
+      html +=
+        '<div class="analytics-stu-kpi"><div class="analytics-stu-kpi-label">Period unpaid</div><div class="analytics-stu-kpi-value">' +
+        money(d.adminPlacedValueInPeriodTotal) +
+        '</div><div class="analytics-stu-kpi-hint">Enrollments that <strong>started</strong> in this date range, after paid share</div></div>';
+    }
+    html += '</div>';
+
+    const orders = d.ordersDetail || [];
+    if (orders.length) {
+      html += '<h5 class="analytics-stu-sec-title">Paid checkout</h5>';
+      orders.forEach((ord) => {
+        html += '<div class="analytics-stu-order">';
+        html +=
+          '<div class="analytics-stu-order-bar"><span class="analytics-stu-order-num">' +
+          escapeHtml(String(ord.orderNumber || '—')) +
+          '</span>';
+        html += '<span class="analytics-stu-order-date">' + new Date(ord.createdAt).toLocaleString() + '</span>';
+        html += '<span class="analytics-stu-order-total">' + money(ord.chargedTotal) + '</span></div>';
+        if (ord.discountAmount > 0 || ord.promoCodeUsed) {
+          html +=
+            '<div class="analytics-stu-order-promo small text-muted">Promo' +
+            (ord.promoCodeUsed ? ': ' + escapeHtml(ord.promoCodeUsed) : '') +
+            (ord.discountAmount > 0 ? ' · −' + new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(ord.discountAmount) + ' EGP' : '') +
+            '</div>';
+        }
+        html +=
+          '<table class="table table-sm analytics-stu-lines mb-0"><thead><tr><th>Item</th><th class="text-end">List</th><th class="text-end">Paid share</th></tr></thead><tbody>';
+        ord.lines.forEach((ln) => {
+          html +=
+            '<tr><td>' +
+            escapeHtml(ln.title) +
+            ' <span class="text-muted small">' +
+            escapeHtml(stuLineTypeLabel(ln.itemType)) +
+            '</span></td><td class="text-end">' +
+            money(ln.listPrice) +
+            '</td><td class="text-end fw-semibold">' +
+            money(ln.netPaid) +
+            '</td></tr>';
+        });
+        html +=
+          '<tr class="analytics-stu-lines-total"><td colspan="2" class="text-end">Charged total</td><td class="text-end">' +
+          money(ord.chargedTotal) +
+          '</td></tr>';
+        html += '</tbody></table></div>';
+      });
+    } else {
+      html += '<p class="analytics-muted small mb-3">No completed paid orders in this date range.</p>';
+    }
+
+    const apLines = d.adminPlacedLinesInPeriod || [];
+    if (apLines.length) {
+      html += '<h5 class="analytics-stu-sec-title mt-4">Unpaid in this period</h5>';
+      html +=
+        '<p class="analytics-muted small mb-2">Enrollments that <strong>started</strong> in the date range with unpaid catalog value left after paid checkout is applied.</p>';
+      html +=
+        '<div class="table-responsive"><table class="table table-sm analytics-stu-lines mb-0"><thead><tr><th>Course</th><th class="text-end">Amount</th></tr></thead><tbody>';
+      apLines.forEach((ln) => {
+        html +=
+          '<tr><td>' +
+          escapeHtml(ln.title || '') +
+          '</td><td class="text-end fw-semibold">' +
+          money(ln.amount) +
+          '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    const adminA = d.adminPlacedAccess || [];
+    if (adminA.length) {
+      html += '<h5 class="analytics-stu-sec-title mt-4">Staff-added access</h5>';
+      html +=
+        '<p class="analytics-muted small mb-2">ADMIN/BULK enrollments on this student’s profile.</p>';
+      html +=
+        '<div class="table-responsive"><table class="table table-sm analytics-stu-lines mb-0"><thead><tr><th>Type</th><th>Title</th><th>Order</th><th class="text-end">List value</th><th>Since</th></tr></thead><tbody>';
+      adminA.forEach((a) => {
+        html +=
+          '<tr><td>' +
+          escapeHtml(a.kind) +
+          '</td><td>' +
+          escapeHtml(a.title) +
+          (a.bundleTitle ? '<div class="small text-muted">' + escapeHtml(a.bundleTitle) + '</div>' : '') +
+          '</td><td><code class="analytics-code">' +
+          escapeHtml(String(a.orderNumber)) +
+          '</code></td><td class="text-end">' +
+          money(a.listPrice) +
+          '</td><td class="small text-nowrap">' +
+          new Date(a.purchasedAt).toLocaleDateString() +
+          '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    html += '<div class="analytics-stu-enroll">';
+    html += '<h5 class="analytics-stu-sec-title mt-4 mb-2">Courses &amp; progress</h5>';
+    html +=
+      '<p class="analytics-stu-enroll-hint">Paid = completed orders in the date range (per-course lines count for that week only; whole-bundle checkouts are split across all courses in the bundle by list price). Unpaid = catalog value still treated as not covered after that paid amount.</p>';
+    html +=
+      '<div class="table-responsive"><table class="table table-hover table-sm align-middle analytics-stu-lines analytics-stu-enroll-table mb-0"><thead><tr><th>Course</th><th>Bundle</th><th class="text-center">Wk</th><th class="text-end">Paid</th><th class="text-end">Unpaid</th><th>Progress</th><th class="text-center">Status</th></tr></thead><tbody>';
+    (d.enrollments || []).forEach((e) => {
+      const pct = Math.min(100, Math.max(0, Number(e.progress) || 0));
+      const paidCell =
+        e.paidInPeriod != null && Number(e.paidInPeriod) > 0 ? money(e.paidInPeriod) : '—';
+      const unpaidCell =
+        e.adminPlacedListValue != null && Number(e.adminPlacedListValue) > 0
+          ? money(e.adminPlacedListValue)
+          : '—';
+      html +=
+        '<tr><td>' +
+        escapeHtml(e.title || '—') +
+        '</td><td class="small text-muted">' +
+        escapeHtml(e.bundleTitle || '—') +
+        '</td><td class="text-center">' +
+        (e.weekNumber != null ? escapeHtml(String(e.weekNumber)) : '—') +
+        '</td><td class="text-end small fw-semibold">' +
+        paidCell +
+        '</td><td class="text-end small">' +
+        unpaidCell +
+        '</td><td style="min-width:148px"><div class="analytics-stu-progress-wrap"><div class="progress analytics-stu-progress" style="height:8px"><div class="progress-bar bg-danger" role="progressbar" style="width:' +
+        pct +
+        '%"></div></div><span class="analytics-stu-progress-pct">' +
+        pct +
+        '%</span></div></td><td class="text-center small">' +
+        escapeHtml(e.status || '—') +
+        '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '</div>';
+
+    html += '</div>';
+    panel.innerHTML = html;
+    panel.classList.remove('d-none');
+  }
+
+  function toggleCompareUI() {
+    const mode = document.getElementById('cmp-mode').value;
+    document.getElementById('cmp-courses-wrap').classList.toggle('d-none', mode !== 'courses');
+    document.getElementById('cmp-bundles-wrap').classList.toggle('d-none', mode !== 'bundles');
+    document.getElementById('cmp-weeks-wrap').classList.toggle('d-none', mode !== 'weeks');
+    document.getElementById('cmp-weeks-input-wrap').classList.toggle('d-none', mode !== 'weeks');
+    const rng = mode === 'ranges';
+    document.getElementById('cmp-rng-b-wrap').classList.toggle('d-none', !rng);
+    document.getElementById('cmp-rng-b2-wrap').classList.toggle('d-none', !rng);
+  }
+
+  document.getElementById('cmp-mode').addEventListener('change', toggleCompareUI);
+
+  document.getElementById('af-apply').addEventListener('click', refreshDashboardData);
+
+  document.getElementById('cmp-apply').addEventListener('click', loadCompare);
+  document.getElementById('wk-load').addEventListener('click', loadWeekly);
+
+  document.getElementById('af-xlsx').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = exportHref('xlsx');
+  });
+  document.getElementById('af-pdf').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = exportHref('pdf');
+  });
+
+  document.getElementById('cmp-xlsx').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = '/admin/analytics/export/compare.xlsx?' + buildCompareExportQuery().toString();
+  });
+  document.getElementById('cmp-pdf').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = '/admin/analytics/export/compare.pdf?' + buildCompareExportQuery().toString();
+  });
+
+  document.getElementById('wk-xlsx').addEventListener('click', (e) => {
+    e.preventDefault();
+    const p = buildWeeklyExportQuery();
+    if (!p) {
+      window.alert('Select a bundle in Weekly breakdown, then export.');
+      return;
+    }
+    window.location.href = '/admin/analytics/export/weekly.xlsx?' + p.toString();
+  });
+  document.getElementById('wk-pdf').addEventListener('click', (e) => {
+    e.preventDefault();
+    const p = buildWeeklyExportQuery();
+    if (!p) {
+      window.alert('Select a bundle in Weekly breakdown, then export.');
+      return;
+    }
+    window.location.href = '/admin/analytics/export/weekly.pdf?' + p.toString();
+  });
+
+  document.getElementById('stu-xlsx').addEventListener('click', (e) => {
+    e.preventDefault();
+    const p = buildStudentExportQuery();
+    if (!p) {
+      window.alert('Type at least 2 characters in Student log search (same as live search).');
+      return;
+    }
+    window.location.href = '/admin/analytics/export/students.xlsx?' + p.toString();
+  });
+  document.getElementById('stu-pdf').addEventListener('click', (e) => {
+    e.preventDefault();
+    const p = buildStudentExportQuery();
+    if (!p) {
+      window.alert('Type at least 2 characters in Student log search (same as live search).');
+      return;
+    }
+    window.location.href = '/admin/analytics/export/students.pdf?' + p.toString();
+  });
+
+  const bundleOptions = BUNDLES.map((b) => ({
+    value: b.id,
+    text: b.title + ' (' + b.testType + ')',
+  }));
+  const courseOptions = COURSES.map((c) => ({
+    value: c.id,
+    text: c.title + (c.bundleTitle ? ' — ' + c.bundleTitle : ''),
+  }));
+  const courseShortOptions = COURSES.map((c) => ({
+    value: c.id,
+    text: c.title + (c.bundleTitle ? ' · ' + c.bundleTitle : ''),
+  }));
+
+  tsBundles = new TomSelect('#af-bundles', {
+    ...tsMultiDefaults,
+    placeholder: 'Search bundles…',
+    options: bundleOptions,
+  });
+  tsCourses = new TomSelect('#af-courses', {
+    ...tsMultiDefaults,
+    placeholder: 'Search courses…',
+    options: courseOptions,
+  });
+  tsCmpCourses = new TomSelect('#cmp-courses', {
+    ...tsMultiDefaults,
+    placeholder: 'Select 2 or more courses…',
+    options: courseShortOptions,
+  });
+  tsCmpBundles = new TomSelect('#cmp-bundles', {
+    ...tsMultiDefaults,
+    placeholder: 'Select 2 or more bundles…',
+    options: bundleOptions,
+  });
+  tsCmpWeekBundle = new TomSelect('#cmp-week-bundle', {
+    maxItems: 1,
+    maxOptions: null,
+    create: false,
+    options: bundleOptions,
+    placeholder: 'Choose bundle…',
+  });
+  tsWkBundle = new TomSelect('#wk-bundle', {
+    maxItems: 1,
+    maxOptions: null,
+    create: false,
+    options: bundleOptions,
+    placeholder: 'Choose bundle for weekly view…',
+  });
+
+  toggleCompareUI();
+  refreshDashboardData();
+})();
+</script>
+
+<%- include('./partials/admin-footer') %>
