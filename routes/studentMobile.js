@@ -90,8 +90,7 @@ router.get('/content/:contentId', mobile.getContentDetails);
 router.post('/content/progress', mobile.updateContentProgress);
 router.get('/debug/progress/:courseId', mobile.debugProgress);
 
-// Content quiz
-router.get('/content/:contentId/quiz', mobile.getContentQuizMeta);
+// Content quiz (open GET /content/:contentId when unlocked — includes quizTake + legacy timing fields)
 router.post('/content/quiz/submit', mobile.submitContentQuiz);
 router.post('/content/quiz/question', mobile.getSecureQuestion);
 router.post('/content/quiz/all-questions', mobile.getSecureAllQuestions);

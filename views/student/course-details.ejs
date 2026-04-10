@@ -22,6 +22,16 @@
     <meta name="theme-color" content="#dc2626">
 </head>
 <body class="<%= theme %>-theme">
+    <% 
+    function displayPercent(raw) {
+      const n = Number(raw);
+      if (Number.isNaN(n) || n < 0) return 0;
+      if (n > 1) return Math.min(100, Math.round(n));
+      if (n > 0 && n < 1) return Math.min(100, Math.round(n * 100));
+      return Math.min(100, Math.round(n));
+    }
+    const courseProgressPct = displayPercent(enrollment && enrollment.progress != null ? enrollment.progress : 0);
+    %>
     <!-- Student Layout -->
     <div class="student-layout">
     <!-- Include Sidebar -->
@@ -70,7 +80,7 @@
                         <div class="col-md-4 text-end">
                             <div class="progress-circle">
                                 <div class="progress-circle-inner">
-                                    <span class="progress-percentage"><%= enrollment.progress || 0 %>%</span>
+                                    <span class="progress-percentage"><%= courseProgressPct %>%</span>
                                 </div>
                             </div>
                             <p class="progress-label">Overall Progress</p>
@@ -144,7 +154,7 @@
                                     <p class="topic-description"><%= topic.description %></p>
                                     <div class="topic-progress">
                                         <div class="progress">
-                                            <div class="progress-bar" style="width: <%= topic.progress %>%"></div>
+                                            <div class="progress-bar" style="width: <%= displayPercent(topic.progress) %>%"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -212,7 +222,7 @@
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: conic-gradient(#4CAF50 0deg, #4CAF50 <%= (enrollment.progress || 0) * 3.6 %>deg, #e0e0e0 <%= (enrollment.progress || 0) * 3.6 %>deg, #e0e0e0 360deg);
+    background: conic-gradient(#4CAF50 0deg, #4CAF50 <%= courseProgressPct * 3.6 %>deg, #e0e0e0 <%= courseProgressPct * 3.6 %>deg, #e0e0e0 360deg);
     display: flex;
     align-items: center;
     justify-content: center;

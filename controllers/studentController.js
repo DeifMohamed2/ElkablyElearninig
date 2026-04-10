@@ -3412,6 +3412,11 @@ const submitContentQuiz = async (req, res) => {
       }
     }
 
+    const resultSettings =
+      contentType === 'quiz'
+        ? contentItem.quizSettings
+        : contentItem.homeworkSettings;
+
     res.json({
       success: true,
       score,
@@ -3425,6 +3430,12 @@ const submitContentQuiz = async (req, res) => {
         ? 'Congratulations! You passed!'
         : 'Keep trying! You can do better next time.',
       clearLocalCache: true,
+      showCorrectAnswers: resultSettings?.showCorrectAnswers !== false,
+      showResults: resultSettings?.showResults !== false,
+      canShowAnswers: passed && resultSettings?.showCorrectAnswers !== false,
+      contentId,
+      courseId,
+      topicId,
     });
   } catch (error) {
     console.error('Submit content quiz error:', error);

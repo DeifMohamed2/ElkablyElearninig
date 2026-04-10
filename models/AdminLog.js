@@ -48,6 +48,7 @@ const AdminLogSchema = new mongoose.Schema(
         'ADD_COURSE_TO_BUNDLE',
         'REMOVE_COURSE_FROM_BUNDLE',
         'REORDER_BUNDLE_COURSES',
+        'UPDATE_STOREFRONT_BUNDLES',
 
         // Student Actions
         'CREATE_STUDENT',

@@ -97,6 +97,8 @@ const {
   getContentDetailsPage,
   getContentDetailsForEdit,
   getBundles,
+  getStorefrontBundles,
+  saveStorefrontBundlesSettings,
   createBundle,
   updateBundle,
   deleteBundle,
@@ -468,6 +470,9 @@ router.post(
 );
 
 // Bundle Course Routes
+router.get('/storefront-bundles', isAdmin, getStorefrontBundles);
+router.post('/storefront-bundles', isAdmin, saveStorefrontBundlesSettings);
+
 router.get('/bundles', isAdmin, getBundles);
 router.post('/bundles/create', isAdmin, createBundle);
 router.get('/bundles/:bundleCode/info', isAdmin, getBundleInfo);

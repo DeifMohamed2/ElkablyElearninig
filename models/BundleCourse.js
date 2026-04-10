@@ -72,6 +72,17 @@ const BundleCourseSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    /** Lower numbers appear first on public course pages and homepage. Ties use newest first. */
+    storefrontOrder: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    /** When false, bundle is hidden from homepage featured rows (still listed on /courses/*). */
+    showOnHomepage: {
+      type: Boolean,
+      default: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Admin',
@@ -224,6 +235,13 @@ BundleCourseSchema.index({ createdBy: 1 });
 BundleCourseSchema.index({ testType: 1 });
 BundleCourseSchema.index({ courseType: 1, testType: 1, subject: 1 });
 BundleCourseSchema.index({ courseType: 1, status: 1, isActive: 1 });
+BundleCourseSchema.index({
+  courseType: 1,
+  status: 1,
+  isActive: 1,
+  storefrontOrder: 1,
+  createdAt: -1,
+});
 // Active bundle listing with date sort
 BundleCourseSchema.index({ isActive: 1, status: 1, createdAt: -1 });
 

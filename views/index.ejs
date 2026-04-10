@@ -2926,6 +2926,85 @@
   </div>
 </section>
 
+<% 
+  const hasHomeFeaturedBundles = (typeof onlineBundles !== 'undefined' && onlineBundles && onlineBundles.length) ||
+    (typeof ongroundBundles !== 'undefined' && ongroundBundles && ongroundBundles.length) ||
+    (typeof recordedBundles !== 'undefined' && recordedBundles && recordedBundles.length) ||
+    (typeof recoveryBundles !== 'undefined' && recoveryBundles && recoveryBundles.length);
+%>
+<% if (hasHomeFeaturedBundles) { %>
+<style>
+  .home-storefront-bundles { padding: 72px 0; background: linear-gradient(180deg, rgba(203,0,0,0.04) 0%, transparent 45%); }
+  .home-storefront-bundles .home-bundle-subtitle { color: var(--text-muted, #6c757d); max-width: 640px; margin: 0 auto 2rem; }
+  .home-bundle-strip-title { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .home-bundle-strip-title i { color: #cb0000; }
+  .home-bundle-scroll { display: flex; gap: 1.25rem; overflow-x: auto; padding-bottom: 0.5rem; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+  .home-bundle-scroll::-webkit-scrollbar { height: 8px; }
+  .home-bundle-scroll::-webkit-scrollbar-thumb { background: rgba(203,0,0,0.35); border-radius: 4px; }
+  .home-bundle-card { flex: 0 0 280px; scroll-snap-align: start; background: var(--card-bg, #fff); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .home-bundle-card:hover { transform: translateY(-4px); box-shadow: 0 14px 40px rgba(203,0,0,0.12); }
+  .home-bundle-card a { text-decoration: none; color: inherit; display: block; height: 100%; }
+  .home-bundle-card-media { position: relative; height: 140px; background: #1a1a1a; }
+  .home-bundle-card-media img { width: 100%; height: 100%; object-fit: cover; }
+  .home-bundle-card-body { padding: 1rem 1.1rem 1.25rem; }
+  .home-bundle-card-body h4 { font-size: 1rem; font-weight: 700; margin: 0 0 0.35rem; line-height: 1.35; }
+  .home-bundle-meta { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: #cb0000; font-weight: 600; margin-bottom: 0.35rem; }
+  .home-bundle-desc { font-size: 0.85rem; color: var(--text-muted, #6c757d); margin: 0 0 0.75rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .home-bundle-price { font-weight: 800; font-size: 1.05rem; }
+  .home-bundle-price .was { text-decoration: line-through; opacity: 0.55; font-weight: 500; font-size: 0.9rem; margin-right: 0.35rem; }
+</style>
+<section class="home-storefront-bundles scroll-reveal" id="featured-bundles" data-aos="fade-up">
+  <div class="container">
+    <div class="section-header-new text-center">
+      <h2 class="section-title-new">Featured <span class="highlight-red">bundles</span></h2>
+      <p class="home-bundle-subtitle">Hand-picked programs from each course type. Order and visibility are managed in the admin under <strong>Homepage &amp; listings</strong>.</p>
+    </div>
+
+    <% const homeBundleSections = [
+      { key: 'online', label: 'Online', icon: 'fa-chalkboard-teacher', list: typeof onlineBundles !== 'undefined' ? onlineBundles : [] },
+      { key: 'onground', label: 'On-ground', icon: 'fa-school', list: typeof ongroundBundles !== 'undefined' ? ongroundBundles : [] },
+      { key: 'recorded', label: 'Recorded', icon: 'fa-video', list: typeof recordedBundles !== 'undefined' ? recordedBundles : [] },
+      { key: 'recovery', label: 'Recovery', icon: 'fa-redo', list: typeof recoveryBundles !== 'undefined' ? recoveryBundles : [] },
+    ]; %>
+
+    <% homeBundleSections.forEach(function (sec) { %>
+      <% if (sec.list && sec.list.length) { %>
+      <h3 class="home-bundle-strip-title">
+        <i class="fas <%= sec.icon %>"></i>
+        <%= sec.label %>
+      </h3>
+      <div class="home-bundle-scroll">
+        <% sec.list.forEach(function (bundle) { %>
+        <article class="home-bundle-card">
+          <a href="/bundle/<%= bundle._id %>">
+            <div class="home-bundle-card-media">
+              <img src="<%= bundle.thumbnail || '/images/adad.png' %>" alt="" loading="lazy" decoding="async" />
+            </div>
+            <div class="home-bundle-card-body">
+              <div class="home-bundle-meta"><%= bundle.testType || '' %> · <%= bundle.subject || '' %></div>
+              <h4><%= bundle.title %></h4>
+              <% if (bundle.shortDescription) { %>
+              <p class="home-bundle-desc"><%= bundle.shortDescription %></p>
+              <% } %>
+              <div class="home-bundle-price">
+                <% if (bundle.discountPrice && bundle.price) { %>
+                <span class="was">EGP<%= bundle.price %></span>
+                <span>EGP<%= Number(bundle.finalPrice).toFixed(2) %></span>
+                <% } else { %>
+                <span>EGP<%= bundle.price != null ? bundle.price : 0 %></span>
+                <% } %>
+              </div>
+            </div>
+          </a>
+        </article>
+        <% }); %>
+      </div>
+      <% } %>
+    <% }); %>
+  </div>
+</section>
+<% } %>
+
 <!-- Brilliant Students (EST) Section -->
 <section class="brilliant-students-new scroll-reveal" id="brilliant-students-est" data-aos="fade-up">
   <div class="container">

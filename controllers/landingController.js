@@ -7,10 +7,36 @@ const BrilliantStudent = require('../models/BrilliantStudent');
 const GameRoom = require('../models/GameRoom');
 const TeamMember = require('../models/TeamMember');
 const SiteSetting = require('../models/SiteSetting');
+const ensureBundleStorefrontDefaults = require('../utils/ensureBundleStorefrontDefaults');
+
+const STOREFRONT_BUNDLE_SORT = { storefrontOrder: 1, createdAt: -1 };
+
+function homePublishedBundleFilter(courseType) {
+  return {
+    courseType,
+    status: 'published',
+    isActive: true,
+    showOnHomepage: { $ne: false },
+  };
+}
+
+function enrichLeanBundleForCard(b) {
+  if (!b) return b;
+  const discount = b.discountPrice || 0;
+  const price = b.price || 0;
+  const finalPrice =
+    discount && price ? price - price * (discount / 100) : price;
+  return {
+    ...b,
+    finalPrice,
+    savingsPercentage: discount,
+  };
+}
 
 // Get landing page data
 const getLandingPage = async (req, res) => {
   try {
+    await ensureBundleStorefrontDefaults();
     // Execute all database queries in parallel for better performance
     const [
       onlineBundles,
@@ -25,46 +51,41 @@ const getLandingPage = async (req, res) => {
       teamMembers,
       user
     ] = await Promise.all([
-      // Get featured bundles with minimal data
-      BundleCourse.find({
-        courseType: 'online',
-        status: 'published',
-        isActive: true,
-      })
-        .select('title shortDescription price image courseType createdAt')
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .lean(),
+      BundleCourse.find(homePublishedBundleFilter('online'))
+        .select(
+          'title shortDescription price discountPrice thumbnail bundleCode courseType createdAt storefrontOrder subject testType',
+        )
+        .sort(STOREFRONT_BUNDLE_SORT)
+        .limit(8)
+        .lean()
+        .then((rows) => rows.map(enrichLeanBundleForCard)),
 
-      BundleCourse.find({
-        courseType: 'onground',
-        status: 'published',
-        isActive: true,
-      })
-        .select('title shortDescription price image courseType createdAt')
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .lean(),
+      BundleCourse.find(homePublishedBundleFilter('onground'))
+        .select(
+          'title shortDescription price discountPrice thumbnail bundleCode courseType createdAt storefrontOrder subject testType',
+        )
+        .sort(STOREFRONT_BUNDLE_SORT)
+        .limit(8)
+        .lean()
+        .then((rows) => rows.map(enrichLeanBundleForCard)),
 
-      BundleCourse.find({
-        courseType: 'recorded',
-        status: 'published',
-        isActive: true,
-      })
-        .select('title shortDescription price image courseType createdAt')
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .lean(),
+      BundleCourse.find(homePublishedBundleFilter('recorded'))
+        .select(
+          'title shortDescription price discountPrice thumbnail bundleCode courseType createdAt storefrontOrder subject testType',
+        )
+        .sort(STOREFRONT_BUNDLE_SORT)
+        .limit(8)
+        .lean()
+        .then((rows) => rows.map(enrichLeanBundleForCard)),
 
-      BundleCourse.find({
-        courseType: 'recovery',
-        status: 'published',
-        isActive: true,
-      })
-        .select('title shortDescription price image courseType createdAt')
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .lean(),
+      BundleCourse.find(homePublishedBundleFilter('recovery'))
+        .select(
+          'title shortDescription price discountPrice thumbnail bundleCode courseType createdAt storefrontOrder subject testType',
+        )
+        .sort(STOREFRONT_BUNDLE_SORT)
+        .limit(8)
+        .lean()
+        .then((rows) => rows.map(enrichLeanBundleForCard)),
 
       // Get featured quizzes with minimal data
       Quiz.find({
@@ -225,6 +246,7 @@ const getLandingPage = async (req, res) => {
 // Get online courses page
 const getOnlineCourses = async (req, res) => {
   try {
+    await ensureBundleStorefrontDefaults();
     const { page = 1, limit = 12, search, subject, testType } = req.query;
 
     const filter = {
@@ -250,7 +272,7 @@ const getOnlineCourses = async (req, res) => {
     const bundles = await BundleCourse.find(filter)
       .populate('courses')
       .populate('createdBy', 'userName')
-      .sort({ createdAt: -1 })
+      .sort(STOREFRONT_BUNDLE_SORT)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -322,6 +344,7 @@ const getOnlineCourses = async (req, res) => {
 // Get onground courses page
 const getOngroundCourses = async (req, res) => {
   try {
+    await ensureBundleStorefrontDefaults();
     const { page = 1, limit = 12, search, subject, testType } = req.query;
 
     const filter = {
@@ -347,7 +370,7 @@ const getOngroundCourses = async (req, res) => {
     const bundles = await BundleCourse.find(filter)
       .populate('courses')
       .populate('createdBy', 'userName')
-      .sort({ createdAt: -1 })
+      .sort(STOREFRONT_BUNDLE_SORT)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -419,6 +442,7 @@ const getOngroundCourses = async (req, res) => {
 // Get recorded courses page
 const getRecordedCourses = async (req, res) => {
   try {
+    await ensureBundleStorefrontDefaults();
     const { page = 1, limit = 12, search, subject, testType } = req.query;
 
     const filter = {
@@ -444,7 +468,7 @@ const getRecordedCourses = async (req, res) => {
     const bundles = await BundleCourse.find(filter)
       .populate('courses')
       .populate('createdBy', 'userName')
-      .sort({ createdAt: -1 })
+      .sort(STOREFRONT_BUNDLE_SORT)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -511,6 +535,7 @@ const getRecordedCourses = async (req, res) => {
 // Get recovery courses page
 const getRecoveryCourses = async (req, res) => {
   try {
+    await ensureBundleStorefrontDefaults();
     const { page = 1, limit = 12, search, subject, testType } = req.query;
 
     const filter = {
@@ -536,7 +561,7 @@ const getRecoveryCourses = async (req, res) => {
     const bundles = await BundleCourse.find(filter)
       .populate('courses')
       .populate('createdBy', 'userName')
-      .sort({ createdAt: -1 })
+      .sort(STOREFRONT_BUNDLE_SORT)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -641,6 +666,7 @@ const getBundleContent = async (req, res) => {
       isActive: true,
     })
       .populate('courses')
+      .sort(STOREFRONT_BUNDLE_SORT)
       .limit(4);
 
     // Get user with purchase information if logged in

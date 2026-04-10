@@ -582,6 +582,19 @@
 </head>
 
 <body class="<%= theme %>-theme">
+  <% 
+  function displayPercent(raw) {
+    const n = Number(raw);
+    if (Number.isNaN(n) || n < 0) return 0;
+    if (n > 1) return Math.min(100, Math.round(n));
+    if (n > 0 && n < 1) return Math.min(100, Math.round(n * 100));
+    return Math.min(100, Math.round(n));
+  }
+  function isFullProgress(raw) {
+    return displayPercent(raw) >= 100;
+  }
+  const enrollmentProgressPct = displayPercent(typeof enrollment !== 'undefined' && enrollment && enrollment.progress != null ? enrollment.progress : 0);
+  %>
   <!-- Student Layout -->
   <div class="student-layout">
     <!-- Include Sidebar -->
@@ -626,10 +639,10 @@
               <div class="progress-circle-large">
                 <svg viewBox="0 0 120 120" class="progress-ring-large">
                   <circle class="circle-bg-large" cx="60" cy="60" r="50"></circle>
-                  <circle class="circle-large" cx="60" cy="60" r="50" stroke-dasharray="<%= enrollment.progress * 3.14 %>, 314"></circle>
+                  <circle class="circle-large" cx="60" cy="60" r="50" stroke-dasharray="<%= enrollmentProgressPct * 3.14 %>, 314"></circle>
                 </svg>
                 <div class="progress-text">
-                  <span class="progress-percentage"><%= enrollment.progress %>%</span>
+                  <span class="progress-percentage"><%= enrollmentProgressPct %>%</span>
                   <span class="progress-label">Complete</span>
                 </div>
               </div>
@@ -667,11 +680,11 @@
         <!-- Course Progress Bar -->
         <div class="course-progress-overview">
           <div class="progress-bar-container">
-            <div class="progress-bar-fill" style="width: <%= enrollment.progress %>%"></div>
+            <div class="progress-bar-fill" style="width: <%= enrollmentProgressPct %>%"></div>
           </div>
           <div class="progress-stats">
             <div class="progress-stat-item">
-              <span class="last-accessed"><strong><%= enrollment.progress %>%</strong> Complete</span>
+              <span class="last-accessed"><strong><%= enrollmentProgressPct %>%</strong> Complete</span>
             </div>
           </div>
         </div>
@@ -688,7 +701,9 @@
 
           <% if (topicsWithProgress && topicsWithProgress.length > 0) { %>
           <div class="topics-container">
-            <% topicsWithProgress.forEach((topic, topicIndex) => { %>
+            <% topicsWithProgress.forEach((topic, topicIndex) => { 
+              const topicProgressPct = displayPercent(topic.progress);
+            %>
             <div class="topic-card <%= !topic.isUnlocked ? 'topic-locked' : '' %>" data-topic-id="<%= topic._id %>">
               <div class="topic-header clickable-topic-header" data-topic-id="<%= topic._id %>">
                 <div class="topic-header-left">
@@ -723,9 +738,9 @@
                     <div class="topic-progress-circle">
                       <svg viewBox="0 0 36 36" class="progress-ring-small">
                         <path class="circle-bg-small" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                        <path class="circle-small" stroke-dasharray="<%= topic.progress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                        <path class="circle-small" stroke-dasharray="<%= topicProgressPct %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
                       </svg>
-                      <span class="topic-progress-text"><%= topic.progress %>%</span>
+                      <span class="topic-progress-text"><%= topicProgressPct %>%</span>
                     </div>
                   </div>
 
@@ -742,6 +757,7 @@
                   <% topic.content.forEach((contentItem, contentIndex) => { 
                     // Determine content URL - only if accessible
                     const contentUrl = contentItem.canAccess ? `/student/content/${contentItem._id}` : null;
+                    const contentItemProgressPct = displayPercent(contentItem.actualProgress);
                   %>
                   <div class="content-item clickable-content-item <%= !contentItem.canAccess ? 'locked' : '' %> <%= contentItem.isCompleted ? 'completed' : '' %>" 
                        data-content-id="<%= contentItem._id %>" 
@@ -819,19 +835,19 @@
                           <% } %>
                         </div>
                         <% } %>
-                        <% } else if (contentItem.actualProgress > 0) { %>
+                        <% } else if (contentItemProgressPct > 0) { %>
                         <!-- Content with Progress (Same for ALL content types including zoom) -->
                         <div class="content-actions-in-progress">
                           <div class="content-progress-info">
                             <div class="content-progress-circle">
                               <svg viewBox="0 0 36 36" class="progress-ring-tiny">
                                 <path class="circle-bg-tiny" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                                <path class="circle-tiny" stroke-dasharray="<%= contentItem.actualProgress %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                                <path class="circle-tiny" stroke-dasharray="<%= contentItemProgressPct %>, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
                               </svg>
-                              <span class="progress-text-tiny"><%= contentItem.actualProgress %>%</span>
+                              <span class="progress-text-tiny"><%= contentItemProgressPct %>%</span>
                             </div>
                             <span class="progress-label">
-                              <% if (contentItem.actualProgress === 100) { %>
+                              <% if (isFullProgress(contentItem.actualProgress)) { %>
                               Completed
                               <% } else { %>
                               In Progress
@@ -839,8 +855,8 @@
                             </span>
                           </div>
                           <a href="/student/content/<%= contentItem._id %>" class="btn btn-primary btn-sm">
-                            <i class="fas fa-<%= contentItem.actualProgress === 100 ? 'redo' : (contentItem.type === 'zoom' ? 'video' : 'play') %>"></i>
-                            <%= contentItem.actualProgress === 100 ? 'View Details' : (contentItem.type === 'zoom' ? 'Join' : 'Continue') %>
+                            <i class="fas fa-<%= isFullProgress(contentItem.actualProgress) ? 'redo' : (contentItem.type === 'zoom' ? 'video' : 'play') %>"></i>
+                            <%= isFullProgress(contentItem.actualProgress) ? 'View Details' : (contentItem.type === 'zoom' ? 'Join' : 'Continue') %>
                           </a>
                         </div>
                         <% } else { %>

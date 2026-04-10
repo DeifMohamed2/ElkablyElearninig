@@ -1708,6 +1708,15 @@
 </head>
 
 <body class="<%= theme %>-theme">
+  <% 
+  function displayPercent(raw) {
+    const n = Number(raw);
+    if (Number.isNaN(n) || n < 0) return 0;
+    if (n > 1) return Math.min(100, Math.round(n));
+    if (n > 0 && n < 1) return Math.min(100, Math.round(n * 100));
+    return Math.min(100, Math.round(n));
+  }
+  %>
   <!-- Student Layout -->
   <div class="student-layout">
     <!-- Include Sidebar -->
@@ -1752,10 +1761,10 @@
               <div class="progress-circle-large">
                 <svg viewBox="0 0 120 120" class="progress-ring-large">
                   <circle class="circle-bg-large" cx="60" cy="60" r="50"></circle>
-                  <circle class="circle-large" cx="60" cy="60" r="50" stroke-dasharray="<%= contentProgress.progressPercentage * 3.14 %>, 314"></circle>
+                  <circle class="circle-large" cx="60" cy="60" r="50" stroke-dasharray="<%= displayPercent(contentProgress.progressPercentage) * 3.14 %>, 314"></circle>
                 </svg>
                 <div class="progress-text">
-                  <span class="progress-percentage"><%= contentProgress.progressPercentage %>%</span>
+                  <span class="progress-percentage"><%= displayPercent(contentProgress.progressPercentage) %>%</span>
                   <span class="progress-label">Complete</span>
                 </div>
               </div>

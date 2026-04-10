@@ -12,6 +12,10 @@ const BundleCourse = require('../models/BundleCourse');
 const Topic = require('../models/Topic');
 const ZoomMeeting = require('../models/ZoomMeeting');
 const { wrapStudentHandler } = require('../utils/asStudentRequest');
+const {
+  normalizeZoomMeetingForMobile,
+  wrapResJsonWithMobileBunnyRecording,
+} = require('../utils/mobileBunnyRecording');
 const studentController = require('./studentController');
 const { buildProfilePayload } = require('./studentMobileAuthController');
 
@@ -148,6 +152,441 @@ const toPlainSettings = (s) => {
     instructions: o.instructions || '',
   };
 };
+
+/** Single settings object for mobile quiz/homework (no duplicate quizTake.settings). */
+function slimActivitySettings(raw, type) {
+  const p = toPlainSettings(raw);
+  const maxAttemptsDefault = type === 'quiz' ? 3 : 1;
+  return {
+    passingCriteria: p.passingCriteria,
+    passingScore: typeof p.passingScore === 'number' ? p.passingScore : type === 'quiz' ? 60 : 0,
+    maxAttempts:
+      typeof p.maxAttempts === 'number' ? p.maxAttempts : maxAttemptsDefault,
+    duration: p.duration,
+    shuffleQuestions: !!p.shuffleQuestions,
+    shuffleOptions: !!p.shuffleOptions,
+    showCorrectAnswers: p.showCorrectAnswers !== false,
+    showResults: p.showResults !== false,
+    instructions: p.instructions || '',
+  };
+}
+
+const QUIZ_HOMEWORK_TYPES = new Set(['quiz', 'homework']);
+
+const ANSWER_REVIEW_DISABLED_TITLE = 'Answer Review Not Available';
+const ANSWER_REVIEW_DISABLED_BODY =
+  'Answer review is not enabled for this quiz. Contact your instructor if you have questions about your answers.';
+
+/** GET /content/:id — no stems/options; use secure quiz POSTs to load questions. */
+function contentItemSummaryForDetailsPage(slimContentItem) {
+  if (!slimContentItem) return null;
+  const { selectedQuestions: _omit, ...rest } = slimContentItem;
+  return rest;
+}
+
+function attemptSummaryForMobile(contentType, rawContentItem, contentProgress) {
+  const maxAttempts =
+    contentType === 'quiz'
+      ? rawContentItem.quizSettings?.maxAttempts || 3
+      : rawContentItem.homeworkSettings?.maxAttempts || 1;
+  const used = contentProgress?.attempts ?? 0;
+  const recorded = contentProgress?.quizAttempts?.length ?? 0;
+  return {
+    maxAttempts,
+    attemptsUsed: used,
+    attemptsRemaining: Math.max(0, maxAttempts - used),
+    recordedAttemptsCount: recorded,
+  };
+}
+
+function quizAttemptToPlain(attempt) {
+  if (attempt == null) return null;
+  if (typeof attempt.toObject === 'function') {
+    return attempt.toObject({ virtuals: false });
+  }
+  if (typeof attempt === 'object') {
+    return { ...attempt };
+  }
+  return attempt;
+}
+
+/**
+ * Content-details only — plain JSON, no Mongoose internals, no answers.
+ * Per-question data: GET /content/:id/results
+ */
+function slimQuizAttemptForContentDetails(attempt) {
+  const plain = quizAttemptToPlain(attempt);
+  if (!plain || typeof plain !== 'object') return plain;
+  return {
+    _id: plain._id,
+    attemptNumber: plain.attemptNumber,
+    score: plain.score,
+    totalQuestions: plain.totalQuestions,
+    correctAnswers: plain.correctAnswers,
+    timeSpent: plain.timeSpent,
+    startedAt: plain.startedAt,
+    completedAt: plain.completedAt,
+    status: plain.status,
+    passed: plain.passed,
+    passingScore: plain.passingScore,
+  };
+}
+
+function contentProgressForMobileDetails(contentProgress) {
+  if (!contentProgress) return null;
+  const plain =
+    typeof contentProgress.toObject === 'function'
+      ? contentProgress.toObject({ virtuals: false })
+      : { ...contentProgress };
+  if (Array.isArray(plain.quizAttempts)) {
+    plain.quizAttempts = plain.quizAttempts.map(slimQuizAttemptForContentDetails);
+  }
+  return plain;
+}
+
+/**
+ * When answer review is disabled: no questions, banks, or stems — only labels/settings for the UI.
+ */
+function contentItemStubForResultsWithoutAnswerReview(contentItem) {
+  if (!contentItem) return null;
+  const raw =
+    typeof contentItem.toObject === 'function'
+      ? contentItem.toObject({ virtuals: false })
+      : { ...contentItem };
+  const n = Array.isArray(raw.selectedQuestions)
+    ? raw.selectedQuestions.length
+    : 0;
+  return {
+    _id: raw._id,
+    type: raw.type,
+    title: raw.title,
+    description: (raw.description || '').slice(0, 500),
+    order: raw.order,
+    duration: raw.duration,
+    isRequired: raw.isRequired,
+    completionCriteria: raw.completionCriteria,
+    questionCount: n,
+    quizSettings:
+      raw.type === 'quiz'
+        ? slimActivitySettings(raw.quizSettings, 'quiz')
+        : undefined,
+    homeworkSettings:
+      raw.type === 'homework'
+        ? slimActivitySettings(raw.homeworkSettings, 'homework')
+        : undefined,
+  };
+}
+
+/** Standalone quiz — metadata only when answer review is disabled. */
+function quizStubForResultsWithoutAnswerReview(quiz) {
+  if (!quiz) return null;
+  const raw =
+    typeof quiz.toObject === 'function'
+      ? quiz.toObject({ virtuals: false })
+      : { ...quiz };
+  const rows = raw.selectedQuestions || [];
+  return {
+    _id: raw._id,
+    title: raw.title,
+    description: (raw.description || '').slice(0, 500),
+    code: raw.code,
+    thumbnail: raw.thumbnail,
+    duration: raw.duration,
+    testType: raw.testType,
+    difficulty: raw.difficulty,
+    passingScore: raw.passingScore,
+    maxAttempts: raw.maxAttempts,
+    instructions: raw.instructions || '',
+    tags: raw.tags || [],
+    shuffleQuestions: !!raw.shuffleQuestions,
+    shuffleOptions: !!raw.shuffleOptions,
+    showCorrectAnswers: raw.showCorrectAnswers !== false,
+    showResults: raw.showResults !== false,
+    status: raw.status,
+    questionCount: rows.length,
+    totalPoints: rows.reduce((t, r) => t + (r.points || 1), 0),
+    createdBy:
+      raw.createdBy && typeof raw.createdBy === 'object' && raw.createdBy._id
+        ? {
+            _id: raw.createdBy._id,
+            name: raw.createdBy.name,
+          }
+        : raw.createdBy,
+  };
+}
+
+/** Remove per-question answer rows (and shuffle maps) from stored attempts. */
+function redactQuizAttemptsForClosedReview(attempts) {
+  return (attempts || []).map((a) => {
+    const p = quizAttemptToPlain(a);
+    if (!p || typeof p !== 'object') return p;
+    const {
+      answers: _a,
+      shuffledOptionOrders: _so,
+      shuffledQuestionOrder: _sq,
+      ...rest
+    } = p;
+    return { ...rest };
+  });
+}
+
+async function populateTopicContentItemWithQuestions(topicId, contentId) {
+  const populated = await Topic.findById(topicId)
+    .populate({
+      path: 'content',
+      match: { _id: contentId },
+      populate: { path: 'selectedQuestions.question', model: 'Question' },
+    })
+    .lean();
+  const rows = populated?.content || [];
+  return (
+    rows.find((c) => c._id && c._id.toString() === contentId.toString()) ||
+    null
+  );
+}
+
+function computeContentQuizResultsMeta(contentItem, contentProgress) {
+  const attempts = contentProgress?.quizAttempts || [];
+  const latestAttempt =
+    attempts.length > 0 ? attempts[attempts.length - 1] : null;
+  let canShowAnswers =
+    contentItem.type === 'quiz'
+      ? contentItem.quizSettings?.showCorrectAnswers !== false
+      : contentItem.homeworkSettings?.showCorrectAnswers !== false;
+  const lastPassed = !!latestAttempt?.passed;
+  if (!lastPassed) {
+    canShowAnswers = false;
+  }
+  const settings =
+    contentItem.type === 'quiz'
+      ? contentItem.quizSettings
+      : contentItem.homeworkSettings;
+  const showResults = settings?.showResults !== false;
+  const maxAttempts =
+    contentItem.type === 'quiz'
+      ? contentItem.quizSettings?.maxAttempts || 3
+      : contentItem.homeworkSettings?.maxAttempts || 1;
+  const canRetake =
+    !lastPassed && (contentProgress.attempts || 0) < maxAttempts;
+  const answerReviewNotice = !canShowAnswers
+    ? { title: ANSWER_REVIEW_DISABLED_TITLE, body: ANSWER_REVIEW_DISABLED_BODY }
+    : null;
+  return {
+    latestAttempt,
+    attemptHistory: attempts,
+    canShowAnswers,
+    lastPassed,
+    showResults,
+    canRetake,
+    answerReviewNotice,
+  };
+}
+
+/**
+ * Build slim quiz/homework item + take session (formerly GET /content/:id/quiz).
+ * @returns {{ error: { status: number, body: object } } | { slimContentItem: object, contentProgress: object, quizTake: object, resultsMeta?: object }}
+ */
+async function buildQuizHomeworkTakePayload(student, contentId, courseIdStr, topicDoc, contentItem) {
+  const sid = student._id;
+
+  const topicSummaries = await Topic.find({
+    course: courseIdStr,
+    isPublished: true,
+  })
+    .select('_id order title unlockConditions')
+    .sort({ order: 1 })
+    .lean();
+
+  const currentTopicIndex = topicSummaries.findIndex(
+    (t) => t._id.toString() === topicDoc._id.toString(),
+  );
+
+  if (!topicDoc.isPublished) {
+    return { error: { status: 403, body: { success: false, message: 'Topic not available' } } };
+  }
+
+  if (
+    topicDoc.unlockConditions === 'previous_completed' &&
+    currentTopicIndex > 0
+  ) {
+    const prevMeta = topicSummaries[currentTopicIndex - 1];
+    if (prevMeta) {
+      const prevTopic = await Topic.findById(prevMeta._id).select('content._id').lean();
+      const completedIds = student.getCompletedContentIds(courseIdStr);
+      const prevTopicContentIds = (prevTopic?.content || []).map((c) =>
+        c._id.toString(),
+      );
+      const allPrevCompleted =
+        prevTopicContentIds.length === 0 ||
+        prevTopicContentIds.every((id) => completedIds.includes(id));
+
+      if (!allPrevCompleted) {
+        return {
+          error: {
+            status: 403,
+            body: {
+              success: false,
+              message: `Topic locked. Complete "${prevMeta.title}" first.`,
+            },
+          },
+        };
+      }
+    }
+  }
+
+  const unlockContent = student.isContentUnlocked(courseIdStr, contentId, contentItem);
+  if (!unlockContent.unlocked) {
+    return {
+      error: {
+        status: 403,
+        body: { success: false, message: unlockContent.reason || 'Content locked' },
+      },
+    };
+  }
+
+  const maxAttempts =
+    contentItem.type === 'quiz'
+      ? contentItem.quizSettings?.maxAttempts || 3
+      : contentItem.homeworkSettings?.maxAttempts || 1;
+
+  let contentProgress = student.getContentProgressDetails(courseIdStr, contentId);
+
+  const selectedQuestions = (contentItem.selectedQuestions || []).map((sq) => ({
+    _id: sq._id,
+    order: sq.order,
+    points: sq.points,
+    questionId: sq.question != null ? sq.question.toString() : null,
+  }));
+
+  const slimContentItem = {
+    _id: contentItem._id,
+    type: contentItem.type,
+    title: contentItem.title,
+    description: (contentItem.description || '').slice(0, 500),
+    order: contentItem.order,
+    duration: contentItem.duration,
+    isRequired: contentItem.isRequired,
+    completionCriteria: contentItem.completionCriteria,
+    prerequisites: (contentItem.prerequisites || []).map((p) => p.toString()),
+    questionCount: selectedQuestions.length,
+    selectedQuestions,
+    quizSettings:
+      contentItem.type === 'quiz'
+        ? slimActivitySettings(contentItem.quizSettings, 'quiz')
+        : undefined,
+    homeworkSettings:
+      contentItem.type === 'homework'
+        ? slimActivitySettings(contentItem.homeworkSettings, 'homework')
+        : undefined,
+  };
+
+  function buildResultsPayload(quizTakePartial) {
+    const resultsMeta = computeContentQuizResultsMeta(
+      contentItem,
+      contentProgress,
+    );
+    return {
+      slimContentItem,
+      contentProgress,
+      quizTake: quizTakePartial,
+      resultsMeta,
+    };
+  }
+
+  if (contentProgress && contentProgress.completionStatus === 'completed') {
+    return buildResultsPayload({
+      state: 'completed',
+      redirectToResults: false,
+      message: 'Already completed',
+    });
+  }
+
+  const canAttempt = student.canAttemptQuiz(courseIdStr, contentId, maxAttempts);
+  if (!canAttempt.canAttempt) {
+    const attempts = contentProgress?.quizAttempts || [];
+    if (attempts.length > 0) {
+      return buildResultsPayload({
+        state: 'results_only',
+        reason: canAttempt.reason,
+        message: canAttempt.reason,
+      });
+    }
+    return {
+      error: { status: 403, body: { success: false, message: canAttempt.reason } },
+    };
+  }
+
+  const durationMinutes =
+    contentItem.type === 'quiz'
+      ? contentItem.quizSettings?.duration || 0
+      : contentItem.homeworkSettings?.duration || contentItem.duration || 0;
+
+  if (!contentProgress) {
+    const expectedEnd =
+      durationMinutes > 0
+        ? new Date(Date.now() + durationMinutes * 60 * 1000)
+        : null;
+    await student.updateContentProgress(
+      courseIdStr,
+      topicDoc._id.toString(),
+      contentId,
+      contentItem.type,
+      {
+        completionStatus: 'in_progress',
+        progressPercentage: 0,
+        lastAccessed: new Date(),
+        expectedEnd,
+      },
+    );
+    const refreshed = await User.findById(sid);
+    contentProgress = refreshed.getContentProgressDetails(courseIdStr, contentId);
+  } else if (!contentProgress.expectedEnd && durationMinutes > 0) {
+    const expectedEnd = new Date(Date.now() + durationMinutes * 60 * 1000);
+    await student.updateContentProgress(
+      courseIdStr,
+      topicDoc._id.toString(),
+      contentId,
+      contentItem.type,
+      {
+        completionStatus:
+          contentProgress.completionStatus === 'not_started'
+            ? 'in_progress'
+            : contentProgress.completionStatus,
+        expectedEnd,
+        lastAccessed: new Date(),
+      },
+    );
+    const refreshed = await User.findById(sid);
+    contentProgress = refreshed.getContentProgressDetails(courseIdStr, contentId);
+  }
+
+  let remainingSeconds = 0;
+  let isExpired = false;
+  if (contentProgress?.expectedEnd && durationMinutes > 0) {
+    remainingSeconds = Math.max(
+      0,
+      Math.floor(
+        (new Date(contentProgress.expectedEnd).getTime() - Date.now()) / 1000,
+      ),
+    );
+    isExpired = remainingSeconds === 0;
+  }
+
+  const attemptNumber = contentProgress ? (contentProgress.attempts || 0) + 1 : 1;
+
+  const quizTake = {
+    state: 'active',
+    attemptNumber,
+    timing: {
+      durationMinutes,
+      remainingSeconds,
+      isExpired,
+    },
+    desmosApiKey: process.env.DESMOS_API_KEY || '',
+  };
+
+  return { slimContentItem, contentProgress, quizTake };
+}
 
 /** Mirrors Course.js sequencing helpers (not exported from model) — keep logic aligned with isCourseUnlocked */
 function weekNumberFromCourseTitle(title) {
@@ -848,23 +1287,79 @@ const getContentDetails = async (req, res) => {
         contentItem = { ...contentItem, zoomMeeting: meeting || ref };
       }
     }
+    if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
+      const zm = contentItem.zoomMeeting;
+      if (zm && typeof zm === 'object') {
+        contentItem = {
+          ...contentItem,
+          zoomMeeting: normalizeZoomMeetingForMobile(zm),
+        };
+      }
+    }
 
     const unlockStatus = student.isContentUnlocked(
       courseMini._id,
       contentItem._id,
       contentItem,
     );
-    const contentProgress = student.getContentProgressDetails(
+    let contentProgress = student.getContentProgressDetails(
       courseMini._id,
       contentItem._id,
     );
+
+    const topicShape = {
+      _id: topicDoc._id,
+      title: topicDoc.title,
+      order: topicDoc.order,
+    };
+
+    if (QUIZ_HOMEWORK_TYPES.has(contentItem.type) && unlockStatus.unlocked) {
+      const qh = await buildQuizHomeworkTakePayload(
+        student,
+        contentId,
+        courseIdStr,
+        topicDoc,
+        contentItem,
+      );
+      if (qh.error) {
+        return res.status(qh.error.status).json(qh.error.body);
+      }
+      const data = {
+        contentItem: contentItemSummaryForDetailsPage(qh.slimContentItem),
+        course: { _id: courseMini._id, title: courseMini.title },
+        topic: topicShape,
+        unlockStatus,
+        contentProgress: contentProgressForMobileDetails(qh.contentProgress),
+        quizTake: qh.quizTake,
+        attemptSummary: attemptSummaryForMobile(
+          contentItem.type,
+          contentItem,
+          qh.contentProgress,
+        ),
+      };
+      if (qh.resultsMeta) {
+        data.canShowAnswers = qh.resultsMeta.canShowAnswers;
+        data.answerReviewAllowed = qh.resultsMeta.canShowAnswers;
+        data.answerReviewStatus = qh.resultsMeta.canShowAnswers
+          ? 'allowed'
+          : 'not_allowed';
+        data.lastPassed = qh.resultsMeta.lastPassed;
+        data.showResults = qh.resultsMeta.showResults;
+        data.canRetake = qh.resultsMeta.canRetake;
+        data.answerReviewNotice = qh.resultsMeta.answerReviewNotice;
+      }
+      return res.json({
+        success: true,
+        data,
+      });
+    }
 
     return res.json({
       success: true,
       data: {
         contentItem,
         course: { _id: courseMini._id, title: courseMini.title },
-        topic: { _id: topicDoc._id, title: topicDoc.title },
+        topic: topicShape,
         unlockStatus,
         contentProgress,
       },
@@ -872,268 +1367,6 @@ const getContentDetails = async (req, res) => {
   } catch (error) {
     console.error('Mobile content details error:', error);
     return res.status(500).json({ success: false, message: 'Error loading content' });
-  }
-};
-
-/** JSON metadata to start content quiz — slim payload (questions via secure endpoints) */
-const getContentQuizMeta = async (req, res) => {
-  try {
-    const contentId = req.params.contentId;
-    const contentObjectId = mongoose.Types.ObjectId.isValid(contentId)
-      ? new mongoose.Types.ObjectId(contentId)
-      : null;
-    if (!contentObjectId) {
-      return res.status(400).json({ success: false, message: 'Invalid content id' });
-    }
-
-    const student = await User.findById(studentId(req));
-    const sid = student._id;
-
-    let contentItem = null;
-    let topicDoc = null;
-    let courseIdStr = null;
-
-    for (const enrollment of student.enrolledCourses) {
-      if (!enrollment.course) continue;
-      const cid = enrollment.course._id
-        ? enrollment.course._id.toString()
-        : enrollment.course.toString();
-
-      const t = await Topic.findOne({
-        course: cid,
-        'content._id': contentObjectId,
-      });
-
-      if (t) {
-        topicDoc = t;
-        courseIdStr = cid;
-        contentItem = t.content.find((c) => c._id.toString() === contentId);
-        break;
-      }
-    }
-
-    if (!contentItem || !['quiz', 'homework'].includes(contentItem.type)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Content not found or not a quiz/homework',
-      });
-    }
-
-    const courseMini = await Course.findById(courseIdStr)
-      .select('requiresSequential bundle order _id title')
-      .lean();
-    const courseUnlockStatus = await resolveCourseUnlockForStudent(student, courseMini);
-    if (!courseUnlockStatus.unlocked) {
-      return res.status(403).json({
-        success: false,
-        message: courseUnlockStatus.reason || 'Course locked',
-      });
-    }
-
-    const topicSummaries = await Topic.find({
-      course: courseIdStr,
-      isPublished: true,
-    })
-      .select('_id order title unlockConditions')
-      .sort({ order: 1 })
-      .lean();
-
-    const currentTopicIndex = topicSummaries.findIndex(
-      (t) => t._id.toString() === topicDoc._id.toString(),
-    );
-
-    if (!topicDoc.isPublished) {
-      return res.status(403).json({ success: false, message: 'Topic not available' });
-    }
-
-    if (
-      topicDoc.unlockConditions === 'previous_completed' &&
-      currentTopicIndex > 0
-    ) {
-      const prevMeta = topicSummaries[currentTopicIndex - 1];
-      if (prevMeta) {
-        const prevTopic = await Topic.findById(prevMeta._id).select('content._id').lean();
-        const completedIds = student.getCompletedContentIds(courseIdStr);
-        const prevTopicContentIds = (prevTopic?.content || []).map((c) =>
-          c._id.toString(),
-        );
-        const allPrevCompleted =
-          prevTopicContentIds.length === 0 ||
-          prevTopicContentIds.every((id) => completedIds.includes(id));
-
-        if (!allPrevCompleted) {
-          return res.status(403).json({
-            success: false,
-            message: `Topic locked. Complete "${prevMeta.title}" first.`,
-          });
-        }
-      }
-    }
-
-    const unlockContent = student.isContentUnlocked(courseIdStr, contentId, contentItem);
-    if (!unlockContent.unlocked) {
-      return res.status(403).json({
-        success: false,
-        message: unlockContent.reason || 'Content locked',
-      });
-    }
-
-    const maxAttempts =
-      contentItem.type === 'quiz'
-        ? contentItem.quizSettings?.maxAttempts || 3
-        : contentItem.homeworkSettings?.maxAttempts || 1;
-
-    const canAttempt = student.canAttemptQuiz(courseIdStr, contentId, maxAttempts);
-    if (!canAttempt.canAttempt) {
-      return res.status(403).json({
-        success: false,
-        message: canAttempt.reason,
-      });
-    }
-
-    let contentProgress = student.getContentProgressDetails(courseIdStr, contentId);
-
-    if (contentProgress && contentProgress.completionStatus === 'completed') {
-      return res.status(400).json({
-        success: false,
-        message: 'Already completed',
-        redirectToResults: true,
-      });
-    }
-
-    const durationMinutes =
-      contentItem.type === 'quiz'
-        ? contentItem.quizSettings?.duration || 0
-        : contentItem.homeworkSettings?.duration || contentItem.duration || 0;
-
-    const passingScore =
-      contentItem.type === 'quiz'
-        ? typeof contentItem.quizSettings?.passingScore === 'number'
-          ? contentItem.quizSettings.passingScore
-          : 60
-        : typeof contentItem.homeworkSettings?.passingScore === 'number'
-          ? contentItem.homeworkSettings.passingScore
-          : 60;
-
-    if (!contentProgress) {
-      const expectedEnd =
-        durationMinutes > 0
-          ? new Date(Date.now() + durationMinutes * 60 * 1000)
-          : null;
-      await student.updateContentProgress(
-        courseIdStr,
-        topicDoc._id.toString(),
-        contentId,
-        contentItem.type,
-        {
-          completionStatus: 'in_progress',
-          progressPercentage: 0,
-          lastAccessed: new Date(),
-          expectedEnd,
-        },
-      );
-      const refreshed = await User.findById(sid);
-      contentProgress = refreshed.getContentProgressDetails(courseIdStr, contentId);
-    } else if (!contentProgress.expectedEnd && durationMinutes > 0) {
-      const expectedEnd = new Date(Date.now() + durationMinutes * 60 * 1000);
-      await student.updateContentProgress(
-        courseIdStr,
-        topicDoc._id.toString(),
-        contentId,
-        contentItem.type,
-        {
-          completionStatus:
-            contentProgress.completionStatus === 'not_started'
-              ? 'in_progress'
-              : contentProgress.completionStatus,
-          expectedEnd,
-          lastAccessed: new Date(),
-        },
-      );
-      const refreshed = await User.findById(sid);
-      contentProgress = refreshed.getContentProgressDetails(courseIdStr, contentId);
-    }
-
-    let remainingSeconds = 0;
-    let isExpired = false;
-    if (contentProgress?.expectedEnd && durationMinutes > 0) {
-      remainingSeconds = Math.max(
-        0,
-        Math.floor(
-          (new Date(contentProgress.expectedEnd).getTime() - Date.now()) / 1000,
-        ),
-      );
-      isExpired = remainingSeconds === 0;
-    }
-
-    const attemptNumber = contentProgress ? (contentProgress.attempts || 0) + 1 : 1;
-
-    const settingsRaw =
-      contentItem.type === 'quiz' ? contentItem.quizSettings : contentItem.homeworkSettings;
-    const settingsPlain = toPlainSettings(settingsRaw);
-
-    const selectedQuestions = (contentItem.selectedQuestions || []).map((sq) => ({
-      _id: sq._id,
-      order: sq.order,
-      points: sq.points,
-      questionId: sq.question != null ? sq.question.toString() : null,
-    }));
-
-    const courseMeta = await Course.findById(courseIdStr).select('title').lean();
-
-    const slimContentItem = {
-      _id: contentItem._id,
-      type: contentItem.type,
-      title: contentItem.title,
-      description: (contentItem.description || '').slice(0, 500),
-      order: contentItem.order,
-      duration: contentItem.duration,
-      isRequired: contentItem.isRequired,
-      completionCriteria: contentItem.completionCriteria,
-      prerequisites: (contentItem.prerequisites || []).map((p) => p.toString()),
-      questionCount: selectedQuestions.length,
-      selectedQuestions,
-      quizSettings:
-        contentItem.type === 'quiz' ? toPlainSettings(contentItem.quizSettings) : undefined,
-      homeworkSettings:
-        contentItem.type === 'homework'
-          ? toPlainSettings(contentItem.homeworkSettings)
-          : undefined,
-    };
-
-    return res.json({
-      success: true,
-      data: {
-        course: { _id: courseIdStr, title: courseMeta?.title || '' },
-        topic: {
-          _id: topicDoc._id,
-          title: topicDoc.title,
-          order: topicDoc.order,
-        },
-        contentItem: slimContentItem,
-        courseId: courseIdStr,
-        topicId: topicDoc._id.toString(),
-        contentId,
-        attemptNumber,
-        timing: {
-          durationMinutes,
-          remainingSeconds,
-          isExpired,
-          passingScore,
-        },
-        settings: {
-          shuffleQuestions: !!settingsPlain.shuffleQuestions,
-          shuffleOptions: !!settingsPlain.shuffleOptions,
-          showCorrectAnswers: settingsPlain.showCorrectAnswers !== false,
-          showResults: settingsPlain.showResults !== false,
-          instructions: settingsPlain.instructions || '',
-        },
-        desmosApiKey: process.env.DESMOS_API_KEY || '',
-      },
-    });
-  } catch (error) {
-    console.error('getContentQuizMeta:', error);
-    return res.status(500).json({ success: false, message: error.message || 'Error' });
   }
 };
 
@@ -1371,9 +1604,19 @@ const getStandaloneQuizResultsJson = async (req, res) => {
     }
 
     if (quizMeta.showResults === false) {
-      return res.status(403).json({
-        success: false,
-        message: 'Results are not available for this quiz',
+      const hiddenAttempts = quizMeta.getUserAttemptHistory(
+        student.quizAttempts,
+      );
+      const bestScoreHidden = quizMeta.getUserBestScore(student.quizAttempts);
+      return res.json({
+        success: true,
+        data: {
+          resultsHidden: true,
+          message: 'Results are not available for this quiz',
+          quiz: { _id: quizMeta._id },
+          attemptCount: hiddenAttempts.length,
+          bestScore: bestScoreHidden,
+        },
       });
     }
 
@@ -1402,15 +1645,44 @@ const getStandaloneQuizResultsJson = async (req, res) => {
       canShowAnswers = false;
     }
 
+    const standaloneAnswerNotice = !canShowAnswers
+      ? {
+          title: ANSWER_REVIEW_DISABLED_TITLE,
+          body: ANSWER_REVIEW_DISABLED_BODY,
+        }
+      : null;
+
+    let quizOut = quiz;
+    let attemptHistoryOut = attemptHistory;
+    let latestAttemptOut = latestAttempt;
+    if (!canShowAnswers) {
+      quizOut = quizStubForResultsWithoutAnswerReview(quiz);
+      attemptHistoryOut = redactQuizAttemptsForClosedReview(attemptHistory);
+      latestAttemptOut =
+        attemptHistoryOut.length > 0
+          ? attemptHistoryOut[attemptHistoryOut.length - 1]
+          : null;
+    } else {
+      attemptHistoryOut = (attemptHistory || []).map((a) => quizAttemptToPlain(a));
+      latestAttemptOut =
+        attemptHistoryOut.length > 0
+          ? attemptHistoryOut[attemptHistoryOut.length - 1]
+          : null;
+    }
+
     return res.json({
       success: true,
       data: {
-        quiz,
-        attemptHistory,
+        quiz: quizOut,
+        attemptHistory: attemptHistoryOut,
         bestScore,
-        latestAttempt,
+        latestAttempt: latestAttemptOut,
         canShowAnswers,
+        answerReviewAllowed: canShowAnswers,
+        answerReviewStatus: canShowAnswers ? 'allowed' : 'not_allowed',
         lastPassed,
+        answerReviewNotice: standaloneAnswerNotice,
+        showResults: quiz.showResults !== false,
       },
     });
   } catch (error) {
@@ -1866,26 +2138,58 @@ const getContentQuizResults = async (req, res) => {
       });
     }
 
-    const latestAttempt =
-      contentProgress.quizAttempts[contentProgress.quizAttempts.length - 1];
-
-    const populatedContent = await Topic.findById(topic._id).populate({
-      path: 'content',
-      match: { _id: contentId },
-      populate: { path: 'selectedQuestions.question', model: 'Question' },
-    });
-
-    const populatedContentItem = populatedContent.content.find(
-      (c) => c._id.toString() === contentId,
+    const resultsMeta = computeContentQuizResultsMeta(
+      contentItem,
+      contentProgress,
     );
 
-    let canShowAnswers =
-      contentItem.type === 'quiz'
-        ? contentItem.quizSettings?.showCorrectAnswers !== false
-        : contentItem.homeworkSettings?.showCorrectAnswers !== false;
-    const lastPassed = !!latestAttempt?.passed;
-    if (!lastPassed) {
-      canShowAnswers = false;
+    let contentItemOut;
+    if (resultsMeta.canShowAnswers) {
+      contentItemOut =
+        (await populateTopicContentItemWithQuestions(topic._id, contentId)) ||
+        contentItem;
+    } else {
+      contentItemOut = contentItemStubForResultsWithoutAnswerReview(contentItem);
+    }
+
+    const progressPlain =
+      contentProgress && typeof contentProgress.toObject === 'function'
+        ? contentProgress.toObject({ virtuals: false })
+        : contentProgress
+          ? { ...contentProgress }
+          : null;
+
+    let contentProgressOut = progressPlain;
+    let latestAttemptOut;
+    let attemptHistoryOut;
+
+    if (resultsMeta.canShowAnswers) {
+      const fullAttempts = (contentProgress.quizAttempts || []).map((a) =>
+        quizAttemptToPlain(a),
+      );
+      if (contentProgressOut) {
+        contentProgressOut = { ...contentProgressOut, quizAttempts: fullAttempts };
+      }
+      attemptHistoryOut = fullAttempts;
+      latestAttemptOut =
+        fullAttempts.length > 0
+          ? fullAttempts[fullAttempts.length - 1]
+          : null;
+    } else {
+      const slimAttempts = redactQuizAttemptsForClosedReview(
+        contentProgress.quizAttempts,
+      );
+      if (contentProgressOut) {
+        contentProgressOut = {
+          ...contentProgressOut,
+          quizAttempts: slimAttempts,
+        };
+      }
+      attemptHistoryOut = slimAttempts;
+      latestAttemptOut =
+        slimAttempts.length > 0
+          ? slimAttempts[slimAttempts.length - 1]
+          : null;
     }
 
     return res.json({
@@ -1893,11 +2197,22 @@ const getContentQuizResults = async (req, res) => {
       data: {
         course: { _id: course._id, title: course.title },
         topic: { _id: topic._id, title: topic.title },
-        contentItem: populatedContentItem,
-        contentProgress,
-        latestAttempt,
-        canShowAnswers,
-        lastPassed,
+        contentItem: contentItemOut,
+        contentProgress: contentProgressOut,
+        latestAttempt: latestAttemptOut,
+        attemptHistory: attemptHistoryOut,
+        attemptSummary: attemptSummaryForMobile(
+          contentItem.type,
+          contentItem,
+          contentProgress,
+        ),
+        canShowAnswers: resultsMeta.canShowAnswers,
+        answerReviewAllowed: resultsMeta.canShowAnswers,
+        answerReviewStatus: resultsMeta.canShowAnswers ? 'allowed' : 'not_allowed',
+        lastPassed: resultsMeta.lastPassed,
+        showResults: resultsMeta.showResults,
+        canRetake: resultsMeta.canRetake,
+        answerReviewNotice: resultsMeta.answerReviewNotice,
       },
     });
   } catch (error) {
@@ -1952,7 +2267,6 @@ module.exports = {
   getEnrolledCourses,
   getCourseContent,
   getContentDetails,
-  getContentQuizMeta,
   getQuizzesList,
   getQuizDetailsJson,
   getStandaloneQuizResultsJson,
@@ -1979,8 +2293,12 @@ module.exports = {
   updateSettings: wrapStudentHandler(studentController.updateSettings),
   updateProfilePicture: wrapStudentHandler(studentController.updateProfilePicture),
   changePassword: wrapStudentHandler(studentController.changePassword),
-  joinZoomMeeting: wrapStudentHandler(studentController.joinZoomMeeting),
+  joinZoomMeeting: wrapResJsonWithMobileBunnyRecording(
+    wrapStudentHandler(studentController.joinZoomMeeting),
+  ),
   leaveZoomMeeting: wrapStudentHandler(studentController.leaveZoomMeeting),
-  getZoomMeetingHistory: wrapStudentHandler(studentController.getZoomMeetingHistory),
+  getZoomMeetingHistory: wrapResJsonWithMobileBunnyRecording(
+    wrapStudentHandler(studentController.getZoomMeetingHistory),
+  ),
   debugProgress: wrapStudentHandler(studentController.debugProgress),
 };

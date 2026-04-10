@@ -26,6 +26,9 @@ const { createLog } = require('../middlewares/adminLogger');
 const otpMasterUtil = require('../utils/otpMasterGenerator');
 const cache = require('../utils/cache');
 const SiteSetting = require('../models/SiteSetting');
+const ensureBundleStorefrontDefaults = require('../utils/ensureBundleStorefrontDefaults');
+
+const STOREFRONT_COURSE_TYPES = ['online', 'onground', 'recorded', 'recovery'];
 
 /** Values safe to cast to ObjectId; rejects JSON/form literals like "null" / "undefined". */
 function toObjectIdString(value) {
@@ -18158,6 +18161,79 @@ const updateHolidayEffect = async (req, res) => {
   }
 };
 
+const getStorefrontBundles = async (req, res) => {
+  try {
+    await ensureBundleStorefrontDefaults();
+    const bundlesByType = {};
+    for (const ct of STOREFRONT_COURSE_TYPES) {
+      bundlesByType[ct] = await BundleCourse.find({
+        courseType: ct,
+        status: { $ne: 'archived' },
+      })
+        .select(
+          'title bundleCode status courseType storefrontOrder showOnHomepage thumbnail',
+        )
+        .sort({ storefrontOrder: 1, createdAt: -1 })
+        .lean();
+    }
+    return res.render('admin/storefront-bundles', {
+      title: 'Homepage & course listings | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      user: req.session.user,
+      bundlesByType,
+      courseTypeLabels: {
+        online: 'Online',
+        onground: 'On-ground',
+        recorded: 'Recorded',
+        recovery: 'Recovery',
+      },
+    });
+  } catch (error) {
+    console.error('getStorefrontBundles:', error);
+    req.flash('error_msg', 'Could not load storefront bundle settings');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+const saveStorefrontBundlesSettings = async (req, res) => {
+  try {
+    await ensureBundleStorefrontDefaults();
+    let ids = req.body.bundleRowIds;
+    if (typeof ids === 'string') ids = ids.split(',').filter(Boolean);
+    else if (!Array.isArray(ids)) ids = [];
+
+    const ops = [];
+    for (const id of ids) {
+      if (!mongoose.Types.ObjectId.isValid(id)) continue;
+      const rawOrder = req.body[`storefrontOrder_${id}`];
+      const order = Math.max(0, parseInt(rawOrder, 10) || 0);
+      const showOnHomepage = req.body[`showOnHomepage_${id}`] === '1';
+      ops.push(
+        BundleCourse.updateOne(
+          { _id: id },
+          { $set: { storefrontOrder: order, showOnHomepage } },
+        ),
+      );
+    }
+    await Promise.all(ops);
+
+    await createLog(req, {
+      action: 'UPDATE_STOREFRONT_BUNDLES',
+      actionCategory: 'COURSE_MANAGEMENT',
+      description: 'Updated bundle storefront order and homepage visibility',
+      targetModel: 'BundleCourse',
+      metadata: { bundleCount: ops.length },
+    });
+
+    req.flash('success_msg', 'Storefront order and homepage visibility saved.');
+    res.redirect('/admin/storefront-bundles');
+  } catch (error) {
+    console.error('saveStorefrontBundlesSettings:', error);
+    req.flash('error_msg', 'Could not save storefront settings');
+    res.redirect('/admin/storefront-bundles');
+  }
+};
+
 // ==================== MODULE EXPORTS ====================
 
 module.exports = {
@@ -18188,6 +18264,8 @@ module.exports = {
   updateTopicContent,
   deleteTopicContent,
   getBundles,
+  getStorefrontBundles,
+  saveStorefrontBundlesSettings,
   createBundle,
   updateBundle,
   deleteBundle,
