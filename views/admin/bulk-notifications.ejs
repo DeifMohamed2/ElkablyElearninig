@@ -1,0 +1,865 @@
+<%- include('./partials/admin-header', { pageCSS: 'bulk-notifications' }) %>
+
+<div class="admin-layout">
+  <%- include('./partials/admin-sidebar', { currentPage: 'bulk-notifications' }) %>
+
+  <main class="admin-main">
+    <%- include('./partials/admin-topbar', {
+        breadcrumb: 'Push Notifications',
+        breadcrumbSubtitle: 'Send Push Notifications to Students & Parents',
+        showSearch: false
+    }) %>
+
+    <div class="admin-content">
+      <div class="bulk-notif-dashboard admin-fade-in">
+
+        <!-- Flash Messages -->
+        <% if (typeof error_msg !== 'undefined' && error_msg.length > 0) { %>
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <%= error_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% } %>
+        <% if (typeof success_msg !== 'undefined' && success_msg.length > 0) { %>
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <%= success_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% } %>
+
+        <!-- FCM Warning Banner -->
+        <% if (!fcmReady) { %>
+          <div class="fcm-warning-banner">
+            <div class="fcm-warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="fcm-warning-text">
+              <strong>Firebase Not Configured</strong>
+              <p>FCM push notifications are currently unavailable. Configure Firebase credentials in your environment settings to enable this feature.</p>
+            </div>
+          </div>
+        <% } %>
+
+        <!-- Dashboard Header -->
+        <div class="admin-dashboard-header">
+          <div class="dashboard-header-content">
+            <div class="dashboard-header-left">
+              <div class="dashboard-title-section">
+                <h1 class="admin-dashboard-title">
+                  <span class="title-icon"><i class="fas fa-bell"></i></span>
+                  Bulk Push Notifications
+                </h1>
+                <p class="admin-dashboard-subtitle">
+                  Send push notifications to students, parents, or both. Target all students, specific courses, bundles, or select individuals.
+                </p>
+              </div>
+            </div>
+            <div class="dashboard-header-right">
+              <div class="dashboard-meta-cards">
+                <div class="meta-card">
+                  <div class="meta-card-icon"><i class="fas fa-users"></i></div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Total Students</span>
+                    <span class="meta-card-value"><%= stats.totalStudents || 0 %></span>
+                  </div>
+                </div>
+                <div class="meta-card">
+                  <div class="meta-card-icon notif-icon-student"><i class="fas fa-user-graduate"></i></div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Students w/ App</span>
+                    <span class="meta-card-value"><%= stats.studentsWithFcm || 0 %></span>
+                  </div>
+                </div>
+                <div class="meta-card">
+                  <div class="meta-card-icon notif-icon-parent"><i class="fas fa-user-friends"></i></div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Parents w/ App</span>
+                    <span class="meta-card-value"><%= stats.parentsWithFcm || 0 %></span>
+                  </div>
+                </div>
+                <div class="meta-card">
+                  <div class="meta-card-icon"><i class="fas fa-book"></i></div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Total Courses</span>
+                    <span class="meta-card-value"><%= stats.totalCourses || 0 %></span>
+                  </div>
+                </div>
+                <div class="meta-card">
+                  <div class="meta-card-icon"><i class="fas fa-box"></i></div>
+                  <div class="meta-card-content">
+                    <span class="meta-card-label">Total Bundles</span>
+                    <span class="meta-card-value"><%= stats.totalBundles || 0 %></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Container -->
+        <div class="admin-section-header">
+          <h3 class="admin-section-title">
+            <i class="fas fa-paper-plane"></i> Send Push Notification
+          </h3>
+        </div>
+
+        <div class="bulk-notif-form-container">
+          <form id="bulkNotifForm">
+
+            <!-- Target Audience -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h4 class="form-section-title"><i class="fas fa-bullseye"></i> Target Audience</h4>
+                <p class="form-section-description">Choose which group of students to target</p>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-users"></i> Target Type <span class="required">*</span>
+                  </label>
+                  <select class="form-control" id="targetType" name="targetType" required>
+                    <option value="">Select Target Type</option>
+                    <option value="all_students">All Students</option>
+                    <option value="course">Specific Course</option>
+                    <option value="bundle">Specific Bundle</option>
+                    <option value="selected_students">Selected Students</option>
+                  </select>
+                  <small class="form-help">Choose how to target your recipients</small>
+                </div>
+                <div class="form-group" id="targetSelectContainer" style="display: none;">
+                  <label class="form-label">
+                    <i class="fas fa-list"></i> Select Target <span class="required">*</span>
+                  </label>
+                  <select class="form-control" id="targetId" name="targetId">
+                    <option value="">Select...</option>
+                  </select>
+                  <small class="form-help">Select the specific course or bundle</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Student Selection -->
+            <div class="form-section" id="studentSelectionSection" style="display: none;">
+              <div class="form-section-header">
+                <h4 class="form-section-title"><i class="fas fa-user-check"></i> Select Students</h4>
+                <p class="form-section-description">Search and select specific students to notify</p>
+              </div>
+              <div class="student-selection-container">
+                <div class="student-search-box">
+                  <i class="fas fa-search"></i>
+                  <input type="text" id="studentSearch" placeholder="Search by name, email, or code..." class="student-search-input">
+                  <button type="button" class="btn-clear-search" id="clearSearch">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <div class="student-list-container">
+                  <div id="studentList" class="student-list">
+                    <div class="loading-state">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <span>Loading students...</span>
+                    </div>
+                  </div>
+                  <div id="studentPagination" class="student-pagination"></div>
+                </div>
+                <div class="selected-students-summary">
+                  <div class="selected-count">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="selectedCount">0</span> students selected
+                  </div>
+                  <button type="button" class="btn-clear-selection" id="clearSelection">
+                    <i class="fas fa-times"></i> Clear Selection
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recipient Type -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h4 class="form-section-title"><i class="fas fa-user-friends"></i> Recipient Type</h4>
+                <p class="form-section-description">Choose who should receive the push notification</p>
+              </div>
+              <div class="recipient-type-options">
+                <label class="recipient-option">
+                  <input type="radio" name="recipientType" value="students" checked>
+                  <div class="recipient-option-content">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Students Only</span>
+                    <small>via Student App</small>
+                  </div>
+                </label>
+                <label class="recipient-option">
+                  <input type="radio" name="recipientType" value="parents">
+                  <div class="recipient-option-content">
+                    <i class="fas fa-user-friends"></i>
+                    <span>Parents Only</span>
+                    <small>via Parent App</small>
+                  </div>
+                </label>
+                <label class="recipient-option">
+                  <input type="radio" name="recipientType" value="both">
+                  <div class="recipient-option-content">
+                    <i class="fas fa-users"></i>
+                    <span>Both</span>
+                    <small>Students & Parents</small>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Notification Content -->
+            <div class="form-section">
+              <div class="form-section-header">
+                <h4 class="form-section-title"><i class="fas fa-comment-alt"></i> Notification Content</h4>
+                <p class="form-section-description">Compose your push notification message</p>
+              </div>
+
+              <!-- Title + Type row -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-heading"></i> Notification Title <span class="required">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="notifTitle" name="title"
+                    placeholder="e.g. New Class Available!" maxlength="100" required>
+                  <div class="char-count-container" style="margin-top:4px;">
+                    <div class="char-count">
+                      <span id="titleCharCount">0</span> / 100 characters
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    <i class="fas fa-tag"></i> Notification Type <span class="required">*</span>
+                  </label>
+                  <select class="form-control" id="notifType" name="type" required>
+                    <% notificationTypes.forEach(function(t) { %>
+                      <option value="<%= t %>" <%= t === 'announcement' ? 'selected' : '' %>>
+                        <%= t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) %>
+                      </option>
+                    <% }); %>
+                  </select>
+                  <small class="form-help">Used for categorizing the notification in the app</small>
+                </div>
+              </div>
+
+              <!-- Body -->
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-align-left"></i> Notification Body <span class="required">*</span>
+                </label>
+                <textarea class="form-control message-textarea" id="notifBody" name="body"
+                  rows="5" placeholder="Enter the notification message here..." required maxlength="1000"></textarea>
+                <div class="char-count-container">
+                  <div class="char-count">
+                    <span id="bodyCharCount">0</span> / 1000 characters
+                  </div>
+                </div>
+              </div>
+
+              <!-- Live Preview -->
+              <div class="notif-live-preview" id="notifLivePreview">
+                <div class="notif-preview-header">
+                  <i class="fas fa-eye"></i> Live Preview
+                </div>
+                <div class="notif-preview-phone">
+                  <div class="notif-preview-bar">
+                    <span class="notif-preview-app"><i class="fas fa-graduation-cap"></i> ELKABLY</span>
+                    <span class="notif-preview-time">now</span>
+                  </div>
+                  <div class="notif-preview-content">
+                    <div class="notif-preview-title" id="previewTitle">Notification Title</div>
+                    <div class="notif-preview-body" id="previewBody">Your notification message will appear here...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recipient Preview — shown when Preview button is clicked -->
+            <div class="form-section" id="messageCountPreviewSection" style="display: none;">
+              <div class="form-section-header">
+                <h4 class="form-section-title"><i class="fas fa-chart-bar"></i> Recipient Preview</h4>
+                <p class="form-section-description">Showing how many devices will receive this notification</p>
+              </div>
+              <div class="message-count-preview">
+                <div class="count-preview-card">
+                  <div class="count-preview-header">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Recipient Type: <strong id="recipientTypeLabel">Students Only</strong></span>
+                  </div>
+                  <div class="count-preview-content">
+                    <div class="count-item" id="studentCountItem">
+                      <span class="count-label"><i class="fas fa-user-graduate"></i> Students w/ App:</span>
+                      <span class="count-value" id="studentCount">0</span>
+                    </div>
+                    <div class="count-item" id="parentCountItem">
+                      <span class="count-label"><i class="fas fa-user-friends"></i> Parents w/ App:</span>
+                      <span class="count-value" id="parentCount">0</span>
+                    </div>
+                    <div class="count-item total">
+                      <span class="count-label">Total Devices:</span>
+                      <span class="count-value" id="totalCount">0</span>
+                    </div>
+                  </div>
+                  <div id="previewRecipientLoading" class="preview-recipient-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading recipient preview...</span>
+                  </div>
+                  <p id="previewRecipientError" class="preview-recipient-error" style="display: none;" role="alert"></p>
+                  <p id="previewRecipientTruncated" class="preview-recipient-truncated" style="display: none;"></p>
+                  <div id="previewRecipientTableWrap" class="preview-recipient-table-wrap" style="display: none;">
+                    <table class="preview-recipient-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Audience</th>
+                          <th>App Token</th>
+                        </tr>
+                      </thead>
+                      <tbody id="previewRecipientTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Send Actions -->
+            <div class="form-actions">
+              <button type="button" class="admin-action-btn secondary" id="previewBtn">
+                <i class="fas fa-eye"></i> Preview Recipients
+              </button>
+              <button type="submit" class="admin-action-btn primary" id="sendBtn" <%= !fcmReady ? 'disabled' : '' %>>
+                <i class="fas fa-paper-plane"></i> Send Notification
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Results Modal -->
+        <div class="modal fade" id="resultsModal" tabindex="-1">
+          <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">
+                  <i class="fas fa-chart-bar"></i> Notification Sending Results
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" id="resultsContent"></div>
+              <div class="modal-footer">
+                <button type="button" class="admin-action-btn secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let selectedStudents = new Set();
+  let currentPage = 1;
+  let currentSearch = '';
+  let previewDebounceTimer = null;
+  let previewRequestId = 0;
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  function escapeHtml(str) {
+    if (str == null) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+  }
+
+  function showNotification(message, type = 'success') {
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${escapeHtml(message)}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
+  }
+
+  // ── Live Preview ───────────────────────────────────────────────────────────
+  function updateLivePreview() {
+    const title = document.getElementById('notifTitle').value.trim() || 'Notification Title';
+    const body = document.getElementById('notifBody').value.trim() || 'Your notification message will appear here...';
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewBody').textContent = body;
+  }
+
+  document.getElementById('notifTitle').addEventListener('input', function () {
+    document.getElementById('titleCharCount').textContent = this.value.length;
+    updateLivePreview();
+  });
+
+  document.getElementById('notifBody').addEventListener('input', function () {
+    document.getElementById('bodyCharCount').textContent = this.value.length;
+    updateLivePreview();
+  });
+
+  // ── Recipient Count Preview ────────────────────────────────────────────────
+  function clearPreviewRecipientUI() {
+    ['previewRecipientLoading','previewRecipientError','previewRecipientTruncated','previewRecipientTableWrap'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    const tbody = document.getElementById('previewRecipientTableBody');
+    if (tbody) tbody.innerHTML = '';
+  }
+
+  function updateMessageCountVisibility() {
+    const targetType = document.getElementById('targetType').value;
+    const targetId = document.getElementById('targetId').value;
+    const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value || 'students';
+    const section = document.getElementById('messageCountPreviewSection');
+    const label = document.getElementById('recipientTypeLabel');
+    const studentCountItem = document.getElementById('studentCountItem');
+    const parentCountItem = document.getElementById('parentCountItem');
+
+    const typeLabels = { students: 'Students Only', parents: 'Parents Only', both: 'Both Students & Parents' };
+    if (label) label.textContent = typeLabels[recipientType] || 'Students Only';
+
+    if (recipientType === 'students') {
+      if (parentCountItem) parentCountItem.style.display = 'none';
+      if (studentCountItem) studentCountItem.style.display = 'flex';
+    } else if (recipientType === 'parents') {
+      if (studentCountItem) studentCountItem.style.display = 'none';
+      if (parentCountItem) parentCountItem.style.display = 'flex';
+    } else {
+      if (studentCountItem) studentCountItem.style.display = 'flex';
+      if (parentCountItem) parentCountItem.style.display = 'flex';
+    }
+
+    const needsTarget = targetType === 'course' || targetType === 'bundle';
+    const shouldShow = targetType &&
+      (!needsTarget || targetId) &&
+      (targetType !== 'selected_students' || selectedStudents.size > 0);
+
+    if (!shouldShow) {
+      if (section) section.style.display = 'none';
+      clearPreviewRecipientUI();
+      return false;
+    }
+    if (section) section.style.display = 'block';
+    return true;
+  }
+
+  async function fetchPreviewData(scrollToSection = false) {
+    const reqId = ++previewRequestId;
+    const loadingEl = document.getElementById('previewRecipientLoading');
+    const errorEl = document.getElementById('previewRecipientError');
+    const truncatedEl = document.getElementById('previewRecipientTruncated');
+    const tableWrap = document.getElementById('previewRecipientTableWrap');
+    const tbody = document.getElementById('previewRecipientTableBody');
+
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+    if (tableWrap) tableWrap.style.display = 'none';
+    if (tbody) tbody.innerHTML = '';
+
+    const targetType = document.getElementById('targetType').value;
+    const targetId = document.getElementById('targetId').value;
+    const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value || 'students';
+
+    try {
+      const res = await fetch('/admin/bulk-notifications/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetType,
+          targetId: targetId || undefined,
+          recipientType,
+          selectedStudents: targetType === 'selected_students' ? Array.from(selectedStudents) : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (reqId !== previewRequestId) return;
+      if (loadingEl) loadingEl.style.display = 'none';
+
+      if (!res.ok || !data.success) {
+        if (errorEl) { errorEl.textContent = data.message || 'Preview failed'; errorEl.style.display = 'block'; }
+        if (scrollToSection) {
+          const section = document.getElementById('messageCountPreviewSection');
+          if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
+
+      document.getElementById('studentCount').textContent = data.displayStudentCount;
+      document.getElementById('parentCount').textContent = data.displayParentCount;
+      document.getElementById('totalCount').textContent = data.totalMessages;
+
+      if (data.truncated && truncatedEl) {
+        truncatedEl.textContent = `Showing first ${data.rows.length} of ${data.totalMessages} recipients.`;
+        truncatedEl.style.display = 'block';
+      }
+
+      if (tbody) {
+        if (!data.rows || data.rows.length === 0) {
+          tbody.innerHTML = '<tr class="preview-recipient-empty"><td colspan="4">No recipients with an active app token for this selection.</td></tr>';
+        } else {
+          tbody.innerHTML = data.rows.map(row => {
+            const aud = row.audience === 'parent' ? '<span class="badge-audience badge-parent"><i class="fas fa-user-friends"></i> Parent</span>'
+              : '<span class="badge-audience badge-student"><i class="fas fa-user-graduate"></i> Student</span>';
+            const token = '<span class="token-badge"><i class="fas fa-check-circle"></i> Active</span>';
+            return `<tr>
+              <td>${escapeHtml(row.name)}</td>
+              <td>${escapeHtml(row.email || '—')}</td>
+              <td>${aud}</td>
+              <td>${token}</td>
+            </tr>`;
+          }).join('');
+        }
+        if (tableWrap) tableWrap.style.display = 'block';
+      }
+
+      // Scroll the preview section into view when triggered by the button
+      if (scrollToSection) {
+        const section = document.getElementById('messageCountPreviewSection');
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    } catch (err) {
+      if (reqId !== previewRequestId) return;
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (errorEl) { errorEl.textContent = 'Could not load preview. Please try again.'; errorEl.style.display = 'block'; }
+      console.error(err);
+    }
+  }
+
+  function scheduleFetchPreview(scrollToSection = false) {
+    clearTimeout(previewDebounceTimer);
+    previewDebounceTimer = setTimeout(function () {
+      const section = document.getElementById('messageCountPreviewSection');
+      // Only auto-refresh if the section is already visible (user already clicked Preview once)
+      const alreadyVisible = section && section.style.display !== 'none';
+      if (!alreadyVisible && !scrollToSection) return;
+      if (!updateMessageCountVisibility()) return;
+      fetchPreviewData(scrollToSection);
+    }, 300);
+  }
+
+  // ── Target Type / Select ───────────────────────────────────────────────────
+  document.getElementById('targetType').addEventListener('change', async function () {
+    const val = this.value;
+    const container = document.getElementById('targetSelectContainer');
+    const studentSection = document.getElementById('studentSelectionSection');
+    const targetIdEl = document.getElementById('targetId');
+
+    if (val === 'course' || val === 'bundle') {
+      container.style.display = 'block';
+      studentSection.style.display = 'none';
+      targetIdEl.innerHTML = '<option value="">Loading...</option>';
+
+      const endpoint = val === 'course' ? '/admin/bulk-notifications/courses' : '/admin/bulk-notifications/bundles';
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        const items = val === 'course' ? data.courses : data.bundles;
+        targetIdEl.innerHTML = '<option value="">Select ' + (val === 'course' ? 'Course' : 'Bundle') + '...</option>';
+        (items || []).forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item._id;
+          opt.textContent = `${item.title} (${item.studentCount || 0} students)`;
+          targetIdEl.appendChild(opt);
+        });
+      } catch (err) {
+        targetIdEl.innerHTML = '<option value="">Error loading options</option>';
+      }
+    } else if (val === 'selected_students') {
+      container.style.display = 'none';
+      studentSection.style.display = 'block';
+      loadStudents();
+    } else {
+      container.style.display = 'none';
+      studentSection.style.display = 'none';
+    }
+
+    scheduleFetchPreview();
+  });
+
+  document.getElementById('targetId').addEventListener('change', scheduleFetchPreview);
+  document.querySelectorAll('input[name="recipientType"]').forEach(r => r.addEventListener('change', scheduleFetchPreview));
+
+  // ── Student List ───────────────────────────────────────────────────────────
+  async function loadStudents(page = 1, search = '') {
+    const list = document.getElementById('studentList');
+    list.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><span>Loading students...</span></div>';
+
+    try {
+      const params = new URLSearchParams({ page, limit: 20 });
+      if (search) params.set('search', search);
+      const res = await fetch(`/admin/bulk-notifications/students?${params}`);
+      const data = await res.json();
+
+      if (!data.success || !data.students?.length) {
+        list.innerHTML = '<div class="empty-state"><i class="fas fa-user-slash"></i><span>No students found</span></div>';
+        document.getElementById('studentPagination').innerHTML = '';
+        return;
+      }
+
+      list.innerHTML = data.students.map(s => `
+        <div class="student-item ${selectedStudents.has(s._id) ? 'selected' : ''}" data-id="${escapeHtml(s._id)}">
+          <div class="student-item-checkbox">
+            <input type="checkbox" class="student-checkbox" ${selectedStudents.has(s._id) ? 'checked' : ''}>
+          </div>
+          <div class="student-item-info">
+            <span class="student-name">${escapeHtml(s.name)}</span>
+            <span class="student-meta">${escapeHtml(s.email || '')} &middot; ${escapeHtml(s.studentCode || '')}</span>
+          </div>
+          <div class="student-item-phones">
+            <span class="phone-badge phone-student" title="Student Phone">
+              <i class="fas fa-user-graduate"></i> ${escapeHtml(s.studentPhone || '—')}
+            </span>
+            <span class="phone-badge phone-parent" title="Parent Phone">
+              <i class="fas fa-user-friends"></i> ${escapeHtml(s.parentPhone || '—')}
+            </span>
+          </div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.student-item').forEach(item => {
+        item.addEventListener('click', function () {
+          const id = this.dataset.id;
+          const cb = this.querySelector('.student-checkbox');
+          if (selectedStudents.has(id)) {
+            selectedStudents.delete(id);
+            this.classList.remove('selected');
+            cb.checked = false;
+          } else {
+            selectedStudents.add(id);
+            this.classList.add('selected');
+            cb.checked = true;
+          }
+          document.getElementById('selectedCount').textContent = selectedStudents.size;
+          scheduleFetchPreview();
+        });
+      });
+
+      const p = data.pagination;
+      const pag = document.getElementById('studentPagination');
+      pag.innerHTML = '';
+      if (p.totalPages > 1) {
+        if (p.hasPrev) {
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.className = 'btn-page'; btn.textContent = '← Prev';
+          btn.addEventListener('click', () => loadStudents(p.currentPage - 1, search));
+          pag.appendChild(btn);
+        }
+        const info = document.createElement('span');
+        info.className = 'page-info';
+        info.textContent = `Page ${p.currentPage} of ${p.totalPages} (${p.total} students)`;
+        pag.appendChild(info);
+        if (p.hasNext) {
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.className = 'btn-page'; btn.textContent = 'Next →';
+          btn.addEventListener('click', () => loadStudents(p.currentPage + 1, search));
+          pag.appendChild(btn);
+        }
+      }
+    } catch (err) {
+      list.innerHTML = '<div class="error-state"><i class="fas fa-exclamation-triangle"></i><span>Failed to load students</span></div>';
+    }
+  }
+
+  let studentSearchTimer;
+  document.getElementById('studentSearch').addEventListener('input', function () {
+    clearTimeout(studentSearchTimer);
+    studentSearchTimer = setTimeout(() => loadStudents(1, this.value.trim()), 400);
+    document.getElementById('clearSearch').style.display = this.value ? 'block' : 'none';
+  });
+
+  document.getElementById('clearSearch').addEventListener('click', function () {
+    document.getElementById('studentSearch').value = '';
+    this.style.display = 'none';
+    loadStudents(1, '');
+  });
+
+  document.getElementById('clearSelection').addEventListener('click', function () {
+    selectedStudents.clear();
+    document.getElementById('selectedCount').textContent = 0;
+    document.querySelectorAll('.student-item').forEach(item => {
+      item.classList.remove('selected');
+      item.querySelector('.student-checkbox').checked = false;
+    });
+    scheduleFetchPreview();
+  });
+
+  // ── Preview Button ─────────────────────────────────────────────────────────
+  document.getElementById('previewBtn').addEventListener('click', async function () {
+    const targetType = document.getElementById('targetType').value;
+    if (!targetType) {
+      showNotification('Please select a target type first.', 'warning');
+      return;
+    }
+    if ((targetType === 'course' || targetType === 'bundle') && !document.getElementById('targetId').value) {
+      showNotification('Please select a ' + (targetType === 'course' ? 'course' : 'bundle') + ' first.', 'warning');
+      return;
+    }
+    if (targetType === 'selected_students' && selectedStudents.size === 0) {
+      showNotification('Please select at least one student first.', 'warning');
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+    updateMessageCountVisibility();
+    await fetchPreviewData(true);
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-eye"></i> Preview Recipients';
+  });
+
+  // ── Form Submit ────────────────────────────────────────────────────────────
+  document.getElementById('bulkNotifForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const titleVal = document.getElementById('notifTitle').value.trim();
+    const bodyVal = document.getElementById('notifBody').value.trim();
+    const targetType = document.getElementById('targetType').value;
+    const targetId = document.getElementById('targetId').value;
+    const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value;
+    const notifType = document.getElementById('notifType').value;
+
+    if (!titleVal) { showNotification('Please enter a notification title.', 'error'); return; }
+    if (!bodyVal) { showNotification('Please enter a notification body.', 'error'); return; }
+    if (!targetType) { showNotification('Please select a target type.', 'error'); return; }
+    if ((targetType === 'course' || targetType === 'bundle') && !targetId) {
+      showNotification('Please select a ' + (targetType === 'course' ? 'course' : 'bundle') + '.', 'error'); return;
+    }
+    if (targetType === 'selected_students' && selectedStudents.size === 0) {
+      showNotification('Please select at least one student.', 'error'); return;
+    }
+
+    const sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+    try {
+      const payload = {
+        targetType,
+        targetId: targetId || undefined,
+        recipientType,
+        selectedStudents: targetType === 'selected_students' ? Array.from(selectedStudents) : undefined,
+        title: titleVal,
+        body: bodyVal,
+        type: notifType,
+        priority: 'normal',
+      };
+
+      const res = await fetch('/admin/bulk-notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        showNotification(data.message || 'Failed to send notifications', 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Notification';
+        return;
+      }
+
+      displayResults(data);
+      const modal = new bootstrap.Modal(document.getElementById('resultsModal'));
+      modal.show();
+      showNotification(data.message || 'Notifications sent!', 'success');
+    } catch (err) {
+      showNotification('An unexpected error occurred. Please try again.', 'error');
+      console.error(err);
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Notification';
+    }
+  });
+
+  // ── Display Results ────────────────────────────────────────────────────────
+  function displayResults(data) {
+    const results = data.results;
+    const successCount = results.success.length;
+    const failedCount = results.failed.length;
+    const total = results.total;
+
+    const successRate = total > 0 ? Math.round((successCount / total) * 100) : 0;
+    const rateColor = successRate >= 80 ? '#22c55e' : successRate >= 50 ? '#f59e0b' : '#ef4444';
+
+    let html = `
+      <div class="results-summary">
+        <div class="results-stat results-stat-success">
+          <i class="fas fa-check-circle"></i>
+          <div><span class="stat-number">${successCount}</span><span class="stat-label">Delivered</span></div>
+        </div>
+        <div class="results-stat results-stat-fail">
+          <i class="fas fa-times-circle"></i>
+          <div><span class="stat-number">${failedCount}</span><span class="stat-label">Failed</span></div>
+        </div>
+        <div class="results-stat results-stat-total">
+          <i class="fas fa-mobile-alt"></i>
+          <div><span class="stat-number">${total}</span><span class="stat-label">Total</span></div>
+        </div>
+        <div class="results-stat">
+          <i class="fas fa-percentage"></i>
+          <div><span class="stat-number" style="color:${rateColor}">${successRate}%</span><span class="stat-label">Success Rate</span></div>
+        </div>
+      </div>`;
+
+    if (successCount > 0) {
+      html += `
+        <div class="results-section">
+          <h6 class="results-section-title success-title"><i class="fas fa-check-circle"></i> Successfully Sent (${successCount})</h6>
+          <div class="results-table-wrap">
+            <table class="results-table">
+              <thead><tr><th>Name</th><th>Audience</th><th>Method</th></tr></thead>
+              <tbody>${results.success.slice(0, 200).map(r => `
+                <tr>
+                  <td>${escapeHtml(r.name)}</td>
+                  <td><span class="badge-audience ${r.audience === 'parent' ? 'badge-parent' : 'badge-student'}">${r.audience === 'parent' ? '<i class="fas fa-user-friends"></i> Parent' : '<i class="fas fa-user-graduate"></i> Student'}</span></td>
+                  <td><span class="method-badge method-fcm"><i class="fas fa-bell"></i> FCM</span></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+            ${results.success.length > 200 ? `<p class="results-truncated">Showing 200 of ${results.success.length} successful sends.</p>` : ''}
+          </div>
+        </div>`;
+    }
+
+    if (failedCount > 0) {
+      html += `
+        <div class="results-section">
+          <h6 class="results-section-title fail-title"><i class="fas fa-times-circle"></i> Failed (${failedCount})</h6>
+          <div class="results-table-wrap">
+            <table class="results-table">
+              <thead><tr><th>Name</th><th>Audience</th><th>Reason</th></tr></thead>
+              <tbody>${results.failed.slice(0, 100).map(r => `
+                <tr>
+                  <td>${escapeHtml(r.name)}</td>
+                  <td><span class="badge-audience ${r.audience === 'parent' ? 'badge-parent' : 'badge-student'}">${r.audience === 'parent' ? '<i class="fas fa-user-friends"></i> Parent' : '<i class="fas fa-user-graduate"></i> Student'}</span></td>
+                  <td class="error-cell">${escapeHtml(r.error || 'Unknown error')}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    if (total === 0) {
+      html += `<div class="results-empty"><i class="fas fa-info-circle"></i><p>No recipients had active FCM tokens for this selection.</p></div>`;
+    }
+
+    document.getElementById('resultsContent').innerHTML = html;
+  }
+</script>
+</body>
+</html>

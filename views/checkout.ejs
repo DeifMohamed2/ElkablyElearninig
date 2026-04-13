@@ -2490,9 +2490,6 @@
   </div>
 </div>
 
-<!-- PlayerJS Library for Video Control -->
-<script src="https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js"></script>
-
 <!-- Checkout Terms Modal Reading Tracking Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -2500,12 +2497,6 @@ document.addEventListener('DOMContentLoaded', function() {
   let checkoutTermsRead = false;
   let checkoutHasScrolledToBottom = false;
   let checkoutModalLang = localStorage.getItem('checkoutModalLang') || 'en';
-  
-  // Video tracking variables (for checkout terms video)
-  let checkoutTermsVideoPlayer = null;
-  let checkoutTermsVideoDuration = 0;
-  let checkoutTermsVideoIsPlaying = false;
-  let checkoutTermsVideoCompleted = false;
   
   // Modal Elements
   const checkoutModal = document.getElementById('checkoutReadingModal');
@@ -2553,14 +2544,11 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       
       <div class="checkout-document-section">
-        <h3><span class="checkout-section-number">6</span> Important Video (Anti-Skip)</h3>
-        <p><strong>Please watch the following video completely. Skipping is not allowed.</strong></p>
+        <h3><span class="checkout-section-number">6</span> Important Video</h3>
+        <p><strong>Please review the following video as part of these terms.</strong></p>
         <div class="checkout-terms-video-container" id="checkoutTermsVideoContainer">
           <div style="position:relative;padding-top:56.25%;">
-            <iframe id="checkoutTermsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=false" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
-          </div>
-          <div class="checkout-video-watch-status" id="checkoutVideoWatchStatus" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
-            <i class="fas fa-info-circle"></i> <span id="checkoutVideoWatchStatusText">Video must be watched completely to proceed.</span>
+            <iframe id="checkoutTermsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=true" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
           </div>
         </div>
       </div>
@@ -2591,14 +2579,11 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       
       <div class="checkout-document-section">
-        <h3><span class="checkout-section-number">6</span> فيديو مهم (منع التخطي)</h3>
-        <p><strong>يرجى مشاهدة الفيديو التالي بالكامل. التخطي غير مسموح.</strong></p>
+        <h3><span class="checkout-section-number">6</span> فيديو مهم</h3>
+        <p><strong>يرجى الاطلاع على الفيديو التالي ضمن هذه الشروط.</strong></p>
         <div class="checkout-terms-video-container" id="checkoutTermsVideoContainer">
           <div style="position:relative;padding-top:56.25%;">
-            <iframe id="checkoutTermsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=false" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
-          </div>
-          <div class="checkout-video-watch-status" id="checkoutVideoWatchStatus" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
-            <i class="fas fa-info-circle"></i> <span id="checkoutVideoWatchStatusText">يجب مشاهدة الفيديو بالكامل للمتابعة.</span>
+            <iframe id="checkoutTermsVideoIframe" src="https://iframe.mediadelivery.net/embed/533780/15dc74bf-f70b-4a87-b74d-993ad32adc2c?autoplay=false&loop=false&muted=false&preload=true&responsive=true&controls=true" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
           </div>
         </div>
       </div>
@@ -2613,10 +2598,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     checkoutHasScrolledToBottom = false;
-    
-    // Reset video completion state
-    checkoutTermsVideoCompleted = false;
-    checkoutTermsVideoIsPlaying = false;
     
     // Reset progress
     checkoutReadingProgressFill.style.width = '0%';
@@ -2649,145 +2630,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update scroll tracking
     updateCheckoutScrollProgress();
-    
-    // Initialize video tracking
-    setTimeout(initCheckoutTermsVideoTracking, 500);
   }
   
-  // Initialize Checkout Terms Video Tracking - Allows skipping, button appears when video ends
-  function initCheckoutTermsVideoTracking() {
-    const videoIframe = document.getElementById('checkoutTermsVideoIframe');
-    const videoStatus = document.getElementById('checkoutVideoWatchStatus');
-    const videoStatusText = document.getElementById('checkoutVideoWatchStatusText');
-    
-    if (!videoIframe) return;
-    
-    // Clean up previous player instance if exists
-    if (checkoutTermsVideoPlayer) {
-      try {
-        checkoutTermsVideoPlayer.off('ready');
-        checkoutTermsVideoPlayer.off('play');
-        checkoutTermsVideoPlayer.off('pause');
-        checkoutTermsVideoPlayer.off('timeupdate');
-        checkoutTermsVideoPlayer.off('ended');
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-      checkoutTermsVideoPlayer = null;
-    }
-    
-    // Reset video tracking state
-    checkoutTermsVideoCompleted = false;
-    checkoutTermsVideoIsPlaying = false;
-    checkoutTermsVideoDuration = 0;
-    
-    // Show initial status
-    if (videoStatus) {
-      videoStatus.style.display = 'flex';
-      videoStatus.className = 'checkout-video-watch-status';
-      if (checkoutModalLang === 'ar') {
-        videoStatusText.textContent = 'يرجى مشاهدة الفيديو للمتابعة.';
-      } else {
-        videoStatusText.textContent = 'Please watch the video to proceed.';
-      }
-    }
-    
-    // Check playerjs
-    if (typeof playerjs === 'undefined') {
-      console.error('PlayerJS library not loaded');
-      return;
-    }
-    
-    try {
-      checkoutTermsVideoPlayer = new playerjs.Player(videoIframe);
-      
-      // Simple duration fetcher with retries
-      function tryGetDuration() {
-        if (checkoutTermsVideoDuration > 0) return;
-        try {
-          checkoutTermsVideoPlayer.getDuration(function(d) {
-            if (d && d > 0) {
-              checkoutTermsVideoDuration = d;
-              console.log('📹 Video duration:', d);
-            }
-          });
-        } catch(e) {}
-      }
-      
-      // On ready
-      checkoutTermsVideoPlayer.on('ready', function() {
-        console.log('📹 Player ready');
-        tryGetDuration();
-        // Retry duration fetch a few times
-        setTimeout(tryGetDuration, 500);
-        setTimeout(tryGetDuration, 1500);
-      });
-      
-      // Delayed init for mobile
-      setTimeout(function() {
-        tryGetDuration();
-      }, 1000);
-      
-      // On play
-      checkoutTermsVideoPlayer.on('play', function() {
-        console.log('📹 Play event');
-        checkoutTermsVideoIsPlaying = true;
-        tryGetDuration();
-        
-        if (videoStatus && !checkoutTermsVideoCompleted) {
-          videoStatus.className = 'checkout-video-watch-status watching';
-          videoStatusText.textContent = checkoutModalLang === 'ar' 
-            ? 'جاري المشاهدة... يرجى مشاهدة الفيديو حتى النهاية.'
-            : 'Watching... Please watch the video until the end.';
-        }
-      });
-      
-      // On pause
-      checkoutTermsVideoPlayer.on('pause', function() {
-        checkoutTermsVideoIsPlaying = false;
-      });
-      
-      // Timeupdate - Just track duration, no anti-skip
-      checkoutTermsVideoPlayer.on('timeupdate', function(data) {
-        if (checkoutTermsVideoCompleted) return;
-        
-        // Try to get duration if we don't have it
-        if (checkoutTermsVideoDuration === 0) {
-          tryGetDuration();
-        }
-      });
-      
-      // On ended - video completion trigger
-      checkoutTermsVideoPlayer.on('ended', function() {
-        console.log('📹 Video ended');
-        markVideoCompleted();
-      });
-      
-      // Helper to mark video as completed
-      function markVideoCompleted() {
-        if (checkoutTermsVideoCompleted) return;
-        checkoutTermsVideoCompleted = true;
-        if (videoStatus) {
-          videoStatus.className = 'checkout-video-watch-status completed';
-          videoStatusText.textContent = checkoutModalLang === 'ar'
-            ? '✓ تمت مشاهدة الفيديو! يمكنك الآن المتابعة.'
-            : '✓ Video watched! You can now proceed.';
-        }
-        checkCheckoutTermsCompletion();
-      }
-      
-    } catch (error) {
-      console.error('Error initializing video player:', error);
-    }
-  }
-  
-  // Check if checkout terms can be completed (video completed is sufficient - no scroll required)
+  // Enable confirm when modal is scrolled to the bottom (same behavior as register page — no video watch requirement)
   function checkCheckoutTermsCompletion() {
-    // Only enable buttons if:
-    // 1. Video is completed (this is the main requirement)
-    // 2. Modal is actually active
-    // Note: Scrolling to bottom is NOT required - video completion is enough
-    if (checkoutTermsVideoCompleted && checkoutModal && checkoutModal.classList.contains('active')) {
+    if (checkoutHasScrolledToBottom && checkoutModal && checkoutModal.classList.contains('active')) {
       if (checkoutCloseModalBtn) {
         checkoutCloseModalBtn.disabled = false;
         if (checkoutModalLang === 'ar') {
@@ -2801,8 +2648,7 @@ document.addEventListener('DOMContentLoaded', function() {
         checkoutConfirmReadBtn.style.opacity = '1';
         checkoutConfirmReadBtn.style.cursor = 'pointer';
       }
-    } else if (!checkoutTermsVideoCompleted) {
-      // Ensure buttons are disabled if video not completed
+    } else if (!checkoutHasScrolledToBottom) {
       if (checkoutCloseModalBtn) checkoutCloseModalBtn.disabled = true;
       if (checkoutConfirmReadBtn) {
         checkoutConfirmReadBtn.disabled = true;
@@ -2835,9 +2681,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update modal content
     const content = lang === 'ar' ? checkoutTermsContentAR : checkoutTermsContentEN;
     checkoutModalContent.innerHTML = content;
-    
-    // Reinitialize video after content update - wait longer for iframe to load properly
-    setTimeout(initCheckoutTermsVideoTracking, 500);
     
     // Update modal title
     const titleText = lang === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions';
@@ -2945,8 +2788,6 @@ document.addEventListener('DOMContentLoaded', function() {
       checkoutHasScrolledToBottom = false;
     }
     
-    // Always check completion status (video completion is the main requirement, not scrolling)
-    // This allows button to be enabled as soon as video completes, regardless of scroll position
     checkCheckoutTermsCompletion();
   }
   
@@ -2959,21 +2800,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Confirm Read Function
   function confirmCheckoutRead() {
-    // Only require video completion (scrolling is not required)
-    if (!checkoutTermsVideoCompleted) {
-      const videoStatus = document.getElementById('checkoutVideoWatchStatus');
-      const videoStatusText = document.getElementById('checkoutVideoWatchStatusText');
-      if (videoStatus) {
-        videoStatus.style.display = 'flex';
-        videoStatus.className = 'checkout-video-watch-status';
-        if (checkoutModalLang === 'ar') {
-          videoStatusText.textContent = '⚠️ يجب مشاهدة الفيديو بالكامل قبل المتابعة!';
-        } else {
-          videoStatusText.textContent = '⚠️ You must watch the video completely before proceeding!';
-        }
-      }
-      return;
-    }
+    if (!checkoutHasScrolledToBottom) return;
     
     // Mark as read
     checkoutTermsRead = true;
@@ -3058,9 +2885,6 @@ document.addEventListener('DOMContentLoaded', function() {
           if (checkoutModalContent) {
             checkoutModalContent.scrollTop = currentScrollTop;
             updateCheckoutScrollProgress();
-            // Reinitialize video after language change
-            setTimeout(initCheckoutTermsVideoTracking, 100);
-            // Check completion (video completion is the main requirement)
             checkCheckoutTermsCompletion();
           }
         }, 50);
@@ -4211,39 +4035,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   .checkout-terms-video-container iframe {
     border-radius: 12px;
-  }
-
-  .checkout-video-watch-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.9rem;
-    color: #4b5563;
-  }
-
-  .checkout-video-watch-status i {
-    color: #dc2626;
-    font-size: 1.1rem;
-  }
-
-  .checkout-video-watch-status.watching {
-    background: #e0f2fe;
-    color: #0369a1;
-    border-left: 3px solid #0284c7;
-  }
-
-  .checkout-video-watch-status.watching i {
-    color: #0284c7;
-  }
-
-  .checkout-video-watch-status.completed {
-    background: #d1fae5;
-    color: #065f46;
-    border-left: 3px solid #10b981;
-  }
-
-  .checkout-video-watch-status.completed i {
-    color: #10b981;
   }
 
   /* RTL Support for Modal Content */

@@ -221,6 +221,10 @@ const {
   getBundleStudentsCount,
   getBulkSMSPreview,
   sendBulkSMS,
+  // Bulk Push Notifications
+  getBulkNotifPage,
+  getBulkNotifPreview,
+  sendBulkNotification,
   uploadPDF,
   // OTP Master Generator
   getOTPMasterGenerator,
@@ -755,6 +759,14 @@ router.get(
 );
 router.post('/bulk-sms/preview', isAdmin, getBulkSMSPreview);
 router.post('/bulk-sms/send', isAdmin, sendBulkSMS);
+
+// Bulk Push Notification Routes
+router.get('/bulk-notifications', isAdmin, getBulkNotifPage);
+router.get('/bulk-notifications/students', isAdmin, getStudentsForSMS);
+router.get('/bulk-notifications/courses', isAdmin, getCoursesForSMS);
+router.get('/bulk-notifications/bundles', isAdmin, getBundlesForSMS);
+router.post('/bulk-notifications/preview', isAdmin, getBulkNotifPreview);
+router.post('/bulk-notifications/send', isAdmin, sendBulkNotification);
 
 // PDF Upload Route
 router.post(

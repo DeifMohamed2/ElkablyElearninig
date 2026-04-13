@@ -16911,6 +16911,355 @@ const sendBulkSMS = async (req, res) => {
   }
 };
 
+// ==================== BULK PUSH NOTIFICATIONS ====================
+
+const firebaseNotificationService = require('../utils/firebaseNotificationService');
+const Notification = require('../models/Notification');
+
+const NOTIFICATION_TYPES = [
+  'general',
+  'announcement',
+  'zoom_meeting',
+  'quiz_completion',
+  'content_completion',
+  'topic_completion',
+  'course_completion',
+  'purchase',
+  'course_enrollment',
+  'bundle_enrollment',
+  'zoom_non_attendance',
+  'welcome',
+];
+
+/** Collect FCM token arrays for a list of student docs given recipientType */
+function collectFcmTokens(students, recipientType) {
+  const parentTokens = [];
+  const studentTokens = [];
+
+  for (const s of students) {
+    if (
+      (recipientType === 'parents' || recipientType === 'both') &&
+      s.parentFcmToken
+    ) {
+      parentTokens.push({ token: s.parentFcmToken, studentId: s._id, name: `${s.firstName} ${s.lastName}'s Parent` });
+    }
+    if (
+      (recipientType === 'students' || recipientType === 'both') &&
+      s.studentFcmToken
+    ) {
+      studentTokens.push({ token: s.studentFcmToken, studentId: s._id, name: `${s.firstName} ${s.lastName}` });
+    }
+  }
+
+  return { parentTokens, studentTokens };
+}
+
+/** Fetch students based on targetType / targetId / selectedStudents */
+async function fetchStudentsForNotification(targetType, targetId, selectedStudents) {
+  const selectFields =
+    'firstName lastName parentFcmToken studentFcmToken parentNumber parentCountryCode studentEmail studentCode';
+
+  if (targetType === 'selected_students') {
+    return User.find({ _id: { $in: selectedStudents }, role: 'student', isActive: true })
+      .select(selectFields)
+      .lean();
+  }
+
+  if (targetType === 'all_students') {
+    return User.find({ role: 'student', isActive: true }).select(selectFields).lean();
+  }
+
+  if (targetType === 'course') {
+    return User.find({ 'enrolledCourses.course': targetId, role: 'student', isActive: true })
+      .select(selectFields)
+      .lean();
+  }
+
+  if (targetType === 'bundle') {
+    const bundle = await BundleCourse.findById(targetId).select('enrolledStudents').lean();
+    if (!bundle) return null;
+    return User.find({ _id: { $in: bundle.enrolledStudents || [] }, role: 'student', isActive: true })
+      .select(selectFields)
+      .lean();
+  }
+
+  return null;
+}
+
+// Render Bulk Push Notifications page
+const getBulkNotifPage = async (req, res) => {
+  try {
+    const [totalStudents, totalCourses, totalBundles, studentsWithFcm, parentsWithFcm] =
+      await Promise.all([
+        User.countDocuments({ role: 'student', isActive: true }),
+        Course.countDocuments(),
+        BundleCourse.countDocuments(),
+        User.countDocuments({ role: 'student', isActive: true, studentFcmToken: { $ne: null, $exists: true, $ne: '' } }),
+        User.countDocuments({ role: 'student', isActive: true, parentFcmToken: { $ne: null, $exists: true, $ne: '' } }),
+      ]);
+
+    res.render('admin/bulk-notifications', {
+      title: 'Bulk Push Notifications | ELKABLY',
+      theme: req.cookies.theme || 'light',
+      currentPage: 'bulk-notifications',
+      admin: req.user,
+      stats: { totalStudents, totalCourses, totalBundles, studentsWithFcm, parentsWithFcm },
+      notificationTypes: NOTIFICATION_TYPES,
+      fcmReady: firebaseNotificationService.isReady(),
+    });
+  } catch (error) {
+    console.error('Error loading Bulk Notifications page:', error);
+    req.flash('error_msg', 'Failed to load Bulk Notifications page');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+// Preview: returns reachable FCM token counts without sending
+const getBulkNotifPreview = async (req, res) => {
+  try {
+    const { targetType, targetId, recipientType, selectedStudents } = req.body;
+
+    if (!targetType || typeof targetType !== 'string') {
+      return res.status(400).json({ success: false, message: 'Target type is required' });
+    }
+    if (!recipientType || !['students', 'parents', 'both'].includes(recipientType)) {
+      return res.status(400).json({ success: false, message: 'Valid recipient type is required' });
+    }
+
+    if (targetType === 'selected_students') {
+      if (!Array.isArray(selectedStudents) || selectedStudents.length === 0) {
+        return res.status(400).json({ success: false, message: 'Select at least one student' });
+      }
+    }
+
+    const students = await fetchStudentsForNotification(targetType, targetId, selectedStudents);
+
+    if (students === null) {
+      return res.status(404).json({ success: false, message: 'Target not found' });
+    }
+
+    const { parentTokens, studentTokens } = collectFcmTokens(students, recipientType);
+
+    const PREVIEW_LIMIT = 500;
+    const allRows = [];
+
+    if (recipientType === 'parents' || recipientType === 'both') {
+      for (const pt of parentTokens) {
+        const s = students.find((x) => String(x._id) === String(pt.studentId));
+        allRows.push({
+          name: pt.name,
+          email: s?.studentEmail || null,
+          audience: 'parent',
+          hasToken: true,
+        });
+      }
+    }
+    if (recipientType === 'students' || recipientType === 'both') {
+      for (const st of studentTokens) {
+        const s = students.find((x) => String(x._id) === String(st.studentId));
+        allRows.push({
+          name: st.name,
+          email: s?.studentEmail || null,
+          audience: 'student',
+          hasToken: true,
+        });
+      }
+    }
+
+    const truncated = allRows.length > PREVIEW_LIMIT;
+    const rows = allRows.slice(0, PREVIEW_LIMIT);
+
+    res.json({
+      success: true,
+      displayStudentCount: recipientType !== 'parents' ? studentTokens.length : 0,
+      displayParentCount: recipientType !== 'students' ? parentTokens.length : 0,
+      totalMessages: allRows.length,
+      truncated,
+      rows,
+      fcmReady: firebaseNotificationService.isReady(),
+    });
+  } catch (error) {
+    console.error('Error building bulk notification preview:', error);
+    res.status(500).json({ success: false, message: 'Failed to build preview: ' + error.message });
+  }
+};
+
+// Send Bulk Push Notifications via FCM
+const sendBulkNotification = async (req, res) => {
+  try {
+    const {
+      targetType,
+      targetId,
+      recipientType,
+      selectedStudents,
+      title,
+      body,
+      type = 'announcement',
+    } = req.body;
+
+    // Validate required fields
+    if (!title || title.trim().length < 2) {
+      return res.status(400).json({ success: false, message: 'Notification title is required (min 2 chars)' });
+    }
+    if (!body || body.trim().length < 5) {
+      return res.status(400).json({ success: false, message: 'Notification body is required (min 5 chars)' });
+    }
+    if (!NOTIFICATION_TYPES.includes(type)) {
+      return res.status(400).json({ success: false, message: 'Invalid notification type' });
+    }
+    if (!recipientType || !['students', 'parents', 'both'].includes(recipientType)) {
+      return res.status(400).json({ success: false, message: 'Valid recipient type is required' });
+    }
+    if (!firebaseNotificationService.isReady()) {
+      return res.status(503).json({ success: false, message: 'Firebase / FCM is not configured on this server' });
+    }
+
+    if (targetType === 'selected_students') {
+      if (!Array.isArray(selectedStudents) || selectedStudents.length === 0) {
+        return res.status(400).json({ success: false, message: 'Select at least one student' });
+      }
+    }
+
+    const students = await fetchStudentsForNotification(targetType, targetId, selectedStudents);
+
+    if (students === null) {
+      return res.status(404).json({ success: false, message: 'Target not found or bundle not found' });
+    }
+    if (students.length === 0) {
+      return res.status(404).json({ success: false, message: 'No active students found for the selected target' });
+    }
+
+    const titleStr = title.trim();
+    const bodyStr = body.trim();
+    const now = new Date();
+
+    // ── Step 1: Save one Notification record per student FIRST ─────────────────
+    // This gives us the _id to embed in the FCM data payload so the mobile app
+    // can deep-link directly to the notification detail screen when the user taps.
+    const savedNotifs = await Promise.all(
+      students.map((s) =>
+        Notification.createNotification({
+          parentPhone: s.parentNumber || 'bulk',
+          parentCountryCode: s.parentCountryCode || '+20',
+          student: s._id,
+          type,
+          title: titleStr,
+          body: bodyStr,
+          fullMessage: bodyStr,
+          data: { type, notificationType: type },
+          priority: 'normal',
+          deliveryStatus: { fcm: { sent: true, sentAt: now } },
+        }).catch(() => null),
+      ),
+    );
+
+    // Build studentId → notificationId lookup
+    const notifIdMap = new Map();
+    students.forEach((s, i) => {
+      if (savedNotifs[i]) {
+        notifIdMap.set(String(s._id), String(savedNotifs[i]._id));
+      }
+    });
+
+    // ── Step 2: Send FCM individually so each recipient gets their own notifId ──
+    // Concurrently send to all matching tokens.
+    const fcmOptions = { priority: 'normal' };
+    const fcmJobs = [];
+
+    for (const s of students) {
+      const notificationId = notifIdMap.get(String(s._id)) || '';
+      const fcmData = {
+        type,
+        notificationType: type,
+        notificationId,           // ← used by mobile app to open detail screen
+        studentId: String(s._id),
+      };
+
+      if (s.parentFcmToken && (recipientType === 'parents' || recipientType === 'both')) {
+        const token = s.parentFcmToken;
+        const name = `${s.firstName} ${s.lastName}'s Parent`;
+        fcmJobs.push(
+          firebaseNotificationService
+            .sendToToken(token, titleStr, bodyStr, fcmData, fcmOptions)
+            .then((r) => ({ ...r, token, name, audience: 'parent', notificationId }))
+            .catch((e) => ({ success: false, error: e.message, token, name, audience: 'parent' })),
+        );
+      }
+
+      if (s.studentFcmToken && (recipientType === 'students' || recipientType === 'both')) {
+        const token = s.studentFcmToken;
+        const name = `${s.firstName} ${s.lastName}`;
+        fcmJobs.push(
+          firebaseNotificationService
+            .sendToToken(token, titleStr, bodyStr, fcmData, fcmOptions)
+            .then((r) => ({ ...r, token, name, audience: 'student', notificationId }))
+            .catch((e) => ({ success: false, error: e.message, token, name, audience: 'student' })),
+        );
+      }
+    }
+
+    const fcmResults = await Promise.all(fcmJobs);
+
+    // ── Step 3: Collect results & clean up invalid tokens ──────────────────────
+    const results = { success: [], failed: [], total: fcmResults.length };
+    const invalidParentTokens = [];
+    const invalidStudentTokens = [];
+
+    for (const r of fcmResults) {
+      if (r.success) {
+        results.success.push({ name: r.name, audience: r.audience, method: 'FCM', notificationId: r.notificationId });
+      } else {
+        results.failed.push({ name: r.name, audience: r.audience, error: r.error || 'FCM send failed' });
+        if (r.invalidToken) {
+          if (r.audience === 'parent') invalidParentTokens.push(r.token);
+          else invalidStudentTokens.push(r.token);
+        }
+      }
+    }
+
+    if (invalidParentTokens.length > 0) {
+      await firebaseNotificationService.cleanupInvalidTokens(invalidParentTokens);
+    }
+    if (invalidStudentTokens.length > 0) {
+      await User.updateMany(
+        { studentFcmToken: { $in: invalidStudentTokens } },
+        { $set: { studentFcmToken: null } },
+      );
+    }
+
+    // ── Step 4: Admin audit log ────────────────────────────────────────────────
+    try {
+      const { createLog } = require('../middlewares/adminLogger');
+      await createLog({
+        adminId: req.user?._id || req.session?.user?.id,
+        action: 'SEND_BULK_NOTIFICATION',
+        targetModel: 'Notification',
+        details: {
+          targetType,
+          recipientType,
+          type,
+          title: titleStr,
+          successCount: results.success.length,
+          failedCount: results.failed.length,
+          totalStudents: students.length,
+        },
+        ipAddress: req.ip,
+      });
+    } catch (_) {
+      // Non-critical logging failure
+    }
+
+    res.json({
+      success: true,
+      message: `Push notifications sent to ${results.success.length} of ${results.total} recipients via FCM`,
+      results,
+    });
+  } catch (error) {
+    console.error('Error sending bulk notifications:', error);
+    res.status(500).json({ success: false, message: 'Failed to send notifications: ' + error.message });
+  }
+};
+
 // Simple PDF Upload Handler
 const uploadPDF = async (req, res) => {
   try {
@@ -18390,6 +18739,10 @@ module.exports = {
   getBundleStudentsCount,
   getBulkSMSPreview,
   sendBulkSMS,
+  // Bulk Push Notifications
+  getBulkNotifPage,
+  getBulkNotifPreview,
+  sendBulkNotification,
   // Simple PDF Upload
   uploadPDF,
   // OTP Master Generator
