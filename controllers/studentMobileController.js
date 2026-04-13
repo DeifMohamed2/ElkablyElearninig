@@ -354,7 +354,10 @@ function computeContentQuizResultsMeta(contentItem, contentProgress) {
       ? contentItem.quizSettings?.showCorrectAnswers !== false
       : contentItem.homeworkSettings?.showCorrectAnswers !== false;
   const lastPassed = !!latestAttempt?.passed;
-  if (!lastPassed) {
+  const hasFinishedAttempt = attempts.some((a) =>
+    ['completed', 'timeout', 'abandoned'].includes(a.status),
+  );
+  if (!hasFinishedAttempt) {
     canShowAnswers = false;
   }
   const settings =
@@ -1639,11 +1642,12 @@ const getStandaloneQuizResultsJson = async (req, res) => {
     const bestScore = quiz.getUserBestScore(student.quizAttempts);
     const latestAttempt = attemptHistory[attemptHistory.length - 1];
 
-    let canShowAnswers = quiz.showCorrectAnswers !== false;
+    const hasFinishedAttempt = attemptHistory.some((a) =>
+      ['completed', 'timeout', 'abandoned'].includes(a.status),
+    );
+    let canShowAnswers =
+      quiz.showCorrectAnswers !== false && hasFinishedAttempt;
     const lastPassed = !!latestAttempt?.passed;
-    if (!lastPassed) {
-      canShowAnswers = false;
-    }
 
     const standaloneAnswerNotice = !canShowAnswers
       ? {

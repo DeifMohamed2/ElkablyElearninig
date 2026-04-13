@@ -3527,15 +3527,16 @@ const quizResults = async (req, res) => {
       (c) => c._id.toString() === contentId,
     );
 
-    // Check if answers can be shown; also require last attempt to be passed
+    const attemptsList = contentProgress.quizAttempts || [];
+    const hasFinishedAttempt = attemptsList.some((a) =>
+      ['completed', 'timeout', 'abandoned'].includes(a.status),
+    );
     let canShowAnswers =
-      contentItem.type === 'quiz'
+      (contentItem.type === 'quiz'
         ? contentItem.quizSettings?.showCorrectAnswers !== false
-        : contentItem.homeworkSettings?.showCorrectAnswers !== false;
+        : contentItem.homeworkSettings?.showCorrectAnswers !== false) &&
+      hasFinishedAttempt;
     const lastPassed = !!latestAttempt?.passed;
-    if (!lastPassed) {
-      canShowAnswers = false;
-    }
 
     res.render('student/quiz-results', {
       title: `${contentItem.title} - Results | ELKABLY`,
@@ -4114,12 +4115,12 @@ const getStandaloneQuizResults = async (req, res) => {
         ? attemptHistory[attemptHistory.length - 1]
         : null;
 
-    // Check if answers can be shown
-    let canShowAnswers = quiz.showCorrectAnswers !== false;
+    const hasFinishedAttempt = attemptHistory.some((a) =>
+      ['completed', 'timeout', 'abandoned'].includes(a.status),
+    );
+    let canShowAnswers =
+      quiz.showCorrectAnswers !== false && hasFinishedAttempt;
     const lastPassed = !!latestAttempt?.passed;
-    if (!lastPassed) {
-      canShowAnswers = false;
-    }
 
     res.render('student/standalone-quiz-results', {
       title: `${quiz.title} - Results`,

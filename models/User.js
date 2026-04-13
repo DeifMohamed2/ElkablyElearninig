@@ -1037,12 +1037,18 @@ UserSchema.methods.completeQuizAttempt = async function (
     throw new Error('Attempt not found');
   }
 
+  // Use quiz's passing threshold from payload when provided (defaults on new attempts can be wrong)
+  const effectivePassingScore =
+    attemptData.passingScore !== undefined && attemptData.passingScore !== null
+      ? attemptData.passingScore
+      : attempt.passingScore;
+
   // Update attempt data
   Object.assign(attempt, {
     ...attemptData,
     completedAt: new Date(),
     status: 'completed',
-    passed: attemptData.score >= attempt.passingScore,
+    passed: (attemptData.score ?? 0) >= effectivePassingScore,
   });
 
   // Update best score
