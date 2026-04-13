@@ -14,31 +14,15 @@ const {
   getLeaderboard
 } = require('../controllers/gameRoomController');
 const multer = require('multer');
+const { profilePictureFileFilter } = require('../utils/profilePictureFileFilter');
 
 // Configure multer for profile picture uploads
 const profilePictureUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for profile pictures
+    fileSize: 5 * 1024 * 1024, // 5MB limit for profile pictures
   },
-  fileFilter: (req, file, cb) => {
-    // Allow only image files
-    const allowedMimeTypes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/webp'
-    ];
-    
-    const allowedExtensions = /\.(jpg|jpeg|png|gif|webp)$/i;
-    
-    if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.test(file.originalname)) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files (JPG, PNG, GIF, WebP) are allowed for profile pictures'));
-    }
-  }
+  fileFilter: profilePictureFileFilter,
 });
 
 // Apply authentication middleware to all routes
@@ -129,10 +113,13 @@ const handleMulterError = (err, req, res, next) => {
     });
   }
   
-  if (err.message.includes('Only image files')) {
-    return res.status(400).json({ 
-      success: false, 
-      message: err.message 
+  if (
+    err.message.includes('Only image files') ||
+    err.message.includes('image files are allowed')
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
     });
   }
   

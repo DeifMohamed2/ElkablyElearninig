@@ -3879,8 +3879,16 @@ const takeQuizPage = async (req, res) => {
 // Submit standalone quiz
 const submitStandaloneQuiz = async (req, res) => {
   try {
-    const { id: quizId } = req.params;
+    // Web: POST /student/quiz/:id/submit — mobile: POST /api/student/quizzes/:quizId/submit
+    const quizId = req.params.quizId || req.params.id;
     const { answers, timeSpent } = req.body;
+
+    if (!quizId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz id is required',
+      });
+    }
 
     // Check if user is authenticated
     if (!req.session.user || !req.session.user.id) {
@@ -3889,7 +3897,7 @@ const submitStandaloneQuiz = async (req, res) => {
         .json({ success: false, message: 'Authentication required' });
     }
 
-    const student = await User.findById(req.session.user.id);
+    let student = await User.findById(req.session.user.id);
 
     if (!student) {
       return res
@@ -3907,8 +3915,25 @@ const submitStandaloneQuiz = async (req, res) => {
         .json({ success: false, message: 'Quiz not found' });
     }
 
-    // Check for active attempt
-    const activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
+    // Prefer existing in_progress attempt; otherwise start one (e.g. app skipped GET .../take)
+    let activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
+    if (!activeAttempt) {
+      const can = quiz.canUserAttempt(student.quizAttempts);
+      if (!can.canAttempt) {
+        return res.status(400).json({
+          success: false,
+          message: can.reason || 'No active attempt found',
+        });
+      }
+      await student.startQuizAttempt(quizId, quiz.duration);
+      student = await User.findById(req.session.user.id);
+      if (!student) {
+        return res
+          .status(404)
+          .json({ success: false, message: 'Student not found' });
+      }
+      activeAttempt = quiz.getActiveAttempt(student.quizAttempts);
+    }
     if (!activeAttempt) {
       return res
         .status(400)
@@ -5117,12 +5142,32 @@ const getSecureStandaloneQuizQuestions = async (req, res) => {
       });
     }
 
-    const student = await User.findById(studentId);
+    let student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({
         success: false,
         message: 'Student not found',
       });
+    }
+
+    // Mobile clients often call secure-questions without GET .../take first.
+    // Submit requires an in_progress attempt; start one here when missing.
+    if (!quiz.getActiveAttempt(student.quizAttempts)) {
+      const can = quiz.canUserAttempt(student.quizAttempts);
+      if (!can.canAttempt) {
+        return res.status(403).json({
+          success: false,
+          message: can.reason || 'You cannot start this quiz',
+        });
+      }
+      await student.startQuizAttempt(quizId, quiz.duration);
+      student = await User.findById(studentId);
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Student not found',
+        });
+      }
     }
 
     // Get quiz attempt to check for existing shuffled order

@@ -38,8 +38,22 @@ function getFileExtension(filename, mimetype) {
     'image/png': '.png',
     'image/gif': '.gif',
     'image/webp': '.webp',
+    'image/bmp': '.bmp',
+    'image/x-ms-bmp': '.bmp',
+    'image/tiff': '.tiff',
+    'image/tif': '.tif',
+    'image/heic': '.heic',
+    'image/heif': '.heif',
+    'image/avif': '.avif',
+    'image/svg+xml': '.svg',
+    'image/x-icon': '.ico',
+    'image/vnd.microsoft.icon': '.ico',
+    'image/ico': '.ico',
+    'image/jfif': '.jfif',
+    'image/pjpeg': '.jpg',
+    'image/pjp': '.jpg',
   };
-  
+
   return mimeMap[mimetype] || '.jpg';
 }
 

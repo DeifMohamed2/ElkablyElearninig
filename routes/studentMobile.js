@@ -7,6 +7,7 @@ const auth = require('../controllers/studentMobileAuthController');
 const mobile = require('../controllers/studentMobileController');
 const notif = require('../controllers/studentMobileNotificationController');
 const { authenticateStudentMobile } = require('../middlewares/studentMobileAuth');
+const { profilePictureFileFilter } = require('../utils/profilePictureFileFilter');
 
 const router = express.Router();
 
@@ -19,20 +20,7 @@ router.use((req, res, next) => {
 const profilePictureUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-    ];
-    const ext = /\.(jpg|jpeg|png|gif|webp)$/i;
-    if (allowed.includes(file.mimetype) && ext.test(file.originalname)) {
-      return cb(null, true);
-    }
-    cb(new Error('Only image files (JPG, PNG, GIF, WebP) are allowed'));
-  },
+  fileFilter: profilePictureFileFilter,
 });
 
 const requireCompleteProfile = (req, res, next) => {
@@ -57,7 +45,11 @@ const handleMulterError = (err, req, res, next) => {
     }
     return res.status(400).json({ success: false, message: err.message });
   }
-  if (err.message && err.message.includes('Only image files')) {
+  if (
+    err.message &&
+    (err.message.includes('Only image files') ||
+      err.message.includes('image files are allowed'))
+  ) {
     return res.status(400).json({ success: false, message: err.message });
   }
   next(err);

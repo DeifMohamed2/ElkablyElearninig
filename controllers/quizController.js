@@ -984,6 +984,23 @@ const updateQuiz = async (req, res) => {
         req.flash('error', errorMessage);
         return res.redirect(`/admin/quizzes/${id}/edit`);
       }
+
+      // Match createQuiz: admin payloads often omit sourceBank; schema requires it
+      parsedQuestions = parsedQuestions.map((q) => {
+        const qid =
+          q.question && typeof q.question === 'object' && q.question._id
+            ? q.question._id
+            : q.question;
+        if (!q.sourceBank) {
+          const questionDoc = existingQuestions.find(
+            (eq) => eq._id.toString() === String(qid),
+          );
+          if (questionDoc) {
+            q.sourceBank = questionDoc.bank;
+          }
+        }
+        return q;
+      });
     }
 
     const quiz = await Quiz.findById(id);

@@ -82,7 +82,7 @@ const buildProfilePayload = (user) => ({
  */
 const login = async (req, res) => {
   try {
-    const { email, password, rememberMe } = req.body;
+    const { email, password, rememberMe, fcmToken } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -151,6 +151,16 @@ const login = async (req, res) => {
 
     const mobileSessionToken = crypto.randomBytes(32).toString('hex');
     user.mobileSessionToken = mobileSessionToken;
+
+    const trimmedFcm =
+      fcmToken != null && String(fcmToken).trim() !== ''
+        ? String(fcmToken).trim()
+        : null;
+    if (trimmedFcm) {
+      user.studentFcmToken = trimmedFcm;
+      user.studentFcmTokenUpdatedAt = new Date();
+    }
+
     await user.save();
 
     const token = signStudentToken(user, mobileSessionToken);
@@ -795,8 +805,56 @@ const profileSendOtp = async (req, res) => {
         message: 'Phone number and country code are required',
       });
     }
+
+    const validCountryCodes = ['+966', '+20', '+971', '+965'];
+    if (!validCountryCodes.includes(countryCode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a valid country code',
+      });
+    }
+
     const user = req.studentMobileUser;
     const clean = String(phoneNumber).replace(/\D/g, '');
+    const phoneLengthStandards = {
+      '+966': 9,
+      '+20': 11,
+      '+971': 9,
+      '+965': 8,
+    };
+    const expectedLen = phoneLengthStandards[countryCode];
+    if (clean.length !== expectedLen) {
+      return res.status(400).json({
+        success: false,
+        message: `Student number must be ${expectedLen} digits for the selected country`,
+      });
+    }
+
+    const taken = await User.findOne({
+      studentNumber: clean,
+      _id: { $ne: user._id },
+    })
+      .select('_id')
+      .lean();
+    if (taken) {
+      return res.status(400).json({
+        success: false,
+        message: 'This phone number is already registered to another account',
+      });
+    }
+
+    const parentDigits = String(user.parentNumber || '').replace(/\D/g, '');
+    if (
+      user.parentCountryCode === countryCode &&
+      parentDigits &&
+      parentDigits === clean
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student and parent phone numbers cannot be the same',
+      });
+    }
+
     const recipientKey = `profile_phone:${user._id}:${countryCode}:${clean}`;
 
     // reuse createOrRotateChallenge by extending - simpler: inline purpose in model
@@ -852,8 +910,31 @@ const profileVerifyOtp = async (req, res) => {
         message: 'Phone number, country code and OTP are required',
       });
     }
+
+    const validCountryCodes = ['+966', '+20', '+971', '+965'];
+    if (!validCountryCodes.includes(countryCode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a valid country code',
+      });
+    }
+
     const user = req.studentMobileUser;
     const clean = String(phoneNumber).replace(/\D/g, '');
+    const phoneLengthStandards = {
+      '+966': 9,
+      '+20': 11,
+      '+971': 9,
+      '+965': 8,
+    };
+    const expectedLen = phoneLengthStandards[countryCode];
+    if (clean.length !== expectedLen) {
+      return res.status(400).json({
+        success: false,
+        message: `Student number must be ${expectedLen} digits for the selected country`,
+      });
+    }
+
     const recipientKey = `profile_phone:${user._id}:${countryCode}:${clean}`;
 
     const doc = await OtpChallenge.findOne({
@@ -876,16 +957,62 @@ const profileVerifyOtp = async (req, res) => {
       });
     }
 
+    const existingOther = await User.findOne({
+      studentNumber: clean,
+      _id: { $ne: user._id },
+    }).select('_id');
+    if (existingOther) {
+      return res.status(400).json({
+        success: false,
+        message: 'This phone number is already registered to another account',
+      });
+    }
+
+    const parentDigits = String(user.parentNumber || '').replace(/\D/g, '');
+    if (
+      user.parentCountryCode === countryCode &&
+      parentDigits &&
+      parentDigits === clean
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student and parent phone numbers cannot be the same',
+      });
+    }
+
     doc.verified = true;
     doc.consumed = true;
     await doc.save();
 
+    const fresh = await User.findById(user._id);
+    fresh.studentCountryCode = countryCode;
+    fresh.studentNumber = clean;
+    await fresh.save();
+
     return res.json({
       success: true,
-      message: 'OTP verified successfully',
+      message: 'Phone number verified and updated successfully',
+      data: {
+        studentCountryCode: fresh.studentCountryCode,
+        studentNumber: fresh.studentNumber,
+        user: buildProfilePayload(fresh),
+      },
     });
   } catch (error) {
     console.error('profileVerifyOtp:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'This phone number is already registered to another account',
+      });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', '),
+      });
+    }
     return res.status(500).json({
       success: false,
       message: 'Verification failed',
