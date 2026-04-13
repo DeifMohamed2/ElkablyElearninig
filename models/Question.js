@@ -213,6 +213,10 @@ QuestionSchema.methods.isCorrectMCQAnswer = function (userAnswer) {
     return this.isCorrectWrittenAnswer(userAnswer);
   }
 
+  if (userAnswer === undefined || userAnswer === null) {
+    return false;
+  }
+
   // Validate that the answer is within valid range
   if (!this.options || this.options.length === 0) {
     return false;
