@@ -1473,8 +1473,22 @@ const getQuizzesList = async (req, res) => {
       .populate('questionBank', 'name description totalQuestions')
       .populate('createdBy', 'name email')
       .populate('module', 'name code icon color order')
-      .sort({ moduleOrder: 1, createdAt: -1 })
       .lean({ virtuals: true });
+
+    const moduleOrderKey = (quiz) => {
+      const m = quiz.module;
+      if (m && typeof m === 'object' && m.order != null) return m.order;
+      return 100000;
+    };
+
+    allQuizzesRaw.sort((a, b) => {
+      const d = moduleOrderKey(a) - moduleOrderKey(b);
+      if (d !== 0) return d;
+      const moA = a.moduleOrder ?? 0;
+      const moB = b.moduleOrder ?? 0;
+      if (moA !== moB) return moA - moB;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
 
     const allQuizzes = allQuizzesRaw.map(slimStandaloneQuizListItem);
 
@@ -1488,7 +1502,9 @@ const getQuizzesList = async (req, res) => {
     const quizzesByModules = { EST: [], SAT: [], ACT: [] };
 
     ['EST', 'SAT', 'ACT'].forEach((testType) => {
-      const testTypeModules = allModules.filter((m) => m.testType === testType);
+      const testTypeModules = allModules
+        .filter((m) => m.testType === testType)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.name).localeCompare(String(b.name)));
       const testTypeQuizzes = groupedQuizzes[testType];
 
       const moduleGroups = testTypeModules
@@ -1502,7 +1518,12 @@ const getQuizzesList = async (req, res) => {
         }))
         .filter((g) => g.quizzes.length > 0);
 
-      const unassignedQuizzes = testTypeQuizzes.filter((q) => !q.module);
+      const unassignedQuizzes = testTypeQuizzes
+        .filter((q) => !q.module)
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
       if (unassignedQuizzes.length > 0) {
         moduleGroups.push({
           module: {
