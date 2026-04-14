@@ -57,6 +57,11 @@ router.get('/privacy-policy', (req, res) => {
   });
 });
 
+// Mobile app privacy policy (standalone page; use for app store listings)
+router.get('/mobile-app-privacy-policy', (req, res) => {
+  res.render('mobile-app-privacy-policy');
+});
+
 // Dashboard route (protected) - Redirect based on user role
 router.get('/dashboard', isAuthenticated, (req, res) => {
   if (req.session.user.role === 'admin') {
