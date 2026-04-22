@@ -859,6 +859,14 @@
                       <button class="btn btn-sm btn-outline-info" onclick="viewAttemptHistory('<%= student.id %>')" title="View Attempt History">
                         <i class="fas fa-history"></i>
                       </button>
+                      <button
+                        class="btn btn-sm btn-outline-warning"
+                        type="button"
+                        onclick="grantRetriesContentDetails('<%= student.id %>')"
+                        title="Remove all prior attempts and scores; student can start fresh on this item"
+                        <% var _canReset = student.status !== 'not_started' || (student.attempts || 0) > 0 || (student.quizAttempts && student.quizAttempts.length > 0); if (!_canReset) { %>disabled<% } %>>
+                        <i class="fas fa-redo"></i>
+                      </button>
                       <% } %>
                     </div>
                   </td>
@@ -920,6 +928,34 @@ function getStatusIcon(status) {
     direction: 'asc'
   };
   let contentType = '<%= contentItem.type %>';
+  const contentDetailsRetry = {
+    courseCode: '<%= courseCode %>',
+    topicId: '<%= topic._id %>',
+    contentId: '<%= contentItem._id %>',
+  };
+
+  async function grantRetriesContentDetails(studentId) {
+    if (
+      !confirm(
+        'Remove all of this student\'s prior attempts and scores for this content? Their full attempt history here will be deleted, and they can start fresh (within your max attempts).',
+      )
+    ) {
+      return;
+    }
+    const url = `/admin/courses/${contentDetailsRetry.courseCode}/topics/${contentDetailsRetry.topicId}/content/${contentDetailsRetry.contentId}/students/${studentId}/reset`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Reset failed');
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert(e.message || 'Reset failed');
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', function() {
     setupSearch();
@@ -1165,6 +1201,13 @@ function getStatusIcon(status) {
     `;
     }
 
+    const canGr =
+      isQuizOrHomework &&
+      (student.status !== 'not_started' ||
+        (student.attempts || 0) > 0 ||
+        (student.quizAttempts && student.quizAttempts.length > 0));
+    const grDisabled = isQuizOrHomework && !canGr ? ' disabled' : '';
+
     const actionButtons = isQuizOrHomework ? `
     <div class="action-buttons">
       <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetails('${student.email}')" title="View Student Details">
@@ -1175,6 +1218,9 @@ function getStatusIcon(status) {
       </button>
       <button class="btn btn-sm btn-outline-info" onclick="viewAttemptHistory('${student.id}')" title="View Attempt History">
         <i class="fas fa-history"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-warning" type="button" onclick="grantRetriesContentDetails('${student.id}')" title="Remove all prior attempts and scores; student can start fresh"${grDisabled}>
+        <i class="fas fa-redo"></i>
       </button>
     </div>
   ` : `

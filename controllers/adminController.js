@@ -2681,8 +2681,16 @@ const getTopicContentStudentStats = async (req, res) => {
         .status(404)
         .json({ success: false, message: 'Content not found' });
 
+    const maxAttempts =
+      contentItem.type === 'quiz'
+        ? contentItem.quizSettings?.maxAttempts || 3
+        : contentItem.type === 'homework'
+          ? contentItem.homeworkSettings?.maxAttempts || 1
+          : null;
+
     const enrolledStudents = await User.find({
       'enrolledCourses.course': course._id,
+      isActive: true,
     })
       .select('firstName lastName studentEmail studentCode enrolledCourses')
       .lean();
@@ -2692,21 +2700,35 @@ const getTopicContentStudentStats = async (req, res) => {
       const enrollment = (stu.enrolledCourses || []).find(
         (e) => e.course && e.course.toString() === course._id.toString(),
       );
-      if (!enrollment || !enrollment.contentProgress) return;
-      const cp = enrollment.contentProgress.find(
+      if (!enrollment) return;
+
+      const cp = (enrollment.contentProgress || []).find(
         (p) => p.contentId && p.contentId.toString() === contentId,
       );
-      if (!cp) return;
-      const attempts = cp.quizAttempts || [];
+      const hasProgress = !!cp;
+      const attempts = (cp && cp.quizAttempts) || [];
+      const isGraded =
+        contentItem.type === 'quiz' || contentItem.type === 'homework';
+      const attemptsUsed = cp
+        ? isGraded
+          ? attempts.length > 0
+            ? attempts.length
+            : (cp.attempts || 0)
+          : cp.attempts || 0
+        : 0;
+
       rows.push({
         studentId: stu._id,
         name: `${stu.firstName} ${stu.lastName}`,
         email: stu.studentEmail,
         studentCode: stu.studentCode,
-        completionStatus: cp.completionStatus,
-        progressPercentage: cp.progressPercentage || 0,
-        timeSpent: cp.timeSpent || 0,
-        lastAccessed: cp.lastAccessed || null,
+        hasProgress,
+        canReset: hasProgress,
+        attemptsUsed,
+        completionStatus: cp ? cp.completionStatus : 'not_started',
+        progressPercentage: cp ? cp.progressPercentage || 0 : 0,
+        timeSpent: cp ? cp.timeSpent || 0 : 0,
+        lastAccessed: cp ? cp.lastAccessed || null : null,
         attempts: attempts.map((a) => ({
           attemptNumber: a.attemptNumber,
           score: a.score || 0,
@@ -2717,35 +2739,38 @@ const getTopicContentStudentStats = async (req, res) => {
           completedAt: a.completedAt,
           passed: a.passed || false,
         })),
-        bestScore: cp.bestScore || 0,
+        bestScore: hasProgress && cp.bestScore != null ? cp.bestScore : null,
       });
     });
 
-    // Aggregate stats
+    // Aggregate stats (graded: averages only from students with attempt data)
     const totalStudents = rows.length;
+    const graded = contentItem.type === 'quiz' || contentItem.type === 'homework';
+    const withAttempts = rows.filter(
+      (r) => (r.attempts?.length || 0) > 0 || (r.attemptsUsed || 0) > 0,
+    );
     const averageScore =
-      (contentItem.type === 'quiz' || contentItem.type === 'homework') &&
-      totalStudents > 0
+      graded && withAttempts.length > 0
         ? Math.round(
-            rows.reduce((sum, r) => sum + (r.bestScore || 0), 0) /
-              totalStudents,
+            withAttempts.reduce((sum, r) => sum + (r.bestScore || 0), 0) /
+              withAttempts.length,
           )
         : null;
     const totalAttempts = rows.reduce(
-      (sum, r) => sum + (r.attempts?.length || 0),
+      (sum, r) => sum + (r.attempts?.length || r.attemptsUsed || 0),
       0,
     );
     const passRate =
-      (contentItem.type === 'quiz' || contentItem.type === 'homework') &&
-      totalStudents > 0
+      graded && withAttempts.length > 0
         ? (() => {
-            const takers = rows.filter((r) => (r.attempts?.length || 0) > 0);
+            const takers = rows.filter(
+              (r) => (r.attempts?.length || 0) > 0,
+            );
+            if (takers.length === 0) return 0;
             const passed = takers.filter((r) =>
               (r.attempts || []).some((a) => a.passed),
             ).length;
-            return takers.length > 0
-              ? Math.round((passed / takers.length) * 100)
-              : 0;
+            return Math.round((passed / takers.length) * 100);
           })()
         : null;
 
@@ -2755,6 +2780,7 @@ const getTopicContentStudentStats = async (req, res) => {
         id: contentItem._id,
         title: contentItem.title,
         type: contentItem.type,
+        maxAttempts,
       },
       stats: { totalStudents, averageScore, totalAttempts, passRate },
       students: rows,

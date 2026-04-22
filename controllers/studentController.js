@@ -4833,6 +4833,7 @@ const getSecureAllQuestions = async (req, res) => {
         if (settings.shuffleOptions) {
           contentItem.selectedQuestions.forEach((selectedQuestion, qIdx) => {
             const question = selectedQuestion.question;
+            if (!question) return;
             if (
               question.questionType !== 'Written' &&
               question.options &&
@@ -4944,6 +4945,7 @@ const getSecureAllQuestions = async (req, res) => {
         if (settings.shuffleOptions) {
           contentItem.selectedQuestions.forEach((selectedQuestion) => {
             const question = selectedQuestion.question;
+            if (!question) return;
             if (
               question.questionType !== 'Written' &&
               question.options &&
@@ -4979,11 +4981,18 @@ const getSecureAllQuestions = async (req, res) => {
       }
     }
 
-    // Create secure questions array in shuffled order
-    const secureQuestions = shuffledQuestionOrder.map(
-      (originalIndex, displayIndex) => {
+    // Create secure questions array in shuffled order (skip dangling question refs)
+    const secureQuestions = shuffledQuestionOrder
+      .map((originalIndex) => {
         const selectedQuestion = contentItem.selectedQuestions[originalIndex];
-        const question = selectedQuestion.question;
+        const question = selectedQuestion?.question;
+        if (!selectedQuestion || !question) {
+          console.warn(
+            'getSecureAllQuestions: missing question at content slot',
+            { contentId, originalIndex },
+          );
+          return null;
+        }
 
         let options = [];
         if (
@@ -5015,12 +5024,15 @@ const getSecureAllQuestions = async (req, res) => {
           questionType: question.questionType,
           questionImage: question.questionImage,
           points: selectedQuestion.points || 1,
-          index: displayIndex, // Display index (0-based in shuffled order)
           originalIndex: originalIndex, // Original index for reference
           options: options,
         };
-      },
-    );
+      })
+      .filter((entry) => entry != null)
+      .map((entry, displayIndex) => ({
+        ...entry,
+        index: displayIndex,
+      }));
 
     res.json({
       success: true,

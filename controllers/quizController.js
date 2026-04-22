@@ -1138,7 +1138,7 @@ const getQuizDetails = async (req, res) => {
     const participants = await User.find({
       'quizAttempts.quiz': id,
     })
-      .select('firstName lastName userName studentEmail quizAttempts createdAt')
+      .select('firstName lastName userName studentEmail studentCode quizAttempts createdAt')
       .lean();
 
     // Map and rank participants
@@ -1161,6 +1161,7 @@ const getQuizDetails = async (req, res) => {
               ? `${u.firstName} ${u.lastName}`
               : u.userName || 'Unknown',
           email: u.studentEmail || '',
+          studentCode: u.studentCode || '',
           attemptsCount: attempts.length,
           bestScore,
           lastScore: lastAttempt ? lastAttempt.score : null,

@@ -88,9 +88,9 @@
 
 
       <!-- Quiz Details Content -->
-      <div class="row">
+      <div class="row g-4 align-items-start quiz-details-page-row">
         <!-- Main Content -->
-        <div class="col-lg-8">
+        <div class="col-lg-8 min-w-0">
           <!-- Quiz Information -->
           <div class="quiz-form-section">
             <div class="quiz-form-section-title">
@@ -204,40 +204,49 @@
               <% quiz.selectedQuestions.forEach((selectedQ, index) => { %>
               <% const question = selectedQ.question; %>
               <div class="enhanced-question-item">
-                <div class="enhanced-question-header">
-                  <div class="enhanced-question-number">
+                <% 
+                  var _qt = (question && question.questionText) ? String(question.questionText) : '';
+                  var _plain = _qt.replace(/\\[a-zA-Z*]+/g, ' ').replace(/[{}#^_]/g, ' ').replace(/\$/g, ' ').replace(/\s+/g, ' ').trim();
+                  var _preview = _plain.length > 140 ? _plain.substring(0, 140) + '…' : _plain;
+                %>
+                <div class="enhanced-question-row">
+                  <div class="enhanced-question-number" aria-hidden="true">
                     <span class="question-number-badge"><%= index + 1 %></span>
                   </div>
+                  <div class="enhanced-question-content">
+                    <div class="enhanced-question-title" title="<%- _qt.replace(/&/g, '&amp;').replace(/"/g, '&quot;') %>">
+                      <% if (_preview) { %>
+                        <%= _preview %>
+                      <% } else { %>
+                        <span class="enhanced-question-title-placeholder"><i class="fas fa-ellipsis-h"></i> Math or rich content — use Preview to see the full question.</span>
+                      <% } %>
+                    </div>
+                    <div class="enhanced-question-meta">
+                      <div class="enhanced-meta-item">
+                        <i class="fas fa-signal"></i>
+                        <span class="admin-badge admin-badge-<%= question.difficulty === 'Easy' ? 'success' : question.difficulty === 'Medium' ? 'warning' : 'danger' %>">
+                          <%= question.difficulty %>
+                        </span>
+                      </div>
+                      <div class="enhanced-meta-item">
+                        <i class="fas fa-tag"></i>
+                        <span class="admin-badge admin-badge-info">
+                          <%= question.questionType %>
+                        </span>
+                      </div>
+                      <div class="enhanced-meta-item">
+                        <i class="fas fa-star"></i>
+                        <span class="admin-badge admin-badge-primary">
+                          <%= selectedQ.points || question.points %> pts
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   <div class="enhanced-question-actions">
-                    <button class="admin-action-btn primary" onclick="previewQuestion('<%= question._id %>')">
+                    <button type="button" class="admin-action-btn primary" onclick="previewQuestion('<%= question._id %>')">
                       <i class="fas fa-eye"></i>
                       Preview
                     </button>
-                  </div>
-                </div>
-                <div class="enhanced-question-content">
-                  <div class="enhanced-question-title">
-                    <%= question.questionText.length > 100 ? question.questionText.substring(0, 100) + '...' : question.questionText %>
-                  </div>
-                  <div class="enhanced-question-meta">
-                    <div class="enhanced-meta-item">
-                      <i class="fas fa-signal"></i>
-                      <span class="admin-badge admin-badge-<%= question.difficulty === 'Easy' ? 'success' : question.difficulty === 'Medium' ? 'warning' : 'danger' %>">
-                        <%= question.difficulty %>
-                      </span>
-                    </div>
-                    <div class="enhanced-meta-item">
-                      <i class="fas fa-tag"></i>
-                      <span class="admin-badge admin-badge-info">
-                        <%= question.questionType %>
-                      </span>
-                    </div>
-                    <div class="enhanced-meta-item">
-                      <i class="fas fa-star"></i>
-                      <span class="admin-badge admin-badge-primary">
-                        <%= selectedQ.points || question.points %> pts
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -259,8 +268,8 @@
           </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="col-lg-4">
+        <!-- Sidebar: single-column metadata (avoids row negative margins / overlap in narrow column) -->
+        <div class="col-lg-4 quiz-details-sidebar min-w-0">
           <!-- Question Bank Info -->
           <div class="question-bank-selection">
             <div class="question-bank-selection-title">
@@ -286,74 +295,62 @@
               <i class="fas fa-info-circle"></i>
               Quiz Metadata
             </div>
-            <div class="bank-selection-card" style="padding: 24px;">
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <div class="metadata-item">
-                    <div class="metadata-icon">
-                      <i class="fas fa-user-circle"></i>
-                    </div>
-                    <div class="metadata-content">
-                      <div class="metadata-label">Created by</div>
-                      <div class="metadata-value"><%= quiz.createdBy?.userName || 'Unknown' %></div>
-                    </div>
+            <div class="bank-selection-card quiz-metadata-card">
+              <div class="quiz-metadata-stack">
+                <div class="metadata-item">
+                  <div class="metadata-icon">
+                    <i class="fas fa-user-circle"></i>
+                  </div>
+                  <div class="metadata-content">
+                    <div class="metadata-label">Created by</div>
+                    <div class="metadata-value"><%= quiz.createdBy?.userName || 'Unknown' %></div>
                   </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <div class="metadata-item">
-                    <div class="metadata-icon">
-                      <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="metadata-content">
-                      <div class="metadata-label">Created Date</div>
-                      <div class="metadata-value"><%= new Date(quiz.createdAt).toLocaleDateString() %></div>
-                    </div>
+                <div class="metadata-item">
+                  <div class="metadata-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                  </div>
+                  <div class="metadata-content">
+                    <div class="metadata-label">Created date</div>
+                    <div class="metadata-value"><%= new Date(quiz.createdAt).toLocaleDateString() %></div>
                   </div>
                 </div>
                 <% if (quiz.lastModifiedBy) { %>
-                <div class="col-md-6 mb-3">
-                  <div class="metadata-item">
-                    <div class="metadata-icon">
-                      <i class="fas fa-user-edit"></i>
-                    </div>
-                    <div class="metadata-content">
-                      <div class="metadata-label">Last Modified by</div>
-                      <div class="metadata-value"><%= quiz.lastModifiedBy?.userName || 'Unknown' %></div>
-                    </div>
+                <div class="metadata-item">
+                  <div class="metadata-icon">
+                    <i class="fas fa-user-edit"></i>
+                  </div>
+                  <div class="metadata-content">
+                    <div class="metadata-label">Last modified by</div>
+                    <div class="metadata-value"><%= quiz.lastModifiedBy?.userName || 'Unknown' %></div>
                   </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <div class="metadata-item">
-                    <div class="metadata-icon">
-                      <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="metadata-content">
-                      <div class="metadata-label">Last Modified</div>
-                      <div class="metadata-value"><%= new Date(quiz.updatedAt).toLocaleDateString() %></div>
-                    </div>
+                <div class="metadata-item">
+                  <div class="metadata-icon">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                  <div class="metadata-content">
+                    <div class="metadata-label">Last modified</div>
+                    <div class="metadata-value"><%= new Date(quiz.updatedAt).toLocaleDateString() %></div>
                   </div>
                 </div>
                 <% } %>
-                <div class="col-md-6 mb-3">
-                  <div class="metadata-item">
-                    <div class="metadata-icon">
-                      <i class="fas fa-hashtag"></i>
-                    </div>
-                    <div class="metadata-content">
-                      <div class="metadata-label">Quiz Code</div>
-                      <div class="metadata-value"><%= quiz.code %></div>
-                    </div>
+                <div class="metadata-item">
+                  <div class="metadata-icon">
+                    <i class="fas fa-hashtag"></i>
+                  </div>
+                  <div class="metadata-content">
+                    <div class="metadata-label">Quiz code</div>
+                    <div class="metadata-value"><%= quiz.code %></div>
                   </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <div class="metadata-item">
-                    <div class="metadata-icon">
-                      <i class="fas fa-layer-group"></i>
-                    </div>
-                    <div class="metadata-content">
-                      <div class="metadata-label">Question Bank</div>
-                      <div class="metadata-value"><%= quiz.questionBank?.name || 'No Bank' %></div>
-                    </div>
+                <div class="metadata-item">
+                  <div class="metadata-icon">
+                    <i class="fas fa-layer-group"></i>
+                  </div>
+                  <div class="metadata-content">
+                    <div class="metadata-label">Question bank</div>
+                    <div class="metadata-value"><%= quiz.questionBank?.name || 'No Bank' %></div>
                   </div>
                 </div>
               </div>
@@ -366,8 +363,8 @@
               <i class="fas fa-cogs"></i>
               Quick Actions
             </div>
-            <div class="d-grid gap-2">
-              <a href="/admin/quizzes/<%= quiz._id %>/edit" class="btn btn-primary">
+            <div class="d-grid gap-2 quiz-details-quick-actions">
+              <a href="/admin/quizzes/<%= quiz._id %>/edit" class="btn btn-primary w-100 text-nowrap">
                 <i class="fas fa-edit"></i>
                 Edit Quiz
               </a>
@@ -375,20 +372,18 @@
               <% const newStatus = quiz.status === 'active' ? 'draft' : 'active'; %>
               <% const statusIcon = quiz.status === 'active' ? 'pause' : 'play'; %>
               <% const statusText = quiz.status === 'active' ? 'Deactivate' : 'Activate'; %>
-              <button class="btn btn-<%= statusClass %>" onclick="updateQuizStatus('<%= quiz._id %>', '<%= newStatus %>')">
+              <button type="button" class="btn btn-<%= statusClass %> w-100 text-nowrap" onclick="updateQuizStatus('<%= quiz._id %>', '<%= newStatus %>')">
                 <i class="fas fa-<%= statusIcon %>"></i>
                 <%= statusText %> Quiz
               </button>
-              <div class="btn-group" role="group">
-                <button class="btn btn-warning" onclick="deleteQuiz('<%= quiz._id %>', false)">
-                  <i class="fas fa-trash"></i>
-                  Move to Trash
-                </button>
-                <button class="btn btn-danger" onclick="deleteQuiz('<%= quiz._id %>', true)">
-                  <i class="fas fa-trash-alt"></i>
-                  Delete Permanently
-                </button>
-              </div>
+              <button type="button" class="btn btn-warning w-100" onclick="deleteQuiz('<%= quiz._id %>', false)">
+                <i class="fas fa-trash"></i>
+                Move to trash
+              </button>
+              <button type="button" class="btn btn-danger w-100" onclick="deleteQuiz('<%= quiz._id %>', true)">
+                <i class="fas fa-trash-alt"></i>
+                Delete permanently
+              </button>
             </div>
           </div>
         </div>
@@ -414,6 +409,13 @@
         </div>
 
         <% if (participants && participants.length > 0) { %>
+        <div class="mb-3">
+          <div class="input-group input-group-sm" style="max-width: 420px;">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="search" class="form-control" id="quizParticipantSearch" placeholder="Search by name, email, or code…" autocomplete="off" oninput="filterQuizParticipants()">
+          </div>
+          <small class="text-muted d-block mt-1" id="quizParticipantSearchHint">Showing <span id="quizParticipantVisibleCount"><%= participants.length %></span> of <%= participants.length %></small>
+        </div>
         <div class="admin-table-container">
           <table class="admin-table">
             <thead>
@@ -429,10 +431,13 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="quizParticipantsTbody">
               <% participants.forEach((p, idx) => { %>
-              <tr>
-                <td><%= idx + 1 %></td>
+              <%
+                const pHay = [p.name, p.email || '', p.studentCode || ''].filter(Boolean).join(' ').toLowerCase();
+              %>
+              <tr class="quiz-participant-row" data-haystack="<%= pHay.replace(/"/g, '&quot;') %>">
+                <td class="quiz-participant-rank"><%= idx + 1 %></td>
                 <td><%= p.name %></td>
                 <td><%= p.email || '-' %></td>
                 <td>
@@ -449,7 +454,14 @@
                     <a class="admin-action-btn primary" href="/admin/quizzes/<%= quiz._id %>/review/<%= p.studentId %>">
                       <i class="fas fa-eye"></i> Review
                     </a>
-                    <button class="admin-action-btn" onclick="resetStudentQuiz('<%= quiz._id %>', '<%= p.studentId %>', '<%= p.name %>')" title="Reset student's quiz attempts">
+                    <button
+                      type="button"
+                      class="admin-action-btn quiz-reset-attempts-btn"
+                      data-quiz-id="<%= String(quiz._id) %>"
+                      data-student-id="<%= String(p.studentId) %>"
+                      data-student-name="<%- (p.name || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') %>"
+                      title="Remove all prior attempts and scores for this student on this quiz; they can then start fresh"
+                    >
                       <i class="fas fa-redo"></i> Reset
                     </button>
                   </div>
@@ -528,6 +540,31 @@
     </div>
 
     <script>
+      const quizParticipantsTotal = <%= (participants && participants.length) ? participants.length : 0 %>;
+
+      function filterQuizParticipants() {
+        const q = (document.getElementById('quizParticipantSearch') && document.getElementById('quizParticipantSearch').value
+          ? document.getElementById('quizParticipantSearch').value
+          : ''
+        )
+          .toLowerCase()
+          .trim();
+        const rows = document.querySelectorAll('#quizParticipantsTbody tr.quiz-participant-row');
+        let rank = 0;
+        rows.forEach((row) => {
+          const hay = (row.getAttribute('data-haystack') || '').toLowerCase();
+          const show = !q || hay.includes(q);
+          row.style.display = show ? '' : 'none';
+          if (show) {
+            rank++;
+            const rCell = row.querySelector('.quiz-participant-rank');
+            if (rCell) rCell.textContent = String(rank);
+          }
+        });
+        const el = document.getElementById('quizParticipantVisibleCount');
+        if (el) el.textContent = String(rank);
+      }
+
       function formatTextFormatting(text) {
         if (!text) return '';
         function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -587,7 +624,6 @@
 
         // Handle different question types
         if (question.questionType === 'Written') {
-          // Handle Written Questions
           if (question.correctAnswers && question.correctAnswers.length > 0) {
             correctAnswersHtml = `
         <div class="enhanced-question-preview-answers">
@@ -599,21 +635,17 @@
             ${question.correctAnswers.map((answer, index) => {
               let answerTextHtml = '';
               if (answer.text && answer.text.includes('\\')) {
-                // Render math for answer text
                 answerTextHtml = `
-                  <math-field readonly 
+                  <math-field readonly
                     style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
                     class="preview-math-field answer-math-field">
                     ${answer.text}
                   </math-field>
                 `;
               } else {
-                answerTextHtml = ` < span class = "answer-text-content" > $ {
-              answer.text
-            } < /span>`;
-          }
-
-          return `
+                answerTextHtml = '<span class="answer-text-content">' + formatTextFormatting(answer.text || '') + '</span>';
+              }
+              return `
                 <div class="enhanced-answer-item">
                   <div class="answer-number">${index + 1}</div>
                   <div class="answer-content">
@@ -624,48 +656,38 @@
                   </div>
                 </div>
               `;
-        }).join('')
-      } <
-      /div> <
-      div class = "answer-multiplicity-info" >
-        <
-        i class = "fas fa-info-circle" > < /i>
-      Answer Type: $ {
-          question.answerMultiplicity === 'single' ? 'Single Answer' : 'Multiple Answers'
-        } <
-        /div> <
-        /div>
+            }).join('')}
+          </div>
+          <div class="answer-multiplicity-info">
+            <i class="fas fa-info-circle"></i>
+            Answer Type: ${question.answerMultiplicity === 'single' ? 'Single Answer' : 'Multiple Answers'}
+          </div>
+        </div>
       `;
-    }
-  } else {
-    // Handle MCQ and True/False Questions
-    if (question.options && question.options.length > 0) {
-      optionsHtml = ` <
-      div class = "enhanced-question-preview-options" >
-        <
-        div class = "options-title" >
-        <
-        i class = "fas fa-list" > < /i>
-      Answer Options
-        <
-        /div> <
-        div class = "options-list" >
-        $ {
-          question.options.map((option, index) => {
+          }
+        } else {
+          if (question.options && question.options.length > 0) {
+            optionsHtml = `
+      <div class="enhanced-question-preview-options">
+        <div class="options-title">
+          <i class="fas fa-list"></i>
+          Answer Options
+        </div>
+        <div class="options-list">
+        ${question.options
+          .map((option, index) => {
             let optionTextHtml = '';
             if (option.text && option.text.includes('\\')) {
-              // Render math for option text
               optionTextHtml = `
-                  <math-field readonly 
+                  <math-field readonly
                     style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
                     class="preview-math-field option-math-field">
                     ${option.text}
                   </math-field>
                 `;
             } else {
-              optionTextHtml = `<span class="option-text-content">${option.text}</span>`;
+              optionTextHtml = '<span class="option-text-content">' + (option.text || '') + '</span>';
             }
-
             return `
                 <div class="enhanced-option-item ${option.isCorrect ? 'correct' : ''}">
                   <div class="option-letter">${String.fromCharCode(65 + index)}</div>
@@ -675,35 +697,29 @@
                   ${option.isCorrect ? '<div class="correct-indicator"><i class="fas fa-check"></i></div>' : ''}
                 </div>
               `;
-          }).join('')
-        } <
-        /div> <
-        /div>
+          })
+          .join('')}
+        </div>
+      </div>
       `;
-    }
-  }
-  
-  let explanationHtml = '';
-  if (question.explanation) {
-    let explanationTextHtml = '';
-    if (question.explanation.includes('\\')) {
-      // Render math for explanation
-      explanationTextHtml = ` <
-      math - field readonly
-      style = "width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
-      class = "preview-math-field explanation-math-field" >
-        $ {
-          question.explanation
-        } <
-        /math-field>
-      `;
-    } else {
-      explanationTextHtml = ` < div class = "explanation-text-content" > $ {
-        question.explanation
-      } < /div>`;
-      }
+          }
+        }
 
-      explanationHtml = `
+        let explanationHtml = '';
+        if (question.explanation) {
+          let explanationTextHtml = '';
+          if (question.explanation.includes('\\')) {
+            explanationTextHtml = `
+      <math-field readonly
+        style="width: 100%; min-height: 40px; font-size: 16px; border: none; background: transparent; padding: 8px;"
+        class="preview-math-field explanation-math-field">
+        ${question.explanation}
+      </math-field>
+    `;
+          } else {
+            explanationTextHtml = '<div class="explanation-text-content">' + formatTextFormatting(question.explanation) + '</div>';
+          }
+          explanationHtml = `
       <div class="enhanced-question-preview-explanation">
         <div class="explanation-title">
           <i class="fas fa-lightbulb"></i>
@@ -714,9 +730,9 @@
         </div>
       </div>
     `;
-      }
+        }
 
-      content.innerHTML = `
+        content.innerHTML = `
     <div class="enhanced-question-preview-header">
       <div class="question-meta-badges">
         <span class="admin-badge admin-badge-${question.difficulty === 'Easy' ? 'success' : question.difficulty === 'Medium' ? 'warning' : 'danger'}">
@@ -848,35 +864,61 @@
         modal.show();
       }
 
-      // Reset Student Quiz Attempts
+      // Reset Student Quiz Attempts (used by participant button + event delegation; must be on window for robustness)
       async function resetStudentQuiz(quizId, studentId, studentName) {
-        if (!confirm(`Are you sure you want to reset all quiz attempts for ${studentName}? This will allow them to retake the quiz from the beginning.`)) {
+        if (!confirm(`Remove all prior attempts and scores for ${studentName} on this quiz? Their full attempt history for this activity will be deleted, and they can start fresh (within your max attempts).`)) {
           return;
         }
 
         try {
-          const response = await fetch(`/admin/quizzes/${quizId}/reset-student/${studentId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            }
+          const response = await fetch(
+            `/admin/quizzes/${encodeURIComponent(quizId)}/reset-student/${encodeURIComponent(studentId)}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              credentials: 'same-origin',
+            },
+          );
+
+          const data = await response.json().catch(function () {
+            return {};
           });
 
-          const data = await response.json();
-
-          if (data.success) {
-            showNotification(`Quiz attempts reset successfully for ${studentName}`, 'success');
-            setTimeout(() => {
+          if (response.ok && data.success) {
+            showNotification(
+              'Quiz attempts reset successfully for ' + (data.student && data.student.name ? data.student.name : studentName),
+              'success',
+            );
+            setTimeout(function () {
               location.reload();
             }, 1500);
           } else {
-            showNotification('Failed to reset quiz attempts: ' + (data.message || 'Unknown error'), 'error');
+            showNotification(
+              'Failed to reset quiz attempts: ' + (data.message || 'Unknown error') + (response.status ? ' (' + response.status + ')' : ''),
+              'error',
+            );
           }
         } catch (error) {
           console.error('Error resetting quiz attempts:', error);
           showNotification('Error resetting quiz attempts', 'error');
         }
       }
+      window.resetStudentQuiz = resetStudentQuiz;
+
+      document.addEventListener('click', function (e) {
+        const btn = e.target.closest('button.quiz-reset-attempts-btn');
+        if (!btn) return;
+        e.preventDefault();
+        const qid = btn.getAttribute('data-quiz-id');
+        const sid = btn.getAttribute('data-student-id');
+        const sname = btn.getAttribute('data-student-name') || 'Student';
+        if (qid && sid && window.resetStudentQuiz) {
+          window.resetStudentQuiz(qid, sid, sname);
+        }
+      });
 
       // Export Results
       async function exportResults() {

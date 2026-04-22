@@ -1755,15 +1755,20 @@ UserSchema.methods.resetContentAttempts = async function (courseId, contentId) {
     return this;
   }
 
-  // Reset attempts-related fields
+  // Reset attempts-related fields (full history removed, not just counters)
   contentProgress.quizAttempts = [];
   contentProgress.attempts = 0;
   contentProgress.bestScore = 0;
   contentProgress.totalPoints = 0;
+  contentProgress.timeSpent = 0;
+  contentProgress.expectedEnd = null;
   // If it was marked completed/failed due to attempts, revert to not started
   contentProgress.completionStatus = 'not_started';
   contentProgress.progressPercentage = 0;
   contentProgress.completedAt = null;
+
+  this.markModified('enrolledCourses');
+  await this.calculateCourseProgress(courseId);
 
   return await this.save();
 };
@@ -2328,7 +2333,7 @@ UserSchema.methods.canAttemptQuiz = function (
   };
 };
 
-// Instance method to reset quiz attempts for a specific quiz
+// Instance method to reset all standalone quiz attempts: removes the entire quiz block (full history).
 UserSchema.methods.resetQuizAttempts = async function (quizId) {
   // Find the quiz attempt entry
   const quizAttemptIndex = this.quizAttempts.findIndex(

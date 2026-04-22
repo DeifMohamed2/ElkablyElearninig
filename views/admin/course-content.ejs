@@ -266,6 +266,11 @@
                         <button class="btn btn-sm btn-outline-info" onclick="viewContentDetails('<%= topic._id %>', '<%= contentItem._id %>')" title="View Details">
                           <i class="fas fa-chart-line"></i>
                         </button>
+                        <% if (contentItem.type === 'quiz' || contentItem.type === 'homework') { %>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openGrantRetriesModal('<%= topic._id %>', '<%= contentItem._id %>', `<%- contentItem.title.replace(/`/g, '\\`').replace(/\\/g, '\\\\') %>`, '<%= contentItem.type %>')" title="Open list: remove a student&apos;s full attempt history for this item so they can start fresh">
+                          <i class="fas fa-redo"></i>
+                        </button>
+                        <% } %>
                         <button class="btn btn-sm btn-outline-success" onclick="shareContentLink('<%= course.courseCode %>', '<%= topic._id %>', '<%= contentItem._id %>', '<%= contentItem.title %>')" title="Share Content">
                           <i class="fas fa-share-alt"></i>
                         </button>
@@ -2638,6 +2643,47 @@
         <button type="button" class="btn btn-warning" id="confirmSkipContentBtn" onclick="confirmSkipContent()" disabled>
           <i class="fas fa-forward me-1"></i>Skip Content for Selected Students
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grant retries (quiz / homework) modal -->
+<div class="modal fade" id="grantRetriesModal" tabindex="-1" aria-labelledby="grantRetriesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="grantRetriesModalLabel">
+          <i class="fas fa-redo me-2"></i><span id="grantRetriesTitle">Grant retries</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-1">Resets remove <strong>all</strong> prior attempts and scores for the selected student on this item.</p>
+        <p class="text-muted small mb-2" id="grantRetriesMeta"></p>
+        <div class="input-group mb-3">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" class="form-control" id="grantRetriesSearch" placeholder="Search by name, email, or student code…" autocomplete="off">
+        </div>
+        <div class="table-responsive" style="max-height: 420px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light position-sticky top-0">
+              <tr>
+                <th>Student</th>
+                <th>Code</th>
+                <th>Attempts</th>
+                <th>Best</th>
+                <th style="width: 110px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="grantRetriesTableBody">
+              <tr><td colspan="5" class="text-center text-muted py-4">Open this dialog to load students…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -10173,6 +10219,174 @@ function getContentIcon(type) {
     } catch (error) {
       console.error('Error downloading QR code:', error);
       showNotification('❌ Failed to download QR code', 'error');
+    }
+  }
+
+  // ==================== GRANT RETRIES (QUIZ / HOMEWORK) ====================
+  const grantRetriesState = {
+    topicId: null,
+    contentId: null,
+    contentType: null,
+    students: [],
+    maxAttempts: null,
+  };
+
+  function grantRetriesEsc(str) {
+    if (str == null || str === '') return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function openGrantRetriesModal(topicId, contentId, contentTitle, contentType) {
+    grantRetriesState.topicId = topicId;
+    grantRetriesState.contentId = contentId;
+    grantRetriesState.contentType = contentType;
+    grantRetriesState.students = [];
+    grantRetriesState.maxAttempts = null;
+
+    const titleEl = document.getElementById('grantRetriesTitle');
+    const metaEl = document.getElementById('grantRetriesMeta');
+    if (titleEl) titleEl.textContent = contentTitle || 'Grant retries';
+    if (metaEl) metaEl.textContent = '';
+    const search = document.getElementById('grantRetriesSearch');
+    if (search) search.value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('grantRetriesModal'));
+    modal.show();
+
+    const s = document.getElementById('grantRetriesSearch');
+    if (s && !s.dataset.grantBound) {
+      s.dataset.grantBound = '1';
+      s.addEventListener('input', function () {
+        renderGrantRetriesTable();
+      });
+    }
+    loadGrantRetriesStudents();
+  }
+
+  async function loadGrantRetriesStudents() {
+    const { topicId, contentId } = grantRetriesState;
+    const tbody = document.getElementById('grantRetriesTableBody');
+    tbody.innerHTML =
+      '<tr><td colspan="5" class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>';
+    try {
+      const url = `/admin/courses/<%= courseCode %>/topics/${topicId}/content/${contentId}/students`;
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Failed to load');
+      grantRetriesState.students = data.students || [];
+      const rawMax = data.content && data.content.maxAttempts;
+      grantRetriesState.maxAttempts =
+        rawMax != null && rawMax !== '' ? rawMax : '—';
+      const meta = document.getElementById('grantRetriesMeta');
+      if (meta) {
+        const st = data.stats || {};
+        const t = (data.content && data.content.type) || '';
+        meta.textContent = `Max attempts: ${grantRetriesState.maxAttempts} · Enrolled: ${
+          st.totalStudents != null ? st.totalStudents : grantRetriesState.students.length
+        }${t ? ' · ' + t : ''}`;
+      }
+      renderGrantRetriesTable();
+    } catch (e) {
+      console.error(e);
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="text-center text-danger py-3">' +
+        grantRetriesEsc(e.message || 'Error') +
+        '</td></tr>';
+      showNotification(e.message || 'Failed to load students', 'error');
+    }
+  }
+
+  function renderGrantRetriesTable() {
+    const q = (document.getElementById('grantRetriesSearch')?.value || '')
+      .toLowerCase()
+      .trim();
+    const tbody = document.getElementById('grantRetriesTableBody');
+    const maxA = grantRetriesState.maxAttempts;
+    const list = (grantRetriesState.students || []).filter((s) => {
+      if (!q) return true;
+      const name = (s.name || '').toLowerCase();
+      const email = (s.email || '').toLowerCase();
+      const code = (s.studentCode || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || code.includes(q);
+    });
+    if (list.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="text-center text-muted py-4">No students match this search.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list
+      .map((s) => {
+        const n =
+          (s.attempts && s.attempts.length) ||
+          s.attemptsUsed ||
+          0;
+        const best =
+          s.bestScore != null && s.bestScore !== undefined
+            ? s.bestScore + '%'
+            : '—';
+        const canR = s.canReset === true;
+        const sid = String(s.studentId);
+        const dis = canR
+          ? ''
+          : ' disabled title="No progress to reset yet"';
+        return (
+          '<tr>' +
+          '<td><strong>' +
+          grantRetriesEsc(s.name) +
+          '</strong><br><small class="text-muted">' +
+          grantRetriesEsc(s.email) +
+          '</small></td>' +
+          '<td>' +
+          grantRetriesEsc(s.studentCode || '—') +
+          '</td>' +
+          '<td>' +
+          n +
+          ' / ' +
+          grantRetriesEsc(String(maxA)) +
+          '</td>' +
+          '<td>' +
+          best +
+          '</td>' +
+          '<td><button type="button" class="btn btn-sm btn-outline-danger"' +
+          dis +
+          " onclick=\"postGrantRetriesReset('" +
+          sid +
+          "')\"><i class=\"fas fa-undo\"></i> Reset</button></td>" +
+          '</tr>'
+        );
+      })
+      .join('');
+  }
+
+  async function postGrantRetriesReset(studentId) {
+    if (
+      !confirm(
+        'Remove all of this student\'s prior attempts and scores for this content? Their full history here will be deleted, and they can start fresh (within your max attempts).',
+      )
+    ) {
+      return;
+    }
+    const { topicId, contentId } = grantRetriesState;
+    const url = `/admin/courses/<%= courseCode %>/topics/${topicId}/content/${contentId}/students/${studentId}/reset`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Reset failed');
+      showNotification(data.message || 'Attempts reset', 'success');
+      await loadGrantRetriesStudents();
+    } catch (e) {
+      console.error(e);
+      showNotification(e.message || 'Reset failed', 'error');
     }
   }
 
