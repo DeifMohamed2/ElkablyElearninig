@@ -1284,11 +1284,10 @@ const getContentDetails = async (req, res) => {
     let contentItem = { ...contentItemRaw };
     if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
       const ref = contentItem.zoomMeeting;
-      if (ref.status == null) {
-        const zmId = ref._id || ref;
-        const meeting = await ZoomMeeting.findById(zmId).lean();
-        contentItem = { ...contentItem, zoomMeeting: meeting || ref };
-      }
+      const zmId =
+        ref && typeof ref === 'object' && ref._id != null ? ref._id : ref;
+      const meeting = await ZoomMeeting.findById(zmId).lean();
+      contentItem = { ...contentItem, zoomMeeting: meeting || ref };
     }
     if (contentItem.type === 'zoom' && contentItem.zoomMeeting) {
       const zm = contentItem.zoomMeeting;

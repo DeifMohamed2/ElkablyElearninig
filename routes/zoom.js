@@ -19,6 +19,7 @@ const {
   leaveZoomMeeting,
   getZoomMeetingHistory,
 } = require('../controllers/studentController');
+const { applyBunnyStreamFieldsFromRecordingInput } = require('../utils/mobileBunnyRecording');
 
 // ==================== ADMIN ROUTES ====================
 
@@ -68,8 +69,10 @@ router.post(
         });
       }
 
-      zoomMeeting.recordingUrl = recordingUrl.trim();
+      const trimmed = recordingUrl.trim();
+      zoomMeeting.recordingUrl = trimmed;
       zoomMeeting.recordingStatus = 'completed';
+      applyBunnyStreamFieldsFromRecordingInput(zoomMeeting, trimmed);
       await zoomMeeting.save();
 
       console.log(`✅ Recording URL added to meeting ${meetingId}`);

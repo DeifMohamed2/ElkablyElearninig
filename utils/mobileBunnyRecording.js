@@ -15,17 +15,40 @@ function buildRecordingIframeHtml(embedUrl) {
   return `<iframe src="${embedUrl}" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>`;
 }
 
+/** Parse Bunny Stream library + video id from embed HTML or playback URL. */
+function extractBunnyStreamIdsFromText(text) {
+  if (!text || typeof text !== 'string') return null;
+  let m = text.match(/iframe\.mediadelivery\.net\/embed\/(\d+)\/([a-f0-9-]+)/i);
+  if (m) return { libraryId: m[1], videoId: m[2] };
+  m = text.match(/vz-(\d+)\.b-cdn\.net\/([a-f0-9-]+)\//i);
+  if (m) return { libraryId: m[1], videoId: m[2] };
+  return null;
+}
+
+/** Keep bunnyVideoId / bunnyVideoUrl aligned when admin pastes a Bunny embed or URL. */
+function applyBunnyStreamFieldsFromRecordingInput(zoomMeeting, trimmedRecordingUrl) {
+  if (!zoomMeeting || !trimmedRecordingUrl) return;
+  const ids = extractBunnyStreamIdsFromText(trimmedRecordingUrl);
+  if (!ids) return;
+  zoomMeeting.bunnyVideoId = ids.videoId;
+  zoomMeeting.bunnyVideoUrl = buildEmbedUrl(ids.libraryId, ids.videoId);
+}
+
 function resolveBunnyLibraryAndVideoId(zmLike) {
   if (!zmLike || typeof zmLike !== 'object') return null;
+  // Prefer recordingUrl alone first so a fresh admin embed wins over stale bunnyVideoUrl / bunnyVideoId.
+  if (typeof zmLike.recordingUrl === 'string') {
+    const fromRec = extractBunnyStreamIdsFromText(zmLike.recordingUrl);
+    if (fromRec) return fromRec;
+  }
+  if (typeof zmLike.bunnyVideoUrl === 'string') {
+    const fromBunnyUrl = extractBunnyStreamIdsFromText(zmLike.bunnyVideoUrl);
+    if (fromBunnyUrl) return fromBunnyUrl;
+  }
   const envLib = process.env.BUNNY_LIBRARY_ID && String(process.env.BUNNY_LIBRARY_ID).trim();
   if (zmLike.bunnyVideoId && envLib) {
     return { libraryId: envLib, videoId: String(zmLike.bunnyVideoId).trim() };
   }
-  const text = [zmLike.recordingUrl, zmLike.bunnyVideoUrl].filter(Boolean).join(' ');
-  const embed = text.match(/iframe\.mediadelivery\.net\/embed\/(\d+)\/([a-f0-9-]+)/i);
-  if (embed) return { libraryId: embed[1], videoId: embed[2] };
-  const cdn = text.match(/vz-(\d+)\.b-cdn\.net\/([a-f0-9-]+)\//i);
-  if (cdn) return { libraryId: cdn[1], videoId: cdn[2] };
   return null;
 }
 
@@ -93,4 +116,6 @@ module.exports = {
   buildEmbedUrl,
   buildRecordingIframeHtml,
   resolveBunnyLibraryAndVideoId,
+  extractBunnyStreamIdsFromText,
+  applyBunnyStreamFieldsFromRecordingInput,
 };

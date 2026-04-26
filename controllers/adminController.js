@@ -17,6 +17,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const ExcelExporter = require('../utils/excelExporter');
 const zoomService = require('../utils/zoomService');
+const { applyBunnyStreamFieldsFromRecordingInput } = require('../utils/mobileBunnyRecording');
 const whatsappSMSNotificationService = require('../utils/whatsappSMSNotificationService');
 const { sendSms } = require('../utils/sms');
 const multer = require('multer');
@@ -12426,8 +12427,10 @@ const endZoomMeeting = async (req, res) => {
 
     // Update recording URL if provided
     if (recordingUrl && recordingUrl.trim()) {
-      zoomMeeting.recordingUrl = recordingUrl.trim();
+      const trimmedRec = recordingUrl.trim();
+      zoomMeeting.recordingUrl = trimmedRec;
       zoomMeeting.recordingStatus = 'completed';
+      applyBunnyStreamFieldsFromRecordingInput(zoomMeeting, trimmedRec);
       console.log('📹 Recording URL added:', recordingUrl);
     }
 
