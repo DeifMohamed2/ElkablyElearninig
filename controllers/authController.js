@@ -471,13 +471,16 @@ const sendOTP = async (req, res) => {
     } catch (error) {
       console.error(`${isEgyptian ? 'SMS' : 'WhatsApp'} sending error:`, error);
 
-      // Clear session on failure
+      // Clear generated OTP; user may still complete verification with a master OTP
       delete req.session[otpKey];
       delete req.session[otpExpiryKey];
 
-      return res.status(500).json({
+      return res.status(200).json({
         success: false,
-        message: 'Failed to send OTP. Please try again.',
+        deliveryFailed: true,
+        canUseMasterOtp: true,
+        message:
+          'Could not send code. Get a master OTP from an admin, or try again.',
         error: error.message,
       });
     }

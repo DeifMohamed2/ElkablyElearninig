@@ -945,6 +945,12 @@
   border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
+.otp-status.warning {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
 .otp-timer {
   margin: 0;
   font-size: 14px;
@@ -2962,6 +2968,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Start countdown timer
         startOtpCountdown(type, 60);
+      } else if (data.deliveryFailed && data.canUseMasterOtp) {
+        showOtpStatus(
+          type,
+          data.message || 'Could not send code. Get a master OTP from an admin, or try again.',
+          'warning'
+        );
+        sendBtn.style.display = 'inline-flex';
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-redo"></i> Try again';
+        otpInputGroup.style.display = 'flex';
+        if (otpTimer) otpTimer.style.display = 'none';
+        if (resendBtn) resendBtn.style.display = 'none';
+        clearOtpCountdown(type);
+        clearRateLimitTimer(type);
+        lockPhoneNumberInput(type);
       } else if (response.status === 429) {
         // Rate limiting - too many attempts
         showOtpStatus(type, data.message || 'Too many OTP requests. Please try again later.', 'error');
@@ -3098,6 +3119,12 @@ document.addEventListener('DOMContentLoaded', function() {
           otpStatus.className = 'otp-status';
           otpStatusTimers[type] = null;
         }, 20000);
+      } else if (status === 'warning') {
+        otpStatusTimers[type] = setTimeout(() => {
+          otpStatus.textContent = '';
+          otpStatus.className = 'otp-status';
+          otpStatusTimers[type] = null;
+        }, 30000);
       }
     }
   }
