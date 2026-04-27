@@ -67,6 +67,10 @@ async function createOrRotateChallenge({
   messagePrefix,
   maxSendsPerWindow = 3,
   windowMs = 60 * 60 * 1000,
+  minSecondsBetweenSends = Math.max(
+    15,
+    Number(process.env.OTP_MIN_SECONDS_BETWEEN_SENDS) || 45,
+  ),
 }) {
   const clean = String(phoneDigits).replace(/\D/g, '');
   const recipientKey = buildRecipientKey(purpose, countryCode, clean);
@@ -77,6 +81,20 @@ async function createOrRotateChallenge({
   });
 
   const now = Date.now();
+  const minGapMs = minSecondsBetweenSends * 1000;
+
+  if (doc && doc.lastOtpSentAt) {
+    const sinceLast = now - doc.lastOtpSentAt.getTime();
+    if (sinceLast < minGapMs) {
+      const waitSec = Math.ceil((minGapMs - sinceLast) / 1000);
+      const err = new Error(
+        `Please wait ${waitSec} second(s) before requesting another verification code.`,
+      );
+      err.status = 429;
+      err.retryAfter = waitSec;
+      throw err;
+    }
+  }
 
   if (doc && doc.blockedUntil && doc.blockedUntil > new Date(now)) {
     const remainingMinutes = Math.ceil((doc.blockedUntil - now) / 60000);
@@ -122,6 +140,7 @@ async function createOrRotateChallenge({
       sendCount: 1,
       verified: false,
       consumed: false,
+      lastOtpSentAt: new Date(now),
     });
   } else {
     doc.codeHash = codeHash;
@@ -129,6 +148,7 @@ async function createOrRotateChallenge({
     doc.sendCount = (doc.sendCount || 0) + 1;
     doc.verified = false;
     doc.verifyAttempts = 0;
+    doc.lastOtpSentAt = new Date(now);
     if (userId) doc.userId = userId;
   }
 

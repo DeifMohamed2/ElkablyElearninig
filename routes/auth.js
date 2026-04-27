@@ -20,6 +20,7 @@ const {
   resetPassword,
   createStudentFromExternalSystem,
 } = require('../controllers/authController');
+const { otpSendIpRateLimit } = require('../middlewares/otpSendRateLimit');
 
 // Login page
 router.get('/login', isNotAuthenticated, getLoginPage);
@@ -32,7 +33,7 @@ router.get('/register', isNotAuthenticated, getRegisterPage);
 router.post('/register', registerUser);
 
 // OTP routes (allow both authenticated and unauthenticated users)
-router.post('/send-otp', sendOTP);
+router.post('/send-otp', otpSendIpRateLimit, sendOTP);
 router.post('/verify-otp', verifyOTP);
 
 // Complete data page (for students with incomplete profiles)
@@ -44,7 +45,11 @@ router.get('/forgot-password', isNotAuthenticated, getForgotPasswordPage);
 // Initiate forgot password (find account)
 router.post('/forgot-password/initiate', initiateForgotPassword);
 // Send OTP for forgot password
-router.post('/forgot-password/send-otp', sendForgotPasswordOTP);
+router.post(
+  '/forgot-password/send-otp',
+  otpSendIpRateLimit,
+  sendForgotPasswordOTP,
+);
 // Verify OTP for forgot password
 router.post('/forgot-password/verify-otp', verifyForgotPasswordOTP);
 // Reset password

@@ -7,6 +7,7 @@ const auth = require('../controllers/studentMobileAuthController');
 const mobile = require('../controllers/studentMobileController');
 const notif = require('../controllers/studentMobileNotificationController');
 const { authenticateStudentMobile } = require('../middlewares/studentMobileAuth');
+const { otpSendIpRateLimit } = require('../middlewares/otpSendRateLimit');
 const { profilePictureFileFilter } = require('../utils/profilePictureFileFilter');
 
 const router = express.Router();
@@ -57,10 +58,18 @@ const handleMulterError = (err, req, res, next) => {
 
 // ==================== Public ====================
 router.post('/login', auth.login);
-router.post('/register/send-otp', auth.registerSendOtp);
+router.post(
+  '/register/send-otp',
+  otpSendIpRateLimit,
+  auth.registerSendOtp,
+);
 router.post('/register/verify-otp', auth.registerVerifyOtp);
 router.post('/register', auth.register);
-router.post('/forgot-password/initiate', auth.forgotPasswordInitiate);
+router.post(
+  '/forgot-password/initiate',
+  otpSendIpRateLimit,
+  auth.forgotPasswordInitiate,
+);
 router.post('/forgot-password/verify-otp', auth.forgotPasswordVerifyOtp);
 router.post('/reset-password', auth.resetPassword);
 
@@ -113,7 +122,11 @@ router.post(
   profilePictureUpload.single('profilePicture'),
   mobile.updateProfilePicture,
 );
-router.post('/profile/send-otp', auth.profileSendOtp);
+router.post(
+  '/profile/send-otp',
+  otpSendIpRateLimit,
+  auth.profileSendOtp,
+);
 router.post('/profile/verify-otp', auth.profileVerifyOtp);
 router.get('/settings', mobile.getSettings);
 router.put('/settings', mobile.updateSettings);

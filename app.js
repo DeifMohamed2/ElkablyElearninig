@@ -108,6 +108,11 @@ const imageUpload = multer({
 // Create Express app
 const app = express();
 
+// So req.ip reflects the real client when behind nginx / a load balancer (rate limits, logs)
+if (process.env.TRUST_PROXY !== 'false') {
+  app.set('trust proxy', 1);
+}
+
 // Error handler for multer file upload errors
 const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {

@@ -54,6 +54,11 @@ const OtpChallengeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    /** Last time an OTP was dispatched for this challenge (resend spacing). */
+    lastOtpSentAt: {
+      type: Date,
+      default: null,
+    },
     metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: {},

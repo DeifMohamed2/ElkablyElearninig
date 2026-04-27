@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
 const { ensureAuthenticated, ensureStudent, ensureDataComplete } = require('../middlewares/auth');
+const { otpSendIpRateLimit } = require('../middlewares/otpSendRateLimit');
 
 // Import Game Room Controller
 const {
@@ -88,7 +89,11 @@ router.get('/homework-attempts', studentController.homeworkAttempts);
 router.get('/profile', studentController.profile);
 router.put('/profile/update', studentController.updateProfile);
 router.post('/profile/update-picture', profilePictureUpload.single('profilePicture'), studentController.updateProfilePicture);
-router.post('/profile/send-otp', studentController.sendProfileOTP);
+router.post(
+  '/profile/send-otp',
+  otpSendIpRateLimit,
+  studentController.sendProfileOTP,
+);
 router.post('/profile/verify-otp', studentController.verifyProfileOTP);
 
 // Settings
